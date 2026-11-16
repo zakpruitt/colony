@@ -46,7 +46,8 @@ time and converted to ticks. Every number named in CAPITALS is a constant in Int
 - **R7. Rewards.** When a monster dies, every living hero gains the monster's `xp`, and the party gains gold
   rolled between the monster's `gold_min` and `gold_max` (doubled in a VAULT). Gold and XP never decrease.
 - **R8. Levels.** A hero whose XP reaches `Hero.xp_for_level(level + 1)` gains a level (several at once if it
-  has enough), with the health and damage growth of its class from then on, and is healed by the health it gained.
+  has enough), with the health and damage growth of its class from then on, and is healed by the health it gained. This
+  applies at once, including to a hero in the middle of a fight.
 - **R9. Rest.** After a won battle, if any hero is dead or below `REST_BELOW` of its health, the party rests
   where it stands: every hero, dead ones included, regains `REST_HEAL_PER_SECOND` of its maximum health per
   second until all are full; then travel resumes. Otherwise travel resumes at once.
@@ -54,13 +55,16 @@ time and converted to ticks. Every number named in CAPITALS is a constant in Int
 - **R11. Wipe and fallback.** If every hero is dead, the party is wiped: after `REVIVE_SECONDS` it stands, at
   full health, in the arrival chamber of the last stable depth (the START chamber at depth 1; otherwise where
   the shaft from above lands), and the target depth becomes the last stable depth. The chamber it died in keeps
-  its surviving monsters, healed to full. XP, gold and levels are untouched.
+  its surviving monsters, healed to full. XP, gold and levels are untouched. A fight that lasts `BATTLE_LIMIT_SECONDS`, or
+  that the battle itself ends in the monsters' favour with heroes standing, overwhelms the party: each hero
+  still alive dies (with a death event) and the party is wiped.
 - **R12. Last stable depth.** It starts at 1. When the party has been on one depth for `stable_seconds`
   (default 600) without a wipe, and that depth is deeper than the last stable depth, it becomes the last
   stable depth. Leaving a depth or wiping restarts the count.
 - **R13. Auto-push.** With auto-push on (the default), whenever the party has been at its target depth for
   `stable_seconds` without a wipe, the target depth increases by one. `set_target_depth` sets the target to
-  any depth from 1 upward and applies from the next tick; `set_auto_push` turns auto-push on or off.
+  any depth from 1 upward and applies from the next tick; `set_auto_push` turns auto-push on or off. A target
+  set while the party is reviving wins over the fallback target.
 - **R14. Everything is reported.** Battle events are passed on, stamped with the simulation tick. The
   expedition adds events for: an encounter starting and ending (which chamber; whether the heroes won), XP
   gained (hero, amount), gold gained (amount, the dead monster's id), level up (hero, new level), rest starting
@@ -122,6 +126,7 @@ const REST_BELOW: float = 0.6
 const REST_HEAL_PER_SECOND: float = 0.04
 const RESPAWN_SECONDS: float = 90.0
 const REVIVE_SECONDS: float = 5.0
+const BATTLE_LIMIT_SECONDS: float = 90.0
 const FIRST_MONSTER_ID: int = 100
 
 var state: State

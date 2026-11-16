@@ -20,15 +20,19 @@ After it, `godot --path .` is the game, without the juice. Read `docs/design/bas
 - **R2. Heroes are where the simulation says.** Each party hero has one `CharacterSprite`, placed at its
   `hero_position` (tiles x 16). Between ticks the sprite eases toward its simulation position, so walking
   looks smooth at any frame rate: while the party travels, a hero sprite moves a little on every rendered
-  frame and is never more than one tile from its simulation position. A jump of more than 4 tiles in one tick
-  (revival) is a snap, not a slide.
+  frame and, in steady travel, is never more than one tile from its simulation position. The simulation moves
+  heroes several tiles in one tick when a fight starts or ends and when a climb starts or ends (they line up,
+  regroup, or step onto the ladder): the sprites run to their new places at up to three times walking speed,
+  with the walk animation, and never teleport. Only a revival (the `PARTY_REVIVED` event) snaps.
 - **R3. Heroes act out the expedition.** Travelling: walk animation, facing the way the party faces. Climbing:
   walk animation on the shaft. Resting: idle. Fighting: idle between attacks, facing their target. Wiped:
   heroes stay down (hidden after their death animation) until the revival, then reappear idle (`revive()`,
   so `World.character(id)` keeps returning the same sprite).
 - **R4. Monsters wait in their chambers.** For every level the labyrinth view has built, each populated
   chamber shows its waiting monsters (`monsters_in`) as idle sprites on the floor, facing the party's side.
-  They appear when a level is built or a chamber refills, and are removed when the level is freed.
+  They appear when a level is built or a chamber refills, and are removed when the level is freed. No event
+  announces a refill, so the world checks `is_populated` and `monsters_in` for the built levels a few times a
+  second. `monsters_in` returns the simulation's own combatants: the world reads them and never changes them.
 - **R5. Fights are acted out.** From simulation events: an attack starting plays the attacker's attack
   animation with the event's wind-up time (`amount`, in ticks), ranged if the attacker's range is over
   `Battle.MELEE_REACH`; a hit plays
@@ -109,7 +113,7 @@ step the simulation directly, and call `sync`.
 | Requirement | Test | What it shows |
 |---|---|---|
 | R1 | `test_r1_main_scene_shows_the_world` | Main has a World with a labyrinth view built around the party and a camera near it; the clock label is on the HUD layer |
-| R2 | `test_r2_hero_sprites_follow_smoothly` | Four hero sprites exist; over 3 s of travel with 60 `sync` calls per second, each moves on every call and stays within one tile of its simulation position; a forced teleport snaps |
+| R2 | `test_r2_hero_sprites_follow_smoothly` | Four hero sprites exist; over 3 s of travel with 60 `sync` calls per second, each moves on every call and stays within one tile of its simulation position; through a fight starting and ending and a climb, no sprite moves more than half a tile in one call; a revival snaps |
 | R3 | `test_r3_heroes_act_out_the_state` | The animation and facing for travelling, climbing, resting and fighting; hidden after a wipe, back after revival |
 | R4 | `test_r4_waiting_monsters_are_shown` | Populated chambers of built levels have one idle sprite per waiting monster, at its position; none for unbuilt levels; removed when freed |
 | R5 | `test_r5_events_drive_fight_animation` | Injected ATTACK_STARTED, HIT and DIED events cause the attack (with the right wind-up and ranged flag), the hit reaction, and removal after death |
