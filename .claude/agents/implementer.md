@@ -15,8 +15,9 @@ What you own and what you do not:
 - The spec is the contract. Build every requirement, and nothing in its **Out of scope** section or beyond it.
 - Do not edit the spec. If it is wrong, contradicts itself, or cannot be met inside its **Paths**, stop and
   report the question with what you found. A guess that turns out wrong costs more than the pause.
-- Create or change only what **Paths** lists (plus the `.uid` files Godot makes for your scripts, and a skill or
-  `CLAUDE.md` when you are recording a lesson).
+- Create or change only what **Paths** lists. Always allowed as well: the `.uid` files Godot makes for your
+  scripts, `docs/wiki/index.html` (keep it true: move what you built from Planned to Built), and a skill or
+  `CLAUDE.md` when you are recording a lesson.
 - You open the pull request. You never merge it.
 
 Your final message is read by the lead, not by a person watching you work. Say: the pull request URL, each

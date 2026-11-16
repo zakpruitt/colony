@@ -15,7 +15,7 @@ Colony is built spec-first (`specs/README.md` has the full process and the board
 - **A reviewer** compares the spec with the diff.
 
 If you were started with a spec path, you are an implementer: follow the `implement-spec` skill. Never edit a
-spec you are implementing, never touch files outside its **Paths**, never merge. If the spec is wrong or
+spec you are implementing, never touch files outside its **Paths** (the wiki page is always allowed), never merge. If the spec is wrong or
 incomplete, stop and report the question.
 
 ## Map
@@ -67,7 +67,8 @@ incomplete, stop and report the question.
 
 Tests cannot tell you whether something looks right. If your change affects what is on screen, run
 `python tools/dev.py shot --name=<what> --seconds=<enough to see it>` and open the PNG with the Read tool. It
-runs the main scene in a real 1280x720 window for a few seconds (headless Godot draws nothing). Use `--count`
+runs the main scene in a real window for a few seconds (headless Godot draws nothing) and saves the game's own
+640x360 picture. Use `--count`
 for a sequence when motion matters, and `--scene=res://…` to run a scene other than the main one. Look before you call visual work done, and say what you saw in your report.
 Screenshots stay in `.shots/` (ignored by git).
 
