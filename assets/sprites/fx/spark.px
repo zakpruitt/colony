@@ -1,0 +1,9 @@
+# A spark of a hit. White, so the game tints it any palette colour.
+category = fx
+size = 3x3
+pivot = 1,1
+
+[spark]
+.j.
+jjj
+.j.

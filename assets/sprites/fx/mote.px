@@ -1,0 +1,11 @@
+# A mote of XP, flying from a fallen monster to a hero.
+category = fx
+size = 5x5
+pivot = 2,2
+
+[mote]
+..h..
+.hih.
+hijih
+.hih.
+..h..
