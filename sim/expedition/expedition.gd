@@ -19,6 +19,8 @@ const REST_BELOW: float = 0.6
 const REST_HEAL_PER_SECOND: float = 0.04
 const RESPAWN_SECONDS: float = 90.0
 const REVIVE_SECONDS: float = 5.0
+## A fight that lasts this long overwhelms the party (it is wiped).
+const BATTLE_LIMIT_SECONDS: float = 90.0
 const FIRST_MONSTER_ID: int = 100
 
 ## Tiles between heroes walking in column.
@@ -252,7 +254,8 @@ func hash_parts() -> Array:
 
 
 func _apply_commands() -> void:
-	if _pending_target <= 0:
+	# While the party is down a command waits, so it wins over the fallback target on revival.
+	if _pending_target <= 0 or state == State.REVIVING:
 		return
 	var wanted: int = _pending_target
 	_pending_target = 0
@@ -533,8 +536,24 @@ func _fight() -> void:
 			alive.erase(dead.id)
 		else:
 			_reward(dead, alive)
-	if battle.result() != Battle.Result.ONGOING:
-		_end_battle()
+	var overwhelmed: bool = battle.tick >= Combatant.seconds_to_ticks(BATTLE_LIMIT_SECONDS)
+	if battle.result() == Battle.Result.MONSTERS_WON and not alive.is_empty():
+		overwhelmed = true
+	if overwhelmed and battle.result() != Battle.Result.HEROES_WON:
+		_overwhelm()
+		_end_battle(false)
+	elif battle.result() != Battle.Result.ONGOING:
+		_end_battle(battle.result() == Battle.Result.HEROES_WON)
+
+
+## Every hero still standing falls: the fight ran too long, or was lost with heroes up.
+func _overwhelm() -> void:
+	for fighter: Combatant in battle.heroes:
+		if fighter.is_alive():
+			fighter.health = 0
+			fighter.state = Combatant.State.DEAD
+			fighter.target_id = -1
+			_emit(SimEvent.Kind.DIED, fighter.id)
 
 
 ## XP for every hero alive when [param dead] fell, and gold for the party.
@@ -563,8 +582,7 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
 
 
-func _end_battle() -> void:
-	var won: bool = battle.result() == Battle.Result.HEROES_WON
+func _end_battle(won: bool) -> void:
 	for hero: Hero in _party.heroes:
 		var fighter: Combatant = battle.combatant(hero.id)
 		hero.health = clampi(fighter.health, 0, hero.max_health()) if won else 0
@@ -584,7 +602,7 @@ func _end_battle() -> void:
 		else:
 			state = State.TRAVELLING
 		return
-	# Lost (every hero down, or the battle ran out of time): the survivors stay, healed.
+	# Lost (every hero down): the surviving monsters stay, healed.
 	var survivors: Array[Combatant] = []
 	for monster: Combatant in battle.monsters:
 		if monster.is_alive():
@@ -660,6 +678,10 @@ func _revive() -> void:
 	_place(_arrival_x(depth))
 	_restart_depth_count(_tick)
 	_set_target(back_to)
+	# A target asked for while the party was down comes after the fallback, so it wins.
+	if _pending_target > 0:
+		_set_target(_pending_target)
+		_pending_target = 0
 	state = State.TRAVELLING
 
 
