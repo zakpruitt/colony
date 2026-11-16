@@ -33,6 +33,11 @@ Write `tests/acceptance/test_NNN_slug.gd` with one test per requirement, named a
 missing, not a typo). Then write the code. The `godot-headless-test` skill covers how to write these so they
 prove something.
 
+A test that names a class which does not exist yet fails with a parse error, not for the right reason. First
+write each **Interfaces** file as a stub (the exact signatures, bodies that return `0`, `""` or do nothing),
+run `python tools/dev.py import` so Godot sees the new `class_name`s, then run the tests: they now fail on
+their assertions.
+
 Add unit tests under `tests/unit/` for logic the acceptance tests only reach indirectly.
 
 ## 4. Build
@@ -40,6 +45,8 @@ Add unit tests under `tests/unit/` for logic the acceptance tests only reach ind
 - Rules go in `sim/`, drawing and input in `game/`, content in `data/`. `docs/architecture.md` says why.
 - Type everything. A warning is a compile error here.
 - Run `python tools/dev.py check --only=format,boundary,compile,tests` often; it takes seconds.
+- `gdlint` allows 100 characters per line. A doc comment copied word for word from the spec's **Interfaces**
+  can be longer; rewrap it (the signatures stay exact, the comment's line breaks do not matter).
 - Commit in logical steps with Conventional Commit messages (`feat(sim): …`), each one passing the check.
   Include the `.uid` file of every script you add. No attribution lines.
 
