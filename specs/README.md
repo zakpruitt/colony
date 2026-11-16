@@ -30,4 +30,7 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| F | Polish passes from looking at the running game; saves if time allows | all |
+| G | [016 Camp upgrades](016-camp-upgrades/spec.md): gold buys permanent party-wide upgrades (rules, data, save) — provisional, in progress | 005, 014 |
+| G | [018 Seeing the loop](018-seeing-the-loop/spec.md): zoom, a showcase of every moment, and fixes from looking — provisional, in progress | 008, 010, 011, 012, 015 |
+| G | [019 Progress while away](019-away-progress/spec.md): the party keeps working while the game is closed — provisional, in progress | 014 |
+| H | [017 Upgrade shop](017-upgrade-shop/spec.md): buying upgrades on screen — provisional, not started | 011, 016 |
