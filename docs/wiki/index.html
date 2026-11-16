@@ -157,10 +157,26 @@ gear and spec the party, point it at a depth, and check in now and then.</p>
   <li>You check in: spend XP on talents, buy and equip gear, change the party, set a target depth.</li>
   <li>You tab away again.</li>
 </ol>
+<p><span class="tag built">Built: spec 005</span> The loop runs in the simulation with nobody touching it
+(nothing draws it yet). A party of four (knight, rogue, mage, cleric) starts in the middle of the start
+chamber and walks at 3 tiles a second, one behind the other, knight first. It has a <em>target depth</em>:
+above it, the party walks to the shaft and climbs down; below it, it climbs back up; at it, it walks from one
+end of the level to the other and back, farming. Every chamber except the start and the two chambers with a
+shaft holds 2 to 5 monsters (more in a den); deeper kinds are more likely once they appear. Walking into a
+chamber with monsters starts a fight. Each kill gives every living hero the monster's XP and the party some
+gold (double in a vault); enough XP raises a hero's level. After a fight, if anyone is dead or under 60%
+health, the party rests where it stands until everyone is full again (4% of health a second). A cleared
+chamber fills up again after 90 seconds. Each target depth that holds for the stable time is followed by
+the next one down (auto-push, which can be turned off), so the party keeps going deeper until it meets
+something it cannot beat.</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
 (about ten minutes to start). If the party wipes, it revives there and keeps farming. A wipe costs
 efficiency, never progress.</p>
+<p><span class="tag built">Built: spec 005</span> A depth becomes the last stable depth after ten minutes on it
+without a wipe. After a wipe the party stands up again five seconds later, at full health, where the shaft
+lands on its last stable depth (or in the start chamber), and that becomes its target. XP, gold and levels are
+never lost. To watch an hour of this as numbers, run the <code>sim</code> command in the table below.</p>
 <h3>Party</h3>
 <p>One to four heroes from a small classic set of classes: tank, healer, melee damage, ranged damage.
 Balance matters: a party with no healer should struggle at depth. Loot is randomised from standard base
@@ -254,6 +270,7 @@ a first pass for Zak to change. The first sprite is the knight; to see every spr
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
+  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
 </table>
 </div>
@@ -308,7 +325,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, shown in a demo, not yet in the main game</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> in the simulation, not yet drawn; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>
 </table>
