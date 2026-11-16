@@ -1,9 +1,9 @@
 # 002 — Art foundation: palette, code-drawn sprites and the art lint
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M0
 - **Depends on:** none
-- **Pull request:** —
+- **Pull request:** [#4](https://github.com/zakpruitt/colony/pull/4)
 
 ## Intent
 
@@ -16,7 +16,7 @@ cannot land. Later lanes draw heroes, monsters, tiles and effects with it. Read 
 
 - **R1. One master palette.** `assets/style/palette.txt` lists exactly 32 colours, one per line as
   `<symbol> <hex> <name>`: ENDESGA 32 in its standard order, symbols `0`-`9` then `a`-`v`, names in snake_case
-  (for example `k 181425 ink`). The hex values, in order:
+  (for example `p 181425 ink`). The hex values, in order:
   `be4a2f d77643 ead4aa e4a672 b86f50 733e39 3e2731 a22633 e43b44 f77622 feae34 fee761 63c74d 3e8948 265c42
   193c3e 124e89 0099db 2ce8f5 ffffff c0cbdc 8b9bb4 5a6988 3a4466 262b44 181425 ff0044 68386c b55088 f6757a
   e8b796 c28569`. The colour `181425` is the outline colour and is named `ink`.

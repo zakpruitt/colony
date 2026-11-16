@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
@@ -17,7 +18,6 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| A | [002 Art foundation](002-art-foundation/spec.md): palette, code-drawn sprites, art lint, style bible — provisional | — |
 | A | [004 Combat core](004-combat-core/spec.md): heroes, monsters, a fight, sim events (sim + data) — provisional | 001 |
 | B | [005 Expedition loop](005-expedition-loop/spec.md): travel, encounters, XP, gold, rest, wipe and fallback (sim) — provisional, not started | 001, 003, 004 |
 | B | [006 Labyrinth view](006-labyrinth-view/spec.md): tiles, depth bands, camera — provisional, not started | 002, 003 |
