@@ -9,6 +9,7 @@ implementer lane builds exactly that.
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
+| 023 | [Steady monster ids](023-steady-monster-ids/spec.md) | M3 | landed on dev, [#25](https://github.com/zakpruitt/colony/pull/25), provisional | 005, 008, 020 |
 | 022 | [Auto-buy](022-auto-buy/spec.md) | M3 | landed on dev, [#23](https://github.com/zakpruitt/colony/pull/23), provisional | 016, 017, 019 |
 | 021 | [Sound effects](021-sound-effects/spec.md) | M5 | landed on dev, [#22](https://github.com/zakpruitt/colony/pull/22), provisional; not yet heard by anyone | 008, 010 |
 | 020 | [Guardians](020-guardians/spec.md) | M3 | landed on dev, [#21](https://github.com/zakpruitt/colony/pull/21), provisional | 005, 007, 008, 013, 015 |
@@ -37,5 +38,4 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| I | [023 Steady monster ids](023-steady-monster-ids/spec.md): watching the game must not change its state — provisional, in progress | 005, 008, 020 |
 | I | [024 Guardian fights](024-guardian-fights/spec.md): announcement, boss health bar and a death worth the wait — provisional, in progress | 010, 011, 020, 021 |

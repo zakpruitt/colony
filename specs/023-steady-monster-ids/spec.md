@@ -1,9 +1,9 @@
 # 023 — Watching must not change the game
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 005, 008, 020
-- **Pull request:** —
+- **Pull request:** [#25](https://github.com/zakpruitt/colony/pull/25)
 
 ## Intent
 
