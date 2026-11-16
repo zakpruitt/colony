@@ -2,16 +2,37 @@ class_name SimEvent
 extends RefCounted
 ## One thing that happened in the simulation, for the view to show.
 
-enum Kind { ATTACK_STARTED, PROJECTILE_LAUNCHED, HIT, HEALED, DIED }
+enum Kind {
+	ATTACK_STARTED,
+	PROJECTILE_LAUNCHED,
+	HIT,
+	HEALED,
+	DIED,
+	ENCOUNTER_STARTED,
+	ENCOUNTER_ENDED,
+	XP_GAINED,
+	GOLD_GAINED,
+	LEVEL_UP,
+	REST_STARTED,
+	REST_ENDED,
+	DEPTH_CHANGED,
+	PARTY_WIPED,
+	PARTY_REVIVED,
+	STABLE_DEPTH_REACHED,
+	TARGET_DEPTH_CHANGED,
+}
 
 var kind: Kind
 var tick: int
 var source_id: int = -1
 var target_id: int = -1
 ## Damage or healing done; flight time in ticks for PROJECTILE_LAUNCHED;
-## wind-up in ticks for ATTACK_STARTED.
+## wind-up in ticks for ATTACK_STARTED. For the expedition's events: the chamber
+## index (ENCOUNTER_STARTED, ENCOUNTER_ENDED), XP or gold gained, the new level
+## (LEVEL_UP), or the depth (DEPTH_CHANGED, PARTY_REVIVED, STABLE_DEPTH_REACHED,
+## TARGET_DEPTH_CHANGED).
 var amount: int = 0
-## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED.
+## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED.
 var flag: bool = false
 
 
