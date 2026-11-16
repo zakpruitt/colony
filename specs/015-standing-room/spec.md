@@ -1,9 +1,9 @@
 # 015 — Standing room: fights and climbs you can read
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M2
 - **Depends on:** 004, 005, 008
-- **Pull request:** —
+- **Pull request:** [#16](https://github.com/zakpruitt/colony/pull/16)
 
 ## Intent
 

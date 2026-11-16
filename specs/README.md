@@ -9,6 +9,7 @@ implementer lane builds exactly that.
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
+| 015 | [Standing room](015-standing-room/spec.md) | M2 | landed on dev, [#16](https://github.com/zakpruitt/colony/pull/16), provisional | 004, 005, 008 |
 | 010 | [Combat effects](010-combat-effects/spec.md) | M5 | landed on dev, [#15](https://github.com/zakpruitt/colony/pull/15), provisional | 008, 009 |
 | 011 | [HUD](011-hud/spec.md) | M4 | landed on dev, [#14](https://github.com/zakpruitt/colony/pull/14), provisional | 008, 009 |
 | 012 | [Ambient life](012-ambient-life/spec.md) | M5 | landed on dev, [#12](https://github.com/zakpruitt/colony/pull/12), provisional | 006 |
@@ -29,5 +30,4 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| D | [015 Standing room](015-standing-room/spec.md): fighters stop standing on one spot, climbers stand on the ladder — provisional, in progress | 004, 005, 008 |
 | F | Polish passes from looking at the running game; saves if time allows | all |
