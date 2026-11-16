@@ -305,7 +305,7 @@ func _travel() -> void:
 	var level: LabyrinthLevel = _labyrinth.level(depth)
 	var goal: float
 	if depth < target_depth:
-		goal = level.shaft_down.position.x
+		goal = _shaft_middle(depth)
 	elif depth > target_depth:
 		goal = _landing_column(depth)
 	elif facing > 0:
@@ -368,9 +368,14 @@ func _formation_x(rank: int) -> float:
 	return clampf(hero_x, first, last)
 
 
-## The column where the shaft from the level above lands on this depth.
+## Where the shaft from the level above lands on this depth: the middle of the shaft.
 func _landing_column(level_depth: int) -> float:
-	return _labyrinth.shaft_column(level_depth - 1)
+	return _shaft_middle(level_depth - 1)
+
+
+## The middle of the shaft down from [param level_depth], where a climber stands on the ladder.
+func _shaft_middle(level_depth: int) -> float:
+	return _labyrinth.shaft_column(level_depth) + Labyrinth.SHAFT_WIDTH / 2.0
 
 
 ## Where the party stands when it arrives on this depth without climbing:
