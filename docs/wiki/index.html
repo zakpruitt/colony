@@ -1,0 +1,283 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colony Wiki</title>
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --panel: #ffffff;
+    --text: #1f2328;
+    --muted: #5c6470;
+    --line: #dcd8ce;
+    --accent: #9a5b13;
+    --code-bg: #efece4;
+    --built-bg: #dcefdc;
+    --built-text: #1d5a27;
+    --planned-bg: #ece8dd;
+    --planned-text: #5c5340;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #17181b;
+      --panel: #1f2125;
+      --text: #e6e3dc;
+      --muted: #a09c92;
+      --line: #34363c;
+      --accent: #e0a458;
+      --code-bg: #2a2c31;
+      --built-bg: #1f3a25;
+      --built-text: #a5dcae;
+      --planned-bg: #33312b;
+      --planned-text: #c9c1ab;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 17px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main { max-width: 780px; margin: 0 auto; padding: 32px 16px 80px; }
+  h1 { font-size: 2rem; margin: 0 0 4px; }
+  h2 {
+    font-size: 1.35rem;
+    margin: 48px 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  h3 { font-size: 1.05rem; margin: 24px 0 6px; }
+  p { margin: 0 0 14px; }
+  a { color: var(--accent); }
+  .lede { color: var(--muted); margin-bottom: 24px; }
+  nav {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 12px 16px;
+  }
+  nav ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 32px; }
+  @media (max-width: 520px) { nav ol { columns: 1; } }
+  code, pre {
+    font: 0.9em/1.5 ui-monospace, "Cascadia Code", Consolas, monospace;
+    background: var(--code-bg);
+    border-radius: 4px;
+  }
+  code { padding: 1px 5px; }
+  pre { padding: 12px 14px; overflow-x: auto; margin: 0 0 14px; }
+  pre code { padding: 0; background: none; }
+  .table-wrap { overflow-x: auto; margin: 0 0 14px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td {
+    text-align: left;
+    vertical-align: top;
+    padding: 8px 12px 8px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  th { font-size: 0.85rem; color: var(--muted); font-weight: 600; }
+  td code { white-space: nowrap; }
+  .tag {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 1px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+  .built { background: var(--built-bg); color: var(--built-text); }
+  .planned { background: var(--planned-bg); color: var(--planned-text); }
+  .note {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--accent);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin: 0 0 14px;
+  }
+  .note p:last-child { margin-bottom: 0; }
+  ul, ol { margin: 0 0 14px; padding-left: 22px; }
+  li { margin-bottom: 4px; }
+  footer { margin-top: 56px; color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Colony Wiki</h1>
+<p class="lede">How the game works, how the code is put together, and the commands to run it.
+Things marked <span class="tag built">Built</span> work today;
+<span class="tag planned">Planned</span> is designed but not yet in the game.</p>
+
+<nav>
+  <ol>
+    <li><a href="#run">Run the game</a></li>
+    <li><a href="#game">What the game is</a></li>
+    <li><a href="#loop">How a session plays</a></li>
+    <li><a href="#code">How the code works</a></li>
+    <li><a href="#commands">Dev commands</a></li>
+    <li><a href="#folders">Where things live</a></li>
+    <li><a href="#process">How work gets done</a></li>
+    <li><a href="#status">Status</a></li>
+  </ol>
+</nav>
+
+<h2 id="run">1. Run the game</h2>
+<p>From the <code>colony</code> folder, in any terminal:</p>
+<pre><code>godot --path .</code></pre>
+<p>To open the project in the Godot editor instead (press F5 there to play):</p>
+<pre><code>godot -e --path .</code></pre>
+<div class="note">
+  <p><strong>What you will see today:</strong> an empty grey window. The project boots cleanly, but nothing is
+  drawn yet. The first thing to appear will be a tick counter, from spec 001.</p>
+</div>
+<p>If the game fails to start after pulling new work or switching branch, rebuild Godot's import cache
+and try again:</p>
+<pre><code>python tools/dev.py import</code></pre>
+
+<h2 id="game">2. What the game is</h2>
+<p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of heroes lives in
+an endless labyrinth. They explore, fight, loot and rest on their own. You are the manager: you recruit,
+gear and spec the party, point it at a depth, and check in now and then.</p>
+<h3>Design pillars</h3>
+<ul>
+  <li><strong>Built to be left running.</strong> Leaving it alone is how it is played. Progress never goes backwards.</li>
+  <li><strong>The skill is in building the party,</strong> not in fast reactions.</li>
+  <li><strong>Flavour over power.</strong> Rare things give stories, not a must-have meta.</li>
+  <li><strong>A rich, lively little world.</strong> Simple sprites, a lot of character in items and effects.</li>
+</ul>
+<p>The full design is in <a href="../design/plan.md"><code>docs/design/plan.md</code></a>.</p>
+
+<h2 id="loop">3. How a session plays <span class="tag planned">Planned</span></h2>
+<ol>
+  <li>The party moves through the labyrinth on its own and fights what it meets.</li>
+  <li>Kills give XP, gold and item drops.</li>
+  <li>When resources run low the party rests, then carries on.</li>
+  <li>You check in: spend XP on talents, buy and equip gear, change the party, set a target depth.</li>
+  <li>You tab away again.</li>
+</ol>
+<h3>Death and the last stable depth</h3>
+<p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
+(about ten minutes to start). If the party wipes, it revives there and keeps farming. A wipe costs
+efficiency, never progress.</p>
+<h3>Party</h3>
+<p>One to four heroes from a small classic set of classes: tank, healer, melee damage, ranged damage.
+Balance matters: a party with no healer should struggle at depth. Loot is randomised from standard base
+types.</p>
+<h3>The labyrinth</h3>
+<p>Endless and generated as the party explores, from a seed, so the same seed always gives the same
+labyrinth. Difficulty rises with depth.</p>
+
+<h2 id="code">4. How the code works</h2>
+<p>The code is in two halves that are kept strictly apart.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Half</th><th>Folder</th><th>Job</th></tr>
+  <tr>
+    <td><strong>Simulation</strong></td>
+    <td><code>sim/</code></td>
+    <td>Every rule of the game: movement, combat, loot, rest, depth. Plain code with no graphics, no clock
+    and no global randomness, so it can run with no window at all.</td>
+  </tr>
+  <tr>
+    <td><strong>Game</strong></td>
+    <td><code>game/</code></td>
+    <td>Shows the simulation (sprites, effects, UI) and passes the player's choices to it. Decides no rules.</td>
+  </tr>
+</table>
+</div>
+<p>This split is what makes the rest possible:</p>
+<h3>Time <span class="tag planned">Planned: spec 001</span></h3>
+<p>The simulation moves in fixed ticks, ten per second of game time, and never asks what time it is. A driver
+measures real elapsed time and steps the simulation that many ticks. Because ticks follow the clock and not
+the frame rate, the game keeps exact time when unfocused or minimised, and time missed while the game was
+closed is simply more ticks to work through.</p>
+<h3>Randomness <span class="tag built">Built</span></h3>
+<p>Every dice roll comes from a seeded stream (<code>SimRng</code>). The same seed gives the same run, which
+makes bugs repeatable and balance testable. Each system takes its own stream, so adding a loot roll never
+changes what combat rolls.</p>
+<h3>Content as data <span class="tag planned">Planned</span></h3>
+<p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
+means adding a file. Every data file is checked automatically.</p>
+<h3>Saving <span class="tag planned">Planned</span></h3>
+<p>The game saves often and safely: a crash mid-save cannot corrupt the save, and one earlier copy is kept.</p>
+<p>The technical version of this section is
+<a href="../architecture.md"><code>docs/architecture.md</code></a>.</p>
+
+<h2 id="commands">5. Dev commands</h2>
+<p>Run from the <code>colony</code> folder.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>To</th><th>Run</th></tr>
+  <tr><td>Play the game</td><td><code>godot --path .</code></td></tr>
+  <tr><td>Open the editor</td><td><code>godot -e --path .</code></td></tr>
+  <tr><td>Run every check (what CI runs, about 10 seconds)</td><td><code>python tools/dev.py check</code></td></tr>
+  <tr><td>Run only some check steps</td><td><code>python tools/dev.py check --only=compile,tests</code></td></tr>
+  <tr><td>Run the tests</td><td><code>python tools/dev.py test</code></td></tr>
+  <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
+  <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
+  <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
+</table>
+</div>
+<h3>What the check does</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Step</th><th>Fails when</th></tr>
+  <tr><td><code>format</code></td><td>Code is not formatted, or breaks a lint rule</td></tr>
+  <tr><td><code>boundary</code></td><td>Something in <code>sim/</code> uses graphics, a clock or global randomness</td></tr>
+  <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
+  <tr><td><code>tests</code></td><td>Any test fails</td></tr>
+  <tr><td><code>data</code></td><td>Any data file does not load or reports a problem</td></tr>
+  <tr><td><code>boot</code></td><td>The game prints an error while starting</td></tr>
+</table>
+</div>
+<p>It ends with <code>check: PASS</code> or names the step that failed. Requirements: Godot 4.7.2 and Python
+on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>) for the format step.</p>
+
+<h2 id="folders">6. Where things live</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Folder</th><th>Holds</th></tr>
+  <tr><td><code>sim/</code></td><td>The simulation: the game's rules</td></tr>
+  <tr><td><code>game/</code></td><td>Scenes, sprites, effects, UI</td></tr>
+  <tr><td><code>data/</code></td><td>Classes, talents, items, monsters as data files</td></tr>
+  <tr><td><code>assets/</code></td><td>Sprites, palettes, audio</td></tr>
+  <tr><td><code>tests/</code></td><td>Automated tests</td></tr>
+  <tr><td><code>tools/</code></td><td><code>dev.py</code> and its helpers</td></tr>
+  <tr><td><code>specs/</code></td><td>One folder per spec, plus the board of what is in progress</td></tr>
+  <tr><td><code>docs/</code></td><td>The design plan, the architecture, this wiki</td></tr>
+  <tr><td><code>.claude/</code></td><td>The agents and skills that build the game</td></tr>
+</table>
+</div>
+
+<h2 id="process">7. How work gets done</h2>
+<p>Colony is built spec-first. A spec says what a piece of the game must do and how we will know it does.</p>
+<ol>
+  <li><strong>Draft.</strong> Zak and the lead Claude session write the spec together.</li>
+  <li><strong>Approve.</strong> Zak approves it. Nothing is built from an unapproved spec.</li>
+  <li><strong>Build.</strong> An implementer agent builds exactly that spec in its own copy of the repo and opens a pull request.</li>
+  <li><strong>Review.</strong> CI runs the check, and a separate reviewer agent compares the spec with the code.</li>
+  <li><strong>Land.</strong> The lead merges it and marks the spec landed.</li>
+  <li><strong>Playtest.</strong> At the end of each milestone Zak plays the game and signs off.</li>
+</ol>
+<p>The board and the full process are in <a href="../../specs/README.md"><code>specs/README.md</code></a>.</p>
+
+<h2 id="status">8. Status</h2>
+<div class="table-wrap">
+<table>
+  <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
+  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; spec 001 (the clock) drafted</td></tr>
+  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>
+</table>
+</div>
+
+<footer>This page is <code>docs/wiki/index.html</code>. It is updated in the same pull request as the feature it describes.</footer>
+
+</main>
+</body>
+</html>

@@ -45,6 +45,8 @@ incomplete, stop and report the question.
   other lanes are running their own.
 - **Commits** are Conventional Commits (`feat(sim): …`, `fix(save): …`), imperative, lowercase, with a body that
   says why. No `Co-Authored-By` or "Generated with" lines in commits or pull requests.
+- **Keep the wiki true.** `docs/wiki/index.html` is Zak's plain-language guide to how the game works and how to
+  run it. When your change makes a "Planned" item real or changes a command, update it in the same pull request.
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 
