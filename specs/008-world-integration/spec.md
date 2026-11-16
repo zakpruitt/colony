@@ -24,7 +24,8 @@ After it, `godot --path .` is the game, without the juice. Read `docs/design/bas
   (revival) is a snap, not a slide.
 - **R3. Heroes act out the expedition.** Travelling: walk animation, facing the way the party faces. Climbing:
   walk animation on the shaft. Resting: idle. Fighting: idle between attacks, facing their target. Wiped:
-  heroes stay down (hidden after their death animation) until the revival, then reappear idle.
+  heroes stay down (hidden after their death animation) until the revival, then reappear idle (`revive()`,
+  so `World.character(id)` keeps returning the same sprite).
 - **R4. Monsters wait in their chambers.** For every level the labyrinth view has built, each populated
   chamber shows its waiting monsters (`monsters_in`) as idle sprites on the floor, facing the party's side.
   They appear when a level is built or a chamber refills, and are removed when the level is freed.
@@ -32,7 +33,7 @@ After it, `godot --path .` is the game, without the juice. Read `docs/design/bas
   animation with the event's wind-up time (`amount`, in ticks), ranged if the attacker's range is over
   `Battle.MELEE_REACH`; a hit plays
   the target's hit reaction; a death plays the death animation and removes the sprite when it finishes. An attack whose target dies during its wind-up, and any attack or bolt still
-  pending when the encounter ends, is cut short: the attacker returns to idle and the bolt is removed.
+  pending when the encounter ends, is cut short (`CharacterSprite.cancel_attack`): the attacker returns to idle and the bolt is removed.
   During a fight every combatant's sprite follows its battle position with the same easing as R2 and faces
   its target.
 - **R6. Projectiles are visible.** A projectile launch shows a small palette-coloured bolt travelling from the

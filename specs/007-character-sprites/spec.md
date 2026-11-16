@@ -43,7 +43,9 @@ will drive it from sim events. Read `docs/design/base-game.md` ("Feel") and `doc
   it back a few pixels away from its facing and returns it, with a brief squash. It can interrupt any other
   animation, and the character recovers to what it was doing.
 - **R9. Death.** `play_death()` plays a short collapse (under 0.4 seconds), then the character is hidden and
-  the signal `died` fires. Further calls do nothing.
+  the signal `died` fires. Further calls do nothing, until
+  `revive()` brings the character back, visible and idle. `cancel_attack()` ends an attack that is still in its
+  wind-up without the strike.
 - **R10. Animation never drifts.** After any sequence of animations ends, every part is back at its rest
   position, rotation and scale exactly.
 - **R11. A demo shows the cast.** `game/entities/character_demo.tscn` shows all nine characters on a mid-dark
@@ -82,6 +84,10 @@ func play_walk() -> void
 func play_attack(windup_seconds: float, ranged: bool) -> void
 func play_hit() -> void
 func play_death() -> void
+## Ends an attack that is still winding up, without emitting struck. Otherwise does nothing.
+func cancel_attack() -> void
+## After a death: visible, idle and alive again.
+func revive() -> void
 func set_facing(direction: int) -> void
 ## True from play_death() on.
 func is_dead() -> bool
