@@ -1,9 +1,9 @@
 # 011 — HUD: the party, the purse and the depth
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 008, 009
-- **Pull request:** —
+- **Pull request:** [#14](https://github.com/zakpruitt/colony/pull/14)
 
 ## Intent
 
