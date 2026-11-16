@@ -352,6 +352,13 @@ func test_r7_keys() -> void:
 		_key(KEY_F3)
 		assert_true(clock.visible, "F3 works with the shop %s" % what)
 		_hud.clock_label = null
+		assert_not_null(_world.camera, "the world has its camera")
+		if _world.camera != null:
+			var zoom: int = _world.camera.zoom_level()
+			_key(KEY_Z)
+			assert_ne(_world.camera.zoom_level(), zoom, "Z zooms with the shop %s" % what)
+			_key(KEY_Z)
+			assert_eq(_world.camera.zoom_level(), zoom, "and Z zooms back")
 		assert_eq(_hud.shop.is_open(), open, "and the shop stays %s" % what)
 
 	_hud.shop.close()
