@@ -29,7 +29,6 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | Wave | Spec | Depends on |
 |---|---|---|
 | D | [010 Combat effects](010-combat-effects/spec.md): numbers, sparks, shake, freeze, bursts, coins, XP motes — provisional, not started | 008, 009 |
-| D | [011 HUD](011-hud/spec.md): party frames, gold, depth, target-depth control — provisional, not started | 008, 009 |
 | D | [015 Standing room](015-standing-room/spec.md): fighters stop standing on one spot, climbers stand on the ladder — provisional, not started | 004, 005, 008 |
 | E | Lead pre-wires stubs for 010-012 in `Main` after 008 lands (CombatEffects, Hud, Ambience), then spawns them | 008 |
 | F | Polish passes from looking at the running game; saves if time allows | all |
