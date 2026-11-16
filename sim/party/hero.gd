@@ -11,6 +11,8 @@ var class_id: StringName
 var level: int = 1
 var xp: int = 0
 var health: int
+## The party's camp upgrades, or null for none. Set by the [Party].
+var upgrades: Upgrades
 
 var _def: HeroClassDef
 
@@ -30,7 +32,8 @@ func def() -> HeroClassDef:
 
 ## Health when full, at the hero's level.
 func max_health() -> int:
-	return _def.max_health + _def.health_per_level * (level - 1)
+	var base: int = _def.max_health + _def.health_per_level * (level - 1)
+	return roundi(base * _multiplier(UpgradeDef.Stat.HEALTH))
 
 
 ## True while health is above 0.
@@ -49,14 +52,24 @@ func gain_xp(amount: int) -> int:
 	xp += maxi(amount, 0)
 	var gained: int = 0
 	while xp >= xp_for_level(level + 1):
+		var before: int = max_health()
 		level += 1
 		gained += 1
-		health += _def.health_per_level
+		health += max_health() - before
 	return gained
 
 
-## A battle combatant for this hero, with the hero's id and current health.
+## A battle combatant for this hero, with the hero's id and current health, and
+## the party's upgrades in its damage, healing power and maximum health.
 func combatant() -> Combatant:
 	var c: Combatant = Combatant.from_hero(_def, level, id)
+	var power: float = _multiplier(UpgradeDef.Stat.DAMAGE)
+	c.damage = roundi(c.damage * power)
+	c.heal_power = roundi(c.heal_power * power)
+	c.max_health = max_health()
 	c.health = clampi(health, 0, c.max_health)
 	return c
+
+
+func _multiplier(stat: UpgradeDef.Stat) -> float:
+	return upgrades.multiplier(stat) if upgrades != null else 1.0

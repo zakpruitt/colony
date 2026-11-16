@@ -338,7 +338,8 @@ func _walk_toward(goal: float) -> void:
 		return
 	if int(direction) != facing:
 		_turn(int(direction))
-	var stride: float = minf(PARTY_SPEED / Simulation.TICKS_PER_SECOND, absf(goal - x))
+	var speed: float = PARTY_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
+	var stride: float = minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - x))
 	x += direction * stride
 	_odometer += stride
 
@@ -411,7 +412,8 @@ func _start_climb(direction: int) -> void:
 
 
 func _climb() -> void:
-	var stride: float = CLIMB_SPEED / Simulation.TICKS_PER_SECOND
+	var speed: float = CLIMB_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
+	var stride: float = speed / Simulation.TICKS_PER_SECOND
 	if absf(_climb_to_y - _climb_y) > stride:
 		_climb_y += _climb_direction * stride
 		return
@@ -575,7 +577,7 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 			_emit(SimEvent.Kind.LEVEL_UP, -1, hero.id, new_level)
 		# The hero fights on with its new numbers, healed by the health it gained.
 		var fighter: Combatant = battle.combatant(hero.id)
-		var grown: Combatant = Combatant.from_hero(hero.def(), hero.level, hero.id)
+		var grown: Combatant = hero.combatant()
 		fighter.health += grown.max_health - fighter.max_health
 		fighter.max_health = grown.max_health
 		fighter.damage = grown.damage
@@ -583,6 +585,7 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	var gold: int = _loot_rng.next_int(def.gold_min, def.gold_max)
 	if _labyrinth.level(_battle_key.x).chambers[_battle_key.y].kind == LabyrinthChamber.Kind.VAULT:
 		gold *= VAULT_GOLD_FACTOR
+	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
 
@@ -648,9 +651,10 @@ func _rest() -> void:
 	_rest_ticks += 1
 	var seconds: float = float(_rest_ticks) / Simulation.TICKS_PER_SECOND
 	var all_full: bool = true
+	var rate: float = REST_HEAL_PER_SECOND * _upgrade(UpgradeDef.Stat.REST_HEALING)
 	for hero: Hero in _party.heroes:
 		var full: int = hero.max_health()
-		var healed: int = floori(REST_HEAL_PER_SECOND * full * seconds + EPSILON)
+		var healed: int = floori(rate * full * seconds + EPSILON)
 		var start: int = _rest_start.get(hero.id, hero.health)
 		hero.health = mini(full, maxi(hero.health, start + healed))
 		if hero.health < full:
@@ -709,6 +713,11 @@ func arrive_from_save(tick: int, stable: int, deepest: int, target: int, push: b
 
 
 # --- Helpers -------------------------------------------------------------------
+
+
+## The party's upgrade multiplier for [param stat].
+func _upgrade(stat: UpgradeDef.Stat) -> float:
+	return _party.upgrades.multiplier(stat)
 
 
 func _emit(

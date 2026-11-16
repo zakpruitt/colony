@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"quick_march"
+display_name = "Quick March"
+description = "+4% travel and climb speed"
+order = 4
+stat = 3
+per_rank = 0.04
+base_cost = 25
+cost_growth = 1.5
+max_rank = 10

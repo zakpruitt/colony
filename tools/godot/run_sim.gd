@@ -2,9 +2,10 @@ extends SceneTree
 ## Runs the simulation headless for some game time and prints one JSON summary.
 ##
 ## Run: godot --headless --path . -s res://tools/godot/run_sim.gd -- --seed=1 --minutes=10
-##      [--target-depth=3] [--stable-seconds=120]
+##      [--target-depth=3] [--stable-seconds=120] [--buy-upgrades=true]
 ## or, more simply: python tools/dev.py sim --seed=1 --minutes=10
 ##
+## With --buy-upgrades the run buys the cheapest upgrade it can afford whenever it can.
 ## The summary is printed on one line that starts with "[sim] ".
 
 
@@ -17,6 +18,7 @@ func _init() -> void:
 		sim.expedition.stable_seconds = _option(options, "stable-seconds", "").to_float()
 	if options.has("target-depth"):
 		sim.set_target_depth(_option(options, "target-depth", "").to_int())
+	var buying: bool = options.has("buy-upgrades")
 
 	var won: int = 0
 	var lost: int = 0
@@ -26,6 +28,10 @@ func _init() -> void:
 	for i: int in ticks:
 		# A battle can end within the step, so remember it to name the dead.
 		var fight: Battle = sim.expedition.battle
+		if buying:
+			var cheapest: StringName = sim.upgrades.cheapest_affordable(sim.party.gold)
+			if cheapest != &"":
+				sim.buy_upgrade(cheapest)
 		sim.step()
 		for event: SimEvent in sim.drain_events():
 			match event.kind:
@@ -52,6 +58,9 @@ func _init() -> void:
 	kill_ids.sort()
 	for id: String in kill_ids:
 		sorted_kills[id] = kills[id]
+	var upgrades: Dictionary = {}
+	for id: StringName in Content.upgrade_ids():
+		upgrades[String(id)] = sim.upgrades.rank(id)
 	var summary: Dictionary = {
 		"seed": seed_value,
 		"minutes": minutes,
@@ -65,6 +74,7 @@ func _init() -> void:
 		"gold": sim.party.gold,
 		"heroes": heroes,
 		"kills": sorted_kills,
+		"upgrades": upgrades,
 	}
 	print("[sim] " + JSON.stringify(summary))
 	quit(0)

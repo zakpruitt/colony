@@ -7,9 +7,12 @@ extends RefCounted
 
 const HEROES_DIR: String = "res://data/heroes"
 const MONSTERS_DIR: String = "res://data/monsters"
+const UPGRADES_DIR: String = "res://data/upgrades"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
+static var _upgrades: Dictionary[StringName, UpgradeDef] = {}
+static var _upgrade_ids: Array[StringName] = []
 static var _loaded: bool = false
 
 
@@ -37,6 +40,18 @@ static func monster_ids() -> Array[StringName]:
 	return _sorted(_monsters.keys())
 
 
+## The camp upgrade with this id, or null if there is none.
+static func upgrade(id: StringName) -> UpgradeDef:
+	_load()
+	return _upgrades.get(id, null)
+
+
+## Every camp upgrade id, in shop order (by [member UpgradeDef.order], then id).
+static func upgrade_ids() -> Array[StringName]:
+	_load()
+	return _upgrade_ids.duplicate()
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -53,6 +68,14 @@ static func _load() -> void:
 			push_error("Content: %s is not a MonsterDef" % resource.resource_path)
 			continue
 		_monsters[def.id] = def
+	for resource: Resource in _resources_in(UPGRADES_DIR):
+		var upgrade_def: UpgradeDef = resource as UpgradeDef
+		if upgrade_def == null:
+			push_error("Content: %s is not an UpgradeDef" % resource.resource_path)
+			continue
+		_upgrades[upgrade_def.id] = upgrade_def
+	_upgrade_ids = _sorted(_upgrades.keys())
+	_upgrade_ids.sort_custom(_before_in_shop)
 
 
 static func _resources_in(dir: String) -> Array[Resource]:
@@ -72,3 +95,11 @@ static func _sorted(keys: Array) -> Array[StringName]:
 		ids.append(key)
 	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
 	return ids
+
+
+static func _before_in_shop(a: StringName, b: StringName) -> bool:
+	var first: UpgradeDef = _upgrades[a]
+	var second: UpgradeDef = _upgrades[b]
+	if first.order != second.order:
+		return first.order < second.order
+	return String(a) < String(b)
