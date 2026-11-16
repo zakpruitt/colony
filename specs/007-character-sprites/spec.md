@@ -1,9 +1,9 @@
 # 007 — Character sprites and part-based animation
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M2
 - **Depends on:** 002, 004
-- **Pull request:** —
+- **Pull request:** [#7](https://github.com/zakpruitt/colony/pull/7)
 
 ## Intent
 
