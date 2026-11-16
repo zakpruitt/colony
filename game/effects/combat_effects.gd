@@ -593,7 +593,8 @@ func _guardian_death(dying: CharacterSprite) -> void:
 	var feet: Vector2 = dying.position
 	var height: float = _height(dying)
 	var middle: Vector2 = feet + Vector2(0, -roundf(height * 0.45))
-	var colors: PackedColorArray = _colors_of(dying)
+	# Its colours as often as its sheet uses them, so the burst reads as the guardian's body.
+	var colors: PackedColorArray = FxGuardianWave.weighted_colors(dying, _colors_of(dying))
 	if colors.is_empty():
 		colors = PackedColorArray([Palette.color(&"white")])
 	for i: int in GUARDIAN_WAVE_TIMES.size():

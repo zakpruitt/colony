@@ -12,6 +12,48 @@ var reach: Vector2 = Vector2.ONE
 var colors: PackedColorArray = []
 
 
+## [param distinct] (the colours of [param sprite]'s sheet), each repeated in proportion to how
+## many of the sheet's pixels it colours, most used first, every one at least once.
+static func weighted_colors(
+	sprite: CharacterSprite, distinct: PackedColorArray
+) -> PackedColorArray:
+	var image: Image = null
+	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
+		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
+		if atlas != null and atlas.atlas != null:
+			image = atlas.atlas.get_image()
+			break
+	if image == null or image.is_empty() or distinct.is_empty():
+		return distinct
+	if image.is_compressed():
+		image.decompress()
+	var counts: Dictionary[String, int] = {}
+	var total: int = 0
+	for y: int in image.get_height():
+		for x: int in image.get_width():
+			var pixel: Color = image.get_pixel(x, y)
+			if pixel.a < 0.5:
+				continue
+			pixel.a = 1.0
+			var key: String = pixel.to_html(false)
+			counts[key] = counts.get(key, 0) + 1
+			total += 1
+	var order: Array[Color] = []
+	for color: Color in distinct:
+		order.append(color)
+	order.sort_custom(
+		func(a: Color, b: Color) -> bool:
+			return counts.get(a.to_html(false), 0) > counts.get(b.to_html(false), 0)
+	)
+	var weighted: PackedColorArray = []
+	for color: Color in order:
+		var used: int = counts.get(color.to_html(false), 0)
+		var share: int = roundi(24.0 * used / maxf(total, 1.0))
+		for i: int in maxi(share, 1):
+			weighted.append(color)
+	return weighted
+
+
 ## One wave: the first bursts out from the middle in every direction, the second from points
 ## across the body, the last rises from it in slow embers. Each opens with a flash and a ring.
 func burst(fx: CombatEffects, rng: RandomNumberGenerator, spark: Texture2D) -> void:
