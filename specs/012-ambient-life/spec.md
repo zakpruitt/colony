@@ -2,7 +2,7 @@
 
 - **Status:** provisional
 - **Milestone:** M5
-- **Depends on:** 008
+- **Depends on:** 006
 - **Pull request:** —
 
 ## Intent
@@ -26,7 +26,7 @@ decoration in the same places.
   at least one, at a consistent height above the floor. Each torch has an animated flame (at least 3 frames
   or equivalent code-driven motion), casts a warm pool of light that flickers slightly, and gives off an
   occasional rising ember. Tunnels have none, so they are darker than chambers.
-- **R3. The party carries light.** A small light follows the party, so heroes are never lost in the dark of a
+- **R3. The party carries light.** A small light sits at `party_light_position`, so heroes are never lost in the dark of a
   tunnel or shaft.
 - **R4. Buried things.** The solid earth holds occasional detail visible in cross-section: stones, roots near
   the surface, bones and fossils, ore glints that suit the depth band. Roughly one detail per 30 to 60 buried
@@ -52,14 +52,19 @@ decoration in the same places.
 
 ## Interfaces
 
-The lead has already added the stub this spec fills in; `Main` creates it and calls `setup`.
+This spec does not touch the main scene: the lead wires `Ambience` into `Main` once world integration (spec
+008) has landed. It depends only on the labyrinth view, and is shown by its own demo.
 
 ```gdscript
 # game/ambience/ambience.gd
 class_name Ambience
 extends Node2D
 
-func setup(world: World) -> void
+## Where the party's light is, in world pixels. Whoever owns the party sets it every frame.
+var party_light_position: Vector2
+
+## Call once, before the first advance. Ambience adds itself what it needs around the view.
+func setup(view: LabyrinthView) -> void
 ## Follows the labyrinth view's built levels and advances animation. Called every frame; tests call it.
 func advance(delta: float) -> void
 ## Counts for tests and for R9.
@@ -83,7 +88,7 @@ In `tests/acceptance/test_012_ambient_life.gd`.
 |---|---|---|
 | R1 | `test_r1_dark_with_stepped_light` | A point far from any light is darker than a point at a torch; brightness between takes a small number of distinct values; the surface is at full brightness |
 | R2 | `test_r2_torches` | Torch count per chamber width, on the back wall at the set height, none in tunnels; flame animates; light strength varies over time; an ember appears within 10 s |
-| R3 | `test_r3_party_light_follows` | A light sits at the party's position after it moves |
+| R3 | `test_r3_party_light_follows` | A light sits at `party_light_position` after it changes |
 | R4 | `test_r4_buried_detail_density` | Detail count per buried tile within the stated range over 3 levels; all on buried tiles, none on edges or open space |
 | R5 | `test_r5_chambers_show_their_kind` | `props_in` contains the required props per kind; props are on the floor or ceiling, inside the chamber, clear of the shaft |
 | R6 | `test_r6_something_always_moves` | Over 20 s, dust exists near torches, at least one drip and one critter appear, and critters stay in open space |
@@ -93,7 +98,8 @@ In `tests/acceptance/test_012_ambient_life.gd`.
 | R10 | `test_r10_demo_runs` | The demo runs 300 frames without errors |
 
 **To look at, and for Zak:** `python tools/dev.py shot --scene=res://game/ambience/ambience_demo.tscn
---name=amb --seconds=3 --count=10`, and the main scene the same way. The test is whether a single screenshot
+--name=amb --seconds=3 --count=10`. The demo should also place a few `CharacterSprite`s (spec 007,
+`game/entities/`) standing in a chamber and a tunnel, so you can see how characters look in the light. The test is whether a single screenshot
 looks like a place you would want to watch: pools of torchlight, darkness between, things to notice in the
 earth, each chamber kind recognisable. Compare against a shot of the labyrinth demo without ambience; the
 difference must be large. If it looks flat, sparse or muddy, iterate. Check the party stays clearly visible in

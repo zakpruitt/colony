@@ -26,6 +26,6 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | C | [008 World integration](008-world-integration/spec.md): the party, monsters and fights on screen from sim state and events — provisional, not started | 005, 006, 007 |
 | D | [010 Combat effects](010-combat-effects/spec.md): numbers, sparks, shake, freeze, bursts, coins, XP motes — provisional, not started | 008, 009 |
 | D | [011 HUD](011-hud/spec.md): party frames, gold, depth, target-depth control — provisional, not started | 008, 009 |
-| D | [012 Ambient life](012-ambient-life/spec.md): light, torches, buried detail, props, motion — provisional, not started | 008 |
+| D | [012 Ambient life](012-ambient-life/spec.md): light, torches, buried detail, props, motion — provisional, in progress | 006 |
 | E | Lead pre-wires stubs for 010-012 in `Main` after 008 lands (CombatEffects, Hud, Ambience), then spawns them | 008 |
 | F | Polish passes from looking at the running game; saves if time allows | all |
