@@ -1,0 +1,34 @@
+# A gold coin, spinning: face, turning, edge on, turning back.
+category = fx
+size = 8x8
+pivot = 4,4
+
+[face]
+..pppp..
+.pbbbap.
+pbjbbaap
+pbbaaa9p
+pbaaaa9p
+paaa991p
+.p9991p.
+..pppp..
+
+[turn]
+...pp...
+..pbap..
+.pbjaap.
+.pbaa9p.
+.pbaa9p.
+.pa991p.
+..p91p..
+...pp...
+
+[edge]
+...pp...
+...pbp..
+...pap..
+...pap..
+...pap..
+...p9p..
+...p1p..
+...pp...

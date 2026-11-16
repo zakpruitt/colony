@@ -222,6 +222,18 @@ crossing a floor or a moth circling a torch. The mood follows the earth: warm in
 darker in the stone, an eerie teal in the deep, where torches burn teal and glowing mushrooms and crystals
 grow. Nothing here touches the rules, and the same seed always looks the same. It is not in the main game
 yet: a demo tours it (see the table below).</p>
+<h3>Combat effects <span class="tag built">Built: spec 010</span></h3>
+<p>Every hit is felt. A number pops out of whoever was hit and arcs up: white on monsters, red on heroes, and a
+big gold number with a <code>!</code> for a critical hit. Sparks fly away from the attacker and fall. A crit
+also shakes the screen a little and holds every character still for a split second; a hero dying shakes it
+harder. Heals show a green <code>+N</code> with sparkles. A monster that dies bursts into bits of its own
+colours with a pale puff, its coins spill out, bounce on the floor, rest a moment and fly to the purse at the
+top right (one coin per 5 gold, up to 12), and blue XP motes fly to each hero who earned them. A level up
+throws gold sparks and shows <code>LEVEL UP</code>. Bolts leave a short trail and flash where they land.
+Resting heroes give off a small <code>z</code> now and then; a wipe shows <code>WIPED</code> until the party
+stands up again in a column of light; a new last stable depth shows <code>DEPTH n STABLE</code>. Effects
+never fade: they shrink, blink or fly away. After a long freeze old events start no effects (their gold is
+counted at once), and there are never more than 40 numbers and 300 particles on screen.</p>
 <h3>The HUD <span class="tag built">Built: spec 011</span></h3>
 <p>Everything you need to manage the party, at the edges of the screen so the action stays clear. Each piece
 sits on a small dark panel so it reads over the sky and the darkest rock alike.</p>
@@ -405,7 +417,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; talents and the shop <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, shown in a demo, not yet in the main game; offline catch-up, combat effects and balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, shown in a demo, not yet in the main game; combat effects (spec 010) <span class="tag built">Built</span>; offline catch-up and balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

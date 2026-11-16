@@ -85,6 +85,8 @@ var _last_tick: int = -1
 ## True for the sync in progress when it is to put every sprite (or only the heroes) in place.
 var _snap_all: bool = false
 var _snap_heroes: bool = false
+## Seconds left in which character animation stands still (a crit's hit-stop, spec 010).
+var _frozen: float = 0.0
 
 
 func _ready() -> void:
@@ -138,6 +140,13 @@ func is_recent(event: SimEvent) -> bool:
 	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS
 
 
+## Holds every character's animation still for [param seconds] (a hit-stop): [method sync] goes on
+## following the simulation, but does not advance the sprites' animation until it is over. A
+## shorter freeze does not cut a longer one short.
+func freeze(seconds: float) -> void:
+	_frozen = maxf(_frozen, seconds)
+
+
 ## Brings the picture up to date with the simulation. Called every frame after the driver; tests
 ## call it.
 func sync(delta: float) -> void:
@@ -172,8 +181,11 @@ func sync(delta: float) -> void:
 	_remove_unwanted()
 	_follow(delta)
 	_act()
-	for sprite: CharacterSprite in _sprites.values():
-		sprite.advance(delta)
+	if _frozen > 0.0:
+		_frozen -= delta
+	else:
+		for sprite: CharacterSprite in _sprites.values():
+			sprite.advance(delta)
 	_remove_finished()
 	_fly_bolts(delta)
 	_place_party_light()
