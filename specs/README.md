@@ -34,3 +34,4 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 |---|---|---|
 | G | [018 Seeing the loop](018-seeing-the-loop/spec.md): zoom, a showcase of every moment, and fixes from looking — provisional, in progress | 008, 010, 011, 012, 015 |
 | H | [017 Upgrade shop](017-upgrade-shop/spec.md): buying upgrades on screen — provisional, in progress | 011, 016 |
+| H | [020 Guardians](020-guardians/spec.md): a boss holds the way down on every fifth level — provisional, in progress | 005, 007, 008, 013, 015 |
