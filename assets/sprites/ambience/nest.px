@@ -1,0 +1,13 @@
+# A nest of twigs with three pale eggs, on a DEN floor.
+category = fx
+size = 16x8
+
+[eggs]
+................
+....pp..pp......
+...p2uppu2p.....
+..p2jj22jj2p....
+..p2jjp2jj2upp..
+.p45222222224vp.
+.pv5v5v5v5v5v4p.
+..p5454545454p..
