@@ -4,22 +4,33 @@ extends Control
 ## one [ShopRow] per camp upgrade in shop order. It opens over the running game and never pauses
 ## it. Every frame it reads ranks, prices and gold from the simulation, so it cannot drift; buying
 ## goes through [method Simulation.buy_upgrade], and a row flashes on
-## [constant SimEvent.Kind.UPGRADE_BOUGHT]. Opening it closes the "While you were away" panel
-## ([AwayPanel]) if that is still up, so the two never overlap. Drawn as a [HudPanel] is.
+## [constant SimEvent.Kind.UPGRADE_BOUGHT], whether the player or auto-buy (spec 022) bought it.
+## Below the rows, the Auto-buy toggle shows and switches [member Simulation.auto_buy]. Opening
+## it closes the "While you were away" panel ([AwayPanel]) if that is still up, so the two never
+## overlap. Drawn as a [HudPanel] is.
 
 ## Space inside the border; the title's row height.
 const PADDING: float = 4.0
 const TITLE_HEIGHT: float = 13.0
 ## Pixels between the panel and the top band above it.
 const DROP: float = 2.0
+## The footer's height below the rows: the Auto-buy toggle and its caption.
+const FOOTER_HEIGHT: float = 15.0
 
 ## One row per upgrade, in [method Content.upgrade_ids] order.
 var rows: Array[ShopRow] = []
 var title_label: Label
 var hint_label: Label
+## The Auto-buy toggle (spec 022), lit like the HUD's Auto button while auto-buy is on.
+var auto_buy_button: HudButton
+var auto_buy_caption: Label
 
 var _simulation: Simulation
 var _divider: ColorRect
+var _footer_divider: ColorRect
+## A switch asked for that the simulation has not applied yet (it applies on the next tick):
+## 1 on, 0 off, -1 none.
+var _asked_auto_buy: int = -1
 
 
 func _init() -> void:
@@ -45,7 +56,7 @@ func setup(simulation: Simulation, world: World) -> void:
 	title_label.name = "Title"
 	title_label.position = Vector2(PADDING + 2.0, PADDING)
 	add_child(title_label)
-	hint_label = PixelText.label("1-5 buy   U close", &"slate")
+	hint_label = PixelText.label("1-5 buy   B auto   U close", &"slate")
 	hint_label.name = "Hint"
 	add_child(hint_label)
 	_divider = ColorRect.new()
@@ -62,6 +73,8 @@ func setup(simulation: Simulation, world: World) -> void:
 		add_child(row)
 		rows.append(row)
 		y += ShopRow.SIZE.y
+	_build_footer(y)
+	y += FOOTER_HEIGHT
 	size = Vector2(ShopRow.SIZE.x + PADDING * 2.0, y + PADDING - 1.0)
 	position = Vector2(Hud.SCREEN.x - Hud.MARGIN - size.x, Hud.TOP_BAND + DROP)
 	hint_label.position = Vector2(
@@ -82,6 +95,14 @@ func advance(delta: float) -> void:
 	var gold: int = _simulation.party.gold
 	for row: ShopRow in rows:
 		row.refresh(_simulation.upgrades, gold, delta)
+	if _asked_auto_buy >= 0 and (_asked_auto_buy == 1) == _simulation.auto_buy:
+		_asked_auto_buy = -1
+	var on: bool = auto_buy_on()
+	var text: String = "Auto-buy on" if on else "Auto-buy off"
+	if auto_buy_button.text != text:
+		auto_buy_button.text = text
+		_layout_footer()
+	auto_buy_button.lit = on
 
 
 ## True while the shop is shown.
@@ -106,6 +127,24 @@ func close() -> void:
 	visible = false
 
 
+## True when the toggle shows auto-buy as on: the switch asked for, until the simulation applies
+## it, then the simulation's own.
+func auto_buy_on() -> bool:
+	if _asked_auto_buy >= 0:
+		return _asked_auto_buy == 1
+	return _simulation != null and _simulation.auto_buy
+
+
+## Asks the simulation to switch auto-buy over, if the shop is open; otherwise does nothing.
+func toggle_auto_buy() -> void:
+	if not is_open() or _simulation == null:
+		return
+	var enabled: bool = not auto_buy_on()
+	_asked_auto_buy = 1 if enabled else 0
+	_simulation.set_auto_buy(enabled)
+	advance(0.0)
+
+
 ## How many upgrades the party's gold can pay for the next rank of.
 func affordable_count() -> int:
 	if _simulation == null:
@@ -127,6 +166,33 @@ func buy_row(index: int) -> void:
 	row.refresh(_simulation.upgrades, _simulation.party.gold, 0.0)
 	if row.affordable():
 		_simulation.buy_upgrade(row.id)
+
+
+## The Auto-buy toggle and its caption, under a divider, starting [param top] pixels down.
+func _build_footer(top: float) -> void:
+	_footer_divider = ColorRect.new()
+	_footer_divider.name = "FooterDivider"
+	_footer_divider.color = Palette.color(&"dusk")
+	_footer_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_footer_divider.position = Vector2(PADDING, top + 1.0)
+	_footer_divider.size = Vector2(ShopRow.SIZE.x, 1.0)
+	add_child(_footer_divider)
+	auto_buy_button = HudButton.new("Auto-buy off")
+	auto_buy_button.name = "AutoBuy"
+	auto_buy_button.position = Vector2(PADDING + 2.0, top + 3.0)
+	auto_buy_button.pressed.connect(toggle_auto_buy)
+	add_child(auto_buy_button)
+	auto_buy_caption = PixelText.label("Buys the cheapest upgrade each second", &"slate")
+	auto_buy_caption.name = "AutoBuyCaption"
+	auto_buy_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(auto_buy_caption)
+	_layout_footer()
+
+
+func _layout_footer() -> void:
+	auto_buy_caption.position = Vector2(
+		auto_buy_button.position.x + auto_buy_button.size.x + 6.0, auto_buy_button.position.y + 1.0
+	)
 
 
 func _on_sim_event(event: SimEvent) -> void:
