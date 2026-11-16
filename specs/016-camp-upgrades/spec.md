@@ -1,9 +1,9 @@
 # 016 — Camp upgrades: something to spend gold on
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 005, 014
-- **Pull request:** —
+- **Pull request:** [#18](https://github.com/zakpruitt/colony/pull/18)
 
 ## Intent
 
