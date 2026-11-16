@@ -150,6 +150,28 @@ All text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `fon
   (down and right), which keeps it readable over light ground. `PixelText.width(text)` measures a string.
 - Look at it with `python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font`.
 
+## UI
+
+The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
+
+- **Edges only.** The HUD keeps to the top 28 and bottom 40 pixels of the 640x360 screen; the middle belongs to
+  the world.
+- **Always on a dark panel.** Every text and bar sits on a `HudPanel`: a 1-pixel `ink` border around a `night`
+  fill, with a `dusk` bevel along the top and left inside the border (light from the top-left). Square
+  corners, whole pixels, no gradients. Panels are opaque, so text reads the same over sky and deep rock.
+- **Buttons** (`HudButton`) are 11 pixels tall: `ink` border, `dusk` fill with a `slate` bevel, `silver`
+  text; `slate` with `yellow` text under the mouse; `night` and one pixel lower when pressed. A toggle that is
+  on is `forest` with a `green` bevel and `white` text, and says so in words (`Auto on`). No Godot default
+  styles, no focus rings.
+- **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is
+  `green`/`forest` above half, `yellow`/`amber` down to a quarter, `red`/`crimson` below, on `dark_brown`;
+  XP is `cyan`/`blue` on `ink`. Bars ease to a new value over about 0.3 s, never jump.
+- **Text.** Captions in `steel`, values in `white` or `silver`, levels and the target in `yellow`. Big
+  numbers (the depth, the gold) are the font at 2x with a 2-pixel shadow. Dim things are `slate`.
+- **Icons** are 16x16 parts of `assets/sprites/ui/hud_icons.px` (category `ui`): a portrait per hero class,
+  cropped from the hero's own head and body, a `skull` for a fallen hero and a `coin`. A new class needs a
+  portrait part named for its id.
+
 ## Workflow
 
 1. Write the sprite as a `.px` file under `assets/` (the format is below and in
