@@ -7,7 +7,8 @@ implementer lane builds exactly that.
 
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
-| — | Harness bootstrap (not a spec: built by the lead) | M0 | landed | — |
+| — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | draft | — |
 
 Milestones follow `docs/design/plan.md`: **M0** harness, style bible, skeleton, background tick, saves ·
 **M1** labyrinth · **M2** one hero, movement and combat · **M3** XP, gold, loot, death fallback ·
