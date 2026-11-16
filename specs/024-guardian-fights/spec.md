@@ -1,9 +1,9 @@
 # 024 — Guardian fights that feel like boss fights
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 010, 011, 020, 021
-- **Pull request:** —
+- **Pull request:** [#24](https://github.com/zakpruitt/colony/pull/24)
 
 ## Intent
 
