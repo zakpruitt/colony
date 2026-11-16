@@ -124,7 +124,7 @@ func test_r5_clock_label_uses_the_pixel_font() -> void:
 	var scene: PackedScene = load(MAIN_SCENE)
 	var main: Main = scene.instantiate()
 	add_child_autofree(main)
-	var clock: Label = main.get_node("ClockLabel")
+	var clock: Label = main.get_node("HUD/ClockLabel")
 	assert_eq(clock.get_theme_font(&"font"), PixelText.font(), "the clock's font")
 	assert_eq(clock.get_theme_font_size(&"font_size"), _native_size(), "the clock's size")
 

@@ -129,8 +129,12 @@ Things marked <span class="tag built">Built</span> work today;
 <p>To open the project in the Godot editor instead (press F5 there to play):</p>
 <pre><code>godot -e --path .</code></pre>
 <div class="note">
-  <p><strong>What you will see today:</strong> a tick counter in the top-left corner, counting ten ticks a
-  second. It keeps counting while the window is minimised. The dungeon and the party come next.</p>
+  <p><strong>What you will see today:</strong> the party of four walking the labyrinth on its own, seen from
+  the side like an ant farm, with monsters waiting in the chambers ahead. When the party walks into a chamber
+  with monsters, the fight plays out: heroes and monsters wind up and strike, the mage and the cleric throw
+  small bolts (amber to hurt, green to heal), the struck flash white and the dead collapse. A small tick counter
+  sits in the top-left corner; the game keeps running while the window is minimised. There are no controls,
+  numbers or health bars yet.</p>
 </div>
 <p>If the game fails to start after pulling new work or switching branch, rebuild Godot's import cache
 and try again:</p>
@@ -157,8 +161,8 @@ gear and spec the party, point it at a depth, and check in now and then.</p>
   <li>You check in: spend XP on talents, buy and equip gear, change the party, set a target depth.</li>
   <li>You tab away again.</li>
 </ol>
-<p><span class="tag built">Built: spec 005</span> The loop runs in the simulation with nobody touching it
-(nothing draws it yet). A party of four (knight, rogue, mage, cleric) starts in the middle of the start
+<p><span class="tag built">Built: spec 005</span> The loop runs in the simulation with nobody touching it,
+and <span class="tag built">Built: spec 008</span> the main game draws it (see "The world on screen" below). A party of four (knight, rogue, mage, cleric) starts in the middle of the start
 chamber and walks at 3 tiles a second, one behind the other, knight first. It has a <em>target depth</em>:
 above it, the party walks to the shaft and climbs down; below it, it climbs back up; at it, it walks from one
 end of the level to the other and back, farming. Every chamber except the start and the two chambers with a
@@ -185,7 +189,7 @@ types.</p>
 <h3>The labyrinth</h3>
 <p>Endless and generated as the party explores, from a seed, so the same seed always gives the same
 labyrinth. Difficulty rises with depth.</p>
-<p><span class="tag built">Built: spec 003</span> The simulation generates the levels (nothing draws them yet).
+<p><span class="tag built">Built: spec 003</span> The simulation generates the levels.
 Each depth is a band of earth 120 tiles wide and 16 tall with four to six chambers on one flat floor, joined
 by low tunnels. Each level has one shaft down, on the right on odd depths and on the left on even ones, so the
 party crosses most of a level to go deeper. Chambers are plain, a den or (at most one per level) a vault; the
@@ -195,7 +199,16 @@ earth with the chambers, tunnels and shafts cut out of it, a ladder down every s
 depth 1. Floors have a bright top edge, ceilings and walls a ragged outline. The earth changes every five
 levels (brown loam, then clay, then grey stone, then deep teal rock, then round again) so going deeper looks
 like going somewhere. Only the levels next to the action are kept in memory. A camera follows the action
-smoothly and can shake. It is not in the main game yet: a demo shows it on its own (see the table below).</p>
+smoothly and can shake. A demo shows it on its own (see the table below).</p>
+<h3>The world on screen <span class="tag built">Built: spec 008</span></h3>
+<p>The main game joins the simulation, the labyrinth and the sprites. The camera follows the party, looking a
+little ahead of it, and glides down shafts with it. Each hero walks smoothly between the simulation's steps;
+when the heroes line up for a fight, regroup after one or step onto a ladder, they run to their places rather
+than jumping. Monsters stand idle in every chamber that holds them on the levels near the party, facing the
+party's side, and reappear when a chamber refills. In a fight every attack, hit, death and bolt comes from the
+simulation, so what you see is what happened. After a wipe the heroes stay down until they stand up again
+where they revive. If the game falls behind (a long freeze, say), it catches up at once to the simulation's
+true state instead of replaying old animations.</p>
 <p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each
 chamber has torches on its back wall that throw warm, flickering pools of light in a few hard-edged rings
 (pixel art, not a smooth blur), and the tunnels between are darker. The party carries a small light of its
@@ -357,9 +370,9 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
-  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, shown in a demo, not yet in the main game</td></tr>
-  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>, shown in a demo; monsters for the deeper bands (spec 013) <span class="tag built">Built</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> in the simulation, not yet drawn; loot <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
+  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, shown in a demo, not yet in the main game; offline catch-up, combat effects and balance <span class="tag planned">Planned</span></td></tr>
 </table>

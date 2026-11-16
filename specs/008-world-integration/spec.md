@@ -1,9 +1,9 @@
 # 008 — World integration: the party in the labyrinth, on screen
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M2
 - **Depends on:** 005, 006, 007
-- **Pull request:** —
+- **Pull request:** [#10](https://github.com/zakpruitt/colony/pull/10)
 
 ## Intent
 
