@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"deep_maw"
+display_name = "Deep Maw"
+size = 2
+min_depth = 20
+max_health = 6500
+damage = 80
+armor = 8
+attack_interval = 2.4
+windup = 0.8
+attack_range = 1.5
+move_speed = 0.9
+crit_chance = 0.1
+xp = 2400
+gold_min = 1200
+gold_max = 1500
+guardian = true

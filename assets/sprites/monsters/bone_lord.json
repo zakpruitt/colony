@@ -1,0 +1,1 @@
+{"category": "boss", "width": 64, "height": 64, "pivot": [32, 63], "parts": ["body", "head", "arm", "weapon"], "part_pivots": {"head": [30, 18], "arm": [42, 21], "weapon": [49, 36]}}

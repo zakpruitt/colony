@@ -1,9 +1,9 @@
 # 020 — Guardians: a boss at the bottom of every band
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 005, 007, 008, 013, 015
-- **Pull request:** —
+- **Pull request:** [#21](https://github.com/zakpruitt/colony/pull/21)
 
 ## Intent
 

@@ -1,9 +1,10 @@
 class_name CharacterDemo
 extends Node2D
-## Shows the whole cast (the four heroes of spec 007 and every monster, spec 013's included)
-## cycling together through idle, walk, melee attack, ranged attack, hit and death, then
-## reappearing: heroes facing right, monsters facing left, at 2x with their names, and once more
-## below at their real size.
+## Shows the whole cast (the four heroes of spec 007, every monster, spec 013's included, and
+## spec 020's guardians) cycling together through idle, walk, melee attack, ranged attack, hit and
+## death, then reappearing: heroes facing right, monsters facing left, at 2x with their names, and
+## once more below at their real size. The guardians stand at the end of the monster rows at
+## their real size, which is already as big as a large monster at 2x.
 ## Run: python tools/dev.py shot --scene=res://game/entities/character_demo.tscn --name=cast
 ##      --seconds=0.7 --count=10
 ## The cycle is timed so those ten shots catch a wind-up, its strike, and the white flash of a hit.
@@ -26,8 +27,10 @@ const MONSTERS: Array[StringName] = [
 	&"wraith",
 	&"deep_horror",
 ]
+## The guardians of spec 020, by the depth they guard. Shown at real size only.
+const GUARDIANS: Array[StringName] = [&"slime_king", &"clay_colossus", &"bone_lord", &"deep_maw"]
 ## How many zoomed monsters stand on each row.
-const MONSTERS_PER_ROW: int = 7
+const MONSTERS_PER_ROW: int = 9
 ## Seconds for one whole cycle of the animations.
 const CYCLE_SECONDS: float = 7.0
 ## Seconds into the cycle at which each animation starts.
@@ -49,7 +52,7 @@ const HERO_FLOOR: float = 84.0
 const MONSTER_FLOORS: Array[float] = [174.0, 264.0]
 const REAL_SIZE_FLOOR: float = 344.0
 const HERO_SPACING: float = 104.0
-const MONSTER_SPACING: float = 88.0
+const MONSTER_SPACING: float = 70.0
 const REAL_SIZE_SPACING: float = 36.0
 const FONT_SIZE: int = 8
 const SCREEN: Vector2 = Vector2(640, 360)
@@ -144,9 +147,11 @@ func _rebuild() -> void:
 		var id: StringName = ids[index]
 		var hero: bool = index < HEROES.size()
 		var zoomed: CharacterSprite = _make(id, hero)
-		zoomed.scale = Vector2(ZOOM, ZOOM)
 		zoomed.position = _zoomed_spot(index)
 		_cast.append(zoomed)
+		if GUARDIANS.has(id):
+			continue
+		zoomed.scale = Vector2(ZOOM, ZOOM)
 		var real: CharacterSprite = _make(id, hero)
 		real.position = Vector2(_real_size_left() + index * REAL_SIZE_SPACING, REAL_SIZE_FLOOR)
 		_real_size.append(real)
@@ -172,11 +177,12 @@ func _add_names() -> void:
 	_label("real size", Vector2(8, REAL_SIZE_FLOOR - 52))
 
 
-## The heroes, then the monsters.
+## The heroes, then the monsters, then the guardians.
 func _cast_ids() -> Array[StringName]:
 	var ids: Array[StringName] = []
 	ids.append_array(HEROES)
 	ids.append_array(MONSTERS)
+	ids.append_array(GUARDIANS)
 	return ids
 
 
@@ -189,7 +195,9 @@ func _zoomed_spot(index: int) -> Vector2:
 	var monster: int = index - HEROES.size()
 	var row: int = monster / MONSTERS_PER_ROW
 	var column: int = monster % MONSTERS_PER_ROW
-	var in_row: int = mini(MONSTERS_PER_ROW, MONSTERS.size() - row * MONSTERS_PER_ROW)
+	var in_row: int = mini(
+		MONSTERS_PER_ROW, MONSTERS.size() + GUARDIANS.size() - row * MONSTERS_PER_ROW
+	)
 	var monsters_left: float = (SCREEN.x - (in_row - 1) * MONSTER_SPACING) / 2.0
 	return Vector2(roundf(monsters_left + column * MONSTER_SPACING), MONSTER_FLOORS[row])
 

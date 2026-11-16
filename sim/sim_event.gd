@@ -11,6 +11,8 @@ enum Kind {
 	# A command's result, not the expedition's: kept before ENCOUNTER_STARTED, where
 	# the kinds every expedition run produces begin (spec 005's R18 test counts on it).
 	UPGRADE_BOUGHT,
+	# Only a run that beats a guardian produces it, so it too sits before ENCOUNTER_STARTED.
+	GUARDIAN_SLAIN,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -34,7 +36,8 @@ var target_id: int = -1
 ## index (ENCOUNTER_STARTED, ENCOUNTER_ENDED), XP or gold gained, the new level
 ## (LEVEL_UP), or the depth (DEPTH_CHANGED, PARTY_REVIVED, STABLE_DEPTH_REACHED,
 ## TARGET_DEPTH_CHANGED). For UPGRADE_BOUGHT: the new rank, with [member source_id]
-## the upgrade's position in [method Content.upgrade_ids].
+## the upgrade's position in [method Content.upgrade_ids]. For GUARDIAN_SLAIN: the depth,
+## with [member source_id] the guardian's combatant id.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED.
 var flag: bool = false

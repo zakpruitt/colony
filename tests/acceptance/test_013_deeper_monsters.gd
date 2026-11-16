@@ -60,8 +60,12 @@ func test_r1_eight_new_monsters_are_valid() -> void:
 				"%s is ranged only if the table says so" % id
 			)
 
-	# Thirteen monsters, and deeper ones are worth at least as much.
-	var ids: Array[StringName] = Content.monster_ids()
+	# Thirteen ordinary monsters (spec 020's guardians aside), and deeper ones are worth at
+	# least as much.
+	var ids: Array[StringName] = []
+	for id: StringName in Content.monster_ids():
+		if not Content.monster(id).guardian:
+			ids.append(id)
 	assert_eq(ids.size(), OLD_MONSTERS.size() + NEW_MONSTERS.size(), "thirteen monsters")
 	for deeper: StringName in ids:
 		for shallower: StringName in ids:
@@ -204,7 +208,8 @@ func _win_rate(level: int) -> float:
 	var weighted: Array[MonsterDef] = []
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
-		if def.min_depth <= FIGHT_DEPTH:
+		# Guardians (spec 020) are never rolled for an ordinary encounter.
+		if def.min_depth <= FIGHT_DEPTH and not def.guardian:
 			# As the expedition rolls them: each as likely as its first depth.
 			for _copy: int in def.min_depth:
 				weighted.append(def)
