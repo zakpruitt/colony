@@ -1,0 +1,17 @@
+# A hero takes a hit: a dull, low "oof", softer and rounder than a hit on a monster.
+[oof]
+wave = triangle
+pitch = 300
+slide = 140
+length = 0.15
+volume = 0.45
+attack = 0.004
+release = 0.07
+
+[scuff]
+wave = noise
+pitch = 1500
+slide = 600
+length = 0.06
+volume = 0.18
+release = 0.04

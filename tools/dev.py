@@ -186,7 +186,7 @@ def step_boundary() -> str:
 
 
 def step_art() -> str:
-    """The art pipeline's own tests, then the art lint (spec 002, docs/style-bible.md)."""
+    """The art pipeline's own tests, then the art and sound lints (specs 002, 021)."""
     python = sys.executable or "python"
     code, output = run([python, "-m", "unittest", "discover", "-s", "tools/tests"], timeout=300)
     if code != 0:
@@ -195,8 +195,13 @@ def step_art() -> str:
     code, output = run([python, "tools/art.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
+    art = output.strip().splitlines()[-1]
+    # The sound lint (spec 021) belongs here too: sounds are baked from recipes like sprites.
+    code, output = run([python, "tools/sfx.py", "lint"], timeout=300)
+    if code != 0:
+        raise StepFailed(f"fix these, then `python tools/sfx.py bake`\n{tail(output)}")
     count = tests.group(1) if tests else "0"
-    return f"{count} tool tests, {output.strip().splitlines()[-1]}"
+    return f"{count} tool tests, {art}, {output.strip().splitlines()[-1]}"
 
 
 def import_project() -> None:

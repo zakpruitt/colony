@@ -1,0 +1,39 @@
+# A level up: a quick arpeggio climbing a major chord.
+[c]
+wave = square
+pitch = 523
+length = 0.07
+volume = 0.22
+release = 0.02
+
+[e]
+wave = square
+start = 0.07
+pitch = 659
+length = 0.07
+volume = 0.22
+release = 0.02
+
+[g]
+wave = square
+start = 0.14
+pitch = 784
+length = 0.07
+volume = 0.22
+release = 0.02
+
+[c_high]
+wave = square
+start = 0.21
+pitch = 1047
+length = 0.28
+volume = 0.22
+release = 0.18
+
+[sparkle]
+wave = triangle
+start = 0.21
+pitch = 2093
+length = 0.25
+volume = 0.1
+release = 0.2

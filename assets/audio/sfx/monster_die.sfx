@@ -1,0 +1,20 @@
+# A monster bursts: a puff of falling noise over a sinking buzz.
+[puff]
+wave = noise
+pitch = 2500
+slide = 300
+length = 0.3
+volume = 0.3
+attack = 0.003
+decay = 0.1
+sustain = 0.5
+release = 0.15
+
+[sink]
+wave = square
+duty = 0.25
+pitch = 200
+slide = 50
+length = 0.25
+volume = 0.2
+release = 0.1

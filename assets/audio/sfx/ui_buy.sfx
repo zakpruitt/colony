@@ -1,0 +1,26 @@
+# An upgrade bought: a click, then a bright "ka-ching" that rises.
+[click]
+wave = noise
+pitch = 6000
+length = 0.02
+volume = 0.15
+release = 0.01
+
+[ka]
+wave = square
+duty = 0.25
+start = 0.02
+pitch = 1047
+length = 0.05
+volume = 0.2
+release = 0.01
+
+[ching]
+wave = square
+duty = 0.125
+start = 0.07
+pitch = 1568
+slide = 2093
+length = 0.16
+volume = 0.2
+release = 0.1
