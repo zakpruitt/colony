@@ -1,9 +1,9 @@
 # 013 — Monsters of the deeper bands
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M2
 - **Depends on:** 004, 005, 007
-- **Pull request:** —
+- **Pull request:** [#11](https://github.com/zakpruitt/colony/pull/11)
 
 ## Intent
 
