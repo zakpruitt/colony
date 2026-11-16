@@ -191,6 +191,23 @@ All text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `fon
   (down and right), which keeps it readable over light ground. `PixelText.width(text)` measures a string.
 - Look at it with `python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font`.
 
+## Effects
+
+Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a few `fx` sprites under
+`assets/sprites/fx/` (`coin`, `mote`, `spark`).
+
+- **Squares, not circles.** A particle is a square of whole pixels (a puff or flash has its corners cut);
+  nothing is smooth, blurred or anti-aliased. Positions are rounded to whole pixels every frame.
+- **Never fade.** An effect ends by shrinking, blinking or flying away, never by lowering its opacity.
+- **Bright on dark.** Effects sit over dark ground (and will sit over darker ground once lighting lands), so
+  they use the bright end of the palette: `white`, `yellow`, `amber`, `orange`, `green`, `cyan`, `red`.
+- **Tinting.** `spark` is `white` so code can tint it any palette colour (white times a colour is that colour).
+  Coins and motes keep their own colours.
+- **Numbers.** Damage and heal numbers are the pixel font at 2x (crits at 3x), with an `ink` shadow one font
+  pixel down and right: `white` on monsters, `red` on heroes, `amber` with `!` for a crit, `green` `+N` for a
+  heal. Banners (`LEVEL UP`, `WIPED`, `DEPTH n STABLE`) use the same font, `yellow` or `red`.
+- **Monster bursts** take their colours from the monster's own sheet, without its `ink` outline.
+
 ## Workflow
 
 1. Write the sprite as a `.px` file under `assets/` (the format is below and in
