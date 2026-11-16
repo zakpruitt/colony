@@ -1,0 +1,21 @@
+# A blow landing on a monster: a quick thump with a crack of noise on top.
+[crack]
+wave = noise
+pitch = 4000
+slide = 1500
+length = 0.05
+volume = 0.3
+attack = 0.002
+release = 0.03
+
+[thump]
+wave = square
+duty = 0.5
+pitch = 220
+slide = 90
+length = 0.09
+volume = 0.28
+attack = 0.003
+decay = 0.04
+sustain = 0.5
+release = 0.04

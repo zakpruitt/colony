@@ -1,0 +1,10 @@
+# A bolt or a mend flies: a short falling zap.
+[zap]
+wave = saw
+pitch = 1400
+slide = 350
+length = 0.13
+volume = 0.25
+attack = 0.003
+release = 0.06
+noise = 0.2

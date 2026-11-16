@@ -46,6 +46,8 @@ var catch_up_bar: CatchUpBar
 var away_report: AwayReport
 ## The panel telling of [member away_report], until it closes.
 var away_panel: AwayPanel
+## Plays the sound effects; made with the world, so null during a replay (spec 021).
+var sound: SoundPlayer
 
 var _save_in: float = SAVE_SECONDS
 
@@ -124,6 +126,11 @@ func _start_play() -> void:
 	hud.name = "Hud"
 	hud_layer.add_child(hud)
 	hud.setup(simulation, world, effects)
+	sound = SoundPlayer.new()
+	sound.name = "SoundPlayer"
+	sound.settings = SoundSettings.new() if _is_played() else null
+	add_child(sound)
+	sound.setup(world, effects, simulation)
 	_show_clock()
 	_save_in = SAVE_SECONDS
 

@@ -1,0 +1,17 @@
+# A hero falls: two sad notes, the second sagging down.
+[first]
+wave = triangle
+pitch = 392
+length = 0.16
+volume = 0.4
+release = 0.04
+
+[second]
+wave = triangle
+start = 0.17
+pitch = 294
+slide = 175
+length = 0.4
+volume = 0.4
+attack = 0.01
+release = 0.2

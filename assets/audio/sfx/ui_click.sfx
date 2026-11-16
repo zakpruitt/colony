@@ -1,0 +1,10 @@
+# A button pressed: a tiny tick.
+[tick]
+wave = square
+duty = 0.5
+pitch = 1500
+slide = 1200
+length = 0.025
+volume = 0.2
+attack = 0.002
+release = 0.015

@@ -1,0 +1,19 @@
+# A heal: a soft chime that rises, then a high shimmer.
+[rise]
+wave = triangle
+pitch = 523
+slide = 784
+length = 0.2
+volume = 0.3
+attack = 0.02
+release = 0.1
+
+[shimmer]
+wave = sine
+start = 0.08
+pitch = 1047
+slide = 1319
+length = 0.2
+volume = 0.18
+attack = 0.02
+release = 0.14

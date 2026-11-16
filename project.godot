@@ -15,6 +15,10 @@ config/description="A 2D idle RPG: a party of heroes explores an endless labyrin
 run/main_scene="res://game/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
+[audio]
+
+buses/default_bus_layout="res://assets/audio/sfx_bus_layout.tres"
+
 [debug]
 
 gdscript/warnings/untyped_declaration=2

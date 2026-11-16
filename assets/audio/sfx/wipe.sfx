@@ -1,0 +1,21 @@
+# The party is wiped: a long fall from high to low, with a grumble of noise.
+[fall]
+wave = square
+duty = 0.5
+pitch = 440
+slide = 55
+length = 0.9
+volume = 0.28
+attack = 0.01
+decay = 0.5
+sustain = 0.6
+release = 0.3
+
+[grumble]
+wave = noise
+pitch = 900
+slide = 120
+length = 0.9
+volume = 0.15
+attack = 0.05
+release = 0.4

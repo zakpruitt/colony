@@ -1,0 +1,19 @@
+# The party rises again: a sweep up and a brighter sweep after it.
+[sweep]
+wave = triangle
+pitch = 220
+slide = 880
+length = 0.5
+volume = 0.35
+attack = 0.05
+release = 0.15
+
+[bright]
+wave = sine
+start = 0.15
+pitch = 440
+slide = 1760
+length = 0.4
+volume = 0.2
+attack = 0.05
+release = 0.2
