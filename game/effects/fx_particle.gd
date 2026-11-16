@@ -90,6 +90,10 @@ func _draw() -> void:
 		Shape.PUFF:
 			if s <= 2:
 				draw_rect(Rect2(-half, -half, s, s), color)
+			elif s >= 8:
+				draw_rect(Rect2(-half + 2, -half, s - 4, s), color)
+				draw_rect(Rect2(-half + 1, -half + 1, s - 2, s - 2), color)
+				draw_rect(Rect2(-half, -half + 2, s, s - 4), color)
 			else:
 				draw_rect(Rect2(-half + 1, -half, s - 2, s), color)
 				draw_rect(Rect2(-half, -half + 1, s, s - 2), color)

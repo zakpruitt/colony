@@ -37,6 +37,10 @@ const STACK_WINDOW: float = 0.35
 const STACK_STEP: float = 8.0
 const STACK_SIDE: float = 5.0
 const STACK_MAX: int = 4
+## Pixels a number of font multiple 1 takes up and down (its glyphs and shadow, and a gap), and how
+## close across another number's middle a new one must be to clash with it.
+const NUMBER_LINE: float = 7.0
+const NUMBER_CLEARANCE: float = 9.0
 
 # Sparks (R3).
 const SPARK_SHEET: String = "res://assets/sprites/fx/spark.png"
@@ -549,10 +553,13 @@ func _number(
 		side = STACK_SIDE if count % 2 == 1 else -STACK_SIDE
 	var at: Vector2 = target.position + Vector2(side, -roundf(_height(target) * NUMBER_HEIGHT))
 	at.y -= STACK_STEP * count
+	at = _clear_of_numbers(at)
 	var number: FxText = _text(kind)
 	number.text = words
 	number.color = Palette.color(color_name)
 	number.scale_factor = factor
+	# A crit is drawn over every other number.
+	number.z_index = 1 if factor > NUMBER_SCALE else 0
 	number.life = CRIT_LIFE if factor > NUMBER_SCALE else NUMBER_LIFE
 	var drift: float = _rng.randf_range(0.4, 1.0) * NUMBER_DRIFT
 	if side != 0.0:
@@ -562,6 +569,25 @@ func _number(
 	number.velocity = Vector2(drift, -NUMBER_LEAP)
 	number.gravity = NUMBER_GRAVITY
 	number.start(at)
+
+
+## [param at] moved up until it is clear of every number that appeared near it a moment ago, on
+## this target or another, so numbers in a crowded fight do not print over each other.
+func _clear_of_numbers(at: Vector2) -> Vector2:
+	var moved: Vector2 = at
+	for _attempt: int in STACK_MAX + 2:
+		var clash: bool = false
+		for other: FxText in _texts:
+			if (other.kind != &"damage" and other.kind != &"heal") or other.age >= STACK_WINDOW:
+				continue
+			var tall: float = NUMBER_LINE * other.scale_factor
+			var wide: float = NUMBER_CLEARANCE * other.scale_factor
+			if absf(other.position.x - moved.x) < wide and absf(other.position.y - moved.y) < tall:
+				moved.y = other.position.y - tall
+				clash = true
+		if not clash:
+			break
+	return moved
 
 
 func _text(kind: StringName) -> FxText:
