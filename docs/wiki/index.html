@@ -196,6 +196,18 @@ depth 1. Floors have a bright top edge, ceilings and walls a ragged outline. The
 levels (brown loam, then clay, then grey stone, then deep teal rock, then round again) so going deeper looks
 like going somewhere. Only the levels next to the action are kept in memory. A camera follows the action
 smoothly and can shake. It is not in the main game yet: a demo shows it on its own (see the table below).</p>
+<p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each
+chamber has torches on its back wall that throw warm, flickering pools of light in a few hard-edged rings
+(pixel art, not a smooth blur), and the tunnels between are darker. The party carries a small light of its
+own, so it never vanishes in a tunnel. The earth holds things to notice: stones, roots near the surface,
+bones, fossils and ore that glints now and then. Each kind of chamber looks like itself: the start has a
+campfire and bedrolls, a den has webs, a hanging spider, bones and a nest, a vault has a chest, coins and a
+gleam of gold, and plain chambers have a few stalactites, mushrooms, a broken crate or a puddle. Something
+is always moving: flames, rising embers, dust drifting in the light, drips that splash on the floor, a beetle
+crossing a floor or a moth circling a torch. The mood follows the earth: warm in the loam and clay, cold and
+darker in the stone, an eerie teal in the deep, where torches burn teal and glowing mushrooms and crystals
+grow. Nothing here touches the rules, and the same seed always looks the same. It is not in the main game
+yet: a demo tours it (see the table below).</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -293,6 +305,7 @@ font specimen (below).</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
+  <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
 <h3>What the check does</h3>
@@ -348,7 +361,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>, shown in a demo; monsters for the deeper bands (spec 013) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> in the simulation, not yet drawn; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, shown in a demo, not yet in the main game; offline catch-up, combat effects and balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

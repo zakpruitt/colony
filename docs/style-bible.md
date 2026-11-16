@@ -129,6 +129,43 @@ The four stratum sheets share their shapes and differ only in the colours of the
 written by a throwaway script, as the `create-sprite` skill allows). Keep them that way: a change to a shape
 belongs in all four sheets, and a new stratum is the same shapes in a new row of the table.
 
+## Light and decoration
+
+Underground is dark, and light comes from torches, the campfire, gold and glowing things (spec 012,
+`game/ambience/`). Every sprite is still drawn in the palette; the light is applied over it on screen.
+
+- **Light comes in rings, not gradients.** A lamp's pool is three bands (`AmbienceMood.STEPS`): a bright core,
+  a middle ring and a faint outer ring. Pools may overlap; their edges move by whole pixels when they flicker.
+- **Two passes.** A multiply pass darkens the world (and the characters) to the stratum's ambient colour and
+  lifts it toward unlit in each pool. Multiplying alone can never make the dark back wall look lit, so an
+  additive pass puts a little of the stratum's glow colour back near each flame. Keep the added glow small
+  (`AmbienceDarkness.GLOW_STRENGTH`) or the pools turn to pale fog.
+- **Light fills open space, not earth.** A lamp lights its chamber fully, the wall faces and floor crust next to
+  it partly, and the solid earth not at all; the earth instead sits a little brighter than unlit open space, so
+  the earth reads as a dim mass and an unlit tunnel as a dark void.
+- **Mood by stratum:**
+
+  | Stratum | Darkness leans to | Torchlight leans to | Glow | Flames |
+  |---|---|---|---|---|
+  | `loam` | `tan` (warm) | `amber` | `orange` | orange |
+  | `clay` | `orange` (warmer) | `orange` | `orange` | orange |
+  | `stone` | `steel` (cold, darker) | `sand` | `amber` | orange |
+  | `deep` | `cyan` (eerie teal) | `cyan` | `cyan` | teal (`teal_` frames) |
+
+- **What glows is drawn over the darkness:** flames, embers, glints and glowing mushrooms and crystals. They are
+  never dimmed, so keep them small.
+- **Sheets** (`assets/sprites/ambience/`): props are `fx` sheets with a hand-drawn `ink` outline where they
+  stand apart from the wall (the chest is an `item`); webs, stalactites and the puddle are unoutlined, part of
+  the cave. Buried things (`buried.px`, `tile`) are pale against the earth (`sand`, `white`, `steel`) so they
+  read in the dark, and sit near the middle of their tile.
+- **Torches** hang on the back wall two rows above the floor, one per seven tiles of chamber width, never over
+  a shaft. **Props** stand on the floor (a puddle sinks two pixels into the crust) or hang from the ceiling (two
+  pixels sunk into its ragged edge), never over a shaft, and never suggest a wall or a ledge.
+- **Each chamber kind has a look:** START a campfire between bedrolls; DEN corner webs, a hanging spider,
+  bones, a skull and a nest; VAULT a chest among coin piles with a gold gleam; PLAIN one to three of
+  stalactites, mushrooms, a broken crate or a puddle, with glowing mushrooms from the stone band down and
+  crystals in the deep.
+
 ## Text
 
 All text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `font`). The project theme
