@@ -324,8 +324,12 @@ func test_r5_encounter_composition() -> void:
 				var again: Array[Combatant] = other.expedition.monsters_in(depth, room.index)
 				assert_eq(_def_ids(again), _def_ids(monsters), "same monsters, " + where)
 
-	# Deeper dwellers are more likely than shallow ones once available.
-	var ids: Array[StringName] = Content.monster_ids()
+	# Deeper dwellers are more likely than shallow ones once available: compared among the
+	# monsters that live at depth 5 (spec 013 adds deeper ones, never met there).
+	var ids: Array[StringName] = []
+	for id: StringName in Content.monster_ids():
+		if Content.monster(id).min_depth <= 5:
+			ids.append(id)
 	for deeper: StringName in ids:
 		for shallower: StringName in ids:
 			if Content.monster(deeper).min_depth > Content.monster(shallower).min_depth:

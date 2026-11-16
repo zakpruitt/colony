@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mud_golem"
+display_name = "Mud golem"
+size = 1
+min_depth = 6
+max_health = 420
+damage = 40
+armor = 6
+attack_interval = 3.0
+windup = 1.0
+attack_range = 1.5
+move_speed = 0.8
+crit_chance = 0.0
+xp = 50
+gold_min = 12
+gold_max = 28

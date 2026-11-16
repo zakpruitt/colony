@@ -1,17 +1,33 @@
 class_name CharacterDemo
 extends Node2D
-## Shows the nine characters of spec 007 cycling together through idle, walk, melee attack, ranged
-## attack, hit and death, then reappearing: heroes facing right, monsters facing left, at 2x with
-## their names, and once more below at their real size.
+## Shows the whole cast (the four heroes of spec 007 and every monster, spec 013's included)
+## cycling together through idle, walk, melee attack, ranged attack, hit and death, then
+## reappearing: heroes facing right, monsters facing left, at 2x with their names, and once more
+## below at their real size.
 ## Run: python tools/dev.py shot --scene=res://game/entities/character_demo.tscn --name=cast
 ##      --seconds=0.7 --count=10
 ## The cycle is timed so those ten shots catch a wind-up, its strike, and the white flash of a hit.
 
 const HEROES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
-const MONSTERS: Array[StringName] = [&"slime", &"cave_bat", &"skeleton", &"spider", &"ogre"]
-const CAST: Array[StringName] = [
-	&"knight", &"rogue", &"mage", &"cleric", &"slime", &"cave_bat", &"skeleton", &"spider", &"ogre"
+## Every monster, by the depth it first appears at: the loam band's on the first row, the deeper
+## bands' on the second.
+const MONSTERS: Array[StringName] = [
+	&"slime",
+	&"cave_bat",
+	&"skeleton",
+	&"spider",
+	&"goblin",
+	&"ogre",
+	&"mud_golem",
+	&"fire_imp",
+	&"clay_hound",
+	&"ghoul",
+	&"crystal_beetle",
+	&"wraith",
+	&"deep_horror",
 ]
+## How many zoomed monsters stand on each row.
+const MONSTERS_PER_ROW: int = 7
 ## Seconds for one whole cycle of the animations.
 const CYCLE_SECONDS: float = 7.0
 ## Seconds into the cycle at which each animation starts.
@@ -29,11 +45,12 @@ const WINDUP_SECONDS: float = 0.9
 ## How much bigger than real size the named rows are drawn.
 const ZOOM: float = 2.0
 ## Where each row's floor is, and how far apart its characters stand, in screen pixels.
-const HERO_FLOOR: float = 122.0
-const MONSTER_FLOOR: float = 252.0
-const REAL_SIZE_FLOOR: float = 334.0
-const ZOOMED_SPACING: float = 104.0
-const REAL_SIZE_SPACING: float = 46.0
+const HERO_FLOOR: float = 84.0
+const MONSTER_FLOORS: Array[float] = [174.0, 264.0]
+const REAL_SIZE_FLOOR: float = 344.0
+const HERO_SPACING: float = 104.0
+const MONSTER_SPACING: float = 88.0
+const REAL_SIZE_SPACING: float = 36.0
 const FONT_SIZE: int = 8
 const SCREEN: Vector2 = Vector2(640, 360)
 
@@ -49,7 +66,7 @@ func _ready() -> void:
 	background.color = Palette.color(&"dark_brown")
 	background.size = SCREEN
 	add_child(background)
-	for floor_y: float in [HERO_FLOOR, MONSTER_FLOOR, REAL_SIZE_FLOOR]:
+	for floor_y: float in [HERO_FLOOR] + MONSTER_FLOORS + [REAL_SIZE_FLOOR]:
 		var ground := ColorRect.new()
 		ground.color = Palette.color(&"umber")
 		ground.position = Vector2(0, floor_y)
@@ -82,7 +99,7 @@ func advance(delta: float) -> void:
 	_run_events_between(-1.0, _clock)
 
 
-## The nine characters in the named rows: the four heroes, then the five monsters.
+## The characters in the named rows: the four heroes, then every monster.
 func characters() -> Array[CharacterSprite]:
 	return _cast
 
@@ -96,7 +113,7 @@ func _run_events_between(after: float, up_to: float) -> void:
 
 
 func _run_event(event: StringName) -> void:
-	_phase_label.text = "spec 007 cast: %s" % event
+	_phase_label.text = "cast: %s" % event
 	if event == &"reappear":
 		_rebuild()
 		return
@@ -122,7 +139,7 @@ func _rebuild() -> void:
 		character.queue_free()
 	_cast.clear()
 	_real_size.clear()
-	var ids: Array[StringName] = CAST
+	var ids: Array[StringName] = _cast_ids()
 	for index: int in ids.size():
 		var id: StringName = ids[index]
 		var hero: bool = index < HEROES.size()
@@ -145,23 +162,36 @@ func _make(id: StringName, hero: bool) -> CharacterSprite:
 
 
 func _add_names() -> void:
-	var ids: Array[StringName] = CAST
+	var ids: Array[StringName] = _cast_ids()
 	for index: int in ids.size():
+		var spacing: float = HERO_SPACING if index < HEROES.size() else MONSTER_SPACING
 		var label: Label = _label(String(ids[index]).replace("_", " "), Vector2.ZERO)
 		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		label.size = Vector2(ZOOMED_SPACING, 10)
-		label.position = _zoomed_spot(index) + Vector2(-ZOOMED_SPACING / 2.0, 5)
-	_label("real size", Vector2(8, REAL_SIZE_FLOOR - 12))
+		label.size = Vector2(spacing, 10)
+		label.position = _zoomed_spot(index) + Vector2(-spacing / 2.0, 5)
+	_label("real size", Vector2(8, REAL_SIZE_FLOOR - 52))
 
 
-## Where the zoomed character [param index] stands: heroes on the upper floor, monsters below.
+## The heroes, then the monsters.
+func _cast_ids() -> Array[StringName]:
+	var ids: Array[StringName] = []
+	ids.append_array(HEROES)
+	ids.append_array(MONSTERS)
+	return ids
+
+
+## Where the zoomed character [param index] stands: heroes on the top floor, monsters on the
+## floors below, MONSTERS_PER_ROW to a row.
 func _zoomed_spot(index: int) -> Vector2:
 	if index < HEROES.size():
-		var left: float = (SCREEN.x - (HEROES.size() - 1) * ZOOMED_SPACING) / 2.0
-		return Vector2(roundf(left + index * ZOOMED_SPACING), HERO_FLOOR)
-	var column: int = index - HEROES.size()
-	var monsters_left: float = (SCREEN.x - (MONSTERS.size() - 1) * ZOOMED_SPACING) / 2.0
-	return Vector2(roundf(monsters_left + column * ZOOMED_SPACING), MONSTER_FLOOR)
+		var left: float = (SCREEN.x - (HEROES.size() - 1) * HERO_SPACING) / 2.0
+		return Vector2(roundf(left + index * HERO_SPACING), HERO_FLOOR)
+	var monster: int = index - HEROES.size()
+	var row: int = monster / MONSTERS_PER_ROW
+	var column: int = monster % MONSTERS_PER_ROW
+	var in_row: int = mini(MONSTERS_PER_ROW, MONSTERS.size() - row * MONSTERS_PER_ROW)
+	var monsters_left: float = (SCREEN.x - (in_row - 1) * MONSTER_SPACING) / 2.0
+	return Vector2(roundf(monsters_left + column * MONSTER_SPACING), MONSTER_FLOORS[row])
 
 
 func _real_size_left() -> float:

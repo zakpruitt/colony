@@ -160,7 +160,8 @@ func test_r1_shipped_content_is_valid() -> void:
 		&"slime": 1, &"cave_bat": 1, &"skeleton": 2, &"spider": 3, &"ogre": 5
 	}
 	var monster_ids: Array[StringName] = Content.monster_ids()
-	assert_eq(monster_ids.size(), 5, "five monsters: %s" % [monster_ids])
+	# Spec 013 adds deeper monsters; the original five are still checked by name below.
+	assert_gte(monster_ids.size(), 5, "at least the five monsters: %s" % [monster_ids])
 	for id: StringName in monster_depths:
 		assert_has(monster_ids, id)
 		var def: MonsterDef = Content.monster(id)
