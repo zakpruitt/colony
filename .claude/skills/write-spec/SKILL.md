@@ -31,6 +31,9 @@ Copy `specs/TEMPLATE.md` to `specs/NNN-slug/spec.md` (next free number) and add 
   success: a requirement about surviving needs a test where the party does not.
 - **Out of scope** names the nearby things a keen implementer would be tempted to add.
 - **Paths** is the lane's fence. Check it against every spec currently `approved` or `in-progress`: no overlap.
+  A spec that adds content (monsters, classes, items) must also fence in the existing tests that count or
+  compare *all* of that content (`grep -rn "monster_ids()\|hero_class_ids()" tests/`): spec 013 stopped twice on
+  "five monsters" counts in tests 004 and 005 that its Paths did not allow it to touch.
 - **Open questions** is where disagreements wait. A spec with one is not ready.
 
 ## Approval

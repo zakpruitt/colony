@@ -241,8 +241,13 @@ changes what combat rolls.</p>
 <h3>Content as data <span class="tag built">Built</span></h3>
 <p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
 means adding a file. Every data file is checked automatically. So far there are four hero classes
-(<code>data/heroes/</code>: knight, rogue, mage, cleric) and five monsters (<code>data/monsters/</code>: slime
-and cave bat from depth 1, skeleton from 2, spider from 3, ogre from 5). Talents and items come later.</p>
+(<code>data/heroes/</code>: knight, rogue, mage, cleric) and thirteen monsters (<code>data/monsters/</code>).
+Each band of five levels has its own inhabitants (<span class="tag built">Built: spec 013</span>): slime and cave
+bat from depth 1, skeleton from 2, spider from 3, goblin from 4 and ogre from 5 in the loam; mud golem from 6,
+fire imp from 7 and clay hound from 8 in the clay; ghoul from 11, crystal beetle from 12 and wraith from 13 in
+the stone; and the deep horror from 16. Deeper kinds are met more often once they appear, so each band is
+mostly its own monsters, and they are worth more XP and gold. A party of four level-12 heroes usually, but not
+always, beats three stone-band monsters; a level-6 party almost never does. Talents and items come later.</p>
 <h3>Fights <span class="tag built">Built</span></h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
 then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the
@@ -263,7 +268,9 @@ weapon) so the game can move them. The rules are in
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>,
 a first pass for Zak to change. To see every sprite, run the gallery (below).</p>
 <p><span class="tag built">Built: spec 007</span> The cast: four heroes (knight, rogue, mage, cleric) and five
-monsters (slime, cave bat, skeleton, spider, ogre). Each part of a character turns around its own joint (the
+monsters (slime, cave bat, skeleton, spider, ogre), joined by spec 013's eight (goblin, mud golem, fire imp, clay
+hound, ghoul, crystal beetle, wraith, deep horror), coloured for their band: warm in the clay, cold in the
+stone, teal in the deep. Each part of a character turns around its own joint (the
 neck, the shoulder, the hand), and the game moves the parts in code rather than flipping through drawn frames:
 characters breathe while they stand, bob and lean as they walk, draw back before they strike, flash white and
 flinch when hit, and collapse when they die. A demo shows the whole cast doing all of it (below); the
@@ -351,7 +358,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
-  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
+  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>
