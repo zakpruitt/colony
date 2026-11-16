@@ -184,7 +184,9 @@ static func group_thousands(amount: int) -> String:
 
 
 func _build_frames() -> void:
-	var x: float = MARGIN
+	var count: int = _simulation.party.heroes.size()
+	var row: float = count * HeroFrame.SIZE.x + maxi(count - 1, 0) * GAP
+	var x: float = floorf((SCREEN.x - row) / 2.0)  # the row is centred
 	var y: float = SCREEN.y - MARGIN - HeroFrame.SIZE.y
 	for hero: Hero in _simulation.party.heroes:
 		var frame := HeroFrame.new(hero, self)

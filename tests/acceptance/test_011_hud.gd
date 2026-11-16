@@ -75,6 +75,9 @@ func test_r1_party_frames() -> void:
 		assert_string_contains(slot.level_label.text, "1", "level")
 	if frames.size() > 1:
 		assert_lt(frames[0].position.x, frames[1].position.x, "left to right in formation order")
+	var left: float = frames[0].get_global_rect().position.x
+	var right: float = SCREEN.x - frames[3].get_global_rect().end.x
+	assert_almost_eq(left, right, 1.0, "the row of frames is centred")
 
 	var knight: Hero = _sim.party.hero(KNIGHT)
 	var frame: HeroFrame = frames[0]
