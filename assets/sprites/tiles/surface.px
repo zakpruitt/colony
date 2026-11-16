@@ -1,0 +1,39 @@
+# The surface above depth 1: open sky and the ground line.
+category = tile
+size = 16x16
+
+[sky]
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+
+[ground]
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhhhhhhhhhhhhhh
+hhhchhhhchhhhhch
+hchchhchchhchhch
+cchcchccchcchccc
+cccccccccccccccc
+dddddddddddddddd
+dddddddddddddddd
+eeeeeeeeeeeeeeee

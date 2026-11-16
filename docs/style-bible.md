@@ -54,6 +54,44 @@ The category in a sprite's header fixes its size and whether it is outlined. **(
   (`16,31` for a hero). The sprite stands and turns around it.
 - Characters face right.
 
+## Tiles
+
+The labyrinth (`game/world/labyrinth_view.gd`) is drawn from the sheets in `assets/sprites/tiles/`, all of
+category `tile` (16x16, not outlined). Each sheet holds many parts; the view picks a part per tile.
+
+- **Earth strata.** `loam`, `clay`, `stone` and `deep` each cover five levels (1-5, 6-10, 11-15, 16-20, then
+  loam again). Each uses three earth tones (base, highlight, shadow), a lighter floor-top colour and a darker
+  back wall:
+
+  | Stratum | Earth (base, highlight, shadow) | Floor top | Back wall |
+  |---|---|---|---|
+  | `loam` | `umber`, `clay`, `dark_brown` | `tan` | `dark_brown` |
+  | `clay` | `clay`, `tawny`, `umber` | `tan` | `dark_brown` |
+  | `stone` | `dusk`, `slate`, `night` | `steel` | `ink` |
+  | `deep` | `deep_teal`, `pine`, `night` | `forest` | `ink` |
+
+- **The back wall is always darker than the earth**, so open space reads at a glance.
+- **Buried earth** (`buried_0` to `buried_12`) is mostly the plain `buried_0`; the others carry one small
+  feature (a speck, a stone, a clod, a streak) kept a pixel clear of the tile's edge. Features are rare and
+  sit in different places, so no pattern lines up into a grid. The view picks a variant from the tile's
+  position, so a tile always looks the same. `back_0` to `back_5` do the same for the back wall.
+- **Edges are overlays**, drawn over the ground tile and named by a bitmask of the open sides (N=1, E=2, S=4,
+  W=8): `edge_<mask>_<variant>` on earth next to open space, `shade_<mask>` on back wall next to earth, and
+  `corner_<mask>` (NE=1, SE=2, SW=4, NW=8) where a floor meets a wall.
+  - A **floor** is flat, with a lit top: a row of the floor-top colour over a crust of highlight.
+  - A **ceiling** and the **walls** are bitten ragged by up to two pixels. The bites take the shade colour of
+    the open space; the boundary is `ink` (or the shadow) under a ceiling, highlight on a face turned to the
+    left (lit), shadow on a face turned to the right.
+  - **Shade** falls on the back wall under a ceiling and beside the walls, never above a floor.
+- **The ladder** (`ladder.px`) is two tiles wide, as shafts are: `left` and `right`, with `top_left` and
+  `top_right` standing on the floor above the shaft. Wood is `tan` with `clay` and `umber`.
+- **The surface** (`surface.px`): `sky` is plain `blue`; `ground` is the grass line in `green`, `forest` and
+  `pine`, sitting directly on the first row of earth.
+
+The four stratum sheets share their shapes and differ only in the colours of the table above (they were
+written by a throwaway script, as the `create-sprite` skill allows). Keep them that way: a change to a shape
+belongs in all four sheets, and a new stratum is the same shapes in a new row of the table.
+
 ## Workflow
 
 1. Write the sprite as a `.px` file under `assets/` (the format is below and in

@@ -173,6 +173,12 @@ Each depth is a band of earth 120 tiles wide and 16 tall with four to six chambe
 by low tunnels. Each level has one shaft down, on the right on odd depths and on the left on even ones, so the
 party crosses most of a level to go deeper. Chambers are plain, a den or (at most one per level) a vault; the
 first chamber of depth 1 is the start. A level is only made the first time something asks for it.</p>
+<p><span class="tag built">Built: spec 006</span> The labyrinth is drawn as a cross-section, like an ant farm:
+earth with the chambers, tunnels and shafts cut out of it, a ladder down every shaft, and sky and grass above
+depth 1. Floors have a bright top edge, ceilings and walls a ragged outline. The earth changes every five
+levels (brown loam, then clay, then grey stone, then deep teal rock, then round again) so going deeper looks
+like going somewhere. Only the levels next to the action are kept in memory. A camera follows the action
+smoothly and can shake. It is not in the main game yet: a demo shows it on its own (see the table below).</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -248,6 +254,7 @@ a first pass for Zak to change. The first sprite is the knight; to see every spr
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
+  <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
 </table>
 </div>
 <h3>What the check does</h3>
@@ -299,7 +306,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span></td></tr>
-  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, shown in a demo, not yet in the main game</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
