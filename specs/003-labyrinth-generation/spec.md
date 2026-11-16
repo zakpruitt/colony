@@ -1,9 +1,9 @@
 # 003 — Labyrinth generation
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M1
 - **Depends on:** none
-- **Pull request:** —
+- **Pull request:** [#3](https://github.com/zakpruitt/colony/pull/3)
 
 ## Intent
 
