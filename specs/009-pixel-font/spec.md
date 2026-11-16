@@ -1,9 +1,9 @@
 # 009 — Pixel font and the UI theme
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M0
 - **Depends on:** 002
-- **Pull request:** —
+- **Pull request:** [#9](https://github.com/zakpruitt/colony/pull/9)
 
 ## Intent
 

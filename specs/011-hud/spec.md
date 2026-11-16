@@ -45,6 +45,9 @@ shapes. The HUD occupies only the top 28 pixels and the bottom 40 pixels of the 
 
 ## Interfaces
 
+Text uses `PixelText` (spec 009). The font has only the characters listed in that spec, and its 1-pixel ink
+shadow clogs on light backgrounds, so text always sits over the dark world or a dark panel.
+
 The lead has already added the stub this spec fills in; `Main` creates it on the HUD layer and calls `setup`.
 
 ```gdscript
