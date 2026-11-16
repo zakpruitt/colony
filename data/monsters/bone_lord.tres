@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"bone_lord"
+display_name = "Bone Lord"
+size = 2
+min_depth = 15
+max_health = 4000
+damage = 40
+armor = 6
+attack_interval = 1.4
+windup = 0.4
+attack_range = 1.5
+move_speed = 1.4
+crit_chance = 0.25
+xp = 1200
+gold_min = 560
+gold_max = 700
+guardian = true

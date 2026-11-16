@@ -524,8 +524,8 @@ func test_r11_demo_runs() -> void:
 	for _step: int in roundi(CharacterDemo.CYCLE_SECONDS * 1.5 / 0.05):
 		demo.advance(0.05)
 	var cast: Array[CharacterSprite] = demo.characters()
-	# Spec 013 adds eight monsters to the demo's cast.
-	assert_eq(cast.size(), 17, "the demo shows the nine characters and spec 013's eight")
+	# Spec 013 adds eight monsters to the demo's cast, spec 020 four guardians.
+	assert_eq(cast.size(), 21, "the demo shows the nine, spec 013's eight and spec 020's four")
 	var facing_right: int = 0
 	for character: CharacterSprite in cast:
 		var mirror: Node2D = _part(character, "body").get_parent().get_parent() as Node2D

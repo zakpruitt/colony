@@ -21,6 +21,9 @@ enum Size { SMALL, LARGE, BOSS }
 @export var xp: int
 @export var gold_min: int
 @export var gold_max: int
+## A guardian holds the way down on the levels it guards (from [member min_depth]
+## on) and never appears in an ordinary encounter.
+@export var guardian: bool = false
 
 
 ## One line per problem; empty when the monster is usable.

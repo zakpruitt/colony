@@ -50,10 +50,11 @@ func _level(sim: Simulation, depth: int) -> LabyrinthLevel:
 	return sim.labyrinth.level(depth)
 
 
-## The chambers of a level that are never populated: START, the shaft chamber, the landing chamber.
+## Chambers never populated: START, the shaft chamber (unless a guardian holds it), the landing.
 func _always_empty(sim: Simulation, depth: int) -> Array[int]:
 	var level: LabyrinthLevel = _level(sim, depth)
-	var empty: Array[int] = [level.shaft_chamber().index]
+	var empty: Array[int] = []
+	empty.assign([] if sim.expedition.guardian_of(depth) != &"" else [level.shaft_chamber().index])
 	for room: LabyrinthChamber in level.chambers:
 		if room.kind == LabyrinthChamber.Kind.START:
 			empty.append(room.index)
@@ -304,8 +305,9 @@ func test_r5_encounter_composition() -> void:
 				other.expedition.monsters_in(depth, index)
 		for depth: int in range(1, 7):
 			var level: LabyrinthLevel = _level(sim, depth)
+			var shaft: LabyrinthChamber = level.shaft_chamber()  # spec 020: a guardian's, or empty
 			for room: LabyrinthChamber in level.chambers:
-				if not sim.expedition.is_populated(depth, room.index):
+				if not sim.expedition.is_populated(depth, room.index) or room == shaft:
 					continue
 				var where: String = "seed %d depth %d chamber %d" % [seed_value, depth, room.index]
 				var monsters: Array[Combatant] = sim.expedition.monsters_in(depth, room.index)
@@ -324,11 +326,9 @@ func test_r5_encounter_composition() -> void:
 				var again: Array[Combatant] = other.expedition.monsters_in(depth, room.index)
 				assert_eq(_def_ids(again), _def_ids(monsters), "same monsters, " + where)
 
-	# Deeper dwellers are more likely than shallow ones once available: compared among the
-	# monsters that live at depth 5 (spec 013 adds deeper ones, never met there).
-	var ids: Array[StringName] = []
+	var ids: Array[StringName] = []  # depth 5's ordinary monsters: deeper ones are likelier
 	for id: StringName in Content.monster_ids():
-		if Content.monster(id).min_depth <= 5:
+		if Content.monster(id).min_depth <= 5 and not Content.monster(id).guardian:
 			ids.append(id)
 	for deeper: StringName in ids:
 		for shallower: StringName in ids:
