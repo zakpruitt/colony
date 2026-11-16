@@ -153,7 +153,7 @@ func test_r6_focus_loss_throttles_rendering_only() -> void:
 func test_r7_main_scene_shows_the_clock() -> void:
 	var main: Main = MAIN_SCENE.instantiate()
 	add_child_autofree(main)
-	var label: Label = main.get_node("ClockLabel")
+	var label: Label = main.get_node("HUD/ClockLabel")
 	assert_not_null(main.driver, "the main scene has a driver")
 	assert_not_null(main.simulation, "the main scene has a simulation")
 	if main.driver == null or main.simulation == null:
