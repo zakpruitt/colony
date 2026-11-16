@@ -1,0 +1,57 @@
+extends GutTest
+## The main scene loads and saves progress through its SaveStore, and leaves the
+## real save alone when it is not given one.
+
+const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
+
+var _path: String = "user://test_main_save_%d.save" % OS.get_process_id()
+
+
+func after_each() -> void:
+	for path: String in [_path, _path + SaveStore.BACKUP_SUFFIX, _path + SaveStore.TEMP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+
+
+func _main_with_store() -> Main:
+	var main: Main = MAIN_SCENE.instantiate()
+	main.save_store = SaveStore.new(_path)
+	add_child_autofree(main)
+	return main
+
+
+func test_a_run_without_a_store_neither_loads_nor_saves() -> void:
+	var main: Main = MAIN_SCENE.instantiate()
+	add_child_autofree(main)
+	assert_null(main.save_store, "tests are not a played game")
+	main.save_now()  # must do nothing and raise nothing
+	assert_eq(main.simulation.party.gold, 0, "a new game")
+
+
+func test_progress_survives_closing_the_scene() -> void:
+	var first: Main = _main_with_store()
+	first.simulation.party.gold = 77
+	first.simulation.party.heroes[0].level = 4
+	first.save_now()
+	first.free()
+	var second: Main = _main_with_store()
+	assert_eq(second.simulation.party.gold, 77, "gold came back")
+	assert_eq(second.simulation.party.heroes[0].level, 4, "levels came back")
+
+
+func test_saves_on_its_own_after_the_interval() -> void:
+	var main: Main = _main_with_store()
+	main.simulation.party.gold = 5
+	main._process(Main.SAVE_SECONDS + 0.1)
+	var saved: Dictionary = SaveStore.new(_path).read()
+	var gold: float = saved.get("gold", -1.0)
+	assert_eq(gold, 5.0, "saved without being asked")
+
+
+func test_a_damaged_save_starts_a_new_game() -> void:
+	var file: FileAccess = FileAccess.open(_path, FileAccess.WRITE)
+	file.store_string('{"version": 1, "gold": "lots"}')
+	file.close()
+	var main: Main = _main_with_store()
+	assert_eq(main.simulation.party.gold, 0, "bad data is refused, a new game starts")
+	assert_eq(main.simulation.tick, 0)
