@@ -205,6 +205,15 @@ changes what combat rolls.</p>
 <h3>Content as data <span class="tag planned">Planned</span></h3>
 <p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
 means adding a file. Every data file is checked automatically.</p>
+<h3>Art <span class="tag built">Built</span></h3>
+<p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one pixel,
+using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool bakes each
+text sprite into an ordinary image the game loads, and a lint refuses any art that breaks the rules: a colour
+outside the palette, the wrong size, a gap in the dark outline. Characters come in parts (body, head, arm,
+weapon) so the game can move them. The rules are in
+<a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>,
+a first pass for Zak to change. The first sprite is the knight; to see every sprite, run the gallery
+(below).</p>
 <h3>Saving <span class="tag planned">Planned</span></h3>
 <p>The game saves often and safely: a crash mid-save cannot corrupt the save, and one earlier copy is kept.</p>
 <p>The technical version of this section is
@@ -223,6 +232,9 @@ means adding a file. Every data file is checked automatically.</p>
   <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
+  <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
+  <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
+  <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
 </table>
 </div>
 <h3>What the check does</h3>
@@ -231,6 +243,7 @@ means adding a file. Every data file is checked automatically.</p>
   <tr><th>Step</th><th>Fails when</th></tr>
   <tr><td><code>format</code></td><td>Code is not formatted, or breaks a lint rule</td></tr>
   <tr><td><code>boundary</code></td><td>Something in <code>sim/</code> uses graphics, a clock or global randomness</td></tr>
+  <tr><td><code>art</code></td><td>A sprite breaks the style rules, or its image is out of date with its text file</td></tr>
   <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
   <tr><td><code>tests</code></td><td>Any test fails</td></tr>
   <tr><td><code>data</code></td><td>Any data file does not load or reports a problem</td></tr>
@@ -247,7 +260,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td><code>sim/</code></td><td>The simulation: the game's rules</td></tr>
   <tr><td><code>game/</code></td><td>Scenes, sprites, effects, UI</td></tr>
   <tr><td><code>data/</code></td><td>Classes, talents, items, monsters as data files</td></tr>
-  <tr><td><code>assets/</code></td><td>Sprites, palettes, audio</td></tr>
+  <tr><td><code>assets/</code></td><td>Sprites (text files and the images baked from them), the palette, audio</td></tr>
   <tr><td><code>tests/</code></td><td>Automated tests</td></tr>
   <tr><td><code>tools/</code></td><td><code>dev.py</code> and its helpers</td></tr>
   <tr><td><code>specs/</code></td><td>One folder per spec, plus the board of what is in progress</td></tr>
@@ -272,7 +285,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <div class="table-wrap">
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
-  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span></td></tr>
+  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing <span class="tag planned">Planned</span></td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>

@@ -182,6 +182,20 @@ def step_boundary() -> str:
     return f"{len(files)} sim scripts"
 
 
+def step_art() -> str:
+    """The art pipeline's own tests, then the art lint (spec 002, docs/style-bible.md)."""
+    python = sys.executable or "python"
+    code, output = run([python, "-m", "unittest", "discover", "-s", "tools/tests"], timeout=300)
+    if code != 0:
+        raise StepFailed(f"tools/tests failed (exit {code})\n{tail(output)}")
+    tests = re.search(r"^Ran (\d+) tests?", output, re.MULTILINE)
+    code, output = run([python, "tools/art.py", "lint"], timeout=300)
+    if code != 0:
+        raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
+    count = tests.group(1) if tests else "0"
+    return f"{count} tool tests, {output.strip().splitlines()[-1]}"
+
+
 def step_compile() -> str:
     code, output = godot(["--import"], timeout=600)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
@@ -224,6 +238,7 @@ def last_line(output: str, prefix: str) -> str:
 STEPS: dict[str, Callable[[], str]] = {
     "format": step_format,
     "boundary": step_boundary,
+    "art": step_art,
     "compile": step_compile,
     "tests": step_tests,
     "data": step_data,

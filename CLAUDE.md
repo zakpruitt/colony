@@ -25,9 +25,9 @@ incomplete, stop and report the question.
 | `sim/` | The simulation: plain typed classes | Pure. No nodes, no engine clocks, no global random (checked) |
 | `game/` | Nodes, scenes, view and UI | Reads sim state and events; changes the sim only through commands |
 | `data/` | Content as `.tres` resources | Each content class has `validate() -> PackedStringArray` |
-| `assets/` | Sprites, palettes, audio | Nothing lands before the style bible exists |
+| `assets/` | Sprites (`.px` sources and the sheets baked from them), the palette, audio | Follows `docs/style-bible.md`; the art lint checks it |
 | `tests/unit/`, `tests/acceptance/` | GUT tests | Acceptance tests are named for a spec requirement |
-| `tools/` | `dev.py` and the Godot scripts it runs | Standard library only |
+| `tools/` | `dev.py`, `art.py`, the Godot scripts they run, and their tests (`tools/tests/`) | Standard library only |
 | `specs/` | One folder per spec, the template, the board | |
 | `addons/gut/` | Vendored GUT 9.7.1 | Do not edit |
 
@@ -56,11 +56,14 @@ incomplete, stop and report the question.
 | What | Command |
 |---|---|
 | Everything CI runs | `python tools/dev.py check` |
-| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `compile`, `tests`, `data`, `boot`) |
+| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `art`, `compile`, `tests`, `data`, `boot`) |
 | Tests only | `python tools/dev.py test [--only=<part of a script name>]` |
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |
 | Play | `godot --path .` |
+| Bake sprites (`.px` to `.png` and `.json`) | `python tools/art.py bake [<path>]` |
+| Lint the art | `python tools/art.py lint` |
+| Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
 | Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…]` → `.shots/<n>.png` |
 
 ## Looking at the game
@@ -76,4 +79,4 @@ Screenshots stay in `.shots/` (ignored by git).
 
 `write-spec` (drafting a spec with Zak), `implement-spec` (a lane's procedure from spec to pull request),
 `land-lane` (review, merge and the board, for the lead), `godot-headless-test` (writing GUT tests that mean
-something).
+something), `create-sprite` (writing, baking, linting and looking at a sprite).
