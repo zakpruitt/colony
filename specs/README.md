@@ -37,3 +37,5 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | Wave | Spec | Depends on |
 |---|---|---|
 | H | [022 Auto-buy](022-auto-buy/spec.md): the camp can buy its own upgrades, also while away — provisional, in progress | 016, 017, 019 |
+| I | [023 Steady monster ids](023-steady-monster-ids/spec.md): watching the game must not change its state — provisional, in progress | 005, 008, 020 |
+| I | [024 Guardian fights](024-guardian-fights/spec.md): announcement, boss health bar and a death worth the wait — provisional, in progress | 010, 011, 020, 021 |
