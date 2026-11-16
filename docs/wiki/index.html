@@ -173,6 +173,14 @@ health, the party rests where it stands until everyone is full again (4% of heal
 chamber fills up again after 90 seconds. Each target depth that holds for the stable time is followed by
 the next one down (auto-push, which can be turned off), so the party keeps going deeper until it meets
 something it cannot beat.</p>
+<p><span class="tag built">Built: spec 020</span> <strong>Guardians.</strong> Every fifth level (5, 10, 15, 20,
+25, ...) has a guardian in the chamber with the shaft down: one huge monster, alone, that the party must beat
+to go deeper. The Slime King holds depth 5, the Clay Colossus depth 10, the Bone Lord depth 15 and the Deep
+Maw depth 20 and every fifth level below. A guardian is a wall: four level-5 heroes almost never beat the
+Slime King, level-9 heroes almost always do (levels 10 and 15 against the Clay Colossus). The party throws
+itself at it, wipes, falls back to farm, grows and comes back. Beating one pays at least ten ordinary kills'
+worth of XP and gold, and its chamber then stays empty for 30 minutes so the party can pass freely. Guardians
+are never met in ordinary fights.</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
 (about ten minutes to start). If the party wipes, it revives there and keeps farming. A wipe costs
@@ -297,7 +305,7 @@ changes what combat rolls.</p>
 <h3>Content as data <span class="tag built">Built</span></h3>
 <p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
 means adding a file. Every data file is checked automatically. So far there are four hero classes
-(<code>data/heroes/</code>: knight, rogue, mage, cleric) and thirteen monsters (<code>data/monsters/</code>).
+(<code>data/heroes/</code>: knight, rogue, mage, cleric) and thirteen monsters plus four guardians (<code>data/monsters/</code>).
 Each band of five levels has its own inhabitants (<span class="tag built">Built: spec 013</span>): slime and cave
 bat from depth 1, skeleton from 2, spider from 3, goblin from 4 and ogre from 5 in the loam; mud golem from 6,
 fire imp from 7 and clay hound from 8 in the clay; ghoul from 11, crystal beetle from 12 and wraith from 13 in
@@ -337,7 +345,8 @@ weapon) so the game can move them. The rules are in
 a first pass for Zak to change. To see every sprite, run the gallery (below).</p>
 <p><span class="tag built">Built: spec 007</span> The cast: four heroes (knight, rogue, mage, cleric) and five
 monsters (slime, cave bat, skeleton, spider, ogre), joined by spec 013's eight (goblin, mud golem, fire imp, clay
-hound, ghoul, crystal beetle, wraith, deep horror), coloured for their band: warm in the clay, cold in the
+hound, ghoul, crystal beetle, wraith, deep horror) and spec 020's four guardians (slime king, clay colossus,
+bone lord, deep maw, drawn 64x64, twice a hero's height), coloured for their band: warm in the clay, cold in the
 stone, teal in the deep. Each part of a character turns around its own joint (the
 neck, the shoulder, the hand), and the game moves the parts in code rather than flipping through drawn frames:
 characters breathe while they stand, bob and lean as they walk, draw back before they strike, flash white and
@@ -451,7 +460,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
