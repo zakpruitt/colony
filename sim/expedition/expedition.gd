@@ -22,6 +22,12 @@ const REVIVE_SECONDS: float = 5.0
 ## A fight that lasts this long overwhelms the party (it is wiped).
 const BATTLE_LIMIT_SECONDS: float = 90.0
 const FIRST_MONSTER_ID: int = 100
+## Monster ids are built from where the monster waits (see [method monster_id]): room for this many
+## chambers on a level, visits to a chamber before its ids come round again, and monsters in one
+## encounter.
+const CHAMBER_SPAN: int = 8
+const VISIT_SPAN: int = 64
+const SLOT_SPAN: int = 8
 ## Every level whose depth is a multiple of this has a guardian holding its shaft chamber.
 const GUARDIAN_EVERY: int = 5
 ## How long a beaten guardian's chamber stays empty, instead of RESPAWN_SECONDS.
@@ -59,9 +65,13 @@ var _loot_rng: SimRng
 var _tick: int = 0
 var _events: Array[SimEvent] = []
 
-## Chambers that have been asked about or fought in, by Vector2i(depth, index).
+## Chambers the party has fought in, by Vector2i(depth, index). Only stepping changes them:
+## reading a chamber never makes or touches a record.
 var _chambers: Dictionary[Vector2i, ChamberState] = {}
-var _next_monster_id: int = FIRST_MONSTER_ID
+## Monsters rolled for a visit no one has fought yet, by Vector3i(depth, index, visit). Not state:
+## a roll depends only on the seed and those three numbers, so this only saves rolling twice, and
+## hands the view and the battle the same objects. Not in the hash.
+var _rolled: Dictionary[Vector3i, Array] = {}
 var _battle_count: int = 0
 var _battle_key: Vector2i = Vector2i(0, -1)
 ## The chamber the anchor stood in after the last tick, as Vector2i(depth, index);
@@ -202,12 +212,27 @@ func is_populated(level_depth: int, chamber_index: int) -> bool:
 
 
 ## The monsters waiting in this chamber (empty if it is not populated).
-## Their y is the level's floor.
+## Their y is the level's floor. Asking changes nothing in the game.
 func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 	if not is_populated(level_depth, chamber_index):
 		return []
-	var fill: ChamberState = _fill(level_depth, chamber_index)
-	return fill.monsters.duplicate()
+	var fill: ChamberState = _chambers.get(Vector2i(level_depth, chamber_index), null)
+	if fill != null and fill.cleared_tick < 0 and not fill.monsters.is_empty():
+		return fill.monsters.duplicate()  # survivors of a wipe
+	var waiting: Array[Combatant] = []
+	waiting.assign(_rolled_for(level_depth, chamber_index, _visit_now(fill)))
+	return waiting
+
+
+## The id of the monster in place [param slot] of the encounter on visit [param visit] to chamber
+## [param chamber_index] at [param level_depth]:
+## [code]FIRST_MONSTER_ID + ((depth * CHAMBER_SPAN + chamber) * VISIT_SPAN + visit % VISIT_SPAN)
+## * SLOT_SPAN + slot[/code]. Only one visit to a chamber has monsters at a time, so ids are unique
+## among the monsters that exist together; a chamber's ids come round again after VISIT_SPAN
+## refills. Ids stay below 2^31 to depth 500,000.
+static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: int) -> int:
+	var place: int = level_depth * CHAMBER_SPAN + chamber_index
+	return FIRST_MONSTER_ID + (place * VISIT_SPAN + visit % VISIT_SPAN) * SLOT_SPAN + slot
 
 
 ## The id of the guardian that holds that depth's way down, or &"" if the depth has none:
@@ -238,7 +263,6 @@ func hash_parts() -> Array:
 		last_stable_depth,
 		deepest_depth,
 		stable_seconds,
-		_next_monster_id,
 		_battle_count,
 		_battle_key,
 		_entered_key,
@@ -480,7 +504,26 @@ func _refill_tick(fill: ChamberState) -> int:
 	return fill.cleared_tick + Combatant.seconds_to_ticks(seconds)
 
 
-## The chamber's record, refilled if its time has come, with its monsters made.
+## The visit a chamber with record [param fill] (null if none) is on now: the next one once a
+## cleared chamber's time to refill has come, though the record still says the last.
+func _visit_now(fill: ChamberState) -> int:
+	if fill == null:
+		return 0
+	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
+		return fill.visit + 1
+	return fill.visit
+
+
+## The monsters of that visit, rolled once and kept until the party meets them.
+func _rolled_for(level_depth: int, chamber_index: int, visit: int) -> Array:
+	var key := Vector3i(level_depth, chamber_index, visit)
+	if not _rolled.has(key):
+		_rolled[key] = _roll_monsters(level_depth, chamber_index, visit)
+	return _rolled[key]
+
+
+## The chamber's record, made or refilled if its time has come, with its monsters made.
+## Called only when the party meets them, never by a read.
 func _fill(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
@@ -493,20 +536,22 @@ func _fill(level_depth: int, chamber_index: int) -> ChamberState:
 		fill.cleared_tick = -1
 		fill.monsters = []
 	if fill.cleared_tick < 0 and fill.monsters.is_empty():
-		fill.monsters = _roll_monsters(level_depth, chamber_index, fill.visit)
+		fill.monsters.assign(_rolled_for(level_depth, chamber_index, fill.visit))
+	# From here the record holds them; a later visit rolls its own.
+	_rolled.erase(Vector3i(level_depth, chamber_index, fill.visit))
 	return fill
 
 
-## The monsters of one visit to a chamber. Which monsters depends only on the
-## seed, depth, chamber and visit; their ids are the next unused ones.
+## The monsters of one visit to a chamber. Which monsters, and their ids, depend only on the
+## seed, depth, chamber and visit (see [method monster_id]).
 func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[Combatant]:
 	var room: LabyrinthChamber = _labyrinth.level(level_depth).chambers[chamber_index]
 	var monsters: Array[Combatant] = []
 	if _is_guardian_chamber(level_depth, chamber_index):
 		# The guardian alone, whatever the chamber's kind.
 		var guardian: MonsterDef = Content.monster(guardian_of(level_depth))
-		monsters.append(Combatant.from_monster(guardian, level_depth, _next_monster_id))
-		_next_monster_id += 1
+		var guardian_id: int = monster_id(level_depth, chamber_index, visit, 0)
+		monsters.append(Combatant.from_monster(guardian, level_depth, guardian_id))
 		_spread(monsters, room)
 		return monsters
 	var rng: SimRng = _rng.fork("encounter/%d/%d/%d" % [level_depth, chamber_index, visit])
@@ -535,8 +580,11 @@ func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[C
 			if roll <= 0:
 				picked = def
 				break
-		monsters.append(Combatant.from_monster(picked, level_depth, _next_monster_id))
-		_next_monster_id += 1
+		monsters.append(
+			Combatant.from_monster(
+				picked, level_depth, monster_id(level_depth, chamber_index, visit, i)
+			)
+		)
 	_spread(monsters, room)
 	return monsters
 

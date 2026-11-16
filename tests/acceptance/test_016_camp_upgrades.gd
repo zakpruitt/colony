@@ -11,29 +11,30 @@ const UPGRADES: Array = [
 	[&"fat_purse", UpgradeDef.Stat.GOLD, 0.05, 20],
 ]
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes,
-## recorded on dev before this spec changed any sim code.
+## recorded on dev before this spec changed any sim code. Re-recorded by spec 023, whose
+## monster ids (part of the hash) come from where the monster is; the game is otherwise the same.
 const RECORDED_HASHES: Dictionary = {
 	3:
 	[
-		3842511662,
-		1228728981,
-		4216450735,
-		3989643042,
-		2050135012,
-		2909797433,
-		1251814722,
-		590249228,
+		3154249765,
+		1097359994,
+		4209185757,
+		161986172,
+		2107550454,
+		57912363,
+		2785551243,
+		3919456357,
 	],
 	11:
 	[
-		2396187446,
-		1437833853,
-		1971857569,
-		1615901415,
-		2542520794,
-		418144199,
-		1477848510,
-		4146895050,
+		1603796506,
+		1110538116,
+		920169410,
+		698398633,
+		2833055051,
+		1538828919,
+		1005250968,
+		3954478739,
 	],
 }
 const HOUR_TICKS: int = 36_000

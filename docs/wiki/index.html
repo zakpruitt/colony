@@ -312,7 +312,8 @@ closed is simply more ticks to work through.</p>
 <h3>Randomness <span class="tag built">Built</span></h3>
 <p>Every dice roll comes from a seeded stream (<code>SimRng</code>). The same seed gives the same run, which
 makes bugs repeatable and balance testable. Each system takes its own stream, so adding a loot roll never
-changes what combat rolls.</p>
+changes what combat rolls. Watching the game never changes it: a game on screen and the same seed run
+headless (the <code>sim</code> command) play out exactly alike, monster for monster (spec 023).</p>
 <h3>Content as data <span class="tag built">Built</span></h3>
 <p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
 means adding a file. Every data file is checked automatically. So far there are four hero classes
