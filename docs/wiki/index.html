@@ -231,8 +231,13 @@ text sprite into an ordinary image the game loads, and a lint refuses any art th
 outside the palette, the wrong size, a gap in the dark outline. Characters come in parts (body, head, arm,
 weapon) so the game can move them. The rules are in
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>,
-a first pass for Zak to change. The first sprite is the knight; to see every sprite, run the gallery
-(below).</p>
+a first pass for Zak to change. To see every sprite, run the gallery (below).</p>
+<p><span class="tag built">Built: spec 007</span> The cast: four heroes (knight, rogue, mage, cleric) and five
+monsters (slime, cave bat, skeleton, spider, ogre). Each part of a character turns around its own joint (the
+neck, the shoulder, the hand), and the game moves the parts in code rather than flipping through drawn frames:
+characters breathe while they stand, bob and lean as they walk, draw back before they strike, flash white and
+flinch when hit, and collapse when they die. A demo shows the whole cast doing all of it (below); the
+characters are not in the labyrinth yet.</p>
 <h3>Saving <span class="tag planned">Planned</span></h3>
 <p>The game saves often and safely: a crash mid-save cannot corrupt the save, and one earlier copy is kept.</p>
 <p>The technical version of this section is
@@ -254,6 +259,7 @@ a first pass for Zak to change. The first sprite is the knight; to see every spr
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
+  <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
 </table>
 </div>
@@ -307,7 +313,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, shown in a demo, not yet in the main game</td></tr>
-  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>, shown in a demo</td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>

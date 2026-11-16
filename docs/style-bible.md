@@ -52,7 +52,32 @@ The category in a sprite's header fixes its size and whether it is outlined. **(
   opens when one rotates.
 - The pivot is the pixel on the ground at the feet's centre, by default the bottom centre of the canvas
   (`16,31` for a hero). The sprite stands and turns around it.
-- Characters face right.
+- A part may name its own pivot, the joint it turns around: `[arm] pivot=18,16` (the shoulder). A part with
+  none turns around the sprite's pivot. A pivot outside the canvas is a lint failure. **(lint)**
+- Put the pivot where the part joins the rest: the neck for a head, the shoulder for an arm, the hand's grip
+  for a weapon (the weapon is carried by the arm and turns again at the grip), the root of a wing, the hip of
+  a leg.
+- Characters face right; the game mirrors them to face left.
+- Part names say how the game moves them (`game/entities/character_sprite.gd`): `head`, `arm` and `weapon`
+  bob and swing; `wing...` beats; `leg...` swings, and a name ending in `back` swings the other way; `eyes`
+  blink. A character with a head breathes by moving its head and arm a pixel; with wings it hovers; with
+  legs and no head its body bobs; with none of these it squashes. Draw `eyes` over closed lids on the body.
+
+### The cast
+
+Each character has its own main colour, so the party and the monsters read apart at 1x.
+
+| Character | Category | Main colour | Parts |
+|---|---|---|---|
+| `knight` | `hero` | `steel`, with a `red` cape and plume | body, head, arm, weapon (sword) |
+| `rogue` | `hero` | `plum` hood and cloak, `clay` leather | body, head, arm, weapon (dagger) |
+| `mage` | `hero` | `navy` and `blue` robe and hat, `cyan` orb | body, head, arm, weapon (staff) |
+| `cleric` | `hero` | `silver` hood and robe over `amber` vestments | body, head, arm, weapon (mace) |
+| `slime` | `monster_small` | `green` | body, eyes |
+| `cave_bat` | `monster_small` | `slate` fur, `plum` wings | wing_back, body, wing |
+| `skeleton` | `monster_small` | `sand` bone, rusty `copper` sword | body, head, arm, weapon |
+| `spider` | `monster_small` | `red`, on `umber` legs | legs_back, body, legs |
+| `ogre` | `monster_large` | `tawny` skin, `umber` club | body, head, arm, weapon (club) |
 
 ## Tiles
 

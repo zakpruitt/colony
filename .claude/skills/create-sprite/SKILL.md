@@ -14,7 +14,8 @@ is `assets/sprites/heroes/knight.px`.
 - Put it under `assets/sprites/<kind>/<name>.px` (for example `assets/sprites/monsters/rat.px`).
 - Header: `category = <hero|monster_small|monster_large|boss|item|tile|fx|ui>`, `size = <w>x<h>` (the size the
   category requires), and `pivot = x,y` only if the default (bottom centre) is wrong.
-- Then each part: a `[name]` line (lower case, digits, `_`) and exactly `<h>` rows of `<w>` symbols. Symbols
+- Then each part: a `[name]` line (lower case, digits, `_`), optionally with the joint it turns around
+  (`[arm] pivot=18,16`), and exactly `<h>` rows of `<w>` symbols. Symbols
   are the first column of `assets/style/palette.txt`; `.` is transparent. Lines starting with `#` are comments.
 - Every part is a full canvas at its place in the whole sprite: stacking the parts unmoved gives the
   composed sprite. Draw them so they overlap at joints.
@@ -57,10 +58,27 @@ scratch script and write an enlarged copy with `art.encode_png`.
 
 Iterate until it reads clearly, then say in your report what you see. Zak approves new art.
 
+For a character, also run the cast demo and look at it moving, not only standing:
+`python tools/dev.py shot --scene=res://game/entities/character_demo.tscn --name=cast --seconds=0.7 --count=10`.
+Rotated parts show where a pivot is wrong (a weapon leaving the hand, a gap at the shoulder). For a closer
+look at motion, take `--seconds=0.1 --count=70` and put crops of consecutive shots side by side.
+
+Auto-shading helps a throwaway script: give each material a base, highlight and shadow, then make a pixel
+the highlight where its top or left neighbour is not the same material and the shadow where its bottom or
+right one is not. A small face shaded that way ends up mostly shadow; write its pixels by hand.
+
 ## 4. Use it in code
 
 ```gdscript
 var sheet: PixelSheet = PixelSheet.load_sheet("res://assets/sprites/heroes/knight.png")
 var head: AtlasTexture = sheet.part(&"head")   # the part's 32x32 region of the sheet
 var ink: Color = Palette.color(&"ink")
+var shoulder: Vector2i = sheet.part_pivot(&"arm")   # the declared pivot, or the sprite's pivot
+
+var hero: CharacterSprite = CharacterSprite.for_hero(&"knight")   # composed and animated in code
 ```
+
+A canvas_item shader on a sprite must not sample the texture again: in a Godot 4 `fragment()`, `COLOR`
+already holds the texture's colour times modulate. `texture(TEXTURE, UV) * COLOR` squares every colour and
+drives the sprite off the palette, darker. Work from `COLOR` (see `game/entities/flash.gdshader`). To
+check, decode a screenshot with `art.decode_png` and confirm the pixels on the sprite are palette colours.

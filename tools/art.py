@@ -6,7 +6,8 @@
     python tools/art.py lint            report every asset that breaks the style rules
 
 A `.px` file is a header (`category`, `size`, optional `pivot`) and one or more named
-parts, each a grid of palette symbols with `.` for transparent. Baking writes, next to
+parts, each a grid of palette symbols with `.` for transparent. A part header may name the
+pixel that part turns around: `[arm] pivot=12,14` (spec 007). Baking writes, next to
 the source, a PNG sheet (the parts left to right, in file order) and a `.json` file that
 describes it. The rules are in docs/style-bible.md; the format in specs/002-art-foundation.
 
@@ -46,7 +47,7 @@ CATEGORIES: dict[str, tuple[tuple[int, int] | None, bool]] = {
 
 REQUIRED_FIELDS = ("category", "size")
 KNOWN_FIELDS = ("category", "size", "pivot")
-PART_HEADER = re.compile(r"^\[([a-z0-9_]+)\]$")
+PART_HEADER = re.compile(r"^\[([a-z0-9_]+)\](?:\s+pivot\s*=\s*(\S+))?$")
 FIELD_LINE = re.compile(r"^([a-z_]+)\s*=\s*(.*)$")
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 
@@ -62,6 +63,8 @@ class Sprite:
     height: int
     pivot: tuple[int, int]
     parts: list[tuple[str, list[str]]]
+    # Part name -> the pixel that part turns around, for the parts that declare one.
+    part_pivots: dict[str, tuple[int, int]]
 
 
 @dataclass
@@ -105,6 +108,7 @@ def parse_px(text: str, palette: list[Colour]) -> Sprite:
     symbols = {c.symbol for c in palette}
     fields: dict[str, str] = {}
     parts: list[tuple[str, list[str]]] = []
+    declared_pivots: dict[str, str] = {}
     for number, raw in enumerate(text.splitlines(), 1):
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -115,6 +119,8 @@ def parse_px(text: str, palette: list[Colour]) -> Sprite:
             if any(existing == name for existing, _ in parts):
                 raise ArtError(f"line {number}: duplicate part name `{name}`")
             parts.append((name, []))
+            if header.group(2) is not None:
+                declared_pivots[name] = header.group(2)
             continue
         if not parts:
             field = FIELD_LINE.match(line)
@@ -144,12 +150,11 @@ def parse_px(text: str, palette: list[Colour]) -> Sprite:
     width, height = int(size.group(1)), int(size.group(2))
     pivot = (width // 2, height - 1)
     if "pivot" in fields:
-        given = re.fullmatch(r"(\d+)\s*,\s*(\d+)", fields["pivot"])
-        if not given:
-            raise ArtError(f"pivot `{fields['pivot']}` is not `<x>,<y>`")
-        pivot = (int(given.group(1)), int(given.group(2)))
-        if pivot[0] >= width or pivot[1] >= height:
-            raise ArtError(f"pivot {pivot[0]},{pivot[1]} is outside the {width}x{height} canvas")
+        pivot = parse_pivot(fields["pivot"], width, height, "pivot")
+    part_pivots = {
+        name: parse_pivot(value, width, height, f"part `{name}`: pivot")
+        for name, value in declared_pivots.items()
+    }
     if not parts:
         raise ArtError("no parts: add a `[name]` header and its grid")
     for name, rows in parts:
@@ -158,7 +163,18 @@ def parse_px(text: str, palette: list[Colour]) -> Sprite:
         if len(rows) != height or (rows and len(rows[0]) != width):
             got = f"{len(rows[0]) if rows else 0}x{len(rows)}"
             raise ArtError(f"part `{name}`: grid is {got}, the header says {width}x{height}")
-    return Sprite(category, width, height, pivot, parts)
+    return Sprite(category, width, height, pivot, parts, part_pivots)
+
+
+def parse_pivot(value: str, width: int, height: int, what: str) -> tuple[int, int]:
+    """An `x,y` pixel inside the canvas. Raises ArtError naming [what] otherwise."""
+    given = re.fullmatch(r"(\d+)\s*,\s*(\d+)", value)
+    if not given:
+        raise ArtError(f"{what} `{value}` is not `<x>,<y>`")
+    x, y = int(given.group(1)), int(given.group(2))
+    if x >= width or y >= height:
+        raise ArtError(f"{what} {x},{y} is outside the {width}x{height} canvas")
+    return (x, y)
 
 
 def style_problems(sprite: Sprite, palette: list[Colour]) -> list[str]:
@@ -232,6 +248,11 @@ def describe(sprite: Sprite) -> str:
         "pivot": list(sprite.pivot),
         "parts": [name for name, _ in sprite.parts],
     }
+    if sprite.part_pivots:
+        # Only when declared, so sheets without part pivots bake exactly as before spec 007.
+        described["part_pivots"] = {
+            name: list(sprite.part_pivots[name]) for name, _ in sprite.parts if name in sprite.part_pivots
+        }
     return json.dumps(described) + "\n"
 
 
