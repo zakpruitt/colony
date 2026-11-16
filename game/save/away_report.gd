@@ -16,3 +16,5 @@ var depth_after: int
 var kills: int
 ## Times the whole party fell.
 var wipes: int
+## Camp upgrades auto-buy bought (spec 022).
+var upgrades_bought: int

@@ -10,7 +10,9 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 2
+const SAVE_VERSION: int = 3
+## Auto-buy buys at most one upgrade per this many seconds of game time.
+const AUTO_BUY_SECONDS: float = 1.0
 ## The largest whole number a JSON float holds exactly (2^53).
 const _LARGEST_WHOLE: int = 9_007_199_254_740_992
 
@@ -23,6 +25,14 @@ var tick: int:
 
 ## The endless levels, made from the seed.
 var labyrinth: Labyrinth
+## True while the camp buys upgrades by itself. Read-only outside this class: call
+## [method set_auto_buy].
+var auto_buy: bool:
+	get:
+		return _auto_buy
+	set(_value):
+		push_error("Simulation.auto_buy is read-only; call set_auto_buy()")
+
 ## The heroes and their gold.
 var party: Party
 ## Where the party is and what it is doing.
@@ -35,6 +45,9 @@ var _tick: int = 0
 var _events: Array[SimEvent] = []
 ## Upgrades asked for by [method buy_upgrade], bought in order on the next step.
 var _pending_buys: Array[StringName] = []
+var _auto_buy: bool = false
+## The switch asked for by [method set_auto_buy], applied on the next step: 1 on, 0 off, -1 none.
+var _pending_auto_buy: int = -1
 
 
 func _init(seed_value: int) -> void:
@@ -48,7 +61,11 @@ func _init(seed_value: int) -> void:
 ## Advances the simulation by exactly one tick.
 func step() -> void:
 	_tick += 1
+	if _pending_auto_buy >= 0:
+		_auto_buy = _pending_auto_buy == 1
+		_pending_auto_buy = -1
 	_apply_buys()
+	_apply_auto_buy()
 	expedition.step(_tick)
 	_events.append_array(expedition.drain_events())
 
@@ -70,24 +87,49 @@ func buy_upgrade(id: StringName) -> void:
 	_pending_buys.append(id)
 
 
+## Turns auto-buy on or off, from the next step. While on, the camp buys the cheapest
+## affordable upgrade (earlier in the shop on a tie) at most once every
+## [constant AUTO_BUY_SECONDS], exactly as [method buy_upgrade] would.
+func set_auto_buy(enabled: bool) -> void:
+	_pending_auto_buy = 1 if enabled else 0
+
+
 func _apply_buys() -> void:
 	var buys: Array[StringName] = _pending_buys
 	_pending_buys = []
 	for id: StringName in buys:
-		var price: int = upgrades.cost(id)
-		if price < 0 or price > party.gold:
-			continue
-		party.gold -= price
-		var before: Dictionary[int, int] = {}
-		for hero: Hero in party.heroes:
-			before[hero.id] = hero.max_health()
-		upgrades.set_rank(id, upgrades.rank(id) + 1)
-		_raise_health(before)
-		var position: int = Content.upgrade_ids().find(id)
-		var event := SimEvent.new(
-			SimEvent.Kind.UPGRADE_BOUGHT, _tick, position, -1, upgrades.rank(id)
-		)
-		_events.append(event)
+		_buy(id)
+
+
+## Auto-buy looks for a purchase on the ticks that start a whole [constant AUTO_BUY_SECONDS], so
+## there is never more than one in any such span, and nothing about it needs saving.
+func _apply_auto_buy() -> void:
+	if not _auto_buy:
+		return
+	var every: int = maxi(roundi(AUTO_BUY_SECONDS * TICKS_PER_SECOND), 1)
+	if _tick % every != 0:
+		return
+	var id: StringName = upgrades.cheapest_affordable(party.gold)
+	if id != &"":
+		_buy(id)
+
+
+## Buys the next rank of [param id] if it is known, below the maximum and affordable: takes
+## the gold, raises the rank and the heroes' health, and reports
+## [constant SimEvent.Kind.UPGRADE_BOUGHT].
+func _buy(id: StringName) -> void:
+	var price: int = upgrades.cost(id)
+	if price < 0 or price > party.gold:
+		return
+	party.gold -= price
+	var before: Dictionary[int, int] = {}
+	for hero: Hero in party.heroes:
+		before[hero.id] = hero.max_health()
+	upgrades.set_rank(id, upgrades.rank(id) + 1)
+	_raise_health(before)
+	var position: int = Content.upgrade_ids().find(id)
+	var event := SimEvent.new(SimEvent.Kind.UPGRADE_BOUGHT, _tick, position, -1, upgrades.rank(id))
+	_events.append(event)
 
 
 ## Heals every standing hero (and its fighter, mid-battle) by the maximum health
@@ -126,6 +168,9 @@ func state_hash() -> int:
 	# Without upgrades the hash is what it was before they existed.
 	if upgrades.any():
 		parts.append(upgrades.hash_parts())
+	# Likewise auto-buy: only a simulation with it on hashes the switch.
+	if _auto_buy:
+		parts.append("auto_buy")
 	return hash(parts)
 
 
@@ -152,6 +197,7 @@ func to_save() -> Dictionary:
 		"target_depth": expedition.target_depth,
 		"auto_push": expedition.auto_push,
 		"upgrades": ranks,
+		"auto_buy": _auto_buy,
 	}
 
 
@@ -187,6 +233,8 @@ static func from_save(data: Dictionary) -> Simulation:
 	var deepest: int = _whole(current["deepest_depth"])
 	var target: int = _whole(current["target_depth"])
 	sim.expedition.arrive_from_save(sim._tick, stable, deepest, target, auto_push)
+	var auto_buy_on: bool = current["auto_buy"]
+	sim._auto_buy = auto_buy_on
 	return sim
 
 
@@ -210,6 +258,8 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 		_check_whole(problems, current, field, 1)
 	if typeof(current.get("auto_push")) != TYPE_BOOL:
 		problems.append("auto_push: missing or not true or false")
+	if typeof(current.get("auto_buy")) != TYPE_BOOL:
+		problems.append("auto_buy: missing or not true or false")
 	var heroes: Variant = current.get("heroes")
 	if not (heroes is Array) or (heroes as Array).is_empty():
 		problems.append("heroes: missing, not a list or empty")
@@ -235,6 +285,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 	# Each step turns version n into n + 1.
 	if _whole(current["version"]) == 1:
 		current = _save_1_to_2(current)
+	if _whole(current["version"]) == 2:
+		current = _save_2_to_3(current)
 	return current
 
 
@@ -242,6 +294,13 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 static func _save_1_to_2(data: Dictionary) -> Dictionary:
 	data["version"] = 2
 	data["upgrades"] = {}
+	return data
+
+
+## Version 2 had no auto-buy: version 3 adds the switch, off.
+static func _save_2_to_3(data: Dictionary) -> Dictionary:
+	data["version"] = 3
+	data["auto_buy"] = false
 	return data
 
 

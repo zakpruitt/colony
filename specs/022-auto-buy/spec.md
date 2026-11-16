@@ -1,9 +1,9 @@
 # 022 — Auto-buy: let the camp spend its own gold
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 016, 017, 019
-- **Pull request:** —
+- **Pull request:** [#23](https://github.com/zakpruitt/colony/pull/23)
 
 ## Intent
 

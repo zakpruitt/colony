@@ -339,7 +339,7 @@ func test_r7_upgrades_are_saved() -> void:
 	sim.upgrades.set_rank(&"quick_march", 10)
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
-	assert_eq(version, 2, "save version 2")
+	assert_eq(version, Simulation.SAVE_VERSION, "the current save version (3 since spec 022)")
 	var parsed: Variant = JSON.parse_string(JSON.stringify(data))
 	assert_true(parsed is Dictionary)
 	var loaded: Simulation = Simulation.from_save(parsed as Dictionary)
@@ -368,7 +368,7 @@ func test_r7_upgrades_are_saved() -> void:
 			assert_eq(from_old.upgrades.rank(row[0] as StringName), 0)
 		assert_false(from_old.upgrades.any())
 	var upgraded: int = Simulation.upgrade_save(old)["version"]
-	assert_eq(upgraded, 2, "through the upgrade step")
+	assert_eq(upgraded, Simulation.SAVE_VERSION, "through the upgrade steps")
 
 	# Bad ranks are refused by name; unknown extra keys are not.
 	var cases: Array = [
