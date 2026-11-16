@@ -1,9 +1,9 @@
 # 017 — The upgrade shop on screen
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 011, 016
-- **Pull request:** —
+- **Pull request:** [#20](https://github.com/zakpruitt/colony/pull/20)
 
 ## Intent
 

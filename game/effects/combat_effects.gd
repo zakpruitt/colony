@@ -31,16 +31,49 @@ const NUMBER_DRIFT: float = 22.0
 const NUMBER_GRAVITY: float = 230.0
 ## How high on the target a number appears, as a share of the sprite's height above its feet.
 const NUMBER_HEIGHT: float = 0.62
-## Numbers on one target within this many seconds of each other stack: each further one starts
-## STACK_STEP pixels higher and is pushed to alternate sides.
-const STACK_WINDOW: float = 0.35
-const STACK_STEP: float = 8.0
-const STACK_SIDE: float = 5.0
-const STACK_MAX: int = 4
-## Pixels a number of font multiple 1 takes up and down (its glyphs and shadow, and a gap), and how
-## close across another number's middle a new one must be to clash with it.
-const NUMBER_LINE: float = 7.0
-const NUMBER_CLEARANCE: float = 9.0
+## Where a number may start, as steps from its place over the target (spec 018 R5): the first
+## whose path stays clear of every number already showing is taken. Each step is NUMBER_STEP
+## pixels across and NUMBER_RISE pixels up; a number drifts the way its step leans.
+const NUMBER_SPOTS: Array[Vector2i] = [
+	Vector2i(0, 0),
+	Vector2i(1, 1),
+	Vector2i(-1, 1),
+	Vector2i(2, 0),
+	Vector2i(-2, 0),
+	Vector2i(1, 2),
+	Vector2i(-1, 2),
+	Vector2i(3, 1),
+	Vector2i(-3, 1),
+	Vector2i(0, 3),
+	Vector2i(2, 3),
+	Vector2i(-2, 3),
+	Vector2i(4, 0),
+	Vector2i(-4, 0),
+	Vector2i(3, 3),
+	Vector2i(-3, 3),
+	Vector2i(0, -1),
+	Vector2i(2, -1),
+	Vector2i(-2, -1),
+	Vector2i(5, 2),
+	Vector2i(-5, 2),
+	Vector2i(1, 4),
+	Vector2i(-1, 4),
+	Vector2i(4, 4),
+	Vector2i(-4, 4),
+	Vector2i(6, 0),
+	Vector2i(-6, 0),
+	Vector2i(0, 5),
+	Vector2i(3, 5),
+	Vector2i(-3, 5),
+]
+const NUMBER_STEP: float = 8.0
+const NUMBER_RISE: float = 9.0
+## Two numbers clash when their boxes share more than this share of the smaller box.
+const NUMBER_OVERLAP: float = 0.25
+## Seconds between the points of a path checked for clashes.
+const PATH_STEP: float = 1.0 / 60.0
+## Pixels kept clear between a number and the edge of the screen (a crit's shake fits inside).
+const SCREEN_MARGIN: float = 4.0
 
 # Sparks (R3).
 const SPARK_SHEET: String = "res://assets/sprites/fx/spark.png"
@@ -83,6 +116,10 @@ const MOTES_MAX: int = 3
 # Level up (R8).
 const LEVEL_UP_TIME: float = 1.2
 const LEVEL_UP_PARTICLES: int = 22
+## LEVEL UP's font multiple, and how far above the hero's feet it sits, in pixels: clear of the
+## numbers that leap from the hero's chest.
+const LEVEL_UP_SCALE: int = 2
+const LEVEL_UP_RAISE: float = 44.0
 
 # Bolts (R9).
 ## A trail square is dropped every this many pixels of a bolt's flight.
@@ -95,8 +132,8 @@ const Z_EVERY: float = 1.1
 const BANNER_LIFE_STABLE: float = 2.0
 ## How far above the middle of the screen the depth banner sits, so it never covers WIPED.
 const STABLE_RAISE: float = 40.0
-const LIGHT_HEIGHT: int = 44
-const LIGHT_LIFE: float = 0.55
+const LIGHT_HEIGHT: int = 56
+const LIGHT_LIFE: float = 0.9
 
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
@@ -110,10 +147,6 @@ var _texts: Array[FxText] = []
 var _particles: Array[FxParticle] = []
 var _coins: Array[FxCoin] = []
 var _motes: Array[FxMote] = []
-## Seconds of effects time so far: the clock numbers stack by.
-var _clock: float = 0.0
-## Per target id: Vector2(when its last number appeared, how many are stacked).
-var _stacks: Dictionary[int, Vector2] = {}
 ## Where the last monster fell (its feet), for the XP and gold that follow its DIED.
 var _fallen_at: Vector2 = Vector2.ZERO
 ## Per bolt (instance id): where its trail last dropped a square; and the bolts already flashed.
@@ -151,7 +184,6 @@ func setup(world: World, simulation: Simulation) -> void:
 func advance(delta: float) -> void:
 	if _world == null or _world.effects_layer == null:
 		return
-	_clock += delta
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
@@ -419,11 +451,13 @@ func _level_up(hero_id: int) -> void:
 	var words: FxText = _text(&"banner")
 	words.text = "LEVEL UP"
 	words.color = Palette.color(&"yellow")
-	words.scale_factor = 1
+	words.scale_factor = LEVEL_UP_SCALE
+	# Over every number, so a fight's numbers never hide it.
+	words.z_index = 2
 	words.life = LEVEL_UP_TIME
 	words.velocity = Vector2(0, -6)
 	words.follow_id = hero_id
-	words.screen_offset = Vector2(0, -32)
+	words.screen_offset = Vector2(0, -LEVEL_UP_RAISE)
 	words.start(feet + words.screen_offset)
 
 
@@ -450,7 +484,7 @@ func _revival_lights() -> void:
 			return
 		outer.shape = FxParticle.Shape.COLUMN
 		outer.color = Palette.color(&"yellow")
-		outer.size = 12
+		outer.size = 16
 		outer.height = LIGHT_HEIGHT
 		outer.life = LIGHT_LIFE
 		outer.start(sprite.position)
@@ -459,7 +493,7 @@ func _revival_lights() -> void:
 			return
 		core.shape = FxParticle.Shape.COLUMN
 		core.color = Palette.color(&"white")
-		core.size = 6
+		core.size = 8
 		core.height = LIGHT_HEIGHT
 		core.life = LIGHT_LIFE
 		core.start(sprite.position)
@@ -526,34 +560,27 @@ func _rest_z(delta: float) -> void:
 		_z_in[hero.id] = Z_EVERY
 		var z: FxText = _text(&"z")
 		z.text = "z"
-		z.color = Palette.color(&"silver")
+		z.color = Palette.color(&"white")
+		z.scale_factor = 2
 		z.life = 1.3
 		z.velocity = Vector2(5, -16)
 		z.sway = 2.0
 		z.sway_period = 0.9
-		z.start(sprite.position + Vector2(4, -26))
+		z.start(sprite.position + Vector2(5, -28))
 
 
 # --- Making effects ------------------------------------------------------------
 
 
-## A number over [param target_id], stacked off any it showed a moment ago, or nothing at the cap.
+## A number over [param target_id], placed so its whole path stays clear of the numbers already
+## showing and on screen, or nothing at the cap.
 func _number(
 	target_id: int, words: String, color_name: StringName, factor: int, kind: StringName
 ) -> void:
 	if live_numbers() >= MAX_NUMBERS:
 		return
 	var target: CharacterSprite = _world.character(target_id)
-	var stack: Vector2 = _stacks.get(target_id, Vector2(-INF, -1))
-	var count: int = int(stack.y) + 1 if _clock - stack.x < STACK_WINDOW else 0
-	count = count % (STACK_MAX + 1)
-	_stacks[target_id] = Vector2(_clock, count)
-	var side: float = 0.0
-	if count > 0:
-		side = STACK_SIDE if count % 2 == 1 else -STACK_SIDE
-	var at: Vector2 = target.position + Vector2(side, -roundf(_height(target) * NUMBER_HEIGHT))
-	at.y -= STACK_STEP * count
-	at = _clear_of_numbers(at)
+	var base: Vector2 = target.position + Vector2(0, -roundf(_height(target) * NUMBER_HEIGHT))
 	var number: FxText = _text(kind)
 	number.text = words
 	number.color = Palette.color(color_name)
@@ -561,33 +588,75 @@ func _number(
 	# A crit is drawn over every other number.
 	number.z_index = 1 if factor > NUMBER_SCALE else 0
 	number.life = CRIT_LIFE if factor > NUMBER_SCALE else NUMBER_LIFE
-	var drift: float = _rng.randf_range(0.4, 1.0) * NUMBER_DRIFT
-	if side != 0.0:
-		drift *= signf(side)
-	elif _rng.randi_range(0, 1) == 0:
-		drift = -drift
-	number.velocity = Vector2(drift, -NUMBER_LEAP)
 	number.gravity = NUMBER_GRAVITY
-	number.start(at)
-
-
-## [param at] moved up until it is clear of every number that appeared near it a moment ago, on
-## this target or another, so numbers in a crowded fight do not print over each other.
-func _clear_of_numbers(at: Vector2) -> Vector2:
-	var moved: Vector2 = at
-	for _attempt: int in STACK_MAX + 2:
-		var clash: bool = false
-		for other: FxText in _texts:
-			if (other.kind != &"damage" and other.kind != &"heal") or other.age >= STACK_WINDOW:
-				continue
-			var tall: float = NUMBER_LINE * other.scale_factor
-			var wide: float = NUMBER_CLEARANCE * other.scale_factor
-			if absf(other.position.x - moved.x) < wide and absf(other.position.y - moved.y) < tall:
-				moved.y = other.position.y - tall
-				clash = true
-		if not clash:
+	var drift: float = _rng.randf_range(0.4, 1.0) * NUMBER_DRIFT
+	var lean: float = -1.0 if _rng.randi_range(0, 1) == 0 else 1.0
+	var view: Rect2 = _view_rect().grow(-SCREEN_MARGIN)
+	var keep_on_screen: bool = view.has_point(target.position)
+	var best_clash: float = INF
+	var best_at: Vector2 = base
+	var best_velocity := Vector2(drift * lean, -NUMBER_LEAP)
+	for spot: Vector2i in NUMBER_SPOTS:
+		var side: float = signf(spot.x) if spot.x != 0 else lean
+		number.velocity = Vector2(drift * side, -NUMBER_LEAP)
+		number.start(base + Vector2(spot.x * NUMBER_STEP, -spot.y * NUMBER_RISE))
+		if keep_on_screen:
+			number.start(number.position + _shift_inside(number, view))
+		var clash: float = _clash(number)
+		if clash < best_clash:
+			best_clash = clash
+			best_at = number.position
+			best_velocity = number.velocity
+		if clash <= 0.0:
 			break
-	return moved
+	if best_clash > 0.0:
+		# Nowhere is clear: like a number past the cap, it is not shown.
+		_texts.erase(number)
+		number.queue_free()
+		return
+	number.velocity = best_velocity
+	number.start(best_at)
+
+
+## How badly the path of [param number] (not yet shown) crosses the paths of the numbers showing:
+## the most any of its boxes shares with theirs beyond NUMBER_OVERLAP, as a share; 0 when clear.
+func _clash(number: FxText) -> float:
+	var worst: float = 0.0
+	for other: FxText in _texts:
+		if other == number or (other.kind != &"damage" and other.kind != &"heal"):
+			continue
+		var t: float = 0.0
+		while t < number.life and other.age + t < other.life:
+			var mine: Rect2 = number.rect_at(t)
+			var theirs: Rect2 = other.rect_at(other.age + t)
+			var shared: Rect2 = mine.intersection(theirs)
+			var smaller: float = minf(mine.get_area(), theirs.get_area())
+			if smaller > 0.0:
+				worst = maxf(worst, shared.get_area() / smaller - NUMBER_OVERLAP)
+			t += PATH_STEP
+	return maxf(worst, 0.0)
+
+
+## The move that keeps every box on the path of [param number] inside [param view].
+func _shift_inside(number: FxText, view: Rect2) -> Vector2:
+	var low := Vector2(INF, INF)
+	var high := Vector2(-INF, -INF)
+	var t: float = 0.0
+	while t <= number.life:
+		var box: Rect2 = number.rect_at(t)
+		low = low.min(box.position)
+		high = high.max(box.end)
+		t += PATH_STEP
+	var shift := Vector2.ZERO
+	if low.x < view.position.x:
+		shift.x = view.position.x - low.x
+	elif high.x > view.end.x:
+		shift.x = view.end.x - high.x
+	if low.y < view.position.y:
+		shift.y = view.position.y - low.y
+	elif high.y > view.end.y:
+		shift.y = view.end.y - high.y
+	return shift.round()
 
 
 func _text(kind: StringName) -> FxText:
@@ -697,9 +766,15 @@ func _view_size() -> Vector2:
 	return WorldCamera.FALLBACK_VIEW
 
 
+## The part of the world on screen now.
+func _view_rect() -> Rect2:
+	var top_left: Vector2 = _screen_to_world(Vector2.ZERO)
+	return Rect2(top_left, _screen_to_world(_view_size()) - top_left)
+
+
 ## The world pixel under the screen pixel [param screen], through the world's camera.
 func _screen_to_world(screen: Vector2) -> Vector2:
 	var camera: WorldCamera = _world.camera
 	if camera == null:
 		return screen
-	return camera.position + camera.offset - _view_size() * 0.5 + screen
+	return camera.position + camera.offset + (screen - _view_size() * 0.5) / camera.zoom

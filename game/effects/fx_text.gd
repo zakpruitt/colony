@@ -33,7 +33,6 @@ var on_screen: bool = false
 var screen_offset: Vector2 = Vector2.ZERO
 
 var _exact: Vector2
-var _drift: Vector2 = Vector2.ZERO
 
 
 ## Places the text at [param at] before its first advance.
@@ -53,8 +52,6 @@ func advance(delta: float) -> bool:
 	age += delta
 	if age >= life:
 		return false
-	velocity.y += gravity * delta
-	_drift += velocity * delta
 	_place()
 	var left: float = life - age
 	visible = left > BLINK_TIME or int(left / BLINK_STEP) % 2 == 0
@@ -69,9 +66,43 @@ func font_size() -> int:
 	return PixelText.SIZE * factor
 
 
+## Where it is drawn at [param at_age] seconds old, if its anchor stays where it is. Its motion is
+## worked out from its age (an arc from [member velocity] under [member gravity]), so where it will
+## be is known when it appears: [CombatEffects] places numbers so their paths do not cross.
+func position_at(at_age: float) -> Vector2:
+	var moved: Vector2 = velocity * at_age + Vector2(0, 0.5 * gravity * at_age * at_age)
+	var swayed := Vector2(sin(at_age / sway_period * TAU) * sway if sway > 0.0 else 0.0, 0.0)
+	return (_exact + moved + swayed).round()
+
+
+## The box it covers at [param at_age] seconds old, glyphs and shadow, in its parent's pixels.
+func rect_at(at_age: float) -> Rect2:
+	var shape: Rect2 = box(text, _size_at(at_age))
+	return Rect2(shape.position + position_at(at_age), shape.size)
+
+
+## The box it covers now, where it is drawn.
+func rect() -> Rect2:
+	var shape: Rect2 = box(text, font_size())
+	return Rect2(shape.position + position, shape.size)
+
+
+## The box [param words] cover at font size [param font_px], around the centre of its baseline.
+static func box(words: String, font_px: int) -> Rect2:
+	var font: Font = PixelText.font()
+	var factor: int = font_px / PixelText.SIZE
+	var width: float = font.get_string_size(words, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
+	var top: float = font.get_ascent(font_px)
+	var bottom: float = font.get_descent(font_px)
+	return Rect2(-floori(width / 2.0), -top, width + factor, top + bottom + factor)
+
+
+func _size_at(at_age: float) -> int:
+	return PixelText.SIZE * (scale_factor + (1 if pops and at_age < POP_TIME else 0))
+
+
 func _place() -> void:
-	var swayed := Vector2(sin(age / sway_period * TAU) * sway if sway > 0.0 else 0.0, 0.0)
-	position = (_exact + _drift + swayed).round()
+	position = position_at(age)
 	queue_redraw()
 
 

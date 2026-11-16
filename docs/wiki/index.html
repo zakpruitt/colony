@@ -250,9 +250,21 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
   turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
+  <li><strong>Z</strong> zooms the labyrinth in to twice the size, centred on the party, and back out again
+  (spec 018). The change eases over a quarter of a second; the HUD stays the same size.</li>
   <li><strong>F3</strong> shows or hides a developer readout of the simulation's tick and seconds, in the
   bottom-right corner.</li>
 </ul>
+<h3>The upgrade shop <span class="tag built">Built: spec 017</span></h3>
+<p>The <strong>Shop</strong> button sits left of the gold (or press <code>U</code>). When the party can afford
+at least one camp upgrade, a small amber tag on the button pulses and shows how many. The shop opens as a panel
+under the gold, between the top of the screen and the party frames, and the game keeps running behind it. Each
+row shows an upgrade's name, what it does, its rank (<code>Rank 3/20</code>), the bonus it gives now
+(<code>+15%</code>) and a button with the next rank's price: yellow when you can pay, dim red (and doing nothing)
+when you cannot, and <code>MAX</code> at the top rank. Click the price, or press the row's number
+(<code>1</code> to <code>5</code>), to buy: the row flashes green and the gold drops at once. <code>U</code> or
+<code>Esc</code> closes it; the depth keys, <code>Z</code> and <code>F3</code> still work while it is open. Opening the shop
+closes the "While you were away" panel if it is still up.</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -300,8 +312,7 @@ files in <code>data/upgrades/</code>: <strong>Sharp Blades</strong> (+5% damage 
 <strong>Field Medicine</strong> (+10% healing speed while resting, up to 10), <strong>Quick March</strong> (+4%
 travel and climb speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up to 20). Ranks add up:
 rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
-fight. Upgrades are saved. Buying one is a command to the simulation; there is no shop screen yet
-(<span class="tag planned">Planned: spec 017</span>). In a one-hour headless run, a party that keeps buying the
+fight. Upgrades are saved. You buy them in the upgrade shop on the HUD (spec 017). In a one-hour headless run, a party that keeps buying the
 cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
 <h3>Fights <span class="tag built">Built</span></h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
@@ -385,6 +396,7 @@ up, nothing is lost: the save is untouched until the catch-up ends.</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
+  <tr><td>Watch the showcase (every moment of the loop in about 70 seconds, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
@@ -440,8 +452,8 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; talents and the shop <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

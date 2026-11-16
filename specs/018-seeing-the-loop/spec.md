@@ -1,9 +1,9 @@
 # 018 — Seeing the loop: zoom, a showcase, and fixing what it shows
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 008, 010, 011, 012, 015
-- **Pull request:** —
+- **Pull request:** [#19](https://github.com/zakpruitt/colony/pull/19)
 
 ## Intent
 

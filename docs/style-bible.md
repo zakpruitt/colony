@@ -221,6 +221,14 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   text; `slate` with `yellow` text under the mouse; `night` and one pixel lower when pressed. A toggle that is
   on is `forest` with a `green` bevel and `white` text, and says so in words (`Auto on`). No Godot default
   styles, no focus rings.
+- **Disabled buttons** sink to a `night` fill with no bevel and do nothing. A button may colour its text
+  (`text_colour`): the shop's prices are `yellow` when affordable and `brick` (dim red) when not.
+- **Overlays** such as the upgrade shop (spec 017) are the one exception to "edges only": a `HudPanel` that
+  drops from under the top band at the right, never covering the top band or the party frames, opened and
+  closed by the player. Rows inside it are separated by space, not lines; a row that just changed flashes
+  `forest` with a `green` edge, then `dusk`, for half a second.
+- **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
+  lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is
   `green`/`forest` above half, `yellow`/`amber` down to a quarter, `red`/`crimson` below, on `dark_brown`;
   XP is `cyan`/`blue` on `ink`. Bars ease to a new value over about 0.3 s, never jump.
