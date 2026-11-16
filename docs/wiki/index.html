@@ -281,8 +281,16 @@ characters are not in the labyrinth yet.</p>
 widths (an <code>i</code> is narrower than an <code>m</code>), and every label uses it without being told to.
 Coloured text gets a one-pixel dark shadow so it reads over any background. To see every character, run the
 font specimen (below).</p>
-<h3>Saving <span class="tag planned">Planned</span></h3>
-<p>The game saves often and safely: a crash mid-save cannot corrupt the save, and one earlier copy is kept.</p>
+<h3>Saving</h3>
+<p><span class="tag built">Built: spec 014</span> A save keeps the party's <em>progress</em>, not the exact moment:
+the seed, the time played, the gold, each hero's class, level and XP, the last stable depth, the deepest depth
+reached, the target depth and whether auto-push is on. Loading stands the party up fresh at its last stable
+depth, exactly as it does after a wipe, with everything it has earned; the chambers there are full of monsters
+again. A damaged or unknown save is refused rather than guessed at. The file is written whole or not at all
+(to a temporary file, then renamed into place), and the save before it is kept as a backup that is read if the
+save itself is missing or damaged. The save lives at <code>user://colony.save</code>.</p>
+<p><span class="tag planned">Planned</span> The game saving on its own and loading when it starts, and a
+"new game" control. Until then a session still starts fresh.</p>
 <p>The technical version of this section is
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/architecture.md"><code>docs/architecture.md</code></a>.</p>
 
@@ -359,7 +367,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); loot <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>, not yet used by the game; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td><span class="tag planned">Planned</span></td></tr>
 </table>
