@@ -35,3 +35,4 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 |---|---|---|
 | H | [017 Upgrade shop](017-upgrade-shop/spec.md): buying upgrades on screen — provisional, in progress | 011, 016 |
 | H | [020 Guardians](020-guardians/spec.md): a boss holds the way down on every fifth level — provisional, in progress | 005, 007, 008, 013, 015 |
+| H | [021 Sound effects](021-sound-effects/spec.md): 8-bit sounds baked from text recipes, quiet and mutable — provisional, in progress | 008, 010 |
