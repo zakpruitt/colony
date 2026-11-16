@@ -9,6 +9,7 @@ implementer lane builds exactly that.
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
+| 018 | [Seeing the loop](018-seeing-the-loop/spec.md) | M5 | landed on dev, [#19](https://github.com/zakpruitt/colony/pull/19), provisional | 008, 010, 011, 012, 015 |
 | 016 | [Camp upgrades](016-camp-upgrades/spec.md) | M3 | landed on dev, [#18](https://github.com/zakpruitt/colony/pull/18), provisional | 005, 014 |
 | 019 | [Progress while away](019-away-progress/spec.md) | M3 | landed on dev, [#17](https://github.com/zakpruitt/colony/pull/17), provisional | 014 |
 | 015 | [Standing room](015-standing-room/spec.md) | M2 | landed on dev, [#16](https://github.com/zakpruitt/colony/pull/16), provisional | 004, 005, 008 |
@@ -32,6 +33,5 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| G | [018 Seeing the loop](018-seeing-the-loop/spec.md): zoom, a showcase of every moment, and fixes from looking — provisional, in progress | 008, 010, 011, 012, 015 |
 | H | [017 Upgrade shop](017-upgrade-shop/spec.md): buying upgrades on screen — provisional, in progress | 011, 016 |
 | H | [020 Guardians](020-guardians/spec.md): a boss holds the way down on every fifth level — provisional, in progress | 005, 007, 008, 013, 015 |
