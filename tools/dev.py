@@ -198,8 +198,14 @@ def step_art() -> str:
 
 def step_compile() -> str:
     code, output = godot(["--import"], timeout=600)
+    if code == 0 and error_lines(output):
+        # On a fresh checkout Godot loads the project (its theme, for one)
+        # before it has imported the assets that depends on, and reports
+        # errors that a second pass does not have. Judge the second pass.
+        code, output = godot(["--import"], timeout=600)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
-        raise StepFailed(f"import failed (exit {code})\n{tail(output)}")
+        shown = "\n".join(error_lines(output)[:40]) or tail(output)
+        raise StepFailed(f"import failed (exit {code})\n{shown}")
     code, output = godot(["-s", "res://tools/godot/compile_all.gd"], timeout=300)
     require_clean(code, output, "compile")
     return last_line(output, "[compile]")
