@@ -1,0 +1,160 @@
+class_name BossBar
+extends Control
+## The guardian's health for the whole of a guardian fight (spec 024 R2): its name over a wide bar
+## on a dark panel at the top centre of the screen, between the depth panel and the shop tab.
+##
+## It reads the fight from [member Expedition.battle]: it shows while the battle has a guardian
+## in it and hides as soon as there is none (won, wiped, or anything else). The bar eases toward
+## the guardian's health and flashes white for a moment on each hit. It moves only in
+## [method advance], so a test can step it exactly.
+
+## The panel's height (the HUD's top panels' height) and its widest width, in pixels.
+const HEIGHT: float = 24.0
+const MAX_WIDTH: float = 240.0
+## The bar's height inside the panel, and its inset from the panel's sides.
+const BAR_HEIGHT: float = 7.0
+const INSET: float = 5.0
+## Seconds the bar takes to ease to a new health, and the trail of lost health behind it.
+const EASE_SECONDS: float = 0.25
+const TRAIL_SECONDS: float = 0.7
+## Seconds the bar flashes white after a hit.
+const FLASH_SECONDS: float = 0.08
+
+var _simulation: Simulation
+var _world: World
+var _name_label: Label
+var _guardian_id: int = -1
+var _shown := EasedValue.new(EASE_SECONDS)
+var _trail := EasedValue.new(TRAIL_SECONDS)
+var _flash: float = 0.0
+
+
+func _init() -> void:
+	name = "BossBar"
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	visible = false
+	size = Vector2(MAX_WIDTH, HEIGHT)
+	_name_label = PixelText.label("", &"white")
+	_name_label.name = "Name"
+	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_name_label)
+
+
+## Call once, before the first advance.
+func setup(simulation: Simulation, world: World) -> void:
+	_simulation = simulation
+	_world = world
+	if world != null and not world.sim_event.is_connected(_on_sim_event):
+		world.sim_event.connect(_on_sim_event)
+
+
+## Follows the fight and moves the bar on by [param delta] seconds.
+func advance(delta: float) -> void:
+	var guardian: Combatant = _guardian()
+	if guardian == null:
+		_guardian_id = -1
+		visible = false
+		return
+	var fraction: float = clampf(float(guardian.health) / maxf(guardian.max_health, 1.0), 0.0, 1.0)
+	if guardian.id != _guardian_id:
+		_guardian_id = guardian.id
+		_shown.snap(fraction)
+		_trail.snap(fraction)
+		_flash = 0.0
+		var def: MonsterDef = Content.monster(guardian.def_id)
+		_name_label.text = def.display_name.to_upper() if def != null else ""
+		_name_label.reset_size()
+	_shown.advance(fraction, delta)
+	_trail.advance(fraction, delta)
+	_flash = maxf(_flash - delta, 0.0)
+	visible = true
+	_place()
+	queue_redraw()
+
+
+## True while the bar is on screen.
+func is_showing() -> bool:
+	return visible
+
+
+## The eased health fraction on screen, 0 to 1.
+func shown_fraction() -> float:
+	return _shown.value
+
+
+## The guardian's name as shown.
+func shown_name() -> String:
+	return _name_label.text
+
+
+## True while the bar flashes from a hit.
+func is_flashing() -> bool:
+	return _flash > 0.0
+
+
+## The guardian in the fight, or null when there is no guardian fight.
+func _guardian() -> Combatant:
+	if _simulation == null or _simulation.expedition.battle == null:
+		return null
+	for monster: Combatant in _simulation.expedition.battle.monsters:
+		var def: MonsterDef = Content.monster(monster.def_id)
+		if def != null and def.guardian:
+			return monster
+	return null
+
+
+## Fits the panel in the gap between the HUD's depth panel and its shop tab, centred on the
+## screen when it can be, never wider than MAX_WIDTH.
+func _place() -> void:
+	var left: float = Hud.MARGIN
+	var right: float = Hud.SCREEN.x - Hud.MARGIN
+	var hud: Hud = get_parent() as Hud
+	if hud != null:
+		if hud.depth_panel != null:
+			left = hud.depth_panel.position.x + hud.depth_panel.size.x + Hud.GAP
+		if hud.shop_tab != null:
+			right = hud.shop_tab.position.x - Hud.GAP
+	var width: float = floorf(minf(MAX_WIDTH, right - left))
+	var x: float = floorf((Hud.SCREEN.x - width) / 2.0)
+	x = clampf(x, left, right - width)
+	position = Vector2(floorf(x), Hud.TOP_Y)
+	size = Vector2(width, HEIGHT)
+	_name_label.position = Vector2(floorf((width - _name_label.size.x) / 2.0), 2.0)
+
+
+func _draw() -> void:
+	HudPanel.draw_panel(
+		self,
+		Rect2(Vector2.ZERO, size),
+		Palette.color(&"night"),
+		Palette.color(&"dusk"),
+		Palette.color(&"ink")
+	)
+	var bar := Rect2(INSET, HEIGHT - INSET - BAR_HEIGHT + 1.0, size.x - INSET * 2.0, BAR_HEIGHT)
+	# Lost health first, in amber, draining after the bar; then the health itself.
+	HudPanel.draw_bar(
+		self,
+		bar,
+		_trail.value,
+		Palette.color(&"amber"),
+		Palette.color(&"orange"),
+		Palette.color(&"ink")
+	)
+	var inner: Rect2 = bar.grow(-1.0)
+	var filled: float = roundf(inner.size.x * clampf(_shown.value, 0.0, 1.0))
+	if filled <= 0.0:
+		return
+	var colour: Color = Palette.color(&"white") if _flash > 0.0 else Palette.color(&"red")
+	var shade: Color = Palette.color(&"silver") if _flash > 0.0 else Palette.color(&"crimson")
+	draw_rect(Rect2(inner.position, Vector2(filled, inner.size.y)), colour)
+	draw_rect(Rect2(inner.position, Vector2(filled, 1)), Palette.color(&"pink"))
+	var bottom: Vector2 = inner.position + Vector2(0, inner.size.y - 1)
+	draw_rect(Rect2(bottom, Vector2(filled, 1)), shade)
+
+
+func _on_sim_event(event: SimEvent) -> void:
+	if event.kind != SimEvent.Kind.HIT or event.target_id != _guardian_id or _guardian_id < 0:
+		return
+	if _world != null and not _world.is_recent(event):
+		return
+	_flash = FLASH_SECONDS
