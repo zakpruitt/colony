@@ -8,6 +8,8 @@
     python tools/dev.py import           rebuild Godot's import cache
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
                                          run the game in a window, save PNGs to .shots/
+    python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
+                                         run the simulation headless, print a JSON summary
 
 Standard library only. Godot is found through the GODOT environment
 variable, else on PATH. Every Godot run has a timeout.
@@ -334,6 +336,32 @@ def command_shot(args: argparse.Namespace) -> int:
     return code
 
 
+def command_sim(args: argparse.Namespace) -> int:
+    """Run the simulation headless for some game time and print its JSON summary."""
+    options = [f"--seed={args.seed}", f"--minutes={args.minutes}"]
+    if args.target_depth is not None:
+        options.append(f"--target-depth={args.target_depth}")
+    if args.stable_seconds is not None:
+        options.append(f"--stable-seconds={args.stable_seconds}")
+    try:
+        # The script needs every class_name registered; a fresh checkout has no cache yet.
+        code, output = godot(["--import"], timeout=600)
+        require_clean(code, output, "import")
+        # About a minute of real time per ten hours of game time, plus start-up.
+        timeout = 120 + int(args.minutes * 2)
+        code, output = godot(["-s", "res://tools/godot/run_sim.gd", "--", *options], timeout)
+        require_clean(code, output, "sim")
+    except StepFailed as failure:
+        print(failure)
+        return 1
+    summaries = [line for line in output.splitlines() if line.startswith("[sim] ")]
+    if not summaries:
+        print(f"the run printed no summary\n{tail(output)}")
+        return 1
+    print(summaries[-1][len("[sim] ") :])
+    return 0
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Colony checks and dev commands.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -359,6 +387,13 @@ def main() -> int:
     shot.add_argument("--count", type=int, default=1, help="number of shots")
     shot.add_argument("--scene", help="res:// scene to run instead of the main scene")
     shot.set_defaults(handler=command_shot)
+
+    sim = commands.add_parser("sim", help="run the simulation headless and print a JSON summary")
+    sim.add_argument("--seed", type=int, default=1, help="the simulation's seed")
+    sim.add_argument("--minutes", type=float, default=10.0, help="game time to run")
+    sim.add_argument("--target-depth", type=int, help="set this target depth at the start")
+    sim.add_argument("--stable-seconds", type=float, help="seconds for a depth to become stable")
+    sim.set_defaults(handler=command_sim)
 
     # Godot's output can hold characters a Windows console cannot encode.
     for stream in (sys.stdout, sys.stderr):
