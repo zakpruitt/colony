@@ -1,9 +1,9 @@
 # 010 — Combat effects: making every hit felt
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 008, 009
-- **Pull request:** —
+- **Pull request:** [#15](https://github.com/zakpruitt/colony/pull/15)
 
 ## Intent
 
