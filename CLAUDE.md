@@ -74,7 +74,9 @@ Tests cannot tell you whether something looks right. If your change affects what
 runs the main scene in a real window for a few seconds (headless Godot draws nothing) and saves the game's own
 640x360 picture. Use `--count`
 for a sequence when motion matters, and `--scene=res://…` to run a scene other than the main one. Look before you call visual work done, and say what you saw in your report.
-Screenshots stay in `.shots/` (ignored by git).
+Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
+shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
+region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.
 
 ## Skills (`.claude/skills/`)
 
