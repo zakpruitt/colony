@@ -17,6 +17,7 @@ var part_names: PackedStringArray
 var _path: String
 var _texture: Texture2D
 var _parts: Dictionary[StringName, AtlasTexture] = {}
+var _part_pivots: Dictionary[StringName, Vector2i] = {}
 
 
 ## The sheet baked at res://<...>.png (its .json is beside it). Cached per path.
@@ -40,6 +41,14 @@ func part(part_name: StringName) -> AtlasTexture:
 		push_error("PixelSheet %s has no part '%s' (it has %s)" % [_path, part_name, known])
 		return null
 	return _parts[part_name]
+
+
+## The pixel [param part_name] turns around, within one part's canvas: the pivot its
+## [code][name] pivot=x,y[/code] header declares, or the sprite's [member pivot] if it has none.
+func part_pivot(part_name: StringName) -> Vector2i:
+	if _part_pivots.has(part_name):
+		return _part_pivots[part_name]
+	return pivot
 
 
 ## Whether the sheet has a part called [param part_name].
@@ -81,4 +90,13 @@ func _read(png_path: String) -> bool:
 		region.atlas = _texture
 		region.region = Rect2(index * size.x, 0, size.x, size.y)
 		_parts[StringName(part_name)] = region
+	var declared: Dictionary = described.get("part_pivots", {})
+	for part_name: Variant in declared:
+		var xy: Array = declared[part_name]
+		if xy.size() != 2:
+			push_error("PixelSheet: %s has a malformed pivot for '%s'" % [json_path, part_name])
+			return false
+		var x: float = xy[0]
+		var y: float = xy[1]
+		_part_pivots[StringName(str(part_name))] = Vector2i(roundi(x), roundi(y))
 	return true
