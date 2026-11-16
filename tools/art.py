@@ -43,7 +43,12 @@ CATEGORIES: dict[str, tuple[tuple[int, int] | None, bool]] = {
     "tile": ((16, 16), False),
     "fx": (None, False),
     "ui": (None, False),
+    "font": (None, False),
 }
+# A font sheet (see docs/style-bible.md, "Text") may be any size, and is drawn in this one colour
+# only, so the game can tint text to any palette colour.
+FONT_CATEGORY = "font"
+FONT_COLOUR_NAME = "white"
 
 REQUIRED_FIELDS = ("category", "size")
 KNOWN_FIELDS = ("category", "size", "pivot")
@@ -181,7 +186,9 @@ def style_problems(sprite: Sprite, palette: list[Colour]) -> list[str]:
     """The rules a well-formed sprite can still break: its size and its outline."""
     problems: list[str] = []
     required, outlined = CATEGORIES[sprite.category]
-    if required is None:
+    if sprite.category == FONT_CATEGORY:
+        problems += font_problems(sprite, palette)
+    elif required is None:
         if sprite.width > MAX_FREE_SIZE or sprite.height > MAX_FREE_SIZE:
             problems.append(
                 f"size {sprite.width}x{sprite.height} is over {MAX_FREE_SIZE}x{MAX_FREE_SIZE}, "
@@ -203,6 +210,27 @@ def style_problems(sprite: Sprite, palette: list[Colour]) -> list[str]:
                     f"part `{name}`: outline gap, these edge pixels are not `{OUTLINE_NAME}`: "
                     f"{shown}{more}"
                 )
+    return problems
+
+
+def font_problems(sprite: Sprite, palette: list[Colour]) -> list[str]:
+    """A font sheet's glyphs may use only the font colour (and transparency)."""
+    white = next(c.symbol for c in palette if c.name == FONT_COLOUR_NAME)
+    problems: list[str] = []
+    for name, rows in sprite.parts:
+        wrong = [
+            (x, y)
+            for y, row in enumerate(rows)
+            for x, symbol in enumerate(row)
+            if symbol not in (TRANSPARENT, white)
+        ]
+        if wrong:
+            shown = " ".join(f"{x},{y}" for x, y in wrong[:8])
+            more = f" and {len(wrong) - 8} more" if len(wrong) > 8 else ""
+            problems.append(
+                f"part `{name}`: a font is drawn in `{FONT_COLOUR_NAME}` only, "
+                f"these pixels are not: {shown}{more}"
+            )
     return problems
 
 
