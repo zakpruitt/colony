@@ -1,0 +1,21 @@
+# The VAULT's treasure chest: wood bound in steel, a brass lock. It stands on the bottom row.
+category = item
+size = 16x16
+
+[closed]
+................
+................
+................
+................
+................
+...pppppppppp...
+..p3333333333p..
+.p3l33333333l4p.
+.p4l44444444l5p.
+.p4l444aa444l5p.
+.p55555ab55555p.
+.p4l444ab444l5p.
+.p4l44444444l5p.
+.p4l44444444l5p.
+.p5m55555555m5p.
+..pppppppppppp..
