@@ -86,6 +86,17 @@ var world: World
 var hud_layer: CanvasLayer
 ```
 
+Conventions, fixed here so every later spec agrees:
+
+- **Feet.** The simulation gives a character's position as the column and the open row it stands in (on a
+  level's floor that row is `floor_y`). Its feet are drawn at the bottom of that row: pixel
+  `(x * 16, (y + 1) * 16)`. `World.feet_position` returns that pixel.
+- **Draw order.** The labyrinth view adds levels as children at any time, so nothing else is parented under
+  it. `World`'s children, in order: the labyrinth view, a characters node, the effects layer. The camera is a
+  child of `World`, which stays at the origin.
+- **Movement is the simulation's.** `LabyrinthView.is_open` is for drawing only; the view never decides where
+  anyone can walk.
+
 The driver steps the simulation; `World` only reads it. `World` must work when tests step the simulation
 directly and then call `sync`.
 

@@ -1,9 +1,9 @@
 # 006 — Labyrinth view: drawing the cross-section
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M1
 - **Depends on:** 002, 003
-- **Pull request:** —
+- **Pull request:** [#6](https://github.com/zakpruitt/colony/pull/6)
 
 ## Intent
 
