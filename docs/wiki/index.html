@@ -168,6 +168,11 @@ types.</p>
 <h3>The labyrinth</h3>
 <p>Endless and generated as the party explores, from a seed, so the same seed always gives the same
 labyrinth. Difficulty rises with depth.</p>
+<p><span class="tag built">Built: spec 003</span> The simulation generates the levels (nothing draws them yet).
+Each depth is a band of earth 120 tiles wide and 16 tall with four to six chambers on one flat floor, joined
+by low tunnels. Each level has one shaft down, on the right on odd depths and on the left on even ones, so the
+party crosses most of a level to go deeper. Chambers are plain, a den or (at most one per level) a vault; the
+first chamber of depth 1 is the start. A level is only made the first time something asks for it.</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -268,7 +273,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span></td></tr>
-  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag planned">Planned</span></td></tr>
+  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing <span class="tag planned">Planned</span></td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td><span class="tag planned">Planned</span></td></tr>
