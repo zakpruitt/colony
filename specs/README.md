@@ -36,3 +36,4 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 |---|---|---|
 | H | [020 Guardians](020-guardians/spec.md): a boss holds the way down on every fifth level — provisional, in progress | 005, 007, 008, 013, 015 |
 | H | [021 Sound effects](021-sound-effects/spec.md): 8-bit sounds baked from text recipes, quiet and mutable — provisional, in progress | 008, 010 |
+| H | [022 Auto-buy](022-auto-buy/spec.md): the camp can buy its own upgrades, also while away — provisional, in progress | 016, 017, 019 |
