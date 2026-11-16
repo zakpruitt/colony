@@ -31,6 +31,8 @@ func _init(report: AwayReport, party: Party) -> void:
 		var word: String = "level" if gained == 1 else "levels"
 		var colour: StringName = &"green" if gained > 0 else &"steel"
 		_add_line("%s +%d %s" % [hero.def().display_name, gained, word], colour)
+	if report.upgrades_bought > 0:
+		_add_line("Upgrades bought %d" % report.upgrades_bought, &"green")
 	_add_line("Click or press any key", &"steel")
 	_layout()
 

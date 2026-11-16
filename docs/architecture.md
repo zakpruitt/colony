@@ -51,7 +51,7 @@ and fails on any problem.
 
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
-last stable depth, deepest depth, target depth and auto-push, and the rank of each camp upgrade (spec 016).
+last stable depth, deepest depth, target depth and auto-push, the rank of each camp upgrade (spec 016) and the auto-buy switch (spec 022).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
@@ -60,10 +60,14 @@ stable depth, with every chamber freshly populated.
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 2. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 3. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
+  Version 2 to 3 adds `auto_buy` (true or false), off; any other value is refused by name.
+- **Auto-buy (spec 022).** `Simulation.set_auto_buy` applies on the next step. While on, the step buys the
+  cheapest affordable upgrade on each tick that starts a whole `AUTO_BUY_SECONDS`, through the same path as
+  `buy_upgrade`, so nothing about its timing needs saving. Off, it adds nothing to the state hash.
 - **Files belong to `game/`.** `SaveStore` (`game/save/save_store.gd`) is given its path (default
   `user://colony.save`). It writes JSON to `<path>.tmp` and renames it into place, keeping the previous save as
   `<path>.bak`; reading falls back to the backup, then to an empty dictionary, if a file is missing or damaged.

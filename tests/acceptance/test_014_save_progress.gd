@@ -178,6 +178,7 @@ func test_r1_progress_is_plain_data() -> void:
 		"target_depth": sim.expedition.target_depth,
 		"auto_push": sim.expedition.auto_push,
 		"upgrades": data.get("upgrades"),  # spec 016: the ranks, tested there
+		"auto_buy": data.get("auto_buy"),  # spec 022: the switch, tested there
 	}
 	assert_true(_same(data, expected), "the save holds\n%s\nnot\n%s" % [expected, data])
 	assert_gt(sim.party.gold, 0, "20 minutes of play earns gold")
@@ -322,17 +323,18 @@ func test_r4_bad_data_is_refused() -> void:
 
 
 func test_r5_upgrade_is_a_pass_through() -> void:
-	# Spec 016 raised the version to 2; its own test covers the 1 to 2 step.
-	assert_eq(Simulation.SAVE_VERSION, 2)
+	# Spec 016 raised the version to 2 and spec 022 to 3; their own tests cover those steps.
+	assert_eq(Simulation.SAVE_VERSION, 3)
 	var data: Dictionary = _valid()
-	data["version"] = 2
+	data["version"] = 3
 	data["upgrades"] = {}
+	data["auto_buy"] = false
 	var current: Dictionary = data.duplicate(true)
 	assert_eq(Simulation.upgrade_save(data), current, "the current version is unchanged")
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 3]:
+	for version: int in [0, 4]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)

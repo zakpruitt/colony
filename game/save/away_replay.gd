@@ -45,6 +45,8 @@ func run(budget_usec: int) -> bool:
 					report.kills += 1
 				SimEvent.Kind.PARTY_WIPED:
 					report.wipes += 1
+				SimEvent.Kind.UPGRADE_BOUGHT:
+					report.upgrades_bought += 1
 	_update_report()
 	return is_done()
 
