@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"slime_king"
+display_name = "Slime King"
+size = 2
+min_depth = 5
+max_health = 4500
+damage = 30
+armor = 3
+attack_interval = 2.6
+windup = 0.9
+attack_range = 1.5
+move_speed = 0.8
+crit_chance = 0.0
+xp = 450
+gold_min = 260
+gold_max = 320
+guardian = true

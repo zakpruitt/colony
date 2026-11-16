@@ -22,6 +22,10 @@ const REVIVE_SECONDS: float = 5.0
 ## A fight that lasts this long overwhelms the party (it is wiped).
 const BATTLE_LIMIT_SECONDS: float = 90.0
 const FIRST_MONSTER_ID: int = 100
+## Every level whose depth is a multiple of this has a guardian holding its shaft chamber.
+const GUARDIAN_EVERY: int = 5
+## How long a beaten guardian's chamber stays empty, instead of RESPAWN_SECONDS.
+const GUARDIAN_RESPAWN_SECONDS: float = 1800.0
 
 ## Tiles between heroes walking in column.
 const HERO_SPACING: float = 1.0
@@ -204,6 +208,22 @@ func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 		return []
 	var fill: ChamberState = _fill(level_depth, chamber_index)
 	return fill.monsters.duplicate()
+
+
+## The id of the guardian that holds that depth's way down, or &"" if the depth has none:
+## on every GUARDIAN_EVERY-th depth, the guardian with the deepest [member MonsterDef.min_depth]
+## at or above it.
+func guardian_of(level_depth: int) -> StringName:
+	if level_depth < GUARDIAN_EVERY or level_depth % GUARDIAN_EVERY != 0:
+		return &""
+	var found: StringName = &""
+	var found_depth: int = 0
+	for id: StringName in Content.monster_ids():
+		var def: MonsterDef = Content.monster(id)
+		if def.guardian and def.min_depth <= level_depth and def.min_depth > found_depth:
+			found = id
+			found_depth = def.min_depth
+	return found
 
 
 ## The expedition's state as plain values, for the simulation's state hash.
@@ -423,6 +443,10 @@ func _climb() -> void:
 	_place(x)
 	_restart_depth_count(_tick)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, depth)
+	# Climbing up into a guardian's chamber: the guardian is met where the ladder ends.
+	var here: LabyrinthChamber = _labyrinth.level(depth).chamber_at(floori(x))
+	if here != null and is_populated(depth, here.index):
+		_start_battle(here)
 
 
 # --- Encounters ----------------------------------------------------------------
@@ -431,6 +455,8 @@ func _climb() -> void:
 func _is_always_empty(level: LabyrinthLevel, chamber_index: int) -> bool:
 	if level.chambers[chamber_index].kind == LabyrinthChamber.Kind.START:
 		return true
+	if _is_guardian_chamber(level.depth, chamber_index):
+		return false
 	var shaft: LabyrinthChamber = level.shaft_chamber()
 	if shaft != null and shaft.index == chamber_index:
 		return true
@@ -441,8 +467,17 @@ func _is_always_empty(level: LabyrinthLevel, chamber_index: int) -> bool:
 	return false
 
 
+## True for the shaft chamber of a level a guardian holds.
+func _is_guardian_chamber(level_depth: int, chamber_index: int) -> bool:
+	if guardian_of(level_depth) == &"":
+		return false
+	var shaft: LabyrinthChamber = _labyrinth.level(level_depth).shaft_chamber()
+	return shaft != null and shaft.index == chamber_index
+
+
 func _refill_tick(fill: ChamberState) -> int:
-	return fill.cleared_tick + Combatant.seconds_to_ticks(RESPAWN_SECONDS)
+	var seconds: float = GUARDIAN_RESPAWN_SECONDS if fill.guardian else RESPAWN_SECONDS
+	return fill.cleared_tick + Combatant.seconds_to_ticks(seconds)
 
 
 ## The chamber's record, refilled if its time has come, with its monsters made.
@@ -451,6 +486,7 @@ func _fill(level_depth: int, chamber_index: int) -> ChamberState:
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
 		fill = ChamberState.new()
+		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
 		fill.visit += 1
@@ -465,6 +501,14 @@ func _fill(level_depth: int, chamber_index: int) -> ChamberState:
 ## seed, depth, chamber and visit; their ids are the next unused ones.
 func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[Combatant]:
 	var room: LabyrinthChamber = _labyrinth.level(level_depth).chambers[chamber_index]
+	var monsters: Array[Combatant] = []
+	if _is_guardian_chamber(level_depth, chamber_index):
+		# The guardian alone, whatever the chamber's kind.
+		var guardian: MonsterDef = Content.monster(guardian_of(level_depth))
+		monsters.append(Combatant.from_monster(guardian, level_depth, _next_monster_id))
+		_next_monster_id += 1
+		_spread(monsters, room)
+		return monsters
 	var rng: SimRng = _rng.fork("encounter/%d/%d/%d" % [level_depth, chamber_index, visit])
 	var count_range: Vector2i = PLAIN_MONSTERS
 	if room.kind == LabyrinthChamber.Kind.DEN:
@@ -478,10 +522,9 @@ func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[C
 	var total_weight: int = 0
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
-		if def.min_depth <= level_depth:
+		if def.min_depth <= level_depth and not def.guardian:
 			eligible.append(def)
 			total_weight += def.min_depth
-	var monsters: Array[Combatant] = []
 	if eligible.is_empty():
 		return monsters
 	for i: int in count:
@@ -588,6 +631,8 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
+	if def.guardian:
+		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
 
 
 func _end_battle(won: bool) -> void:
