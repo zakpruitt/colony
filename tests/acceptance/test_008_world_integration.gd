@@ -677,10 +677,20 @@ func test_r10_layers_exist() -> void:
 	assert_true(world.effects_layer is Node2D, "an effects layer")
 	assert_eq(world.effects_layer.get_parent(), world, "in the world")
 	assert_eq(world.labyrinth_view.get_index(), 0, "the labyrinth is drawn first")
-	assert_eq(world.effects_layer.get_index(), 2, "effects after the characters")
-	var characters: Node = world.get_child(1)
-	assert_true(characters is Node2D, "characters in between")
-	assert_eq(world.character(KNIGHT).get_parent(), characters, "heroes are in it")
+	var characters: Node = world.character(KNIGHT).get_parent()
+	assert_true(characters is Node2D, "heroes are in a characters node")
+	assert_eq(characters.get_parent(), world, "in the world")
+	assert_gt(
+		characters.get_index(), world.labyrinth_view.get_index(), "characters over the labyrinth"
+	)
+	assert_gt(
+		world.effects_layer.get_index(), characters.get_index(), "effects after the characters"
+	)
+	# Ambience (spec 012) sits between the view and the characters, so props draw behind heroes.
+	assert_gt(
+		world.ambience.get_index(), world.labyrinth_view.get_index(), "ambience over the view"
+	)
+	assert_lt(world.ambience.get_index(), characters.get_index(), "ambience under the characters")
 	assert_eq(world.camera.get_parent(), world, "the camera is the world's")
 	assert_eq(world.position, Vector2.ZERO, "the world stays at the origin")
 	assert_true(main.hud_layer is CanvasLayer, "a HUD layer")

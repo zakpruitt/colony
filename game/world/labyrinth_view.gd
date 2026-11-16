@@ -8,6 +8,11 @@ extends Node2D
 ## Edges (floor tops, ceilings, wall faces, and shade on the back wall), Corners (inner corners)
 ## and Ladder. The art is in [LabyrinthTiles].
 
+## Emitted after the level at [param depth] has been built, so others can decorate it.
+signal level_built(depth: int)
+## Emitted after the level at [param depth] has been freed.
+signal level_freed(depth: int)
+
 const TILE: int = 16
 ## Levels this far from the focus level are built.
 const BUILD_RADIUS: int = 1
@@ -39,9 +44,11 @@ func set_focus(world_tiles: Vector2) -> void:
 		if absi(built - depth) > KEEP_RADIUS:
 			_levels[built].free()
 			_levels.erase(built)
+			level_freed.emit(built)
 	for near: int in range(maxi(1, depth - BUILD_RADIUS), depth + BUILD_RADIUS + 1):
 		if not _levels.has(near):
 			_levels[near] = _build_level(near)
+			level_built.emit(near)
 
 
 ## Depths currently built, ascending.

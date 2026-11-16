@@ -1,0 +1,9 @@
+# A puddle on a chamber floor. Its bottom two rows sink into the floor's crust.
+category = fx
+size = 16x4
+
+[water]
+................
+...jiiihhhhh....
+.hhhhhhhhhhhhhg.
+..gggggggggggg..

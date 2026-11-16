@@ -44,6 +44,10 @@ const LOOK_ABOVE: float = 3.0 * TILE
 ## The characters are lifted by that one row, so feet stand on the floor line instead of sinking
 ## one pixel into it, while every position (and [method feet_position]) keeps the spec's pixel.
 const FEET_LIFT: Vector2 = Vector2(0, -1)
+## The effects layer's absolute z: over the ambience's darkness and glow.
+const EFFECTS_Z: int = 110
+## How far above the feet the party's light sits, in pixels.
+const PARTY_LIGHT_HEIGHT: float = 14.0
 
 ## Set before entering the tree.
 var simulation: Simulation
@@ -52,6 +56,8 @@ var labyrinth_view: LabyrinthView
 var camera: WorldCamera
 ## World-space parent for effects, drawn above characters.
 var effects_layer: Node2D
+## Light, darkness and decoration around the labyrinth view.
+var ambience: Ambience
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -88,12 +94,21 @@ func _ready() -> void:
 	labyrinth_view.name = "LabyrinthView"
 	labyrinth_view.labyrinth = simulation.labyrinth
 	add_child(labyrinth_view)
+	# After the view and before the characters, so props draw behind the heroes.
+	ambience = Ambience.new()
+	ambience.name = "Ambience"
+	ambience.process_priority = 2  # after this node has placed the party's light
+	add_child(ambience)
+	ambience.setup(labyrinth_view)
 	_characters = Node2D.new()
 	_characters.name = "Characters"
 	_characters.position = FEET_LIFT
 	add_child(_characters)
 	effects_layer = Node2D.new()
 	effects_layer.name = "Effects"
+	# Above the darkness and glow, so bolts, numbers and sparks keep their true colours.
+	effects_layer.z_index = EFFECTS_Z
+	effects_layer.z_as_relative = false
 	add_child(effects_layer)
 	camera = WorldCamera.new()
 	camera.name = "WorldCamera"
@@ -161,10 +176,27 @@ func sync(delta: float) -> void:
 		sprite.advance(delta)
 	_remove_finished()
 	_fly_bolts(delta)
+	_place_party_light()
 	_aim_camera(delta)
 
 
 # --- Characters ----------------------------------------------------------------
+
+
+## Centres the party's light on the heroes that are showing.
+func _place_party_light() -> void:
+	var low: float = INF
+	var high: float = -INF
+	var feet_y: float = 0.0
+	for hero: Hero in simulation.party.heroes:
+		var sprite: CharacterSprite = character(hero.id)
+		if sprite == null or not sprite.visible:
+			continue
+		low = minf(low, sprite.position.x)
+		high = maxf(high, sprite.position.x)
+		feet_y = sprite.position.y
+	if low <= high:
+		ambience.party_light_position = Vector2((low + high) / 2.0, feet_y - PARTY_LIGHT_HEIGHT)
 
 
 func _leader_id() -> int:
