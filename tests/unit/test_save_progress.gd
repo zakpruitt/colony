@@ -80,4 +80,8 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 	var sim: Simulation = Simulation.from_save(_valid())
 	assert_not_null(sim)
 	if sim != null:
-		assert_eq(sim.to_save(), _valid())
+		# Spec 016: a version 1 save comes back as version 2, with every upgrade at rank 0.
+		var expected: Dictionary = _valid()
+		expected["version"] = Simulation.SAVE_VERSION
+		expected["upgrades"] = sim.to_save()["upgrades"]
+		assert_eq(sim.to_save(), expected)

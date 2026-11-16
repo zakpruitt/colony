@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="UpgradeDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/upgrade_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fat_purse"
+display_name = "Fat Purse"
+description = "+5% gold from kills"
+order = 5
+stat = 4
+per_rank = 0.05
+base_cost = 40
+cost_growth = 1.4
+max_rank = 20
