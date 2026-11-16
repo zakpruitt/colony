@@ -1,0 +1,44 @@
+extends GutTest
+## AwayReplay steps the real simulation for the time away and counts what happened; AwayPanel
+## words its report.
+
+
+func _saved() -> Dictionary:
+	var sim := Simulation.new(Main.SIMULATION_SEED)
+	for i: int in 2000:
+		sim.step()
+	return JSON.parse_string(JSON.stringify(sim.to_save()))
+
+
+func test_a_replay_ends_where_stepping_does() -> void:
+	var saved: Dictionary = _saved()
+	var replayed: Simulation = Simulation.from_save(saved)
+	var replay := AwayReplay.new(replayed, 500.0)
+	assert_eq(replay.total_ticks, 5000)
+	while not replay.run(1_000_000):
+		pass
+	var stepped: Simulation = Simulation.from_save(saved)
+	for i: int in 5000:
+		stepped.step()
+	assert_eq(replayed.tick, stepped.tick)
+	assert_eq(replayed.state_hash(), stepped.state_hash(), "the same state")
+	assert_almost_eq(replay.fraction(), 1.0, 0.0001)
+
+
+func test_a_slice_stops_at_its_budget() -> void:
+	var replay := AwayReplay.new(Simulation.from_save(_saved()), 8.0 * 3600.0)
+	assert_false(replay.run(2_000), "eight hours do not fit in 2 ms")
+	assert_gt(replay.done_ticks, 0)
+	assert_lt(replay.fraction(), 1.0)
+
+
+func test_no_time_is_done_at_once() -> void:
+	var replay := AwayReplay.new(Simulation.from_save(_saved()), 0.0)
+	assert_true(replay.is_done())
+	assert_true(replay.run(1_000))
+
+
+func test_durations_read_as_hours_and_minutes() -> void:
+	assert_eq(AwayPanel.duration(30.0 * 60.0), "30m")
+	assert_eq(AwayPanel.duration(65.0 * 60.0), "1h 5m")
+	assert_eq(AwayPanel.duration(8.0 * 3600.0), "8h 0m")
