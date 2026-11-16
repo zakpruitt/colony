@@ -38,6 +38,9 @@ time and converted to ticks. Every number named in CAPITALS is a constant in Int
   deeper than the level's depth, created at that depth: 2 or 3 in a PLAIN chamber, 4 or 5 in a DEN,
   2 or 3 in a VAULT. Deeper-dwelling monsters (higher `min_depth`) are more likely than shallow ones once
   available. The choice is deterministic for a given seed, depth, chamber and visit number.
+  The monsters of a populated chamber exist before the party arrives, so the view can show them waiting:
+  `monsters_in` returns them, standing on the chamber's floor spread over its middle half, for any depth
+  asked, and they are the same combatants (same ids) the battle then uses.
 - **R6. Health carries over.** Heroes enter a battle with the health they have, not full health. After a
   battle their health is what the battle left them with.
 - **R7. Rewards.** When a monster dies, every living hero gains the monster's `xp`, and the party gains gold
@@ -140,6 +143,8 @@ func chamber() -> LabyrinthChamber
 func hero_position(hero_id: int) -> Vector2
 ## True if this chamber currently holds monsters waiting for the party.
 func is_populated(level_depth: int, chamber_index: int) -> bool
+## The monsters waiting in this chamber (empty if it is not populated). Their y is the level's floor.
+func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]
 ```
 
 ```gdscript
@@ -173,7 +178,7 @@ target, `stable_seconds`) and hero health directly to reach a situation quickly.
 | R2 | `test_r2_party_walks_in_formation` | Anchor speed is `PARTY_SPEED`; heroes trail 1 tile apart, tank first, on the floor row |
 | R3 | `test_r3_descends_ascends_and_patrols` | Target below: reaches the next depth at the shaft column; target above: climbs back; at target: turns at both ends of the level |
 | R4 | `test_r4_battle_starts_on_entering_a_populated_chamber` | Battle begins with the right span and entry side; none in START, shaft or landing chambers |
-| R5 | `test_r5_encounter_composition` | Counts per kind; no monster above its depth; same seed, depth, chamber and visit give the same monsters; over many, deeper monsters are favoured |
+| R5 | `test_r5_encounter_composition` | Counts per kind; no monster above its depth; same seed, depth, chamber and visit give the same monsters; over many, deeper monsters are favoured; `monsters_in` returns them before the battle, inside the chamber's middle half, and the battle uses the same ids |
 | R6 | `test_r6_health_carries_into_and_out_of_battle` | A hero at 10 health enters with 10; survivors keep battle health |
 | R7 | `test_r7_kills_pay_xp_and_gold` | Each living hero gains the xp; gold within the roll range, doubled in a vault; a dead hero gains none |
 | R8 | `test_r8_levels` | XP thresholds match `xp_for_level`; multi-level jump; stats grow; heal by gained health |
