@@ -28,6 +28,7 @@ The category in a sprite's header fixes its size and whether it is outlined. **(
 | `tile` | 16x16 | no |
 | `fx` | any, up to 64x64 | no |
 | `ui` | any, up to 64x64 | no |
+| `font` | any | no; `white` only (see Text) |
 
 ## Outline
 
@@ -116,6 +117,27 @@ category `tile` (16x16, not outlined). Each sheet holds many parts; the view pic
 The four stratum sheets share their shapes and differ only in the colours of the table above (they were
 written by a throwaway script, as the `create-sprite` skill allows). Keep them that way: a change to a shape
 belongs in all four sheets, and a new stratum is the same shapes in a new row of the table.
+
+## Text
+
+All text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `font`). The project theme
+(`game/ui/theme.tres`) makes it every control's default, so a plain `Label` is already on style.
+
+- **One colour.** Glyphs are `white` on transparency, so text can be tinted to any palette colour. Any other
+  colour in a font sheet fails. **(lint)**
+- **Metrics.** Each glyph is one part on a 5x8 cell, drawn from the cell's left edge: capitals and digits 5
+  pixels tall (rows 0-4, the baseline under row 4), lower case 4 tall with ascenders to row 0, descenders on
+  rows 5-6, row 7 always empty. Ascent 5, descent 2: a line is 7 pixels plus the label's line spacing.
+- **Proportional.** A glyph's advance is its drawn width plus one column of spacing; a space is 3. The advances
+  live in `pixel.png.import` (`character_ranges`, one `'c'-'c' <advance - 5> 0 -1` entry per part, in part
+  order). Change a glyph's width and you change its entry; `test_009_pixel_font.gd` fails if they disagree.
+- **Native size only.** The font's size is 8 (the cell height). It scales only by whole numbers; never set a
+  font size other than 8 or a multiple of it.
+- **Tell look-alikes apart.** `0` is square, `O` round; `1` has a flag and a foot, `l` is a bare stroke, `I`
+  has serifs; `5` is square, `S` round.
+- **Colour in code.** `PixelText.label(text, &"yellow")` gives a tinted label with a 1-pixel `ink` drop shadow
+  (down and right), which keeps it readable over light ground. `PixelText.width(text)` measures a string.
+- Look at it with `python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font`.
 
 ## Workflow
 

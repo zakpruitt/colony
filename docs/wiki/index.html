@@ -238,6 +238,12 @@ neck, the shoulder, the hand), and the game moves the parts in code rather than 
 characters breathe while they stand, bob and lean as they walk, draw back before they strike, flash white and
 flinch when hit, and collapse when they die. A demo shows the whole cast doing all of it (below); the
 characters are not in the labyrinth yet.</p>
+<h3>Text <span class="tag built">Built: spec 009</span></h3>
+<p>All text in the game is drawn in Colony's own small pixel font, typed the same way as the sprites
+(<code>assets/fonts/pixel.px</code>, one glyph per part). Capitals are 5 pixels tall, letters have their own
+widths (an <code>i</code> is narrower than an <code>m</code>), and every label uses it without being told to.
+Coloured text gets a one-pixel dark shadow so it reads over any background. To see every character, run the
+font specimen (below).</p>
 <h3>Saving <span class="tag planned">Planned</span></h3>
 <p>The game saves often and safely: a crash mid-save cannot corrupt the save, and one earlier copy is kept.</p>
 <p>The technical version of this section is
@@ -260,6 +266,7 @@ characters are not in the labyrinth yet.</p>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
+  <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
 </table>
 </div>
@@ -311,7 +318,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <div class="table-wrap">
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
-  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span></td></tr>
+  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, shown in a demo, not yet in the main game</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>, shown in a demo</td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>
