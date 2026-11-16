@@ -6,7 +6,7 @@
     python tools/dev.py test [--only=NAME]
     python tools/dev.py format           rewrite scripts with gdformat
     python tools/dev.py import           rebuild Godot's import cache
-    python tools/dev.py shot [--name=N] [--seconds=S] [--count=C]
+    python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
                                          run the game in a window, save PNGs to .shots/
 
 Standard library only. Godot is found through the GODOT environment
@@ -120,10 +120,19 @@ def error_lines(output: str, markers: tuple[str, ...] = ERROR_MARKERS) -> list[s
     return [line for line in output.splitlines() if any(m in line for m in markers)]
 
 
+def tail(output: str, limit: int = 150) -> str:
+    """The end of a long output, so a failure never floods the terminal."""
+    lines = output.splitlines()
+    if len(lines) <= limit:
+        return output
+    return f"... ({len(lines) - limit} earlier lines not shown)\n" + "\n".join(lines[-limit:])
+
+
 def require_clean(code: int, output: str, what: str) -> None:
     errors = error_lines(output)
     if code != 0 or errors:
-        raise StepFailed(f"{what} failed (exit {code})\n{output}")
+        shown = "\n".join(errors[:40]) if errors else tail(output)
+        raise StepFailed(f"{what} failed (exit {code})\n{shown}")
 
 
 def source_files() -> list[str]:
@@ -176,7 +185,7 @@ def step_boundary() -> str:
 def step_compile() -> str:
     code, output = godot(["--import"], timeout=600)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
-        raise StepFailed(f"import failed (exit {code})\n{output}")
+        raise StepFailed(f"import failed (exit {code})\n{tail(output)}")
     code, output = godot(["-s", "res://tools/godot/compile_all.gd"], timeout=300)
     require_clean(code, output, "compile")
     return last_line(output, "[compile]")
@@ -188,7 +197,7 @@ def step_tests(only: str | None = None) -> str:
         args.append(f"-gselect={only}")
     code, output = godot(args, timeout=600)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
-        raise StepFailed(f"tests failed (exit {code})\n{output}")
+        raise StepFailed(f"tests failed (exit {code})\n{tail(output, 400)}")
     passing = re.search(r"^\s*Passing(?: Tests)?\s+(\d+)", output, re.MULTILINE)
     if not passing or int(passing.group(1)) == 0:
         raise StepFailed(f"no passing tests were reported\n{output}")
@@ -298,6 +307,8 @@ def command_shot(args: argparse.Namespace) -> int:
         f"--seconds={args.seconds}",
         f"--count={args.count}",
     ]
+    if args.scene:
+        command.append(f"--scene={args.scene}")
     try:
         code, output = run(command, timeout=int(args.seconds * args.count) + 60)
     except StepFailed as failure:
@@ -331,7 +342,13 @@ def main() -> int:
     shot.add_argument("--name", default="shot", help="file name without extension")
     shot.add_argument("--seconds", type=float, default=2.0, help="run time before each shot")
     shot.add_argument("--count", type=int, default=1, help="number of shots")
+    shot.add_argument("--scene", help="res:// scene to run instead of the main scene")
     shot.set_defaults(handler=command_shot)
+
+    # Godot's output can hold characters a Windows console cannot encode.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(errors="replace")
 
     args = parser.parse_args()
     return args.handler(args)

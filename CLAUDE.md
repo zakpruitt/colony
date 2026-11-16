@@ -61,14 +61,14 @@ incomplete, stop and report the question.
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |
 | Play | `godot --path .` |
-| Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1]` → `.shots/<n>.png` |
+| Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…]` → `.shots/<n>.png` |
 
 ## Looking at the game
 
 Tests cannot tell you whether something looks right. If your change affects what is on screen, run
 `python tools/dev.py shot --name=<what> --seconds=<enough to see it>` and open the PNG with the Read tool. It
 runs the main scene in a real 1280x720 window for a few seconds (headless Godot draws nothing). Use `--count`
-for a sequence when motion matters. Look before you call visual work done, and say what you saw in your report.
+for a sequence when motion matters, and `--scene=res://…` to run a scene other than the main one. Look before you call visual work done, and say what you saw in your report.
 Screenshots stay in `.shots/` (ignored by git).
 
 ## Skills (`.claude/skills/`)

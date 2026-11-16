@@ -16,9 +16,9 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| A | 002 Art foundation: master palette, code-drawn sprites, palette lint, first style bible | — |
-| A | 003 Labyrinth generation: endless seeded chambers and tunnels by depth (sim) | — |
-| A | 004 Combat core: heroes, monsters, stats, fights in a chamber, sim events (sim + data) | 001 |
+| A | [002 Art foundation](002-art-foundation/spec.md): palette, code-drawn sprites, art lint, style bible — provisional | — |
+| A | [003 Labyrinth generation](003-labyrinth-generation/spec.md): endless seeded levels (sim) — provisional | — |
+| A | [004 Combat core](004-combat-core/spec.md): heroes, monsters, a fight, sim events (sim + data) — provisional | 001 |
 | B | 005 Expedition loop: travel, encounters by depth, XP, gold, rest, wipe and fallback (sim) | 003, 004 |
 | B | 006 Labyrinth view: draw the cross-section, camera, light | 002, 003 |
 | B | 007 Entity view: hero and monster sprites, part-based animation | 002, 004 |
@@ -26,6 +26,8 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | C | 009 HUD: party frames, XP, gold, depth | 005 |
 | C | 010 Ambient life: torches, dust, glow, background detail | 006 |
 | D | Balance and polish passes, then saves if the night allows | all |
+
+The shape of the base game the overnight specs share is `docs/design/base-game.md`.
 
 Milestones follow `docs/design/plan.md`: **M0** harness, style bible, skeleton, background tick, saves ·
 **M1** labyrinth · **M2** one hero, movement and combat · **M3** XP, gold, loot, death fallback ·

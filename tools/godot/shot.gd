@@ -6,10 +6,12 @@ extends SceneTree
 ##   --out=<absolute path without extension>  where to save
 ##   --seconds=<float>                        how long to run before each shot
 ##   --count=<int>                            how many shots to take
+##   --scene=<res:// path>                    scene to run instead of the main scene
 
 var _out: String = ""
 var _seconds: float = 2.0
 var _count: int = 1
+var _scene: String = ""
 
 
 func _initialize() -> void:
@@ -20,12 +22,19 @@ func _initialize() -> void:
 			_seconds = arg.trim_prefix("--seconds=").to_float()
 		elif arg.begins_with("--count="):
 			_count = arg.trim_prefix("--count=").to_int()
+		elif arg.begins_with("--scene="):
+			_scene = arg.trim_prefix("--scene=")
 	if _out.is_empty():
 		print("[shot] FAIL no --out given")
 		quit(1)
 		return
-	var main_path: String = ProjectSettings.get_setting("application/run/main_scene")
-	var scene: PackedScene = load(main_path)
+	if _scene.is_empty():
+		_scene = ProjectSettings.get_setting("application/run/main_scene")
+	var scene: PackedScene = load(_scene)
+	if scene == null:
+		print("[shot] FAIL could not load %s" % _scene)
+		quit(1)
+		return
 	var main: Node = scene.instantiate()
 	root.add_child(main)
 	current_scene = main

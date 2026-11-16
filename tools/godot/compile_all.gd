@@ -4,7 +4,7 @@ extends SceneTree
 ##
 ## Run: godot --headless --path . -s res://tools/godot/compile_all.gd
 
-const SKIP_DIRS: PackedStringArray = ["res://addons", "res://.godot"]
+const SKIP_DIRS: PackedStringArray = ["res://addons"]
 
 
 func _init() -> void:
@@ -26,6 +26,7 @@ func _scripts_under(dir: String) -> PackedStringArray:
 			found.append(dir.path_join(file))
 	for sub: String in DirAccess.get_directories_at(dir):
 		var path: String = dir.path_join(sub)
-		if not SKIP_DIRS.has(path):
+		# Hidden folders hold caches and other lanes' worktrees, not this project.
+		if not sub.begins_with(".") and not SKIP_DIRS.has(path):
 			found.append_array(_scripts_under(path))
 	return found
