@@ -357,8 +357,7 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append(f"--stable-seconds={args.stable_seconds}")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
-        code, output = godot(["--import"], timeout=600)
-        require_clean(code, output, "import")
+        import_project()
         # About a minute of real time per ten hours of game time, plus start-up.
         timeout = 120 + int(args.minutes * 2)
         code, output = godot(["-s", "res://tools/godot/run_sim.gd", "--", *options], timeout)
