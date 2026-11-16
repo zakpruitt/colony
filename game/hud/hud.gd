@@ -74,6 +74,8 @@ var shop_button: HudButton
 ## The small panel the Shop button sits on.
 var shop_tab: HudPanel
 var shop_marker: ShopMarker
+## The guardian's health during a guardian fight (spec 024).
+var boss_bar: BossBar
 
 var _simulation: Simulation
 var _world: World
@@ -144,6 +146,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_gold()
 	_build_shop()
 	_adopt_clock()
+	boss_bar = BossBar.new()
+	add_child(boss_bar)
+	boss_bar.setup(simulation, world)
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -164,6 +169,7 @@ func advance(delta: float) -> void:
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
+	boss_bar.advance(delta)
 
 
 ## The gold count currently displayed.

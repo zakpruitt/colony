@@ -1,0 +1,39 @@
+# A guardian appears: a low drum hit, then a deep, falling horn under a rumble of noise.
+[drum]
+wave = noise
+pitch = 1400
+slide = 90
+length = 0.25
+volume = 0.3
+attack = 0.003
+release = 0.2
+
+[horn_low]
+wave = saw
+pitch = 82
+slide = 62
+length = 1.1
+volume = 0.26
+attack = 0.06
+decay = 0.4
+sustain = 0.7
+release = 0.4
+
+[horn_fifth]
+wave = square
+duty = 0.25
+pitch = 123
+slide = 93
+length = 1.0
+volume = 0.12
+attack = 0.08
+release = 0.4
+
+[rumble]
+wave = noise
+pitch = 220
+slide = 60
+length = 1.1
+volume = 0.12
+attack = 0.1
+release = 0.5

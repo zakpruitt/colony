@@ -32,6 +32,8 @@ const SOUNDS: Array[StringName] = [
 	&"depth_stable",
 	&"ui_click",
 	&"ui_buy",
+	&"guardian_appears",
+	&"guardian_slain",
 ]
 ## The most sounds playing at once.
 const MAX_VOICES: int = 8
@@ -45,6 +47,9 @@ const PITCH_SPREAD: float = 0.05
 var settings: SoundSettings
 
 var _world: World
+var _simulation: Simulation
+## The combatant ids of guardians seen in a fight, whose deaths play the fanfare instead.
+var _guardian_ids: Dictionary[int, bool] = {}
 var _streams: Dictionary = {}
 var _voices: Array[AudioStreamPlayer] = []
 ## When each voice's sound ends, on [member _now].
@@ -75,8 +80,9 @@ func _init() -> void:
 
 ## Listens to [param world]'s events and [param effects]' coins, and takes the mute choice from
 ## [member settings]. Call it once the world, effects and HUD exist (after any catch-up).
-func setup(world: World, effects: CombatEffects, _simulation: Simulation) -> void:
+func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void:
 	_world = world
+	_simulation = simulation
 	if not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	# Deferred, so an old gold gain's coin (which the effects pass on at once, before this hears
@@ -88,6 +94,7 @@ func setup(world: World, effects: CombatEffects, _simulation: Simulation) -> voi
 
 func _process(delta: float) -> void:
 	_now += delta
+	_note_guardian()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -171,7 +178,15 @@ func _ensure_bus() -> void:
 	AudioServer.set_bus_send(bus, &"Master")
 
 
+## Remembers the guardian of the fight on now, if there is one.
+func _note_guardian() -> void:
+	var guardian: Combatant = CombatEffects.battle_guardian(_simulation)
+	if guardian != null:
+		_guardian_ids[guardian.id] = true
+
+
 func _on_sim_event(event: SimEvent) -> void:
+	_note_guardian()
 	if _world == null or not _world.is_recent(event):
 		if event.kind == SimEvent.Kind.GOLD_GAINED:
 			_stale_coins += 1
@@ -186,8 +201,15 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.HEALED:
 			if event.amount >= 1:
 				play(&"heal")
+		SimEvent.Kind.ENCOUNTER_STARTED:
+			if CombatEffects.battle_guardian(_simulation) != null:
+				play(&"guardian_appears")
+		SimEvent.Kind.GUARDIAN_SLAIN:
+			play(&"guardian_slain")
 		SimEvent.Kind.DIED:
-			if event.source_id >= Expedition.FIRST_MONSTER_ID:
+			if _guardian_ids.has(event.source_id):
+				pass  # GUARDIAN_SLAIN plays the fanfare in its place.
+			elif event.source_id >= Expedition.FIRST_MONSTER_ID:
 				play(&"monster_die")
 			else:
 				play(&"hero_die")

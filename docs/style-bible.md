@@ -211,6 +211,11 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
   pixel down and right: `white` on monsters, `red` on heroes, `amber` with `!` for a crit, `green` `+N` for a
   heal. Banners (`LEVEL UP`, `WIPED`, `DEPTH n STABLE`) use the same font, `yellow` or `red`.
 - **Monster bursts** take their colours from the monster's own sheet, without its `ink` outline.
+- **Guardians** (spec 024) are the loudest moments. Their announcement is the name at 4x in `white` with
+  `GUARDIAN OF DEPTH n` at 2x in `red` under it, in the upper middle of the screen. Their death is a hard
+  shake, a 0.2 s freeze, a burst in three waves of the guardian's own colours (each opening with a `white` or
+  `yellow` flash and a ring in its first colour), a fountain of coins and `GUARDIAN SLAIN` at 4x in `yellow`.
+  Only a guardian's death may go past the particle cap, and only by its own particles.
 
 ## UI
 
@@ -233,6 +238,9 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   `forest` with a `green` edge, then `dusk`, for half a second.
 - **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
   lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
+- **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,
+  centred, at most 240 pixels wide: the guardian's name in capitals over a 7-pixel `red`/`crimson` bar with a
+  `pink` top row, an `amber` trail of lost health draining behind it, and a `white` flash on each hit.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is
   `green`/`forest` above half, `yellow`/`amber` down to a quarter, `red`/`crimson` below, on `dark_brown`;
   XP is `cyan`/`blue` on `ink`. Bars ease to a new value over about 0.3 s, never jump.
@@ -254,7 +262,7 @@ the docstring of `tools/sfx.py`: one or more `[part]`s, each a wave (`square`, `
 - **Chunky and 8-bit.** Square, triangle and noise waves, short slides and arpeggios; no samples from outside
   the repository.
 - **Short.** Most sounds are under 0.3 s; only the beats of the loop (a wipe, a revival, a stable depth, a
-  level up) run longer, and none past 1.2 s.
+  level up, a guardian appearing or slain) run longer, and none past 1.2 s.
 - **Never harsh.** Peaks well under -3 dB (most are -5 to -14 dB), a gentle low-pass on every mix, and no
   click: every part rises from silence and falls back to it.
 - **Shape matches the moment.** A coin is bright and short, a level up and a revival rise, a wipe and a hero's

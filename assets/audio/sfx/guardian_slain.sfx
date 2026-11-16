@@ -1,0 +1,75 @@
+# A guardian is slain: a crash, a fast rising run, then a bright held major chord.
+[crash]
+wave = noise
+pitch = 6000
+slide = 800
+length = 0.4
+volume = 0.22
+attack = 0.002
+release = 0.35
+
+[run_1]
+wave = square
+duty = 0.25
+pitch = 392
+length = 0.08
+volume = 0.16
+release = 0.02
+
+[run_2]
+wave = square
+duty = 0.25
+start = 0.08
+pitch = 523
+length = 0.08
+volume = 0.16
+release = 0.02
+
+[run_3]
+wave = square
+duty = 0.25
+start = 0.16
+pitch = 659
+length = 0.08
+volume = 0.16
+release = 0.02
+
+[run_4]
+wave = square
+duty = 0.25
+start = 0.24
+pitch = 784
+length = 0.08
+volume = 0.16
+release = 0.02
+
+[chord_root]
+wave = square
+duty = 0.25
+start = 0.32
+pitch = 1047
+length = 0.82
+volume = 0.15
+decay = 0.3
+sustain = 0.7
+release = 0.4
+
+[chord_third]
+wave = square
+duty = 0.5
+start = 0.32
+pitch = 1319
+length = 0.82
+volume = 0.09
+decay = 0.3
+sustain = 0.7
+release = 0.4
+
+[chord_bass]
+wave = triangle
+start = 0.32
+pitch = 262
+slide = 523
+length = 0.82
+volume = 0.3
+release = 0.4

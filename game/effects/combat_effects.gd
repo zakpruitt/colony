@@ -135,6 +135,34 @@ const STABLE_RAISE: float = 40.0
 const LIGHT_HEIGHT: int = 56
 const LIGHT_LIFE: float = 0.9
 
+# Guardians (spec 024).
+## The announcement: the name's and the depth line's font multiples, how far above the middle
+## of the screen each sits, how long both stay, and the camera's one shake.
+const ANNOUNCE_SCALE: int = 4
+const ANNOUNCE_LINE_SCALE: int = 2
+const ANNOUNCE_RAISE: float = 92.0
+const ANNOUNCE_LINE_RAISE: float = 64.0
+const ANNOUNCE_LIFE: float = 2.0
+const ANNOUNCE_SHAKE: float = 4.0
+## A guardian's death: a hard shake and a hit-stop.
+const GUARDIAN_DEATH_SHAKE: float = 12.0
+const GUARDIAN_FREEZE: float = 0.2
+## Its burst, in three waves: seconds after the death each starts, and how many particles each
+## throws, all in the guardian's own colours.
+const GUARDIAN_WAVE_TIMES: Array[float] = [0.0, 0.32, 0.64]
+const GUARDIAN_WAVE_SIZES: Array[int] = [34, 24, 18]
+## The particles its death may make beyond MAX_PARTICLES: exactly its three waves and their
+## flashes (two a wave).
+const GUARDIAN_ALLOWANCE: int = 34 + 24 + 18 + 6
+const GUARDIAN_GRAVITY: float = 300.0
+## The coins of its gold: at least GUARDIAN_COINS_MIN, at most GUARDIAN_COINS_MAX.
+const GUARDIAN_COINS_MIN: int = 20
+const GUARDIAN_COINS_MAX: int = 28
+## GUARDIAN SLAIN: its font multiple, how far above the middle it sits and how long it stays.
+const SLAIN_SCALE: int = 4
+const SLAIN_RAISE: float = 64.0
+const SLAIN_LIFE: float = 2.5
+
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
 
@@ -159,6 +187,11 @@ var _z_in: Dictionary[int, float] = {}
 var _revival_due: bool = false
 ## Colours of each monster sheet, by its path.
 var _sheet_colors: Dictionary[String, PackedColorArray] = {}
+## The combatant ids of guardians seen in a fight, so their deaths and gold are known for theirs
+## after the battle itself is gone.
+var _guardian_ids: Dictionary[int, bool] = {}
+## A guardian's burst waves still to come.
+var _waves: Array[FxGuardianWave] = []
 
 
 func _ready() -> void:
@@ -187,6 +220,8 @@ func advance(delta: float) -> void:
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
+	_note_guardians()
+	_advance_waves(delta)
 	_follow_bolts()
 	_rest_z(delta)
 	for particle: FxParticle in _particles.duplicate():
@@ -233,6 +268,24 @@ func live_particles() -> int:
 	return _particles.size()
 
 
+## The guardian in [param simulation]'s fight, or null when the fight has none (or there is no
+## fight): a monster whose [member MonsterDef.guardian] is true.
+static func battle_guardian(simulation: Simulation) -> Combatant:
+	if simulation == null or simulation.expedition.battle == null:
+		return null
+	for monster: Combatant in simulation.expedition.battle.monsters:
+		var def: MonsterDef = Content.monster(monster.def_id)
+		if def != null and def.guardian:
+			return monster
+	return null
+
+
+## True for the combatant id of a guardian seen in a fight.
+func is_guardian(id: int) -> bool:
+	_note_guardians()
+	return _guardian_ids.has(id)
+
+
 # --- Events --------------------------------------------------------------------
 
 
@@ -255,14 +308,22 @@ func _on_sim_event(event: SimEvent) -> void:
 				_gold(event)
 			else:
 				coin_collected.emit(event.amount)
+		SimEvent.Kind.GUARDIAN_SLAIN:
+			if recent:
+				_slain()
 		SimEvent.Kind.LEVEL_UP:
 			if recent:
 				_level_up(event.target_id)
 		SimEvent.Kind.REST_STARTED:
 			_resting = true
 			_z_in.clear()
-		SimEvent.Kind.REST_ENDED, SimEvent.Kind.ENCOUNTER_STARTED:
+		SimEvent.Kind.REST_ENDED:
 			_resting = false
+		SimEvent.Kind.ENCOUNTER_STARTED:
+			_resting = false
+			var guardian: Combatant = battle_guardian(_simulation)
+			if recent and guardian != null:
+				_announce(guardian)
 		SimEvent.Kind.PARTY_WIPED:
 			_resting = false
 			if recent:
@@ -348,7 +409,9 @@ func _died(event: SimEvent, recent: bool) -> void:
 	if dying == null:
 		return
 	_fallen_at = dying.position
-	if recent:
+	if recent and is_guardian(event.source_id):
+		_guardian_death(dying)
+	elif recent:
 		_burst(dying)
 
 
@@ -404,7 +467,8 @@ func _xp(event: SimEvent) -> void:
 func _gold(event: SimEvent) -> void:
 	var source: CharacterSprite = _world.character(event.source_id)
 	var feet: Vector2 = source.position if source != null else _fallen_at
-	var count: int = coin_count(event.amount)
+	var guardian: bool = is_guardian(event.source_id)
+	var count: int = guardian_coin_count(event.amount) if guardian else coin_count(event.amount)
 	for i: int in count:
 		var coin := FxCoin.new()
 		coin.name = "Coin"
@@ -412,6 +476,12 @@ func _gold(event: SimEvent) -> void:
 		coin.floor_y = feet.y - 4.0
 		coin.velocity = Vector2(_rng.randf_range(-75.0, 75.0), _rng.randf_range(-170.0, -100.0))
 		coin.rest_time = 0.35 + 0.05 * i
+		if guardian:
+			# A fountain: higher and wider, and they leave for the purse in a long stream.
+			coin.velocity = Vector2(
+				_rng.randf_range(-130.0, 130.0), _rng.randf_range(-260.0, -150.0)
+			)
+			coin.rest_time = 0.6 + 0.04 * i
 		coin.age = _rng.randf_range(0.0, 0.3)
 		coin.start(feet + Vector2(_rng.randf_range(-3.0, 3.0), -12.0).round())
 		_world.effects_layer.add_child(coin)
@@ -421,6 +491,12 @@ func _gold(event: SimEvent) -> void:
 ## How many coins a gain of [param amount] gold shows: one per GOLD_PER_COIN, 1 to COINS_MAX.
 static func coin_count(amount: int) -> int:
 	return clampi(amount / GOLD_PER_COIN, 1, COINS_MAX)
+
+
+## How many coins a guardian's gain of [param amount] gold shows: one per GOLD_PER_COIN,
+## GUARDIAN_COINS_MIN to GUARDIAN_COINS_MAX.
+static func guardian_coin_count(amount: int) -> int:
+	return clampi(amount / GOLD_PER_COIN, GUARDIAN_COINS_MIN, GUARDIAN_COINS_MAX)
 
 
 ## The share of coin [param index] of [param count] in a gain of [param amount]: equal shares,
@@ -472,6 +548,88 @@ func _banner(
 	banner.on_screen = true
 	banner.screen_offset = offset
 	banner.start(_screen_to_world(_view_size() * 0.5 + offset))
+
+
+# --- Guardians -----------------------------------------------------------------
+
+
+## Remembers the guardian of the fight on now, if there is one.
+func _note_guardians() -> void:
+	var guardian: Combatant = battle_guardian(_simulation)
+	if guardian != null:
+		_guardian_ids[guardian.id] = true
+
+
+## Its name, large, in the upper middle of the screen, the depth it guards under it, and a shake.
+func _announce(guardian: Combatant) -> void:
+	_guardian_ids[guardian.id] = true
+	var def: MonsterDef = Content.monster(guardian.def_id)
+	var title: FxText = _text(&"announce")
+	title.text = def.display_name.to_upper()
+	title.color = Palette.color(&"white")
+	title.scale_factor = ANNOUNCE_SCALE
+	title.z_index = 3
+	title.life = ANNOUNCE_LIFE
+	title.on_screen = true
+	title.screen_offset = Vector2(0, -ANNOUNCE_RAISE)
+	title.start(_screen_to_world(_view_size() * 0.5 + title.screen_offset))
+	var line: FxText = _text(&"announce")
+	line.text = "GUARDIAN OF DEPTH %d" % _simulation.expedition.depth
+	line.color = Palette.color(&"red")
+	line.scale_factor = ANNOUNCE_LINE_SCALE
+	line.z_index = 3
+	line.life = ANNOUNCE_LIFE
+	line.on_screen = true
+	line.screen_offset = Vector2(0, -ANNOUNCE_LINE_RAISE)
+	line.start(_screen_to_world(_view_size() * 0.5 + line.screen_offset))
+	_world.camera.shake(ANNOUNCE_SHAKE)
+
+
+## The biggest moment in the game: a hard shake, a hit-stop, then the guardian bursting in three
+## waves of its own colours, each opening with a flash.
+func _guardian_death(dying: CharacterSprite) -> void:
+	_world.camera.shake(GUARDIAN_DEATH_SHAKE)
+	_world.freeze(GUARDIAN_FREEZE)
+	var feet: Vector2 = dying.position
+	var height: float = _height(dying)
+	var middle: Vector2 = feet + Vector2(0, -roundf(height * 0.45))
+	# Its colours as often as its sheet uses them, so the burst reads as the guardian's body.
+	var colors: PackedColorArray = FxGuardianWave.weighted_colors(dying, _colors_of(dying))
+	if colors.is_empty():
+		colors = PackedColorArray([Palette.color(&"white")])
+	for i: int in GUARDIAN_WAVE_TIMES.size():
+		var wave := FxGuardianWave.new()
+		wave.due = GUARDIAN_WAVE_TIMES[i]
+		wave.count = GUARDIAN_WAVE_SIZES[i]
+		wave.index = i
+		wave.middle = middle
+		wave.feet_y = feet.y
+		wave.reach = Vector2(maxf(height * 0.4, 6.0), maxf(height * 0.35, 6.0))
+		wave.colors = colors
+		_waves.append(wave)
+	_advance_waves(0.0)
+
+
+func _advance_waves(delta: float) -> void:
+	for wave: FxGuardianWave in _waves.duplicate():
+		wave.due -= delta
+		if wave.due > 0.0:
+			continue
+		_waves.erase(wave)
+		wave.burst(self, _rng, _spark_texture)
+
+
+## GUARDIAN SLAIN, in gold, above the middle of the screen.
+func _slain() -> void:
+	var words: FxText = _text(&"slain")
+	words.text = "GUARDIAN SLAIN"
+	words.color = Palette.color(&"yellow")
+	words.scale_factor = SLAIN_SCALE
+	words.z_index = 3
+	words.life = SLAIN_LIFE
+	words.on_screen = true
+	words.screen_offset = Vector2(0, -SLAIN_RAISE)
+	words.start(_screen_to_world(_view_size() * 0.5 + words.screen_offset))
 
 
 func _revival_lights() -> void:
@@ -668,9 +826,10 @@ func _text(kind: StringName) -> FxText:
 	return made
 
 
-## A new particle on the effects layer, or null at the cap.
-func _particle(kind: StringName) -> FxParticle:
-	if _particles.size() >= MAX_PARTICLES:
+## A new particle on the effects layer, or null at the cap, raised by [param allowance] (only a
+## guardian's death passes one).
+func _particle(kind: StringName, allowance: int = 0) -> FxParticle:
+	if _particles.size() >= MAX_PARTICLES + allowance:
 		return null
 	var made := FxParticle.new()
 	made.name = "Particle"
