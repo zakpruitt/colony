@@ -63,6 +63,19 @@ func after_each() -> void:
 			DirAccess.remove_absolute(path)
 
 
+## Also after the last test: a Main freed by GUT after `after_each` saves once more as it
+## leaves the tree.
+func after_all() -> void:
+	for path: String in [
+		_settings_path,
+		_save_path,
+		_save_path + SaveStore.BACKUP_SUFFIX,
+		_save_path + SaveStore.TEMP_SUFFIX,
+	]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+
+
 # --- Helpers -------------------------------------------------------------------
 
 

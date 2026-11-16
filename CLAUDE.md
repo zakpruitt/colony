@@ -40,7 +40,8 @@ incomplete, stop and report the question.
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
 - **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail first.
 - **Tests that write files** use a per-process name under `user://` and delete it: `user://` is shared by every
-  worktree on the machine.
+  worktree on the machine. Delete in `after_all` as well as `after_each`: a `Main` with a save store saves
+  again when GUT frees it, which is after `after_each` has run.
 - **Commit the `.uid` file** Godot creates next to every new script.
 - **Godot runs headless and through `tools/dev.py`**, which sets timeouts. Never kill Godot processes by name:
   other lanes are running their own.

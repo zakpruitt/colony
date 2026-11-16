@@ -13,6 +13,14 @@ func after_each() -> void:
 			DirAccess.remove_absolute(path)
 
 
+## Also after the last test: a Main freed by GUT after `after_each` saves once more as it
+## leaves the tree.
+func after_all() -> void:
+	for path: String in [_path, _path + SaveStore.BACKUP_SUFFIX, _path + SaveStore.TEMP_SUFFIX]:
+		if FileAccess.file_exists(path):
+			DirAccess.remove_absolute(path)
+
+
 func _main_with_store() -> Main:
 	var main: Main = MAIN_SCENE.instantiate()
 	main.save_store = SaveStore.new(_path)
