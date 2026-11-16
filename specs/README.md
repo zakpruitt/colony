@@ -28,5 +28,6 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | D | [011 HUD](011-hud/spec.md): party frames, gold, depth, target-depth control — provisional, not started | 008, 009 |
 | D | [012 Ambient life](012-ambient-life/spec.md): light, torches, buried detail, props, motion — provisional, in progress | 006 |
 | D | [013 Deeper monsters](013-deeper-monsters/spec.md): eight monsters for the clay, stone and deep bands — provisional, in progress | 004, 005, 007 |
+| D | [014 Saving progress](014-save-progress/spec.md): levels, gold and depth survive closing the game — provisional, not started | 005 |
 | E | Lead pre-wires stubs for 010-012 in `Main` after 008 lands (CombatEffects, Hud, Ambience), then spawns them | 008 |
 | F | Polish passes from looking at the running game; saves if time allows | all |
