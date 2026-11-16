@@ -42,7 +42,10 @@ look at the existing cast (`python tools/dev.py shot --scene=res://game/entities
   one before it.
 - **R5. The game still plays as designed.** Every existing test still passes without changing its numbers,
   including the expedition's one-hour statements. If the new monsters make one of those statements false,
-  adjust the new monsters' numbers, not the test and not the old data.
+  adjust the new monsters' numbers, not the test and not the old data. One existing test may change, in one
+  way: `test_r5_encounter_composition` in the 005 tests compares every pair of monsters by how often they are
+  met at depth 5, which cannot hold for a monster that does not live there yet. It may be narrowed to compare
+  only monsters whose first depth is 5 or shallower. Its numbers stay as they are.
 - **R6. The deep is survivable but hard.** A party of four level-12 heroes beats a typical stone-band
   encounter (three monsters at depth 12) more often than not but not always (between 50% and 95% over 200
   seeds), and a level-6 party loses the same fight at least 80% of the time.
@@ -63,7 +66,7 @@ In `tests/acceptance/test_013_deeper_monsters.gd`.
 | R1 | `test_r1_eight_new_monsters_are_valid` | Each id loads, validates clean, with the depth and size above; XP and gold do not decrease as first depth increases across all thirteen monsters |
 | R2, R3 | `test_r3_each_new_monster_builds_and_animates` | Each builds through `for_monster` in the right category and runs idle, walk, attack, hit, death without pushed errors, parts back at rest |
 | R4 | `test_r4_bands_have_their_own_inhabitants` | Never above first depth; over many encounters at depths 8, 13 and 18, at least half the monsters are from that band or the one before |
-| R5 | (the existing suite) | `python tools/dev.py check` passes with no existing test changed |
+| R5 | (the existing suite) | `python tools/dev.py check` passes with no existing test changed, apart from the one narrowing R5 allows |
 | R6 | `test_r6_stone_band_is_hard_but_fair` | The two win-rate statements |
 | R7 | `test_r7_demo_shows_all_fourteen` | The demo lists all fourteen monsters and runs without errors |
 
@@ -84,6 +87,7 @@ report.
 - `assets/sprites/monsters/` (new files only)
 - `game/entities/character_demo.gd`, `game/entities/character_demo.tscn` (showing the larger cast)
 - `tests/acceptance/test_013_deeper_monsters.gd`
+- `tests/acceptance/test_005_expedition_loop.gd` (the one narrowing R5 allows, nothing else)
 - `tests/acceptance/test_007_character_sprites.gd` (only if an assertion counts the demo's characters)
 - `docs/style-bible.md` (the cast colour table), `docs/wiki/index.html`
 
