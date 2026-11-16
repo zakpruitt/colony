@@ -61,6 +61,14 @@ var path: String = "user://test_save_%d.dat" % OS.get_process_id()
   the supertype "Variant" was provided`): copy the element into a typed local first.
 - Code that is meant to `push_error` (a rejected input, say) fails the test unless the test claims the error
   with `assert_push_error("part of the message")`.
+- `[compile] FAIL` with `is shadowing an already-declared function`: a local or parameter has the name of a
+  method of the class (a `chamber()` method and a `var chamber` local). Rename the local.
+- `[format] FAIL` with `max-file-lines`: gdlint caps a file at 1000 lines. A long acceptance file stays
+  under it with small helpers (one that returns the amounts of every event of a kind, say) rather than
+  repeated `if x.size() == 1:` guards.
+- To prove a test can fail, break the code with a change that still compiles: `if false:` is dead code, a
+  warning, so the script stops loading and everything fails (or a `SceneTree` script hangs) for the wrong
+  reason. Prefer `if <condition> and <something never true>:`.
 - `SCRIPT ERROR ... Could not find type "X"`: a new `class_name` the import cache has not seen. Run
   `python tools/dev.py import` (the full `check` does this for you).
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.

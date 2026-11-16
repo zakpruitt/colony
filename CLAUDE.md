@@ -64,6 +64,7 @@ incomplete, stop and report the question.
 | Bake sprites (`.px` to `.png` and `.json`) | `python tools/art.py bake [<path>]` |
 | Lint the art | `python tools/art.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
+| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]` |
 | Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…]` → `.shots/<n>.png` |
 
 ## Looking at the game
