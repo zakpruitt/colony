@@ -1,9 +1,9 @@
 # 014 — Saving progress
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 005
-- **Pull request:** —
+- **Pull request:** [#13](https://github.com/zakpruitt/colony/pull/13)
 
 ## Intent
 
