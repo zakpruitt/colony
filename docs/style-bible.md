@@ -238,6 +238,27 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   cropped from the hero's own head and body, a `skull` for a fallen hero and a `coin`. A new class needs a
   portrait part named for its id.
 
+## Sound
+
+Sound effects (spec 021) are made like the sprites: each is a small text recipe, `assets/audio/sfx/<name>.sfx`,
+baked by `python tools/sfx.py bake` into a 16-bit mono 22050 Hz `.wav` beside it. The recipe format is in
+the docstring of `tools/sfx.py`: one or more `[part]`s, each a wave (`square`, `triangle`, `saw`, `sine` or
+8-bit `noise`), a start, a length, a pitch with an optional slide, a volume envelope and optional noise.
+`python tools/sfx.py lint` (in the check's `art` step) fails on a missing or stale `.wav`, a sound over
+1.2 seconds or a peak above -3 dB.
+
+- **Chunky and 8-bit.** Square, triangle and noise waves, short slides and arpeggios; no samples from outside
+  the repository.
+- **Short.** Most sounds are under 0.3 s; only the beats of the loop (a wipe, a revival, a stable depth, a
+  level up) run longer, and none past 1.2 s.
+- **Never harsh.** Peaks well under -3 dB (most are -5 to -14 dB), a gentle low-pass on every mix, and no
+  click: every part rises from silence and falls back to it.
+- **Shape matches the moment.** A coin is bright and short, a level up and a revival rise, a wipe and a hero's
+  death fall, hits are thumps with a crack of noise (a crit heavier, with a ring), a hero's hurt is duller.
+- **Quiet in the game.** Everything plays on the `SFX` bus at -12 dB; `M` mutes it. The player
+  (`game/audio/sound_player.gd`) never starts the same sound twice within 0.05 s, plays at most 8 at once and
+  varies each start's pitch a little.
+
 ## Workflow
 
 1. Write the sprite as a `.px` file under `assets/` (the format is below and in
