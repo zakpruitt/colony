@@ -209,6 +209,22 @@ func test_r1_validate_reports_each_problem() -> void:
 	for bad: Dictionary in monster_only:
 		var monster: PackedStringArray = _monster_def(bad).validate()
 		assert_eq(monster.size(), 1, "monster %s gives one problem: %s" % [bad, monster])
+	var healer_without_heal: PackedStringArray = (
+		_hero_def(HeroClassDef.Role.HEALER, {"heal_power": 0}).validate()
+	)
+	assert_eq(
+		healer_without_heal.size(), 1, "a healer with heal power below 1: %s" % healer_without_heal
+	)
+	assert_eq(
+		_hero_def(HeroClassDef.Role.HEALER, {"heal_power": 1}).validate().size(),
+		0,
+		"heal power 1 is fine"
+	)
+	assert_eq(
+		_hero_def(HeroClassDef.Role.TANK, {"heal_power": 0}).validate().size(),
+		0,
+		"only a healer needs heal power"
+	)
 	var many: PackedStringArray = _monster_def({"id": &"", "damage": 0, "min_depth": 0}).validate()
 	assert_eq(many.size(), 3, "each problem is its own line")
 
@@ -775,15 +791,16 @@ func test_r10_events_tell_the_whole_story() -> void:
 		assert_eq(battle.drain_events().size(), 0, "a second drain returns nothing")
 	var h: int = hero.id
 	var m: int = spitter.id
+	# ATTACK_STARTED carries the wind-up in ticks: 1 for the hero, 2 for the spitter.
 	var expected: Array = [
-		["ATTACK_STARTED", 1, h, m, 0, false],
-		["ATTACK_STARTED", 1, m, h, 0, false],
+		["ATTACK_STARTED", 1, h, m, 1, false],
+		["ATTACK_STARTED", 1, m, h, 2, false],
 		["HIT", 2, h, m, 1, false],
 		["PROJECTILE_LAUNCHED", 3, m, h, 1, false],
 		["HIT", 4, m, h, 1, false],
-		["ATTACK_STARTED", 4, h, m, 0, false],
+		["ATTACK_STARTED", 4, h, m, 1, false],
 		["HIT", 5, h, m, 1, false],
-		["ATTACK_STARTED", 7, h, m, 0, false],
+		["ATTACK_STARTED", 7, h, m, 1, false],
 		["HIT", 8, h, m, 1, false],
 		["DIED", 8, m, -1, 0, false],
 	]

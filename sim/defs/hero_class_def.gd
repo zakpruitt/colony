@@ -23,6 +23,9 @@ enum Role { TANK, MELEE, RANGED, HEALER }
 
 ## One line per problem; empty when the class is usable.
 func validate() -> PackedStringArray:
-	return DefChecks.combat_problems(
+	var problems: PackedStringArray = DefChecks.combat_problems(
 		id, display_name, max_health, damage, attack_interval, attack_range, move_speed, crit_chance
 	)
+	if role == Role.HEALER and heal_power < 1:
+		problems.append("heal_power %d is below 1 for a HEALER" % heal_power)
+	return problems

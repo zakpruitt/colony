@@ -6,6 +6,11 @@ extends RefCounted
 ## every living combatant acts once, heroes first, each side in the order it
 ## was given. Everything that happens is recorded as a [SimEvent] stamped with
 ## the battle tick (the first step is tick 1).
+##
+## Two things happen without an event, and the view must not wait for one:
+## [br]- When the battle ends, wind-ups still pending and projectiles still in
+## flight are dropped.
+## [br]- When a target dies, every wind-up aimed at it is cancelled at once.
 
 enum Result { ONGOING, HEROES_WON, MONSTERS_WON }
 
@@ -157,7 +162,7 @@ func _act(c: Combatant) -> void:
 		return
 	c.state = Combatant.State.WINDUP
 	c.strike_tick = tick + c.windup_ticks
-	_record(SimEvent.Kind.ATTACK_STARTED, c.id, target.id)
+	_record(SimEvent.Kind.ATTACK_STARTED, c.id, target.id, c.windup_ticks)
 
 
 func _pick_target(c: Combatant) -> Combatant:

@@ -8,7 +8,8 @@ var kind: Kind
 var tick: int
 var source_id: int = -1
 var target_id: int = -1
-## Damage or healing done; flight time in ticks for PROJECTILE_LAUNCHED.
+## Damage or healing done; flight time in ticks for PROJECTILE_LAUNCHED;
+## wind-up in ticks for ATTACK_STARTED.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED.
 var flag: bool = false
