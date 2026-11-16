@@ -30,7 +30,9 @@ not changed. Look first: `python tools/dev.py shot --name=before --seconds=4 --c
 - **R5. The fight is the same fight.** Every existing test passes with its numbers unchanged: the win rates of
   spec 004, the one-hour statements of spec 005, and (if it has landed) the stone-band statements of spec 013.
   If spacing shifts a result outside a tested range, tune `MIN_SPACING` or how R2 is done, not the data and
-  not the tests.
+  not the tests. One exception: `test_r14_events_cover_the_loop` in the 005 tests starts the knight at a
+  health chosen so that one particular fight leaves it just under the rest threshold, which depends on the
+  exact order of blows. Its starting health may be lowered so the party rests by a clear margin.
 - **R6. Climbers are on the ladder.** While climbing, a hero's position is the middle of the shaft
   (`shaft_down.position.x + Labyrinth.SHAFT_WIDTH / 2.0`), so a sprite drawn with its feet at that position
   is centred on the ladder, clear of both walls. Where the party stands to start a climb and where it lands
