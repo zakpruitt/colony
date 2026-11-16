@@ -202,9 +202,22 @@ closed is simply more ticks to work through.</p>
 <p>Every dice roll comes from a seeded stream (<code>SimRng</code>). The same seed gives the same run, which
 makes bugs repeatable and balance testable. Each system takes its own stream, so adding a loot roll never
 changes what combat rolls.</p>
-<h3>Content as data <span class="tag planned">Planned</span></h3>
+<h3>Content as data <span class="tag built">Built</span></h3>
 <p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
-means adding a file. Every data file is checked automatically.</p>
+means adding a file. Every data file is checked automatically. So far there are four hero classes
+(<code>data/heroes/</code>: knight, rogue, mage, cleric) and five monsters (<code>data/monsters/</code>: slime
+and cave bat from depth 1, skeleton from 2, spider from 3, ogre from 5). Talents and items come later.</p>
+<h3>Fights <span class="tag built">Built</span></h3>
+<p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
+then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the
+nearest enemy (the cleric instead picks whoever is most hurt, if anyone is below 80% health), walks into
+range and attacks on a rhythm: a short wind-up, the strike, then a cooldown. Melee strikes land at once;
+spells, spit and heals fly as projectiles. Damage rolls 85% to 115%, crits double it, armour takes some off,
+and every hit does at least 1. Monsters get 12% tougher for each level deeper than where they first appear,
+and heroes grow per level. The fight ends when one side is all dead (or, as a safety net, after five minutes
+of game time, which counts as a loss). Everything that happens comes out as a list of events for the screen
+to animate; nothing is drawn yet. The numbers are checked by tests that play hundreds of fights: a fresh
+party always beats three slimes, needs its cleric against a pack of skeletons, and loses to six ogres.</p>
 <h3>Art <span class="tag built">Built</span></h3>
 <p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one pixel,
 using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool bakes each
