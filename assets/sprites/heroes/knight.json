@@ -1,1 +1,1 @@
-{"category": "hero", "width": 32, "height": 32, "pivot": [16, 31], "parts": ["body", "head", "arm", "weapon"]}
+{"category": "hero", "width": 32, "height": 32, "pivot": [16, 31], "parts": ["body", "head", "arm", "weapon"], "part_pivots": {"head": [16, 14], "arm": [18, 16], "weapon": [23, 20]}}
