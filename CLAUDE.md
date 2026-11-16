@@ -10,7 +10,8 @@ Colony is built spec-first (`specs/README.md` has the full process and the board
 
 - **Zak** approves every spec and playtests every milestone.
 - **The lead session** writes specs with Zak, owns the architecture, spawns lanes, reviews and merges.
-- **An implementer lane** builds exactly one approved spec in its own worktree and opens a pull request.
+- **An implementer lane** builds exactly one spec in its own worktree and opens a pull request into `dev`.
+  Each feature lands as one squashed commit. `main` moves only when Zak promotes a playtested `dev`.
 - **A reviewer** compares the spec with the diff.
 
 If you were started with a spec path, you are an implementer: follow the `implement-spec` skill. Never edit a
@@ -60,6 +61,15 @@ incomplete, stop and report the question.
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |
 | Play | `godot --path .` |
+| Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1]` → `.shots/<n>.png` |
+
+## Looking at the game
+
+Tests cannot tell you whether something looks right. If your change affects what is on screen, run
+`python tools/dev.py shot --name=<what> --seconds=<enough to see it>` and open the PNG with the Read tool. It
+runs the main scene in a real 1280x720 window for a few seconds (headless Godot draws nothing). Use `--count`
+for a sequence when motion matters. Look before you call visual work done, and say what you saw in your report.
+Screenshots stay in `.shots/` (ignored by git).
 
 ## Skills (`.claude/skills/`)
 

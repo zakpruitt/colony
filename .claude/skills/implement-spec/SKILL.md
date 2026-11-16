@@ -11,9 +11,10 @@ You are in your own git worktree. Other lanes are working in theirs at the same 
 
 1. Read `CLAUDE.md`, `docs/architecture.md`, then the spec, start to finish.
 2. Check the spec's status is `approved` or `provisional`. If it is `draft`, stop and report.
-3. `git switch -c spec/NNN-slug` from the current `main` (a `provisional` spec that depends on another
-   provisional one branches from that spec's branch; the lead will say so).
+3. `git fetch origin && git switch -c spec/NNN-slug origin/dev`. All spec work branches from `dev` and is
+   merged back into `dev`; `main` only moves when Zak promotes a playtested `dev`.
 4. `python tools/dev.py import`: a new worktree has no import cache, and nothing runs without one.
+   If the spec changes how the game looks, also read "Looking at the game" in `CLAUDE.md`.
 5. `python tools/dev.py check` should pass before you change anything. If it does not, report that instead of
    building on it.
 
@@ -45,14 +46,14 @@ Add unit tests under `tests/unit/` for logic the acceptance tests only reach ind
 ## 5. Finish
 
 1. `python tools/dev.py format`, then the full `python tools/dev.py check`. It must end `check: PASS`.
-2. Re-read the spec against your diff (`git diff main...HEAD`): every requirement met, nothing extra, nothing
+2. Re-read the spec against your diff (`git diff origin/dev...HEAD`): every requirement met, nothing extra, nothing
    outside Paths.
 3. If you learned something a future lane would trip over, add it to the relevant skill or `CLAUDE.md` as a
    separate `docs(harness): …` commit.
-4. `git fetch origin && git rebase origin/main`, run the check again, then `git push -u origin spec/NNN-slug`.
-5. Open the pull request with `gh pr create`. Title: `feat(<area>): <what the spec delivers>`. Body: a link to
-   the spec, then a table of requirement → test, then anything the reviewer should know. For a `provisional`
-   spec add `--draft --label provisional`.
+4. `git fetch origin && git rebase origin/dev`, run the check again, then `git push -u origin spec/NNN-slug`.
+5. Open the pull request with `gh pr create --base dev`. Title: `feat(<area>): <what the spec delivers>` (it
+   becomes the one squashed commit for the feature). Body: a link to the spec, then a table of requirement →
+   test, then anything the reviewer should know. No attribution lines.
 6. Report to the lead: the pull request URL, the requirement → test table, the check's last line, open doubts.
 
 ## After review

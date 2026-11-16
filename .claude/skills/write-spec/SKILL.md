@@ -36,13 +36,13 @@ Copy `specs/TEMPLATE.md` to `specs/NNN-slug/spec.md` (next free number) and add 
 ## Approval
 
 Show Zak the spec. When Zak approves, set `Status: approved (date)`, update the board, and commit both to
-`main` as `docs(specs): approve NNN slug`. Only then spawn a lane.
+`dev` as `docs(specs): approve NNN slug`. Only then spawn a lane.
 
-In autonomous mode (see `specs/README.md`) you may set `provisional` yourself; the resulting pull request stays
-an unmerged draft until Zak approves.
+In autonomous mode (see `specs/README.md`) you may set `provisional` yourself. Provisional work reaches `dev`
+only during a run Zak has authorised, and never reaches `main` without him.
 
 ## When a lane says the spec is wrong
 
 Decide which it is. A change in what the game does goes to Zak. A clarification that any reasonable reader
-would agree with is yours: commit it to the spec on `main`, tell the lane to rebase, and note it in the pull
+would agree with is yours: commit it to the spec on `dev`, tell the lane to rebase, and note it in the pull
 request so the reviewer reads the same spec the lane built.

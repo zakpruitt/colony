@@ -6,6 +6,8 @@
     python tools/dev.py test [--only=NAME]
     python tools/dev.py format           rewrite scripts with gdformat
     python tools/dev.py import           rebuild Godot's import cache
+    python tools/dev.py shot [--name=N] [--seconds=S] [--count=C]
+                                         run the game in a window, save PNGs to .shots/
 
 Standard library only. Godot is found through the GODOT environment
 variable, else on PATH. Every Godot run has a timeout.
@@ -278,6 +280,34 @@ def command_import(_args: argparse.Namespace) -> int:
     return code
 
 
+def command_shot(args: argparse.Namespace) -> int:
+    """Run the game in a real window (not headless) and save screenshots."""
+    folder = ROOT / ".shots"
+    folder.mkdir(exist_ok=True)
+    # Keeps Godot from importing the screenshots as game assets.
+    (folder / ".gdignore").touch()
+    out = (folder / args.name).as_posix()
+    command = [
+        godot_binary(),
+        "--path",
+        str(ROOT),
+        "-s",
+        "res://tools/godot/shot.gd",
+        "--",
+        f"--out={out}",
+        f"--seconds={args.seconds}",
+        f"--count={args.count}",
+    ]
+    try:
+        code, output = run(command, timeout=int(args.seconds * args.count) + 60)
+    except StepFailed as failure:
+        print(failure)
+        return 1
+    saved = [line for line in output.splitlines() if line.startswith("[shot]")]
+    print("\n".join(saved) if saved and code == 0 else output)
+    return code
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Colony checks and dev commands.")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -296,6 +326,12 @@ def main() -> int:
     commands.add_parser("import", help="rebuild Godot's import cache").set_defaults(
         handler=command_import
     )
+
+    shot = commands.add_parser("shot", help="run the game windowed and save screenshots")
+    shot.add_argument("--name", default="shot", help="file name without extension")
+    shot.add_argument("--seconds", type=float, default=2.0, help="run time before each shot")
+    shot.add_argument("--count", type=int, default=1, help="number of shots")
+    shot.set_defaults(handler=command_shot)
 
     args = parser.parse_args()
     return args.handler(args)

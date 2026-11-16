@@ -1,6 +1,6 @@
 # 001 — Simulation clock and background ticking
 
-- **Status:** draft
+- **Status:** approved (2026-11-16)
 - **Milestone:** M0
 - **Depends on:** none
 - **Pull request:** —

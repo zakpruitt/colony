@@ -7,10 +7,10 @@ description: For the lead session - spawn an implementer lane for an approved Co
 
 ## Spawn
 
-1. The spec is `approved` (or `provisional`, in autonomous mode) on `main`, and `main` is pushed.
+1. The spec is `approved` (or `provisional`, in autonomous mode) on `dev`, and `dev` is pushed.
 2. No spec `in-progress` shares a path with it. If lanes will meet at an interface, land its stub first.
 3. Set the spec `in-progress` on the board and commit.
-4. Spawn the `implementer` agent with `isolation: worktree`. The brief is the spec path and, for a provisional
+4. Spawn the `implementer` agent with `isolation: worktree`. Never more than three agents running at once. The brief is the spec path and, for a provisional
    spec that depends on another, the branch to start from. Do not restate the requirements: the spec is the
    brief, and a paraphrase is a second, conflicting one. Independent specs spawn together in one message.
 
@@ -26,9 +26,12 @@ description: For the lead session - spawn an implementer lane for an approved Co
 
 ## Merge
 
-- Approved spec, CI green, no must-fix findings: `gh pr merge <n> --squash --delete-branch`.
-- Provisional spec: do not merge. Leave the draft pull request for Zak with a comment summarising what to look at.
-- After merging: set the spec `landed` with the pull request link, update the board, commit to `main`. If the
+- Approved spec, CI green, no must-fix findings: `gh pr merge <n> --squash --delete-branch` into `dev`. One
+  feature is one squashed commit.
+- Provisional spec: merge to `dev` the same way only while Zak has authorised an autonomous run (see
+  `specs/README.md`); otherwise leave the pull request open for him. Never merge anything to `main`: Zak
+  promotes `dev` after a playtest.
+- After merging: set the spec `landed` with the pull request link, update the board, commit to `dev`. If the
   lane's pull request changed a skill or `CLAUDE.md`, mention it to Zak: harness changes are his to see.
 
 ## When it goes wrong
