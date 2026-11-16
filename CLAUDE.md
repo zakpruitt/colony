@@ -65,6 +65,7 @@ incomplete, stop and report the question.
 | Lint the art | `python tools/art.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
 | Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]` |
+| Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=75` |
 | Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…]` → `.shots/<n>.png` |
 
 ## Looking at the game
