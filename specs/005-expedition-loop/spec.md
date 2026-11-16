@@ -1,9 +1,9 @@
 # 005 — Expedition loop: travel, fights, rewards, rest and the fallback rule
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 001, 003, 004
-- **Pull request:** —
+- **Pull request:** [#8](https://github.com/zakpruitt/colony/pull/8)
 
 ## Intent
 
