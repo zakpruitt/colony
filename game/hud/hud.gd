@@ -122,6 +122,10 @@ func _unhandled_input(event: InputEvent) -> void:
 			if not shop.is_open():
 				return
 			shop.close()
+		KEY_B:
+			if not shop.is_open():
+				return
+			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
 			if not shop.is_open():
 				return
