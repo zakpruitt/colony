@@ -734,7 +734,7 @@ func test_r14_events_cover_the_loop() -> void:
 	var sim := Simulation.new(SEED)
 	var index: int = _populated(sim, 1)
 	_approach(sim, 1, index)
-	sim.party.hero(1).health = 40  # hurt enough to rest afterwards
+	sim.party.hero(1).health = 20  # hurt enough to rest afterwards
 	var events: Array[SimEvent] = []
 	var fight: Battle = null
 	for i: int in 3000:
