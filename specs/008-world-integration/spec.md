@@ -29,8 +29,10 @@ After it, `godot --path .` is the game, without the juice. Read `docs/design/bas
   chamber shows its waiting monsters (`monsters_in`) as idle sprites on the floor, facing the party's side.
   They appear when a level is built or a chamber refills, and are removed when the level is freed.
 - **R5. Fights are acted out.** From simulation events: an attack starting plays the attacker's attack
-  animation with the attacker's wind-up time, ranged if its range is over `Battle.MELEE_REACH`; a hit plays
-  the target's hit reaction; a death plays the death animation and removes the sprite when it finishes.
+  animation with the event's wind-up time (`amount`, in ticks), ranged if the attacker's range is over
+  `Battle.MELEE_REACH`; a hit plays
+  the target's hit reaction; a death plays the death animation and removes the sprite when it finishes. An attack whose target dies during its wind-up, and any attack or bolt still
+  pending when the encounter ends, is cut short: the attacker returns to idle and the bolt is removed.
   During a fight every combatant's sprite follows its battle position with the same easing as R2 and faces
   its target.
 - **R6. Projectiles are visible.** A projectile launch shows a small palette-coloured bolt travelling from the

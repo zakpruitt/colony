@@ -37,7 +37,7 @@ in seconds, converted with `Simulation.TICKS_PER_SECOND` and rounded to at least
   | `ogre` | 5 | Large, very high health, slow crushing hits |
 
   `validate()` reports a problem for: an empty id or name, health or damage below 1, a non-positive attack
-  interval, range or speed, a crit chance outside 0 to 1, `gold_min > gold_max`, or `min_depth < 1`.
+  interval, range or speed, a crit chance outside 0 to 1, `gold_min > gold_max`, `min_depth < 1`, or a HEALER with heal power below 1.
 - **R2. Combatants come from data.** A hero combatant is made from a class and a level (1 or more): its health
   and damage grow per level by the class's growth numbers. A monster combatant is made from a monster and a
   depth: its health and damage grow by 12% per depth below its `min_depth` (compounding). Whoever creates a
@@ -65,7 +65,7 @@ in seconds, converted with `Simulation.TICKS_PER_SECOND` and rounded to at least
   The battle is over when every hero or every monster is dead, and reports which side won. A battle that
   reaches `MAX_TICKS` (3000) ends as a monster win, so the simulation can never hang.
 - **R10. Everything is reported.** The battle records an event, stamped with the battle tick, for: an attack
-  starting (who, at whom), a projectile launch (who, at whom, how many ticks of flight, whether it is a heal),
+  starting (who, at whom, the wind-up in ticks), a projectile launch (who, at whom, how many ticks of flight, whether it is a heal),
   a hit (who, whom, amount, crit or not), a heal (who, whom, amount), and a death (who). Events come out in
   the order they happened, once.
 - **R11. Deterministic.** The same heroes, monsters, span and seed give the same events, tick for tick.
@@ -209,11 +209,16 @@ var kind: Kind
 var tick: int
 var source_id: int = -1
 var target_id: int = -1
-## Damage or healing done; flight time in ticks for PROJECTILE_LAUNCHED.
+## Damage or healing done; flight time in ticks for PROJECTILE_LAUNCHED; wind-up in ticks for ATTACK_STARTED.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED.
 var flag: bool = false
 ```
+
+`Combatant` also exposes its battle stats as public fields (`damage`, `armor`, `crit_chance`, `heal_power`,
+`attack_range`, `move_speed`, `windup_ticks`, `attack_interval_ticks`). When a battle ends, pending wind-ups
+and projectiles in flight are dropped with no event; a wind-up is cancelled with no event when its target
+dies. Heroes act before monsters within a tick.
 
 Later specs add kinds to `SimEvent.Kind` (always at the end) and fields with defaults. Tuning numbers live in
 the `.tres` files; the lane chooses them so R12 holds and each class and monster has the character R1 gives it.
