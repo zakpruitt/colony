@@ -18,7 +18,8 @@ const RING_POWER: float = 1.5
 ## colour the darkness leans toward, and how much of it there is (1 is unlit). Loam is warm,
 ## clay warmer, stone cold and darker, deep an eerie teal.
 const AMBIENT_HUE: Array[StringName] = [&"tan", &"orange", &"steel", &"cyan"]
-const AMBIENT_LEVEL: Array[float] = [0.34, 0.33, 0.36, 0.36]
+## The deep is lifted (spec 018 R3) so its dark monsters still read outside the party's light.
+const AMBIENT_LEVEL: Array[float] = [0.34, 0.33, 0.36, 0.46]
 ## How much of the hue goes into the ambient colour, the rest being grey.
 const AMBIENT_SATURATION: Array[float] = [0.45, 0.6, 0.5, 0.55]
 ## Per stratum, the palette colour torchlight leans toward, and how far.
