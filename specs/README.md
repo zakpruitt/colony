@@ -24,7 +24,8 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | B | [007 Character sprites](007-character-sprites/spec.md): nine characters, part-based animation — provisional, in progress | 002, 004 |
 | C | [008 World integration](008-world-integration/spec.md): the party, monsters and fights on screen from sim state and events — provisional, not started | 005, 006, 007 |
 | C | [009 Pixel font](009-pixel-font/spec.md): the game's bitmap font and default UI theme — provisional, in progress | 002 |
-| D | 010 Combat effects: hit sparks, damage numbers, bolts, shake, hit pause, death bursts, coins, XP | 008, 009 |
-| D | 011 HUD: party frames, XP, gold, depth, target-depth control | 008, 009 |
-| D | 012 Ambient life: torches and light, dust, props, background detail | 008 |
-| E | Balance and polish passes, then saves if the night allows | all |
+| D | [010 Combat effects](010-combat-effects/spec.md): numbers, sparks, shake, freeze, bursts, coins, XP motes — provisional, not started | 008, 009 |
+| D | [011 HUD](011-hud/spec.md): party frames, gold, depth, target-depth control — provisional, not started | 008, 009 |
+| D | [012 Ambient life](012-ambient-life/spec.md): light, torches, buried detail, props, motion — provisional, not started | 008 |
+| E | Lead pre-wires stubs for 010-012 in `Main` after 008 lands (CombatEffects, Hud, Ambience), then spawns them | 008 |
+| F | Polish passes from looking at the running game; saves if time allows | all |
