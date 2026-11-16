@@ -9,6 +9,7 @@ implementer lane builds exactly that.
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
+| 011 | [HUD](011-hud/spec.md) | M4 | landed on dev, [#14](https://github.com/zakpruitt/colony/pull/14), provisional | 008, 009 |
 | 012 | [Ambient life](012-ambient-life/spec.md) | M5 | landed on dev, [#12](https://github.com/zakpruitt/colony/pull/12), provisional | 006 |
 | 014 | [Saving progress](014-save-progress/spec.md) | M3 | landed on dev, [#13](https://github.com/zakpruitt/colony/pull/13), provisional | 005 |
 | 008 | [World integration](008-world-integration/spec.md) | M2 | landed on dev, [#10](https://github.com/zakpruitt/colony/pull/10), provisional | 005, 006, 007 |
