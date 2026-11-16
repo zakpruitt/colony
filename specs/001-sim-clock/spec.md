@@ -1,9 +1,9 @@
 # 001 — Simulation clock and background ticking
 
-- **Status:** approved (2026-11-16)
+- **Status:** landed
 - **Milestone:** M0
 - **Depends on:** none
-- **Pull request:** —
+- **Pull request:** [#2](https://github.com/zakpruitt/colony/pull/2)
 
 ## Intent
 

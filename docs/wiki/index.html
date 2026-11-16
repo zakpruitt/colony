@@ -129,8 +129,8 @@ Things marked <span class="tag built">Built</span> work today;
 <p>To open the project in the Godot editor instead (press F5 there to play):</p>
 <pre><code>godot -e --path .</code></pre>
 <div class="note">
-  <p><strong>What you will see today:</strong> an empty grey window. The project boots cleanly, but nothing is
-  drawn yet. The first thing to appear will be a tick counter, from spec 001.</p>
+  <p><strong>What you will see today:</strong> a tick counter in the top-left corner, counting ten ticks a
+  second. It keeps counting while the window is minimised. The dungeon and the party come next.</p>
 </div>
 <p>If the game fails to start after pulling new work or switching branch, rebuild Godot's import cache
 and try again:</p>
@@ -188,7 +188,7 @@ labyrinth. Difficulty rises with depth.</p>
 </table>
 </div>
 <p>This split is what makes the rest possible:</p>
-<h3>Time <span class="tag planned">Planned: spec 001</span></h3>
+<h3>Time <span class="tag built">Built</span></h3>
 <p>The simulation moves in fixed ticks, ten per second of game time, and never asks what time it is. A driver
 measures real elapsed time and steps the simulation that many ticks. Because ticks follow the clock and not
 the frame rate, the game keeps exact time when unfocused or minimised, and time missed while the game was
@@ -267,7 +267,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
 <div class="table-wrap">
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
-  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; spec 001 (the clock) drafted</td></tr>
+  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td><span class="tag planned">Planned</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td><span class="tag planned">Planned</span></td></tr>

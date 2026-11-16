@@ -8,7 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
-| 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | in-progress | — |
+| 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
 ### Planned for the 2026-11-16 overnight run
 
@@ -19,7 +19,7 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | A | [002 Art foundation](002-art-foundation/spec.md): palette, code-drawn sprites, art lint, style bible — provisional | — |
 | A | [003 Labyrinth generation](003-labyrinth-generation/spec.md): endless seeded levels (sim) — provisional | — |
 | A | [004 Combat core](004-combat-core/spec.md): heroes, monsters, a fight, sim events (sim + data) — provisional | 001 |
-| B | 005 Expedition loop: travel, encounters by depth, XP, gold, rest, wipe and fallback (sim) | 003, 004 |
+| B | [005 Expedition loop](005-expedition-loop/spec.md): travel, encounters, XP, gold, rest, wipe and fallback (sim) — provisional, not started | 001, 003, 004 |
 | B | 006 Labyrinth view: draw the cross-section, camera, light | 002, 003 |
 | B | 007 Entity view: hero and monster sprites, part-based animation | 002, 004 |
 | C | 008 Combat effects: hit flashes, damage numbers, particles, shake, death bursts, loot pickups | 007 |

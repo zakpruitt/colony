@@ -40,8 +40,9 @@ in seconds, converted with `Simulation.TICKS_PER_SECOND` and rounded to at least
   interval, range or speed, a crit chance outside 0 to 1, `gold_min > gold_max`, or `min_depth < 1`.
 - **R2. Combatants come from data.** A hero combatant is made from a class and a level (1 or more): its health
   and damage grow per level by the class's growth numbers. A monster combatant is made from a monster and a
-  depth: its health and damage grow by 12% per depth below its `min_depth` (compounding). Each combatant in a
-  battle has an id unique within that battle.
+  depth: its health and damage grow by 12% per depth below its `min_depth` (compounding). Whoever creates a
+  combatant gives it its id; a battle given two combatants with the same id reports an error and is over at
+  once as a monster win.
 - **R3. Line-up.** A battle is given the floor span `left..right`, the heroes, the monsters, and which side the
   heroes enter from. Heroes start inside the span at their entry edge, in formation: TANK nearest the
   monsters, then MELEE, then RANGED, then HEALER, 1 tile apart. Monsters start spread over the far half of
@@ -161,8 +162,8 @@ var state: State
 ## Id of the current target, or -1.
 var target_id: int
 
-static func from_hero(def: HeroClassDef, hero_level: int) -> Combatant
-static func from_monster(def: MonsterDef, depth: int) -> Combatant
+static func from_hero(def: HeroClassDef, hero_level: int, combatant_id: int) -> Combatant
+static func from_monster(def: MonsterDef, depth: int, combatant_id: int) -> Combatant
 func is_alive() -> bool
 func health_fraction() -> float
 ```
@@ -226,7 +227,7 @@ they use definitions created in the test, not the shipped data, so retuning the 
 |---|---|---|
 | R1 | `test_r1_shipped_content_is_valid` | The four classes and five monsters load through `Content` and validate clean, with the roles, sizes and depths above |
 | R1 | `test_r1_validate_reports_each_problem` | Each invalid field listed gives a problem line |
-| R2 | `test_r2_combatants_scale_with_level_and_depth` | A level-3 hero and a monster 2 depths below its minimum have the specified health and damage |
+| R2 | `test_r2_combatants_scale_with_level_and_depth` | A level-3 hero and a monster 2 depths below its minimum have the specified health and damage, and the ids they were given; a battle with a duplicated id is over as a monster win |
 | R3 | `test_r3_line_up` | Formation order and spacing from both entry sides; monsters in the far half; all inside the span |
 | R4 | `test_r4_targets_nearest_enemy_and_healer_prefers_hurt_ally` | Nearest-enemy choice; a healer targets an ally at 50% health, and an enemy when all allies are above 80% |
 | R5 | `test_r5_walks_into_range_then_stops` | A melee combatant closes at its speed and stops within range; a ranged one already in range does not move |
