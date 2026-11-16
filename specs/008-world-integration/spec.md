@@ -82,6 +82,9 @@ func character(id: int) -> CharacterSprite
 func feet_position(id: int) -> Vector2
 ## Brings the picture up to date with the simulation. Called every frame after the driver; tests call it.
 func sync(delta: float) -> void
+## False for an event so old (after a stall) that it should start no animation or effect. Listeners to
+## `sim_event` use this rather than working it out again.
+func is_recent(event: SimEvent) -> bool
 ```
 
 ```gdscript
