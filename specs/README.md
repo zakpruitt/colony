@@ -9,6 +9,7 @@ implementer lane builds exactly that.
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
+| 017 | [Upgrade shop](017-upgrade-shop/spec.md) | M4 | landed on dev, [#20](https://github.com/zakpruitt/colony/pull/20), provisional | 011, 016 |
 | 018 | [Seeing the loop](018-seeing-the-loop/spec.md) | M5 | landed on dev, [#19](https://github.com/zakpruitt/colony/pull/19), provisional | 008, 010, 011, 012, 015 |
 | 016 | [Camp upgrades](016-camp-upgrades/spec.md) | M3 | landed on dev, [#18](https://github.com/zakpruitt/colony/pull/18), provisional | 005, 014 |
 | 019 | [Progress while away](019-away-progress/spec.md) | M3 | landed on dev, [#17](https://github.com/zakpruitt/colony/pull/17), provisional | 014 |
@@ -33,6 +34,6 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 
 | Wave | Spec | Depends on |
 |---|---|---|
-| H | [017 Upgrade shop](017-upgrade-shop/spec.md): buying upgrades on screen — provisional, in progress | 011, 016 |
 | H | [020 Guardians](020-guardians/spec.md): a boss holds the way down on every fifth level — provisional, in progress | 005, 007, 008, 013, 015 |
 | H | [021 Sound effects](021-sound-effects/spec.md): 8-bit sounds baked from text recipes, quiet and mutable — provisional, in progress | 008, 010 |
+| H | [022 Auto-buy](022-auto-buy/spec.md): the camp can buy its own upgrades, also while away — provisional, in progress | 016, 017, 019 |

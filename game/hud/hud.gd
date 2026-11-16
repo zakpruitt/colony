@@ -19,6 +19,8 @@ const GAP: float = 4.0
 ## The top panels' top edge and height.
 const TOP_Y: float = 2.0
 const TOP_HEIGHT: float = 24.0
+## Pixels between the Shop button and its panel's right edge: room for the marker.
+const SHOP_TAB_RIGHT: float = 6.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
 ## Seconds after the last coin before a shown gold count that is still behind catches up.
@@ -66,6 +68,12 @@ var plus_button: HudButton
 var auto_button: HudButton
 ## Main's tick readout, for developers: bottom right, dim, hidden until F3.
 var clock_label: Label
+## The upgrade shop (spec 017), its button beside the gold and the marker on it.
+var shop: ShopPanel
+var shop_button: HudButton
+## The small panel the Shop button sits on.
+var shop_tab: HudPanel
+var shop_marker: ShopMarker
 
 var _simulation: Simulation
 var _world: World
@@ -106,6 +114,16 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F3:
 			if clock_label != null:
 				clock_label.visible = not clock_label.visible
+		KEY_U:
+			_toggle_shop()
+		KEY_ESCAPE:
+			if not shop.is_open():
+				return
+			shop.close()
+		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
+			if not shop.is_open():
+				return
+			shop.buy_row(key.keycode - KEY_1)
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -120,6 +138,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_frames()
 	_build_depth()
 	_build_gold()
+	_build_shop()
 	_adopt_clock()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
@@ -140,6 +159,7 @@ func advance(delta: float) -> void:
 			frame.refresh(hero, delta)
 	_advance_gold(delta)
 	_advance_depth(delta)
+	_advance_shop(delta)
 
 
 ## The gold count currently displayed.
@@ -240,6 +260,25 @@ func _build_gold() -> void:
 	_make_big(gold_label)
 
 
+## The Shop button in its own small panel left of the gold, the marker on it, and the shop.
+func _build_shop() -> void:
+	shop_tab = HudPanel.new()
+	shop_tab.name = "ShopTab"
+	add_child(shop_tab)
+	shop_button = HudButton.new("Shop")
+	shop_button.name = "ShopButton"
+	shop_button.position = Vector2(4, 7)
+	shop_button.pressed.connect(_toggle_shop)
+	shop_tab.add_child(shop_button)
+	shop_tab.size = Vector2(shop_button.size.x + 4.0 + SHOP_TAB_RIGHT, TOP_HEIGHT)
+	shop_marker = ShopMarker.new()
+	shop_marker.visible = false
+	shop_tab.add_child(shop_marker)
+	shop = ShopPanel.new()
+	add_child(shop)
+	shop.setup(_simulation, _world)
+
+
 ## Takes over Main's tick readout, if there is one beside the HUD: dim, on an ink backing, hidden.
 func _adopt_clock() -> void:
 	if get_parent() == null:
@@ -312,6 +351,7 @@ func _show_gold() -> void:
 	var width: float = 23.0 + gold_label.size.x + 3.0
 	gold_panel.size = Vector2(width, TOP_HEIGHT)
 	gold_panel.position = Vector2(SCREEN.x - MARGIN - width, TOP_Y)
+	shop_tab.position = Vector2(gold_panel.position.x - GAP - shop_tab.size.x, TOP_Y)
 	if _effects != null:
 		_effects.gold_screen_target = gold_panel.position + coin_icon.position + Vector2(8, 8)
 
@@ -382,10 +422,27 @@ func _layout_depth() -> void:
 	depth_panel.queue_redraw()
 
 
+func _advance_shop(delta: float) -> void:
+	shop.advance(delta)
+	shop_button.lit = shop.is_open()
+	shop_marker.count = shop.affordable_count()
+	shop_marker.visible = shop_marker.count > 0 and not shop.is_open()
+	shop_marker.advance(delta)
+	shop_marker.position = Vector2(
+		shop_button.position.x + shop_button.size.x - 3.0, shop_button.position.y - 5.0
+	)
+
+
 # --- Reacting ------------------------------------------------------------------
 
 
 func _on_sim_event(event: SimEvent) -> void:
+	if event.kind == SimEvent.Kind.UPGRADE_BOUGHT:
+		# The purchase spent gold: the count drops to the real gold at once.
+		_shown_gold = _simulation.party.gold
+		_since_coin = 0.0
+		_show_gold()
+		return
 	if _world != null and not _world.is_recent(event):
 		return
 	var frame: HeroFrame = _frames_by_id.get(event.target_id, null)
@@ -403,6 +460,14 @@ func _on_coin_collected(amount: int) -> void:
 	_since_coin = 0.0
 	_gold_bump = GOLD_BUMP_SECONDS
 	_show_gold()
+
+
+func _toggle_shop() -> void:
+	if shop.is_open():
+		shop.close()
+	else:
+		shop.open()
+	_advance_shop(0.0)
 
 
 func _step_target(by: int) -> void:
