@@ -79,6 +79,17 @@ Each character has its own main colour, so the party and the monsters read apart
 | `skeleton` | `monster_small` | `sand` bone, rusty `copper` sword | body, head, arm, weapon |
 | `spider` | `monster_small` | `red`, on `umber` legs | legs_back, body, legs |
 | `ogre` | `monster_large` | `tawny` skin, `umber` club | body, head, arm, weapon (club) |
+| `goblin` | `monster_small` | `forest` skin, `clay` leather, `steel` blade | body, head, arm, weapon (blade) |
+| `mud_golem` | `monster_large` | `brick` clay with `slate` stones, `yellow` eyes | body, head, arm (fist) |
+| `fire_imp` | `monster_small` | `orange` skin, `crimson` wings, `yellow` fireball | wing_back, body, wing, arm, weapon (fireball) |
+| `clay_hound` | `monster_small` | `tan` with `umber` stripes, `red` eyes | legs_back, body, legs |
+| `ghoul` | `monster_small` | `slate` skin, `navy` rag, `cyan` eyes, `silver` claws | body, head, arm, weapon (claws) |
+| `crystal_beetle` | `monster_small` | `cyan` crystals on a `dusk` shell | legs_back, body, legs |
+| `wraith` | `monster_small` | `white` and `silver` shroud, `cyan` eyes and orb | body, head, arm, weapon (orb) |
+| `deep_horror` | `monster_large` | `deep_teal` and `pine`, `cyan` eyes, `magenta` maw | legs_back, body, eyes, legs, arm (tentacle) |
+
+Monsters take colours from their depth band: the loam's are free, the clay's are warm, the stone's are cold,
+and the deep's are teal and strange.
 
 ## Tiles
 
