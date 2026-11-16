@@ -123,6 +123,20 @@ func _process(delta: float) -> void:
 	sync(delta)
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.pressed or key.echo or camera == null:
+		return
+	if key.keycode == KEY_Z:
+		toggle_zoom()
+		get_viewport().set_input_as_handled()
+
+
+## Switches between the normal view and the close one (spec 018 R1), eased by the camera.
+func toggle_zoom() -> void:
+	camera.set_zoom_level(2 if camera.zoom_level() == 1 else 1)
+
+
 ## The sprite of a hero (ids 1-4) or monster (ids from 100), or null.
 func character(id: int) -> CharacterSprite:
 	return _sprites.get(id, null)
@@ -542,7 +556,9 @@ func _toward(sprite: CharacterSprite, target_id: int, otherwise: int) -> int:
 func _aim_camera(delta: float) -> void:
 	var leader: CharacterSprite = character(_leader_id())
 	var at: Vector2 = leader.position if leader != null else _hero_feet(_leader_id())
-	camera.target = at + Vector2(simulation.expedition.facing * LOOK_AHEAD, -LOOK_ABOVE)
+	# The look-ahead is a share of the view, so the closer view stays centred on the party.
+	var look := Vector2(simulation.expedition.facing * LOOK_AHEAD, -LOOK_ABOVE) / camera.zoom.x
+	camera.target = at + look.round()
 	if _snap_all or _snap_heroes:
 		camera.snap_to(camera.target)
 	else:
