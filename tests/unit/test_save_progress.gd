@@ -84,4 +84,5 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		var expected: Dictionary = _valid()
 		expected["version"] = Simulation.SAVE_VERSION
 		expected["upgrades"] = sim.to_save()["upgrades"]
+		expected["auto_buy"] = false  # spec 022: version 3 adds the switch, off
 		assert_eq(sim.to_save(), expected)
