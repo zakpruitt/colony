@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"fire_imp"
+display_name = "Fire imp"
+size = 0
+min_depth = 7
+max_health = 45
+damage = 16
+armor = 0
+attack_interval = 1.4
+windup = 0.4
+attack_range = 5.5
+move_speed = 3.5
+crit_chance = 0.05
+xp = 55
+gold_min = 13
+gold_max = 30

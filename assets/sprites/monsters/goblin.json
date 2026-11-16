@@ -1,0 +1,1 @@
+{"category": "monster_small", "width": 24, "height": 24, "pivot": [12, 23], "parts": ["body", "head", "arm", "weapon"], "part_pivots": {"head": [12, 12], "arm": [14, 13], "weapon": [17, 16]}}
