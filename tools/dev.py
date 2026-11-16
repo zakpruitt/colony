@@ -198,10 +198,24 @@ def step_art() -> str:
     return f"{count} tool tests, {output.strip().splitlines()[-1]}"
 
 
-def step_compile() -> str:
+def import_project() -> None:
+    """Build Godot's import cache; raise StepFailed if scripts do not parse.
+
+    Anything that runs Godot from a fresh checkout calls this first.
+    """
     code, output = godot(["--import"], timeout=600)
+    if code == 0 and error_lines(output):
+        # On a fresh checkout Godot loads the project (its theme, for one)
+        # before it has imported the assets that depends on, and reports
+        # errors that a second pass does not have. Judge the second pass.
+        code, output = godot(["--import"], timeout=600)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
-        raise StepFailed(f"import failed (exit {code})\n{tail(output)}")
+        shown = "\n".join(error_lines(output)[:40]) or tail(output)
+        raise StepFailed(f"import failed (exit {code})\n{shown}")
+
+
+def step_compile() -> str:
+    import_project()
     code, output = godot(["-s", "res://tools/godot/compile_all.gd"], timeout=300)
     require_clean(code, output, "compile")
     return last_line(output, "[compile]")
@@ -297,13 +311,11 @@ def command_format(_args: argparse.Namespace) -> int:
 
 def command_import(_args: argparse.Namespace) -> int:
     try:
-        code, output = godot(["--import"], timeout=600)
+        import_project()
     except StepFailed as failure:
         print(failure)
         return 1
-    if code != 0:
-        print(output)
-    return code
+    return 0
 
 
 def command_shot(args: argparse.Namespace) -> int:

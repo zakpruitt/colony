@@ -37,6 +37,9 @@ description: For the lead session - spawn an implementer lane for an approved Co
 ## When it goes wrong
 
 - **The lane asks a spec question.** `write-spec` skill, "When a lane says the spec is wrong".
+- **After every merge, look at CI on `dev`** (`gh run list --branch dev --limit 1`), not only at the pull
+  request's own run: two green pull requests can still be red together. When you run the check in a shell
+  pipeline, use `set -o pipefail`, or a failure is hidden by `| tail`.
 - **CI fails but the lane's local check passed.** The difference is the bug: Linux against Windows (path case,
   line endings), or something untracked on the lane's disk. Fix the cause, never the check.
 - **Two pull requests conflict.** The Paths lists overlapped, which is a spec mistake. Land one, have the other
