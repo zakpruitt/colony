@@ -50,6 +50,12 @@ name and deletes it:
 var path: String = "user://test_save_%d.dat" % OS.get_process_id()
 ```
 
+Code that must not raise engine errors on a missing or damaged file (and a test that checks one with
+`assert_engine_error_count(0)`) avoids two calls that print them: `JSON.parse_string` on text that is not JSON
+(use `JSON.new().parse(text)` and check the returned `Error`), and `FileAccess.get_file_as_string` on a missing
+file (check `FileAccess.file_exists` first). JSON also turns every number into a float, so compare parsed data
+by value, not with `assert_eq` against ints.
+
 ## Reading a failure
 
 - `[format] FAIL`: run `python tools/dev.py format`. If `gdlint` complains, fix the code, not the rule.

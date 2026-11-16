@@ -685,6 +685,24 @@ func _revive() -> void:
 	state = State.TRAVELLING
 
 
+## Stands a new expedition up from saved progress at simulation tick [param tick]:
+## where revival puts the party (the arrival point of [param stable], its last
+## stable depth), travelling, with no events. Called once, before the first step.
+func arrive_from_save(tick: int, stable: int, deepest: int, target: int, push: bool) -> void:
+	_tick = tick
+	last_stable_depth = stable
+	deepest_depth = maxi(deepest, stable)
+	auto_push = push
+	depth = stable
+	_timer_depth = depth
+	_place(_arrival_x(depth))
+	_restart_depth_count(_tick)
+	target_depth = maxi(target, 1)
+	_timer_target = target_depth
+	_target_since = _tick
+	state = State.TRAVELLING
+
+
 # --- Helpers -------------------------------------------------------------------
 
 

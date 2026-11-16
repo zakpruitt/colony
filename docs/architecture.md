@@ -49,8 +49,21 @@ and fails on any problem.
 
 ## Saving
 
-The save is the sim's state, including every `SimRng`. It carries a version number, is written to a temporary
-file and renamed into place so a crash cannot leave half a save, and one earlier copy is kept.
+The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
+values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
+last stable depth, deepest depth, target depth and auto-push. Positions, a fight in progress, chamber timers and
+random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
+party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
+stable depth, with every chamber freshly populated.
+
+- **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
+  `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
+  int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
+- **Versions.** `SAVE_VERSION` is 1. Loading goes through `Simulation.upgrade_save`, which brings older data
+  forward one step at a time; a new format adds a step there and raises the version.
+- **Files belong to `game/`.** `SaveStore` (`game/save/save_store.gd`) is given its path (default
+  `user://colony.save`). It writes JSON to `<path>.tmp` and renames it into place, keeping the previous save as
+  `<path>.bak`; reading falls back to the backup, then to an empty dictionary, if a file is missing or damaged.
 
 ## Conventions
 
