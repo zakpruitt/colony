@@ -64,6 +64,15 @@ stable depth, with every chamber freshly populated.
 - **Files belong to `game/`.** `SaveStore` (`game/save/save_store.gd`) is given its path (default
   `user://colony.save`). It writes JSON to `<path>.tmp` and renames it into place, keeping the previous save as
   `<path>.bak`; reading falls back to the backup, then to an empty dictionary, if a file is missing or damaged.
+- **Time away (spec 019).** `Main` adds a `saved_at` key (real seconds since 1970) beside the simulation's
+  fields when it writes; the simulation ignores it. On starting with a stamped save, `Main.time_away` gives
+  the real time since, clamped to 0 to 8 hours; from 60 s up, an `AwayReplay` (`game/save/`) steps the loaded
+  simulation for that game time in 10 ms slices per frame, draining and counting events into an `AwayReport`,
+  while a `CatchUpBar` shows. The driver, world, effects and HUD are made only when it ends (`caught_up`), so
+  nothing from the time away is drawn, and an `AwayPanel` reports it. No save is written during a replay, so
+  quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
+  The world fills the chambers it looks at (`Expedition.monsters_in`), which changes the state hash, so a
+  replay is compared with plain stepping at the moment it ends, before the world exists.
 
 ## Conventions
 
