@@ -9,6 +9,7 @@
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
                                          run the game in a window, save PNGs to .shots/
     python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
+                            [--buy-upgrades]
                                          run the simulation headless, print a JSON summary
 
 Standard library only. Godot is found through the GODOT environment
@@ -355,6 +356,8 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append(f"--target-depth={args.target_depth}")
     if args.stable_seconds is not None:
         options.append(f"--stable-seconds={args.stable_seconds}")
+    if args.buy_upgrades:
+        options.append("--buy-upgrades=true")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
         import_project()
@@ -404,6 +407,11 @@ def main() -> int:
     sim.add_argument("--minutes", type=float, default=10.0, help="game time to run")
     sim.add_argument("--target-depth", type=int, help="set this target depth at the start")
     sim.add_argument("--stable-seconds", type=float, help="seconds for a depth to become stable")
+    sim.add_argument(
+        "--buy-upgrades",
+        action="store_true",
+        help="buy the cheapest affordable camp upgrade whenever the party can",
+    )
     sim.set_defaults(handler=command_sim)
 
     # Godot's output can hold characters a Windows console cannot encode.

@@ -292,6 +292,17 @@ fire imp from 7 and clay hound from 8 in the clay; ghoul from 11, crystal beetle
 the stone; and the deep horror from 16. Deeper kinds are met more often once they appear, so each band is
 mostly its own monsters, and they are worth more XP and gold. A party of four level-12 heroes usually, but not
 always, beats three stone-band monsters; a level-6 party almost never does. Talents and items come later.</p>
+<h3>Camp upgrades <span class="tag built">Built: spec 016</span></h3>
+<p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last (the price of
+the next rank is its first price times a growth factor for every rank already bought). There are five, as data
+files in <code>data/upgrades/</code>: <strong>Sharp Blades</strong> (+5% damage and healing per rank, up to 20),
+<strong>Stout Armor</strong> (+5% maximum health, up to 20; buying it also heals by the health gained),
+<strong>Field Medicine</strong> (+10% healing speed while resting, up to 10), <strong>Quick March</strong> (+4%
+travel and climb speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up to 20). Ranks add up:
+rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
+fight. Upgrades are saved. Buying one is a command to the simulation; there is no shop screen yet
+(<span class="tag planned">Planned: spec 017</span>). In a one-hour headless run, a party that keeps buying the
+cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
 <h3>Fights <span class="tag built">Built</span></h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
 then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the
@@ -330,7 +341,8 @@ font specimen (below).</p>
 <h3>Saving</h3>
 <p><span class="tag built">Built: spec 014</span> A save keeps the party's <em>progress</em>, not the exact moment:
 the seed, the time played, the gold, each hero's class, level and XP, the last stable depth, the deepest depth
-reached, the target depth and whether auto-push is on. Loading stands the party up fresh at its last stable
+reached, the target depth, whether auto-push is on, and the rank of each camp upgrade (older saves load with no
+upgrades). Loading stands the party up fresh at its last stable
 depth, exactly as it does after a wipe, with everything it has earned; the chambers there are full of monsters
 again. A damaged or unknown save is refused rather than guessed at. The file is written whole or not at all
 (to a temporary file, then renamed into place), and the save before it is kept as a backup that is read if the
@@ -339,6 +351,16 @@ save itself is missing or damaged. The save lives at <code>user://colony.save</c
 saves when it closes. Tests, screenshots and headless runs never touch the real save. To start over, delete
 the save file (on Windows: <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code> and
 <code>colony.save.bak</code>).</p>
+<h3>Progress while you were away</h3>
+<p><span class="tag built">Built: spec 019</span> Each save remembers the real time it was written. When the
+game starts with a save, it works out how long it was closed (at most 8 hours; under a minute counts as
+nothing, and a clock that went backwards counts as nothing) and plays that time through the same simulation
+as fast as it can, with the same rules as watching. Meanwhile the screen shows <code>Catching up...</code>
+and a bar that fills; eight hours takes a few seconds. Then the game starts as usual, with a panel in the
+middle of the screen saying how long the party was away, the gold it earned, the levels each hero gained,
+the depth before and after, monsters slain and wipes. A click or any key closes it, or it goes by itself
+after 12 seconds. No effects or flying coins are replayed for the time away. If you quit while it is catching
+up, nothing is lost: the save is untouched until the catch-up ends.</p>
 <p><span class="tag planned">Planned</span> A "new game" control in the game itself.</p>
 <p>The technical version of this section is
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/architecture.md"><code>docs/architecture.md</code></a>.</p>
@@ -361,7 +383,7 @@ the save file (on Windows: <code>%APPDATA%\Godot\app_userdata\Colony\colony.save
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
-  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3)</td></tr>
+  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
@@ -417,9 +439,9 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; talents and the shop <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; offline catch-up and balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

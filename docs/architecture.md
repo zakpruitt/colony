@@ -51,7 +51,8 @@ and fails on any problem.
 
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
-last stable depth, deepest depth, target depth and auto-push. Positions, a fight in progress, chamber timers and
+last stable depth, deepest depth, target depth and auto-push, and the rank of each camp upgrade (spec 016).
+Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
 stable depth, with every chamber freshly populated.
@@ -59,11 +60,22 @@ stable depth, with every chamber freshly populated.
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 1. Loading goes through `Simulation.upgrade_save`, which brings older data
-  forward one step at a time; a new format adds a step there and raises the version.
+- **Versions.** `SAVE_VERSION` is 2. Loading goes through `Simulation.upgrade_save`, which brings older data
+  forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
+  `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
+  upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
 - **Files belong to `game/`.** `SaveStore` (`game/save/save_store.gd`) is given its path (default
   `user://colony.save`). It writes JSON to `<path>.tmp` and renames it into place, keeping the previous save as
   `<path>.bak`; reading falls back to the backup, then to an empty dictionary, if a file is missing or damaged.
+- **Time away (spec 019).** `Main` adds a `saved_at` key (real seconds since 1970) beside the simulation's
+  fields when it writes; the simulation ignores it. On starting with a stamped save, `Main.time_away` gives
+  the real time since, clamped to 0 to 8 hours; from 60 s up, an `AwayReplay` (`game/save/`) steps the loaded
+  simulation for that game time in 10 ms slices per frame, draining and counting events into an `AwayReport`,
+  while a `CatchUpBar` shows. The driver, world, effects and HUD are made only when it ends (`caught_up`), so
+  nothing from the time away is drawn, and an `AwayPanel` reports it. No save is written during a replay, so
+  quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
+  The world fills the chambers it looks at (`Expedition.monsters_in`), which changes the state hash, so a
+  replay is compared with plain stepping at the moment it ends, before the world exists.
 
 ## Conventions
 

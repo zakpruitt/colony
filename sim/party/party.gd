@@ -7,6 +7,8 @@ const STARTING_CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cle
 
 var heroes: Array[Hero] = []  # in formation order: tank first
 var gold: int = 0
+## The camp upgrades bought, shared by every hero.
+var upgrades: Upgrades = Upgrades.new()
 
 
 ## A party of level-1 heroes of the starting classes, at full health.
@@ -16,7 +18,9 @@ func _init() -> void:
 		if def == null:
 			push_error("Party: no hero class %s" % STARTING_CLASSES[i])
 			continue
-		heroes.append(Hero.new(i + 1, def))
+		var hero_made := Hero.new(i + 1, def)
+		hero_made.upgrades = upgrades
+		heroes.append(hero_made)
 
 
 ## The hero with this id, or null.

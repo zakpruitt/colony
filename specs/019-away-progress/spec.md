@@ -1,9 +1,9 @@
 # 019 — Progress while you were away
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M3
 - **Depends on:** 014
-- **Pull request:** —
+- **Pull request:** [#17](https://github.com/zakpruitt/colony/pull/17)
 
 ## Intent
 
