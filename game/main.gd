@@ -14,6 +14,10 @@ var driver: SimDriver
 var world: World
 ## Screen-space layer for the HUD, above the world.
 var hud_layer: CanvasLayer
+## Numbers, sparks, coins and the other effects of what happens in [member world].
+var effects: CombatEffects
+## The party frames, the purse and the depth readout, on [member hud_layer].
+var hud: Hud
 
 @onready var _clock_label: Label = $HUD/ClockLabel
 
@@ -30,6 +34,14 @@ func _ready() -> void:
 	world.name = "World"
 	world.simulation = simulation
 	add_child(world)
+	effects = CombatEffects.new()
+	effects.name = "CombatEffects"
+	add_child(effects)
+	effects.setup(world, simulation)
+	hud = Hud.new()
+	hud.name = "Hud"
+	hud_layer.add_child(hud)
+	hud.setup(simulation, world, effects)
 	_show_clock()
 
 

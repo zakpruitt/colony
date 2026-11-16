@@ -56,7 +56,10 @@ Effects are pixel-sized squares and small sprites on whole pixels, never smooth 
 Text uses `PixelText` (spec 009). The font has only the characters listed in that spec, and its 1-pixel ink
 shadow clogs on light backgrounds, so text always sits over the dark world or a dark panel.
 
-The lead has already added the stub this spec fills in; `Main` creates it and calls `setup`.
+The lead has already added the stub this spec fills in; `Main` creates it and calls `setup`. It is a child of `Main`
+(`Main.effects`), not of the effects layer; what it draws goes on `World.effects_layer`. The stub runs
+`advance` from its own `_process`, after the world has synced. `World.is_recent(event)` says whether an event
+is fresh enough to start an effect (R11).
 
 ```gdscript
 # game/effects/combat_effects.gd
@@ -120,7 +123,7 @@ is too small to notice at 640x360, make it bigger. Describe the shots in your re
 
 - `game/effects/`
 - `assets/sprites/fx/`
-- `game/world/world.gd` (the `freeze` hook only)
+- `game/world/world.gd` (the `freeze` hook only), `game/world/bolt.gd` (only if R9 needs a bolt's colour or position exposed)
 - `tests/acceptance/test_010_combat_effects.gd`, `tests/unit/test_effects*.gd`
 - `docs/style-bible.md` (an effects section), `docs/wiki/index.html`
 

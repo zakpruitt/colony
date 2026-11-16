@@ -48,7 +48,9 @@ shapes. The HUD occupies only the top 28 pixels and the bottom 40 pixels of the 
 Text uses `PixelText` (spec 009). The font has only the characters listed in that spec, and its 1-pixel ink
 shadow clogs on light backgrounds, so text always sits over the dark world or a dark panel.
 
-The lead has already added the stub this spec fills in; `Main` creates it on the HUD layer and calls `setup`.
+The lead has already added the stub this spec fills in; `Main` creates it on the HUD layer and calls `setup`. It is
+`Main.hud`, a full-screen `Control` that ignores the mouse except on its own buttons. The clock label is
+`Main`'s `$HUD/ClockLabel`.
 
 ```gdscript
 # game/hud/hud.gd
