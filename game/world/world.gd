@@ -64,8 +64,9 @@ var _monsters: Dictionary[int, Combatant] = {}
 var _floors: Dictionary[int, float] = {}
 ## Monsters waiting in built levels at the last scan.
 var _waiting: Dictionary[int, bool] = {}
-## Monsters that have died: never shown again.
-var _gone: Dictionary[int, bool] = {}
+## Monsters that have died, with the depth they died on: never shown again. Forgotten when that
+## level is freed, as its dead are never asked about again.
+var _gone: Dictionary[int, int] = {}
 ## Attacks winding up: attacker id to Vector2i(target id, the tick it strikes on).
 var _windups: Dictionary[int, Vector2i] = {}
 var _bolts: Array[Bolt] = []
@@ -116,6 +117,12 @@ func feet_position(id: int) -> Vector2:
 	return sprite.position if sprite != null else Vector2.ZERO
 
 
+## False for an event so old (after a stall) that it should start no animation or effect. Listeners
+## to [signal sim_event] use this rather than working it out again.
+func is_recent(event: SimEvent) -> bool:
+	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS
+
+
 ## Brings the picture up to date with the simulation. Called every frame after the driver; tests
 ## call it.
 func sync(delta: float) -> void:
@@ -130,6 +137,9 @@ func sync(delta: float) -> void:
 	var built: Array[int] = labyrinth_view.built_depths()
 	if built != _built:
 		_built = built
+		for dead: int in _gone.keys():
+			if not _built.has(_gone[dead]):
+				_gone.erase(dead)
 		_scan_due = true
 	_scan_in -= delta
 	_ensure_heroes()
@@ -138,7 +148,7 @@ func sync(delta: float) -> void:
 	_ensure_fighters()
 
 	for event: SimEvent in simulation.drain_events():
-		_show(event, now - event.tick <= ANIMATE_TICKS)
+		_show(event, is_recent(event))
 		sim_event.emit(event)
 	if _scan_due:
 		_scan_waiting()
@@ -319,7 +329,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 			if animate and target != null:
 				target.play_hit()
 		SimEvent.Kind.DIED:
-			_died(event.source_id, event.tick, animate)
+			_died(event.source_id, animate)
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
 		SimEvent.Kind.ENCOUNTER_ENDED:
@@ -339,19 +349,20 @@ func _struck(attacker: int, tick: int) -> void:
 		_windups.erase(attacker)
 
 
-func _died(id: int, tick: int, animate: bool) -> void:
+func _died(id: int, animate: bool) -> void:
 	_windups.erase(id)
 	for attacker: int in _windups.keys():
 		var windup: Vector2i = _windups[attacker]
 		if windup.x != id:
 			continue
-		# Struck on the tick it died: that was the killing blow, so it plays out.
+		# The killing blow's wind-up was already ended by its HIT, so every wind-up still aimed here
+		# is one the simulation cancelled, even one due on this very tick.
 		var attacking: CharacterSprite = character(attacker)
-		if windup.y > tick and attacking != null:
+		if attacking != null:
 			attacking.cancel_attack()
 		_windups.erase(attacker)
 	if id >= Expedition.FIRST_MONSTER_ID:
-		_gone[id] = true
+		_gone[id] = simulation.expedition.depth
 	var dying: CharacterSprite = character(id)
 	if dying == null or dying.is_dead():
 		return

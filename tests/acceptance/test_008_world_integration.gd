@@ -382,7 +382,80 @@ func test_r4_waiting_monsters_are_shown() -> void:
 		assert_null(world.character(id), "monster %d went with its level" % id)
 
 
+func test_r4_refilled_chamber_shows_its_monsters() -> void:
+	var sim := Simulation.new(SEED)
+	var world: World = _world(sim)
+	var won: Array[SimEvent] = []
+	var cleared: bool = _play_until(
+		sim,
+		world,
+		func() -> bool:
+			for event: SimEvent in _emitted:
+				if event.kind == SimEvent.Kind.ENCOUNTER_ENDED and event.flag:
+					won.append(event)
+					return true
+			return false
+	)
+	assert_true(cleared, "a chamber was cleared")
+	if not cleared:
+		return
+	var depth: int = sim.expedition.depth
+	var chamber_index: int = won[0].amount
+	assert_false(sim.expedition.is_populated(depth, chamber_index), "empty once cleared")
+
+	# Up to the refill one tick a frame (no stall), then less than a second of frames.
+	var limit: int = Combatant.seconds_to_ticks(Expedition.RESPAWN_SECONDS) + 10
+	for i: int in limit:
+		if sim.expedition.is_populated(depth, chamber_index):
+			break
+		sim.step()
+		world.sync(0.1)
+	assert_true(sim.expedition.is_populated(depth, chamber_index), "the chamber refilled")
+	for i: int in 45:
+		world.sync(FRAME)
+	var refilled: Array[Combatant] = sim.expedition.monsters_in(depth, chamber_index)
+	assert_gt(refilled.size(), 0)
+	for monster: Combatant in refilled:
+		assert_not_null(world.character(monster.id), "refilled monster %d is shown" % monster.id)
+
+
 # --- R5 ------------------------------------------------------------------------
+
+
+func test_r5_strike_due_as_its_target_dies_is_cut_short() -> void:
+	var sim := Spy.new(SEED)
+	var world: World = _world(sim)
+	var target: Combatant = _waiting_monster(sim, world)
+	var t: int = sim.tick
+	var knight: CharacterSprite = world.character(KNIGHT)
+	var strikes: Array[int] = [0]
+	knight.struck.connect(func() -> void: strikes[0] += 1)
+	sim.injected = [_event(SimEvent.Kind.ATTACK_STARTED, t, KNIGHT, target.id, 3)]
+	world.sync(0.0)
+	world.sync(0.25)
+	assert_eq(strikes[0], 0, "still winding up")
+	# The target dies from another hand on the very tick the knight's strike was due.
+	sim.injected = [
+		_event(SimEvent.Kind.HIT, t + 3, MAGE, target.id, 50),
+		_event(SimEvent.Kind.DIED, t + 3, target.id),
+	]
+	world.sync(FRAME)
+	for i: int in 60:
+		world.sync(FRAME)
+	assert_eq(strikes[0], 0, "no strike at a corpse")
+	assert_lt(knight._attack_time, 0.0, "the wind-up was cut short")
+
+
+func test_r7_is_recent() -> void:
+	var sim := Simulation.new(SEED)
+	var world: World = _world(sim)
+	for i: int in 20:
+		sim.step()
+	assert_true(world.is_recent(_event(SimEvent.Kind.HIT, sim.tick, 1)), "this tick")
+	var edge: SimEvent = _event(SimEvent.Kind.HIT, sim.tick - World.ANIMATE_TICKS, 1)
+	assert_true(world.is_recent(edge), "half a second ago")
+	var old: SimEvent = _event(SimEvent.Kind.HIT, sim.tick - World.ANIMATE_TICKS - 1, 1)
+	assert_false(world.is_recent(old), "older than half a second")
 
 
 func test_r5_events_drive_fight_animation() -> void:
