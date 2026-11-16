@@ -77,3 +77,8 @@ var shoulder: Vector2i = sheet.part_pivot(&"arm")   # the declared pivot, or the
 
 var hero: CharacterSprite = CharacterSprite.for_hero(&"knight")   # composed and animated in code
 ```
+
+A canvas_item shader on a sprite must not sample the texture again: in a Godot 4 `fragment()`, `COLOR`
+already holds the texture's colour times modulate. `texture(TEXTURE, UV) * COLOR` squares every colour and
+drives the sprite off the palette, darker. Work from `COLOR` (see `game/entities/flash.gdshader`). To
+check, decode a screenshot with `art.decode_png` and confirm the pixels on the sprite are palette colours.
