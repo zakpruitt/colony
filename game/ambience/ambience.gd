@@ -15,9 +15,12 @@ extends Node2D
 
 ## Where the darkness is drawn: over everything at z 0, under each level's glow.
 const DARKNESS_Z: int = 100
-## The party's light: how far it reaches, in pixels, and how strong it is.
-const PARTY_RADIUS: float = 68.0
-const PARTY_ENERGY: float = 0.55
+## The party's light, white so the heroes keep their true colours. Within its core (the
+## formation of four, 17 pixels apart, and a tile either side of it, measured from its middle)
+## it lifts any stratum's darkness all the way to unlit; past it, rings fade out to its radius.
+const PARTY_CORE: float = 58.0
+const PARTY_RADIUS: float = 100.0
+const PARTY_ENERGY: float = 0.9
 
 ## Where the party's light is, in world pixels. Whoever owns the party sets it every frame.
 var party_light_position: Vector2
@@ -45,8 +48,9 @@ func setup(view: LabyrinthView) -> void:
 	_darkness.z_as_relative = false
 	add_child(_darkness)
 	_party_light = AmbienceLight.new(
-		&"party", party_light_position, PARTY_RADIUS, PARTY_ENERGY, Palette.color(&"peach")
+		&"party", party_light_position, PARTY_RADIUS, PARTY_ENERGY, Palette.color(&"white")
 	)
+	_party_light.core = PARTY_CORE
 	view.level_built.connect(_on_level_built)
 	view.level_freed.connect(_on_level_freed)
 	for depth: int in view.built_depths():
@@ -141,18 +145,9 @@ func _on_level_freed(depth: int) -> void:
 		_exposure_stale = true
 
 
-## The share of lamplight that reaches a world pixel, blended between tile centres and stepped,
-## as the shaders sample it.
+## The share of lamplight that reaches a world pixel: its tile's, as the shaders read it.
 func _exposure_at(world_pixels: Vector2) -> float:
-	var centre := Vector2(floorf(world_pixels.x) + 0.5, floorf(world_pixels.y) + 0.5)
-	var at: Vector2 = centre / LabyrinthView.TILE - Vector2(0.5, 0.5)
-	var corner := Vector2i(at.floor())
-	var t: Vector2 = at - Vector2(corner)
-	var top: float = lerpf(_tile_exposure(corner), _tile_exposure(corner + Vector2i(1, 0)), t.x)
-	var bottom: float = lerpf(
-		_tile_exposure(corner + Vector2i(0, 1)), _tile_exposure(corner + Vector2i(1, 1)), t.x
-	)
-	return AmbienceMood.stepped_share(lerpf(top, bottom, t.y))
+	return _tile_exposure(Vector2i((world_pixels / LabyrinthView.TILE).floor()))
 
 
 func _tile_exposure(tile: Vector2i) -> float:

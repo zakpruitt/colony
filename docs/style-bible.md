@@ -135,14 +135,18 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
 `game/ambience/`). Every sprite is still drawn in the palette; the light is applied over it on screen.
 
 - **Light comes in rings, not gradients.** A lamp's pool is three bands (`AmbienceMood.STEPS`): a bright core,
-  a middle ring and a faint outer ring. Pools may overlap; their edges move by whole pixels when they flicker.
+  a middle ring and a faint outer ring. Where pools overlap the stronger light wins (the maximum, never the
+  sum), so overlaps add no extra bands. Edges move by whole pixels when they flicker.
 - **Two passes.** A multiply pass darkens the world (and the characters) to the stratum's ambient colour and
   lifts it toward unlit in each pool. Multiplying alone can never make the dark back wall look lit, so an
   additive pass puts a little of the stratum's glow colour back near each flame. Keep the added glow small
   (`AmbienceDarkness.GLOW_STRENGTH`) or the pools turn to pale fog.
-- **Light fills open space, not earth.** A lamp lights its chamber fully, the wall faces and floor crust next to
-  it partly, and the solid earth not at all; the earth instead sits a little brighter than unlit open space, so
-  the earth reads as a dim mass and an unlit tunnel as a dark void.
+- **Light fills open space, not earth.** Light is read per tile: a lamp lights open tiles fully, a tile of earth
+  touching open space (a wall face, the floor crust) a little, and earth further in not at all, so the lit
+  shape is the chamber's shape, never a disc laid over the rock. The earth instead sits a little brighter than
+  unlit open space, more so in the stone and the deep, so walls and floor lines always read: dark, not black.
+- **The party is always in true colour.** The party's light is white, has a full-strength core covering the
+  formation of four and a tile either side, then rings; it lights open space only and adds no glow.
 - **Mood by stratum:**
 
   | Stratum | Darkness leans to | Torchlight leans to | Glow | Flames |

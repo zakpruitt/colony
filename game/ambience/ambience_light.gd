@@ -16,6 +16,9 @@ var radius: float
 var energy: float
 ## Its colour at full strength.
 var color: Color
+## Within this many pixels it is at full strength; its rings lie between here and [member radius].
+## A light with a core (the party's) lights open space only and adds no glow.
+var core: float = 0.0
 ## Its steady reach and strength, and how much of each a flicker can take away or add.
 var base_radius: float
 var base_energy: float

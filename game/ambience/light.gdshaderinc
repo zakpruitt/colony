@@ -4,17 +4,15 @@
 
 const int MAX_LIGHTS = 32;
 
-// x, y: where the light is in world pixels; z: how far it reaches.
+// x, y: where the light is in world pixels; z: how far it reaches; w: its full-strength core.
 uniform vec4 light_shape[MAX_LIGHTS];
 // rgb: the light's colour times its strength.
 uniform vec4 light_color[MAX_LIGHTS];
 uniform int light_count = 0;
 uniform float steps = 3.0;
 // How much light reaches each tile of the built levels (red, one pixel per tile), from tile row
-// exposure_origin.y down, exposure_size tiles; earth_exposure outside it. Blended between tile
-// centres, then cut into exposure_steps steps.
-uniform sampler2D exposure : filter_linear, repeat_disable;
-uniform float exposure_steps = 4.0;
+// exposure_origin.y down, exposure_size tiles; earth_exposure outside it. Read per tile.
+uniform sampler2D exposure : filter_nearest, repeat_disable;
 uniform vec2 exposure_origin = vec2(0.0);
 uniform vec2 exposure_size = vec2(1.0);
 uniform float earth_exposure = 0.0;
@@ -33,26 +31,35 @@ int stratum_at(float y) {
 	return int(mod(floor(floor(y / level_pixels) / levels_per_stratum), 4.0));
 }
 
-// The share of the lamps' light that reaches pixel centre p.
+// The share of the lamps' light that reaches pixel centre p: its tile's.
 float share_at(vec2 p) {
-	vec2 cell = (p / tile_size - exposure_origin) / exposure_size;
+	vec2 cell = (floor(p / tile_size) - exposure_origin + 0.5) / exposure_size;
 	if (cell.x >= 0.0 && cell.y >= 0.0 && cell.x <= 1.0 && cell.y <= 1.0) {
-		return round(texture(exposure, cell).r * exposure_steps) / exposure_steps;
+		return texture(exposure, cell).r;
 	}
 	return earth_exposure;
 }
 
-// The lamps' light at pixel centre p, in rings, each ring's strength raised to power.
-vec3 lamps(vec2 p, float power) {
+// The lamps' light at pixel centre p, whose tile takes share of it, in rings, each ring's strength
+// raised to power. Where pools overlap the strongest wins, channel by channel. A light with a
+// core (the party's) lights open space only, and only when with_core is set.
+vec3 lamps(vec2 p, float power, float share, bool with_core) {
 	vec3 total = vec3(0.0);
 	for (int i = 0; i < MAX_LIGHTS; i++) {
 		if (i >= light_count) {
 			break;
 		}
 		float reach = light_shape[i].z;
+		float core = light_shape[i].w;
+		float taken = share;
+		if (core > 0.0) {
+			taken = (with_core && share >= 1.0) ? 1.0 : 0.0;
+		}
 		float d = distance(p, light_shape[i].xy);
 		if (d < reach) {
-			total += light_color[i].rgb * pow(ceil((1.0 - d / reach) * steps) / steps, power);
+			float out_of_core = max(d - core, 0.0) / (reach - core);
+			float ring = pow(ceil((1.0 - out_of_core) * steps) / steps, power);
+			total = max(total, light_color[i].rgb * ring * taken);
 		}
 	}
 	return total;

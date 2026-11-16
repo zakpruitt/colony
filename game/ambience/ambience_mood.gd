@@ -5,8 +5,9 @@ extends RefCounted
 ## [method light_at] computes it here so tests can read it. Change one, change both.
 ##
 ## Light is a colour the world is multiplied by: white is unlit, black is pitch dark. Underground
-## it starts at the stratum's ambient colour, and every light adds its colour in rings of
-## [constant STEPS] bands, so it stays pixel art.
+## it starts at the stratum's ambient colour, and the lights add their colour in rings of
+## [constant STEPS] bands, so it stays pixel art. Where pools overlap the strongest light wins,
+## channel by channel, so overlaps never make extra bands.
 
 ## How many rings of brightness a light's pool falls off in.
 const STEPS: int = 3
@@ -17,7 +18,7 @@ const RING_POWER: float = 1.5
 ## colour the darkness leans toward, and how much of it there is (1 is unlit). Loam is warm,
 ## clay warmer, stone cold and darker, deep an eerie teal.
 const AMBIENT_HUE: Array[StringName] = [&"tan", &"orange", &"steel", &"cyan"]
-const AMBIENT_LEVEL: Array[float] = [0.34, 0.33, 0.3, 0.3]
+const AMBIENT_LEVEL: Array[float] = [0.34, 0.33, 0.36, 0.36]
 ## How much of the hue goes into the ambient colour, the rest being grey.
 const AMBIENT_SATURATION: Array[float] = [0.45, 0.6, 0.5, 0.55]
 ## Per stratum, the palette colour torchlight leans toward, and how far.
@@ -27,16 +28,15 @@ const LIGHT_SATURATION: Array[float] = [0.7, 0.75, 0.45, 0.55]
 ## band of it reaches, and how much light it adds.
 const DAYLIGHT_DEPTHS: Array[float] = [12.0, 28.0, 48.0]
 const DAYLIGHT_LEVELS: Array[float] = [0.35, 0.2, 0.1]
-## How much of a light reaches into the earth: a tile next to open space (a wall's face, the
-## floor's crust) and a tile deeper in. Open space takes all of it, so chambers glow from within.
-## Between tile centres the share blends, then falls in [constant EXPOSURE_STEPS] steps, so
-## light fades into a wall in bands that do not follow the tile grid.
-const EDGE_EXPOSURE: float = 0.5
+## How much of a light reaches each tile: all of it in open space, a little on a tile touching
+## open space (a wall's face, the floor's crust), none in the earth beyond. Read per tile, so
+## the lit shape is the chamber's shape and no ring is drawn over solid rock.
+const EDGE_EXPOSURE: float = 0.35
 const EARTH_EXPOSURE: float = 0.0
-const EXPOSURE_STEPS: float = 4.0
-## How much brighter solid earth is than open space where no lamp reaches, so the earth reads
-## as a dim mass and the tunnels as dark voids (scaled by how little lamplight reaches it).
-const EARTH_LIFT: float = 0.12
+## Per stratum, how much brighter solid earth is than open space where no lamp reaches, so the
+## earth reads as a mass and tunnels as voids, and chamber outlines stay readable in the dark
+## strata, whose earth and back wall are nearly black (scaled by how little lamplight reaches).
+const EARTH_LIFT: Array[float] = [0.12, 0.12, 0.24, 0.2]
 ## Per stratum, the palette colour of the warm glow added near lamps (see glow.gdshader).
 const GLOW_HUE: Array[StringName] = [&"orange", &"orange", &"amber", &"cyan"]
 ## The level height in world pixels.
@@ -69,12 +69,13 @@ static func light_tint(depth: int) -> Color:
 	return Color.WHITE.lerp(Palette.color(LIGHT_HUE[index]), LIGHT_SATURATION[index])
 
 
-## How much of a light reaches [param distance] pixels from it, in [constant STEPS] bands:
-## 1 at the centre, 1 / STEPS in the outer ring, 0 past [param radius].
-static func falloff(distance: float, radius: float) -> float:
-	if radius <= 0.0 or distance >= radius:
+## How much of a light reaches [param distance] pixels from it: all of it within [param core]
+## pixels, then [constant STEPS] rings out to [param radius], none past it.
+static func falloff(distance: float, radius: float, core: float = 0.0) -> float:
+	if radius <= core or distance >= radius:
 		return 0.0
-	return pow(ceilf((1.0 - distance / radius) * STEPS) / STEPS, RING_POWER)
+	var out: float = maxf(distance - core, 0.0) / (radius - core)
+	return pow(ceilf((1.0 - out) * STEPS) / STEPS, RING_POWER)
 
 
 ## The daylight seeping down to world pixel row [param y]: all of it above ground, a few bands
@@ -99,18 +100,28 @@ static func light_at(
 	var sun: float = daylight(point.y)
 	if sun >= 1.0:
 		return Color.WHITE
-	var lift: float = sun + EARTH_LIFT * (1.0 - exposure)
-	var total: Color = ambient_color(depth_at(point.y)) + Color(lift, lift, lift, 0.0)
-	for light: AmbienceLight in lights:
-		var reach: float = falloff(point.distance_to(light.position), light.radius)
-		if reach > 0.0:
-			total += light.color * (light.energy * reach * exposure)
+	var depth: int = depth_at(point.y)
+	var lift: float = sun + EARTH_LIFT[band(depth)] * (1.0 - exposure)
+	var total: Color = ambient_color(depth) + Color(lift, lift, lift, 0.0)
+	total += lamps_at(point, lights, exposure)
 	return Color(minf(total.r, 1.0), minf(total.g, 1.0), minf(total.b, 1.0))
 
 
-## [param share] of light (0 to 1) in [constant EXPOSURE_STEPS] steps.
-static func stepped_share(share: float) -> float:
-	return roundf(share * EXPOSURE_STEPS) / EXPOSURE_STEPS
+## The lamps' light at a pixel centre whose tile takes [param exposure] of it: the strongest of
+## them in each channel, not their sum. A light with a core (the party's) lights open space only.
+static func lamps_at(point: Vector2, lights: Array[AmbienceLight], exposure: float = 1.0) -> Color:
+	var strongest := Color(0, 0, 0, 0)
+	for light: AmbienceLight in lights:
+		var taken: float = exposure
+		if light.core > 0.0:
+			taken = 1.0 if exposure >= 1.0 else 0.0
+		var reach: float = falloff(point.distance_to(light.position), light.radius, light.core)
+		if reach > 0.0 and taken > 0.0:
+			var c: Color = light.color * (light.energy * reach * taken)
+			strongest = Color(
+				maxf(strongest.r, c.r), maxf(strongest.g, c.g), maxf(strongest.b, c.b), 0.0
+			)
+	return strongest
 
 
 ## How bright a light colour looks, 0 to 1.

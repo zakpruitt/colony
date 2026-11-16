@@ -118,7 +118,32 @@ func test_r1_dark_with_stepped_light() -> void:
 		assert_almost_eq(ambience.brightness_at(Vector2(1500, -200)), 1.0, 0.0001, "the sky")
 		var darkness: CanvasItem = ambience.get_node(^"Darkness")
 		assert_gt(darkness.z_index, 0, "the darkness is drawn over the characters")
+		_check_light_stops_at_walls(ambience, seed_value)
 	assert_gt(found, 0, "some seed has a tunnel out of every light")
+
+
+## Earth more than a tile from open space gets no lamplight at all, however near a torch: the lit
+## shape is the chambers' shape, not discs laid over the rock.
+func _check_light_stops_at_walls(ambience: Ambience, seed_value: int) -> void:
+	var lit_rock: Array[Vector2i] = []
+	var checked: int = 0
+	for torch: AmbienceProp in ambience.level(2).torches:
+		var centre: Vector2i = _tile_of(torch.light.position)
+		for dy: int in range(-6, 7):
+			for dx: int in range(-6, 7):
+				var tile: Vector2i = centre + Vector2i(dx, dy)
+				if not _is_buried(tile):
+					continue
+				checked += 1
+				for corner: Vector2 in [Vector2(1, 1), Vector2(8, 8), Vector2(15, 2)]:
+					var point: Vector2 = Vector2(tile * TILE) + corner
+					var unlit: Color = AmbienceMood.light_at(
+						point, [] as Array[AmbienceLight], AmbienceMood.EARTH_EXPOSURE
+					)
+					if not ambience.light_at(point).is_equal_approx(unlit):
+						lit_rock.append(tile)
+	assert_gt(checked, 0, "seed %d: rock near torches was checked" % seed_value)
+	assert_eq(lit_rock.size(), 0, "seed %d: lamplight on rock at %s" % [seed_value, lit_rock])
 
 
 func test_r2_torches() -> void:
@@ -191,6 +216,22 @@ func test_r3_party_light_follows() -> void:
 	ambience.party_light_position = dark
 	ambience.advance(STEP)
 	assert_gt(ambience.brightness_at(dark), before + 0.1, "the party lights up the tunnel")
+
+	# The formation of four, 17 px apart, and a tile either side, from feet to head, is lit to its
+	# true colours in a tunnel of every band, however dark the band.
+	for depth: int in [2, 7, 12, 17]:
+		_focus(ambience, depth)
+		var tunnel: Rect2i = _view.labyrinth.level(depth).tunnels[0]
+		var feet := Vector2((tunnel.position.x + tunnel.size.x * 0.5) * TILE, tunnel.end.y * TILE)
+		ambience.party_light_position = feet + Vector2(0, -14)
+		ambience.advance(STEP)
+		var dim: Array[Vector2] = []
+		for x: int in range(-26 - TILE, 27 + TILE, 3):
+			for y: int in range(-32, 0, 4):
+				var point: Vector2 = feet + Vector2(x, y)
+				if not ambience.light_at(point).is_equal_approx(Color.WHITE):
+					dim.append(point - feet)
+		assert_eq(dim.size(), 0, "depth %d: the party is at full colour, not at %s" % [depth, dim])
 
 
 func test_r4_buried_detail_density() -> void:
@@ -354,6 +395,13 @@ func test_r7_depth_mood() -> void:
 	assert_gt(deep.g, deep.r, "deep is teal")
 	assert_gt(deep.b, deep.r, "deep is teal")
 	assert_eq(AmbienceMood.ambient_color(21), loam, "the bands repeat like the earth")
+	# Dark, never black: unlit earth stays readable in every band, the stone's included.
+	var none: Array[AmbienceLight] = []
+	for depth: int in [3, 8, 13, 18]:
+		var rock: Color = AmbienceMood.light_at(
+			Vector2(100, (depth - 1) * H * TILE + 100), none, AmbienceMood.EARTH_EXPOSURE
+		)
+		assert_gt(AmbienceMood.brightness(rock), 0.35, "depth %d earth is readable" % depth)
 
 	var glowing_above: Array[String] = []
 	var glowing_below: int = 0

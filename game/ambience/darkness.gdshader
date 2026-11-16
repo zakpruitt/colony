@@ -7,8 +7,8 @@ render_mode blend_mul, unshaded;
 
 // The ambient light of each stratum: loam, clay, stone, deep.
 uniform vec4 ambient[4];
-// How much brighter solid earth is than open space when no lamp reaches it.
-uniform float earth_lift = 0.12;
+// Per stratum, how much brighter solid earth is than open space when no lamp reaches it.
+uniform float earth_lift[4];
 // Each ring's strength is raised to this (AmbienceMood.RING_POWER).
 uniform float ring_power = 1.5;
 // Daylight in the first rows of earth: how far down each band reaches, and how much it adds.
@@ -21,7 +21,8 @@ void fragment() {
 		COLOR = vec4(1.0);
 	} else {
 		float share = share_at(p);
-		vec3 total = ambient[stratum_at(p.y)].rgb + vec3(earth_lift * (1.0 - share));
+		int stratum = stratum_at(p.y);
+		vec3 total = ambient[stratum].rgb + vec3(earth_lift[stratum] * (1.0 - share));
 		if (p.y < daylight_depths.x) {
 			total += vec3(daylight_levels.x);
 		} else if (p.y < daylight_depths.y) {
@@ -29,7 +30,7 @@ void fragment() {
 		} else if (p.y < daylight_depths.z) {
 			total += vec3(daylight_levels.z);
 		}
-		total += lamps(p, ring_power) * share;
+		total += lamps(p, ring_power, share, true);
 		COLOR = vec4(min(total, vec3(1.0)), 1.0);
 	}
 }

@@ -41,7 +41,8 @@ func _init() -> void:
 	_darkness.set_shader_parameter(&"ambient", ambient)
 	_set_both(&"level_pixels", AmbienceMood.LEVEL_PIXELS)
 	_set_both(&"levels_per_stratum", float(LabyrinthTiles.LEVELS_PER_STRATUM))
-	_darkness.set_shader_parameter(&"earth_lift", AmbienceMood.EARTH_LIFT)
+	var lifts := PackedFloat32Array(AmbienceMood.EARTH_LIFT)
+	_darkness.set_shader_parameter(&"earth_lift", lifts)
 	_darkness.set_shader_parameter(&"ring_power", AmbienceMood.RING_POWER)
 	var tints: Array[Vector4] = []
 	for hue: StringName in AmbienceMood.GLOW_HUE:
@@ -55,7 +56,6 @@ func _init() -> void:
 	_glow.set_shader_parameter(&"strength", GLOW_STRENGTH)
 	_set_both(&"steps", float(AmbienceMood.STEPS))
 	_set_both(&"earth_exposure", AmbienceMood.EARTH_EXPOSURE)
-	_set_both(&"exposure_steps", AmbienceMood.EXPOSURE_STEPS)
 	_set_both(&"tile_size", float(LabyrinthView.TILE))
 
 
@@ -87,7 +87,7 @@ func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
 	var shapes: Array[Vector4] = []
 	var colors: Array[Vector4] = []
 	for light: AmbienceLight in near:
-		shapes.append(Vector4(light.position.x, light.position.y, light.radius, 0.0))
+		shapes.append(Vector4(light.position.x, light.position.y, light.radius, light.core))
 		var c: Color = light.color * light.energy
 		colors.append(Vector4(c.r, c.g, c.b, 1.0))
 	shapes.resize(MAX_LIGHTS)

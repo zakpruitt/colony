@@ -33,11 +33,25 @@ func test_light_at_adds_lamps_clamps_and_respects_exposure() -> void:
 	assert_eq(AmbienceMood.daylight(400.0), 0.0, "and is gone a few rows down")
 
 
-func test_stepped_share() -> void:
-	assert_eq(AmbienceMood.stepped_share(0.0), 0.0)
-	assert_eq(AmbienceMood.stepped_share(1.0), 1.0)
-	assert_eq(AmbienceMood.stepped_share(0.49), 0.5)
-	assert_eq(AmbienceMood.stepped_share(0.13), 0.25)
+func test_overlapping_lights_take_the_strongest() -> void:
+	var a := AmbienceLight.new(&"torch", Vector2(0, 0), 60.0, 0.5, Color(1, 0.5, 0))
+	var b := AmbienceLight.new(&"torch", Vector2(30, 0), 60.0, 0.5, Color(0.2, 1, 0))
+	var both: Array[AmbienceLight] = [a, b]
+	var only_a: Array[AmbienceLight] = [a]
+	var only_b: Array[AmbienceLight] = [b]
+	for x: int in range(-70, 100, 7):
+		var point := Vector2(x, 3)
+		var la: Color = AmbienceMood.lamps_at(point, only_a)
+		var lb: Color = AmbienceMood.lamps_at(point, only_b)
+		var expected := Color(maxf(la.r, lb.r), maxf(la.g, lb.g), maxf(la.b, lb.b), 0.0)
+		assert_eq(AmbienceMood.lamps_at(point, both), expected, "the max, not the sum, at %d" % x)
+
+
+func test_core_is_full_strength() -> void:
+	assert_eq(AmbienceMood.falloff(0.0, 100.0, 50.0), 1.0)
+	assert_eq(AmbienceMood.falloff(50.0, 100.0, 50.0), 1.0, "the core's edge is still full")
+	assert_lt(AmbienceMood.falloff(70.0, 100.0, 50.0), 1.0, "rings outside the core")
+	assert_eq(AmbienceMood.falloff(100.0, 100.0, 50.0), 0.0)
 
 
 func test_flicker_is_stepped_and_repeatable() -> void:
