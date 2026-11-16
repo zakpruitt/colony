@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HeroClassDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/hero_class_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rogue"
+display_name = "Rogue"
+role = 1
+max_health = 60
+damage = 6
+armor = 1
+attack_interval = 0.5
+windup = 0.2
+attack_range = 1.2
+move_speed = 3.5
+crit_chance = 0.2
+heal_power = 0
+health_per_level = 8
+damage_per_level = 2

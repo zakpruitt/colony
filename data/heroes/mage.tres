@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HeroClassDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/hero_class_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mage"
+display_name = "Mage"
+role = 2
+max_health = 45
+damage = 18
+armor = 0
+attack_interval = 2.0
+windup = 0.6
+attack_range = 7.0
+move_speed = 2.5
+crit_chance = 0.1
+heal_power = 0
+health_per_level = 6
+damage_per_level = 3

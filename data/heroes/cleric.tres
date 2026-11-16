@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="HeroClassDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/hero_class_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"cleric"
+display_name = "Cleric"
+role = 3
+max_health = 70
+damage = 3
+armor = 1
+attack_interval = 1.2
+windup = 0.4
+attack_range = 6.0
+move_speed = 2.5
+crit_chance = 0.05
+heal_power = 22
+health_per_level = 10
+damage_per_level = 1

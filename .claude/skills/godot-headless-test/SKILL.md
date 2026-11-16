@@ -56,7 +56,11 @@ var path: String = "user://test_save_%d.dat" % OS.get_process_id()
 - `[boundary] FAIL`: something under `sim/` named a node, a clock or a global random function. Pass the value
   in instead (ticks for time, a `SimRng` for rolls).
 - `[compile] FAIL` with `Warning treated as error`: almost always a missing type. `var x := dict.get(k)` infers
-  a `Variant`; write `var x: int = dict.get(k)`.
+  a `Variant`; write `var x: int = dict.get(k)`. The same goes for elements of an untyped `Array` or
+  `Dictionary` passed straight to a typed parameter, `assert_eq` included (`requires the subtype "Variant" but
+  the supertype "Variant" was provided`): copy the element into a typed local first.
+- Code that is meant to `push_error` (a rejected input, say) fails the test unless the test claims the error
+  with `assert_push_error("part of the message")`.
 - `SCRIPT ERROR ... Could not find type "X"`: a new `class_name` the import cache has not seen. Run
   `python tools/dev.py import` (the full `check` does this for you).
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.

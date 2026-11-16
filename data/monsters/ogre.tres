@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"ogre"
+display_name = "Ogre"
+size = 1
+min_depth = 5
+max_health = 260
+damage = 28
+armor = 3
+attack_interval = 2.4
+windup = 0.8
+attack_range = 1.5
+move_speed = 1.2
+crit_chance = 0.05
+xp = 40
+gold_min = 10
+gold_max = 25

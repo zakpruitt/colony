@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"spider"
+display_name = "Spider"
+size = 0
+min_depth = 3
+max_health = 24
+damage = 6
+armor = 0
+attack_interval = 1.6
+windup = 0.5
+attack_range = 5.0
+move_speed = 2.5
+crit_chance = 0.05
+xp = 10
+gold_min = 2
+gold_max = 6
