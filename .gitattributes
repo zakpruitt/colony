@@ -1,0 +1,14 @@
+# LF everywhere, on every machine. Godot writes LF; keeping git in agreement
+# means no line-ending noise in diffs and no CRLF-aware patching.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ogg binary
+*.wav binary
+*.mp3 binary
+*.ttf binary
+*.otf binary
+*.res binary
+*.scn binary

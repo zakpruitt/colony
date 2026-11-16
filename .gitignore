@@ -1,0 +1,11 @@
+# Godot's import cache; rebuilt by `python tools/dev.py import`.
+.godot/
+*.tmp
+
+# Python
+__pycache__/
+*.pyc
+
+# Claude Code: agents and skills are tracked, local state is not.
+.claude/settings.local.json
+.claude/worktrees/
