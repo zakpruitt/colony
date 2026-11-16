@@ -65,6 +65,10 @@ by value, not with `assert_eq` against ints.
   a `Variant`; write `var x: int = dict.get(k)`. The same goes for elements of an untyped `Array` or
   `Dictionary` passed straight to a typed parameter, `assert_eq` included (`requires the subtype "Variant" but
   the supertype "Variant" was provided`): copy the element into a typed local first.
+- `Trying to assign an array of type "Array" to a variable of type "Array[StringName]"` at run time, though
+  the script compiled: a ternary of array literals (`var c: Array[StringName] = [&"a"] if x else [&"b"]`)
+  makes a plain `Array`; only a literal assigned directly is typed. Put each list in a typed `const` and pick
+  between the constants.
 - Code that is meant to `push_error` (a rejected input, say) fails the test unless the test claims the error
   with `assert_push_error("part of the message")`.
 - `[compile] FAIL` with `is shadowing an already-declared function`: a local or parameter has the name of a
