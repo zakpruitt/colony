@@ -1,9 +1,9 @@
 # 021 — Sound effects, made the way the art is
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 008, 010
-- **Pull request:** —
+- **Pull request:** [#22](https://github.com/zakpruitt/colony/pull/22)
 
 ## Intent
 
