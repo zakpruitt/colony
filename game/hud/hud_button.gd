@@ -3,7 +3,8 @@ extends BaseButton
 ## A small pixel button for the HUD (spec 011): an [code]ink[/code] border, a flat fill lit by a
 ## one-pixel bevel along the top and left, and its text in the pixel font, all on whole pixels.
 ## Drawn by hand rather than with a theme so it is exactly [constant HEIGHT] pixels tall.
-## [member lit] shows a toggle that is on.
+## [member lit] shows a toggle that is on. A disabled button is sunk into its panel and does
+## nothing; [member text_colour], when set, colours the text in its resting and disabled states.
 
 ## Every HUD button's height in pixels.
 const HEIGHT: float = 11.0
@@ -22,6 +23,12 @@ var lit: bool = false:
 	set(value):
 		lit = value
 		queue_redraw()
+## The palette colour of the text at rest and when disabled; [code]&""[/code] for the usual.
+var text_colour: StringName = &"":
+	set(value):
+		if text_colour != value:
+			text_colour = value
+			queue_redraw()
 
 
 func _init(label_text: String = "") -> void:
@@ -37,6 +44,13 @@ func _ready() -> void:
 	button_up.connect(queue_redraw)
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_DRAW:
+		mouse_default_cursor_shape = (
+			Control.CURSOR_ARROW if disabled else Control.CURSOR_POINTING_HAND
+		)
+
+
 func _draw() -> void:
 	var fill: StringName = &"dusk"
 	var bevel: StringName = &"slate"
@@ -45,7 +59,12 @@ func _draw() -> void:
 		fill = &"forest"
 		bevel = &"green"
 		ink = &"white"
+	if text_colour != &"":
+		ink = text_colour
 	match get_draw_mode():
+		DRAW_DISABLED:
+			fill = &"night"
+			bevel = &"night"
 		DRAW_HOVER:
 			fill = &"green" if lit else &"slate"
 			bevel = &"yellow" if lit else &"steel"
