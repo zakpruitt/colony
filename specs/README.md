@@ -23,7 +23,8 @@ Written and spawned by the lead as each wave's dependencies land; numbers and sc
 | B | [006 Labyrinth view](006-labyrinth-view/spec.md): tiles, depth bands, camera — provisional, in progress | 002, 003 |
 | B | [007 Character sprites](007-character-sprites/spec.md): nine characters, part-based animation — provisional, in progress | 002, 004 |
 | C | [008 World integration](008-world-integration/spec.md): the party, monsters and fights on screen from sim state and events — provisional, not started | 005, 006, 007 |
-| D | 009 Combat effects: hit sparks, damage numbers, projectiles, shake, death bursts, coins | 008 |
-| D | 010 HUD: party frames, XP, gold, depth, target-depth control | 008 |
-| D | 011 Ambient life: torches and light, dust, props, background detail | 008 |
+| C | [009 Pixel font](009-pixel-font/spec.md): the game's bitmap font and default UI theme — provisional, not started | 002 |
+| D | 010 Combat effects: hit sparks, damage numbers, bolts, shake, hit pause, death bursts, coins, XP | 008, 009 |
+| D | 011 HUD: party frames, XP, gold, depth, target-depth control | 008, 009 |
+| D | 012 Ambient life: torches and light, dust, props, background detail | 008 |
 | E | Balance and polish passes, then saves if the night allows | all |
