@@ -1,0 +1,209 @@
+class_name HeroFrame
+extends HudPanel
+## One hero's frame along the bottom of the HUD (spec 011, R1 and R2): a 16x16 class icon, the
+## class name, the level, a health bar and an XP bar toward the next level, all on the frame's
+## own dark panel. The bars ease to new values; a hit flashes the frame; a dead hero's frame is
+## dimmed with a skull for an icon; a level-up pulses the level and restarts the XP bar.
+
+const SIZE: Vector2 = Vector2(142, 34)
+## Seconds a bar takes to ease to a new value.
+const EASE_SECONDS: float = 0.3
+## Seconds a hit flashes the frame.
+const FLASH_SECONDS: float = 0.12
+## Seconds the level number pulses after a level-up.
+const PULSE_SECONDS: float = 0.8
+## The health bar is green above this fraction, yellow down to [constant RED_BELOW], red below.
+const GREEN_ABOVE: float = 0.5
+const RED_BELOW: float = 0.25
+
+## The darker row under each health colour.
+const SHADES: Dictionary[StringName, StringName] = {
+	&"green": &"forest",
+	&"yellow": &"amber",
+	&"red": &"crimson",
+}
+
+const ICON_BOX: Rect2 = Rect2(4, 7, 20, 20)
+const HEALTH_BAR: Rect2 = Rect2(28, 14, 110, 8)
+const XP_BAR: Rect2 = Rect2(28, 24, 110, 5)
+const TEXT_Y: float = 3.0
+
+var hero_id: int
+var icon: TextureRect
+var name_label: Label
+var level_label: Label
+
+var _hud: Hud
+var _class_id: StringName
+var _icon_part: StringName = &""
+var _dead: bool = false
+var _flash: float = 0.0
+var _pulse: float = 0.0
+var _level: int = 0
+var _health: EasedValue = EasedValue.new(EASE_SECONDS)
+var _xp: EasedValue = EasedValue.new(EASE_SECONDS)
+
+
+## A frame for [param hero], drawing its icons from [param hud].
+func _init(hero: Hero, hud: Hud) -> void:
+	super()
+	hero_id = hero.id
+	_hud = hud
+	_class_id = hero.class_id
+	name = "Frame%d" % hero.id
+	size = SIZE
+	var box := HudPanel.new()
+	box.name = "IconBox"
+	box.position = ICON_BOX.position
+	box.size = ICON_BOX.size
+	box.fill = Palette.color(&"ink")
+	box.bevel = Palette.color(&"ink")
+	box.border = Palette.color(&"dusk")
+	add_child(box)
+	icon = TextureRect.new()
+	icon.name = "Icon"
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP
+	icon.position = Vector2(2, 2)
+	icon.size = Vector2(16, 16)
+	box.add_child(icon)
+	name_label = PixelText.label(hero.def().display_name, &"white")
+	name_label.name = "Name"
+	name_label.position = Vector2(HEALTH_BAR.position.x, TEXT_Y)
+	add_child(name_label)
+	level_label = PixelText.label("", &"yellow")
+	level_label.name = "Level"
+	add_child(level_label)
+	_health.snap(_health_fraction(hero))
+	_xp.snap(xp_progress(hero))
+	refresh(hero, 0.0)
+
+
+## The hero's progress from its level toward the next, from 0 to 1.
+static func xp_progress(hero: Hero) -> float:
+	var floor_xp: int = Hero.xp_for_level(hero.level)
+	var next_xp: int = Hero.xp_for_level(hero.level + 1)
+	return clampf(float(hero.xp - floor_xp) / float(maxi(next_xp - floor_xp, 1)), 0.0, 1.0)
+
+
+## Brings the frame up to date with [param hero] and advances its animations by [param delta].
+func refresh(hero: Hero, delta: float) -> void:
+	_flash = maxf(_flash - delta, 0.0)
+	_pulse = maxf(_pulse - delta, 0.0)
+	_health.advance(_health_fraction(hero), delta)
+	_xp.advance(xp_progress(hero), delta)
+	_dead = not hero.is_alive()
+	var part: StringName = &"skull" if _dead else _class_id
+	if part != _icon_part:
+		_icon_part = part
+		icon.texture = _hud.icon(part)
+	if hero.level != _level:
+		_level = hero.level
+		level_label.text = "Lv %d" % _level
+		level_label.reset_size()
+	var right: float = HEALTH_BAR.end.x - level_label.size.x
+	var lift: float = 1.0 if _pulse > 0.0 else 0.0
+	level_label.position = Vector2(right, TEXT_Y - lift)
+	var level_colour: StringName = &"yellow"
+	if _pulse > 0.0 and int(_pulse / 0.1) % 2 == 0:
+		level_colour = &"white"
+	if _dead:
+		level_colour = &"slate"
+	level_label.add_theme_color_override(&"font_color", Palette.color(level_colour))
+	name_label.add_theme_color_override(
+		&"font_color", Palette.color(&"slate" if _dead else &"white")
+	)
+	icon.self_modulate = Color.WHITE
+	if _flash > 0.0:
+		fill = Palette.color(&"crimson")
+		bevel = Palette.color(&"red")
+		border = Palette.color(&"white")
+	elif _dead:
+		fill = Palette.color(&"ink")
+		bevel = Palette.color(&"night")
+		border = Palette.color(&"ink")
+	else:
+		fill = Palette.color(&"night")
+		bevel = Palette.color(&"dusk")
+		border = Palette.color(&"ink")
+	queue_redraw()
+
+
+## The hero was hit: flash the frame for an instant.
+func hit() -> void:
+	_flash = FLASH_SECONDS
+
+
+## The hero levelled up: pulse the level number and restart the XP bar from empty.
+func level_up() -> void:
+	_pulse = PULSE_SECONDS
+	_xp.snap(0.0)
+
+
+## The part of the icon sheet shown: the hero's class, or [code]skull[/code] while dead.
+func icon_part() -> StringName:
+	return _icon_part
+
+
+## The health bar's fraction as drawn this frame.
+func shown_health() -> float:
+	return _health.value
+
+
+## The health bar's colour: green above half, yellow from a quarter to half, red below.
+func health_color() -> Color:
+	return Palette.color(_health_colour_name(_health.value))
+
+
+## The XP bar's fraction as drawn this frame.
+func shown_xp() -> float:
+	return _xp.value
+
+
+## Seconds of hit flash left; 0 when not flashing.
+func flash() -> float:
+	return _flash
+
+
+## True while the hero is dead.
+func is_dimmed() -> bool:
+	return _dead
+
+
+## Seconds of level pulse left; 0 when not pulsing.
+func level_pulse() -> float:
+	return _pulse
+
+
+func _draw() -> void:
+	super()
+	var empty: Color = Palette.color(&"ink")
+	if _dead:
+		HudPanel.draw_bar(self, HEALTH_BAR, 0.0, empty, empty, Palette.color(&"night"))
+		HudPanel.draw_bar(self, XP_BAR, 0.0, empty, empty, Palette.color(&"night"))
+		return
+	var colour: StringName = _health_colour_name(_health.value)
+	var shade: StringName = SHADES[colour]
+	HudPanel.draw_bar(
+		self,
+		HEALTH_BAR,
+		_health.value,
+		Palette.color(colour),
+		Palette.color(shade),
+		Palette.color(&"dark_brown")
+	)
+	HudPanel.draw_bar(
+		self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), empty
+	)
+
+
+static func _health_colour_name(fraction: float) -> StringName:
+	if fraction > GREEN_ABOVE:
+		return &"green"
+	if fraction >= RED_BELOW:
+		return &"yellow"
+	return &"red"
+
+
+static func _health_fraction(hero: Hero) -> float:
+	return clampf(float(hero.health) / float(maxi(hero.max_health(), 1)), 0.0, 1.0)
