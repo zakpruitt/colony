@@ -78,8 +78,12 @@ stable depth, with every chamber freshly populated.
   while a `CatchUpBar` shows. The driver, world, effects and HUD are made only when it ends (`caught_up`), so
   nothing from the time away is drawn, and an `AwayPanel` reports it. No save is written during a replay, so
   quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
-  The world fills the chambers it looks at (`Expedition.monsters_in`), which changes the state hash, so a
-  replay is compared with plain stepping at the moment it ends, before the world exists.
+  Watching changes nothing (spec 023): the expedition's reads (`monsters_in`, `is_populated`,
+  `hero_position`, `chamber`, `guardian_of`, `hash_parts`) never change the state hash, so a watched game and
+  the same game run headless stay hash-equal. A chamber's record is made only when the party fights there;
+  a read works out the visit the chamber is on and takes its monsters from a roll cache outside the hash.
+  Monster ids come from where the monster waits (`Expedition.monster_id`: depth, chamber, visit and place in
+  the encounter), not from the order anything was asked for.
 
 ## Conventions
 

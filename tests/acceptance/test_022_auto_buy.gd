@@ -3,29 +3,30 @@ extends GutTest
 ## writes a save file: saves are dictionaries passed through JSON in memory.
 
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes, recorded on dev
-## before this spec changed any sim code.
+## before this spec changed any sim code. Re-recorded by spec 023, whose monster ids (part of
+## the hash) come from where the monster is; the game is otherwise the same.
 const RECORDED_HASHES: Dictionary = {
 	5:
 	[
-		3154386820,
-		2036782278,
-		2334404288,
-		2380132918,
-		1320574071,
-		2709015771,
-		2820683277,
-		1099676500,
+		2553867283,
+		1779355755,
+		1657101120,
+		116128504,
+		1185605439,
+		2024595440,
+		2049983728,
+		3258618189,
 	],
 	17:
 	[
-		1008825335,
-		2395087842,
-		3226711927,
-		2123251674,
-		3001369193,
-		2717991107,
-		2459115530,
-		2628224349,
+		584957337,
+		3328090793,
+		2807633393,
+		953770360,
+		1065946019,
+		952743839,
+		2769244448,
+		1007605909,
 	],
 }
 const HOUR_TICKS: int = 36_000
