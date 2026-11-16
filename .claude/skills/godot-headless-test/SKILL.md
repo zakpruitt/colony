@@ -72,6 +72,8 @@ var path: String = "user://test_save_%d.dat" % OS.get_process_id()
 - `SCRIPT ERROR ... Could not find type "X"`: a new `class_name` the import cache has not seen. Run
   `python tools/dev.py import` (the full `check` does this for you).
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.
+- `dev.py test` shows a test's `print` output only when something fails. To read a trace while debugging,
+  end the test with a failing assertion, and delete the test (and its `.uid`) afterwards.
 - `[boot] FAIL`: the main scene printed an error while starting; the line is in the output.
 - **Passes locally, fails in CI:** CI is Linux, where paths are case-sensitive (`res://Sim/x.gd` is not
   `res://sim/x.gd`) and nothing untracked exists. `git status` for files you forgot to add, `.uid` files included.

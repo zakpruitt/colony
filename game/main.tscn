@@ -5,8 +5,11 @@
 [node name="Main" type="Node"]
 script = ExtResource("1_main")
 
-[node name="ClockLabel" type="Label" parent="."]
-offset_left = 8.0
-offset_top = 8.0
-offset_right = 208.0
-offset_bottom = 56.0
+[node name="HUD" type="CanvasLayer" parent="."]
+layer = 10
+
+[node name="ClockLabel" type="Label" parent="HUD"]
+offset_left = 4.0
+offset_top = 2.0
+offset_right = 84.0
+offset_bottom = 26.0
