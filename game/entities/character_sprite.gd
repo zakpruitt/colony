@@ -131,6 +131,10 @@ var _attack_time: float = -1.0
 var _windup: float = 0.0
 var _ranged: bool = false
 var _released: bool = false
+## Seconds since a wind-up was cancelled, or -1 when none is easing back; and where on the attack
+## curve it was when cancelled.
+var _cancel_time: float = -1.0
+var _cancel_from: float = 0.0
 ## Seconds since the hit, or -1 when there is none.
 var _hit_time: float = -1.0
 ## Seconds since play_death(), or -1 when not dying.
@@ -196,6 +200,19 @@ func play_attack(windup_seconds: float, ranged: bool) -> void:
 	_windup = maxf(windup_seconds, 0.0)
 	_ranged = ranged
 	_released = false
+	_cancel_time = -1.0
+	_apply_pose()
+
+
+## Ends an attack still in its wind-up without the strike: [signal struck] does not fire and the
+## character eases back to rest and to what it was doing. After the strike, or with no attack,
+## does nothing.
+func cancel_attack() -> void:
+	if _attack_time < 0.0 or _released:
+		return
+	_cancel_from = _attack_curve()
+	_attack_time = -1.0
+	_cancel_time = 0.0
 	_apply_pose()
 
 
@@ -207,7 +224,8 @@ func play_hit() -> void:
 	_apply_pose()
 
 
-## Pops, collapses, then hides and emits [signal died]. Later calls do nothing.
+## Pops, collapses, then hides and emits [signal died]. Later calls do nothing until
+## [method revive].
 func play_death() -> void:
 	if _dead:
 		return
@@ -215,8 +233,26 @@ func play_death() -> void:
 	_death_time = 0.0
 	_walking = false
 	_attack_time = -1.0
+	_cancel_time = -1.0
 	_hit_time = -1.0
 	_apply_pose()
+
+
+## After a death: visible, idle and alive again, at rest. [signal died] fires again on a later
+## death. Does nothing to a living character.
+func revive() -> void:
+	if not _dead:
+		return
+	_dead = false
+	_death_time = -1.0
+	_walking = false
+	_walk_weight = 0.0
+	_walk_time = 0.0
+	_attack_time = -1.0
+	_cancel_time = -1.0
+	_hit_time = -1.0
+	_reset_pose()
+	visible = true
 
 
 ## Faces right for 1 and left for -1, mirroring in place around the pivot.
@@ -227,7 +263,7 @@ func set_facing(direction: int) -> void:
 	_mirror.position = Vector2(0 if _facing > 0 else 1, 0)
 
 
-## True from play_death() on.
+## True from play_death() on, until revive().
 func is_dead() -> bool:
 	return _dead
 
@@ -247,6 +283,10 @@ func advance(delta: float) -> void:
 			struck.emit()
 		if _attack_time >= _windup + STRIKE_TIME + HOLD_TIME + SETTLE_TIME:
 			_attack_time = -1.0
+	if _cancel_time >= 0.0:
+		_cancel_time += delta
+		if _cancel_time >= SETTLE_TIME:
+			_cancel_time = -1.0
 	if _hit_time >= 0.0:
 		_hit_time += delta
 		if _hit_time >= HIT_TIME:
@@ -320,6 +360,8 @@ func _apply_pose() -> void:
 		_pose_walk(_walk_weight)
 	if _attack_time >= 0.0:
 		_pose_attack(_attack_curve())
+	if _cancel_time >= 0.0:
+		_pose_attack(_cancel_from * (1.0 - smoothstep(0.0, 1.0, _cancel_time / SETTLE_TIME)))
 	if _hit_time >= 0.0:
 		_pose_hit(_hit_time)
 		if _hit_time < FLASH_TIME:
@@ -385,7 +427,8 @@ func _pose_breath(weight: float) -> void:
 
 ## The walk layer, at [param weight] (it blends in and out over WALK_BLEND).
 func _pose_walk(weight: float) -> void:
-	var steps: float = _walk_time / STEP_TIME
+	# Offset by the character's phase (two steps a cycle), so a crowd does not march in step.
+	var steps: float = _walk_time / STEP_TIME + 2.0 * _phase
 	var hop: float = absf(sin(PI * steps))
 	var swing: float = sin(PI * steps)
 	match _style:
@@ -404,7 +447,7 @@ func _pose_walk(weight: float) -> void:
 	for leg: StringName in _legs:
 		var side: float = -1.0 if String(leg).ends_with("back") else 1.0
 		_turn(leg, weight * LEG_SWING * swing * side)
-	var beat: float = sin(TAU * _walk_time / WING_BEAT)
+	var beat: float = sin(TAU * (_walk_time / WING_BEAT + _phase))
 	for wing: StringName in _wings:
 		var side: float = -1.0 if String(wing).ends_with("back") else 1.0
 		_turn(wing, weight * WING_SWING * beat * side)

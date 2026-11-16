@@ -241,6 +241,24 @@ func test_r5_walk_is_livelier_than_idle() -> void:
 		assert_eq(_part(idle, swinging[id]).rotation, 0.0, "%s does not swing while idle" % id)
 
 
+func test_r5_walkers_do_not_step_in_unison() -> void:
+	for id: StringName in [&"knight", &"spider", &"slime"]:
+		var sheet: PixelSheet = _sheet_of(id)
+		var first: CharacterSprite = _hero(id) if HEROES.has(id) else _monster(id)
+		var second: CharacterSprite = _hero(id) if HEROES.has(id) else _monster(id)
+		first.play_walk()
+		second.play_walk()
+		# Past the blend from standing, so only the walk itself is compared.
+		_run(first, 0.5)
+		_run(second, 0.5)
+		var largest_gap: float = 0.0
+		for _frame: int in roundi(1.0 / STEP):
+			first.advance(STEP)
+			second.advance(STEP)
+			largest_gap = maxf(largest_gap, _distance(_pose(first, sheet), _pose(second, sheet)))
+		assert_gt(largest_gap, 1.0, "two %ss walking together are out of step" % id)
+
+
 func test_r5_walk_leans_toward_facing() -> void:
 	var knight: CharacterSprite = _hero(&"knight")
 	var body: Sprite2D = _part(knight, "body")
@@ -323,6 +341,48 @@ func test_r7_attack_has_windup_then_strike() -> void:
 	assert_gt(furthest_forward, 3.0, "then lunges forward with its whole body")
 
 
+func test_r7_cancel_attack_ends_the_windup_without_a_strike() -> void:
+	for id: StringName in [&"knight", &"slime"]:
+		var character: CharacterSprite = _hero(id) if HEROES.has(id) else _monster(id)
+		var swinger: Sprite2D = _part(character, "arm" if id == &"knight" else "body")
+		var strikes: Array[int] = [0]
+		character.struck.connect(func() -> void: strikes[0] += 1)
+		character.play_walk()
+		_run(character, 0.3)
+		character.play_attack(0.6, false)
+		_run(character, 0.4)
+		var rig: Node2D = swinger.get_parent() as Node2D
+		var shift_at_cancel: float = absf(rig.position.x)
+		assert_gt(shift_at_cancel, 0.5, "%s is wound up when cancelled" % id)
+		character.cancel_attack()
+		_run(character, 0.1)
+		assert_between(absf(rig.position.x), 0.01, shift_at_cancel, "%s eases back" % id)
+		_run(character, 1.0)
+		assert_eq(strikes[0], 0, "%s: a cancelled wind-up never strikes" % id)
+		assert_eq(rig.position.x, 0.0, "%s is back at rest" % id)
+		var swings: PackedFloat32Array = []
+		for _frame: int in roundi(1.0 / STEP):
+			character.advance(STEP)
+			swings.append(rig.rotation if id == &"slime" else swinger.rotation)
+		assert_gt(_reversals(swings) + int(swings[0] != 0.0), 0, "%s is still walking" % id)
+
+	# After the strike, cancelling does nothing: the follow-through plays out.
+	var knight: CharacterSprite = _hero(&"knight")
+	var weapon: Sprite2D = _part(knight, "weapon")
+	var count: Array[int] = [0]
+	knight.struck.connect(func() -> void: count[0] += 1)
+	knight.play_attack(0.2, false)
+	_run(knight, 0.25)
+	assert_eq(count[0], 1)
+	knight.cancel_attack()
+	knight.advance(STEP)
+	assert_gt(weapon.rotation, 0.1, "cancel after the strike leaves the follow-through")
+	var idle: CharacterSprite = _hero(&"knight")
+	idle.cancel_attack()
+	idle.advance(STEP)
+	assert_eq(_part(idle, "arm").rotation, 0.0, "cancel with no attack does nothing")
+
+
 func test_r8_hit_flashes_and_recoils() -> void:
 	for facing: int in [1, -1]:
 		var knight: CharacterSprite = _hero(&"knight")
@@ -382,11 +442,34 @@ func test_r9_death_hides_and_signals_once() -> void:
 		assert_false(character.visible, "%s stays hidden" % id)
 		assert_true(character.is_dead())
 
+		character.revive()
+		assert_false(character.is_dead(), "%s is alive after revive()" % id)
+		assert_true(character.visible, "%s is visible again" % id)
+		var sheet: PixelSheet = _sheet_of(id)
+		for part_name: String in sheet.part_names:
+			assert_eq(_part(character, part_name).transform, _rest(sheet, part_name), "at rest")
+		var start: Array = _pose(character, sheet)
+		var moved: bool = false
+		for _frame: int in roundi(2.0 / STEP):
+			character.advance(STEP)
+			if _distance(_pose(character, sheet), start) > 0.5:
+				moved = true
+		assert_true(moved, "%s breathes again" % id)
+		var arm_or_wing: String = "arm" if id == &"knight" else "wing"
+		assert_eq(_part(character, arm_or_wing).rotation, 0.0, "%s is idle, not walking" % id)
+		character.play_death()
+		elapsed[0] = 0.0
+		while elapsed[0] < 0.4:
+			elapsed[0] += STEP
+			character.advance(STEP)
+		assert_eq(deaths.size(), 2, "%s: died fires again on a later death" % id)
+		assert_false(character.visible)
+
 
 func test_r10_parts_return_to_rest() -> void:
 	for id: StringName in [&"knight", &"mage", &"slime", &"cave_bat", &"spider", &"ogre"]:
 		var sheet: PixelSheet = _sheet_of(id)
-		for sequence: int in 3:
+		for sequence: int in 4:
 			var character: CharacterSprite = _hero(id) if HEROES.has(id) else _monster(id)
 			_play_sequence(character, sequence)
 			for part_name: String in sheet.part_names:
@@ -411,12 +494,20 @@ func _play_sequence(character: CharacterSprite, sequence: int) -> void:
 			_run(character, 0.1)
 			character.play_hit()
 			_run(character, 1.5)
-		_:
+		2:
 			character.play_walk()
 			_run(character, 1.3)
 			character.play_hit()
 			_run(character, 0.4)
 			character.set_facing(-1)
+			character.play_idle()
+			_run(character, 1.5)
+		3:
+			character.play_walk()
+			character.play_attack(0.5, true)
+			_run(character, 0.3)
+			character.cancel_attack()
+			_run(character, 0.2)
 			character.play_idle()
 			_run(character, 1.5)
 
