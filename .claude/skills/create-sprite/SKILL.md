@@ -82,3 +82,24 @@ A canvas_item shader on a sprite must not sample the texture again: in a Godot 4
 already holds the texture's colour times modulate. `texture(TEXTURE, UV) * COLOR` squares every colour and
 drives the sprite off the palette, darker. Work from `COLOR` (see `game/entities/flash.gdshader`). To
 check, decode a screenshot with `art.decode_png` and confirm the pixels on the sprite are palette colours.
+
+## Fonts
+
+The pixel font (`assets/fonts/pixel.px`, category `font`) is a sheet like any other, but Godot imports its
+PNG as a font, not a texture: `pixel.png.import` uses the `font_data_image` importer, and its
+`character_ranges` map each part, in order, to a character and its advance. The style bible's "Text" section
+has the metrics. Traps in Godot 4.7's image font importer, found the hard way:
+
+- Write every entry as a range, `'a'-'a' -1 0 -1`. A single character followed by numbers
+  (`'a' -1 0 -1`) reads the first number as the end of a range and the import fails with "Too many
+  characters in range".
+- `ascent` and `descent` are absolute pixels, not added to half the cell. Glyphs are placed half a cell above
+  the baseline, so the cell height must be even (an odd one puts the baseline on a half pixel) and the
+  per-character y offset moves them the rest of the way.
+- `scaling_mode=1` (integer only); `2` lets a size between multiples blur the glyphs.
+- A failed import leaves `valid=false` in the `.import` file and is not retried until the file or its PNG
+  changes. Run `godot --headless --path . --import` and read the `ERROR:` line.
+
+After changing a glyph, bake, update its `character_ranges` entry if its width changed, run
+`python tools/dev.py import`, then look at the specimen:
+`python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font`.
