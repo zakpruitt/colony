@@ -184,20 +184,20 @@ func test_r3_descends_ascends_and_patrols() -> void:
 	var sim := Simulation.new(SEED)
 	var e: Expedition = sim.expedition
 	sim.set_auto_push(false)
-	var shaft: int = sim.labyrinth.shaft_column(1)
+	var shaft: float = sim.labyrinth.shaft_column(1) + Labyrinth.SHAFT_WIDTH / 2.0  # spec 015
 
 	sim.set_target_depth(2)
 	var events: Array[SimEvent] = _run_until(sim, SimEvent.Kind.DEPTH_CHANGED, _ticks(1800))
 	assert_eq(e.depth, 2, "climbed down")
 	assert_eq(_of_kind(events, SimEvent.Kind.DEPTH_CHANGED)[0].amount, 2)
-	assert_almost_eq(e.x, float(shaft), EPSILON, "lands at the shaft's column")
+	assert_almost_eq(e.x, shaft, EPSILON, "lands at the shaft's middle")
 	assert_eq(e.hero_position(1).y, float(_level(sim, 2).floor_y), "on the floor of depth 2")
 	assert_eq(_of_kind(events, SimEvent.Kind.PARTY_WIPED).size(), 0)
 
 	sim.set_target_depth(1)
 	_run_until(sim, SimEvent.Kind.DEPTH_CHANGED, _ticks(1800))
 	assert_eq(e.depth, 1, "climbed back up")
-	assert_almost_eq(e.x, float(shaft), EPSILON, "arrives at the top of the shaft")
+	assert_almost_eq(e.x, shaft, EPSILON, "arrives at the top of the shaft")
 
 	# At the target it patrols: it turns at the far end of the last chamber and of the first.
 	var level: LabyrinthLevel = _level(sim, 1)
@@ -606,7 +606,7 @@ func test_r11_wipe_falls_back_and_keeps_progress() -> void:
 	assert_eq(e.depth, 2, "back on the last stable depth")
 	assert_eq(e.target_depth, 2, "which is the new target")
 	var landing: int = sim.labyrinth.shaft_column(1)
-	assert_almost_eq(e.x, float(landing), EPSILON, "where the shaft from above lands")
+	assert_almost_eq(e.x, landing + Labyrinth.SHAFT_WIDTH / 2.0, EPSILON, "the shaft's middle")
 	assert_eq(e.chamber(), _level(sim, 2).chamber_at(landing), "in the landing chamber")
 	for hero: Hero in sim.party.heroes:
 		assert_eq(hero.health, hero.max_health(), "full health")
@@ -863,7 +863,7 @@ func test_r16_hero_positions() -> void:
 	var climber := Simulation.new(SEED)
 	climber.set_auto_push(false)
 	climber.set_target_depth(2)
-	var shaft: float = climber.labyrinth.shaft_column(1)
+	var shaft: float = climber.labyrinth.shaft_column(1) + Labyrinth.SHAFT_WIDTH / 2.0  # spec 015
 	var top: float = _level(climber, 1).floor_y
 	var bottom: float = _level(climber, 2).floor_y
 	var climbing_ticks: int = 0
@@ -885,7 +885,7 @@ func test_r16_hero_positions() -> void:
 		last_y = lead.y
 		for hero: Hero in climber.party.heroes:
 			var at: Vector2 = climber.expedition.hero_position(hero.id)
-			assert_eq(at.x, shaft, "on the shaft's column")
+			assert_eq(at.x, shaft, "on the shaft's middle")
 			assert_between(at.y, top, bottom, "inside the shaft")
 			assert_lte(at.y, lead.y, "the leader goes first")
 	assert_gt(climbing_ticks, 30, "the climb took a while")

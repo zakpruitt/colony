@@ -23,6 +23,7 @@ const ROLL_MIN: float = 0.85
 const ROLL_MAX: float = 1.15
 ## Slack for comparing positions that were reached by adding up float steps.
 const EPSILON: float = 0.0001
+const MIN_SPACING: float = 0.6  # tiles between two standing combatants of one side
 
 var tick: int = 0
 var heroes: Array[Combatant]
@@ -31,6 +32,11 @@ var monsters: Array[Combatant]
 var _left: float
 var _right: float
 var _rng: SimRng
+## 1.0 if the heroes face right (toward larger x), -1.0 if they face left.
+var _hero_forward: float = 1.0
+## Set by [method _station]: true if the place it found is short of the combatant's usual
+## striking distance only because standing allies are in the way, so it may strike from there.
+var _held_back: bool = false
 var _result: Result = Result.ONGOING
 var _by_id: Dictionary[int, Combatant] = {}
 var _events: Array[SimEvent] = []
@@ -99,6 +105,7 @@ func drain_events() -> Array[SimEvent]:
 
 func _line_up(heroes_from_left: bool) -> void:
 	var toward_monsters: float = 1.0 if heroes_from_left else -1.0
+	_hero_forward = toward_monsters
 	var entry: float = _left if heroes_from_left else _right
 	var far: float = _right if heroes_from_left else _left
 	var middle: float = (_left + _right) / 2.0
@@ -152,11 +159,9 @@ func _act(c: Combatant) -> void:
 		c.target_id = -1
 		return
 	c.target_id = target.id
-	if absf(target.x - c.x) > c.attack_range + EPSILON:
-		_walk(c, target)
-		if absf(target.x - c.x) > c.attack_range + EPSILON:
-			c.state = Combatant.State.MOVING
-			return
+	if not _strikes_from_here(c, target) and not _take_place(c, target):
+		c.state = Combatant.State.MOVING
+		return
 	if tick < c.ready_tick:
 		c.state = Combatant.State.IDLE
 		return
@@ -187,15 +192,116 @@ func _pick_target(c: Combatant) -> Combatant:
 	return nearest
 
 
-## Walks toward the target, stopping exactly at attack range.
-func _walk(c: Combatant, target: Combatant) -> void:
-	var direction: float = signf(target.x - c.x)
-	var goal: float = target.x - direction * c.attack_range
+## True if [param c], a melee fighter already in the fight and standing with room around it,
+## can reach [param target] over the shoulders of its side: it strikes from where it stands
+## rather than stepping into a gap, so standing room never costs it a blow.
+func _strikes_from_here(c: Combatant, target: Combatant) -> bool:
+	if c.attack_range > MELEE_REACH or c.state == Combatant.State.MOVING or c.ready_tick == 0:
+		return false
+	var allies: Array[Combatant] = heroes if c.team == Combatant.Team.HEROES else monsters
+	var spacing: float = _spacing(allies)
+	for ally: Combatant in allies:
+		var standing: bool = ally != c and ally.is_alive() and ally.state != Combatant.State.MOVING
+		if standing and absf(ally.x - c.x) < spacing - EPSILON:
+			return false
+	# The deepest a line of this side could ever hold it back, the fallen included.
+	var reach: float = c.attack_range + MIN_SPACING * (allies.size() - 1)
+	return absf(target.x - c.x) <= reach + EPSILON
+
+
+## Walks [param c] toward its place against [param target] and returns true once it stands
+## where it may strike from: in range, or held back there by standing allies.
+func _take_place(c: Combatant, target: Combatant) -> bool:
+	var forward: float = signf(target.x - c.x)
+	if forward == 0.0:
+		forward = _hero_forward if c.team == Combatant.Team.HEROES else -_hero_forward
+	var in_range: bool = absf(target.x - c.x) <= c.attack_range + EPSILON
+	var goal: float = c.x if in_range else target.x - forward * c.attack_range
+	var station: float = _station(c, goal, forward)
+	if absf(station - c.x) > EPSILON:
+		_walk_to(c, station)
+		if absf(station - c.x) > EPSILON:
+			return false
+	in_range = absf(target.x - c.x) <= c.attack_range + EPSILON
+	return in_range or _held_back
+
+
+## Where [param c] should stand this tick: [param goal], or behind it if allies are in the way.
+##
+## Positions are measured as progress [param forward] (toward the target). A standing ally
+## within the spacing of the place pushes it back behind that ally; a hero never gets in front of
+## a hero of a more forward role (then earlier in the party) attacking the same target. Sets
+## [member _held_back]: true when standing allies alone kept [param c] short of [param goal].
+func _station(c: Combatant, goal: float, forward: float) -> float:
+	var allies: Array[Combatant] = heroes if c.team == Combatant.Team.HEROES else monsters
+	var spacing: float = _spacing(allies)
+	var place: float = goal * forward
+	var bound_by_mover: bool = false
+	var pushed: bool = true
+	while pushed:
+		pushed = false
+		for ally: Combatant in allies:
+			if ally == c or not ally.is_alive():
+				continue
+			var at: float = ally.x * forward
+			var standing: bool = ally.state != Combatant.State.MOVING
+			var blocks: bool = standing and absf(at - place) < spacing - EPSILON
+			var leads: bool = _leads(ally, c) and at - spacing < place - EPSILON
+			if blocks or leads:
+				place = at - spacing
+				bound_by_mover = not standing
+				pushed = true
+	var low: float = minf(_left * forward, _right * forward)
+	var high: float = maxf(_left * forward, _right * forward)
+	if place < low - EPSILON:
+		# Against the back wall: take the first free place from the wall forward.
+		place = low
+		pushed = true
+		while pushed:
+			pushed = false
+			for ally: Combatant in allies:
+				if ally == c or not ally.is_alive() or ally.state == Combatant.State.MOVING:
+					continue
+				var at_wall: float = ally.x * forward
+				if absf(at_wall - place) < spacing - EPSILON:
+					place = at_wall + spacing
+					pushed = true
+	place = clampf(place, low, high)
+	_held_back = place < goal * forward - EPSILON and not bound_by_mover
+	return place * forward
+
+
+## The spacing one side keeps: MIN_SPACING, or less if its living members cannot fit the span.
+func _spacing(side: Array[Combatant]) -> float:
+	var alive: int = 0
+	for c: Combatant in side:
+		if c.is_alive():
+			alive += 1
+	if alive > 1 and MIN_SPACING * (alive - 1) > _right - _left:
+		return (_right - _left) / (alive - 1)
+	return MIN_SPACING
+
+
+## True if hero [param ally] stands in front of hero [param c]: both attack the same enemy
+## and the ally's role is further forward (tank, melee, ranged, healer), or the same and earlier.
+func _leads(ally: Combatant, c: Combatant) -> bool:
+	if c.team != Combatant.Team.HEROES or ally.target_id != c.target_id:
+		return false
+	var target: Combatant = combatant(c.target_id)
+	if target == null or target.team == c.team:
+		return false
+	if ally.role != c.role:
+		return ally.role < c.role
+	return heroes.find(ally) < heroes.find(c)
+
+
+## Walks toward [param place] at the combatant's speed, stopping exactly on it.
+func _walk_to(c: Combatant, place: float) -> void:
 	var stride: float = c.move_speed / Simulation.TICKS_PER_SECOND
-	if absf(goal - c.x) <= stride:
-		c.x = goal
+	if absf(place - c.x) <= stride:
+		c.x = place
 	else:
-		c.x += direction * stride
+		c.x += signf(place - c.x) * stride
 	c.x = clampf(c.x, _left, _right)
 
 
