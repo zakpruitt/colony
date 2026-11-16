@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="MonsterDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/monster_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"slime"
+display_name = "Slime"
+size = 0
+min_depth = 1
+max_health = 50
+damage = 4
+armor = 0
+attack_interval = 1.6
+windup = 0.5
+attack_range = 1.0
+move_speed = 1.0
+crit_chance = 0.0
+xp = 3
+gold_min = 1
+gold_max = 3
