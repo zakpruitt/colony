@@ -1,9 +1,9 @@
 # 004 — Combat core: heroes, monsters and a fight
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M2
 - **Depends on:** 001
-- **Pull request:** —
+- **Pull request:** [#5](https://github.com/zakpruitt/colony/pull/5)
 
 ## Intent
 
