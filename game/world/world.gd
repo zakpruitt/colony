@@ -73,6 +73,9 @@ var _waiting: Dictionary[int, bool] = {}
 ## Monsters that have died, with the depth they died on: never shown again. Forgotten when that
 ## level is freed, as its dead are never asked about again.
 var _gone: Dictionary[int, int] = {}
+## The combatant each of those was. A chamber refilled often enough hands its ids out again (spec
+## 023), to new combatants: a monster is only kept hidden while it is the very one that died.
+var _gone_as: Dictionary[int, Combatant] = {}
 ## Attacks winding up: attacker id to Vector2i(target id, the tick it strikes on).
 var _windups: Dictionary[int, Vector2i] = {}
 var _bolts: Array[Bolt] = []
@@ -178,6 +181,7 @@ func sync(delta: float) -> void:
 		for dead: int in _gone.keys():
 			if not _built.has(_gone[dead]):
 				_gone.erase(dead)
+				_gone_as.erase(dead)
 		_scan_due = true
 	_scan_in -= delta
 	_ensure_heroes()
@@ -263,6 +267,9 @@ func _ensure_heroes() -> void:
 
 
 func _add_monster(monster: Combatant, floor_pixels: float) -> void:
+	if _gone.has(monster.id) and _gone_as.get(monster.id, null) != monster:
+		_gone.erase(monster.id)  # its id handed out again, to a new monster
+		_gone_as.erase(monster.id)
 	if _sprites.has(monster.id) or _gone.has(monster.id):
 		return
 	var sprite: CharacterSprite = CharacterSprite.for_monster(monster.def_id)
@@ -421,6 +428,9 @@ func _died(id: int, animate: bool) -> void:
 		_windups.erase(attacker)
 	if id >= Expedition.FIRST_MONSTER_ID:
 		_gone[id] = simulation.expedition.depth
+		var battle: Battle = simulation.expedition.battle
+		var fallen: Combatant = battle.combatant(id) if battle != null else null
+		_gone_as[id] = fallen if fallen != null else _monsters.get(id, null)
 	var dying: CharacterSprite = character(id)
 	if dying == null or dying.is_dead():
 		return
