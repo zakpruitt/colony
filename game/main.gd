@@ -52,6 +52,10 @@ var away_report: AwayReport
 var away_panel: AwayPanel
 ## Plays the sound effects; made with the world, so null during a replay (spec 021).
 var sound: SoundPlayer
+## The player's settings (mute, and whether help has welcomed them: spec 030 R5). Null means none:
+## tests, screenshots and headless runs, which then never open help by themselves. Set it before
+## the scene enters the tree to choose the file; a played game uses the default one.
+var settings: SoundSettings
 ## How many times real time the game runs (spec 032): one of [constant SPEEDS]. A way of
 ## watching, not a rule: never saved, 1 in every new session, and time away is counted at 1x.
 ## Read-only outside the class: assigning it goes through [method set_speed].
@@ -63,6 +67,8 @@ var speed: int:
 
 var _speed: int = 1
 var _save_in: float = SAVE_SECONDS
+## True when a saved game was loaded rather than a new one started.
+var _loaded_save: bool = false
 
 @onready var _clock_label: Label = $HUD/ClockLabel
 
@@ -71,6 +77,8 @@ func _ready() -> void:
 	hud_layer = $HUD
 	if save_store == null and _is_played():
 		save_store = SaveStore.new()
+	if settings == null and _is_played():
+		settings = SoundSettings.new()
 	simulation = _load_or_new()
 	if replay != null:
 		catch_up_bar = CatchUpBar.new()
@@ -165,7 +173,7 @@ func _start_play() -> void:
 	hud.setup(simulation, world, effects)
 	sound = SoundPlayer.new()
 	sound.name = "SoundPlayer"
-	sound.settings = SoundSettings.new() if _is_played() else null
+	sound.settings = settings
 	add_child(sound)
 	sound.setup(world, effects, simulation)
 	hud.speed_button.pressed.connect(cycle_speed)
@@ -174,6 +182,17 @@ func _start_play() -> void:
 	_apply_speed()
 	_show_clock()
 	_save_in = SAVE_SECONDS
+	_welcome()
+
+
+## Opens the help panel by itself the first time a new game is played (spec 030 R5), and notes in
+## [member settings] that it has, so it never does again. Not over a loaded save, and never
+## without settings (tests and screenshot runs).
+func _welcome() -> void:
+	if settings == null or _loaded_save or settings.help_seen():
+		return
+	hud.help.open()
+	settings.set_help_seen(true)
 
 
 ## Tells the driver and the world the speed, if play has started.
@@ -214,6 +233,7 @@ func _load_or_new() -> Simulation:
 					away = minf(away_seconds_override, MAX_AWAY_SECONDS)
 				if away >= MIN_AWAY_SECONDS:
 					replay = AwayReplay.new(loaded, away)
+				_loaded_save = true
 				return loaded
 	return Simulation.new(SIMULATION_SEED)
 

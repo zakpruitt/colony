@@ -208,6 +208,7 @@ func _check_placement(hud: Hud, what: String) -> void:
 		"depth panel": hud.depth_panel,
 		"gold": hud.gold_panel,
 		"shop button": hud.shop_button,
+		"help button": hud.help_button,
 	}
 	if hud.boss_bar.is_showing():
 		others["boss bar"] = hud.boss_bar
