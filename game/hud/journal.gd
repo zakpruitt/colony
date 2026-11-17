@@ -9,7 +9,9 @@ extends Control
 ## frames for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
 ## animate ([method World.is_recent]) are written but not shown there. [kbd]J[/kbd] opens and closes
 ## [member panel], the last [constant SHOWN_LINES] lines below the top band at the left;
-## [kbd]Esc[/kbd] closes it, and so does the shop opening. Nothing here pauses the game.
+## [kbd]Esc[/kbd] closes it (and lets the HUD close the shop or hero sheet too), and so does the
+## shop or the hero sheet (spec 026) opening. The sheet drops into the same place, so opening the
+## journal closes the sheet. Nothing here pauses the game.
 ##
 ## The node itself has no size: its two children, each a [HudPanel], are what is seen. It moves
 ## only in [method advance], so a test can step it exactly.
@@ -53,6 +55,7 @@ var _empty_label: Label
 var _depth: int = 1
 var _deepest: int = 1
 var _shop_was_open: bool = false
+var _sheet_was_open: bool = false
 
 
 func _init() -> void:
@@ -72,9 +75,9 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				open()
 		KEY_ESCAPE:
-			if not is_open():
-				return
+			# Not marked handled, so the HUD's Esc closes the shop or the sheet as well.
 			close()
+			return
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -93,7 +96,8 @@ func setup(simulation: Simulation, world: World) -> void:
 	advance(0.0)
 
 
-## Runs the ticker on by [param delta] seconds, closes the journal if the shop has just opened,
+## Runs the ticker on by [param delta] seconds, closes the journal if the shop or the hero sheet
+## has just opened,
 ## and brings the panel up to date. Called every frame by the HUD; tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
@@ -103,6 +107,11 @@ func advance(delta: float) -> void:
 	if shop_open and not _shop_was_open:
 		close()
 	_shop_was_open = shop_open
+	var sheet: HeroSheet = _sheet()
+	var sheet_open: bool = sheet != null and sheet.is_open()
+	if sheet_open and not _sheet_was_open:
+		close()
+	_sheet_was_open = sheet_open
 	_ticker_age += delta
 	_show_ticker()
 
@@ -137,8 +146,13 @@ func is_open() -> bool:
 	return panel.visible
 
 
-## Shows the panel of the last lines, closing the "While you were away" panel if it is up.
+## Shows the panel of the last lines, closing the "While you were away" panel and the hero sheet
+## if they are up.
 func open() -> void:
+	var sheet: HeroSheet = _sheet()
+	if sheet != null and sheet.is_open():
+		sheet.close()
+	_sheet_was_open = false
 	var hud: Node = get_parent()
 	var layer: Node = hud.get_parent() if hud != null else null
 	if layer != null:
@@ -300,6 +314,11 @@ func _show_ticker() -> void:
 	ticker.position = Vector2(
 		floorf((Hud.SCREEN.x - width) / 2.0), frames_top - TICKER_GAP - TICKER_HEIGHT
 	)
+
+
+func _sheet() -> HeroSheet:
+	var hud: Hud = get_parent() as Hud
+	return hud.hero_sheet if hud != null else null
 
 
 func _shop_is_open() -> bool:

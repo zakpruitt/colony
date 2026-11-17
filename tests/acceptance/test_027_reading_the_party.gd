@@ -226,6 +226,28 @@ func test_r1_status_line() -> void:
 	assert_eq(_hud.status_text(), "Fighting the Slime King", "fighting a guardian")
 
 
+func test_r1_status_line_working() -> void:
+	# Spec 025's side quests: the party stops to work, and the line names the quest.
+	var e: Expedition = _sim.expedition
+	_raise(STRONG_LEVEL)
+	_sim.set_auto_push(false)
+	var found: bool = false
+	for depth: int in range(1, 6):
+		for room: LabyrinthChamber in _sim.labyrinth.level(depth).chambers:
+			if found or e.side_quest_in(depth, room.index) == &"":
+				continue
+			e.depth = depth
+			e.target_depth = depth
+			e.x = room.rect.position.x - 0.1
+			e.facing = 1
+			found = true
+	assert_true(found, "a side quest near the top")
+	assert_true(_step_until(_in_state(Expedition.State.WORKING), 50), "the party stops to work")
+	var quest: SideQuestDef = Content.side_quest(e.working_quest())
+	assert_eq(_hud.status_text(), "Working: %s" % quest.display_name, "working on a side quest")
+	assert_eq(_hud.state_label.text, _hud.status_text(), "the panel shows the line")
+
+
 func test_r1_status_line_fits() -> void:
 	# The guardian with the longest name, in a fight on its depth, with a wide gold count and the
 	# longest stable text: the panel holds the line and stays clear of the boss bar and the shop.
@@ -538,6 +560,18 @@ func test_r6_it_fits() -> void:
 	assert_true(_hud.shop.is_open(), "U opens the shop")
 	assert_false(journal.is_open(), "which closes the journal")
 
+	# The hero sheet (spec 026) drops into the same place: opening it closes the journal, and
+	# opening the journal closes it.
+	_hud.shop.close()
+	journal.open()
+	_hud.hero_sheet.open(KNIGHT)
+	_hud.advance(0.0)
+	assert_false(journal.is_open(), "opening a hero sheet closes the journal")
+	journal.open()
+	_hud.advance(0.0)
+	assert_false(_hud.hero_sheet.is_open(), "opening the journal closes the sheet")
+	assert_true(journal.is_open())
+
 	# The game goes on with the journal open.
 	var main: Main = _start_main()
 	main.hud.journal.open()
@@ -578,6 +612,9 @@ func test_r7_keys() -> void:
 	assert_true(journal.is_open(), "the journal stays open through them all")
 	_key(KEY_ESCAPE)
 	assert_false(journal.is_open(), "Esc closes it")
+	main.hud.hero_sheet.open(KNIGHT)
+	_key(KEY_ESCAPE)
+	assert_false(main.hud.hero_sheet.is_open(), "Esc closes a hero sheet too")
 	_key(KEY_J)
 	assert_true(journal.is_open())
 	_key(KEY_U)

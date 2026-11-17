@@ -8,6 +8,8 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 025 | [Microskills and side quests](025-microskills-and-side-quests/spec.md) | M4 | landed on dev, [#27](https://github.com/zakpruitt/colony/pull/27), provisional | 005, 020, 023 |
+| 026 | [The hero sheet](026-hero-sheet/spec.md) | M4 | landed on dev, [#26](https://github.com/zakpruitt/colony/pull/26), provisional | 011, 016, 017 |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
 | 024 | [Guardian fights](024-guardian-fights/spec.md) | M5 | landed on dev, [#24](https://github.com/zakpruitt/colony/pull/24), provisional | 010, 011, 020, 021 |
 | 023 | [Steady monster ids](023-steady-monster-ids/spec.md) | M3 | landed on dev, [#25](https://github.com/zakpruitt/colony/pull/25), provisional | 005, 008, 020 |
@@ -40,6 +42,7 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [025 Microskills and side quests](025-microskills-and-side-quests/spec.md): chambers that hold something other than a fight, opened by a hero's microskill (simulation) | provisional, in progress | 005, 020, 023 |
-| [026 Hero sheet](026-hero-sheet/spec.md): click a hero to see who they are, their stats and what they are doing | provisional, in progress | 011, 016, 017 |
 | [027 Reading the party](027-reading-the-party/spec.md): a status line that says what and why, the countdown to stable, a journal | provisional, in progress | 008, 010, 011, 020 |
+| [028 Seeing side quests](028-seeing-side-quests/spec.md): props, the worker at work, misses that say what was needed, microskills in the sheet and journal | provisional, waiting on 025 and 027 | 008, 010, 011, 021, 025, 026, 027 |
+| [029 Hero training](029-hero-training/spec.md): spend gold on one hero from their sheet (power, toughness, quickness) | provisional, in progress | 014, 016, 022, 026 |
+| [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |

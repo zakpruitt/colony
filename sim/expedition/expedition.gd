@@ -8,10 +8,13 @@ extends RefCounted
 ## ([code]rect.position.x[/code]) to its last ([code]rect.end.x - 1[/code]). Feet
 ## stand on the level's floor row ([member LabyrinthLevel.floor_y]).
 ##
+## Some plain chambers hold a side quest instead of monsters (spec 025): a hero with its
+## microskill does it while the party stands WORKING, and without one the party walks past.
+##
 ## Every change worth showing is reported as a [SimEvent] stamped with the
 ## simulation tick; [method drain_events] hands them over once.
 
-enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING }
+enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING }
 
 const PARTY_SPEED: float = 3.0  # tiles per second
 const CLIMB_SPEED: float = 4.0  # tiles per second
@@ -43,6 +46,8 @@ const VAULT_MONSTERS: Vector2i = Vector2i(2, 3)
 const VAULT_GOLD_FACTOR: int = 2
 ## Slack for comparing positions reached by adding up float steps.
 const EPSILON: float = 0.0001
+## The chance that a plain chamber holds a side quest instead of monsters, on each visit.
+const SIDE_QUEST_SHARE: float = 0.3
 
 var state: State = State.TRAVELLING
 var depth: int = 1
@@ -72,6 +77,13 @@ var _chambers: Dictionary[Vector2i, ChamberState] = {}
 ## a roll depends only on the seed and those three numbers, so this only saves rolling twice, and
 ## hands the view and the battle the same objects. Not in the hash.
 var _rolled: Dictionary[Vector3i, Array] = {}
+## The side quest being done while WORKING: its chamber as Vector2i(depth, index), its id, the
+## worker's hero id, the tick the work began and how many ticks it takes.
+var _work_key: Vector2i = Vector2i(0, -1)
+var _work_quest: StringName = &""
+var _worker: int = -1
+var _work_start: int = 0
+var _work_ticks: int = 0
 var _battle_count: int = 0
 var _battle_key: Vector2i = Vector2i(0, -1)
 ## The chamber the anchor stood in after the last tick, as Vector2i(depth, index);
@@ -138,6 +150,8 @@ func step(tick: int) -> void:
 		State.REVIVING:
 			if _tick >= _revive_tick:
 				_revive()
+		State.WORKING:
+			_work()
 	if state != State.FIGHTING and state != State.REVIVING and not _party.any_alive():
 		_wipe()
 	_count_time()
@@ -208,7 +222,9 @@ func is_populated(level_depth: int, chamber_index: int) -> bool:
 	if battle != null and _battle_key == key:
 		return false
 	var fill: ChamberState = _chambers.get(key, null)
-	return fill == null or fill.cleared_tick < 0 or _tick >= _refill_tick(fill)
+	if fill != null and fill.cleared_tick >= 0 and _tick < _refill_tick(fill):
+		return false
+	return _quest_on_visit(level_depth, chamber_index, _visit_now(fill)) == &""
 
 
 ## The monsters waiting in this chamber (empty if it is not populated).
@@ -263,6 +279,37 @@ func seconds_to_stable() -> float:
 	return float(left) / Simulation.TICKS_PER_SECOND
 
 
+## The id of the side quest that chamber holds on its current visit, or &"". Like the monsters,
+## it depends only on the seed, depth, chamber and visit, and asking changes nothing in the game.
+func side_quest_in(level_depth: int, chamber_index: int) -> StringName:
+	if level_depth < 1:
+		return &""
+	var level: LabyrinthLevel = _labyrinth.level(level_depth)
+	if chamber_index < 0 or chamber_index >= level.chambers.size():
+		return &""
+	var fill: ChamberState = _chambers.get(Vector2i(level_depth, chamber_index), null)
+	if fill != null and fill.cleared_tick >= 0 and _tick < _refill_tick(fill):
+		return &""
+	return _quest_on_visit(level_depth, chamber_index, _visit_now(fill))
+
+
+## While WORKING: the quest being done. Otherwise &"".
+func working_quest() -> StringName:
+	return _work_quest if state == State.WORKING else &""
+
+
+## While WORKING: the worker's hero id. Otherwise -1.
+func worker_id() -> int:
+	return _worker if state == State.WORKING else -1
+
+
+## While WORKING: how far the work has gone, from 0 to 1. Otherwise 0.0.
+func work_progress() -> float:
+	if state != State.WORKING or _work_ticks <= 0:
+		return 0.0
+	return clampf(float(_tick - _work_start) / _work_ticks, 0.0, 1.0)
+
+
 ## The expedition's state as plain values, for the simulation's state hash.
 func hash_parts() -> Array:
 	var parts: Array = [
@@ -292,13 +339,20 @@ func hash_parts() -> Array:
 		_target_since,
 		_timer_target,
 		_loot_rng.save_state(),
+		_work_key,
+		_work_quest,
+		_worker,
+		_work_start,
+		_work_ticks,
 	]
 	var keys: Array[Vector2i] = []
 	keys.assign(_chambers.keys())
 	keys.sort()
 	for key: Vector2i in keys:
 		var fill: ChamberState = _chambers[key]
-		parts.append([key, fill.visit, fill.cleared_tick, _combatant_parts(fill.monsters)])
+		parts.append(
+			[key, fill.visit, fill.cleared_tick, fill.missed, _combatant_parts(fill.monsters)]
+		)
 	if battle != null:
 		parts.append(
 			[battle.tick, battle.result(), _combatant_parts(battle.heroes + battle.monsters)]
@@ -377,6 +431,11 @@ func _travel() -> void:
 		if here != null and is_populated(depth, here.index):
 			_start_battle(here)
 			return
+		var quest: StringName = side_quest_in(depth, here.index) if here != null else &""
+		if quest != &"":
+			_meet_side_quest(here, quest)
+			if state != State.TRAVELLING:
+				return
 
 	if absf(x - goal) > EPSILON:
 		return
@@ -537,6 +596,17 @@ func _rolled_for(level_depth: int, chamber_index: int, visit: int) -> Array:
 ## The chamber's record, made or refilled if its time has come, with its monsters made.
 ## Called only when the party meets them, never by a read.
 func _fill(level_depth: int, chamber_index: int) -> ChamberState:
+	var fill: ChamberState = _record(level_depth, chamber_index)
+	if fill.cleared_tick < 0 and fill.monsters.is_empty():
+		fill.monsters.assign(_rolled_for(level_depth, chamber_index, fill.visit))
+	# From here the record holds them; a later visit rolls its own.
+	_rolled.erase(Vector3i(level_depth, chamber_index, fill.visit))
+	return fill
+
+
+## The chamber's record, made if there is none and moved on to its next visit if its time to
+## refill has come. Called only by stepping, never by a read.
+func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
@@ -547,11 +617,26 @@ func _fill(level_depth: int, chamber_index: int) -> ChamberState:
 		fill.visit += 1
 		fill.cleared_tick = -1
 		fill.monsters = []
-	if fill.cleared_tick < 0 and fill.monsters.is_empty():
-		fill.monsters.assign(_rolled_for(level_depth, chamber_index, fill.visit))
-	# From here the record holds them; a later visit rolls its own.
-	_rolled.erase(Vector3i(level_depth, chamber_index, fill.visit))
+		fill.missed = false
 	return fill
+
+
+## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
+## chamber that is not always empty and holds no guardian, with chance SIDE_QUEST_SHARE. Depends
+## only on the seed, depth, chamber and visit.
+func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> StringName:
+	var level: LabyrinthLevel = _labyrinth.level(level_depth)
+	if level.chambers[chamber_index].kind != LabyrinthChamber.Kind.PLAIN:
+		return &""
+	if _is_guardian_chamber(level_depth, chamber_index) or _is_always_empty(level, chamber_index):
+		return &""
+	var rng: SimRng = _rng.fork("sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
+	if not rng.chance(SIDE_QUEST_SHARE):
+		return &""
+	var ids: Array[StringName] = Content.side_quest_ids()
+	if ids.is_empty():
+		return &""
+	return ids[rng.next_int(0, ids.size() - 1)]
 
 
 ## The monsters of one visit to a chamber. Which monsters, and their ids, depend only on the
@@ -672,12 +757,8 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	for hero: Hero in _party.heroes:
 		if not alive.has(hero.id):
 			continue
-		_emit(SimEvent.Kind.XP_GAINED, -1, hero.id, def.xp)
-		var before: int = hero.level
-		if hero.gain_xp(def.xp) == 0:
+		if _give_xp(hero, def.xp) == 0:
 			continue
-		for new_level: int in range(before + 1, hero.level + 1):
-			_emit(SimEvent.Kind.LEVEL_UP, -1, hero.id, new_level)
 		# The hero fights on with its new numbers, healed by the health it gained.
 		var fighter: Combatant = battle.combatant(hero.id)
 		var grown: Combatant = hero.combatant()
@@ -693,6 +774,22 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
 	if def.guardian:
 		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
+
+
+## Gives [param hero] [param amount] XP, reporting it, each level it pays for and each
+## microskill a level brings. Returns how many levels were gained.
+func _give_xp(hero: Hero, amount: int) -> int:
+	_emit(SimEvent.Kind.XP_GAINED, -1, hero.id, amount)
+	var before: int = hero.level
+	var gained: int = hero.gain_xp(amount)
+	var def: HeroClassDef = hero.def()
+	for new_level: int in range(before + 1, hero.level + 1):
+		_emit(SimEvent.Kind.LEVEL_UP, -1, hero.id, new_level)
+		for i: int in mini(def.microskills.size(), def.microskill_levels.size()):
+			if def.microskill_levels[i] == new_level:
+				var skill: int = Content.microskill_ids().find(def.microskills[i])
+				_emit(SimEvent.Kind.MICROSKILL_LEARNED, hero.id, skill, new_level)
+	return gained
 
 
 func _end_battle(won: bool) -> void:
@@ -731,6 +828,66 @@ func _end_battle(won: bool) -> void:
 	battle = null
 	_battle_key = Vector2i(0, -1)
 	_wipe()
+
+
+# --- Side quests ---------------------------------------------------------------
+
+
+## The party reaches [param quest] in [param room]: a living hero with its microskill starts on it;
+## with nobody able, the party walks past, and a hazard springs on it.
+func _meet_side_quest(room: LabyrinthChamber, quest: StringName) -> void:
+	var def: SideQuestDef = Content.side_quest(quest)
+	var quest_index: int = Content.side_quest_ids().find(quest)
+	var fill: ChamberState = _record(depth, room.index)
+	var worker: Hero = _party.hero_with_microskill(def.microskill)
+	if worker != null:
+		state = State.WORKING
+		_work_key = Vector2i(depth, room.index)
+		_work_quest = quest
+		_worker = worker.id
+		_work_start = _tick
+		_work_ticks = maxi(Combatant.seconds_to_ticks(def.work_seconds), 1)
+		_emit(SimEvent.Kind.SIDE_QUEST_STARTED, worker.id, quest_index, _work_ticks)
+		return
+	var skill_index: int = Content.microskill_ids().find(def.microskill)
+	if def.miss_damage > 0.0:
+		_emit(SimEvent.Kind.SIDE_QUEST_MISSED, -1, quest_index, skill_index, true)
+		for hero: Hero in _party.heroes:
+			# Never below 1, and nothing to the dead: a hazard hurts, but cannot wipe the party.
+			var lost: int = mini(roundi(def.miss_damage * hero.max_health()), hero.health - 1)
+			if lost <= 0:
+				continue
+			hero.health -= lost
+			_emit(SimEvent.Kind.HIT, -1, hero.id, lost)
+		fill.cleared_tick = _tick
+		return
+	if not fill.missed:
+		fill.missed = true
+		_emit(SimEvent.Kind.SIDE_QUEST_MISSED, -1, quest_index, skill_index, false)
+
+
+## Waits out the work, then gives the reward, clears the chamber and travels on.
+func _work() -> void:
+	if _tick - _work_start < _work_ticks:
+		return
+	var def: SideQuestDef = Content.side_quest(_work_quest)
+	var quest_index: int = Content.side_quest_ids().find(_work_quest)
+	var amount: int = def.reward_at(_work_key.x)
+	_emit(SimEvent.Kind.SIDE_QUEST_DONE, _worker, quest_index, amount)
+	if def.reward == SideQuestDef.Reward.XP:
+		for hero: Hero in _party.heroes:
+			if hero.is_alive():
+				_give_xp(hero, amount)
+	else:
+		_party.gold += amount
+		_emit(SimEvent.Kind.GOLD_GAINED, _worker, -1, amount)
+	var fill: ChamberState = _chambers[_work_key]
+	fill.cleared_tick = _tick
+	fill.missed = false
+	_work_key = Vector2i(0, -1)
+	_work_quest = &""
+	_worker = -1
+	state = State.TRAVELLING
 
 
 # --- Rest, wipe and revival ----------------------------------------------------
@@ -834,21 +991,7 @@ func _emit(
 func _combatant_parts(fighters: Array) -> Array:
 	var parts: Array = []
 	for c: Combatant in fighters:
-		(
-			parts
-			. append(
-				[
-					c.id,
-					c.def_id,
-					c.x,
-					c.health,
-					c.max_health,
-					c.damage,
-					c.state,
-					c.target_id,
-					c.strike_tick,
-					c.ready_tick,
-				]
-			)
-		)
+		var part: Array = [c.id, c.def_id, c.x, c.health, c.max_health, c.damage, c.state]
+		part.append_array([c.target_id, c.strike_tick, c.ready_tick])
+		parts.append(part)
 	return parts

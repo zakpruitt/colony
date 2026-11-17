@@ -59,6 +59,21 @@ func gain_xp(amount: int) -> int:
 	return gained
 
 
+## The microskills this hero has now: those of its class learned at or below its level,
+## in the class's order.
+func microskills() -> Array[StringName]:
+	var learned: Array[StringName] = []
+	for i: int in mini(_def.microskills.size(), _def.microskill_levels.size()):
+		if level >= _def.microskill_levels[i]:
+			learned.append(_def.microskills[i])
+	return learned
+
+
+## True if this hero has the microskill [param skill_id] at its level.
+func has_microskill(skill_id: StringName) -> bool:
+	return microskills().has(skill_id)
+
+
 ## A battle combatant for this hero, with the hero's id and current health, and
 ## the party's upgrades in its damage, healing power and maximum health.
 func combatant() -> Combatant:

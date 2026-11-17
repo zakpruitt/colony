@@ -43,6 +43,7 @@ const STATE_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.RESTING: "Resting",
 	Expedition.State.CLIMBING: "Climbing",
 	Expedition.State.REVIVING: "Reviving",
+	Expedition.State.WORKING: "Working",
 }
 const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.TRAVELLING: &"silver",
@@ -50,6 +51,7 @@ const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.RESTING: &"green",
 	Expedition.State.CLIMBING: &"tan",
 	Expedition.State.REVIVING: &"pink",
+	Expedition.State.WORKING: &"amber",
 }
 
 ## One frame per hero, in formation order, left to right.
@@ -91,6 +93,8 @@ var shop_marker: ShopMarker
 var boss_bar: BossBar
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
+## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
+var hero_sheet: HeroSheet
 
 var _simulation: Simulation
 var _world: World
@@ -134,9 +138,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_U:
 			_toggle_shop()
 		KEY_ESCAPE:
-			if not shop.is_open():
+			if not shop.is_open() and not hero_sheet.is_open():
 				return
 			shop.close()
+			hero_sheet.close()
+		KEY_TAB:
+			hero_sheet.open_next()
 		KEY_B:
 			if not shop.is_open():
 				return
@@ -160,6 +167,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_depth()
 	_build_gold()
 	_build_shop()
+	_build_sheet()
 	_adopt_clock()
 	boss_bar = BossBar.new()
 	add_child(boss_bar)
@@ -189,6 +197,7 @@ func advance(delta: float) -> void:
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
+	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
 
@@ -213,6 +222,10 @@ func status_text() -> String:
 			line = "Climbing down" if _climbing_down() else "Climbing up"
 		Expedition.State.REVIVING:
 			line = "Chased home! Regrouping"
+		Expedition.State.WORKING:
+			var quest: SideQuestDef = Content.side_quest(e.working_quest())
+			if quest != null:
+				line = "Working: %s" % quest.display_name
 	return line
 
 
@@ -359,6 +372,26 @@ func _build_shop() -> void:
 	shop = ShopPanel.new()
 	add_child(shop)
 	shop.setup(_simulation, _world)
+
+
+## The hero sheet (spec 026): a frame's click opens or closes it, and the open hero's frame is
+## marked.
+func _build_sheet() -> void:
+	hero_sheet = HeroSheet.new()
+	add_child(hero_sheet)
+	hero_sheet.setup(_simulation, _world)
+	hero_sheet.shown_changed.connect(_mark_frames)
+	for frame: HeroFrame in frames:
+		frame.clicked.connect(hero_sheet.toggle)
+
+
+func _mark_frames() -> void:
+	for hero: Hero in _simulation.party.heroes:
+		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
+		if frame != null:
+			frame.marked = hero.id == hero_sheet.shown_hero_id()
+			frame.refresh(hero, 0.0)
+	_advance_shop(0.0)
 
 
 ## Takes over Main's tick readout, if there is one beside the HUD: dim, on an ink backing, hidden.

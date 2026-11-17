@@ -236,6 +236,13 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   drops from under the top band at the right, never covering the top band or the party frames, opened and
   closed by the player. Rows inside it are separated by space, not lines; a row that just changed flashes
   `forest` with a `green` edge, then `dusk`, for half a second.
+- **The hero sheet** (spec 026) is the shop's twin on the left: a `HudPanel` dropping from under the top
+  band below the depth panel, ending well above the party frames (a 12-pixel strip stays clear above them).
+  The portrait is the frame's icon at 2x in an `ink` box with a `dusk` edge, the class name is the font at
+  2x in `white`, sections are split by 1-pixel `dusk` lines, stat names are `steel` captions with `white`
+  values and an upgrade's bonus in `green` after them. The hero's activity is one word or phrase in the colour
+  of the HUD's state word (`orange` fighting, `green` healing or resting, `red` down). The frame whose sheet
+  is open has a `yellow` edge with an `amber` bevel.
 - **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
   lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
 - **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,

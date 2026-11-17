@@ -18,3 +18,5 @@ crit_chance = 0.1
 heal_power = 0
 health_per_level = 6
 damage_per_level = 3
+microskills = Array[StringName]([&"runereader"])
+microskill_levels = Array[int]([4])
