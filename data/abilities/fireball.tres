@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 1
+radius = 1.0
+does = 0
+multiplier = 1.2
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 1
+radius = 1.0
+does = 4
+scale = 0
+status = 3
+seconds = 3.0
+amount = 0.2
+
+[resource]
+script = ExtResource("1")
+id = &"fireball"
+display_name = "Fireball"
+description = "Hits the target and enemies beside it for 1.2x damage and sets them burning. Every 8 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 8.0
+windup = 0.6
+ready_at_start = true
+reach = 7.0

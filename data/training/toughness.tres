@@ -6,10 +6,7 @@
 script = ExtResource("1")
 id = &"toughness"
 display_name = "Toughness"
-description = "+5% maximum health"
+description = "+3% maximum health"
 order = 2
 stat = 1
-per_rank = 0.05
-base_cost = 35
-cost_growth = 1.35
-max_rank = 20
+per_rank = 0.03

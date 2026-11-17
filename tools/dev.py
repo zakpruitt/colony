@@ -9,7 +9,7 @@
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
                                          run the game in a window, save PNGs to .shots/
     python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
-                            [--buy-upgrades] [--timeline]
+                            [--buy-upgrades] [--timeline] [--spend-talents]
                                          run the simulation headless, print a JSON summary
 
 Standard library only. Godot is found through the GODOT environment
@@ -368,6 +368,8 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append("--timeline=true")
     if args.area is not None:
         options.append(f"--area={args.area}")
+    if args.spend_talents:
+        options.append("--spend-talents=true")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
         import_project()
@@ -426,6 +428,11 @@ def main() -> int:
         "--timeline",
         action="store_true",
         help="add the game time in seconds of each first (level 2, depth 5, first guardian ...)",
+    )
+    sim.add_argument(
+        "--spend-talents",
+        action="store_true",
+        help="spend talent points (trunk, then the first path) and paragon points (Power)",
     )
     sim.add_argument(
         "--area",

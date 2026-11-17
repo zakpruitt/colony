@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 0
+multiplier = 1.5
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 0
+does = 4
+status = 0
+seconds = 1.5
+amount = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"shield_bash"
+display_name = "Shield Bash"
+description = "Bashes the nearest enemy for 1.5x damage and stuns it for 1.5 s. Every 8 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 8.0
+windup = 0.4
+ready_at_start = true
+reach = 1.2

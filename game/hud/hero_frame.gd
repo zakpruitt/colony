@@ -6,8 +6,8 @@ extends HudPanel
 ## dimmed with a skull for an icon; a level-up pulses the level and restarts the XP bar.
 ##
 ## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
-## above), with the level moved left of it, counts what the hero has for the player to do: the
-## trainings the party can pay for, and the microskills learned since the hero's Skills page was
+## above), with the level moved left of it, counts what the hero has for the player to do: its
+## unspent paragon points (spec 051), and the microskills learned since the hero's Skills page was
 ## last open. It follows the same rules as the hero sheet's tab markers (spec 034).
 
 ## Clicking the frame opens or closes this hero's sheet (spec 026).
@@ -50,7 +50,8 @@ var marked: bool = false
 ## The hero's fighter in the battle under way, or null outside a fight: set by the HUD before
 ## [method refresh] (spec 030 R1).
 var fighter: Combatant
-## The party's gold: set by the HUD before [method refresh], for [member marker].
+## The party's gold: set by the HUD before [method refresh]. Nothing on the frame reads it since
+## spec 051 took the price off training.
 var gold: int = 0
 ## The marker saying this hero has something for the player to do (spec 037 R4).
 var marker: ShopMarker
@@ -202,12 +203,7 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	if sheet != null and sheet.shown_hero_id() == hero_id:
 		if sheet.page() == HeroSheet.Page.SKILLS:
 			_skills_seen = learned
-	var affordable: int = 0
-	for id: StringName in Content.training_ids():
-		var price: int = hero.training_cost(id)
-		if price > 0 and price <= gold:
-			affordable += 1
-	marker.count = affordable + maxi(learned - _skills_seen, 0)
+	marker.count = hero.paragon_points() + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
 	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)

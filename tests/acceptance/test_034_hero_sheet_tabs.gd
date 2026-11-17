@@ -57,6 +57,18 @@ func _sheet() -> HeroSheet:
 	return _hud.hero_sheet
 
 
+## Raises [param hero] to the level that gives it [param points] paragon points (spec 051 took
+## the gold off training: a row spends a paragon point).
+func _give_paragon(hero: Hero, points: int) -> void:
+	var level: int = Hero.TALENT_POINTS * Hero.TALENT_EVERY + points
+	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+
+
+## The paragon points [param hero] has in the stat of training [param id].
+func _rank(hero: Hero, id: StringName) -> int:
+	return hero.paragon_rank(Content.training(id).stat)
+
+
 func _hero(index: int) -> Hero:
 	return _sim.party.heroes[index]
 
@@ -213,7 +225,7 @@ func test_r3_three_tabs() -> void:
 		assert_eq(_text_shown(sheet, skill_text), skills, "microskills only on Skills %s" % on)
 
 	# A hidden tab's train button is not shown, so it takes no click, and a press does nothing.
-	_sim.party.gold = 100_000
+	_give_paragon(rogue, 5)
 	_hud.advance(0.016)
 	var power: HeroSheet.TrainingRow = sheet.training_row(&"training_power")
 	for page: HeroSheet.Page in [HeroSheet.Page.STATS, HeroSheet.Page.SKILLS]:
@@ -222,14 +234,14 @@ func test_r3_three_tabs() -> void:
 		assert_false(power.buy_button.is_visible_in_tree(), "hidden on %s" % _page_name(page))
 		_click(power.buy_button)
 		_sim.step()
-		assert_eq(rogue.training_rank(POWER), 0, "no training from %s" % _page_name(page))
+		assert_eq(_rank(rogue, POWER), 0, "no training from %s" % _page_name(page))
 	# The same press on the Training tab trains.
 	sheet.open_page(HeroSheet.Page.TRAINING)
 	_hud.advance(0.016)
 	assert_true(power.buy_button.is_visible_in_tree(), "shown on Training")
 	_click(power.buy_button)
 	_sim.step()
-	assert_eq(rogue.training_rank(POWER), 1, "the button trains on the Training tab")
+	assert_eq(_rank(rogue, POWER), 1, "the button trains on the Training tab")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -294,26 +306,25 @@ func test_r5_training_marker() -> void:
 	var sheet: HeroSheet = _sheet()
 	var knight: Hero = _hero(0)
 	var rogue: Hero = _hero(1)
-	var cheapest: int = rogue.training_cost(POWER)
-	for id: StringName in Content.training_ids():
-		cheapest = mini(cheapest, rogue.training_cost(id))
 	assert_not_null(sheet.training_marker, "the Training tab has a marker")
 	if sheet.training_marker == null:
 		return
-	_sim.party.gold = cheapest - 1
+	_sim.party.gold = 1_000_000
 	sheet.open(rogue.id)
 	for page: HeroSheet.Page in PAGES:
 		sheet.open_page(page)
 		_hud.advance(0.016)
 		var on: String = "on %s" % _page_name(page)
-		assert_false(sheet.page_marked(HeroSheet.Page.TRAINING), "too poor: no marker %s" % on)
+		assert_false(
+			sheet.page_marked(HeroSheet.Page.TRAINING), "no paragon point: no marker %s" % on
+		)
 		assert_false(sheet.training_marker.is_visible_in_tree(), "and none shown %s" % on)
-	_sim.party.gold = cheapest
+	_give_paragon(rogue, 1)
 	for page: HeroSheet.Page in PAGES:
 		sheet.open_page(page)
 		_hud.advance(0.016)
 		var on: String = "on %s" % _page_name(page)
-		assert_true(sheet.page_marked(HeroSheet.Page.TRAINING), "affordable: marked %s" % on)
+		assert_true(sheet.page_marked(HeroSheet.Page.TRAINING), "a point to spend: marked %s" % on)
 		assert_true(sheet.training_marker.is_visible_in_tree(), "and shown %s" % on)
 		assert_false(sheet.page_marked(HeroSheet.Page.STATS), "Stats is never marked %s" % on)
 		var tab: Rect2 = sheet.tab_buttons[HeroSheet.Page.TRAINING].get_global_rect()
@@ -321,12 +332,10 @@ func test_r5_training_marker() -> void:
 		assert_true(mark.intersects(tab), "pinned on the Training tab %s" % on)
 		assert_gt(mark.end.x, tab.end.x - 1.0, "at its right %s" % on)
 
-	# It is the shown hero's: a hero whose trainings cost more is not marked.
-	for id: StringName in Content.training_ids():
-		knight.set_training_rank(id, 9)
+	# It is the shown hero's: a hero with no paragon point is not marked.
 	sheet.open(knight.id)
 	_hud.advance(0.016)
-	assert_false(sheet.page_marked(HeroSheet.Page.TRAINING), "the knight's trainings cost more")
+	assert_false(sheet.page_marked(HeroSheet.Page.TRAINING), "the knight has no point")
 	assert_false(sheet.training_marker.is_visible_in_tree(), "no marker for the knight")
 	sheet.open(rogue.id)
 	_hud.advance(0.016)
@@ -403,7 +412,7 @@ func test_r6_skills_marker() -> void:
 func test_r7_number_keys() -> void:
 	var sheet: HeroSheet = _sheet()
 	var rogue: Hero = _hero(1)
-	_sim.party.gold = 1_000_000
+	_give_paragon(rogue, 5)
 	sheet.open(rogue.id)
 	for page: HeroSheet.Page in [HeroSheet.Page.STATS, HeroSheet.Page.SKILLS]:
 		sheet.open_page(page)
@@ -413,8 +422,8 @@ func test_r7_number_keys() -> void:
 		_key(KEY_3)
 		sheet.train_row(0)
 		_sim.step()
-		assert_false(rogue.is_trained(), "1 to 3 train nothing on %s" % _page_name(page))
-		assert_eq(_sim.party.gold, 1_000_000, "no gold spent on %s" % _page_name(page))
+		assert_false(rogue.has_grown(), "1 to 3 train nothing on %s" % _page_name(page))
+		assert_eq(rogue.paragon_points(), 5, "no point spent on %s" % _page_name(page))
 	sheet.open_page(HeroSheet.Page.TRAINING)
 	_hud.advance(0.016)
 	var ids: Array[StringName] = Content.training_ids()
@@ -422,7 +431,7 @@ func test_r7_number_keys() -> void:
 	for i: int in 3:
 		_key(codes[i])
 		_sim.step()
-		assert_eq(rogue.training_rank(ids[i]), 1, "%d trains %s on Training" % [i + 1, ids[i]])
+		assert_eq(_rank(rogue, ids[i]), 1, "%d trains %s on Training" % [i + 1, ids[i]])
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -436,8 +445,8 @@ func test_r9_out_of_the_way() -> void:
 	for i: int in _sim.party.heroes.size():
 		var hero: Hero = _sim.party.heroes[i]
 		hero.gain_xp(Hero.xp_for_level(99))
-		hero.set_training_rank(Content.training_ids()[i % 3], 99)
-		hero.set_training_rank(POWER, 19 - i)
+		hero.set_paragon_rank(i % 3 as TrainingDef.Stat, 99)
+		hero.set_paragon_rank(TrainingDef.Stat.POWER, 1999 - i)
 	var frames_top: float = SCREEN.y
 	for frame: HeroFrame in _hud.frames:
 		frames_top = minf(frames_top, frame.get_global_rect().position.y)

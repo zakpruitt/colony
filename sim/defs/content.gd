@@ -13,6 +13,7 @@ const MICROSKILLS_DIR: String = "res://data/microskills"
 const SIDE_QUESTS_DIR: String = "res://data/sidequests"
 const AREAS_DIR: String = "res://data/areas"
 const ABILITIES_DIR: String = "res://data/abilities"
+const TALENTS_DIR: String = "res://data/talents"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
@@ -25,6 +26,7 @@ static var _side_quests: Dictionary[StringName, SideQuestDef] = {}
 static var _areas: Dictionary[StringName, AreaDef] = {}
 static var _area_ids: Array[StringName] = []
 static var _abilities: Dictionary[StringName, AbilityDef] = {}
+static var _talent_trees: Dictionary[StringName, TalentTreeDef] = {}
 static var _loaded: bool = false
 
 
@@ -124,6 +126,12 @@ static func ability_ids() -> Array[StringName]:
 	return _sorted(_abilities.keys())
 
 
+## The talent tree of hero class [param class_id] (spec 051), or null if it has none.
+static func talent_tree(class_id: StringName) -> TalentTreeDef:
+	_load()
+	return _talent_trees.get(class_id, null)
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -182,6 +190,22 @@ static func _load() -> void:
 			push_error("Content: %s is not an AbilityDef" % resource.resource_path)
 			continue
 		_abilities[ability_def.id] = ability_def
+	for resource: Resource in _resources_in(TALENTS_DIR):
+		var tree: TalentTreeDef = resource as TalentTreeDef
+		if tree == null:
+			push_error("Content: %s is not a TalentTreeDef" % resource.resource_path)
+			continue
+		var known: TalentTreeDef = _talent_trees.get(tree.class_id, null)
+		if known != null:
+			# One tree a class; the second is refused here and by its own validate().
+			push_error(
+				(
+					"Content: %s is a second tree for %s, after %s"
+					% [tree.resource_path, tree.class_id, known.resource_path]
+				)
+			)
+			continue
+		_talent_trees[tree.class_id] = tree
 
 
 static func _resources_in(dir: String) -> Array[Resource]:

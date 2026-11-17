@@ -1,0 +1,28 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 4
+scale = 2
+status = 2
+seconds = 6.0
+amount = 0.3
+
+[resource]
+script = ExtResource("1")
+id = &"sanctuary"
+display_name = "Sanctuary"
+description = "With an ally below 30%: shields it (30% of its health) for 6 s. Every 15 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 15.0
+windup = 0.2
+ready_at_start = true
+aim = 3
+anywhere = true
+condition = 1
+condition_share = 0.3

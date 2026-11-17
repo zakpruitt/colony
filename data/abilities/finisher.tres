@@ -1,0 +1,25 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 0
+multiplier = 2.0
+
+[resource]
+script = ExtResource("1")
+id = &"finisher"
+display_name = "Finisher"
+description = "Strikes an enemy below 25% health for double damage. Every 5 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 5.0
+windup = 0.2
+ready_at_start = true
+aim = 1
+reach = 1.2
+condition = 5
+condition_share = 0.25

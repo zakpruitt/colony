@@ -1,0 +1,26 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 3
+does = 1
+multiplier = 0.4
+scale = 2
+
+[resource]
+script = ExtResource("1")
+id = &"miracle"
+display_name = "Miracle"
+description = "With an ally below 25%: heals every ally for 40% of its health. Every 45 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 45.0
+windup = 0.6
+ready_at_start = true
+aim = 3
+anywhere = true
+condition = 1
+condition_share = 0.25

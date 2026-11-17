@@ -127,19 +127,19 @@ func _lowest_level() -> int:
 	return lowest
 
 
-## The hero with the cheapest affordable training (the first on a tie), or null.
-func _cheapest_trainee() -> Hero:
-	var best: Hero = null
-	var best_price: int = 0
+## The first hero in formation with a paragon point to spend (spec 051), or null.
+func _trainee() -> Hero:
 	for hero: Hero in _sim.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			if price <= 0 or price > _sim.party.gold:
-				continue
-			if best == null or price < best_price:
-				best = hero
-				best_price = price
-	return best
+		if hero.paragon_points() > 0:
+			return hero
+	return null
+
+
+## Gives the rogue a paragon point to spend (spec 051 took the gold off training).
+func _rogue_with_a_point() -> Hero:
+	var rogue: Hero = _sim.party.heroes[1]
+	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
+	return rogue
 
 
 func _journal_sentence() -> String:
@@ -285,10 +285,11 @@ func test_r2_says_why() -> void:
 
 
 func test_r3_offers_help() -> void:
-	# A guardian, gold to spend: train, buy, hold, in that order, at most three.
+	# A guardian, gold and a paragon point to spend: train, buy, hold, in that order, at most three.
 	_sim.party.gold = RICH
+	_rogue_with_a_point()
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
-	var trainee: Hero = _cheapest_trainee()
+	var trainee: Hero = _trainee()
 	assert_not_null(trainee, "a hero can be trained")
 	var expected: Array[String] = [
 		"Train %s" % trainee.def().display_name, "Buy an upgrade", "Hold here"
@@ -298,7 +299,7 @@ func test_r3_offers_help() -> void:
 
 	_note().press(0)
 	assert_true(_hud.hero_sheet.is_open(), "Train opens a hero sheet")
-	assert_eq(_hud.hero_sheet.shown_hero_id(), trainee.id, "the cheapest hero's to train")
+	assert_eq(_hud.hero_sheet.shown_hero_id(), trainee.id, "the hero with a point to spend")
 	assert_eq(_hud.hero_sheet.page(), HeroSheet.Page.TRAINING, "on the Training tab")
 	_hud.hero_sheet.close()
 	_hud.advance(STEP)
@@ -327,12 +328,13 @@ func test_r3_offers_help() -> void:
 	_sim.party.gold = RICH
 	_hunting_on(DEEP, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
-	var trained: Hero = _cheapest_trainee()
+	var trained: Hero = _trainee()
 	expected = ["Train %s" % trained.def().display_name, "Buy an upgrade"]
 	assert_eq(_note().suggestions(), expected, "train, buy")
 	assert_true(_until_standing(), "the heroes stand")
 
-	# Gold for an upgrade but for no training: Buy an upgrade alone (spec 046 R10).
+	# Gold for an upgrade but no point to spend: Buy an upgrade alone (spec 046 R10).
+	trained.set_paragon_rank(TrainingDef.Stat.POWER, trained.paragon_points())
 	var upgrade: int = 0
 	for id: StringName in Content.upgrade_ids():
 		var price: int = _sim.upgrades.cost(id)
@@ -340,7 +342,7 @@ func test_r3_offers_help() -> void:
 			upgrade = price
 	_sim.party.gold = upgrade
 	_hud.advance(STEP)
-	assert_null(_cheapest_trainee(), "no training is affordable")
+	assert_null(_trainee(), "no paragon point to spend")
 	assert_eq(_note().suggestions(), ["Buy an upgrade"] as Array[String], "the upgrade alone")
 	assert_true(_until_standing(), "the heroes stand")
 
@@ -405,6 +407,7 @@ func test_r4_repeats_are_counted() -> void:
 
 func test_r5_out_of_the_way() -> void:
 	_sim.party.gold = RICH
+	_rogue_with_a_point()
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	var note: DefeatNote = _note()
 	assert_eq(note.suggestions().size(), 3, "three buttons, the widest note")

@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="TalentTreeDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+class_id = &"knight"
+trunk = Array[StringName]([&"shield_bash", &"taunt", &"bottle_top_block"])
+path_names = Array[String](["Guardian", "Berserker"])
+path_a = Array[StringName]([&"hold_the_line", &"last_stand", &"bulwark", &"rallying_cry"])
+path_b = Array[StringName]([&"whirlwind", &"bloodthirst", &"reckless_swing", &"rampage"])

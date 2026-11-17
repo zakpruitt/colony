@@ -57,7 +57,7 @@ and fails on any problem.
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
 last stable depth, deepest depth, target depth and auto-push, the rank of each camp upgrade (spec 016), the auto-buy switch (spec 022)
-each hero's training ranks (spec 029) and the party's orders (spec 035).
+each hero's talents and paragon points (spec 051) and the party's orders (spec 035).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
@@ -66,7 +66,7 @@ stable depth, with every chamber freshly populated.
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 6. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 7. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -81,6 +81,13 @@ stable depth, with every chamber freshly populated.
   stages of the area the party is in; `areas` holds every other area it has been in as
   `{"safe": s, "furthest": f}`. An unknown or closed `area`, an unknown id in `open_areas` or `areas`, and a
   stage below 1 or a safe stage beyond the furthest are refused by name (`areas.claypits.safe`).
+  Version 6 to 7 (spec 051, `TalentSave`) drops each hero's `training`, adds the gold spec 029 charged for
+  its ranks (`TalentSave.OLD_TRAINING_PRICES`) to the party's, and gives it `talents` (empty) and `paragon`
+  (empty): every talent and paragon point its level earned is unspent. A version 6 rank that cannot be read is
+  kept, and refused by name (`heroes[1].training`). A version 7 hero's `talents` must be a legal order of its
+  class's tree no longer than its level earns (`heroes[2].talents[4]`, `heroes[1].talents`), and its
+  `paragon` (stat id to points) known stats with whole points no more than its level earns
+  (`heroes[2].paragon.luck`, `heroes[2].paragon`).
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -88,9 +95,9 @@ stable depth, with every chamber freshly populated.
   there and hunts on that level, and `Expedition.is_holding` says so. At their defaults the orders add nothing
   to the state hash. `EncounterRoll` holds the expedition's encounter roll, guardian lookup and fighters' hash
   parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines.
-- **Training (spec 029).** `Simulation.train_hero` applies on the next step, like `buy_upgrade`. A hero's
-  damage, healing, maximum health and attack speed are the class's times the camp upgrade's multiplier times
-  its own `Hero.training_multiplier`. An untrained hero adds nothing to the state hash.
+- **Talents and paragon (spec 051).** See "Talent trees and paragon" below. `Simulation.take_talent`,
+  `spend_paragon` and `reset_talents` apply on the next step, like `buy_upgrade`. A hero with no node and no
+  paragon point spent adds nothing to the state hash.
 - **Auto-buy (spec 022).** `Simulation.set_auto_buy` applies on the next step. While on, the step buys the
   cheapest affordable upgrade on each tick that starts a whole `AUTO_BUY_SECONDS`, through the same path as
   `buy_upgrade`, so nothing about its timing needs saving. Off, it adds nothing to the state hash.
@@ -158,6 +165,32 @@ them: the world shows the new labyrinth then, and the journal and tally keep the
 from that event, as the defeat note does. The screen names a place as an area and a stage (`PlaceText`,
 `Mossy Hollow 3`).
 
+## Talent trees and paragon
+
+Spec 051. Each class has a `TalentTreeDef` (`data/talents/`, one per class, `Content.talent_tree`): a trunk of
+three ability ids and two named paths of four, every node an `AbilityDef` under `data/abilities/`.
+`TalentTreeDef.next_nodes(taken)` is the whole rule of order: the next trunk node, then the first node of
+either path, then the next node of the path begun; `order_problem` checks a saved list against it.
+
+A `Hero` keeps the nodes it took, in order, and the paragon points it put into each `TrainingDef.Stat`;
+neither unspent count is stored: `TalentRules.talent_points_at(level)` (one at every even level, up to
+`Hero.TALENT_POINTS`, 7) and `paragon_points_at(level)` (one a level after 14) less what was spent.
+`Hero.combatant()` hands the fighter its nodes' abilities, the newest first (a fighter tries its actions in that order), and multiplies its damage and
+healing, maximum health and attack speed by `1 + points * TrainingDef.per_rank` (3%) of Power, Toughness and
+Quickness, after the camp upgrades. A node taken mid-fight waits for the next fight; a paragon point spent
+mid-fight changes the fighter at once, as spec 029's training did. A fresh start (`reset_talents`) costs
+`Simulation.RESET_GOLD_PER_LEVEL` (100) times the hero's level, is refused while `Expedition.battle` is set,
+and leaves paragon points alone. Events: `TALENT_POINT_GAINED` (from `Expedition._give_xp`, beside the
+`LEVEL_UP` that earned it), `TALENT_TAKEN` (with `ability_id`), `PARAGON_SPENT`, `TALENTS_RESET`. Auto-buy
+never spends a point. When the expedition's 90-second limit ends a fight, it calls `Battle.end()` first, so
+every status ends with its event and no monster goes back to its chamber carrying one.
+R14: fights last seconds, so every talent action has `ready_at_start` (`TalentTreeDef.validate` refuses one
+that has not) and waits only for its condition; `AbilityDef.Condition.OTHER_ALLY_BELOW` is `ALLY_BELOW`
+without the fighter itself (Bulwark). A second tree for a class is refused by its `validate()`, and
+`Content` keeps the first.
+`TalentSpender` (`tools/godot/`) is the headless run's way of spending (`dev.py sim --spend-talents`): the
+trunk, then the first path, and every paragon point into Power.
+
 ## Zones on screen
 
 Spec 054. The simulation still stacks an area's stages as bands of one labyrinth and climbs a shaft between
@@ -191,7 +224,7 @@ with the usual gold, XP and hit events beside them.
 ## Abilities in combat
 
 Spec 050. An `AbilityDef` (`data/abilities/`, its `AbilityEffect`s embedded as sub-resources) is an action
-or a passive; `Combatant.abilities` lists a fighter's, empty for everyone until spec 051 hands them out.
+or a passive; `Combatant.abilities` lists a fighter's: a hero's talents (spec 051), none for monsters.
 `Battle` keeps the movement and the strike; the new rules live beside it, stateless, in `BattleAbilities`
 (which action is ready and at whom, what sets passives off, what each effect does) and `BattleStatuses`
 (putting a status on, its work each second, its end), with the per-fight state on the `Combatant`
@@ -215,7 +248,7 @@ or a passive; `Combatant.abilities` lists a fighter's, empty for everyone until 
   that an earlier receiver's passive killed is passed over. An **untouchable** fighter takes nothing
   hostile from an enemy, and enemies aim at someone else while anyone else on its side stands
   (`Battle.aimable`). `Battle.end()` ends every status with its event; the battle calls it as it ends,
-  and spec 051's expedition time limit will too.
+  and so does the expedition's time limit (spec 051).
 - **All damage** goes through `Battle.deal`: a shield absorbs first (a `MISSED` event, flagged), then the
   `HIT` with its true source, then the passives. Ability damage and healing carry no roll and never crit;
   ordinary strikes roll as before, multiplied by mighty or weakened and marked. Statuses in points (shield,

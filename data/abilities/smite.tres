@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 0
+multiplier = 2.0
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 0
+does = 4
+status = 9
+seconds = 4.0
+amount = 0.7
+
+[resource]
+script = ExtResource("1")
+id = &"smite"
+display_name = "Smite"
+description = "Strikes an enemy for 2x damage and weakens it (30% less damage) for 4 s. Every 8 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 8.0
+windup = 0.4
+ready_at_start = true
+reach = 6.0

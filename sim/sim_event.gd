@@ -18,8 +18,12 @@ enum Kind {
 	SIDE_QUEST_STARTED,
 	SIDE_QUEST_DONE,
 	SIDE_QUEST_MISSED,
-	# A command's result (spec 029), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
-	HERO_TRAINED,
+	# Spec 051's: a level-up's talent point, and the results of the talent commands. Not every
+	# run produces them, so they sit before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
+	TALENT_POINT_GAINED,
+	TALENT_TAKEN,
+	PARAGON_SPENT,
+	TALENTS_RESET,
 	# A command's result (spec 035), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
 	ORDER_CHANGED,
 	# Spec 050's: only a battle with abilities produces them, so they sit before ENCOUNTER_STARTED.
@@ -62,9 +66,11 @@ var target_id: int = -1
 ## For SIDE_QUEST_STARTED and SIDE_QUEST_DONE: the work in ticks, or the gold or XP given,
 ## with [member source_id] the worker and [member target_id] the quest's position in
 ## [method Content.side_quest_ids]. For SIDE_QUEST_MISSED: the needed microskill's position,
-## with [member target_id] the quest's position. For HERO_TRAINED: the hero's new rank, with
-## [member source_id] the hero's id and [member target_id] the training's position in
-## [method Content.training_ids]. For ORDER_CHANGED: the order's new value
+## with [member target_id] the quest's position. Spec 051's, with [member source_id] the hero:
+## TALENT_POINT_GAINED: the level that earned it; TALENT_TAKEN: the talent points left, with
+## [member ability_id] the node; PARAGON_SPENT: the points now in the stat, with
+## [member target_id] the stat's position in [method Content.training_ids]; TALENTS_RESET: the
+## gold paid. For ORDER_CHANGED: the order's new value
 ## ([enum Expedition.Pace] or [enum Expedition.GuardianOrder]), with [member target_id] which order:
 ## [constant PartyOrders.PACE] (0) or [constant PartyOrders.GUARDIANS] (1).
 ## Spec 050's, with [member source_id] the fighter and [member target_id] whom it is on:
@@ -77,7 +83,8 @@ var amount: int = 0
 ## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.
 var flag: bool = false
 ## Spec 050: the [AbilityDef] id for ABILITY_STARTED, ABILITY_USED and STATUS_BEGAN (the ability
-## that put the status there), and for STATUS_ENDED; empty otherwise.
+## that put the status there), and for STATUS_ENDED; spec 051: the node for TALENT_TAKEN; empty
+## otherwise.
 var ability_id: StringName = &""
 ## Spec 050: the [enum AbilityEffect.Status] for STATUS_BEGAN and STATUS_ENDED; -1 otherwise.
 var status: int = -1

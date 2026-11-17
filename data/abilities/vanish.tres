@@ -1,0 +1,32 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 2
+does = 4
+status = 12
+seconds = 4.0
+amount = 0.0
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 2
+does = 4
+scale = 2
+status = 5
+seconds = 4.0
+amount = 0.05
+
+[resource]
+script = ExtResource("1")
+id = &"vanish"
+display_name = "Vanish"
+description = "Once a fight, below 30% health: cannot be hit for 4 s, and mends."
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+trigger = 5
+trigger_share = 0.3
+once_per_fight = true

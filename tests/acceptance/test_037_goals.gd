@@ -59,8 +59,13 @@ func _raise(level: int) -> void:
 		_level(hero, level)
 
 
-func _level(hero: Hero, level: int) -> void:
+## Raises [param hero] to [param level]. Unless [param keep_points], the paragon points the levels
+## bring (spec 051) are spent at once, so they ask nothing of the player.
+func _level(hero: Hero, level: int, keep_points: bool = false) -> void:
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+	if not keep_points:
+		var quickness: TrainingDef.Stat = TrainingDef.Stat.QUICKNESS
+		hero.set_paragon_rank(quickness, hero.paragon_rank(quickness) + hero.paragon_points())
 	hero.health = hero.max_health()
 
 
@@ -143,15 +148,6 @@ func _learner() -> Array:
 func _microskill_at(hero: Hero, level: int) -> MicroskillDef:
 	var def: HeroClassDef = hero.def()
 	return Content.microskill(def.microskills[def.microskill_levels.find(level)])
-
-
-func _cheapest_training() -> int:
-	var cheapest: int = 0
-	for id: StringName in Content.training_ids():
-		var price: int = _sim.party.heroes[0].training_cost(id)
-		if price > 0 and (cheapest == 0 or price < cheapest):
-			cheapest = price
-	return cheapest
 
 
 func _cheapest_upgrade() -> int:
@@ -309,6 +305,10 @@ func test_r2_goals_come_from_the_game() -> void:
 
 	# The order, and at most three: guardian, depth, microskill before any gold goal.
 	_sim.party.gold = 1_000_000
+	var strong: Hero = (
+		_sim.party.heroes[0] if hero != _sim.party.heroes[0] else _sim.party.heroes[1]
+	)
+	_level(strong, STRONG_LEVEL + 1, true)
 	_situation(2, 2, 2)
 	assert_eq(
 		goals.lines(),
@@ -318,29 +318,29 @@ func test_r2_goals_come_from_the_game() -> void:
 	var all: Array[String] = _sentences(goals.applicable())
 	assert_eq(all, [beat, "Reach Mossy Hollow 3", skill_line, "Train a hero", "Buy an upgrade"])
 
-	# Train a hero and buy an upgrade, once the gold is there, with the price.
+	# Train a hero once one has paragon points (spec 051), with how many; buy an upgrade once the
+	# gold is there, with the price.
 	_level(hero, STRONG_LEVEL)
+	_level(strong, STRONG_LEVEL + 1)
 	_sim.party.gold = 0
 	_situation(1, 1, 1)
 	assert_eq(goals.lines(), ["Reach Mossy Hollow 2"] as Array[String], "no gold, no gold goals")
-	var training: int = _cheapest_training()
 	var upgrade: int = _cheapest_upgrade()
-	_sim.party.gold = maxi(training, upgrade)
+	_level(hero, STRONG_LEVEL + 2, true)
+	_sim.party.gold = upgrade
 	_hud.advance(STEP)
 	assert_eq(
 		goals.lines(), ["Reach Mossy Hollow 2", "Train a hero", "Buy an upgrade"] as Array[String]
 	)
 	assert_eq(goals.progress(1), -1.0, "training has no bar")
-	assert_eq(goals.detail(1), "%s gold" % Hud.group_thousands(training), "its price")
+	assert_eq(goals.detail(1), "2 points", "the points to spend")
 	assert_eq(goals.progress(2), -1.0, "an upgrade has no bar")
 	assert_eq(goals.detail(2), "%s gold" % Hud.group_thousands(upgrade), "its price")
-	_sim.party.gold = mini(training, upgrade)
+	_sim.party.gold = upgrade - 1
 	_hud.advance(STEP)
-	var cheaper: String = "Train a hero" if training <= upgrade else "Buy an upgrade"
-	if training != upgrade:
-		assert_eq(
-			goals.lines(), ["Reach Mossy Hollow 2", cheaper] as Array[String], "only the cheaper"
-		)
+	assert_eq(
+		goals.lines(), ["Reach Mossy Hollow 2", "Train a hero"] as Array[String], "too poor to buy"
+	)
 
 	# The microskill nearest to being learned, by XP still to earn.
 	_sim = Simulation.new(SEED)
@@ -476,13 +476,22 @@ func test_r4_frames_point_at_themselves() -> void:
 			return
 		assert_false(frame.marker.visible, "frame %d: nothing to do at start" % frame.hero_id)
 
-	# Affordable training: each hero who can pay for one.
-	var hero: Hero = _sim.party.heroes[0]
+	# Training: each hero with a paragon point to spend (spec 051).
+	# Not the hero whose new microskill is marked below.
+	var hero: Hero = _sim.party.heroes[3]
+	if hero == _learner()[0]:
+		hero = _sim.party.heroes[2]
 	var frame: HeroFrame = _frame(hero)
-	_sim.party.gold = _cheapest_training()
+	_level(hero, Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1, true)
+	# The microskills learned on the way are seen first, so the marker is the point alone.
+	sheet.open(hero.id)
+	sheet.open_page(HeroSheet.Page.SKILLS)
 	_hud.advance(STEP)
-	assert_true(frame.marker.is_visible_in_tree(), "a training is affordable")
-	assert_gte(frame.marker.count, 1, "it counts")
+	sheet.open_page(HeroSheet.Page.STATS)
+	sheet.close()
+	_hud.advance(STEP)
+	assert_true(frame.marker.is_visible_in_tree(), "a paragon point to spend")
+	assert_eq(frame.marker.count, 1, "it counts")
 	var rect: Rect2 = frame.get_global_rect()
 	assert_true(rect.encloses(frame.marker.get_global_rect()), "on the frame, clear of the ticker")
 	assert_false(
@@ -494,9 +503,9 @@ func test_r4_frames_point_at_themselves() -> void:
 	_hud.advance(STEP)
 	assert_eq(frame.marker.visible, sheet.page_marked(HeroSheet.Page.TRAINING), "as the tab")
 	sheet.close()
-	_sim.party.gold = 0
+	hero.set_paragon_rank(TrainingDef.Stat.POWER, 1)
 	_hud.advance(STEP)
-	assert_false(frame.marker.visible, "gone when no longer affordable")
+	assert_false(frame.marker.visible, "gone when the point is spent")
 
 	# A newly learned microskill: marked until the hero's Skills page has been open.
 	var learner: Array = _learner()
@@ -535,7 +544,7 @@ func test_r5_explains_itself() -> void:
 	var hero: Hero = learner[0]
 	for other: Hero in _sim.party.heroes:
 		if other != hero:
-			_level(other, STRONG_LEVEL)
+			_level(other, STRONG_LEVEL, true)
 	_sim.party.gold = 1_000_000
 	var seen: Dictionary[String, String] = {}
 	for deepest: int in [2, 1]:
@@ -695,7 +704,8 @@ func test_r7_follows_the_simulation() -> void:
 	assert_eq(goals.lines(), ["Reach Mossy Hollow 2"] as Array[String], "one goal")
 	_sim.party.gold = 1_000_000
 	_hud.advance(STEP)
-	assert_eq(goals.lines().size(), 3, "the gold goals at once: %s" % [goals.lines()])
+	# Only the shop is gold now: training is paragon points (spec 051).
+	assert_eq(goals.lines().size(), 2, "the gold goal at once: %s" % [goals.lines()])
 
 	# Old events (after time away or a stall) flash nothing.
 	_sim.party.gold = 0

@@ -170,8 +170,11 @@ static func _condition_holds(
 	battle: Battle, c: Combatant, ability: AbilityDef, target: Combatant
 ) -> bool:
 	match ability.condition:
-		AbilityDef.Condition.ALLY_BELOW:
+		AbilityDef.Condition.ALLY_BELOW, AbilityDef.Condition.OTHER_ALLY_BELOW:
+			var others: bool = ability.condition == AbilityDef.Condition.OTHER_ALLY_BELOW
 			for ally: Combatant in battle.allies_of(c):
+				if others and ally == c:
+					continue
 				if ally.is_alive() and ally.health_fraction() < ability.condition_share:
 					return true
 			return false

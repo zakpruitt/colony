@@ -21,7 +21,7 @@ const KEYS: Array[Array] = [
 	["U", "Open or close the Shop"],
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
-	["1-3", "On a hero's Training tab: train that row"],
+	["1-3", "On a hero's Training tab: spend a paragon point on that row"],
 	["Q E", "On a hero sheet or the tally: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
@@ -40,7 +40,7 @@ const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
 	"When a stage turns stable (safe), it heads one further.",
 	"A wipe sends it back to the last safe stage.",
-	"Gold buys upgrades in the Shop, and training on hero sheets.",
+	"Gold buys upgrades in the Shop.",
 	"It keeps going while the game is closed.",
 ]
 const TITLE: String = "How Colony works"
