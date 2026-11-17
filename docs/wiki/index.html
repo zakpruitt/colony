@@ -114,7 +114,7 @@ Things marked <span class="tag built">Built</span> work today;
 <div class="note">
   <p><strong>In one line:</strong> the core loop is playable end to end on <code>dev</code>, and since Zak's
   first playtest it has been reworked for ease: what the party is doing, what is coming next, and a place to
-  manage each hero. 35 specs have landed (pull requests #2 to #36), the check passes, and nothing has gone to
+  manage each hero. 42 specs have landed (pull requests #2 to #43), the check passes, and nothing has gone to
   <code>main</code>. Zak approved spec 001; every spec after it is marked <em>provisional</em> until he has
   played it. The direction for the world is in <code>docs/design/world.md</code>.</p>
 </div>
@@ -133,6 +133,17 @@ Things marked <span class="tag built">Built</span> work today;
   fights guardians or holds until told.</li>
   <li><strong>Help in the game</strong> (<kbd>H</kbd>), tooltips on every control, and a game speed of 1x, 2x
   or 4x (<kbd>F</kbd>).</li>
+  <li><strong>A livelier start.</strong> Depth 1 is stable in a minute, not ten (rising to ten minutes by
+  depth 10), chambers near the surface refill in seconds, and early levels cost less. A new party reaches
+  depth 2 in about 90 seconds and meets the Slime King after about nine minutes. These are the balance
+  numbers most worth Zak's judgement.</li>
+  <li><strong>Goals</strong> (<kbd>G</kbd>): the next few things within reach, with progress. Click one to
+  go where you would act on it. The countdown now reads <code>Deeper in 0:56</code>, the moment the party
+  will really move on.</li>
+  <li><strong>After a defeat</strong> a note says who beat the party and why, and offers what would help:
+  train a hero, buy an upgrade, or hold at the guardian.</li>
+  <li><strong>On screen:</strong> the party lies where it fell and stands up again at its revival, heroes
+  stand at a guardian's edge, and side quests glint in the dark.</li>
 </ul>
 <h3>What is in the game</h3>
 <ul>
@@ -214,7 +225,14 @@ Things marked <span class="tag built">Built</span> work today;
 <h3>Known rough edges</h3>
 <ul>
   <li>Every pull request since the first few was checked by CI and the lead only, not by a separate
-  reviewer.</li>
+  reviewer. The one exception is party orders (#36), whose review found a way to break Hold; that is
+  fixed (#41).</li>
+  <li>Without upgrades, training or the Hold order, a new party loses to the Slime King about five times
+  over twelve minutes before it wins.</li>
+  <li>After a wipe the camera's glide to the revival crosses dark rock for a moment; it may want to be
+  faster.</li>
+  <li>A hero who dies in a fight now lies on the field until the fight ends.</li>
+  <li>Clicking the <code>Reach depth N</code> goal flashes a rung the ladder may not be showing.</li>
   <li>All art is a first pass and stays that way by decision: Zak will make the characters, and the world's
   look is to be agreed with him. Weakest: the ghoul, clay hound, fire imp and the Clay Colossus.</li>
   <li>The Cautious pace rests four times as often as Bold but wipes barely less (33 against 34 over three
