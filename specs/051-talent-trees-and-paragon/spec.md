@@ -1,9 +1,9 @@
 # 051 — Talent trees and paragon
 
-- **Status:** provisional (direction agreed with Zak 2026-11-17; the trees below are the lead's, not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction agreed with Zak 2026-11-17; the trees below are the lead's, not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 029, 049, 050
-- **Pull request:** —
+- **Pull request:** [#54](https://github.com/zakpruitt/colony/pull/54)
 
 ## Intent
 
