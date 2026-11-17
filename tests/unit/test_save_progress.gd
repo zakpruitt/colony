@@ -91,4 +91,7 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 			ranks[String(training_id)] = 0
 		for saved: Dictionary in expected["heroes"]:
 			saved["training"] = ranks
+		# Spec 035: version 5 adds the orders at their defaults.
+		expected["pace"] = "steady"
+		expected["guardian_order"] = "challenge"
 		assert_eq(sim.to_save(), expected)

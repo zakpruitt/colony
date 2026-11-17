@@ -105,6 +105,9 @@ var ladder: DepthLadder
 var help: HelpPanel
 var help_button: HudButton
 var tooltip: HudTooltip
+## The party's orders (spec 035): the panel, and the Orders button at the left of the shop tab.
+var orders: OrdersPanel
+var orders_button: HudButton
 
 var _simulation: Simulation
 var _world: World
@@ -201,6 +204,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	journal.setup(simulation, world)
 	_build_ladder()
 	_build_help()
+	_build_orders()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -232,6 +236,8 @@ func advance(delta: float) -> void:
 	ladder.advance(delta)
 	help.advance(delta)
 	help_button.lit = help.is_open()
+	orders.advance(delta)
+	orders_button.lit = orders.is_open()
 	tooltip.advance(delta)
 
 
@@ -243,7 +249,10 @@ func status_text() -> String:
 	match e.state:
 		Expedition.State.TRAVELLING:
 			line = "Hunting on depth %d" % e.depth
-			if e.target_depth > e.depth:
+			if e.is_holding():
+				var held: int = e.depth if e.target_depth > e.depth else e.depth - 1
+				line = "Holding at the %s" % Content.monster(e.guardian_of(held)).display_name
+			elif e.target_depth > e.depth:
 				line = "Heading down to depth %d" % e.target_depth
 			elif e.target_depth < e.depth:
 				line = "Heading up to depth %d" % e.target_depth
@@ -464,6 +473,33 @@ func _build_help() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
+
+
+## Orders (spec 035): the Orders button at the left of the shop tab (the tab grows to hold it), the
+## panel it opens, and their tooltips.
+func _build_orders() -> void:
+	orders_button = HudButton.new("Orders")
+	orders_button.name = "OrdersButton"
+	orders_button.position = speed_button.position
+	shop_tab.add_child(orders_button)
+	var room: float = orders_button.size.x + 3.0
+	for button: HudButton in [speed_button, help_button, shop_button]:
+		button.position.x += room
+	shop_tab.size.x += room
+	orders = OrdersPanel.new()
+	add_child(orders)
+	orders.setup(_simulation, _world)
+	orders_button.pressed.connect(
+		func() -> void:
+			orders.toggle()
+			orders_button.lit = orders.is_open()
+	)
+	# The tooltip has no public way to add an element after its setup.
+	tooltip._tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
+	for order: int in orders.choice_buttons.size():
+		for value: int in orders.choice_buttons[order].size():
+			tooltip._tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
+	move_child(tooltip, -1)  # drawn over the panel
 
 
 func _mark_frames() -> void:
