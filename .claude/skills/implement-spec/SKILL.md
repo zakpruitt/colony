@@ -47,6 +47,10 @@ Add unit tests under `tests/unit/` for logic the acceptance tests only reach ind
 - Run `python tools/dev.py check --only=format,boundary,compile,tests` often; it takes seconds.
 - `gdlint` allows 100 characters per line. A doc comment copied word for word from the spec's **Interfaces**
   can be longer; rewrap it (the signatures stay exact, the comment's line breaks do not matter).
+- Generating many files (abilities, trees) or editing with a Python script is fine, but on Windows Python
+  writes CRLF unless you open the file with `newline='\n'`; do so, or the diff turns every line.
+- Removing a feature other specs built on (spec 051 removed gold training) breaks tests far from your
+  code: run the whole suite early, not just your own test, and list each amended test in the pull request.
 - Commit in logical steps with Conventional Commit messages (`feat(sim): …`), each one passing the check.
   Include the `.uid` file of every script you add. No attribution lines.
 
