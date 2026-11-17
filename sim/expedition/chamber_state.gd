@@ -5,8 +5,9 @@ extends RefCounted
 
 ## How many times the chamber has refilled: 0 for its first monsters.
 var visit: int = 0
-## The depth of the chamber's level.
-var depth: int = 1
+## The depth of the chamber's level, given when the record is made (spec 044): its refill time
+## depends on it.
+var depth: int
 ## True for a guardian's chamber, which stays empty longer once beaten.
 var guardian: bool = false
 ## The tick the party last cleared it, or -1 while it holds monsters.
@@ -17,3 +18,8 @@ var monsters: Array[Combatant] = []
 ## True once the party has walked past this visit's side quest with nobody able to do it, so the
 ## miss is reported once per visit.
 var missed: bool = false
+
+
+## The record of a chamber on the level at [param level_depth], holding its first monsters.
+func _init(level_depth: int) -> void:
+	depth = level_depth

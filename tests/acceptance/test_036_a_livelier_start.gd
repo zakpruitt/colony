@@ -302,8 +302,7 @@ func test_r7_deep_game_keeps_pace() -> void:
 	for depth: int in [10, 20]:
 		assert_eq(DepthTiming.stable_seconds_at(depth), 600.0, "stable time at depth %d" % depth)
 		assert_eq(DepthTiming.respawn_seconds_at(depth), 90.0, "respawn at depth %d" % depth)
-		var fill := ChamberState.new()
-		fill.depth = depth
+		var fill := ChamberState.new(depth)
 		assert_eq(DepthTiming.refill_seconds(fill), 90.0, "a chamber refills as before")
 	assert_eq(Expedition.RESPAWN_SECONDS, 90.0)
 	assert_eq(Expedition.GUARDIAN_RESPAWN_SECONDS, 1800.0)
