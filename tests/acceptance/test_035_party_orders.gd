@@ -885,6 +885,9 @@ func _check_fits(what: String) -> void:
 		assert_false(
 			panel.intersects(_hud.boss_bar.get_global_rect()), "%s: off the boss bar" % what
 		)
+	if _hud.ladder.is_visible_in_tree():
+		var ladder: Rect2 = _hud.ladder.get_global_rect()
+		assert_false(panel.intersects(ladder), "%s: off the depth ladder %s" % [what, ladder])
 	var labels: Array[Label] = []
 	_collect_labels(_hud.orders, labels)
 	var shown: Array[Control] = []

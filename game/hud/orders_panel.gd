@@ -1,9 +1,9 @@
 class_name OrdersPanel
 extends Control
-## The party's orders (spec 035): a small panel below the HUD's top band with one row per order,
-## its name, a button per choice with the current one lit, and the current choice explained in one
-## plain line. The HUD's Orders button and the [kbd]O[/kbd] key open and close it; [kbd]Esc[/kbd]
-## closes it. It opens over the running game and never pauses it.
+## The party's orders (spec 035): a small panel below the HUD's top band, left of the depth ladder,
+## with one row per order: its name, a button per choice with the current one lit, and the current
+## choice explained in one plain line. The HUD's Orders button and the [kbd]O[/kbd] key open and
+## close it; [kbd]Esc[/kbd] closes it. It opens over the running game and never pauses it.
 ##
 ## It reads the orders from the simulation every frame, so a loaded save shows the saved orders;
 ## a click sends [method Simulation.set_pace] or [method Simulation.set_guardian_order], and the
@@ -128,7 +128,9 @@ func setup(simulation: Simulation, world: World) -> void:
 	divider.position = Vector2(PADDING, PADDING + TITLE_HEIGHT - 1.0)
 	divider.size = Vector2(size.x - PADDING * 2.0, 1.0)
 	add_child(divider)
-	position = Vector2(Hud.SCREEN.x - Hud.MARGIN - size.x, Hud.TOP_BAND + DROP)
+	# Under the Orders button, left of the depth ladder (spec 033) so the two never overlap.
+	var right: float = Hud.SCREEN.x - Hud.MARGIN - DepthLadder.WIDTH - Hud.GAP
+	position = Vector2(right - size.x, Hud.TOP_BAND + DROP)
 	advance(0.0)
 
 
