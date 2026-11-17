@@ -1,9 +1,9 @@
 # 047 — A ladder that points true: fixes from the review of the ladder
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 043
-- **Pull request:** —
+- **Pull request:** [#48](https://github.com/zakpruitt/colony/pull/48)
 
 ## Intent
 
