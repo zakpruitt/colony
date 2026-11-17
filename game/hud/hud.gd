@@ -76,6 +76,8 @@ var shop_tab: HudPanel
 var shop_marker: ShopMarker
 ## The guardian's health during a guardian fight (spec 024).
 var boss_bar: BossBar
+## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
+var hero_sheet: HeroSheet
 
 var _simulation: Simulation
 var _world: World
@@ -119,9 +121,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_U:
 			_toggle_shop()
 		KEY_ESCAPE:
-			if not shop.is_open():
+			if not shop.is_open() and not hero_sheet.is_open():
 				return
 			shop.close()
+			hero_sheet.close()
+		KEY_TAB:
+			hero_sheet.open_next()
 		KEY_B:
 			if not shop.is_open():
 				return
@@ -145,6 +150,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_depth()
 	_build_gold()
 	_build_shop()
+	_build_sheet()
 	_adopt_clock()
 	boss_bar = BossBar.new()
 	add_child(boss_bar)
@@ -169,6 +175,7 @@ func advance(delta: float) -> void:
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
+	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
 
 
@@ -287,6 +294,26 @@ func _build_shop() -> void:
 	shop = ShopPanel.new()
 	add_child(shop)
 	shop.setup(_simulation, _world)
+
+
+## The hero sheet (spec 026): a frame's click opens or closes it, and the open hero's frame is
+## marked.
+func _build_sheet() -> void:
+	hero_sheet = HeroSheet.new()
+	add_child(hero_sheet)
+	hero_sheet.setup(_simulation, _world)
+	hero_sheet.shown_changed.connect(_mark_frames)
+	for frame: HeroFrame in frames:
+		frame.clicked.connect(hero_sheet.toggle)
+
+
+func _mark_frames() -> void:
+	for hero: Hero in _simulation.party.heroes:
+		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
+		if frame != null:
+			frame.marked = hero.id == hero_sheet.shown_hero_id()
+			frame.refresh(hero, 0.0)
+	_advance_shop(0.0)
 
 
 ## Takes over Main's tick readout, if there is one beside the HUD: dim, on an ink backing, hidden.
