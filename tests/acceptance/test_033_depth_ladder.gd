@@ -334,6 +334,8 @@ func test_r4_hover_says_it() -> void:
 	assert_false(ladder.hint.visible, "no line before the mouse rests on a rung")
 	_hover_at(ladder.rung_rect(6).get_center())
 	_hud.advance(STEP)
+	assert_false(ladder.hint.visible, "not at once: the mouse must rest, as for a HUD tooltip")
+	_hud.advance(HudTooltip.DELAY)
 	assert_true(ladder.hint.is_visible_in_tree(), "a line shows")
 	assert_eq(ladder.hint_text(), ladder.hover_text(6), "the rung's line")
 	var hint: Rect2 = ladder.hint.get_global_rect()

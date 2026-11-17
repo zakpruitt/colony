@@ -68,6 +68,9 @@ var _party_at: float = 1.0
 var _time: float = 0.0
 ## The depth under the mouse, or 0.
 var _hovered: int = 0
+## Seconds the mouse has rested on that rung: the line shows after HudTooltip.DELAY, as the
+## HUD's tooltips do.
+var _rested: float = 0.0
 ## A target asked for that the simulation has not applied yet (it applies on the next tick), or 0.
 var _asked_target: int = 0
 
@@ -94,7 +97,10 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
-		_hovered = depth_at(motion.position)
+		var under: int = depth_at(motion.position)
+		if under != _hovered:
+			_hovered = under
+			_rested = 0.0
 		_show_hint()
 		return
 	var button: InputEventMouseButton = event as InputEventMouseButton
@@ -163,6 +169,7 @@ func advance(delta: float) -> void:
 	if _asked_target > 0 and e.target_depth == _asked_target:
 		_asked_target = 0
 	_time = fmod(_time + delta, BOB_SECONDS)
+	_rested += delta
 	_party_at = _party_depth()
 	var goal: float = _top_for(_party_at)
 	if absf(goal - _scroll) > RUNGS:
@@ -340,6 +347,9 @@ func _build_hint() -> void:
 	hint = HudPanel.new()
 	hint.name = "Hint"
 	hint.visible = false
+	# Edged like the HUD's tooltips (spec 030), so the line reads as one of them.
+	hint.bevel = Palette.color(&"dusk")
+	hint.border = Palette.color(&"slate")
 	add_child(hint)
 	_hint_text = PixelText.label("", &"white")
 	_hint_text.name = "Text"
@@ -354,7 +364,7 @@ func _build_hint() -> void:
 func _show_hint() -> void:
 	if hint == null:
 		return
-	var showing: bool = _hovered > 0 and is_shown()
+	var showing: bool = _hovered > 0 and is_shown() and _rested >= HudTooltip.DELAY
 	hint.visible = showing
 	if not showing:
 		return
