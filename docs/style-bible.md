@@ -264,6 +264,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   `slate` (0.2 s each) and the panel goes. Text never fades by opacity. The journal panel (`J`) drops from
   under the top band at the left: `Journal` in `yellow`, the game time in `steel`, the newest line in `white`
   and the rest in `silver`.
+- **Help and tooltips** (spec 030). The help panel is an overlay centred under the top band, ending above the
+  journal ticker's strip: `How Colony works` in `yellow` with an `x` button, `steel` section captions
+  (`The idea`, `Keys`), the idea in `white`, each key in `yellow` with what it does in `silver`, and a `steel`
+  footer under a `dusk` line. Its `?` button sits in the shop tab, left of `Shop`, lit while help is open. A
+  tooltip is one line of `white` text on a 13-pixel `night` panel with a `slate` border: under the top band
+  for a top element, just above a bottom one, never over what it explains.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
   `yellow` (the target's colour) with an `ink` outline, bobbing two pixels, above the effects' darkness.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is

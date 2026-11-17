@@ -39,6 +39,9 @@ var level_label: Label
 var recovering: bool = false
 ## True while this hero's sheet is open (spec 026): the frame's edge is drawn in yellow.
 var marked: bool = false
+## The hero's fighter in the battle under way, or null outside a fight: set by the HUD before
+## [method refresh] (spec 030 R1).
+var fighter: Combatant
 
 var _hud: Hud
 var _class_id: StringName
@@ -94,12 +97,17 @@ static func xp_progress(hero: Hero) -> float:
 
 
 ## Brings the frame up to date with [param hero] and advances its animations by [param delta].
+## During a fight the health and death are [member fighter]'s (spec 030 R1), else the hero's own.
 func refresh(hero: Hero, delta: float) -> void:
 	_flash = maxf(_flash - delta, 0.0)
 	_pulse = maxf(_pulse - delta, 0.0)
-	_health.advance(_health_fraction(hero), delta)
-	_xp.advance(xp_progress(hero), delta)
+	var health: float = _health_fraction(hero)
 	_dead = not hero.is_alive()
+	if fighter != null:
+		health = clampf(float(fighter.health) / float(maxi(fighter.max_health, 1)), 0.0, 1.0)
+		_dead = not fighter.is_alive()
+	_health.advance(health, delta)
+	_xp.advance(xp_progress(hero), delta)
 	var part: StringName = &"skull" if _dead else _class_id
 	if part != _icon_part:
 		_icon_part = part
