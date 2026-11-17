@@ -8,11 +8,14 @@ extends RefCounted
 const HEROES_DIR: String = "res://data/heroes"
 const MONSTERS_DIR: String = "res://data/monsters"
 const UPGRADES_DIR: String = "res://data/upgrades"
+const TRAINING_DIR: String = "res://data/training"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
 static var _upgrades: Dictionary[StringName, UpgradeDef] = {}
 static var _upgrade_ids: Array[StringName] = []
+static var _training: Dictionary[StringName, TrainingDef] = {}
+static var _training_ids: Array[StringName] = []
 static var _loaded: bool = false
 
 
@@ -52,6 +55,18 @@ static func upgrade_ids() -> Array[StringName]:
 	return _upgrade_ids.duplicate()
 
 
+## The hero training with this id (spec 029), or null if there is none.
+static func training(id: StringName) -> TrainingDef:
+	_load()
+	return _training.get(id, null)
+
+
+## Every training id, in sheet order (by [member TrainingDef.order], then id).
+static func training_ids() -> Array[StringName]:
+	_load()
+	return _training_ids.duplicate()
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -76,6 +91,14 @@ static func _load() -> void:
 		_upgrades[upgrade_def.id] = upgrade_def
 	_upgrade_ids = _sorted(_upgrades.keys())
 	_upgrade_ids.sort_custom(_before_in_shop)
+	for resource: Resource in _resources_in(TRAINING_DIR):
+		var training_def: TrainingDef = resource as TrainingDef
+		if training_def == null:
+			push_error("Content: %s is not a TrainingDef" % resource.resource_path)
+			continue
+		_training[training_def.id] = training_def
+	_training_ids = _sorted(_training.keys())
+	_training_ids.sort_custom(_before_on_sheet)
 
 
 static func _resources_in(dir: String) -> Array[Resource]:
@@ -100,6 +123,14 @@ static func _sorted(keys: Array) -> Array[StringName]:
 static func _before_in_shop(a: StringName, b: StringName) -> bool:
 	var first: UpgradeDef = _upgrades[a]
 	var second: UpgradeDef = _upgrades[b]
+	if first.order != second.order:
+		return first.order < second.order
+	return String(a) < String(b)
+
+
+static func _before_on_sheet(a: StringName, b: StringName) -> bool:
+	var first: TrainingDef = _training[a]
+	var second: TrainingDef = _training[b]
 	if first.order != second.order:
 		return first.order < second.order
 	return String(a) < String(b)

@@ -13,6 +13,8 @@ enum Kind {
 	UPGRADE_BOUGHT,
 	# Only a run that beats a guardian produces it, so it too sits before ENCOUNTER_STARTED.
 	GUARDIAN_SLAIN,
+	# A command's result (spec 029), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
+	HERO_TRAINED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -37,7 +39,9 @@ var target_id: int = -1
 ## (LEVEL_UP), or the depth (DEPTH_CHANGED, PARTY_REVIVED, STABLE_DEPTH_REACHED,
 ## TARGET_DEPTH_CHANGED). For UPGRADE_BOUGHT: the new rank, with [member source_id]
 ## the upgrade's position in [method Content.upgrade_ids]. For GUARDIAN_SLAIN: the depth,
-## with [member source_id] the guardian's combatant id.
+## with [member source_id] the guardian's combatant id. For HERO_TRAINED: the hero's new
+## rank, with [member source_id] the hero's id and [member target_id] the training's
+## position in [method Content.training_ids].
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED.
 var flag: bool = false

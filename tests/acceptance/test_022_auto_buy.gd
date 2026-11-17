@@ -229,7 +229,7 @@ func test_r4_saved() -> void:
 			sim.step()
 		var data: Dictionary = _through_json(sim.to_save())
 		var version: int = data["version"]
-		assert_eq(version, 3, "save version 3")
+		assert_eq(version, Simulation.SAVE_VERSION, "save version 3, 4 since spec 029")
 		var saved_switch: Variant = data.get("auto_buy")
 		assert_eq(typeof(saved_switch), TYPE_BOOL, "the switch is in the save")
 		assert_eq(str(saved_switch), str(enabled), "as it was")
@@ -237,7 +237,7 @@ func test_r4_saved() -> void:
 		assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 		if loaded != null:
 			assert_eq(loaded.auto_buy, enabled, "round trip of %s" % enabled)
-	assert_eq(Simulation.SAVE_VERSION, 3)
+	assert_eq(Simulation.SAVE_VERSION, 4, "4 since spec 029")
 
 	# A version 2 save loads with auto-buy off, through the upgrade step.
 	var current: Dictionary = _through_json(Simulation.new(SEED).to_save())
@@ -246,7 +246,7 @@ func test_r4_saved() -> void:
 	old.erase("auto_buy")
 	var upgraded: Dictionary = Simulation.upgrade_save(old)
 	var upgraded_version: int = upgraded["version"]
-	assert_eq(upgraded_version, 3, "through the upgrade step")
+	assert_eq(upgraded_version, Simulation.SAVE_VERSION, "through the upgrade steps")
 	var added: Variant = upgraded.get("auto_buy")
 	assert_eq(typeof(added), TYPE_BOOL, "the step adds the switch")
 	assert_eq(str(added), "false", "off")

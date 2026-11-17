@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TrainingDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/training_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"quickness"
+display_name = "Quickness"
+description = "+3% attack speed"
+order = 3
+stat = 2
+per_rank = 0.03
+base_cost = 45
+cost_growth = 1.5
+max_rank = 10
