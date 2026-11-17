@@ -7,8 +7,9 @@ extends HudPanel
 ##
 ## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
 ## above), with the level moved left of it, counts what the hero has for the player to do: its
-## unspent paragon points (spec 051), and the microskills learned since the hero's Skills page was
-## last open. It follows the same rules as the hero sheet's tab markers (spec 034).
+## unspent talent and paragon points (spec 051, spec 055), and the microskills learned since the
+## hero's Skills page was last open. It follows the same rules as the hero sheet's tab markers
+## (spec 034).
 
 ## Clicking the frame opens or closes this hero's sheet (spec 026).
 signal clicked(hero_id: int)
@@ -203,7 +204,7 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	if sheet != null and sheet.shown_hero_id() == hero_id:
 		if sheet.page() == HeroSheet.Page.SKILLS:
 			_skills_seen = learned
-	marker.count = hero.paragon_points() + maxi(learned - _skills_seen, 0)
+	marker.count = HeroSheet.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
 	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)

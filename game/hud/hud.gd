@@ -179,9 +179,9 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop and the hero sheet are never open together (spec 029); the sheet trains
-			# only on its Training page (spec 034).
-			var training: bool = hero_sheet.page() == HeroSheet.Page.TRAINING
+			# The shop and the hero sheet are never open together (spec 029); the sheet spends
+			# paragon points only on its Talents page (spec 034, spec 055).
+			var training: bool = hero_sheet.page() == HeroSheet.Page.TALENTS
 			if shop.is_open():
 				shop.buy_row(key.keycode - KEY_1)
 			elif hero_sheet.is_open() and training and key.keycode <= KEY_3:
@@ -558,6 +558,7 @@ func _build_help() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
+	hero_sheet.talents.add_tips(tooltip)  # spec 055 R11
 
 
 ## The party tally (spec 045): its panel, and its button beside the party frames, left of the first,

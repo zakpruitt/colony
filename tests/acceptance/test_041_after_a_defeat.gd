@@ -139,6 +139,7 @@ func _trainee() -> Hero:
 func _rogue_with_a_point() -> Hero:
 	var rogue: Hero = _sim.party.heroes[1]
 	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
+	_spend_talents(rogue)
 	return rogue
 
 
@@ -254,6 +255,7 @@ func test_r2_says_why() -> void:
 	# depth it says that instead.
 	for hero: Hero in _sim.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(Goals.guardian_level(GUARDIAN_DEPTH)) - hero.xp)
+		_spend_talents(hero)
 		hero.health = hero.max_health()
 	_before_guardian()
 	_sim.expedition.last_stable_depth = GUARDIAN_DEPTH - 3
@@ -300,7 +302,7 @@ func test_r3_offers_help() -> void:
 	_note().press(0)
 	assert_true(_hud.hero_sheet.is_open(), "Train opens a hero sheet")
 	assert_eq(_hud.hero_sheet.shown_hero_id(), trainee.id, "the hero with a point to spend")
-	assert_eq(_hud.hero_sheet.page(), HeroSheet.Page.TRAINING, "on the Training tab")
+	assert_eq(_hud.hero_sheet.page(), HeroSheet.Page.TALENTS, "on the Talents tab")
 	_hud.hero_sheet.close()
 	_hud.advance(STEP)
 
@@ -576,3 +578,12 @@ func test_r7_nothing_else_changes() -> void:
 	assert_eq(wipes, 1, "the party lost to the guardian on its own")
 	assert_true(shown, "and the note was shown")
 	assert_eq(watched.state_hash(), plain.state_hash(), "equal at the end")
+
+
+## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
+## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
+func _spend_talents(hero: Hero) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var order: Array[StringName] = tree.trunk.duplicate()
+	order.append_array(tree.path_a)
+	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

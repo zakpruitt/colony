@@ -261,6 +261,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 	# Spec 051: training spends a paragon point, which a level past 14 brings.
 	var rogue: Hero = _sim.party.heroes[1]
 	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
+	_spend_talents(rogue)
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	var shown: Array[String] = _note().suggestions()
 	assert_eq(shown.size(), 3, "train, buy, hold")
@@ -514,3 +515,12 @@ func test_r9_help_row() -> void:
 		if str(entry[0]) == "Q E":
 			text = str(entry[1])
 	assert_eq(text, "On a hero sheet or the tally: previous or next tab", "the Q E row")
+
+
+## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
+## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
+func _spend_talents(hero: Hero) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var order: Array[StringName] = tree.trunk.duplicate()
+	order.append_array(tree.path_a)
+	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

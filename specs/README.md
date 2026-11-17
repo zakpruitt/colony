@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 055 | [The tree on the hero sheet](055-the-tree-on-the-sheet/spec.md) | M6 | landed on dev, [#56](https://github.com/zakpruitt/colony/pull/56), provisional | 034, 037, 041, 042, 051 |
 | 051 | [Talent trees and paragon](051-talent-trees-and-paragon/spec.md) | M6 | landed on dev, [#54](https://github.com/zakpruitt/colony/pull/54), provisional | 029, 049, 050 |
 | 054 | [Zones on screen](054-zones-on-screen/spec.md) | M6 | landed on dev, [#53](https://github.com/zakpruitt/colony/pull/53), provisional | 006, 008, 012, 018, 048, 049 |
 | 053 | [The area map](053-the-area-map/spec.md) | M6 | landed on dev, [#52](https://github.com/zakpruitt/colony/pull/52), provisional | 030, 037, 042, 049 |
@@ -71,5 +72,4 @@ abilities for every hero, with paragon points after it (`docs/design/world.md`, 
 | Spec | Status | Depends on |
 |---|---|---|
 | [052 Resources](052-resources/spec.md) | in progress, provisional | 016, 017, 022, 031, 049, 051, 053 |
-| [055 The tree on the hero sheet](055-the-tree-on-the-sheet/spec.md) | in progress, provisional | 034, 037, 041, 042, 051 |
 | [056 Abilities on screen](056-abilities-on-screen/spec.md) | in progress, provisional | 010, 027, 045, 050, 051 |

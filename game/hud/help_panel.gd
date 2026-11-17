@@ -21,7 +21,7 @@ const KEYS: Array[Array] = [
 	["U", "Open or close the Shop"],
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
-	["1-3", "On a hero's Training tab: spend a paragon point on that row"],
+	["1-3", "On a hero's Talents tab: put a paragon point into that stat"],
 	["Q E", "On a hero sheet or the tally: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
