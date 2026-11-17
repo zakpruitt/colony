@@ -83,6 +83,8 @@ what is on them? Describe the shots.
 - `tests/acceptance/test_034_hero_sheet_tabs.gd`
 - `tests/acceptance/test_026_hero_sheet.gd`, `test_028_seeing_side_quests.gd`, `test_029_hero_training.gd`
   only as R8 allows (say which)
+- `game/hud/help_panel.gd` (the new key's row in `KEYS`) and `tests/acceptance/test_030_help_and_hints.gd` (the
+  new key's case in `_check_entry`): the help panel lists every key, and its test fails otherwise
 - `docs/style-bible.md`, `docs/wiki/index.html`
 
 ## Open questions

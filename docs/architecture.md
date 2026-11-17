@@ -34,6 +34,11 @@ passed. That one design gives three things the game needs:
 - **Offline catch-up:** time missed while closed or asleep is more ticks to step (or to estimate, past a cap).
 - **Fast tests:** a test steps ten minutes of play in a loop, with no waiting.
 
+**Game speed (spec 032).** At 2x or 4x (`Main.set_speed`, never saved) the driver also steps `speed - 1` extra
+ticks per tick of real time, but only while the frame's `step_budget_usec` lasts; extra ticks that do not fit
+are dropped, never kept. The real-time ticks, backlog, catch-up and saving are exactly as at 1x. The world
+multiplies its recent and stall windows by the speed and eases sprites and bolts in game time.
+
 ## Randomness
 
 Every roll comes from a `SimRng` (`sim/sim_rng.gd`), a seeded stream whose position can be saved. Systems take

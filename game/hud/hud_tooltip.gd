@@ -78,6 +78,7 @@ func setup(hud: Hud) -> void:
 	_tip([hud.plus_button], "Set the target one depth down.")
 	_tip([hud.auto_button], "When on, the party goes deeper each time a depth is safe.")
 	_tip([hud.shop_button], "Spend gold on upgrades for the whole party.")
+	_tip([hud.speed_button], "How fast the game runs: click (or press F) for 1x, 2x or 4x.")
 	_tip([hud.gold_panel], "Gold from fights, to spend in the Shop.")
 	_tip([hud.boss_bar], "A guardian holds the way down: beat it to go deeper.")
 	if hud.help_button != null:

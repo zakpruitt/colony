@@ -6,6 +6,8 @@ extends Node
 ## Emitted when the replay of the time away has ended, before the world is made: the
 ## simulation is then exactly where the replay left it.
 signal caught_up(report: AwayReport)
+## Emitted when the game's speed changes (spec 032), with the new speed.
+signal speed_changed(value: int)
 
 ## The seed of a new game.
 const SIMULATION_SEED: int = 1
@@ -19,6 +21,8 @@ const MIN_AWAY_SECONDS: float = 60.0
 const SAVED_AT_KEY: String = "saved_at"
 ## Real time spent replaying per frame, at most, in microseconds.
 const SLICE_USEC: int = 10_000
+## The speeds the game runs at, as multiples of real time, in the order [kbd]F[/kbd] cycles them.
+const SPEEDS: Array[int] = [1, 2, 4]
 
 ## The simulation this scene runs.
 var simulation: Simulation
@@ -52,7 +56,16 @@ var sound: SoundPlayer
 ## tests, screenshots and headless runs, which then never open help by themselves. Set it before
 ## the scene enters the tree to choose the file; a played game uses the default one.
 var settings: SoundSettings
+## How many times real time the game runs (spec 032): one of [constant SPEEDS]. A way of
+## watching, not a rule: never saved, 1 in every new session, and time away is counted at 1x.
+## Read-only outside the class: assigning it goes through [method set_speed].
+var speed: int:
+	get:
+		return _speed
+	set(value):
+		set_speed(value)
 
+var _speed: int = 1
 var _save_in: float = SAVE_SECONDS
 ## True when a saved game was loaded rather than a new one started.
 var _loaded_save: bool = false
@@ -84,9 +97,33 @@ func _process(delta: float) -> void:
 		save_now()
 
 
+func _unhandled_input(event: InputEvent) -> void:
+	var key: InputEventKey = event as InputEventKey
+	if key == null or not key.pressed or key.echo or key.keycode != KEY_F:
+		return
+	cycle_speed()
+	get_viewport().set_input_as_handled()
+
+
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_EXIT_TREE:
 		save_now()
+
+
+## Runs the game at [param value] times real time; a value not in [constant SPEEDS] is ignored.
+## During a replay it applies once play starts: the replay itself is never faster.
+func set_speed(value: int) -> void:
+	if not SPEEDS.has(value) or value == _speed:
+		return
+	_speed = value
+	_apply_speed()
+	speed_changed.emit(_speed)
+
+
+## The next speed in [constant SPEEDS], after the last the first: what the button and
+## [kbd]F[/kbd] do.
+func cycle_speed() -> void:
+	set_speed(SPEEDS[(SPEEDS.find(_speed) + 1) % SPEEDS.size()])
 
 
 ## True while the replay is running.
@@ -139,6 +176,10 @@ func _start_play() -> void:
 	sound.settings = settings
 	add_child(sound)
 	sound.setup(world, effects, simulation)
+	hud.speed_button.pressed.connect(cycle_speed)
+	speed_changed.connect(hud.show_speed)
+	hud.show_speed(_speed)
+	_apply_speed()
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	_welcome()
@@ -152,6 +193,14 @@ func _welcome() -> void:
 		return
 	hud.help.open()
 	settings.set_help_seen(true)
+
+
+## Tells the driver and the world the speed, if play has started.
+func _apply_speed() -> void:
+	if driver != null:
+		driver.speed = _speed
+	if world != null:
+		world.speed = _speed
 
 
 ## Runs one slice of the replay; when it is done, shows the report and starts normal play.

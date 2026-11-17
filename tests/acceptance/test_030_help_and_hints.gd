@@ -394,6 +394,11 @@ func _check_entry(main: Main, label: String) -> void:
 				_key(code)
 				assert_ne(main.sound.is_muted(), muted, "%s mutes or unmutes" % what)
 				_key(code)
+			"F":
+				var speed: int = main.speed
+				_key(code)
+				assert_ne(main.speed, speed, "%s changes the game speed" % what)
+				main.set_speed(speed)
 			"F3":
 				var shown_clock: bool = hud.clock_label.visible
 				_key(code)
@@ -443,6 +448,7 @@ func _tipped(hud: Hud) -> Array[Array]:
 		["the Shop button", hud.shop_button, ""],
 		["the gold", hud.gold_label, ""],
 		["the ? button", hud.help_button, ""],
+		["the speed button", hud.speed_button, ""],
 	]
 	for frame: HeroFrame in hud.frames:
 		tipped.append(["frame %d" % frame.hero_id, frame, "Click for details"])

@@ -25,6 +25,7 @@ const KEYS: Array[Array] = [
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
 	["Z", "Zoom in or out"],
+	["F", "Game speed: 1x, 2x or 4x"],
 	["M", "Sound on or off"],
 	["F3", "Show the clock (for testing)"],
 ]
