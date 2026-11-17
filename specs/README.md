@@ -68,3 +68,4 @@ screen, 055 the tree on the hero sheet. New rows go in this table.
 |---|---|---|
 | [049 Areas](049-areas/spec.md) | in progress, provisional | 005, 013, 014, 020, 035 |
 | [050 Abilities in combat](050-abilities-in-combat/spec.md) | in progress, provisional | 004, 015 |
+| [051 Talent trees and paragon](051-talent-trees-and-paragon/spec.md) | written, waits for 049 and 050; provisional | 029, 049, 050 |
