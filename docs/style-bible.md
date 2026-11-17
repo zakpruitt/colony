@@ -300,7 +300,7 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   wheel, it shows a 15x8 `night` box with an `ink` edge on the rails at its top or bottom edge, holding a 7x4
   `white` triangle pointing toward the party.
 - **The goals tracker** (spec 037) drops from under the top band at the left, below the depth panel, in the
-  place the hero sheet and journal use (it hides while either is open): `Goals` in `steel` and `G hide` in
+  place the hero sheet and journal use (it hides while either, or the tally, is open): `Goals` in `steel` and `G hide` in
   `slate` over up to three rows. A row is a small `steel` square (a 7x5 `green` tick drawn in code once
   done), the sentence in `white`, and under it a 4-pixel bar (`cyan`/`blue` for levels and XP,
   `yellow`/`amber` for depth) ending at one column for every row, with its count in `steel` to its right; a
@@ -316,6 +316,17 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   pixels apart; `Holding` is lit as a toggle is. 8 s after the heroes stand (not while the mouse is
   on it) its text steps down `silver`, `steel`,
   `slate` (0.2 s each), buttons too, and it goes; never by opacity. It hides while any panel is open.
+- **The party tally** (spec 045) is a damage meter in the hero sheet's place and at its size (240x150),
+  never sharing the screen with the other panels. `Party tally` in `yellow`; the span switch (`Last fight`,
+  `Session`) as two buttons left of the `x`, the chosen one lit as a toggle is; three tab buttons (`Damage`,
+  `Healing`, `Taken`) on a `dusk` line with `Q E tabs   T close` in `slate`; the fight's line in `silver`
+  (`Last fight: 3 ogres, depth 7, 14 s`); then a row per hero in party order: the frame's portrait in a
+  20x20 `ink` box with a `dusk` edge, the class in `white`, the number in `white` and the share in `steel` at
+  the right, over an 8-pixel bar on `ink` in the class's colour (knight `red`/`crimson`, rogue
+  `orchid`/`plum`, mage `blue`/`navy`, cleric `amber`/`copper`), the largest row full and the bars easing as
+  every bar does. On the Session span each hero's side quests are a `green` line under the bars. Its button
+  sits left of the party frames, as tall as one: three small bars in `red`, `blue` and `amber` on `ink`
+  edges over a `T`, lit while the tally is open.
 - **Frame markers** (spec 037) sit inside a hero frame's top-right corner, not above it (the ticker's strip
   stays clear); the level moves left of the marker.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
