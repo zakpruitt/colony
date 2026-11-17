@@ -46,3 +46,4 @@ until Zak has played them.
 | [028 Seeing side quests](028-seeing-side-quests/spec.md): props, the worker at work, misses that say what was needed, microskills in the sheet and journal | provisional, waiting on 025 and 027 | 008, 010, 011, 021, 025, 026, 027 |
 | [029 Hero training](029-hero-training/spec.md): spend gold on one hero from their sheet (power, toughness, quickness) | provisional, in progress | 014, 016, 022, 026 |
 | [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |
+| [031 The away report tells the whole story](031-away-report-knows-more/spec.md): kills counted right, plus guardians, side quests and microskills | provisional, in progress | 019, 020, 022, 025 |
