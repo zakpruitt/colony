@@ -79,11 +79,26 @@ stable depth, with every chamber freshly populated.
   nothing from the time away is drawn, and an `AwayPanel` reports it. No save is written during a replay, so
   quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
   Watching changes nothing (spec 023): the expedition's reads (`monsters_in`, `is_populated`,
-  `hero_position`, `chamber`, `guardian_of`, `hash_parts`) never change the state hash, so a watched game and
+  `side_quest_in`, `working_quest`, `worker_id`, `work_progress`, `hero_position`, `chamber`,
+  `guardian_of`, `hash_parts`) never change the state hash, so a watched game and
   the same game run headless stay hash-equal. A chamber's record is made only when the party fights there;
   a read works out the visit the chamber is on and takes its monsters from a roll cache outside the hash.
   Monster ids come from where the monster waits (`Expedition.monster_id`: depth, chamber, visit and place in
   the encounter), not from the order anything was asked for.
+
+## Side quests and microskills
+
+Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists
+the ones it learns and the level of each, and a hero has one from that level on (`Hero.microskills()`), so
+nothing about them is saved. A side quest (`SideQuestDef`, `data/sidequests/`) is what a plain chamber holds
+in place of monsters on a visit, with chance `Expedition.SIDE_QUEST_SHARE`, rolled like the monsters from the
+seed, depth, chamber and visit only (`fork("sidequest/d/c/v")`). Reaching one, the living hero with its
+microskill (lowest id first, `Party.hero_with_microskill`) does it while the expedition is `WORKING`; the
+reward is `SideQuestDef.reward_at(depth)`, a number of average kills of that depth, and the chamber is cleared
+like a fought one. With nobody able the party walks on: a quest stays for a later pass (its `ChamberState`
+remembers the miss so it is reported once per visit), a hazard springs, hurts every living hero (never below
+1) and is cleared. Events: `MICROSKILL_LEARNED`, `SIDE_QUEST_STARTED`, `SIDE_QUEST_DONE`, `SIDE_QUEST_MISSED`,
+with the usual gold, XP and hit events beside them.
 
 ## Conventions
 
