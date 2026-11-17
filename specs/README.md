@@ -55,4 +55,5 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [040 Orders that hold](040-orders-that-hold/spec.md): fixes from the review of party orders: Hold can be broken on the ladder, the panel can show the wrong choice, two tests prove too little | provisional, waiting on 039 | 035, 039 |
+| [040 Orders that hold](040-orders-that-hold/spec.md): fixes from the review of party orders: Hold can be broken on the ladder, the panel can show the wrong choice, two tests prove too little | provisional, in progress | 035, 039 |
+| [041 After a defeat](041-after-a-defeat/spec.md): a wipe says who beat the party and why, and offers what would help, one click away | provisional, in progress | 020, 027, 029, 035, 037, 038, 039 |
