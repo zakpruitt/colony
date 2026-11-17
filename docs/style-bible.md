@@ -248,6 +248,19 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
 - **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,
   centred, at most 240 pixels wide: the guardian's name in capitals over a 7-pixel `red`/`crimson` bar with a
   `pink` top row, an `amber` trail of lost health draining behind it, and a `white` flash on each hit.
+- **Reading the party** (spec 027). The depth panel's state is a short sentence in the state's colour
+  (`Heading down to depth 5`, `Fighting the Slime King`), and the panel grows to hold it, never into the boss
+  bar or the shop tab. The road to stable is the panel's third column, after its own `dusk` divider:
+  `Stable in m:ss` in `silver` over a 40x5 bar filling in `yellow`/`amber` on `ink`, and what auto-push does
+  next (`then depth N`) in `steel`; a stable depth reads `Stable` in `green`, with no bar. A fallen hero's
+  frame reads `Down` in `red` where the level was, and all four read `Recovering` in `pink` during a revival.
+- **The journal ticker and panel** are overlays like the shop. The ticker is a one-line `HudPanel` centred
+  just above the party frames, its sentence in `white`; after 4 s the text steps down `silver`, `steel`,
+  `slate` (0.2 s each) and the panel goes. Text never fades by opacity. The journal panel (`J`) drops from
+  under the top band at the left: `Journal` in `yellow`, the game time in `steel`, the newest line in `white`
+  and the rest in `silver`.
+- **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
+  `yellow` (the target's colour) with an `ink` outline, bobbing two pixels, above the effects' darkness.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is
   `green`/`forest` above half, `yellow`/`amber` down to a quarter, `red`/`crimson` below, on `dark_brown`;
   XP is `cyan`/`blue` on `ink`. Bars ease to a new value over about 0.3 s, never jump.
