@@ -69,14 +69,25 @@ func setup(hud: Hud) -> void:
 	_tip(
 		[hud.stable_note, hud.stable_bar, hud.stable_next],
 		func() -> String:
+			# Spec 039 R2: the note says what decides what happens next.
+			var note: String = hud.stable_note.text
+			if note.begins_with("Deeper in"):
+				return "Time left until Auto takes the party a depth deeper."
+			if note == "Holding":
+				return "The Hold order keeps the party from the guardian: Orders (O) sends it in."
 			if hud.stable_bar.visible:
 				return "Time left until this depth is safe."
+			if hud.stable_next.text.begins_with("staying"):
+				return "Safe, and Auto is off: the party stays until Auto is on or the target is deeper."
 			return "This depth is safe: a wipe comes back here."
 	)
 	_tip([hud.target_label, hud.target_caption], "The depth the party is heading for.")
 	_tip([hud.minus_button], "Set the target one depth up.")
 	_tip([hud.plus_button], "Set the target one depth down.")
-	_tip([hud.auto_button], "When on, the party goes deeper each time a depth is safe.")
+	_tip(
+		[hud.auto_button],
+		"When on, the party goes deeper each time it holds its target long enough."
+	)
 	_tip([hud.shop_button], "Spend gold on upgrades for the whole party.")
 	_tip([hud.speed_button], "How fast the game runs: click (or press F) for 1x, 2x or 4x.")
 	_tip([hud.gold_panel], "Gold from fights, to spend in the Shop.")
