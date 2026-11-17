@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 026 | [The hero sheet](026-hero-sheet/spec.md) | M4 | landed on dev, [#26](https://github.com/zakpruitt/colony/pull/26), provisional | 011, 016, 017 |
 | 002 | [Art foundation](002-art-foundation/spec.md) | M0 | landed on dev, [#4](https://github.com/zakpruitt/colony/pull/4), provisional | — |
 | 024 | [Guardian fights](024-guardian-fights/spec.md) | M5 | landed on dev, [#24](https://github.com/zakpruitt/colony/pull/24), provisional | 010, 011, 020, 021 |
 | 023 | [Steady monster ids](023-steady-monster-ids/spec.md) | M3 | landed on dev, [#25](https://github.com/zakpruitt/colony/pull/25), provisional | 005, 008, 020 |
@@ -41,5 +42,4 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [025 Microskills and side quests](025-microskills-and-side-quests/spec.md): chambers that hold something other than a fight, opened by a hero's microskill (simulation) | provisional, in progress | 005, 020, 023 |
-| [026 Hero sheet](026-hero-sheet/spec.md): click a hero to see who they are, their stats and what they are doing | provisional, in progress | 011, 016, 017 |
 | [027 Reading the party](027-reading-the-party/spec.md): a status line that says what and why, the countdown to stable, a journal | provisional, in progress | 008, 010, 011, 020 |
