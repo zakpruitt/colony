@@ -85,12 +85,14 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		expected["version"] = Simulation.SAVE_VERSION
 		expected["upgrades"] = sim.to_save()["upgrades"]
 		expected["auto_buy"] = false  # spec 022: version 3 adds the switch, off
-		# Spec 029: version 4 gives each hero its training, every rank 0.
+		# Spec 051: version 7 drops spec 029's training and gives each hero no talents and no
+		# paragon points spent.
 		var ranks: Dictionary = {}
 		for training_id: StringName in Content.training_ids():
 			ranks[String(training_id)] = 0
 		for saved: Dictionary in expected["heroes"]:
-			saved["training"] = ranks
+			saved["talents"] = []
+			saved["paragon"] = ranks
 		# Spec 035: version 5 adds the orders at their defaults.
 		expected["pace"] = "steady"
 		expected["guardian_order"] = "challenge"

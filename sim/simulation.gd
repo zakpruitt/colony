@@ -10,11 +10,17 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 6
+const SAVE_VERSION: int = 7
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
+## A fresh start costs this much gold per level of the hero (spec 051).
+const RESET_GOLD_PER_LEVEL: int = 100
 ## The largest whole number a JSON float holds exactly (2^53).
 const _LARGEST_WHOLE: int = 9_007_199_254_740_992
+## The kinds of talent command waiting in [member _pending_talents].
+const _TAKE: int = 0
+const _PARAGON: int = 1
+const _RESET: int = 2
 
 ## Ticks stepped since the simulation was created. Read-only outside this class.
 var tick: int:
@@ -48,9 +54,9 @@ var _tick: int = 0
 var _events: Array[SimEvent] = []
 ## Upgrades asked for by [method buy_upgrade], bought in order on the next step.
 var _pending_buys: Array[StringName] = []
-## Training asked for by [method train_hero], each [hero id, training id], bought in order on the
-## next step.
-var _pending_training: Array[Array] = []
+## Talent commands asked for by [method take_talent], [method spend_paragon] and
+## [method reset_talents], each [kind, hero id, what], applied in order on the next step.
+var _pending_talents: Array[Array] = []
 var _auto_buy: bool = false
 ## The switch asked for by [method set_auto_buy], applied on the next step: 1 on, 0 off, -1 none.
 var _pending_auto_buy: int = -1
@@ -71,7 +77,7 @@ func step() -> void:
 		_auto_buy = _pending_auto_buy == 1
 		_pending_auto_buy = -1
 	_apply_buys()
-	_apply_training()
+	_apply_talents()
 	_apply_auto_buy()
 	expedition.step(_tick)
 	_events.append_array(expedition.drain_events())
@@ -129,12 +135,32 @@ func buy_upgrade(id: StringName) -> void:
 	_pending_buys.append(id)
 
 
-## Asks to train hero [param hero_id] in [param training_id] at the next step (spec 029). It is
-## bought then if the hero and the training are known, the hero's rank is below the maximum and
-## the party has the gold: the gold is taken, that hero's rank rises by one and
-## [constant SimEvent.Kind.HERO_TRAINED] is reported. Otherwise nothing happens.
-func train_hero(hero_id: int, training_id: StringName) -> void:
-	_pending_training.append([hero_id, training_id])
+## Asks hero [param hero_id] to spend a talent point on node [param ability_id] at the next step
+## (spec 051). It is taken then if the hero has an unspent point and the node is next in its tree
+## ([method Hero.can_take]), with [constant SimEvent.Kind.TALENT_TAKEN]; the hero fights with it
+## from its next fight on. Otherwise nothing happens.
+func take_talent(hero_id: int, ability_id: StringName) -> void:
+	_pending_talents.append([_TAKE, hero_id, ability_id])
+
+
+## Asks hero [param hero_id] to put a paragon point into [param stat] at the next step (spec 051).
+## It goes in then if the hero has an unspent one, with [constant SimEvent.Kind.PARAGON_SPENT]; a
+## hero in a fight fights on with the new numbers. Otherwise nothing happens.
+func spend_paragon(hero_id: int, stat: TrainingDef.Stat) -> void:
+	_pending_talents.append([_PARAGON, hero_id, stat])
+
+
+## Asks for a fresh start for hero [param hero_id] at the next step (spec 051): for
+## [constant RESET_GOLD_PER_LEVEL] gold per level, every node it took is given back as an unspent
+## talent point and both paths are open again, with [constant SimEvent.Kind.TALENTS_RESET].
+## Paragon points stay. Nothing happens during a fight, without the gold, or with no node taken.
+func reset_talents(hero_id: int) -> void:
+	_pending_talents.append([_RESET, hero_id, 0])
+
+
+## The gold a fresh start for [param hero] costs.
+static func reset_price(hero: Hero) -> int:
+	return RESET_GOLD_PER_LEVEL * hero.level
 
 
 ## Turns auto-buy on or off, from the next step. While on, the camp buys the cheapest
@@ -151,27 +177,39 @@ func _apply_buys() -> void:
 		_buy(id)
 
 
-func _apply_training() -> void:
-	var asked: Array[Array] = _pending_training
-	_pending_training = []
+func _apply_talents() -> void:
+	var asked: Array[Array] = _pending_talents
+	_pending_talents = []
 	for entry: Array in asked:
-		var hero_id: int = entry[0]
-		var training_id: StringName = entry[1]
-		_train(hero_id, training_id)
+		var kind: int = entry[0]
+		var hero_id: int = entry[1]
+		var hero: Hero = party.hero(hero_id)
+		if hero == null:
+			continue
+		match kind:
+			_TAKE:
+				var ability_id: StringName = entry[2]
+				_take(hero, ability_id)
+			_PARAGON:
+				var stat: int = entry[2]
+				_paragon(hero, stat as TrainingDef.Stat)
+			_RESET:
+				_reset(hero)
 
 
-## Trains [param hero_id] in [param training_id] if the party can pay for the hero's next rank.
-## A hero in a fight fights on with the new numbers; more maximum health leaves the health it has
-## as it is.
-func _train(hero_id: int, training_id: StringName) -> void:
-	var hero: Hero = party.hero(hero_id)
-	if hero == null:
+func _take(hero: Hero, ability_id: StringName) -> void:
+	if not hero.take_talent(ability_id):
 		return
-	var price: int = hero.training_cost(training_id)
-	if price <= 0 or price > party.gold:
+	var event := SimEvent.new(SimEvent.Kind.TALENT_TAKEN, _tick, hero.id, -1, hero.talent_points())
+	event.ability_id = ability_id
+	_events.append(event)
+
+
+## Puts a paragon point of [param hero] into [param stat]. A hero in a fight fights on with the
+## new numbers; more maximum health leaves the health it has as it is.
+func _paragon(hero: Hero, stat: TrainingDef.Stat) -> void:
+	if not hero.spend_paragon(stat):
 		return
-	party.gold -= price
-	hero.set_training_rank(training_id, hero.training_rank(training_id) + 1)
 	var fight: Battle = expedition.battle
 	var fighter: Combatant = fight.combatant(hero.id) if fight != null else null
 	if fighter != null:
@@ -180,9 +218,18 @@ func _train(hero_id: int, training_id: StringName) -> void:
 		fighter.damage = grown.damage
 		fighter.heal_power = grown.heal_power
 		fighter.attack_interval_ticks = grown.attack_interval_ticks
-	var position: int = Content.training_ids().find(training_id)
-	var rank: int = hero.training_rank(training_id)
-	_events.append(SimEvent.new(SimEvent.Kind.HERO_TRAINED, _tick, hero.id, position, rank))
+	var position: int = Content.training_ids().find(TalentRules.stat_def(stat).id)
+	var rank: int = hero.paragon_rank(stat)
+	_events.append(SimEvent.new(SimEvent.Kind.PARAGON_SPENT, _tick, hero.id, position, rank))
+
+
+func _reset(hero: Hero) -> void:
+	var price: int = reset_price(hero)
+	if expedition.battle != null or hero.talents().is_empty() or price > party.gold:
+		return
+	party.gold -= price
+	hero.reset_talents()
+	_events.append(SimEvent.new(SimEvent.Kind.TALENTS_RESET, _tick, hero.id, -1, price))
 
 
 ## Auto-buy looks for a purchase on the ticks that start a whole [constant AUTO_BUY_SECONDS], so
@@ -266,20 +313,13 @@ func state_hash() -> int:
 func to_save() -> Dictionary:
 	var heroes: Array = []
 	for hero: Hero in party.heroes:
-		var training: Dictionary = {}
-		for training_id: StringName in Content.training_ids():
-			training[String(training_id)] = hero.training_rank(training_id)
-		(
-			heroes
-			. append(
-				{
-					"class": String(hero.class_id),
-					"level": hero.level,
-					"xp": hero.xp,
-					"training": training,
-				}
-			)
-		)
+		var saved_hero: Dictionary = {
+			"class": String(hero.class_id),
+			"level": hero.level,
+			"xp": hero.xp,
+		}
+		TalentSave.write(hero, saved_hero)
+		heroes.append(saved_hero)
 	var ranks: Dictionary = {}
 	for id: StringName in Content.upgrade_ids():
 		ranks[String(id)] = upgrades.rank(id)
@@ -329,10 +369,7 @@ static func from_save(data: Dictionary) -> Simulation:
 		# A save from before spec 036's cheaper levels can hold XP that pays for more levels: take
 		# them now, silently, so the hero is what its XP earns (spec 044). Health is filled below.
 		hero.gain_xp(0)
-		var training: Dictionary = saved["training"]
-		for key: Variant in training:
-			var training_text: String = key
-			hero.set_training_rank(StringName(training_text), _whole(training[key]))
+		TalentSave.read(hero, saved)
 		hero.health = hero.max_health()
 		heroes.append(hero)
 	sim.party.heroes = heroes
@@ -411,6 +448,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = _save_4_to_5(current)
 	if _whole(current["version"]) == 5:
 		current = AreaSave.upgrade_5_to_6(current)
+	if _whole(current["version"]) == 6:
+		current = TalentSave.upgrade_6_to_7(current)
 	return current
 
 
@@ -521,42 +560,20 @@ static func _check_whole(
 ## Adds a problem for each thing wrong with one saved hero, [param where] in the list.
 static func _check_hero(problems: PackedStringArray, value: Variant, where: String) -> void:
 	if not (value is Dictionary):
-		problems.append("%s: not a hero (class, level, xp, training)" % where)
+		problems.append("%s: not a hero (class, level, xp, talents, paragon)" % where)
 		return
 	var saved: Dictionary = value
 	var class_text: Variant = saved.get("class")
+	var class_def: HeroClassDef = null
 	if typeof(class_text) != TYPE_STRING:
 		problems.append("%s.class: missing or not text" % where)
-	elif Content.hero_class(StringName(class_text as String)) == null:
-		problems.append("%s.class: unknown hero class '%s'" % [where, class_text])
+	else:
+		class_def = Content.hero_class(StringName(class_text as String))
+		if class_def == null:
+			problems.append("%s.class: unknown hero class '%s'" % [where, class_text])
 	_check_whole(problems, saved, "level", 1, where + ".")
 	_check_whole(problems, saved, "xp", 0, where + ".")
-	_check_training(problems, saved.get("training"), where + ".training")
-
-
-## Adds a problem for each saved training rank of one hero that is not a known training's
-## whole rank from 0 to its maximum. Trainings left out are rank 0.
-static func _check_training(problems: PackedStringArray, value: Variant, where: String) -> void:
-	if not (value is Dictionary):
-		problems.append("%s: missing or not a dictionary of ranks" % where)
-		return
-	var ranks: Dictionary = value
-	for key: Variant in ranks:
-		if typeof(key) != TYPE_STRING:
-			problems.append("%s: key %s is not a training id" % [where, str(key)])
-			continue
-		var id_text: String = key
-		var def: TrainingDef = Content.training(StringName(id_text))
-		var field: String = "%s.%s" % [where, id_text]
-		if def == null:
-			problems.append("%s: unknown training '%s'" % [field, id_text])
-			continue
-		var rank_value: Variant = ranks[key]
-		if not _is_whole(rank_value):
-			problems.append("%s: rank missing or not a whole number" % field)
-		elif _whole(rank_value) < 0:
-			problems.append("%s: rank %d is below 0" % [field, _whole(rank_value)])
-		elif _whole(rank_value) > def.max_rank:
-			problems.append(
-				"%s: rank %d is above the maximum %d" % [field, _whole(rank_value), def.max_rank]
-			)
+	var level: int = 0
+	if _is_whole(saved.get("level")) and _whole(saved["level"]) >= 1:
+		level = _whole(saved["level"])
+	TalentSave.check(problems, saved, class_def, level, where)

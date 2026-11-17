@@ -7,7 +7,8 @@ extends Control
 ## At each [method advance] it reads the simulation and lists the first [constant MOST] goals that
 ## apply, in this order: beating the next guardian (when its depth is within
 ## [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching the next
-## depth, the microskill nearest to being learned, training a hero, and buying an upgrade. A shown
+## depth, the microskill nearest to being learned, training a hero (spending its paragon points,
+## spec 051), and buying an upgrade. A shown
 ## goal that is achieved (the guardian slain, the depth reached, the microskill learned) flashes,
 ## shows a tick for [constant CELEBRATE_SECONDS], writes a line in the journal and emits
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
@@ -202,7 +203,7 @@ func flash(index: int) -> float:
 
 
 ## What clicking the line at [param index] does (spec 042 R1): an upgrade opens the shop, training
-## opens the sheet of the hero with the cheapest affordable training on its Training tab, a
+## opens the sheet of the first hero with paragon points to spend on its Training tab, a
 ## microskill opens its hero's sheet on the Skills tab, a guardian opens the orders, and a depth
 ## shows the depth ladder (closing the shop, which hides it) with that depth's rung flashing. Each
 ## panel opens as its own button opens it. A finished goal, or no goal, does nothing.
@@ -215,7 +216,7 @@ func press(index: int) -> void:
 		Kind.UPGRADE:
 			hud.shop.open()
 		Kind.TRAINING:
-			var trainee: Hero = _cheapest_trainee()
+			var trainee: Hero = _trainee()
 			if trainee != null:
 				_open_sheet(hud, trainee.id, HeroSheet.Page.TRAINING)
 		Kind.MICROSKILL:
@@ -243,7 +244,7 @@ func action(index: int) -> String:
 		Kind.DEPTH:
 			return "Click to see it on the ladder."
 		Kind.TRAINING:
-			hero = _cheapest_trainee()
+			hero = _trainee()
 		Kind.MICROSKILL:
 			hero = _simulation.party.hero(goal.hero_id)
 	if hero == null:
@@ -265,16 +266,17 @@ func applicable() -> Array[Goal]:
 	if skill != null:
 		found.append(skill)
 	var gold: int = _simulation.party.gold
-	var training: int = _cheapest_training()
-	if training > 0 and gold >= training:
+	var trainee: Hero = _trainee()
+	if trainee != null:
+		var points: int = trainee.paragon_points()
 		found.append(
 			Goal.new(
 				"train",
 				Kind.TRAINING,
 				"Train a hero",
 				-1.0,
-				"%s gold" % Hud.group_thousands(training),
-				"Click a hero's frame and spend gold on its Training tab."
+				"%d point%s" % [points, "" if points == 1 else "s"],
+				"Click a hero's frame and spend its paragon points on its Training tab."
 			)
 		)
 	var upgrade: int = _cheapest_upgrade()
@@ -431,30 +433,12 @@ func _microskill_goal() -> Goal:
 	return goal
 
 
-## The cheapest price of any hero's next training rank, or 0 if none can be bought.
-func _cheapest_training() -> int:
-	var cheapest: int = 0
+## The first hero in formation with a paragon point to spend (spec 051), or null.
+func _trainee() -> Hero:
 	for hero: Hero in _simulation.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			if price > 0 and (cheapest == 0 or price < cheapest):
-				cheapest = price
-	return cheapest
-
-
-## The hero whose next training rank is the cheapest the party can pay for, the first in formation
-## on a tie; null when none is affordable.
-func _cheapest_trainee() -> Hero:
-	var gold: int = _simulation.party.gold
-	var best: Hero = null
-	var best_price: int = 0
-	for hero: Hero in _simulation.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			if price > 0 and price <= gold and (best == null or price < best_price):
-				best = hero
-				best_price = price
-	return best
+		if hero.paragon_points() > 0:
+			return hero
+	return null
 
 
 ## Opens [param hero_id]'s sheet on [param page], as a click on the hero's frame and then its tab
@@ -681,7 +665,8 @@ class Row:
 			_bar = Rect2()
 		queue_redraw()
 
-	## True for a goal the player can act on with gold now: training and upgrades.
+	## True for a goal the player can act on now: training (with paragon points, spec 051) and
+	## upgrades (with gold).
 	static func is_gold(goal: Goal) -> bool:
 		return goal.kind == Goals.Kind.TRAINING or goal.kind == Goals.Kind.UPGRADE
 

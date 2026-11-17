@@ -130,7 +130,8 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   party is doing and counts down to when it goes deeper; the goals under it say what is coming. It should
   reach depth 2 in about 90 seconds.</li>
   <li><strong>Spend the first gold.</strong> Click the <code>Buy an upgrade</code> goal when it appears, or
-  press <kbd>U</kbd>. Then click a hero's frame and train them on the Training tab.</li>
+  press <kbd>U</kbd>. Heroes earn talent points from level 2 (a Training tab on their sheet counts them);
+  choosing their tree on screen comes with spec 055.</li>
   <li><strong>Watch a side quest.</strong> A glint in the dark is one waiting. The rogue learns Lockpicker
   at level 2; before that the party walks past chests and the game says what was needed.</li>
   <li><strong>Open the tally</strong> (<kbd>T</kbd>) after a few fights: who deals the damage, who takes
@@ -139,7 +140,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   reach, red dangerous. Send the party somewhere red and watch it lose: the party lies where it fell, a
   note says who beat it and what would help, and it stands up again at its safe depth.</li>
   <li><strong>Meet the Slime King</strong> on depth 5, about nine minutes in (sooner with <kbd>F</kbd> for
-  4x). It will probably win the first time. Try <kbd>O</kbd> and the Hold order, train, then send the
+  4x). It will probably win the first time. Try <kbd>O</kbd> and the Hold order, buy upgrades, then send the
   party back in.</li>
   <li><strong>Close the game for a few minutes and open it again</strong> for the "while you were away"
   report.</li>
@@ -152,8 +153,9 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   stuck door, a hurt wanderer, a rune stone or a tripwire instead of monsters. A hero with the right
   microskill (Lockpicker, Strongarm, Mender, Runereader, Trapspotter, learned by levelling) steps forward and
   does it; without one the party walks past and the game says what was needed.</li>
-  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Training tab to spend gold on that hero
-  (Power, Toughness, Quickness), and a Skills tab for their microskills.</li>
+  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Training tab with the hero's unspent
+  talent points and its paragon points to put into Power, Toughness or Quickness, and a Skills tab for their
+  microskills.</li>
   <li><strong>Reading the party.</strong> A status line that says what and why, a countdown to the next
   stable depth, a journal (<kbd>J</kbd>), a depth ladder you can click to steer, and a "while you were away"
   report that tells the whole story.</li>
@@ -171,7 +173,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   go where you would act on it. The countdown now reads <code>Deeper in 0:56</code>, the moment the party
   will really move on.</li>
   <li><strong>After a defeat</strong> a note says who beat the party and why, and offers what would help:
-  train a hero, buy an upgrade, or hold at the guardian.</li>
+  train a hero (with its paragon points), buy an upgrade, or hold at the guardian.</li>
   <li><strong>On screen:</strong> the party lies where it fell, the camera travels to where it revives and
   the heroes stand up again; melee heroes stand a sword's reach from a guardian; side quests glint in the
   dark.</li>
@@ -187,8 +189,11 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   health bar at the top and a big death.</li>
   <li><strong>Spending gold:</strong> a shop with five camp upgrades, and an auto-buy switch.</li>
   <li><strong>Hero sheets:</strong> click a hero's frame (or press <kbd>Tab</kbd>) to see who they are, their
-  health, XP and what they are doing right now, with three tabs below: their stats, training for that one hero,
-  and their microskills.</li>
+  health, XP and what they are doing right now, with three tabs below: their stats, their talent and
+  paragon points, and their microskills.</li>
+  <li><strong>Talent trees and paragon:</strong> every class has a tree of eleven abilities, a trunk of three and two paths of four;
+  heroes earn a talent point every second level and paragon points after level 14 (see "Talent trees and
+  paragon" below).</li>
   <li><strong>Idle:</strong> the game saves by itself and plays out the time it was closed (up to a limit),
   then shows what happened.</li>
   <li><strong>Reading the party:</strong> the HUD says what the party is doing and why, counts down to the
@@ -238,7 +243,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   <tr><td><kbd>U</kbd></td><td>Open or close the shop (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero (<kbd>Esc</kbd> closes it; so does clicking the hero's frame again)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Train the hero in that row (Power, Toughness, Quickness), while their sheet is open on the Training tab</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put one of the hero's paragon points into that row (Power, Toughness, Quickness), while their sheet is open on the Training tab</td></tr>
   <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Move to the previous or next tab of the hero sheet (Stats, Training, Skills) or of the party tally (Damage, Healing, Taken), wrapping round</td></tr>
   <tr><td><kbd>B</kbd></td><td>Turn auto-buy on or off, while the shop is open</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Lower or raise the target depth (<kbd>=</kbd> and the keypad work too)</td></tr>
@@ -275,8 +280,6 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   find?</li>
   <li><strong>Side quests.</strong> Do they feel like the party doing something different, and is "Needs
   Lockpicker" enough to make you want a different party? Their props are plain placeholders.</li>
-  <li><strong>Training against camp upgrades.</strong> Is choosing between them a real decision, and does
-  the tally help you choose?</li>
   <li><strong>The sounds.</strong> Still nobody has heard them; they were only checked on paper.</li>
   <li><strong>4x.</strong> Does a fight at four times speed still look like the same game?</li>
 </ul>
@@ -314,7 +317,8 @@ too, and its heroes are brought up to the level their XP now earns.</p>
 </ul>
 <h3>Not built yet</h3>
 <p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
-equipment, talents (their rules for fights are in, spec 050, but no hero has any yet), the warren-town at
+equipment, choosing talents on screen (the trees are in, spec 051, and the headless run spends them; the
+tree on the hero sheet is spec 055), the warren-town at
 the surface, music, a settings screen.</p>
 
 <nav>
@@ -556,8 +560,8 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   the party and where (<em>Beaten by the Slime King on Mossy Hollow 5</em>, or <em>Beaten on Mossy Hollow 7 by 3
   ogres</em>), with <em>(2 times)</em> from the second defeat in a row by the same guardian; the plainest
   reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Mossy Hollow 7 is 3
-  below the safe stage</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the hero
-  with the cheapest training you can afford on its Training tab), <em>Buy an upgrade</em> (opens the shop),
+  below the safe stage</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the first
+  hero with paragon points to spend on its Training tab), <em>Buy an upgrade</em> (opens the shop),
   or <em>Hold here</em> (sets the guardian order to Hold; it reads <em>Holding</em> only while the order is
   Hold). Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
   the button said. It hides while a panel is open, and its 8 seconds wait while it is hidden. It says
@@ -605,20 +609,20 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   left, <em>on the way</em> once the target is below, <em>Auto is off</em> when nothing will take the party
   deeper; elsewhere, as the party works its way back down; it gives way to the guardian's goal while the party
   is holding at it, spec 039), <em>Rogue learns Trapspotter at level 6</em> (the hero's XP toward that level), <em>Train a hero</em>
-  and <em>Buy an upgrade</em> (when the gold is there, with the price). When one is done its line flashes
+  (when a hero has paragon points, with how many) and <em>Buy an upgrade</em> (when the gold is there, with the price). When one is done its line flashes
   green, shows a tick for 3 seconds and the journal gets a line (<em>Goal: reached depth 6</em>), then the next
   goal takes its place. Resting the mouse on a goal says how to get there (under the Hold order, that the
   party is holding back and Orders sends it in), then what a click does. Each line is a button (spec 042):
-  it lights up under the mouse, and the two gold goals carry a small yellow <em>&gt;</em> since they can be done
-  now. Clicking <em>Buy an upgrade</em> opens the shop; <em>Train a hero</em> opens the sheet of the hero
-  with the cheapest training the party can pay for, on its Training tab; a microskill opens that hero's sheet
+  it lights up under the mouse, and those two goals carry a small yellow <em>&gt;</em> since they can be done
+  now. Clicking <em>Buy an upgrade</em> opens the shop; <em>Train a hero</em> opens the sheet of the first hero
+  with paragon points to spend, on its Training tab; a microskill opens that hero's sheet
   on its Skills tab; <em>Beat the ...</em> opens the orders; <em>Reach depth N</em> shows the depth ladder
   (closing the shop if it covers it) and flashes that depth's rung for a second. A click only opens things:
   nothing is bought or trained from the goals, and a goal showing its tick does nothing. It gives no
   rewards: it is a signpost. <code>G</code> hides and shows it, and it steps aside while a hero sheet, the journal or the tally is open.
   Things done while the game was catching up are not celebrated.</li>
   <li><strong>Frame tags</strong> (spec 037): a hero's frame carries a small orange tag with a number in its
-  top-right corner while that hero has something for you: trainings the party can afford, and microskills
+  top-right corner while that hero has something for you: paragon points to spend, and microskills
   learned since you last looked at their Skills tab. It clears as the sheet's own tab tags do.</li>
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
@@ -665,8 +669,8 @@ the party in view. Its top part, who the hero is, what they are doing and their 
 there. Under it are three tabs: <strong>Stats</strong>, <strong>Training</strong> and <strong>Skills</strong>.
 Click a tab, or press <kbd>Q</kbd> and <kbd>E</kbd> for the previous and next one (they wrap round). The sheet
 remembers the open tab while you step through heroes with <kbd>Tab</kbd> and when you close and reopen it; a new
-session starts on Stats. A small pulsing tag beside a tab asks for a look: on Training, the number of trainings
-the party can pay for on this hero; on Skills, the number of microskills the hero learned since you last looked
+session starts on Stats. A small pulsing tag beside a tab asks for a look: on Training, the number of paragon
+points this hero has to spend; on Skills, the number of microskills the hero learned since you last looked
 at that tab (it clears when you open it).</p>
 <ul>
   <li><strong>Who</strong> (always shown)<strong>:</strong> the hero's portrait at twice the size (a skull while they are down), the class, the
@@ -678,14 +682,13 @@ at that tab (it clears when you open it).</p>
   that fight), and XP toward the next level (<code>12 / 20 XP, 8 to level 2</code>).</li>
   <li><strong>What they can do</strong> (the Stats tab)<strong>:</strong> Health, Damage, Armor, Attack speed (attacks a second), Crit chance,
   Range (<code>Melee</code> or tiles) and, for the Cleric, Healing, with the camp upgrades and the hero's
-  training already counted in. A stat an upgrade or training raises shows the two bonuses together beside it in
-  green (<code>Damage 14 (+21%)</code>).</li>
-  <li><strong>Training</strong> <span class="tag built">Built: spec 029</span> (the Training tab)<strong>:</strong> gold spent on
-  this hero alone (see "Hero training" below). One row per training, laid out like the shop's: the name, what a
-  rank does, the hero's rank (<code>3/20</code>), the bonus so far (<code>+15%</code>) and a button with the
-  price, yellow when the party can pay, dim red when not, <code>MAX</code> at the top rank. Click the button or
-  press <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd> while the Training tab is open: the row flashes, the gold
-  drops and the Stats tab shows the new numbers.</li>
+  paragon points already counted in. A stat an upgrade or paragon points raise shows the two bonuses together
+  beside it in green (<code>Damage 14 (+21%)</code>).</li>
+  <li><strong>Training</strong> <span class="tag built">Built: spec 051</span> (the Training tab, until spec 055
+  puts the tree there)<strong>:</strong> the hero's unspent talent points and paragon points as numbers, then one
+  row per paragon stat: its name, what a point gives, the points in it and their bonus (<code>2 +6%</code>), and a
+  <code>+1</code> button, lit while the hero has a paragon point. Click it or press <kbd>1</kbd>, <kbd>2</kbd> or
+  <kbd>3</kbd> while the Training tab is open: the row flashes and the Stats tab shows the new numbers.</li>
   <li><strong>Skills</strong> (the Skills tab)<strong>:</strong> the class's microskills, learned ones in white
   with what they do, the ones to come in grey with their level.</li>
 </ul>
@@ -734,7 +737,8 @@ bat from depth 1, skeleton from 2, spider from 3, goblin from 4 and ogre from 5 
 fire imp from 7 and clay hound from 8 in the clay; ghoul from 11, crystal beetle from 12 and wraith from 13 in
 the stone; and the deep horror from 16. Deeper kinds are met more often once they appear, so each band is
 mostly its own monsters, and they are worth more XP and gold. A party of four level-12 heroes usually, but not
-always, beats three stone-band monsters; a level-6 party almost never does. Talents and items come later.</p>
+always, beats three stone-band monsters; a level-6 party almost never does. The talent trees are data too
+(<code>data/talents/</code>, spec 051); items come later.</p>
 <h3>Camp upgrades <span class="tag built">Built: spec 016</span></h3>
 <p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last (the price of
 the next rank is its first price times a growth factor for every rank already bought). There are five, as data
@@ -745,16 +749,34 @@ travel and climb speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from 
 rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
 fight. Upgrades are saved. You buy them in the upgrade shop on the HUD (spec 017). In a one-hour headless run, a party that keeps buying the
 cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
-<h3>Hero training <span class="tag built">Built: spec 029</span></h3>
-<p>Camp upgrades lift every hero at once; training lifts one. Each hero has their own ranks of three trainings,
-as data files in <code>data/training/</code>: <strong>Power</strong> (+5% damage and healing per rank, up to 20,
-first rank 40 gold), <strong>Toughness</strong> (+5% maximum health, up to 20, first rank 35) and
-<strong>Quickness</strong> (+3% attack speed, up to 10, first rank 45). Each rank costs more than the last, and
-the price depends only on that hero's own rank, so a tougher knight or a deadlier rogue is a real choice. A
-hero's numbers are their class's, times the camp upgrade, times their training. Toughness raises maximum health
-at once but heals nobody. Training is bought only from the hero sheet: auto-buy never trains anyone. Ranks are
-saved with each hero. In a one-hour headless run, a rogue given all the party's gold in Power reached rank 11 and
-hit for 65 against 42 untrained.</p>
+<h3>Talent trees and paragon <span class="tag built">Built: spec 051, in the simulation</span></h3>
+<p>Camp upgrades lift every hero at once; talents make one hero different. Each class has a small tree
+(<code>data/talents/</code>) of eleven abilities (<code>data/abilities/</code>, the rules are spec 050's): a
+trunk of three, then two named paths of four. A hero earns one talent point at every even level (2, 4 ... 14),
+seven in all, which fills the trunk and one path. Points are spent in order: the trunk first, then the first node
+of either path, then that path in order. Taking a node of one path closes the other, so two knights can be
+different heroes. A hero fights with its nodes' abilities from its next fight on.</p>
+<ul>
+  <li><strong>Knight:</strong> Shield Bash, Taunt, Bottle-top Block; then <em>Guardian</em> (Hold the Line,
+  Last Stand, Bulwark, Rallying Cry: shields and taunts that keep the party up) or <em>Berserker</em>
+  (Whirlwind, Bloodthirst, Reckless Swing, Rampage: hits harder the more it fights).</li>
+  <li><strong>Rogue:</strong> Backstab, Smoke Step, Finisher; then <em>Assassin</em> (Poisoned Blades, Mark for
+  Death, Ambush, Killing Spree) or <em>Trickster</em> (Fan of Knives, Caltrops, Dizzying Feint, Vanish).</li>
+  <li><strong>Mage:</strong> Fireball, Frost Nova, Chain Spark; then <em>Pyromancer</em> (Ignite, Meteor,
+  Wildfire, Inferno) or <em>Frostbinder</em> (Ice Lance, Frost Armor, Deep Freeze, Blizzard).</li>
+  <li><strong>Cleric:</strong> Prayer, Blessing, Smite; then <em>Lifebinder</em> (Renewal, Sanctuary, Guardian
+  Angel, Miracle) or <em>Sunpriest</em> (Holy Fire, Battle Hymn, Judgement, Wrath).</li>
+</ul>
+<p>Once a hero has earned its seven talent points, every level after gives a <strong>paragon point</strong>
+instead, the only place plain strength is bought: <strong>Power</strong> (+3% damage and healing),
+<strong>Toughness</strong> (+3% maximum health) or <strong>Quickness</strong> (+3% attack speed), with no limit.
+They are spent on the hero sheet's Training tab. A <strong>fresh start</strong> gives a hero back every talent
+point and opens both paths, for 100 gold per level, outside a fight; paragon points stay. Auto-buy never spends a
+point. Gold training (spec 029) is gone: a save from before gives every hero back the gold its training cost and
+all the talent and paragon points its level earned, unspent. On screen, choosing the tree is spec 055; for now
+<code>python tools/dev.py sim --spend-talents</code> spends them headless (trunk, then the first path, paragon
+into Power): on seeds 1 to 5 it beats the Slime King in 9 to 15 minutes instead of 14 to 28, with 0 or 1 wipes
+before instead of 1 to 4.</p>
 <h3>Fights <span class="tag built">Built</span></h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
 then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the
@@ -788,9 +810,9 @@ untouchable (no enemy's blow, spell or poison lands on it, and enemies pick some
 same one again starts its time over and keeps the stronger without missing a tick of its damage, and every
 status ends with the fight. Nothing but a revive lands on the dead, and the dead die only once. Twelve sample
 abilities (Shield Bash, Taunt, Whirlwind, Last Stand, Backstab, Finisher, Fireball, Frost Nova, Chain
-spark, Prayer, Guardian Angel, Battle Hymn) are built in the tests. <strong>No hero or monster has one
-yet</strong>, so the game plays exactly as before; the talent trees (spec 051) hand them out and the hero
-sheet (spec 055) shows them.</p>
+spark, Prayer, Guardian Angel, Battle Hymn) are built in the tests. <strong>No monster has one, and no hero
+yet</strong> but through a hero's talents: the talent trees (spec 051) hand them out and the hero
+sheet (spec 055) will show them.</p>
 <h3>Art <span class="tag built">Built</span></h3>
 <p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one pixel,
 using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool bakes each
@@ -818,7 +840,8 @@ font specimen (below).</p>
 <p><span class="tag built">Built: spec 014</span> A save keeps the party's <em>progress</em>, not the exact moment:
 the seed, the time played, the gold, each hero's class, level and XP, the last stable depth, the deepest depth
 reached, the target depth, whether auto-push is on, the rank of each camp upgrade (older saves load with no
-upgrades) and each hero's training ranks (older saves load with none). Loading stands the party up fresh at its last stable
+upgrades) and each hero's talents and paragon points (spec 051; a save with spec 029's gold training gets
+the gold back and every point unspent). Loading stands the party up fresh at its last stable
 depth, exactly as it does after a wipe, with everything it has earned; the chambers there are full of monsters
 again. A damaged or unknown save is refused rather than guessed at. The file is written whole or not at all
 (to a temporary file, then renamed into place), and the save before it is kept as a backup that is read if the

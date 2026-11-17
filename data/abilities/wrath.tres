@@ -1,0 +1,29 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 4
+does = 0
+multiplier = 2.0
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 3
+does = 1
+multiplier = 0.5
+
+[resource]
+script = ExtResource("1")
+id = &"wrath"
+display_name = "Wrath"
+description = "Strikes every enemy for 2x damage and heals every ally by half the healing power. Every 20 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 20.0
+windup = 0.6
+aim = 4
+condition = 4
+condition_tiles = 8.0

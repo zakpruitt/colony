@@ -258,6 +258,9 @@ func test_r2_holding_is_true() -> void:
 
 func test_r3_click_does_what_was_aimed() -> void:
 	_sim.party.gold = RICH
+	# Spec 051: training spends a paragon point, which a level past 14 brings.
+	var rogue: Hero = _sim.party.heroes[1]
+	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	var shown: Array[String] = _note().suggestions()
 	assert_eq(shown.size(), 3, "train, buy, hold")
@@ -275,7 +278,11 @@ func test_r3_click_does_what_was_aimed() -> void:
 	_hud.shop.close()
 	_note().point_at(HudTooltip.NOWHERE)
 	_hud.advance(STEP)
-	assert_eq(_note().suggestions(), ["Hold here"] as Array[String], "then it follows the gold")
+	assert_eq(
+		_note().suggestions(),
+		["Train Rogue", "Hold here"] as Array[String],
+		"then it follows the gold (the rogue's point is not gold)"
+	)
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -287,7 +294,7 @@ func test_r4_panel_does_not_use_time() -> void:
 	assert_true(_until_standing(), "the heroes stand")
 	_linger(1.0)
 	assert_true(_note().is_shown(), "the note lingers")
-	_note().press(1)
+	_note().press(_note().suggestions().find("Buy an upgrade"))
 	assert_true(_hud.shop.is_open(), "Buy an upgrade opens the shop")
 	_linger(DefeatNote.LINGER_SECONDS + 2.0)
 	assert_false(_note().is_shown(), "hidden while the shop is open")

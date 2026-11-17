@@ -1,0 +1,33 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 3
+does = 4
+scale = 2
+status = 2
+seconds = 8.0
+amount = 0.1
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 3
+does = 4
+scale = 2
+status = 5
+seconds = 8.0
+amount = 0.02
+
+[resource]
+script = ExtResource("1")
+id = &"rallying_cry"
+display_name = "Rallying Cry"
+description = "Shields every ally (10% of health) and mends them for 8 s. Every 30 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 30.0
+windup = 0.4
+aim = 4

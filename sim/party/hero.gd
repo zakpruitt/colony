@@ -1,14 +1,19 @@
 class_name Hero
 extends RefCounted
 ## One member of the party: its class, level, XP, the health it carries between
-## fights and its own training (spec 029). Its fighting numbers come from its
-## [HeroClassDef], times the party's camp upgrades, times its training.
+## fights, its talents and its paragon points (spec 051). Its fighting numbers come from its
+## [HeroClassDef], times the party's camp upgrades, times its paragon points; it fights with
+## the abilities of its talents.
 
 ## XP per level step: reaching level n takes (n - 1) * (XP_STEP * n - XP_DISCOUNT) in total.
 const XP_STEP: int = 25
 ## XP taken off each level step (spec 036): the first levels come quickly, the late ones cost
 ## nearly what they did.
 const XP_DISCOUNT: int = 30
+## Talent points a hero can earn: enough to fill a tree, its trunk and one path (spec 051).
+const TALENT_POINTS: int = 7
+## A talent point comes at every level divisible by this.
+const TALENT_EVERY: int = 2
 
 var id: int
 var class_id: StringName
@@ -19,8 +24,10 @@ var health: int
 var upgrades: Upgrades
 
 var _def: HeroClassDef
-## The rank of each training this hero has bought; ranks of 0 are left out.
-var _training: Dictionary[StringName, int] = {}
+## The talent tree nodes this hero has taken, in the order taken (spec 051).
+var _talents: Array[StringName] = []
+## The paragon points this hero has spent, by [enum TrainingDef.Stat]; stats with none left out.
+var _paragon: Dictionary[int, int] = {}
 
 
 ## A level-1 hero of class [param class_def] at full health.
@@ -40,7 +47,7 @@ func def() -> HeroClassDef:
 func max_health() -> int:
 	var base: int = _def.max_health + _def.health_per_level * (level - 1)
 	var bonus: float = (
-		_multiplier(UpgradeDef.Stat.HEALTH) * training_multiplier(TrainingDef.Stat.TOUGHNESS)
+		_multiplier(UpgradeDef.Stat.HEALTH) * paragon_multiplier(TrainingDef.Stat.TOUGHNESS)
 	)
 	return roundi(base * bonus)
 
@@ -83,63 +90,119 @@ func has_microskill(skill_id: StringName) -> bool:
 	return microskills().has(skill_id)
 
 
-## A battle combatant for this hero, with the hero's id and current health, and
-## the party's upgrades and the hero's training in its damage, healing power,
-## maximum health and attack speed.
+## A battle combatant for this hero, with the hero's id and current health, the party's
+## upgrades and the hero's paragon points in its damage, healing power, maximum health and
+## attack speed, and the abilities of its talents in the order taken.
 func combatant() -> Combatant:
 	var c: Combatant = Combatant.from_hero(_def, level, id)
 	var power: float = (
-		_multiplier(UpgradeDef.Stat.DAMAGE) * training_multiplier(TrainingDef.Stat.POWER)
+		_multiplier(UpgradeDef.Stat.DAMAGE) * paragon_multiplier(TrainingDef.Stat.POWER)
 	)
 	c.damage = roundi(c.damage * power)
 	c.heal_power = roundi(c.heal_power * power)
 	c.max_health = max_health()
 	c.health = clampi(health, 0, c.max_health)
-	var quickness: float = training_multiplier(TrainingDef.Stat.QUICKNESS)
+	var quickness: float = paragon_multiplier(TrainingDef.Stat.QUICKNESS)
 	if quickness != 1.0:
 		c.attack_interval_ticks = Combatant.seconds_to_ticks(_def.attack_interval / quickness)
+	for ability_id: StringName in _talents:
+		var ability: AbilityDef = Content.ability(ability_id)
+		if ability != null:
+			c.abilities.append(ability)
 	return c
 
 
-## The rank this hero has of training [param training_id]; 0 if none or unknown.
-func training_rank(training_id: StringName) -> int:
-	return _training.get(training_id, 0)
+# --- Talents and paragon (spec 051) -------------------------------------------
 
 
-## The price of this hero's next rank of [param training_id]; 0 at the maximum or unknown.
-func training_cost(training_id: StringName) -> int:
-	var training: TrainingDef = Content.training(training_id)
-	if training == null:
-		return 0
-	return training.cost_at(training_rank(training_id))
+## The nodes this hero has taken, in the order taken.
+func talents() -> Array[StringName]:
+	return _talents.duplicate()
 
 
-## The factor this hero's training of [param stat] gives; 1.0 with no ranks.
-func training_multiplier(stat: TrainingDef.Stat) -> float:
-	var bonus: float = 0.0
-	for training_id: StringName in _training:
-		var training: TrainingDef = Content.training(training_id)
-		if training != null and training.stat == stat:
-			bonus += _training[training_id] * training.per_rank
-	return 1.0 + bonus
+## The talent points this hero has earned and not spent.
+func talent_points() -> int:
+	return maxi(TalentRules.talent_points_at(level) - _talents.size(), 0)
 
 
-## Sets this hero's rank of [param training_id] directly (training, loading a save,
-## tests). Unknown ids are ignored; the rank is clamped to 0 .. the maximum.
-func set_training_rank(training_id: StringName, new_rank: int) -> void:
-	var training: TrainingDef = Content.training(training_id)
-	if training == null:
-		return
-	var clamped: int = clampi(new_rank, 0, training.max_rank)
-	if clamped == 0:
-		_training.erase(training_id)
+## True if this hero has an unspent talent point and [param ability_id] is a node it may take
+## next: the trunk in order, then the first node of either path, then that path in order.
+func can_take(ability_id: StringName) -> bool:
+	var tree: TalentTreeDef = Content.talent_tree(class_id)
+	if talent_points() <= 0 or tree == null:
+		return false
+	return tree.next_nodes(_talents).has(ability_id)
+
+
+## The path this hero walks: -1 while it has none yet, else 0 or 1.
+func path() -> int:
+	var tree_def: TalentTreeDef = Content.talent_tree(class_id)
+	if tree_def == null or _talents.size() <= tree_def.trunk.size():
+		return -1
+	return tree_def.path_of(_talents[tree_def.trunk.size()])
+
+
+## Takes node [param ability_id] if [method can_take] allows it. Returns true if it did.
+func take_talent(ability_id: StringName) -> bool:
+	if not can_take(ability_id):
+		return false
+	_talents.append(ability_id)
+	return true
+
+
+## Sets this hero's nodes directly (loading a save, tests), with no checks.
+func set_talents(taken: Array[StringName]) -> void:
+	_talents = taken.duplicate()
+
+
+## Gives back every node: each talent point is unspent and both paths are open.
+func reset_talents() -> void:
+	_talents.clear()
+
+
+## The paragon points this hero has earned and not spent.
+func paragon_points() -> int:
+	var spent: int = 0
+	for stat: int in _paragon:
+		spent += _paragon[stat]
+	return maxi(TalentRules.paragon_points_at(level) - spent, 0)
+
+
+## The paragon points this hero has put into [param stat].
+func paragon_rank(stat: TrainingDef.Stat) -> int:
+	return _paragon.get(stat, 0)
+
+
+## Puts one unspent paragon point into [param stat]. Returns true if there was one.
+func spend_paragon(stat: TrainingDef.Stat) -> bool:
+	if paragon_points() <= 0 or TalentRules.stat_def(stat) == null:
+		return false
+	_paragon[stat] = paragon_rank(stat) + 1
+	return true
+
+
+## Sets the points this hero has in [param stat] directly (loading a save, tests), with no
+## checks but that a rank below 1 is none.
+func set_paragon_rank(stat: TrainingDef.Stat, rank: int) -> void:
+	if rank <= 0:
+		_paragon.erase(stat)
 	else:
-		_training[training_id] = clamped
+		_paragon[stat] = rank
 
 
-## True when this hero has any rank of any training.
-func is_trained() -> bool:
-	return not _training.is_empty()
+## The factor this hero's paragon points in [param stat] give: 1 plus each point's
+## [member TrainingDef.per_rank]; 1.0 with none.
+func paragon_multiplier(stat: TrainingDef.Stat) -> float:
+	var rank: int = paragon_rank(stat)
+	var def_of_stat: TrainingDef = TalentRules.stat_def(stat)
+	if rank == 0 or def_of_stat == null:
+		return 1.0
+	return 1.0 + rank * def_of_stat.per_rank
+
+
+## True when this hero has taken a node or spent a paragon point.
+func has_grown() -> bool:
+	return not _talents.is_empty() or not _paragon.is_empty()
 
 
 func _multiplier(stat: UpgradeDef.Stat) -> float:

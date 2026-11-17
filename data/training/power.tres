@@ -6,10 +6,7 @@
 script = ExtResource("1")
 id = &"power"
 display_name = "Power"
-description = "+5% damage and healing"
+description = "+3% damage and healing"
 order = 1
 stat = 0
-per_rank = 0.05
-base_cost = 40
-cost_growth = 1.35
-max_rank = 20
+per_rank = 0.03

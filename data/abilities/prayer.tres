@@ -1,0 +1,24 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 3
+does = 1
+multiplier = 1.0
+
+[resource]
+script = ExtResource("1")
+id = &"prayer"
+display_name = "Prayer"
+description = "With an ally below 60%: heals every ally by the healing power. Every 12 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 12.0
+windup = 0.5
+aim = 3
+anywhere = true
+condition = 1
+condition_share = 0.6

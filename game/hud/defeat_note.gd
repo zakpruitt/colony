@@ -51,7 +51,7 @@ const FADE_COLOURS: Array[StringName] = [&"silver", &"steel", &"slate"]
 const FADE_STEP: float = 0.2
 ## Each suggestion's tooltip: one plain sentence.
 const TIPS: Dictionary[Help, String] = {
-	Help.TRAIN: "Opens this hero's Training tab: training makes one hero stronger for good.",
+	Help.TRAIN: "Opens this hero's Training tab: paragon points make one hero stronger for good.",
 	Help.UPGRADE: "Opens the Shop: upgrades make the whole party stronger.",
 	Help.HOLD: "Orders the party to stay away from guardians and grow stronger first.",
 }
@@ -391,7 +391,7 @@ func _suggest() -> void:
 	var e: Expedition = _simulation.expedition
 	var gold: int = _simulation.party.gold
 	_helps.clear()
-	_trainee = _cheapest_trainee(gold)
+	_trainee = _trainee_with_points()
 	if _trainee >= 0:
 		_helps.append(Help.TRAIN)
 	if _cheapest_upgrade() > 0 and _cheapest_upgrade() <= gold:
@@ -419,19 +419,12 @@ func _tip(index: int) -> String:
 	return TIPS[_shown[index]]
 
 
-## The id of the hero with the cheapest training [param gold] affords (the first on a tie), or -1.
-func _cheapest_trainee(gold: int) -> int:
-	var best: int = -1
-	var best_price: int = 0
+## The id of the first hero in formation with a paragon point to spend (spec 051), or -1.
+func _trainee_with_points() -> int:
 	for hero: Hero in _simulation.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			if price <= 0 or price > gold:
-				continue
-			if best < 0 or price < best_price:
-				best = hero.id
-				best_price = price
-	return best
+		if hero.paragon_points() > 0:
+			return hero.id
+	return -1
 
 
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought.

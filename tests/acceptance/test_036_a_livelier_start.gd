@@ -44,14 +44,11 @@ func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
 	var guardian_fight: bool = false
 	var guardian_losses: int = 0
 	var cheapest_upgrade: int = _cheapest_upgrade(sim)
-	var cheapest_training: int = _cheapest_training(sim)
 	for i: int in _ticks(minutes * 60.0):
 		sim.step()
 		var now: float = sim.seconds()
 		if sim.party.gold >= cheapest_upgrade and not found.has("upgrade"):
 			found["upgrade"] = now
-		if sim.party.gold >= cheapest_training and not found.has("training"):
-			found["training"] = now
 		if sim.tick == _ticks(600.0):
 			found["ranks_10"] = _ranks(sim)
 		if sim.tick <= _ticks(1200.0) and e.state == Expedition.State.TRAVELLING and _dead(sim):
@@ -76,6 +73,10 @@ func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
 				SimEvent.Kind.DEPTH_CHANGED:
 					if not found.has("depth_%d" % event.amount):
 						found["depth_%d" % event.amount] = now
+				SimEvent.Kind.TALENT_POINT_GAINED:
+					# Spec 051 took the gold off training: the hero's first choice is a talent point.
+					if not found.has("training"):
+						found["training"] = now
 				SimEvent.Kind.LEVEL_UP:
 					if levelled.has(event.amount):
 						levelled[event.amount][event.target_id] = now
@@ -95,15 +96,6 @@ func _cheapest_upgrade(sim: Simulation) -> int:
 	for id: StringName in Content.upgrade_ids():
 		var price: int = sim.upgrades.cost(id)
 		cheapest = price if cheapest < 0 else mini(cheapest, price)
-	return cheapest
-
-
-func _cheapest_training(sim: Simulation) -> int:
-	var cheapest: int = -1
-	for hero: Hero in sim.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			cheapest = price if cheapest < 0 else mini(cheapest, price)
 	return cheapest
 
 
@@ -273,7 +265,7 @@ func test_r5_decisions_come_early() -> void:
 		assert_gte(
 			_bought[seed_value]["ranks_10"] as int, 6, "6 ranks bought by minute 10, " + where
 		)
-		assert_lte(_time(_plain[seed_value], "training"), 240.0, "a training rank, " + where)
+		assert_lte(_time(_plain[seed_value], "training"), 240.0, "a talent point, " + where)
 
 
 # --- R6 ------------------------------------------------------------------------

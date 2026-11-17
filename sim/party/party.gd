@@ -54,11 +54,11 @@ func hash_parts() -> Array:
 	var parts: Array = [gold]
 	for h: Hero in heroes:
 		var hero_parts: Array = [h.id, h.class_id, h.level, h.xp, h.health]
-		# Untrained, a hero hashes as it did before training existed (spec 029).
-		if h.is_trained():
+		# With no talents and no paragon points, a hero hashes as it did before them (spec 051).
+		if h.has_grown():
 			var ranks: Array = []
-			for training_id: StringName in Content.training_ids():
-				ranks.append(h.training_rank(training_id))
-			hero_parts.append(ranks)
+			for stat: int in TrainingDef.Stat.values():
+				ranks.append(h.paragon_rank(stat as TrainingDef.Stat))
+			hero_parts.append([h.talents(), ranks])
 		parts.append(hero_parts)
 	return parts

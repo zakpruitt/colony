@@ -795,6 +795,11 @@ func _fight() -> void:
 	if battle.result() == Battle.Result.MONSTERS_WON and not alive.is_empty():
 		overwhelmed = true
 	if overwhelmed and battle.result() != Battle.Result.HEROES_WON:
+		# Spec 051 R13: every status ends with its event before the heroes fall.
+		battle.end()
+		for event: SimEvent in battle.drain_events():
+			event.tick = _tick
+			_events.append(event)
 		_overwhelm()
 		_end_battle(false)
 	elif battle.result() != Battle.Result.ONGOING:
@@ -848,6 +853,8 @@ func _give_xp(hero: Hero, amount: int) -> int:
 	var def: HeroClassDef = hero.def()
 	for new_level: int in range(before + 1, hero.level + 1):
 		_emit(SimEvent.Kind.LEVEL_UP, -1, hero.id, new_level)
+		if TalentRules.talent_points_at(new_level) > TalentRules.talent_points_at(new_level - 1):
+			_emit(SimEvent.Kind.TALENT_POINT_GAINED, hero.id, -1, new_level)
 		for i: int in mini(def.microskills.size(), def.microskill_levels.size()):
 			if def.microskill_levels[i] == new_level:
 				var skill: int = Content.microskill_ids().find(def.microskills[i])

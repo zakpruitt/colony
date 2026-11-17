@@ -1,0 +1,27 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 4
+scale = 1
+status = 5
+seconds = 8.0
+amount = 0.2
+
+[resource]
+script = ExtResource("1")
+id = &"renewal"
+display_name = "Renewal"
+description = "The weakest hurt ally mends for 8 s. Every 6 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 6.0
+windup = 0.3
+aim = 3
+anywhere = true
+condition = 1
+condition_share = 0.95

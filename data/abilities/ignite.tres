@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 0
+does = 4
+scale = 0
+status = 3
+seconds = 3.0
+amount = 0.3
+
+[resource]
+script = ExtResource("1")
+id = &"ignite"
+display_name = "Ignite"
+description = "Hits have a 50% chance to set the enemy burning for 3 s."
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+trigger = 1
+chance = 0.5

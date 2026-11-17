@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="TalentTreeDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+class_id = &"rogue"
+trunk = Array[StringName]([&"backstab", &"smoke_step", &"finisher"])
+path_names = Array[String](["Assassin", "Trickster"])
+path_a = Array[StringName]([&"poisoned_blades", &"mark_for_death", &"ambush", &"killing_spree"])
+path_b = Array[StringName]([&"fan_of_knives", &"caltrops", &"dizzying_feint", &"vanish"])

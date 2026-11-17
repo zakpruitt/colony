@@ -104,19 +104,12 @@ func _gold_situation() -> void:
 	_situation(1, 1, 1)
 
 
-## The hero with the cheapest affordable training, the first in formation on a tie.
-func _cheapest_trainee() -> Hero:
-	var best: Hero = null
-	var best_price: int = 0
+## The first hero in formation with a paragon point to spend (spec 051), or null.
+func _trainee() -> Hero:
 	for hero: Hero in _sim.party.heroes:
-		for id: StringName in Content.training_ids():
-			var price: int = hero.training_cost(id)
-			if price <= 0 or price > _sim.party.gold:
-				continue
-			if best == null or price < best_price:
-				best = hero
-				best_price = price
-	return best
+		if hero.paragon_points() > 0:
+			return hero
+	return null
 
 
 func _line(sentence: String) -> int:
@@ -217,19 +210,16 @@ func test_r1_click_a_goal() -> void:
 	var goals: Goals = _hud.goals
 	var sheet: HeroSheet = _hud.hero_sheet
 
-	# The gold goals. Two heroes have trained, so another hero's training is the cheapest.
+	# The gold goals. Two heroes have spent their paragon points (spec 051), so another is next.
 	_gold_situation()
-	var cheapest: StringName = &""
-	for id: StringName in Content.training_ids():
-		var price: int = _sim.party.heroes[0].training_cost(id)
-		if cheapest == &"" or price < _sim.party.heroes[0].training_cost(cheapest):
-			cheapest = id
 	for i: int in 2:
-		_sim.train_hero(_sim.party.heroes[i].id, cheapest)
+		var spender: Hero = _sim.party.heroes[i]
+		for point: int in spender.paragon_points():
+			_sim.spend_paragon(spender.id, TrainingDef.Stat.POWER)
 	_sim.step()
 	_hud.advance(STEP)
-	var trainee: Hero = _cheapest_trainee()
-	assert_not_null(trainee, "a training is affordable")
+	var trainee: Hero = _trainee()
+	assert_not_null(trainee, "a hero has a paragon point")
 	assert_ne(trainee, _sim.party.heroes[0], "not simply the first hero")
 	assert_eq(
 		goals.lines(),
@@ -247,7 +237,7 @@ func test_r1_click_a_goal() -> void:
 		sheet.open_page(HeroSheet.Page.STATS)
 		_do(how, _line("Train a hero"))
 		assert_true(sheet.is_open(), "%s on Train a hero opens a hero sheet" % how)
-		assert_eq(sheet.shown_hero_id(), trainee.id, "%s: the cheapest trainee's" % how)
+		assert_eq(sheet.shown_hero_id(), trainee.id, "%s: the first with a point's" % how)
 		assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "%s: on the Training tab" % how)
 
 	# A microskill: that hero's sheet, on the Skills tab.
@@ -457,7 +447,7 @@ func test_r4_nothing_else_changes() -> void:
 	var goals: Goals = _hud.goals
 	var sheet: HeroSheet = _hud.hero_sheet
 	_gold_situation()
-	var trainee: Hero = _cheapest_trainee()
+	var trainee: Hero = _trainee()
 	var upgrade: int = _line("Buy an upgrade")
 	var train: int = _line("Train a hero")
 

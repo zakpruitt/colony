@@ -238,7 +238,7 @@ func _on_sim_event(event: SimEvent) -> void:
 			play(&"revive")
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			play(&"depth_stable")
-		SimEvent.Kind.UPGRADE_BOUGHT, SimEvent.Kind.HERO_TRAINED:
+		SimEvent.Kind.UPGRADE_BOUGHT, SimEvent.Kind.PARAGON_SPENT:
 			play(&"ui_buy")
 
 

@@ -393,8 +393,8 @@ func test_r4_saved() -> void:
 	_run(sim, 20)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
-	assert_eq(version, 6, "the version rose by one (and by one more for spec 049)")
-	assert_eq(Simulation.SAVE_VERSION, 6)
+	assert_eq(version, 7, "the version rose by one (and since, for specs 049 and 051)")
+	assert_eq(Simulation.SAVE_VERSION, 7)
 	var saved_pace: String = str(data.get("pace"))
 	var saved_order: String = str(data.get("guardian_order"))
 	assert_eq(saved_pace, "cautious", "the pace by name")
@@ -419,7 +419,7 @@ func test_r4_saved() -> void:
 	assert_eq(Simulation.save_problems(old).size(), 0, "version 4 is fine: %s" % [old])
 	var upgraded: Dictionary = Simulation.upgrade_save(old)
 	var upgraded_version: int = upgraded["version"]
-	assert_eq(upgraded_version, 6, "through the upgrade steps")
+	assert_eq(upgraded_version, Simulation.SAVE_VERSION, "through the upgrade steps")
 	var old_loaded: Simulation = Simulation.from_save(old)
 	assert_not_null(old_loaded, "version 4 loads")
 	if old_loaded != null:

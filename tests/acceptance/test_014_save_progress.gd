@@ -168,7 +168,7 @@ func test_r1_progress_is_plain_data() -> void:
 	var saved_heroes: Array = data.get("heroes", [])
 	for i: int in sim.party.heroes.size():
 		var hero: Hero = sim.party.heroes[i]
-		# Spec 029: each hero's training ranks, tested there.
+		# Spec 051: each hero's talents and paragon points, tested there.
 		var saved: Dictionary = saved_heroes[i] if i < saved_heroes.size() else {}
 		(
 			heroes
@@ -177,7 +177,8 @@ func test_r1_progress_is_plain_data() -> void:
 					"class": String(hero.class_id),
 					"level": hero.level,
 					"xp": hero.xp,
-					"training": saved.get("training"),
+					"talents": saved.get("talents"),
+					"paragon": saved.get("paragon"),
 				}
 			)
 		)
@@ -302,7 +303,7 @@ func test_r4_bad_data_is_refused() -> void:
 		listed[field] = [1]
 		cases.append([field, listed])
 	var cases_by_value: Array = [
-		["version", "version", 7],
+		["version", "version", 8],
 		["class", "heroes", [{"class": "bard", "level": 1, "xp": 0}]],
 		["level", "heroes", [{"class": "knight", "level": 0, "xp": 0}]],
 		["xp", "heroes", [{"class": "knight", "level": 1, "xp": -5}]],
@@ -342,11 +343,11 @@ func test_r4_bad_data_is_refused() -> void:
 
 
 func test_r5_upgrade_is_a_pass_through() -> void:
-	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4, spec 035 to 5 and spec 049
-	# to 6; their own tests cover those steps.
-	assert_eq(Simulation.SAVE_VERSION, 6)
+	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4, spec 035 to 5, spec 049
+	# to 6 and spec 051 to 7; their own tests cover those steps.
+	assert_eq(Simulation.SAVE_VERSION, 7)
 	var data: Dictionary = _valid()
-	data["version"] = 6
+	data["version"] = 7
 	data["area"] = "mossy_hollow"
 	data["areas"] = {}
 	data["open_areas"] = ["mossy_hollow"]
@@ -355,13 +356,14 @@ func test_r5_upgrade_is_a_pass_through() -> void:
 	data["pace"] = "steady"
 	data["guardian_order"] = "challenge"
 	for saved: Dictionary in data["heroes"]:
-		saved["training"] = {}
+		saved["talents"] = []
+		saved["paragon"] = {}
 	var current: Dictionary = data.duplicate(true)
 	assert_eq(Simulation.upgrade_save(data), current, "the current version is unchanged")
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 7]:
+	for version: int in [0, 8]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 5
+does = 4
+status = 0
+seconds = 2.0
+amount = 0.0
+
+[resource]
+script = ExtResource("1")
+id = &"ambush"
+display_name = "Ambush"
+description = "As a fight starts, the nearest enemy is stunned for 2 s."
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+trigger = 0

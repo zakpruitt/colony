@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 1
+radius = 1.5
+does = 0
+multiplier = 3.0
+
+[resource]
+script = ExtResource("1")
+id = &"meteor"
+display_name = "Meteor"
+description = "Drops a meteor on the furthest enemy: 3x damage to it and those beside it. Every 15 s."
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+cooldown = 15.0
+windup = 1.0
+aim = 2
+anywhere = true
