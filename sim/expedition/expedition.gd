@@ -670,9 +670,8 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
-		fill = ChamberState.new()
+		fill = ChamberState.new(level_depth)
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
-		fill.depth = level_depth
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
 		fill.visit += 1
