@@ -156,6 +156,12 @@ func _first_line() -> String:
 	return lines[0] if not lines.is_empty() else ""
 
 
+## Runs the HUD on by [param seconds] in frames, the simulation standing still.
+func _linger(seconds: float) -> void:
+	for i: int in roundi(seconds / 0.1):
+		_hud.advance(0.1)
+
+
 func _rect(control: Control) -> Rect2:
 	return control.get_global_rect()
 
@@ -179,7 +185,16 @@ func test_r1_defeat_note() -> void:
 	assert_true(_world.fallen_party.is_telling(), "the heroes are still standing up")
 	assert_true(_note().is_shown(), "the note stays until they stand")
 	assert_true(_until_standing(), "the heroes stand")
-	_hud.advance(1.0)
+	_linger(DefeatNote.LINGER_SECONDS - 0.5)
+	assert_true(_note().is_shown(), "it stays a while after they stand")
+	# The mouse over it holds it, for as long as it rests there.
+	_note().point_at(_rect(_note().panel).get_center())
+	_linger(20.0)
+	assert_true(_note().is_shown(), "it waits while the mouse is over it")
+	_note().point_at(HudTooltip.NOWHERE)
+	_linger(0.4)
+	assert_true(_note().is_shown(), "a moment after the mouse leaves it is still there")
+	_linger(1.0)
 	assert_false(_note().is_shown(), "then it fades and goes")
 
 	# An ordinary fight on depth 7: the monsters alive when the last hero fell, by name.
@@ -296,30 +311,21 @@ func test_r3_offers_help() -> void:
 	assert_true(_until_standing(), "the heroes stand")
 	_sim.set_guardian_order(Expedition.GuardianOrder.CHALLENGE)
 
-	# Ordinary monsters below the safe depth, no gold: only Go up a depth.
-	_sim.party.gold = 0
-	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on depth 7")
-	assert_eq(_note().suggestions(), ["Go up a depth"] as Array[String], "go up only")
-	_note().press(0)
-	assert_eq(_hud.target_label.text, str(DEEP - 1), "the target is one depth up at once")
-	var revived: Callable = func() -> bool:
-		return _sim.expedition.state != Expedition.State.REVIVING
-	assert_true(_step_until(revived), "the party is revived")
-	assert_eq(_sim.expedition.target_depth, DEEP - 1, "through the target-depth command")
-	assert_true(_until_standing(), "the heroes stand")
-
-	# With gold: train, buy, then go up.
+	# Ordinary monsters below the safe depth, with gold: train and buy, nothing more.
 	_sim.party.gold = RICH
 	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on depth 7 again")
+	assert_true(_lose_next_fight(), "the party loses on depth 7")
 	var trained: Hero = _cheapest_trainee()
-	expected = ["Train %s" % trained.def().display_name, "Buy an upgrade", "Go up a depth"]
-	assert_eq(_note().suggestions(), expected, "train, buy, go up")
+	expected = ["Train %s" % trained.def().display_name, "Buy an upgrade"]
+	assert_eq(_note().suggestions(), expected, "train, buy")
 	assert_true(_until_standing(), "the heroes stand")
 
-	# Ordinary monsters on the safe depth, no gold: nothing to suggest.
+	# Ordinary monsters, no gold: nothing to suggest, below the safe depth or on it.
 	_sim.party.gold = 0
+	_hunting_on(DEEP, SAFE)
+	assert_true(_lose_next_fight(), "the party loses below its safe depth")
+	assert_eq(_note().suggestions(), [] as Array[String], "nothing below the safe depth")
+	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(SAFE, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on its safe depth")
 	assert_eq(_note().suggestions(), [] as Array[String], "nothing to suggest")
@@ -376,27 +382,7 @@ func test_r5_out_of_the_way() -> void:
 		_hud.tooltip.point_at(HudTooltip.NOWHERE)
 		_hud.tooltip.advance(STEP)
 
-	# Out of the way of the listed HUD parts and of WIPED in the middle of the screen.
-	var area: Rect2 = _rect(note.panel)
-	var parts: Dictionary[String, Rect2] = {
-		"depth panel": _rect(_hud.depth_panel),
-		"goals": _rect(_hud.goals.panel),
-		"shop tab": _rect(_hud.shop_tab),
-		"gold": _rect(_hud.gold_panel),
-		"ladder": _rect(_hud.ladder),
-	}
-	for i: int in _hud.frames.size():
-		parts["frame %d" % i] = _rect(_hud.frames[i])
-	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (DefeatNote.WIPED_SCALE + 1))
-	wiped.position += Hud.SCREEN / 2.0
-	parts["WIPED"] = wiped
-	parts["the centre line"] = Rect2(0.0, Hud.SCREEN.y / 2.0, Hud.SCREEN.x, 1.0)
-	assert_true(_hud.goals.is_shown(), "the goals are up")
-	for part: String in parts:
-		assert_false(area.intersects(parts[part]), "the note keeps off the %s" % part)
-	assert_gt(area.position.y, Hud.TOP_BAND, "below the top band")
-	assert_lt(area.end.y, Hud.SCREEN.y / 2.0, "in the upper half")
-	assert_almost_eq(area.get_center().x, Hud.SCREEN.x / 2.0, 1.0, "in the middle")
+	_assert_out_of_the_way("after the wipe")
 
 	# Hidden while each panel is open.
 	var panels: Dictionary[String, Callable] = {
@@ -427,6 +413,42 @@ func test_r5_out_of_the_way() -> void:
 	away.free()
 	_hud.advance(STEP)
 	assert_true(note.is_shown(), "back when it goes")
+
+	# The heroes stand and walk straight into the guardian again while the note lingers: a new
+	# fight does not hide it, and it keeps off the boss bar too.
+	assert_true(_until_standing(), "the heroes stand")
+	_before_guardian()
+	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
+	assert_true(_step_until(fighting), "a new guardian fight starts")
+	assert_true(note.is_shown(), "the note is still up in the new fight")
+	assert_true(_hud.boss_bar.is_visible_in_tree(), "the boss bar is up")
+	_assert_out_of_the_way("during the new fight")
+
+
+## The note's panel clear of every listed HUD part (the boss bar too), of WIPED and the centre
+## line, below the top band, in the upper half and in the middle.
+func _assert_out_of_the_way(when: String) -> void:
+	var area: Rect2 = _rect(_note().panel)
+	var parts: Dictionary[String, Rect2] = {
+		"depth panel": _rect(_hud.depth_panel),
+		"goals": _rect(_hud.goals.panel),
+		"shop tab": _rect(_hud.shop_tab),
+		"gold": _rect(_hud.gold_panel),
+		"ladder": _rect(_hud.ladder),
+		"boss bar": _rect(_hud.boss_bar),
+	}
+	for i: int in _hud.frames.size():
+		parts["frame %d" % i] = _rect(_hud.frames[i])
+	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (DefeatNote.WIPED_SCALE + 1))
+	wiped.position += Hud.SCREEN / 2.0
+	parts["WIPED"] = wiped
+	parts["the centre line"] = Rect2(0.0, Hud.SCREEN.y / 2.0, Hud.SCREEN.x, 1.0)
+	assert_true(_hud.goals.is_shown(), "the goals are up %s" % when)
+	for part: String in parts:
+		assert_false(area.intersects(parts[part]), "the note keeps off the %s %s" % [part, when])
+	assert_gt(area.position.y, Hud.TOP_BAND, "below the top band %s" % when)
+	assert_lt(area.end.y, Hud.SCREEN.y / 2.0, "in the upper half %s" % when)
+	assert_almost_eq(area.get_center().x, Hud.SCREEN.x / 2.0, 1.0, "in the middle %s" % when)
 
 
 func test_r5_nothing_after_time_away() -> void:

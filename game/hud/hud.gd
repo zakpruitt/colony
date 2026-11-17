@@ -216,7 +216,6 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
-	defeat_note.target_asked.connect(_on_ladder_target)
 	move_child(tooltip, -1)  # drawn over the note
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth

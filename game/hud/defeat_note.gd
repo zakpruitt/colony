@@ -9,18 +9,17 @@ extends Control
 ## monsters alive when the last hero fell; [code]PARTY_WIPED[/code] then makes the note's lines
 ## ([method wipe_line], which the journal uses for its own line). Only a recent wipe
 ## ([method World.is_recent]) is told: one from a stall or the time away is not. The note stays
-## while the heroes are down and stand up again ([method FallenParty.is_telling]), then its text
-## steps down [constant FADE_COLOURS] and it goes. Text never fades by opacity.
+## while the heroes are down and stand up again ([method FallenParty.is_telling]) and
+## [constant LINGER_SECONDS] after, never counting down while the mouse is over it
+## ([method point_at]) and whatever fight starts meanwhile; then its text steps down
+## [constant FADE_COLOURS] and it goes. Text never fades by opacity.
 ##
 ## The suggestions are read again at every [method advance], so they follow the gold. The note
 ## hides while the shop, a hero sheet, the journal, help, orders or the away report is open. It
 ## moves only in [method advance], so a test can step it exactly.
 
-## The player asked for a target depth through the note (Go up a depth): the HUD shows it at once.
-signal target_asked(depth: int)
-
 ## What the note can suggest, in the order it prefers them.
-enum Help { TRAIN, UPGRADE, HOLD, GO_UP }
+enum Help { TRAIN, UPGRADE, HOLD }
 
 ## The most suggestions shown at once.
 const MOST: int = 3
@@ -36,7 +35,9 @@ const LINE: float = 10.0
 const BUTTONS_GAP: float = 3.0
 ## Pixels between two buttons.
 const BUTTON_GAP: float = 4.0
-## Once the heroes stand, the text steps down through these colours, each for FADE_STEP seconds,
+## Seconds the note stays after the heroes stand, while the mouse is not over it.
+const LINGER_SECONDS: float = 8.0
+## Then the text steps down through these colours, each for FADE_STEP seconds,
 ## and the note goes.
 const FADE_COLOURS: Array[StringName] = [&"silver", &"steel", &"slate"]
 const FADE_STEP: float = 0.2
@@ -45,7 +46,6 @@ const TIPS: Dictionary[Help, String] = {
 	Help.TRAIN: "Opens this hero's Training tab: training makes one hero stronger for good.",
 	Help.UPGRADE: "Opens the Shop: upgrades make the whole party stronger.",
 	Help.HOLD: "Orders the party to stay away from guardians and grow stronger first.",
-	Help.GO_UP: "Sets the target one depth up, where the monsters are weaker.",
 }
 const HOLDING_TIP: String = "The party stays away from guardians until Orders (O) sends it in."
 
@@ -66,8 +66,12 @@ var _helps: Array[Help] = []
 var _trainee: int = -1
 ## True from a recent wipe until the heroes stand.
 var _telling: bool = false
-## Seconds into the fade once they stand, or -1 when not fading.
+## Seconds the note still lingers after the heroes stood, or -1 when not lingering.
+var _linger: float = -1.0
+## Seconds into the fade once the linger is over, or -1 when not fading.
 var _fade: float = -1.0
+## Where the mouse is, in screen pixels.
+var _mouse: Vector2 = HudTooltip.NOWHERE
 ## The defeat being told: its depth, the safe depth then, and its guardian (or &"").
 var _depth: int = 0
 var _safe: int = 0
@@ -127,12 +131,19 @@ func advance(delta: float) -> void:
 		return
 	if _telling and _stood():
 		_telling = false
-		_fade = 0.0
-	elif not _telling and _fade >= 0.0:
+		_linger = LINGER_SECONDS
+	elif _hovered() and (_linger >= 0.0 or _fade >= 0.0):
+		_linger = maxf(_linger, 0.0)  # read while the mouse rests on it: it waits
+		_fade = -1.0
+	elif _linger >= 0.0:
+		_linger -= delta
+		if _linger < 0.0:
+			_fade = 0.0
+	elif _fade >= 0.0:
 		_fade += delta
 		if _fade >= FADE_STEP * FADE_COLOURS.size():
 			_fade = -1.0
-	var told: bool = _telling or _fade >= 0.0
+	var told: bool = _telling or _linger >= 0.0 or _fade >= 0.0
 	if told:
 		_suggest()
 	visible = told and not _covered()
@@ -143,6 +154,11 @@ func advance(delta: float) -> void:
 ## True while the note is on screen.
 func is_shown() -> bool:
 	return visible
+
+
+## Moves the mouse to [param at], in screen pixels: while it is over the note, the note waits.
+func point_at(at: Vector2) -> void:
+	_mouse = at
 
 
 ## The note's first line, and its second when there is one.
@@ -159,7 +175,7 @@ func suggestions() -> Array[String]:
 
 
 ## What clicking button [param index] does: opens the cheapest hero's Training tab, opens the
-## shop, sets the guardian order to Hold, or lowers the target depth by one.
+## shop, or sets the guardian order to Hold.
 func press(index: int) -> void:
 	if index < 0 or index >= _helps.size():
 		return
@@ -175,13 +191,6 @@ func press(index: int) -> void:
 			if not _held:
 				_held = true
 				_simulation.set_guardian_order(Expedition.GuardianOrder.HOLD)
-		Help.GO_UP:
-			var from: int = _simulation.expedition.target_depth
-			if _hud != null and _hud.target_label != null and _hud.target_label.text.is_valid_int():
-				from = _hud.target_label.text.to_int()  # a target asked for and not yet applied
-			var target: int = maxi(from - 1, 1)
-			_simulation.set_target_depth(target)
-			target_asked.emit(target)
 	advance(0.0)
 
 
@@ -271,6 +280,7 @@ func _tell() -> void:
 		_lines.append(reason)
 	_held = false
 	_telling = true
+	_linger = -1.0
 	_fade = -1.0
 	advance(0.0)
 
@@ -300,8 +310,6 @@ func _suggest() -> void:
 		_helps.append(Help.UPGRADE)
 	if _guardian != &"" and (_held or e.guardian_order == Expedition.GuardianOrder.CHALLENGE):
 		_helps.append(Help.HOLD)
-	if _guardian == &"" and _depth > _safe:
-		_helps.append(Help.GO_UP)
 	_helps = _helps.slice(0, MOST)
 
 
@@ -312,9 +320,7 @@ func _text(help: Help) -> String:
 			return "Train %s" % (hero.def().display_name if hero != null else "a hero")
 		Help.UPGRADE:
 			return "Buy an upgrade"
-		Help.HOLD:
-			return "Holding" if _held else "Hold here"
-	return "Go up a depth"
+	return "Holding" if _held else "Hold here"
 
 
 func _tip(index: int) -> String:
@@ -356,6 +362,17 @@ func _lowest_level() -> int:
 		if lowest == 0 or hero.level < lowest:
 			lowest = hero.level
 	return lowest
+
+
+## True while the mouse is over the note's panel.
+func _hovered() -> bool:
+	return visible and panel.get_global_rect().has_point(_mouse)
+
+
+func _input(event: InputEvent) -> void:
+	var motion: InputEventMouseMotion = event as InputEventMouseMotion
+	if motion != null:
+		point_at(motion.position)
 
 
 ## True once the party is up and the heroes have stood (spec 038), or the world tells nothing.
