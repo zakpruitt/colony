@@ -45,6 +45,12 @@ gives the view a public place to read where the party revives. It changes no rul
 func revival_place() -> Vector2i        # depth and column the party arrives at when it revives
 ```
 
+(Amended by the lead: as built this is `revival_place() -> Vector3`, column, depth and facing, since the
+column can be a half tile, plus a read-only `revive_tick`, which R1 needs to know how long the party has
+been down; the arrival rule lives in `sim/expedition/arrival.gd`. R7 also changed the spacing itself:
+measured from drawn pixels the old spacing overlapped during lunges and swings, so melee heroes now stand
+about a sword's reach from a guardian. That is for Zak to judge.)
+
 The exact shape is the lane's choice if the existing private code suggests a better one. The file is near
 gdlint's 1000 lines (998): make the existing private function public or move it to a helper beside it
 rather than adding lines.
