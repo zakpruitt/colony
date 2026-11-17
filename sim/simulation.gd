@@ -277,8 +277,8 @@ func to_save() -> Dictionary:
 
 
 ## A simulation carrying on from saved progress, or null if [param data] has
-## problems ([method save_problems] says which). Every hero stands up alive and
-## full where revival would put the party: at its last stable depth, travelling,
+## problems ([method save_problems] says which). Every hero stands up at the level its XP earns,
+## alive and full, where revival would put the party: at its last stable depth, travelling,
 ## with every chamber freshly populated and no events pending.
 static func from_save(data: Dictionary) -> Simulation:
 	if not save_problems(data).is_empty():
@@ -300,6 +300,9 @@ static func from_save(data: Dictionary) -> Simulation:
 		hero.upgrades = sim.upgrades
 		hero.level = _whole(saved["level"])
 		hero.xp = _whole(saved["xp"])
+		# A save from before spec 036's cheaper levels can hold XP that pays for more levels: take
+		# them now, silently, so the hero is what its XP earns (spec 044). Health is filled below.
+		hero.gain_xp(0)
 		var training: Dictionary = saved["training"]
 		for key: Variant in training:
 			var training_text: String = key
