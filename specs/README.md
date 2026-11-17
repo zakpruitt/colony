@@ -57,10 +57,14 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### In progress (2026-11-16, after Zak's first playtest)
+### In progress (2026-11-17, after Zak played the demo)
 
-Nothing is in progress (2026-11-17): specs 025 to 048 have all landed and are in the board above, provisional
-until Zak has played them. The direction they follow is `docs/design/world.md`. New rows go in this table.
+Zak's direction after the demo: areas to choose between instead of one descent, and a skill tree of real
+abilities for every hero, with paragon points after it (`docs/design/world.md`, "Areas and skill trees").
+Planned after these two: 051 talent trees and paragon, 052 resources, 053 the area map, 054 zones on
+screen, 055 the tree on the hero sheet. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| [049 Areas](049-areas/spec.md) | in progress, provisional | 005, 013, 014, 020, 035 |
+| [050 Abilities in combat](050-abilities-in-combat/spec.md) | in progress, provisional | 004, 015 |

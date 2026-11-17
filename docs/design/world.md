@@ -47,3 +47,30 @@ upgraded and managed.
 - **Order:** readability and a sheet for each hero; side quests and microskills with the four existing
   heroes; per-hero upgrades; then choosing who goes down (a roster); then new classes, starting with the one
   Zak wants to draw.
+
+## Areas and skill trees (decided with Zak on 2026-11-17, after he played the demo)
+
+Zak's words: the game should not feel like "you just are ever-going down", there should be "difference and
+intentionality of where you go to farm and spelunk", and every hero should have a "very interesting yet
+simple" skill tree.
+
+### Areas, not one descent
+
+- **A map of areas.** The labyrinth is several areas (Mossy Hollow, the Claypits, the Old Crypt, Ember
+  Deep, more later). Each has its own monsters, its own guardian and its own resource.
+- **Stages.** An area is a run of stages that get harder. Going from one stage to the next is walking on
+  into a new zone, not climbing down. The player picks the area and how far in the party farms.
+- **Opening areas.** Beating an area's guardian opens the next area. Earlier areas stay worth visiting for
+  their resource.
+- **Resources pay for the camp.** Camp upgrades cost gold and a resource from one area, so what the player
+  wants to build decides where the party goes. Gear and professions are later ideas, not designed.
+
+### Skill trees
+
+- **Every node is something the hero does.** A new action, or a passive with a visible effect. Never a
+  plain damage or health increase.
+- **A trunk, then a fork.** Each class has a short shared trunk and then two specialisations (a knight
+  becomes a Guardian or a Berserker). Choosing one path locks the other. About 8 to 10 nodes a hero.
+- **Points come from levels.** One talent point a level until the tree is full.
+- **Paragon after that.** Once the tree is full, each level gives a paragon point to put in Power,
+  Quickness or Toughness. Plain stat gains live only there. Gold training (spec 029) is removed.
