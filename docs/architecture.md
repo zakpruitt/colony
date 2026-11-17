@@ -57,7 +57,7 @@ and fails on any problem.
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
 last stable depth, deepest depth, target depth and auto-push, the rank of each camp upgrade (spec 016), the auto-buy switch (spec 022)
-and each hero's training ranks (spec 029).
+each hero's training ranks (spec 029) and the party's orders (spec 035).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
@@ -66,14 +66,22 @@ stable depth, with every chamber freshly populated.
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 4. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 5. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
   Version 2 to 3 adds `auto_buy` (true or false), off; any other value is refused by name. Version 3 to 4 adds
   `training` to each saved hero (a dictionary of training id to rank) with every rank 0; a rank that is
   negative, above the training's maximum or for an unknown training is refused by name
-  (`heroes[1].training.power`).
+  (`heroes[1].training.power`). Version 4 to 5 adds `pace` (`cautious`, `steady` or `bold`) and
+  `guardian_order` (`challenge` or `hold`) at `steady` and `challenge`; any other value is refused by name.
+- **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
+  `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
+  pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
+  Hold the party's walking goal stops short of a living guardian's chamber (`PartyOrders.short_of`), it turns
+  there and hunts on that level, and `Expedition.is_holding` says so. At their defaults the orders add nothing
+  to the state hash. `EncounterRoll` holds the expedition's encounter roll, guardian lookup and fighters' hash
+  parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines.
 - **Training (spec 029).** `Simulation.train_hero` applies on the next step, like `buy_upgrade`. A hero's
   damage, healing, maximum health and attack speed are the class's times the camp upgrade's multiplier times
   its own `Hero.training_multiplier`. An untrained hero adds nothing to the state hash.
