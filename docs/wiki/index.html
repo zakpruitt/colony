@@ -131,6 +131,9 @@ Things marked <span class="tag built">Built</span> work today;
   <li><strong>Reading the party:</strong> the HUD says what the party is doing and why, counts down to the
   next stable depth, and keeps a journal (<kbd>J</kbd>) of what has happened; an arrow over the party points
   the way it is heading.</li>
+  <li><strong>Help in the game</strong> (spec 030): the <kbd>?</kbd> button or <kbd>H</kbd> opens a panel with
+  the idea in five lines and every key; resting the mouse on any part of the HUD explains it in one sentence.
+  A new game opens the help once by itself.</li>
   <li><strong>Feel:</strong> lit chambers, ambient life, damage numbers, bursts, coins, screen shake, a HUD, and
   16 sound effects.</li>
   <li><strong>Cast:</strong> 4 heroes, 13 monsters across three depth bands, 4 guardians, 5 microskills and
@@ -140,16 +143,19 @@ Things marked <span class="tag built">Built</span> work today;
 <div class="table-wrap">
 <table>
   <tr><th>Key</th><th>Does</th></tr>
+  <tr><td><kbd>H</kbd></td><td>Show or hide the help panel (the <kbd>?</kbd> button does the same)</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Close whatever panel is open</td></tr>
   <tr><td><kbd>U</kbd></td><td>Open or close the shop (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero (<kbd>Esc</kbd> closes it; so does clicking the hero's frame again)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Train the hero in that row (Power, Toughness, Quickness), while their sheet is open</td></tr>
   <tr><td><kbd>B</kbd></td><td>Turn auto-buy on or off, while the shop is open</td></tr>
-  <tr><td><kbd>-</kbd> <kbd>=</kbd></td><td>Lower or raise the target depth</td></tr>
+  <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Lower or raise the target depth (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Turn auto-push (go deeper when stable) on or off</td></tr>
   <tr><td><kbd>Z</kbd></td><td>Zoom in or out</td></tr>
   <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
+  <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
 </table>
 </div>
 <p>To see every moment of the loop in about a minute, labelled, without waiting for it:</p>
@@ -172,7 +178,8 @@ Things marked <span class="tag built">Built</span> work today;
   <li>The Bone Lord and Deep Maw (depths 15 and 20) were balanced by hand, with no test holding them.</li>
   <li>Most pull requests after the first few were checked by CI and the lead only, not by a separate reviewer.</li>
   <li>A save from testing may exist. For a fresh start, delete <code>colony.save</code> and
-  <code>colony.save.bak</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>.</li>
+  <code>colony.save.bak</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>. To see the first-run
+  help again, delete <code>colony.settings</code> there too (it also keeps the mute choice).</li>
 </ul>
 <h3>Not built yet</h3>
 <p>Loot and equipment, talents, more hero classes, music, a settings screen, and a balance pass.</p>
@@ -338,7 +345,8 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
 <ul>
   <li><strong>Party frames</strong> (bottom), in marching order: each hero's portrait, class, level, a health
   bar (green above half, yellow down to a quarter, red below) that drains smoothly, and an XP bar toward the
-  next level. A hit flashes the frame; a dead hero's frame goes dark with a skull and reads <em>Down</em>
+  next level. During a fight the bar follows the fight blow by blow (spec 030). A hit flashes the frame; a
+  hero who falls goes dark at once, with a skull and reads <em>Down</em>
   where the level was until it stands up again (after a wipe all four read <em>Recovering</em>); a
   level-up makes the level number pulse and the XP bar start again from empty.</li>
   <li><strong>Gold</strong> (top right), with commas. It counts up as coins arrive; if it is still behind 3
@@ -366,6 +374,14 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
   <li><strong>Z</strong> zooms the labyrinth in to twice the size, centred on the party, and back out again
   (spec 018). The change eases over a quarter of a second; the HUD stays the same size.</li>
+  <li><strong>Help</strong> (spec 030): the <strong>?</strong> button left of Shop, or <code>H</code>, opens a
+  panel in the middle of the screen: what the game is about in five lines, every key and what it does, and a
+  hint to click a hero or rest the mouse on things. <code>H</code>, <code>Esc</code> or its <strong>x</strong>
+  closes it; it never shares the screen with the shop, a hero sheet or the journal, and the game keeps running.
+  The first time a new game starts, it opens by itself, once.</li>
+  <li><strong>Tooltips</strong> (spec 030): rest the mouse on the depth, the status line, the road to stable,
+  the target and its buttons, Auto, Shop, the gold, a hero frame, the boss bar or the ? button for 0.4
+  seconds, and a small box explains it in one sentence. It never covers what it explains.</li>
   <li><strong>F3</strong> shows or hides a developer readout of the simulation's tick and seconds, in the
   bottom-right corner.</li>
 </ul>
@@ -624,7 +640,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 
