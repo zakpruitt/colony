@@ -12,6 +12,7 @@ const TRAINING_DIR: String = "res://data/training"
 const MICROSKILLS_DIR: String = "res://data/microskills"
 const SIDE_QUESTS_DIR: String = "res://data/sidequests"
 const AREAS_DIR: String = "res://data/areas"
+const ABILITIES_DIR: String = "res://data/abilities"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
@@ -23,6 +24,7 @@ static var _microskills: Dictionary[StringName, MicroskillDef] = {}
 static var _side_quests: Dictionary[StringName, SideQuestDef] = {}
 static var _areas: Dictionary[StringName, AreaDef] = {}
 static var _area_ids: Array[StringName] = []
+static var _abilities: Dictionary[StringName, AbilityDef] = {}
 static var _loaded: bool = false
 
 
@@ -110,6 +112,18 @@ static func area_ids() -> Array[StringName]:
 	return _area_ids.duplicate()
 
 
+## The ability with this id (spec 050), or null if there is none.
+static func ability(id: StringName) -> AbilityDef:
+	_load()
+	return _abilities.get(id, null)
+
+
+## Every ability id, sorted.
+static func ability_ids() -> Array[StringName]:
+	_load()
+	return _sorted(_abilities.keys())
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -162,6 +176,12 @@ static func _load() -> void:
 		_areas[area_def.id] = area_def
 	_area_ids = _sorted(_areas.keys())
 	_area_ids.sort_custom(_before_in_order)
+	for resource: Resource in _resources_in(ABILITIES_DIR):
+		var ability_def: AbilityDef = resource as AbilityDef
+		if ability_def == null:
+			push_error("Content: %s is not an AbilityDef" % resource.resource_path)
+			continue
+		_abilities[ability_def.id] = ability_def
 
 
 static func _resources_in(dir: String) -> Array[Resource]:

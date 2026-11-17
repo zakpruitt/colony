@@ -42,6 +42,22 @@ var strike_tick: int = -1
 ## Set by the battle: the first tick a new attack may start on.
 var ready_tick: int = 0
 
+## Spec 050: what this fighter does beyond its strike, in the order it considers them.
+var abilities: Array[AbilityDef] = []  # empty for everyone today
+## Set by the battle: the action being wound up, or null for an ordinary strike.
+var pending_action: AbilityDef = null
+## Set by the battle: the id of the action this fighter is walking or waiting to use, whose
+## target it keeps until then; empty if none.
+var chasing: StringName = &""
+## Set by the battle: the statuses on this fighter, by [enum AbilityEffect.Status].
+var statuses: Dictionary[int, CombatStatus] = {}
+## Set by the battle: the tick each action is next ready on, by ability id.
+var action_ready_tick: Dictionary[StringName, int] = {}
+## Set by the battle: the once-a-fight passives that have fired.
+var spent: Dictionary[StringName, bool] = {}
+## Set by the battle: ordinary strikes made this fight.
+var strikes: int = 0
+
 
 ## A hero of class [param def] at [param hero_level] (1 or more).
 static func from_hero(def: HeroClassDef, hero_level: int, combatant_id: int) -> Combatant:
@@ -106,6 +122,58 @@ func health_fraction() -> float:
 	if max_health <= 0:
 		return 0.0
 	return float(health) / max_health
+
+
+## True if this fighter has the status [param kind] (an [enum AbilityEffect.Status]).
+func has_status(kind: AbilityEffect.Status) -> bool:
+	return statuses.has(kind)
+
+
+## The status [param kind] on this fighter, or null.
+func status(kind: AbilityEffect.Status) -> CombatStatus:
+	return statuses.get(kind, null)
+
+
+## Ticks from one strike to the next, after haste and slow.
+func strike_interval_ticks() -> int:
+	if statuses.is_empty():
+		return attack_interval_ticks
+	var times: float = _status_amount(AbilityEffect.Status.HASTED, 1.0)
+	times *= _status_amount(AbilityEffect.Status.SLOWED, 1.0)
+	return maxi(1, roundi(attack_interval_ticks * times))
+
+
+## What the damage this fighter deals is multiplied by (mighty, weakened).
+func dealt_multiplier() -> float:
+	if statuses.is_empty():
+		return 1.0
+	var times: float = _status_amount(AbilityEffect.Status.MIGHTY, 1.0)
+	return times * _status_amount(AbilityEffect.Status.WEAKENED, 1.0)
+
+
+## What the damage this fighter takes is multiplied by (marked).
+func taken_multiplier() -> float:
+	return _status_amount(AbilityEffect.Status.MARKED, 1.0)
+
+
+## Clears what one fight leaves on the fighter: statuses, the action in hand, cooldowns
+## (each action ready at the start, or one cooldown in), once-a-fight passives and the strike count.
+func reset_abilities() -> void:
+	pending_action = null
+	chasing = &""
+	statuses.clear()
+	spent.clear()
+	strikes = 0
+	action_ready_tick.clear()
+	for ability: AbilityDef in abilities:
+		if ability.is_action():
+			var wait: int = roundi(ability.cooldown * Simulation.TICKS_PER_SECOND)
+			action_ready_tick[ability.id] = 0 if ability.ready_at_start else wait
+
+
+func _status_amount(kind: AbilityEffect.Status, otherwise: float) -> float:
+	var found: CombatStatus = statuses.get(kind, null)
+	return otherwise if found == null else found.amount
 
 
 func _set_common(
