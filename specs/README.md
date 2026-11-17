@@ -54,4 +54,4 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [038 Rough edges on screen](038-rough-edges-on-screen/spec.md): the party stays visible through a wipe, heroes stand at a guardian and not in it, side quests glint in the dark | provisional, in progress | 008, 010, 012, 020, 028 |
-| [039 The countdown tells the truth](039-the-countdown-tells-the-truth/spec.md): a new game says `Stable, then depth 2` and then stays put; show the timer that decides when the party moves on | provisional, waiting on 036 | 027, 036, 037 |
+| [039 The countdown tells the truth](039-the-countdown-tells-the-truth/spec.md): a new game says `Stable, then depth 2` and then stays put; show the timer that decides when the party moves on | provisional, in progress | 027, 036, 037 |
