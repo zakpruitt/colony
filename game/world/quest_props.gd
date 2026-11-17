@@ -10,6 +10,10 @@ extends Node2D
 ## A child of [World], which calls [method scan] whenever it looks for waiting monsters,
 ## [method goal_for] as it moves each hero, and [method animate] once a frame. Props are drawn
 ## under the darkness, like the monsters; the bar and the name over it, like the effects.
+##
+## A prop out of the party's light carries a glint (spec 038 R4): the ambience's sparkle at its
+## top corner, drawn over the darkness like the glints on ore, slowly swelling and fading, so a
+## quest waiting in the dark reads from across the level. In the party's light it has none.
 
 ## The worker swung at the prop: a strike of the slow repeat.
 signal worked(hero_id: int)
@@ -43,6 +47,11 @@ const BAR_SIZE: Vector2 = Vector2(20, 4)
 const BAR_RAISE: float = 36.0
 ## Pixels between the microskill's name (its baseline) and the bar under it.
 const NAME_GAP: float = 4.0
+## The glint's sheet, and its pulse: seconds for one swell, and the share of it spent small, big,
+## small again (the rest dark).
+const GLINT_SHEET: String = "res://assets/sprites/ambience/sparkle.png"
+const GLINT_PERIOD: float = 2.0
+const GLINT_PULSE: Vector3 = Vector3(0.3, 0.6, 0.85)
 
 var _world: World
 var _simulation: Simulation
@@ -57,6 +66,10 @@ var _bar: float = -1.0
 var _bar_at: Vector2 = Vector2.ZERO
 var _name: String = ""
 var _name_at: Vector2 = Vector2.ZERO
+## The glints, over the darkness; seconds of their pulse; and per prop, the part showing now.
+var _glints: Node2D
+var _glint_time: float = 0.0
+var _glint_parts: Dictionary[Vector2i, StringName] = {}
 
 
 ## Call once, before the first scan.
@@ -69,6 +82,12 @@ func setup(world: World, simulation: Simulation) -> void:
 	_overlay.z_as_relative = false
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
+	_glints = Node2D.new()
+	_glints.name = "Glints"
+	_glints.z_index = AmbienceLevel.GLOW_Z
+	_glints.z_as_relative = false
+	_glints.draw.connect(_draw_glints)
+	add_child(_glints)
 
 
 ## The prop waiting in that chamber, or null.
@@ -79,6 +98,59 @@ func prop(depth: int, chamber_index: int) -> Sprite2D:
 ## How many props are shown.
 func prop_count() -> int:
 	return _props.size()
+
+
+## The sparkle part glinting on that chamber's prop now ([code]&"small"[/code] or
+## [code]&"big"[/code]), or [code]&""[/code] when it has none: in the party's light, between two
+## pulses, or with no prop at all.
+func glint_part(depth: int, chamber_index: int) -> StringName:
+	return _glint_parts.get(Vector2i(depth, chamber_index), &"")
+
+
+## True when that chamber's prop is out of the party's light, so it carries a glint (which may be
+## between two pulses).
+func is_glinting(depth: int, chamber_index: int) -> bool:
+	var waiting: Sprite2D = prop(depth, chamber_index)
+	if waiting == null or _world.ambience == null:
+		return false
+	var light: Vector2 = _world.ambience.party_light_position
+	return _glint_at(waiting).distance_to(light) > Ambience.PARTY_RADIUS
+
+
+## The glints of the props out of the party's light, pulsing; moved on by [param delta] seconds.
+func _pulse_glints(delta: float) -> void:
+	_glint_time = fposmod(_glint_time + delta, GLINT_PERIOD * 64.0)
+	var parts: Dictionary[Vector2i, StringName] = {}
+	for key: Vector2i in _props:
+		if not is_glinting(key.x, key.y):
+			continue
+		# Each prop's pulse starts at its own point, so two in view do not swell together.
+		var phase: float = fposmod(_glint_time / GLINT_PERIOD + 0.37 * (key.x * 7 + key.y), 1.0)
+		if phase < GLINT_PULSE.x or (phase >= GLINT_PULSE.y and phase < GLINT_PULSE.z):
+			parts[key] = &"small"
+		elif phase < GLINT_PULSE.y:
+			parts[key] = &"big"
+	if parts != _glint_parts:
+		_glint_parts = parts
+		_glints.queue_redraw()
+
+
+## Where a prop's glint shines: on the top corner of its pixels, toward the back of the chamber.
+static func _glint_at(waiting: Sprite2D) -> Vector2:
+	var box: Rect2i = SpriteBounds.opaque(waiting.texture as AtlasTexture)
+	var corner := Vector2(box.end.x - 2, box.position.y + 1)
+	return waiting.position + waiting.offset + corner
+
+
+func _draw_glints() -> void:
+	var sparkle: PixelSheet = PixelSheet.load_sheet(GLINT_SHEET)
+	if sparkle == null:
+		return
+	for key: Vector2i in _glint_parts:
+		var waiting: Sprite2D = prop(key.x, key.y)
+		if waiting != null:
+			var at: Vector2 = _glint_at(waiting) - (Vector2(sparkle.size) / 2.0).floor()
+			_glints.draw_texture(sparkle.part(_glint_parts[key]), at)
 
 
 ## The bar's fraction while the party works (the work's progress), or -1 when no bar shows.
@@ -148,6 +220,7 @@ func goal_for(id: int, goal: Vector2) -> Vector2:
 
 ## Swings the worker once it is at the prop, and brings the bar and the name up to date.
 func animate(delta: float) -> void:
+	_pulse_glints(delta)
 	var expedition: Expedition = _simulation.expedition
 	var worker_id: int = expedition.worker_id()
 	var worker: CharacterSprite = _world.character(worker_id) if worker_id >= 0 else null

@@ -2,8 +2,9 @@ class_name Showcase
 extends Node
 ## A development scene (spec 018) that plays the loop's moments on demand, one after another, each
 ## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, a climb down and up, a
-## wipe and the revival, a depth becoming stable, a fight in each deeper band, and side quests
-## (spec 028): one done, one nobody can do, a tripwire sprung and a microskill learned.
+## wipe and the revival, a depth becoming stable, a fight in each deeper band, a guardian's fight
+## (spec 038), and side quests (spec 028): one done, one nobody can do, a tripwire sprung and a
+## microskill learned.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -34,6 +35,7 @@ const MOMENTS: Array[StringName] = [
 	&"clay_fight",
 	&"stone_fight",
 	&"deep_fight",
+	&"guardian_fight",
 	&"quest_done",
 	&"quest_missed",
 	&"tripwire_sprung",
@@ -55,6 +57,7 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"clay_fight": "A FIGHT IN THE CLAY",
 	&"stone_fight": "A FIGHT IN THE STONE",
 	&"deep_fight": "A FIGHT IN THE DEEP",
+	&"guardian_fight": "A GUARDIAN HOLDS THE WAY DOWN",
 	&"quest_done": "A SIDE QUEST: THE ROGUE PICKS A LOCK",
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
@@ -76,6 +79,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"clay_fight": 4.0,
 	&"stone_fight": 4.0,
 	&"deep_fight": 4.0,
+	&"guardian_fight": 4.0,
 	&"quest_done": 2.2,
 	&"quest_missed": 2.0,
 	&"tripwire_sprung": 1.8,
@@ -93,6 +97,10 @@ const BAND_DEPTHS: Dictionary[StringName, int] = {
 const BAND_LEVELS: Dictionary[StringName, int] = {
 	&"clay_fight": 8, &"stone_fight": 13, &"deep_fight": 18
 }
+## The depth of the guardian's fight (the first guardian's), and the heroes' level there: strong
+## enough to stand, not to end it before it has been seen.
+const GUARDIAN_DEPTH: int = Expedition.GUARDIAN_EVERY
+const GUARDIAN_LEVEL: int = 10
 ## How many times their health the monsters of the first fight have.
 const TOUGHER: int = 3
 ## The side quest each quest moment walks into, and the depth its search starts from.
@@ -268,6 +276,12 @@ func _begin(current: StringName) -> void:
 				hero.health = hero.max_health()
 			_cut_to_depth(BAND_DEPTHS[current], BAND_DEPTHS[current])
 			_cut_to_fight()
+		&"guardian_fight":
+			_settle_now()
+			for hero: Hero in sim.party.heroes:
+				_set_level(hero, GUARDIAN_LEVEL)
+			_cut_to_depth(GUARDIAN_DEPTH, GUARDIAN_DEPTH + 1)
+			_cut_to_guardian()
 		&"quest_done", &"quest_missed", &"tripwire_sprung", &"microskill_learned":
 			_settle_now()
 			for hero: Hero in sim.party.heroes:
@@ -361,6 +375,9 @@ func _look() -> void:
 				and expedition.battle != null
 				and AmbienceMood.band(expedition.depth) == band
 			):
+				_see()
+		&"guardian_fight":
+			if GuardianSpacing.fighting_guardian(main.simulation) != null:
 				_see()
 
 
@@ -472,6 +489,19 @@ func _cut_to_shaft() -> void:
 				return
 		_settle_now()
 		sim.step()
+
+
+## Puts the party a step outside the chamber of the guardian holding its depth's way down,
+## walking in.
+func _cut_to_guardian() -> void:
+	var expedition: Expedition = main.simulation.expedition
+	var lair: LabyrinthChamber = main.simulation.labyrinth.level(expedition.depth).shaft_chamber()
+	if lair.index > 0:
+		expedition.x = lair.rect.position.x - 1.0
+		expedition.facing = 1
+	else:
+		expedition.x = lair.rect.end.x
+		expedition.facing = -1
 
 
 ## Cuts to the first depth from QUEST_DEPTH holding [param quest] in a chamber, and puts the party

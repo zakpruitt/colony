@@ -1,0 +1,625 @@
+extends GutTest
+## Acceptance tests for specs/038-rough-edges-on-screen/spec.md, one per requirement.
+##
+## Each test builds a World with CombatEffects on a seeded simulation, their clocks turned off,
+## and plays frames by hand as the game would at 60 frames a second: the simulation steps once
+## every FRAMES_PER_TICK frames (times the game's speed), and the world and the effects move on
+## by FRAME. A fallen hero lies on its back: its sprite turned a quarter turn (its rotation).
+
+const SEED: int = 1
+const FRAME: float = 1.0 / 60.0
+const FRAMES_PER_TICK: int = 6
+const TILE: float = 16.0
+const HERO_IDS: Array[int] = [1, 2, 3, 4]
+const KNIGHT: int = 1
+const ROGUE: int = 2
+## The longest any wait here lasts, in simulation ticks (five minutes).
+const LIMIT_TICKS: int = 3000
+const GUARDIAN_DEPTH: int = 5
+const STRONG_LEVEL: int = 40
+const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
+## Monster sprite positions through the first fight of seed 1, every 15 frames, recorded with the
+## world as it was before this spec (R5).
+const MONSTER_REFERENCE: Array[Vector2] = [
+	Vector2(737.72, 192.0),
+	Vector2(758.52, 192.0),
+	Vector2(776.2266, 192.0),
+	Vector2(800.12, 192.0),
+	Vector2(817.8266, 192.0),
+	Vector2(747.2176, 192.0),
+	Vector2(768.0176, 192.0),
+	Vector2(773.624, 192.0),
+	Vector2(809.6176, 192.0),
+	Vector2(815.2241, 192.0),
+	Vector2(744.8651, 192.0),
+	Vector2(765.6651, 192.0),
+	Vector2(758.7202, 192.0),
+	Vector2(807.2651, 192.0),
+	Vector2(800.3201, 192.0),
+	Vector2(741.2673, 192.0),
+	Vector2(762.0673, 192.0),
+	Vector2(743.5856, 192.0),
+	Vector2(803.6673, 192.0),
+	Vector2(785.1856, 192.0),
+	Vector2(743.2006, 192.0),
+	Vector2(757.9424, 192.0),
+	Vector2(739.1018, 192.0),
+	Vector2(799.5424, 192.0),
+	Vector2(768.5857, 192.0),
+	Vector2(746.7416, 192.0),
+	Vector2(755.867, 192.0),
+	Vector2(738.4, 192.0),
+	Vector2(795.7048, 192.0),
+	Vector2(758.5079, 192.0),
+	Vector2(747.8297, 192.0),
+	Vector2(759.011, 192.0),
+	Vector2(738.4, 192.0),
+	Vector2(791.5475, 192.0),
+	Vector2(757.7229, 192.0),
+	Vector2(748.0, 192.0),
+	Vector2(762.716, 192.0),
+	Vector2(738.4, 192.0),
+	Vector2(787.7056, 192.0),
+	Vector2(757.6, 192.0),
+]
+
+var _sim: Simulation
+var _world: World
+var _fx: CombatEffects
+var _events: Array[SimEvent] = []
+var _frame: int = 0
+
+
+func before_each() -> void:
+	_events = []
+	_frame = 0
+
+
+# --- Helpers -------------------------------------------------------------------
+
+
+func _show(simulation: Simulation, speed: int = 1) -> void:
+	_sim = simulation
+	_world = World.new()
+	_world.simulation = simulation
+	_world.speed = speed
+	add_child_autofree(_world)
+	_world.set_process(false)
+	_fx = CombatEffects.new()
+	add_child_autofree(_fx)
+	_fx.set_process(false)
+	_fx.setup(_world, simulation)
+	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
+
+
+## One frame: the simulation steps (speed times) every FRAMES_PER_TICK frames, then the world
+## and the effects move on by FRAME. Returns the events passed on in it.
+func _play_frame() -> Array[SimEvent]:
+	var before: int = _events.size()
+	if _frame % FRAMES_PER_TICK == 0:
+		for i: int in maxi(_world.speed, 1):
+			_sim.step()
+	_frame += 1
+	_world.sync(FRAME)
+	_fx.advance(FRAME)
+	return _events.slice(before)
+
+
+func _has(events: Array[SimEvent], kind: SimEvent.Kind) -> bool:
+	for event: SimEvent in events:
+		if event.kind == kind:
+			return true
+	return false
+
+
+## Plays frames until an event of [param kind] is passed on: true, or false at the limit.
+func _play_until(kind: SimEvent.Kind) -> bool:
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		if _has(_play_frame(), kind):
+			return true
+	return false
+
+
+func _feet(hero_id: int) -> Vector2:
+	var tiles: Vector2 = _sim.expedition.hero_position(hero_id)
+	return Vector2(tiles.x * TILE, (tiles.y + 1.0) * TILE)
+
+
+func _wipe() -> void:
+	for hero: Hero in _sim.party.heroes:
+		hero.health = 0
+
+
+## True for a sprite lying in its death pose: shown, dead, on its back (a quarter turn over).
+func _lying(sprite: CharacterSprite) -> bool:
+	var flat: bool = is_equal_approx(absf(sprite.rotation), PI / 2.0)
+	return sprite.visible and sprite.is_dead() and flat
+
+
+## The world pixels the camera shows.
+func _view() -> Rect2:
+	var size: Vector2 = _world.get_viewport_rect().size / _world.camera.zoom
+	return Rect2(_world.camera.position - size / 2.0, size)
+
+
+## True if any hero sprite is shown within the camera's view.
+func _party_in_view() -> bool:
+	for id: int in HERO_IDS:
+		var sprite: CharacterSprite = _world.character(id)
+		if sprite.visible and _view().grow(-4.0).has_point(sprite.position):
+			return true
+	return false
+
+
+## The party on depth 2, its depth 1 stable and depth 2 not, travelling: a wipe now revives it
+## on depth 1, a level up and part of the band away.
+func _travelling_on_depth_two(speed: int = 1) -> void:
+	_show(Simulation.new(SEED), speed)
+	_sim.set_target_depth(2)
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		var e: Expedition = _sim.expedition
+		if e.depth == 2 and e.state == Expedition.State.TRAVELLING:
+			break
+	for i: int in 60:
+		_play_frame()
+	assert_eq(_sim.expedition.depth, 2, "the party is on depth 2")
+	assert_eq(_sim.expedition.last_stable_depth, 1, "with depth 1 the last stable one")
+
+
+func _raise(level: int) -> void:
+	for hero: Hero in _sim.party.heroes:
+		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+		hero.health = hero.max_health()
+
+
+## Puts the party just outside the Slime King's chamber on depth 5, walking in, as spec 024's
+## tests do.
+func _before_guardian() -> void:
+	var e: Expedition = _sim.expedition
+	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
+	_sim.set_auto_push(false)
+	e.depth = GUARDIAN_DEPTH
+	e.target_depth = GUARDIAN_DEPTH + 1
+	if lair.index > 0:
+		e.x = lair.rect.position.x - 1.0
+		e.facing = 1
+	else:
+		e.x = lair.rect.end.x
+		e.facing = -1
+
+
+## Pixels by which two rectangles overlap across (0 or less when they do not).
+static func _overlap(a: Rect2, b: Rect2) -> float:
+	return minf(a.end.x, b.end.x) - maxf(a.position.x, b.position.x)
+
+
+## Problems with the heroes against the guardian now: a hero sprite overlapping its body.
+func _overlaps() -> Array[String]:
+	var problems: Array[String] = []
+	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
+	if guardian == null or _world.character(guardian.id) == null:
+		return problems
+	var body: Rect2 = SpriteBounds.body_rect(_world.character(guardian.id))
+	for id: int in HERO_IDS:
+		var hero: Rect2 = SpriteBounds.body_rect(_world.character(id))
+		if _overlap(hero, body) > 0.0:
+			problems.append("hero %d overlaps the guardian by %.1f px" % [id, _overlap(hero, body)])
+	return problems
+
+
+# --- R1 ------------------------------------------------------------------------
+
+
+func test_r1_wipe_leaves_the_party() -> void:
+	_show(Simulation.new(SEED))
+	for i: int in 120:
+		_play_frame()
+	_wipe()
+	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
+	# The collapse plays, then each hero lies where it fell, in its death pose.
+	for i: int in roundi(0.5 / FRAME):
+		_play_frame()
+	var spots: Dictionary[int, Vector2] = {}
+	for id: int in HERO_IDS:
+		var sprite: CharacterSprite = _world.character(id)
+		assert_true(_lying(sprite), "hero %d lies in its death pose" % id)
+		assert_lt(sprite.position.distance_to(_feet(id)), TILE, "hero %d where it fell" % id)
+		spots[id] = sprite.position
+	var moved: int = 0
+	var unposed: int = 0
+	var empty: int = 0
+	var revived: bool = false
+	var last_camera: Vector2 = _world.camera.position
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		if _has(events, SimEvent.Kind.PARTY_REVIVED):
+			revived = true
+			break
+		for id: int in HERO_IDS:
+			var sprite: CharacterSprite = _world.character(id)
+			if sprite.position != spots[id]:
+				moved += 1
+			if not _lying(sprite):
+				unposed += 1
+		if not _party_in_view() and _world.camera.position == last_camera:
+			empty += 1
+		last_camera = _world.camera.position
+	assert_true(revived, "the party is revived")
+	assert_eq(moved, 0, "no fallen hero moves before the revival")
+	assert_eq(unposed, 0, "and each stays in its death pose")
+	assert_eq(empty, 0, "on every frame a hero is in view or the camera is on its way")
+
+	# At the revival: at the simulation's place, under the revival light, still down.
+	for id: int in HERO_IDS:
+		var sprite: CharacterSprite = _world.character(id)
+		var feet: Vector2 = _feet(id)
+		assert_eq(_world.feet_position(id), feet, "hero %d appears where it is revived" % id)
+		assert_between(sprite.position.y, feet.y - TILE, feet.y, "lying on that floor")
+		assert_true(sprite.visible and sprite.is_dead(), "hero %d is shown, not yet up" % id)
+		assert_true(_world.fallen_party.is_standing(id), "hero %d stands up" % id)
+		var lit: bool = false
+		for particle: FxParticle in _fx._particles:
+			var column: bool = particle.shape == FxParticle.Shape.COLUMN
+			if column and particle.position.distance_to(feet) < 1.0:
+				lit = true
+		assert_true(lit, "hero %d is under the revival light" % id)
+	assert_true(_party_in_view(), "the revived party is in view")
+
+	# Rising: from its back, a little further up every frame, then on its feet.
+	var tilts: Array[float] = []
+	var standing: bool = true
+	while standing:
+		_play_frame()
+		standing = _world.fallen_party.is_standing(KNIGHT)
+		if standing:
+			tilts.append(absf(_world.character(KNIGHT).rotation))
+		assert_true(_party_in_view(), "the party stays in view as it stands")
+	assert_gt(tilts.size(), 10, "standing up takes a moment")
+	for i: int in range(1, tilts.size()):
+		assert_lte(tilts[i], tilts[i - 1] + 0.0001, "the body rises (frame %d)" % i)
+	assert_lt(tilts[-1], 0.05, "all the way")
+	assert_eq(_world.character(KNIGHT).rotation, 0.0, "and upright")
+	for i: int in 5:
+		_play_frame()
+	for id: int in HERO_IDS:
+		var sprite: CharacterSprite = _world.character(id)
+		assert_true(sprite.visible and not sprite.is_dead(), "hero %d is on its feet" % id)
+		assert_false(_world.fallen_party.is_standing(id))
+		assert_lt(sprite.position.distance_to(_feet(id)), 2.0 * TILE, "and with the party")
+
+
+# --- R2 ------------------------------------------------------------------------
+
+
+## Plays a wipe on depth 2 at [param speed] through to the heroes on their feet, checking the
+## camera's story; returns nothing, asserts as it goes.
+func _camera_story(speed: int) -> void:
+	_travelling_on_depth_two(speed)
+	_wipe()
+	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
+	var fallen: FallenParty = _world.fallen_party
+	assert_true(fallen.is_telling(), "the wipe is told")
+	var destination: Vector2 = fallen.destination()
+	# Where the camera rests there: kept inside the band, as it always is.
+	var half: float = _world.get_viewport_rect().size.x * 0.5
+	destination.x = clampf(destination.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half))
+	var spot: Vector3 = FallenParty.revival_spot(_sim)
+	assert_eq(int(spot.y), (_sim.labyrinth.level(1).floor_y + 1) * int(TILE), "on depth 1")
+	var start: Vector2 = _world.camera.position
+	var distance: float = start.distance_to(destination)
+	assert_gt(distance, 200.0, "the revival is well away from the fall")
+	var screen: Vector2 = _world.get_viewport_rect().size
+	assert_lt(((destination - start) / screen).length(), FallenParty.CUT_SCREENS, "near enough")
+
+	# Game seconds since the wipe, which may have come a tick or more before this frame.
+	var seconds: float = 0.0
+	for event: SimEvent in _events:
+		if event.kind == SimEvent.Kind.PARTY_WIPED:
+			seconds = float(_sim.tick - event.tick) / Simulation.TICKS_PER_SECOND
+	var hold_end: float = FallenParty.HOLD_SECONDS
+	var off_the_fallen: float = 0.0
+	var began: float = -1.0
+	var arrived: float = -1.0
+	var fastest: float = 0.0
+	var last: Vector2 = start
+	var revived: bool = false
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		seconds += FRAME * speed
+		var now: Vector2 = _world.camera.position
+		var step: float = now.distance_to(last)
+		if began < 0.0 and _world.camera.is_travelling():
+			began = seconds
+		if seconds < hold_end - 0.05:
+			var knight: CharacterSprite = _world.character(KNIGHT)
+			var fallen_view: Vector2 = _world.camera_target(knight.position, _sim.expedition.facing)
+			off_the_fallen = now.distance_to(fallen_view)
+		fastest = maxf(fastest, step)
+		if arrived < 0.0 and now.distance_to(destination) <= 1.0:
+			arrived = seconds
+		last = now
+		if _has(events, SimEvent.Kind.PARTY_REVIVED):
+			revived = true
+			break
+	assert_true(revived, "the party is revived")
+	# At 4x the hold is a quarter of a second of real time: the camera is still settling on them.
+	assert_lt(off_the_fallen, 12.0 * speed, "for about 1.5 s the camera stays on the fallen")
+	assert_gte(began, hold_end - 0.05, "then it travels")
+	assert_lt(began, hold_end + 0.3, "at once")
+	assert_gt(arrived, 0.0, "it arrives at the revival's place")
+	assert_lt(arrived, seconds - 0.2, "before the heroes stand up there")
+	# Eased in and out at an average of TRAVEL_SPEED: never faster than 1.5 times that.
+	var bound: float = 1.5 * FallenParty.TRAVEL_SPEED * FRAME * speed + 1.0
+	assert_lte(fastest, bound, "never faster than its bound")
+	assert_lt(fastest, distance / 4.0, "never a cut")
+	# The revived party is where the camera went: it stays put as they stand up.
+	assert_true(_party_in_view(), "the revived heroes are in view")
+	for i: int in roundi(FallenParty.STAND_SECONDS / speed / FRAME):
+		_play_frame()
+		assert_lte(_world.camera.position.distance_to(destination), 2.0, "the camera stays")
+
+
+func test_r2_camera_tells_the_story() -> void:
+	_camera_story(1)
+
+
+func test_r2_camera_tells_the_story_at_4x() -> void:
+	_camera_story(4)
+
+
+# --- R3 ------------------------------------------------------------------------
+
+
+func test_r3_heroes_at_the_guardian() -> void:
+	_show(Simulation.new(SEED))
+	_raise(STRONG_LEVEL)
+	_before_guardian()
+	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "the guardian's fight starts")
+	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
+	assert_not_null(guardian, "it is a guardian's fight")
+	var body_sprite: CharacterSprite = _world.character(guardian.id)
+	var problems: Array[String] = []
+	var closest: Dictionary[int, float] = {KNIGHT: INF, ROGUE: INF}
+	var numbers: Dictionary[FxText, bool] = {}
+	var off_body: Array[String] = []
+	var frames: int = 0
+	while frames < LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		frames += 1
+		if GuardianSpacing.fighting_guardian(_sim) == null:
+			break
+		problems.append_array(_overlaps())
+		var body: Rect2 = SpriteBounds.body_rect(body_sprite)
+		for id: int in closest:
+			var hero: Rect2 = SpriteBounds.body_rect(_world.character(id))
+			closest[id] = minf(closest[id], -_overlap(hero, body))
+		# Each damage number on the guardian (the only monster: not red, a hero's) starts over it.
+		for text: FxText in _fx._texts:
+			if text.kind != &"damage" or numbers.has(text):
+				continue
+			if text.color == Palette.color(&"red"):
+				continue
+			numbers[text] = true
+			# A number starts at one of its spots around the place over the target (spec 018).
+			var x: float = text.position_at(0.0).x
+			var reach: float = 4.0 * CombatEffects.NUMBER_STEP
+			if x < body.position.x - reach or x > body.end.x + reach:
+				off_body.append("a number starts at x %.0f, off %s" % [x, body])
+		# The guardian, which every effect on it is placed by, stays where the simulation has it.
+		if absf(_world._goals[guardian.id].x - guardian.x * TILE) > 0.01:
+			off_body.append("the guardian is not drawn where the simulation has it")
+	assert_eq(problems, [] as Array[String], "no hero sprite overlaps the guardian's body")
+	assert_gt(frames, 120, "through a fight of some length")
+	# The front melee hero stands at the guardian's edge, the other just behind it, as close as the
+	# fight's own spacing lets it.
+	var front: float = minf(closest[KNIGHT], closest[ROGUE])
+	assert_lte(front, GuardianSpacing.GAP + 2.0, "a melee hero stands at the guardian's edge")
+	for id: int in closest:
+		var near: float = GuardianSpacing.GAP + GuardianSpacing.ROOM + 2.0
+		assert_lte(closest[id], near, "melee hero %d stands at the guardian" % id)
+	assert_gt(numbers.size(), 0, "the guardian was hit")
+	assert_eq(off_body, [] as Array[String], "every hit's number shows on the guardian")
+
+
+func test_r3_ordinary_fights_are_unchanged() -> void:
+	_show(Simulation.new(SEED))
+	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "a fight starts")
+	assert_null(GuardianSpacing.fighting_guardian(_sim), "an ordinary one")
+	var moved: Array[String] = []
+	for i: int in 600:
+		var events: Array[SimEvent] = _play_frame()
+		if _has(events, SimEvent.Kind.ENCOUNTER_ENDED):
+			break
+		for id: int in HERO_IDS:
+			if _world._goals[id] != _feet(id):
+				moved.append("hero %d's place is not the simulation's" % id)
+	assert_eq(moved, [] as Array[String], "each hero is drawn where the simulation has it")
+
+
+# --- R4 ------------------------------------------------------------------------
+
+
+## A simulation of seed 1 or later whose depth 2 or 3 holds a locked chest on its first visit
+## two chambers or more along from the party's way in; the party, at [param level], stands at
+## the start of that depth facing it, auto-push off. Returns Vector2i(depth, chamber).
+func _quest_far_away(level: int) -> Vector2i:
+	for seed_value: int in range(1, 400):
+		var sim := Simulation.new(seed_value)
+		var e: Expedition = sim.expedition
+		for depth: int in [2, 3]:
+			var rooms: Array[LabyrinthChamber] = sim.labyrinth.level(depth).chambers
+			for room: LabyrinthChamber in rooms:
+				if room.index < 2 or e.side_quest_in(depth, room.index) != &"locked_chest":
+					continue
+				sim.set_auto_push(false)
+				e.depth = depth
+				e.target_depth = depth
+				e.deepest_depth = depth
+				e.x = rooms[0].rect.position.x + 1.0
+				e.facing = 1
+				for hero: Hero in sim.party.heroes:
+					hero.level = level
+					hero.xp = Hero.xp_for_level(level)
+					hero.health = hero.max_health()
+				_show(sim)
+				_play_frame()
+				return Vector2i(depth, room.index)
+	fail_test("no seed has a locked chest far along depth 2 or 3")
+	return Vector2i(0, -1)
+
+
+## The sparkle parts the quest's glint shows over [param seconds] of frames.
+func _glint_parts(at: Vector2i, seconds: float) -> Dictionary[StringName, bool]:
+	var seen: Dictionary[StringName, bool] = {}
+	for i: int in roundi(seconds / FRAME):
+		_world.sync(FRAME)
+		seen[_world.quest_props.glint_part(at.x, at.y)] = true
+	return seen
+
+
+func test_r4_side_quests_in_the_dark() -> void:
+	var at: Vector2i = _quest_far_away(1)
+	var props: QuestProps = _world.quest_props
+	var chest: Sprite2D = props.prop(at.x, at.y)
+	assert_not_null(chest, "the chest's prop is shown")
+	assert_gt(
+		chest.position.distance_to(_world.ambience.party_light_position),
+		3.0 * Ambience.PARTY_RADIUS,
+		"far out of the party's light"
+	)
+	assert_true(props.is_glinting(at.x, at.y), "it glints in the dark")
+	var seen: Dictionary[StringName, bool] = _glint_parts(at, QuestProps.GLINT_PERIOD * 1.5)
+	assert_true(seen.has(&"small") and seen.has(&"big"), "the glint swells and shrinks")
+	assert_true(seen.has(&""), "and fades between pulses: it pulses")
+	var glints: Node2D = props.get_node("Glints")
+	assert_false(glints.z_as_relative, "the glints are drawn")
+	assert_gt(glints.z_index, Ambience.DARKNESS_Z, "above the darkness")
+
+	# Walking in, nobody able: within the light it has no glint; it keeps one once passed.
+	var lit: bool = false
+	var missed: bool = false
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		var near: bool = (
+			chest.position.distance_to(_world.ambience.party_light_position)
+			< Ambience.PARTY_RADIUS - 8.0
+		)
+		if near:
+			lit = true
+			assert_false(props.is_glinting(at.x, at.y), "in the party's light: no glint")
+			assert_eq(props.glint_part(at.x, at.y), &"", "none drawn")
+		missed = missed or _has(events, SimEvent.Kind.SIDE_QUEST_MISSED)
+		if missed and lit and props.is_glinting(at.x, at.y):
+			break
+	assert_true(lit, "the party came into the chest's chamber")
+	assert_true(missed, "and passed the chest it could not open")
+	assert_eq(props.prop(at.x, at.y), chest, "the chest is still there")
+	assert_true(props.is_glinting(at.x, at.y), "out of the light again, it glints again")
+
+
+func test_r4_a_done_quest_loses_its_glint() -> void:
+	var at: Vector2i = _quest_far_away(6)
+	var props: QuestProps = _world.quest_props
+	assert_true(props.is_glinting(at.x, at.y), "the chest glints from afar")
+	assert_true(_play_until(SimEvent.Kind.SIDE_QUEST_DONE), "the rogue opens it")
+	_play_frame()
+	assert_null(props.prop(at.x, at.y), "the chest is gone")
+	assert_false(props.is_glinting(at.x, at.y), "and its glint with it")
+	var seen: Dictionary[StringName, bool] = _glint_parts(at, QuestProps.GLINT_PERIOD)
+	assert_eq(seen.keys(), [&""] as Array[StringName], "nothing glints there")
+
+
+# --- R5 ------------------------------------------------------------------------
+
+
+func test_r5_nothing_else_moves() -> void:
+	var alone := Simulation.new(SEED)
+	var watched := Simulation.new(SEED)
+	_show(watched)
+	var ticks: int = 10 * 60 * Simulation.TICKS_PER_SECOND
+	for i: int in ticks:
+		alone.step()
+		watched.step()
+		_world.sync(1.0 / Simulation.TICKS_PER_SECOND)
+		_fx.advance(1.0 / Simulation.TICKS_PER_SECOND)
+	assert_eq(watched.state_hash(), alone.state_hash(), "watching changes nothing in ten minutes")
+
+	_show(Simulation.new(SEED))
+	var trace: Array[Vector2] = []
+	var since: int = 0
+	var started: bool = false
+	_frame = 0
+	while _frame < LIMIT_TICKS * FRAMES_PER_TICK and trace.size() < MONSTER_REFERENCE.size():
+		_play_frame()
+		var battle: Battle = _sim.expedition.battle
+		started = started or battle != null
+		if not started:
+			continue
+		since += 1
+		if since % 15 != 0 or battle == null:
+			continue
+		for monster: Combatant in battle.monsters:
+			var sprite: CharacterSprite = _world.character(monster.id)
+			trace.append(sprite.position if sprite != null else Vector2(-1, -1))
+	assert_eq(trace.size(), MONSTER_REFERENCE.size(), "the same samples")
+	for i: int in mini(trace.size(), MONSTER_REFERENCE.size()):
+		assert_almost_eq(trace[i], MONSTER_REFERENCE[i], Vector2(0.01, 0.01), "sample %d" % i)
+
+
+# --- R6 ------------------------------------------------------------------------
+
+
+func _showcase() -> Showcase:
+	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
+	add_child_autofree(showcase)
+	showcase.set_process(false)
+	return showcase
+
+
+func _saw(showcase: Showcase, moment: StringName) -> bool:
+	return showcase.evidence.get(moment, false)
+
+
+func test_r6_showcase() -> void:
+	var showcase: Showcase = _showcase()
+	_sim = showcase.main.simulation
+	_world = showcase.main.world
+	assert_has(Showcase.MOMENTS, &"guardian_fight", "the showcase has a guardian's moment")
+
+	# The wipe: the fallen party lies in view, then is revived and stands up.
+	showcase.skip_to(&"wipe")
+	var lying: int = 0
+	var up: int = 0
+	var standing_seen: bool = false
+	while showcase.moment() in [&"wipe", &"revival"] and showcase.elapsed < 120.0:
+		showcase.advance(FRAME)
+		var state: Expedition.State = _sim.expedition.state
+		if state == Expedition.State.REVIVING and _saw(showcase, &"wipe"):
+			for id: int in HERO_IDS:
+				if _lying(_world.character(id)):
+					lying += 1
+		if _world.fallen_party.is_standing(KNIGHT):
+			standing_seen = true
+	assert_true(_saw(showcase, &"wipe"), "the wipe happened")
+	assert_true(_saw(showcase, &"revival"), "and the revival")
+	assert_gt(lying, 4 * 60, "the fallen party lies there through the wipe")
+	assert_true(standing_seen, "the revived heroes stand up")
+	for id: int in HERO_IDS:
+		var sprite: CharacterSprite = _world.character(id)
+		if sprite.visible and not sprite.is_dead():
+			up += 1
+	assert_eq(up, 4, "and are on their feet when the moment ends")
+
+	# The guardian: the heroes at its edge.
+	showcase.skip_to(&"guardian_fight")
+	var problems: Array[String] = []
+	var fighting: int = 0
+	while showcase.moment() == &"guardian_fight" and showcase.elapsed < 240.0:
+		showcase.advance(FRAME)
+		if GuardianSpacing.fighting_guardian(_sim) != null:
+			fighting += 1
+			problems.append_array(_overlaps())
+	assert_true(_saw(showcase, &"guardian_fight"), "the guardian's fight happened")
+	assert_gt(fighting, 3 * 60, "and was seen for a while")
+	assert_eq(problems, [] as Array[String], "no hero overlaps the guardian")

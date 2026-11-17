@@ -653,7 +653,7 @@ func _revival_lights() -> void:
 		outer.size = 16
 		outer.height = LIGHT_HEIGHT
 		outer.life = LIGHT_LIFE
-		outer.start(sprite.position)
+		outer.start(_world.feet_position(hero.id))  # on the floor, under a hero still lying
 		var core: FxParticle = _particle(&"light")
 		if core == null:
 			return
@@ -662,7 +662,7 @@ func _revival_lights() -> void:
 		core.size = 8
 		core.height = LIGHT_HEIGHT
 		core.life = LIGHT_LIFE
-		core.start(sprite.position)
+		core.start(_world.feet_position(hero.id))
 
 
 # --- Ongoing -------------------------------------------------------------------

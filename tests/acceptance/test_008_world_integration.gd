@@ -224,14 +224,17 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 	assert_eq(sim.expedition.depth, 2, "down to depth 2")
 	assert_lte(biggest, TILE / 2.0, "no sprite moved more than half a tile in one frame")
 
-	# A revival snaps.
+	# A revival snaps. (Spec 038: each hero appears there still lying on its back, its feet raised
+	# by as much as its back reaches below them, and rises.)
 	_force_wipe(sim)
 	var revived: bool = _play_until(
 		sim, world, func() -> bool: return _emitted_since(start, SimEvent.Kind.PARTY_REVIVED)
 	)
 	assert_true(revived, "the party was revived")
 	for id: int in HERO_IDS:
-		assert_eq(world.character(id).position, _feet(sim, id), "hero %d snapped" % id)
+		var at: Vector2 = world.character(id).position
+		assert_eq(at.x, _feet(sim, id).x, "hero %d snapped" % id)
+		assert_between(at.y, _feet(sim, id).y - TILE, _feet(sim, id).y, "lying on that floor")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -309,7 +312,8 @@ func test_r3_heroes_act_out_the_state() -> void:
 	for id: int in HERO_IDS:
 		assert_true(world.character(id)._walking, "hero %d walks on the shaft" % id)
 
-	# Wiped: down and hidden until the revival, then back, the same sprites.
+	# Wiped: down until the revival, then back, the same sprites. (Spec 038: the fallen lie where
+	# they fell, shown, and rise after the revival.)
 	assert_true(
 		_play_until(sim, world, func() -> bool: return _state(sim) == Expedition.State.TRAVELLING),
 		"travelling"
@@ -319,12 +323,18 @@ func test_r3_heroes_act_out_the_state() -> void:
 		frame = _frame(sim, world, frame)
 	assert_eq(_state(sim), Expedition.State.REVIVING)
 	for id: int in HERO_IDS:
-		assert_false(world.character(id).visible, "hero %d is hidden after the wipe" % id)
+		var fallen: CharacterSprite = world.character(id)
+		assert_true(fallen.is_dead(), "hero %d is down after the wipe" % id)
+		assert_true(world.fallen_party.is_lying(id), "hero %d lies where it fell" % id)
 	var start: int = _emitted.size()
 	var revived: bool = _play_until(
 		sim, world, func() -> bool: return _emitted_since(start, SimEvent.Kind.PARTY_REVIVED)
 	)
 	assert_true(revived, "the party was revived")
+	var risen: bool = _play_until(
+		sim, world, func() -> bool: return not world.fallen_party.is_standing(KNIGHT)
+	)
+	assert_true(risen, "the party has risen")
 	for h: int in HERO_IDS.size():
 		var sprite: CharacterSprite = world.character(HERO_IDS[h])
 		assert_eq(sprite, originals[h], "hero %d keeps its sprite" % HERO_IDS[h])
