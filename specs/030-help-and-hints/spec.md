@@ -1,9 +1,9 @@
 # 030 — Help, tooltips and live health
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 011, 017, 021, 026, 027
-- **Pull request:** —
+- **Pull request:** [#32](https://github.com/zakpruitt/colony/pull/32)
 
 ## Intent
 
