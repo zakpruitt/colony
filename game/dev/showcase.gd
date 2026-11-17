@@ -6,8 +6,9 @@ extends Node
 ## other area, a guardian's fight (spec 038), side quests (spec 028): one done, one nobody can do,
 ## a tripwire sprung and a microskill learned; then the area map (spec 053) with two areas open
 ## and the rest closed, a journey to the Claypits and the arrival there, with the map open on the
-## way; the four areas' looks in turn (spec 054); and the knight's talent tree (spec 055), a node
-## taken and a path chosen.
+## way; the four areas' looks in turn (spec 054); the knight's talent tree (spec 055), a node
+## taken and a path chosen. Spec 056: each class's hero using its actions, and every status on
+## a row of fighters, each labelled with its statuses.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -39,6 +40,11 @@ const MOMENTS: Array[StringName] = [
 	&"stone_fight",
 	&"deep_fight",
 	&"guardian_fight",
+	&"knight_actions",
+	&"rogue_actions",
+	&"mage_actions",
+	&"cleric_actions",
+	&"statuses",
 	&"quest_done",
 	&"quest_missed",
 	&"tripwire_sprung",
@@ -65,6 +71,11 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"stone_fight": "A FIGHT IN THE OLD CRYPT, FOR OLD BONES",
 	&"deep_fight": "A FIGHT IN EMBER DEEP, FOR EMBERS",
 	&"guardian_fight": "A GUARDIAN HOLDS THE WAY ON",
+	&"knight_actions": "THE KNIGHT'S ACTIONS",
+	&"rogue_actions": "THE ROGUE'S ACTIONS",
+	&"mage_actions": "THE MAGE'S ACTIONS",
+	&"cleric_actions": "THE CLERIC'S ACTIONS",
+	&"statuses": "EVERY STATUS, ON A ROW OF FIGHTERS",
 	&"quest_done": "A SIDE QUEST: THE ROGUE PICKS A LOCK",
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
@@ -76,27 +87,32 @@ const CAPTIONS: Dictionary[StringName, String] = {
 }
 ## Seconds a moment goes on showing once what it is about has happened.
 const LINGER: Dictionary[StringName, float] = {
-	&"travelling": 2.5,
-	&"crit": 1.5,
-	&"monster_death": 1.6,
+	&"travelling": 1.0,
+	&"crit": 1.2,
+	&"monster_death": 1.2,
 	&"heal": 1.2,
-	&"level_up": 1.6,
-	&"resting": 2.5,
+	&"level_up": 1.2,
+	&"resting": 1.5,
 	&"climb_down": 1.0,
 	&"climb_up": 1.0,
-	&"wipe": 2.5,
-	&"revival": 2.0,
-	&"depth_stable": 2.2,
-	&"clay_fight": 3.0,
-	&"stone_fight": 3.0,
-	&"deep_fight": 3.0,
+	&"wipe": 1.8,
+	&"revival": 1.5,
+	&"depth_stable": 1.0,
+	&"clay_fight": 1.5,
+	&"stone_fight": 1.5,
+	&"deep_fight": 1.5,
 	&"guardian_fight": 3.5,
-	&"quest_done": 2.2,
-	&"quest_missed": 2.0,
-	&"tripwire_sprung": 1.8,
-	&"microskill_learned": 2.2,
-	&"area_map": 3.0,
-	&"journey": 2.5,
+	&"knight_actions": 1.2,
+	&"rogue_actions": 1.2,
+	&"mage_actions": 1.2,
+	&"cleric_actions": 1.2,
+	&"statuses": 2.0,
+	&"quest_done": 1.0,
+	&"quest_missed": 1.0,
+	&"tripwire_sprung": 1.0,
+	&"microskill_learned": 1.0,
+	&"area_map": 1.5,
+	&"journey": 1.2,
 	&"four_areas": 0.2,
 	&"talent_tree": 0.6,
 }
@@ -151,8 +167,56 @@ const CUT_TICKS: int = 1200
 const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
 ## The area the map moments open and the journey goes to.
 const NEW_AREA: StringName = &"claypits"
+## Spec 056: each class's moment, the path its hero takes there (the one whose actions look most
+## unlike the trunk's), the heroes' level (every talent point earned), the stage of the fight and
+## how many times their health the monsters have, so the hero's actions are seen.
+const CLASS_MOMENTS: Dictionary[StringName, StringName] = {
+	&"knight_actions": &"knight",
+	&"rogue_actions": &"rogue",
+	&"mage_actions": &"mage",
+	&"cleric_actions": &"cleric",
+}
+const CLASS_PATHS: Dictionary[StringName, int] = {
+	&"knight": 1, &"rogue": 1, &"mage": 0, &"cleric": 1
+}
+const CLASS_LEVEL: int = 14
+const CLASS_STAGE: int = 2
+const CLASS_TOUGHER: int = 6
+## Spec 056: in the statuses' moment, the statuses on each hero (by place in the party) and on
+## each monster (by place in the fight; the last also takes any left over), the ability each is
+## said to come from, and how long each lasts. The fight needs this many monsters at least.
+const HERO_STATUSES: Array[Array] = [
+	[AbilityEffect.Status.TAUNTING, AbilityEffect.Status.SHIELDED],
+	[AbilityEffect.Status.UNTOUCHABLE, AbilityEffect.Status.HASTED],
+	[AbilityEffect.Status.NIMBLE, AbilityEffect.Status.MIGHTY],
+	[AbilityEffect.Status.MENDING],
+]
+const MONSTER_STATUSES: Array[Array] = [
+	[AbilityEffect.Status.STUNNED, AbilityEffect.Status.BURNING],
+	[AbilityEffect.Status.BLEEDING, AbilityEffect.Status.SLOWED],
+	[AbilityEffect.Status.CHILLED, AbilityEffect.Status.WEAKENED],
+	[AbilityEffect.Status.MARKED],
+]
+const STATUS_FROM: Dictionary[int, StringName] = {
+	AbilityEffect.Status.STUNNED: &"shield_bash",
+	AbilityEffect.Status.TAUNTING: &"taunt",
+	AbilityEffect.Status.SHIELDED: &"bulwark",
+	AbilityEffect.Status.BURNING: &"ignite",
+	AbilityEffect.Status.BLEEDING: &"poisoned_blades",
+	AbilityEffect.Status.MENDING: &"renewal",
+	AbilityEffect.Status.HASTED: &"battle_hymn",
+	AbilityEffect.Status.SLOWED: &"caltrops",
+	AbilityEffect.Status.MIGHTY: &"killing_spree",
+	AbilityEffect.Status.WEAKENED: &"smite",
+	AbilityEffect.Status.MARKED: &"mark_for_death",
+	AbilityEffect.Status.NIMBLE: &"smoke_step",
+	AbilityEffect.Status.UNTOUCHABLE: &"vanish",
+	AbilityEffect.Status.CHILLED: &"blizzard",
+}
+const STATUS_SECONDS: float = 30.0
+const STATUS_MONSTERS: int = 3
 ## The tree's moment: the knight's level (four talent points), and seconds between its clicks
-## (short: the whole pass must stay within test_018's 90 seconds).
+## (short: the whole pass must stay within test_018's limit).
 const TREE_LEVEL: int = 8
 const TREE_STEP: float = 0.2
 
@@ -180,6 +244,8 @@ var _tree_clicks: int = 0
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
+## The statuses' moment's labels, one under each fighter bearing a status.
+var _status_labels: Array[Label] = []
 
 
 func _ready() -> void:
@@ -243,6 +309,7 @@ func advance(delta: float) -> void:
 	_look()
 	main.world.sync(delta)
 	main.effects.advance(delta)
+	_label_statuses()
 	if done:
 		return
 	_moment_time += delta
@@ -309,6 +376,19 @@ func _begin(current: StringName) -> void:
 				hero.health = hero.max_health()
 			_cut_to_area(BAND_AREAS[current])
 			_cut_to_depth(BAND_STAGE, BAND_STAGE)
+			_cut_to_fight()
+		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions", &"statuses":
+			_settle_now()
+			_cut_to_area(AreaTravel.first_area())
+			for hero: Hero in sim.party.heroes:
+				_set_level(hero, CLASS_LEVEL)
+				hero.set_talents([])
+				if CLASS_MOMENTS.get(current, &"") == hero.class_id:
+					var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+					var nodes: Array[StringName] = tree.trunk.duplicate()
+					nodes.append_array(tree.path_nodes(CLASS_PATHS[hero.class_id]))
+					hero.set_talents(nodes)
+			_cut_to_depth(CLASS_STAGE, CLASS_STAGE)
 			_cut_to_fight()
 		&"guardian_fight":
 			_settle_now()
@@ -379,6 +459,9 @@ func _end_moment() -> void:
 			sim.expedition.stable_seconds = 600.0
 		&"area_map", &"journey":
 			main.hud.area_map.close()
+		&"statuses":
+			for hero: Hero in sim.party.heroes:
+				hero.set_talents([])  # the class moments' trees are for those moments only
 		&"talent_tree":
 			main.hud.hero_sheet.close()
 
@@ -410,6 +493,17 @@ func _steer() -> void:
 			var front: Combatant = battle.heroes[0]
 			if front.is_alive():
 				front.health = maxi(1, front.max_health * 2 / 5)
+		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions":
+			if _steered.has(key):
+				return
+			_steered[key] = true
+			for monster: Combatant in battle.monsters:
+				monster.max_health = monster.max_health * CLASS_TOUGHER
+				monster.health = monster.max_health
+		&"statuses":
+			if not _steered.has(key):
+				_steered[key] = true
+				_put_on_statuses(battle)
 		&"resting":
 			if _steered.has(key):
 				return
@@ -455,6 +549,14 @@ func _look() -> void:
 				main.hud.area_map.open()
 		&"four_areas":
 			_show_areas()
+		&"statuses":
+			var seen: Dictionary[int, bool] = {}
+			var marks: StatusMarks = main.effects.ability_effects.marks
+			for id: int in marks.book.fighters():
+				for kind: int in marks.shown(id):
+					seen[kind] = true
+			if seen.size() == AbilityEffect.Status.size():
+				_see()
 		&"talent_tree":
 			_click_through_tree()
 
@@ -504,6 +606,12 @@ func _on_sim_event(event: SimEvent) -> void:
 		&"journey":
 			if event.kind == SimEvent.Kind.AREA_CHANGED:
 				_see()
+		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions":
+			var ability: AbilityDef = Content.ability(event.ability_id)
+			var hero: Hero = main.simulation.party.hero(event.source_id)
+			if event.kind == SimEvent.Kind.ABILITY_USED and ability != null and hero != null:
+				if ability.is_action() and hero.class_id == CLASS_MOMENTS[moment()]:
+					_see()
 		&"talent_tree":
 			var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
 			if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
@@ -516,6 +624,110 @@ func _walks_to_a_fight() -> bool:
 		return false
 	var current: StringName = moment()
 	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting"]
+
+
+## Spec 056: puts every status on the fight's fighters through the battle's own rules (each with
+## its STATUS_BEGAN), for STATUS_SECONDS, and makes the fight harmless and long, so the row stands
+## still to be read. A fight with too few monsters is ended and the next one taken.
+func _put_on_statuses(battle: Battle) -> void:
+	if battle.monsters.size() < STATUS_MONSTERS:
+		_settle_now()
+		_cut_to_fight()
+		return
+	# Spread out in their order and kept where they stand (each strikes from there, for 1), so
+	# every fighter's marks and label can be read.
+	var row: Array[Combatant] = battle.heroes + battle.monsters
+	row.sort_custom(func(a: Combatant, b: Combatant) -> bool: return a.x < b.x)
+	# Evenly between the outermost two, which the fight's bounds already hold.
+	var first: float = row[0].x
+	var step: float = (row[row.size() - 1].x - first) / maxf(row.size() - 1, 1)
+	for i: int in row.size():
+		var fighter: Combatant = row[i]
+		fighter.x = first + i * step
+		fighter.max_health *= 100
+		fighter.health = fighter.max_health
+		fighter.damage = 1
+		fighter.move_speed = 0.0
+		fighter.attack_range = 100.0
+		fighter.abilities = []
+	var left: Array = MONSTER_STATUSES.duplicate()
+	for i: int in battle.monsters.size():
+		var kinds: Array = []
+		if i == battle.monsters.size() - 1:
+			for rest: Array in left:
+				kinds.append_array(rest)
+		elif not left.is_empty():
+			kinds = left.pop_front()
+		for kind: int in kinds:
+			_put_on(battle, battle.heroes[0], battle.monsters[i], kind)
+	for i: int in mini(battle.heroes.size(), HERO_STATUSES.size()):
+		for kind: int in HERO_STATUSES[i]:
+			_put_on(battle, battle.heroes[i], battle.heroes[i], kind)
+
+
+func _put_on(battle: Battle, source: Combatant, receiver: Combatant, kind: int) -> void:
+	var effect := AbilityEffect.new()
+	effect.does = AbilityEffect.Does.STATUS
+	effect.status = kind as AbilityEffect.Status
+	effect.seconds = STATUS_SECONDS
+	effect.scale = AbilityEffect.Scale.RECEIVER_MAX_HEALTH
+	match kind:
+		AbilityEffect.Status.SHIELDED:
+			effect.amount = 0.5
+		AbilityEffect.Status.BURNING, AbilityEffect.Status.BLEEDING:
+			effect.amount = 0.001
+		AbilityEffect.Status.CHILLED, AbilityEffect.Status.MENDING:
+			effect.amount = 0.001
+		AbilityEffect.Status.HASTED, AbilityEffect.Status.WEAKENED:
+			effect.amount = 0.7
+		AbilityEffect.Status.NIMBLE:
+			effect.amount = 0.5
+		_:
+			effect.amount = 1.3
+	BattleStatuses.apply(battle, source, receiver, effect, STATUS_FROM[kind])
+
+
+func _x_of(id: int) -> float:
+	var sprite: CharacterSprite = main.world.character(id)
+	return sprite.position.x if sprite != null else 0.0
+
+
+## Spec 056: while the statuses' moment shows, a label under each fighter names its statuses.
+func _label_statuses() -> void:
+	var marks: StatusMarks = main.effects.ability_effects.marks
+	var ids: Array[int] = []
+	if moment() == &"statuses":
+		ids = marks.book.fighters()
+		ids.sort_custom(func(a: int, b: int) -> bool: return _x_of(a) < _x_of(b))
+	var camera: WorldCamera = main.world.camera
+	var view: Vector2 = camera.get_viewport_rect().size
+	var shown: int = 0
+	for id: int in ids:
+		var sprite: CharacterSprite = main.world.character(id)
+		var kinds: Array[int] = marks.shown(id)
+		if sprite == null or kinds.is_empty():
+			continue
+		if shown >= _status_labels.size():
+			var made: Label = PixelText.label("", &"white")
+			made.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_caption.get_parent().add_child(made)
+			_status_labels.append(made)
+		var label: Label = _status_labels[shown]
+		shown += 1
+		var names: PackedStringArray = []
+		for kind: int in kinds:
+			names.append(ShownStatus.status_name(kind))
+		label.text = "\n".join(names)
+		label.reset_size()
+		var feet: Vector2 = (
+			(sprite.position - camera.position - camera.offset) * camera.zoom + view / 2.0
+		)
+		# Every other label a tier lower, so neighbours never run into each other.
+		var tier: float = (shown % 2) * 2.0 * (PixelText.SIZE + 1)
+		label.position = Vector2(roundf(feet.x - label.size.x / 2.0), roundf(feet.y + 3.0 + tier))
+		label.visible = true
+	for i: int in range(shown, _status_labels.size()):
+		_status_labels[i].visible = false
 
 
 ## True while the journey's moment waits for the party to arrive.

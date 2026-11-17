@@ -16,6 +16,11 @@ extends Control
 ## closes it; opening it closes the shop, the hero sheet, the journal, help, the orders and the
 ## away report, and it closes itself when one of those opens ([method advance]). It never pauses
 ## the game and changes nothing in the simulation. Drawn as a [HudPanel] is.
+##
+## Spec 056 R6: clicking a hero's line opens it: the other heroes' lines make way for two columns,
+## the hero's damage and its healing over the span chosen by what dealt or gave it ("Whirlwind
+## 412", "Strikes 950", "Bleeding 88"), largest first. Clicking the line again closes it. The
+## tally's [StatusBook] also gives the hero frames their statuses (R5, [method status_line]).
 
 ## The panel's size in pixels (spec 045 R7: no larger than the hero sheet).
 const SIZE: Vector2 = HeroSheet.SIZE
@@ -71,6 +76,11 @@ const CLASS_BARS: Dictionary[StringName, Array] = {
 	&"cleric": [&"amber", &"copper"],
 }
 const OTHER_BAR: Array[StringName] = [&"silver", &"steel"]
+## Spec 056 R6: an opened line's columns, their captions, and the most lines each shows (past it,
+## the smallest are summed as "Others").
+const BY_ABILITY_CAPTIONS: Array[String] = ["Damage", "Healing"]
+const BY_ABILITY_LINES: int = 7
+const ROW_TIP: String = "Click to see this hero's damage and healing by ability."
 
 ## The tally's counting.
 var tally: Tally = Tally.new()
@@ -109,6 +119,12 @@ var _shares: Array[Label] = []
 var _quest_labels: Array[Label] = []
 var _bars: Array[EasedValue] = []
 var _goals: Array[float] = []
+## The hero whose line is open (spec 056 R6), or -1; and the labels of its two columns: a caption
+## each, then its lines.
+var _opened: int = -1
+var _captions: Array[Label] = []
+var _ability_labels: Array[Array] = []
+var _tipped: bool = false
 
 
 func _init() -> void:
@@ -126,7 +142,9 @@ func _draw() -> void:
 	draw_rect(Rect2(PADDING, TAB_LINE_Y, SIZE.x - 2.0 * PADDING, 1), dusk)
 	var heroes: Array[Hero] = _heroes()
 	for i: int in heroes.size():
-		var top: float = ROWS_Y + i * ROW_HEIGHT
+		if _row(i) < 0:
+			continue
+		var top: float = ROWS_Y + _row(i) * ROW_HEIGHT
 		HudPanel.draw_panel(
 			self, Rect2(Vector2(BODY_LEFT, top - 1.0), PORTRAIT_BOX), ink, ink, dusk
 		)
@@ -136,6 +154,21 @@ func _draw() -> void:
 		var shade: StringName = colours[1]
 		var fraction: float = _bars[i].value if i < _bars.size() else 0.0
 		HudPanel.draw_bar(self, bar, fraction, Palette.color(fill), Palette.color(shade), ink)
+
+
+func _gui_input(event: InputEvent) -> void:
+	var button: InputEventMouseButton = event as InputEventMouseButton
+	if button == null or not button.pressed or button.button_index != MOUSE_BUTTON_LEFT:
+		return
+	var heroes: Array[Hero] = _heroes()
+	for i: int in heroes.size():
+		var row: int = _row(i)
+		var top: float = ROWS_Y - 1.0 + row * ROW_HEIGHT
+		var line := Rect2(BODY_LEFT, top, BODY_RIGHT - BODY_LEFT, ROW_HEIGHT)
+		if row >= 0 and line.has_point(button.position):
+			open_hero(heroes[i].id)
+			accept_event()
+			return
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -177,6 +210,7 @@ func advance(delta: float) -> void:
 		close()
 	if not is_open():
 		return
+	_give_tips()
 	_refresh()
 	for i: int in _bars.size():
 		_bars[i].advance(_goals[i], delta)
@@ -232,17 +266,55 @@ func toggle() -> void:
 
 ## The lines showing, top first: the fight's line, a row per hero as "<class> <number> <share>%"
 ## ("Knight 1,234 45%"), then the side-quest lines ("Rogue: 4 side quests"). Empty while closed.
+## While a hero's line is open (spec 056 R6), only its row, then [method breakdown].
 func rows() -> Array[String]:
 	var lines: Array[String] = []
 	if not is_open():
 		return lines
 	lines.append(_fight_label.text)
 	for i: int in _names.size():
-		lines.append("%s %s %s" % [_names[i].text, _values[i].text, _shares[i].text])
+		if _names[i].visible:
+			lines.append("%s %s %s" % [_names[i].text, _values[i].text, _shares[i].text])
 	for label: Label in _quest_labels:
 		if label.visible:
 			lines.append(label.text)
+	lines.append_array(breakdown())
 	return lines
+
+
+## Spec 056 R6: opens the line of the hero with id [param hero_id], or closes it if it is open.
+func open_hero(hero_id: int) -> void:
+	_opened = -1 if _opened == hero_id else hero_id
+	if is_open():
+		_refresh()
+		queue_redraw()
+
+
+## The hero whose line is open, or -1.
+func opened_hero() -> int:
+	return _opened
+
+
+## The open line's columns as shown: "Damage", its lines ("Whirlwind 412"), then "Healing" and
+## its lines; empty while no line is open.
+func breakdown() -> Array[String]:
+	var lines: Array[String] = []
+	if _opened < 0 or not is_open():
+		return lines
+	for column: int in _captions.size():
+		lines.append(_captions[column].text)
+		for label: Label in _ability_labels[column]:
+			if label.visible:
+				lines.append(label.text)
+	return lines
+
+
+## Every status on fighter [param id] with the whole seconds it has left: "Shielded 6 s, Hasted
+## 9 s"; empty for none.
+func status_line(id: int) -> String:
+	if _simulation == null:
+		return ""
+	return StatusIcons.describe(tally.credit.statuses.statuses_of(id), _simulation.tick)
 
 
 ## The measure shown.
@@ -448,7 +520,64 @@ func _build() -> void:
 		line.name = "Quests%d" % i
 		line.visible = false
 		_quest_labels.append(line)
+	_build_by_ability()
 	_light()
+
+
+## Spec 056 R6: the open line's two columns, hidden until a line is opened.
+func _build_by_ability() -> void:
+	var top: float = ROWS_Y + ROW_HEIGHT + 1.0
+	for column: int in BY_ABILITY_CAPTIONS.size():
+		var x: float = BODY_LEFT + column * QUEST_COLUMN
+		var caption: Label = _label(BY_ABILITY_CAPTIONS[column], &"steel", Vector2(x, top))
+		caption.name = "%sByAbility" % BY_ABILITY_CAPTIONS[column]
+		caption.visible = false
+		_captions.append(caption)
+		var labels: Array[Label] = []
+		for line: int in BY_ABILITY_LINES:
+			var at := Vector2(x, top + (line + 1) * QUEST_ROW)
+			var label: Label = _label("", &"white" if column == 0 else &"green", at)
+			label.visible = false
+			labels.append(label)
+		_ability_labels.append(labels)
+
+
+## Spec 056 R6: the row hero [param index] is drawn in: its own while no line is open; the first
+## for the open line's hero; -1 (hidden) for the others while one is open.
+func _row(index: int) -> int:
+	if _opened < 0:
+		return index
+	var heroes: Array[Hero] = _heroes()
+	return 0 if index < heroes.size() and heroes[index].id == _opened else -1
+
+
+## Gives each hero's line its tooltip, once the HUD's tooltips exist.
+func _give_tips() -> void:
+	var hud: Hud = get_parent() as Hud
+	if _tipped or hud == null or hud.tooltip == null:
+		return
+	_tipped = true
+	for i: int in _names.size():
+		hud.tooltip.tip([_names[i], portraits[i], _values[i], _shares[i]], ROW_TIP)
+
+
+## Brings the open line's columns up to date, or hides them while none is open.
+func _refresh_by_ability() -> void:
+	for column: int in _captions.size():
+		_captions[column].visible = _opened >= 0
+		var amounts: Dictionary[String, int] = {}
+		if _opened >= 0:
+			var counted: Tally.Measure = (
+				Tally.Measure.DAMAGE if column == 0 else Tally.Measure.HEALING
+			)
+			amounts = tally.by_ability(_opened, counted, _span)
+		var lines: Array[String] = Tally.lines_by_ability(amounts, BY_ABILITY_LINES)
+		var labels: Array = _ability_labels[column]
+		for i: int in labels.size():
+			var label: Label = labels[i]
+			label.visible = _opened >= 0 and i < lines.size()
+			if label.visible:
+				_set_text(label, lines[i])
 
 
 ## Lights the open tab and the chosen side of the switch.
@@ -470,6 +599,13 @@ func _refresh() -> void:
 		largest = maxi(largest, amount)
 	var percents: Array[int] = Tally.percents(amounts)
 	for i: int in mini(heroes.size(), _names.size()):
+		var row: int = _row(i)
+		var top: float = ROWS_Y + maxi(row, 0) * ROW_HEIGHT
+		for label: Label in [_names[i], _values[i], _shares[i]]:
+			label.visible = row >= 0
+			label.position.y = top
+		portraits[i].visible = row >= 0
+		portraits[i].position.y = top + 1.0
 		_goals[i] = float(amounts[i]) / largest if largest > 0 else 0.0
 		_set_text(_values[i], Hud.group_thousands(amounts[i]))
 		_set_text(_shares[i], "%d%%" % percents[i])
@@ -480,13 +616,15 @@ func _refresh() -> void:
 	var shown: int = 0
 	for hero: Hero in heroes:
 		var count: int = tally.side_quests(hero.id)
-		if count <= 0 or _span != Tally.Span.SESSION or shown >= _quest_labels.size():
+		var full: bool = shown >= _quest_labels.size()
+		if count <= 0 or _span != Tally.Span.SESSION or full or _opened >= 0:
 			continue
 		var noun: String = "side quest" if count == 1 else "side quests"
 		_set_text(_quest_labels[shown], "%s: %d %s" % [hero.def().display_name, count, noun])
 		shown += 1
 	for i: int in _quest_labels.size():
 		_quest_labels[i].visible = i < shown
+	_refresh_by_ability()
 
 
 ## The line over the bars: which fight, or the session.

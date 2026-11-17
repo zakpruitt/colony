@@ -54,6 +54,9 @@ incomplete, stop and report the question.
   (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
 - **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
   in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
+- **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
+  few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
+  `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 

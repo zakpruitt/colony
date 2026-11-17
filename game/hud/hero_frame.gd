@@ -39,6 +39,8 @@ const TEXT_Y: float = 3.0
 ## The marker's top, and the pixels between it and the level left of it.
 const MARKER_Y: float = 2.0
 const MARKER_GAP: float = 2.0
+## What a click on the frame does, the end of its tooltip.
+const CLICK_TIP: String = "Click for details"
 
 var hero_id: int
 var icon: TextureRect
@@ -56,6 +58,8 @@ var fighter: Combatant
 var gold: int = 0
 ## The marker saying this hero has something for the player to do (spec 037 R4).
 var marker: ShopMarker
+## The statuses the hero bears in a fight (spec 056 R5).
+var status_icons: StatusIcons
 
 var _hud: Hud
 var _class_id: StringName
@@ -105,6 +109,8 @@ func _init(hero: Hero, hud: Hud) -> void:
 	marker.name = "Marker"
 	marker.visible = false
 	add_child(marker)
+	status_icons = StatusIcons.new()
+	add_child(status_icons)
 	_skills_seen = hero.microskills().size()
 	_health.snap(_health_fraction(hero))
 	_xp.snap(xp_progress(hero))
@@ -145,6 +151,7 @@ func refresh(hero: Hero, delta: float) -> void:
 		level_label.text = level_text
 		level_label.reset_size()
 	_refresh_marker(hero, delta)
+	_refresh_statuses()
 	var right: float = HEALTH_BAR.end.x - level_label.size.x
 	if marker.visible:
 		right = marker.position.x - MARKER_GAP - level_label.size.x
@@ -208,6 +215,26 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	marker.visible = marker.count > 0
 	marker.advance(delta)
 	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)
+
+
+## Spec 056 R5: the hero's statuses right of its name, and the frame's own tooltip line.
+func _refresh_statuses() -> void:
+	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var statuses: Array[ShownStatus] = []
+	if tally != null and not _dead:
+		statuses = tally.tally.credit.statuses.statuses_of(hero_id)
+	status_icons.show_statuses(statuses)
+	status_icons.position = Vector2(name_label.position.x + name_label.size.x + 3.0, TEXT_Y + 1.0)
+
+
+## The frame's tooltip, as [method TalentTab.frame_tip] builds it: the class and its path (spec
+## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
+func tip() -> String:
+	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
+	if _hud == null or _hud.hero_sheet == null:
+		return CLICK_TIP if line.is_empty() else "%s. %s" % [line, CLICK_TIP]
+	return _hud.hero_sheet.talents.frame_tip(hero_id, line)
 
 
 ## The hero was hit: flash the frame for an instant.

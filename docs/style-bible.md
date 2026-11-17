@@ -221,6 +221,7 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
 - **Squares, not circles.** A particle is a square of whole pixels (a puff or flash has its corners cut);
   nothing is smooth, blurred or anti-aliased. Positions are rounded to whole pixels every frame.
 - **Never fade.** An effect ends by shrinking, blinking or flying away, never by lowering its opacity.
+  Two status looks (below) are the only exceptions, because the spec asks for them by name.
 - **Bright on dark.** Effects sit over dark ground (and will sit over darker ground once lighting lands), so
   they use the bright end of the palette: `white`, `yellow`, `amber`, `orange`, `green`, `cyan`, `red`.
 - **Tinting.** `spark` is `white` so code can tint it any palette colour (white times a colour is that colour).
@@ -240,6 +241,35 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
   they rise in 0.8 s under the revival light, where the camera has travelled (eased, 0.6 to 3 s) after
   a 1.5 s hold.
 - **Guardian fights** keep melee heroes at the guardian's opaque edge, 2 pixels off, never overlapping it.
+
+### Abilities and statuses (spec 056)
+
+- **Names.** An ability's name rises 8 px over 1.2 s above the fighter's head, in the pixel font at 1x,
+  outlined all round in `ink` (one font pixel) as well as its shadow so it reads against any wall, in the
+  fighter's colour (a hero's class bar colour, a monster's most vivid sheet
+  colour). At most two stack over one fighter, the newest nearest the head, 8 px apart. Names, words and damage
+  numbers are kept inside the band between the HUD's top and bottom panels.
+- **Wind-up.** An action's wind-up lights the whole sprite `yellow`, pulsing between a quarter and
+  three-fifths at 6 Hz, for exactly the wind-up's length. An ordinary strike's wind-up is never lit.
+- **Landings.** A heavy blow (an ability whose damage is at least 1.5x a strike's; a stun
+  alone does not make it heavy) adds a 15 px `white`
+  flash and ten `amber`/`yellow` shards on top of the usual sparks. Damage to many draws a flat ring of
+  single-pixel squares (one every 4 px, a third as tall as wide) from the fighter or the target out to the
+  ability's reach in 0.4 s, then blinks out. A push leaves `tan` and `silver` dust at the feet of those it
+  landed on while they slide. `Miss` (`silver`) and `Blocked` (`cyan`) are words at 1x; a shield shows at
+  most one `Blocked` a second, however many blows it takes.
+- **Status marks** (`assets/sprites/ui/status_icons.px`, one 7x7 part per status, named as the status) sit
+  in a row 2 px over the head: taunting (a red `!`), marked (a target), mighty (a bright sword), weakened
+  (a broken one), hasted (an arrow up), slowed (an arrow down). The same marks are the hero frame's icons.
+- **Stunned** is three star marks circling the head, and the sprite stops moving. **Shielded** is a 1 px
+  outline 2 px off the body, corners cut, that steps from `cyan` to `blue` to `navy` as the shield is used
+  up: it dims by palette steps, not by opacity.
+- **Burning, bleeding, chilled** wash the sprite 40% toward `orange`, `red` or `cyan`, with three small motes
+  of their colours (bleeding drips down; the others rise), and their damage numbers take the colour.
+  **Mending** is green motes rising.
+- **Nimble and untouchable** draw the sprite at half opacity: the one exception to "never fade", since the
+  spec names it ("the sprite half faded"). It is a state, not an effect ending, and it is whole again the
+  frame the status ends.
 
 ## UI
 

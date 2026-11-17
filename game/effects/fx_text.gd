@@ -31,6 +31,9 @@ var follow_id: int = -1
 ## Kept in the middle of the screen, offset by [member screen_offset] (CombatEffects places it).
 var on_screen: bool = false
 var screen_offset: Vector2 = Vector2.ZERO
+## Drawn with an ink outline all round as well as its shadow (spec 056's ability names), so it
+## reads over any wall.
+var outline: bool = false
 
 var _exact: Vector2
 
@@ -81,9 +84,12 @@ func rect_at(at_age: float) -> Rect2:
 	return Rect2(shape.position + position_at(at_age), shape.size)
 
 
-## The box it covers now, where it is drawn.
+## The box it covers now, where it is drawn (its outline too).
 func rect() -> Rect2:
 	var shape: Rect2 = box(text, font_size())
+	if outline:
+		var factor: float = float(font_size()) / PixelText.SIZE
+		shape = shape.grow(factor)
 	return Rect2(shape.position + position, shape.size)
 
 
@@ -114,5 +120,10 @@ func _draw() -> void:
 	var left := Vector2(-floori(width / 2.0), 0)
 	var shadow := Vector2(factor, factor)
 	var ink: Color = Palette.color(&"ink")
+	if outline:
+		for x: int in [-1, 0, 1]:
+			for y: int in [-1, 0, 1]:
+				var at: Vector2 = left + Vector2(x, y) * factor
+				draw_string(font, at, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, ink)
 	draw_string(font, left + shadow, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, ink)
 	draw_string(font, left, text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px, color)

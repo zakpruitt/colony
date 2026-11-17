@@ -504,6 +504,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 			if animate and target != null:
 				target.play_hit()
 		SimEvent.Kind.DIED:
+			fallen_party.fell(event.source_id)  # spec 056: one rising after a revive lies again
 			_died(event.source_id, animate)
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
@@ -517,6 +518,8 @@ func _show(event: SimEvent, animate: bool) -> void:
 			_scan_due = true
 		SimEvent.Kind.PARTY_WIPED:
 			fallen_party.wiped(age)
+		SimEvent.Kind.REVIVED:
+			fallen_party.stand(event.target_id)  # spec 056: a fallen hero stands up in the fight
 		SimEvent.Kind.PARTY_REVIVED:
 			# A revival seen as it happens is acted out whole; one heard late, from where it has got to.
 			_snap_camera = not fallen_party.revived(0.0 if animate else age)

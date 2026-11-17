@@ -1,0 +1,144 @@
+# Status marks (spec 056): one small mark per status, drawn over a fighter in the world and
+# three to a hero frame on the HUD. Each is a 7x7 shape with its own ink edge, bright on dark.
+category = ui
+size = 7x7
+
+# Stunned: a yellow star (three circle the head).
+[stunned]
+...p...
+..pbp..
+ppbbbpp
+pbbjbbp
+ppbbbpp
+.pbpbp.
+.pp.pp.
+
+# Taunting: a red "!" over it.
+[taunting]
+..ppp..
+..p8p..
+..p8p..
+..p8p..
+..ppp..
+..p8p..
+..ppp..
+
+# Shielded: a cyan shield (in the world, an outline round the fighter).
+[shielded]
+ppppppp
+pjiiiip
+piiiihp
+piiiihp
+.piihp.
+..php..
+...p...
+
+# Burning: an orange flame.
+[burning]
+...p...
+..p9p..
+.p99p..
+.p9b9p.
+p9bbb9p
+p9bjb9p
+.ppppp.
+
+# Bleeding: a red drop.
+[bleeding]
+...p...
+..p8p..
+.p8j8p.
+p8j888p
+p88887p
+.p877p.
+..ppp..
+
+# Mending: a green cross.
+[mending]
+..ppp..
+..pcp..
+pppcppp
+pcccccp
+pppcppp
+..pcp..
+..ppp..
+
+# Hasted: a yellow arrow up.
+[hasted]
+...p...
+..pbp..
+.pbbbp.
+pbbbbbp
+ppbbbpp
+..pbp..
+..ppp..
+
+# Slowed: an orchid arrow down.
+[slowed]
+..ppp..
+..psp..
+ppssspp
+psssssp
+.psssp.
+..psp..
+...p...
+
+# Mighty: a bright sword, white blade and yellow guard.
+[mighty]
+...p...
+..pjp..
+..pjp..
+..pjp..
+ppbbbpp
+..pap..
+..ppp..
+
+# Weakened: a broken sword, dull steel.
+[weakened]
+..p....
+.plp...
+..p....
+..plp..
+ppmmmpp
+..pmp..
+..ppp..
+
+# Marked: a red target with a white heart.
+[marked]
+..ppp..
+.p888p.
+p8ppp8p
+p8pjp8p
+p8ppp8p
+.p888p.
+..ppp..
+
+# Nimble: silver lines of a quick step.
+[nimble]
+ppppp..
+pkkkkp.
+ppppppp
+.pkkkkp
+ppppppp
+pkkkkp.
+ppppp..
+
+# Untouchable: a pale ghost.
+[untouchable]
+..ppp..
+.pjjjp.
+pjpjpjp
+pjjjjjp
+pjjjjjp
+pjpjpjp
+pp.p.pp
+
+# Chilled: a cyan snowflake.
+[chilled]
+.p.p.p.
+pipipip
+.piiip.
+ppijipp
+.piiip.
+pipipip
+.p.p.p.

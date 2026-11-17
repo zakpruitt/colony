@@ -145,6 +145,60 @@ func revived(age: float) -> bool:
 	return true
 
 
+## Hero [param id], fallen in a fight, was revived there (spec 056 R2): it rises from its back
+## onto its feet where it fell, as the party does after a wipe. A hero revived before it lay down
+## (in the very frame it fell, as Guardian Angel does) rises from where its fall had got to.
+func stand(id: int) -> void:
+	var sprite: CharacterSprite = _world.character(id)
+	if _standing.has(id) or sprite == null:
+		return
+	if _spots.has(id):
+		_stand_spots[id] = _spots[id]
+	elif sprite.is_dead():
+		_stand_spots[id] = sprite.position
+		if not _facing.has(id):
+			var mirror: Node2D = sprite.get_node("Mirror")
+			_facing[id] = -1 if mirror.scale.x < 0.0 else 1
+	else:
+		return
+	var over: float = _tilt.get(id, 0.0)
+	_spots.erase(id)
+	_dying.erase(id)
+	_tilt[id] = over
+	# Its rise starts as far along as it is upright already.
+	_standing[id] = _rise_at(over)
+
+
+## Hero [param id] fell (spec 056 R2): one that was rising after a revive in the fight lies down
+## again from where its rise had got to, rather than finishing it.
+func fell(id: int) -> void:
+	if not _standing.has(id) or _wipe_age >= 0.0:
+		return
+	var sprite: CharacterSprite = _world.character(id)
+	var over: float = _tilt.get(id, 1.0)
+	_spots[id] = _stand_spots.get(id, sprite.position if sprite != null else Vector2.ZERO)
+	_standing.erase(id)
+	_stand_spots.erase(id)
+	# Its fall goes on from the share of the topple it is over.
+	_dying[id] = FALL_AT + sqrt(clampf(over, 0.0, 1.0)) * TOPPLE_SECONDS
+	if sprite != null:
+		_pose(sprite, FALL_AT)
+
+
+## The game seconds into a rise at which a hero is [param over] of the way onto its back.
+static func _rise_at(over: float) -> float:
+	# The rise eases (smoothstep) from 1 to 0; find the time it is at [param over], by halving.
+	var low: float = 0.0
+	var high: float = 1.0
+	for i: int in 20:
+		var middle: float = (low + high) / 2.0
+		if 1.0 - smoothstep(0.0, 1.0, middle) > over:
+			low = middle
+		else:
+			high = middle
+	return (low + high) / 2.0 * STAND_SECONDS
+
+
 ## Where hero [param id] is heading this frame: where it lies or rises while it does (lifted as
 ## far as it is over), [param goal] (where the simulation has it) otherwise.
 func goal_for(id: int, goal: Vector2) -> Vector2:

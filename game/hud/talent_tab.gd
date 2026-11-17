@@ -400,13 +400,18 @@ static func wrap_words(text: String, width: float) -> Array[String]:
 	return lines
 
 
-## The tooltip of hero [param hero_id]'s frame (R9): [code]Click for details[/code], with the class
-## and its path before it once a path is chosen ([code]Knight, Berserker: click for details[/code]).
-func frame_tip(hero_id: int) -> String:
+## The tooltip of hero [param hero_id]'s frame (R9), the one place it is built: [code]Click for
+## details[/code], with the class and its path before it once a path is chosen
+## ([code]Knight, Berserker: click for details[/code]), and between them the hero's statuses with
+## their seconds left, [param statuses] (spec 056 R5: [code]Knight, Berserker: Shielded 6 s.
+## Click for details[/code]).
+func frame_tip(hero_id: int, statuses: String = "") -> String:
 	var hero: Hero = _simulation.party.hero(hero_id) if _simulation != null else null
-	if hero == null or hero.path() < 0:
-		return "Click for details"
-	return "%s: click for details" % title(hero)
+	var titled: String = title(hero) if hero != null and hero.path() >= 0 else ""
+	if statuses.is_empty():
+		return "Click for details" if titled.is_empty() else "%s: click for details" % titled
+	var said: String = statuses if titled.is_empty() else "%s: %s" % [titled, statuses]
+	return "%s. Click for details" % said
 
 
 ## Gives every control of the tab its tooltip. Call once, after [method setup].
