@@ -1,9 +1,9 @@
 # 043 — A ladder that warns and can be scrolled
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 033, 036, 042
-- **Pull request:** —
+- **Pull request:** [#45](https://github.com/zakpruitt/colony/pull/45)
 
 ## Intent
 
