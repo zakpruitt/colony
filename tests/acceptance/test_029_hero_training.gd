@@ -342,8 +342,8 @@ func test_r4_saved() -> void:
 	sim.party.heroes[3].set_training_rank(QUICKNESS, 7)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
-	assert_eq(version, 4, "the version rose by one")
-	assert_eq(Simulation.SAVE_VERSION, 4)
+	assert_eq(version, Simulation.SAVE_VERSION, "the version rose by one (5 since spec 035)")
+	assert_eq(Simulation.SAVE_VERSION, 5)
 	var loaded: Simulation = Simulation.from_save(data)
 	assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 	if loaded == null:
@@ -363,7 +363,7 @@ func test_r4_saved() -> void:
 		saved.erase("training")
 	var upgraded: Dictionary = Simulation.upgrade_save(old)
 	var upgraded_version: int = upgraded["version"]
-	assert_eq(upgraded_version, 4, "through the upgrade step")
+	assert_eq(upgraded_version, Simulation.SAVE_VERSION, "through the upgrade steps")
 	var from_old: Simulation = Simulation.from_save(old)
 	assert_not_null(from_old, "version 3 loads: %s" % Simulation.save_problems(old))
 	if from_old != null:
