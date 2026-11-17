@@ -1,9 +1,9 @@
 # 034 — A hero sheet that fits: tabs
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 026, 028, 029
-- **Pull request:** —
+- **Pull request:** [#35](https://github.com/zakpruitt/colony/pull/35)
 
 ## Intent
 
