@@ -59,8 +59,8 @@ implementer lane builds exactly that.
 
 ### In progress (2026-11-16, after Zak's first playtest)
 
-The direction these follow is `docs/design/world.md`. Written by the lead from that conversation; provisional
-until Zak has played them.
+Nothing is in progress (2026-11-17): specs 025 to 048 have all landed and are in the board above, provisional
+until Zak has played them. The direction they follow is `docs/design/world.md`. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
