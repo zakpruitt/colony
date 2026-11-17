@@ -319,12 +319,11 @@ func first_depth() -> int:
 ## guardian of that depth), and ordinary levels are easier than their guardians. It changes no
 ## rule: any depth can still be chosen.
 func risk(level_depth: int) -> Risk:
-	if _simulation == null or level_depth <= _simulation.expedition.last_stable_depth:
+	if _simulation == null:
 		return Risk.SAFE
-	# Spec 049: a stage is as hard as its level.
-	if _simulation.expedition.level_at(level_depth) <= PartyLevels.lowest(_simulation.party) + 1:
-		return Risk.REACHABLE
-	return Risk.DANGEROUS
+	var e: Expedition = _simulation.expedition
+	var lowest: int = PartyLevels.lowest(_simulation.party)
+	return StageRisk.judge(level_depth, e.last_stable_depth, e.level_at(level_depth), lowest)
 
 
 ## Scrolls the ladder by [param rungs] (positive is deeper), from depth 1 at the top down to

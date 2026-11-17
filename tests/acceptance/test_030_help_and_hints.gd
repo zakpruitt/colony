@@ -410,6 +410,11 @@ func _check_entry(main: Main, label: String) -> void:
 				assert_ne(hud.ladder.is_shown(), shown, "%s shows or hides the depth ladder" % what)
 				_key(code)
 				hud.advance(0.0)
+			"W":
+				var map: bool = hud.area_map.is_open()
+				_key(code)
+				assert_ne(hud.area_map.is_open(), map, "%s opens or closes the area map" % what)
+				hud.area_map.close()
 			"G":
 				var goals: bool = hud.goals.is_shown()
 				_key(code)
