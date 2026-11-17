@@ -188,6 +188,9 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   <li><strong>Guardians:</strong> a boss holds the way down on every fifth level, with its name announced, a
   health bar at the top and a big death.</li>
   <li><strong>Spending gold:</strong> a shop with five camp upgrades, and an auto-buy switch.</li>
+  <li><strong>Resources</strong> (spec 052): each area gives its own (glowcaps, clay, old bones, embers),
+  and the later ranks of the camp upgrades cost one, so what you want to build decides where the party goes
+  (see "Resources" below).</li>
   <li><strong>Hero sheets:</strong> click a hero's frame (or press <kbd>Tab</kbd>) to see who they are, their
   health, XP and what they are doing right now, with three tabs below: their stats, their talent and
   paragon points, and their microskills.</li>
@@ -232,7 +235,9 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   <kbd>+</kbd> from 1 to one past the furthest, coloured as the ladder colours depths (blue safe, orange within
   reach, red dangerous, by that area's levels). <em>Go</em> sends the party there (ten seconds on the road), or
   for the area it is in sets the target, as a click on the ladder does; a dangerous choice is warned of in the
-  journal. When a guardian opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears
+  journal. Each row also shows the area's resource: its icon and how many the party holds (<em>12
+  glowcaps</em>), or for a closed area what opening it gives (<em>Gives clay</em>) (spec 052). A guardian
+  stays ticked after a reload. When a guardian opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears
   (click it for the map) and the area's name at the top left carries a small orange mark until you open the
   map.</li>
   <li><strong>Party orders</strong> (spec 035): the <em>Orders</em> button (or <kbd>O</kbd>) opens a small panel
@@ -430,6 +435,20 @@ and every area keeps its own safe and furthest stage, so it can go back. The are
 where you choose; <code>dev.py sim --area</code> does it for a headless run.
 An old save opens the areas its deepest depth had already reached past. The labyrinth of each area is its
 own, and a monster appears in only its own area.</p>
+<p><span class="tag built">Built: spec 052</span> <strong>Resources.</strong> Each area gives its own
+resource: Mossy Hollow <em>glowcaps</em>, the Claypits <em>clay</em>, the Old Crypt <em>old bones</em> and Ember
+Deep <em>embers</em>. A monster killed there may drop some: a small one about three times in ten, a large one
+eight times in ten, a guardian always and several (6 on stage 1). Further in pays more: a quarter more for
+every stage past the first (a small drop is 1 on stage 1, 3 on stage 9). A side quest finished pays a large
+monster's drop. A drop shows as gold does: its small icons rise from the monster and fly to the top right, where
+each resource the party holds has an icon and a count beside the gold (rest the mouse on one for where it comes
+from); the journal notes the first of each, and the "While you were away" panel lists what was gathered
+(<em>Gathered 40 glowcaps, 12 clay</em>). Each camp upgrade takes one resource from its fourth rank on: Field
+Medicine and Quick March glowcaps, Stout Armor clay, Sharp Blades old bones and Fat Purse embers. The first three
+ranks cost gold alone, so the opening is as it was. In the headless runs a party that stays in Mossy Hollow
+stops at rank 3 of Stout Armor, Sharp Blades and Fat Purse however much gold it has, and one sent to the
+Claypits holds clay within a minute of arriving. Resources are saved; an older save loads with none and keeps
+its upgrade ranks.</p>
 <p><span class="tag built">Built: spec 024</span> <strong>Guardian fights feel like boss fights.</strong> When the
 party meets a guardian, its name appears large in the upper middle of the screen (<code>SLIME KING</code>, with
 <code>GUARDIAN OF DEPTH 5</code> under it) for two seconds, the screen shakes once and a low horn sounds. For the
@@ -670,7 +689,10 @@ at least one camp upgrade, a small amber tag on the button pulses and shows how 
 under the gold, between the top of the screen and the party frames, and the game keeps running behind it. Each
 row shows an upgrade's name, what it does, its rank (<code>Rank 3/20</code>), the bonus it gives now
 (<code>+15%</code>) and a button with the next rank's price: yellow when you can pay, dim red (and doing nothing)
-when you cannot, and <code>MAX</code> at the top rank. Click the price, or press the row's number
+when you cannot, and <code>MAX</code> at the top rank. From the fourth rank a row also shows its resource's
+icon and price left of the button, white when the party holds enough and grey when not (spec 052); the row
+can be bought only when both are paid. Rest the mouse on a row for both prices and where the resource comes
+from, and, if that area is still closed, how to open it. Click the price, or press the row's number
 (<code>1</code> to <code>5</code>), to buy: the row flashes green and the gold drops at once. <code>U</code> or
 <code>Esc</code> closes it; the depth keys, <code>Z</code> and <code>F3</code> still work while it is open. Opening the shop
 closes the "While you were away" panel if it is still up.</p>
@@ -679,7 +701,7 @@ closes the "While you were away" panel if it is still up.</p>
 open). It is off in a new game and reads <code>Auto-buy off</code>; when on it turns green and reads
 <code>Auto-buy on</code>. While it is on, once every second of game time the camp buys the cheapest upgrade the
 party can afford (the one higher in the list on a tie), exactly as if you had clicked it: the row flashes and the
-gold drops. It never spends gold the party does not have, and it stops by itself once every upgrade is at its top
+gold drops. It never spends gold the party does not have, nor buys a rank whose resource it lacks (spec 052), and it stops by itself once every upgrade is at its top
 rank. The switch is saved, and it keeps buying while the game is closed: the "While you were away" panel then
 says how many upgrades were bought.</p>
 <h3>The hero sheet <span class="tag built">Built: spec 026</span></h3>
@@ -871,7 +893,9 @@ font specimen (below).</p>
 the seed, the time played, the gold, each hero's class, level and XP, the last stable depth, the deepest depth
 reached, the target depth, whether auto-push is on, the rank of each camp upgrade (older saves load with no
 upgrades) and each hero's talents and paragon points (spec 051; a save with spec 029's gold training gets
-the gold back and every point unspent). Loading stands the party up fresh at its last stable
+the gold back and every point unspent), the resources the party holds and the guardians it has beaten (spec 052;
+an older save loads with no resources, and counts a guardian beaten when the area it opens is open or the party
+has been past it). Loading stands the party up fresh at its last stable
 depth, exactly as it does after a wipe, with everything it has earned; the chambers there are full of monsters
 again. A damaged or unknown save is refused rather than guessed at. The file is written whole or not at all
 (to a temporary file, then renamed into place), and the save before it is kept as a backup that is read if the

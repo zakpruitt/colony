@@ -57,7 +57,8 @@ and fails on any problem.
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
 last stable depth, deepest depth, target depth and auto-push, the rank of each camp upgrade (spec 016), the auto-buy switch (spec 022)
-each hero's talents and paragon points (spec 051) and the party's orders (spec 035).
+each hero's talents and paragon points (spec 051), the party's orders (spec 035), and the resources it holds
+and the guardians it has beaten (spec 052).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
@@ -66,7 +67,7 @@ stable depth, with every chamber freshly populated.
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 7. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 8. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -88,6 +89,11 @@ stable depth, with every chamber freshly populated.
   class's tree no longer than its level earns (`heroes[2].talents[4]`, `heroes[1].talents`), and its
   `paragon` (stat id to points) known stats with whole points no more than its level earns
   (`heroes[2].paragon.luck`, `heroes[2].paragon`).
+  Version 7 to 8 (spec 052, `ResourceSave`) adds `resources` (resource id to count) empty, and
+  `guardians_beaten` (area ids): each area an open area is opened by, and each whose furthest stage (the
+  party's `deepest_depth` for the area it is in, `areas.<id>.furthest` for another) is past its guardian stage.
+  Upgrade ranks stay. A count that is not a whole number of at least 0 or names an unknown resource, and an
+  unknown area in `guardians_beaten`, are refused by name (`resources.clay`, `guardians_beaten[1]`).
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -164,6 +170,23 @@ the view changes area when it reaches `AREA_CHANGED` among the events, never fro
 them: the world shows the new labyrinth then, and the journal and tally keep the area the events are in
 from that event, as the defeat note does. The screen names a place as an area and a stage (`PlaceText`,
 `Mossy Hollow 3`).
+
+## Resources
+
+Spec 052. Each area names one resource (`AreaDef.resource`, a `ResourceDef` under `data/resources/`; its
+icon is its part of `assets/sprites/ui/resource_icons.px`). `ResourceDrops` (`sim/expedition/`) gives it:
+a monster killed drops some with `DROP_CHANCE` by its size (small 0.3, large 0.8, a guardian always), as much
+as `ResourceDrops.amount_at(size, stage)` (1, 2 or 6 on stage 1, a quarter more each stage on), and a side quest
+finished pays a large monster's drop. Each kill's roll is its own stream,
+`fork("<area label>resource/<monster id>")`, so a drop takes nothing from any other roll and leaves nothing to
+save. `Party.resource(id)` holds the counts; `RESOURCE_GAINED` reports a drop (the source, the resource's
+position in `Content.resource_ids()`, the amount). Each `UpgradeDef` names a resource: from
+`resource_from_rank` (3) on, a rank also costs `resource_cost_at(rank)`, and `Upgrades.can_pay` is the one rule
+the buy, auto-buy, the shop and its marker share. With no resource held and no guardian beaten the state hash is
+what it was, so the recorded hashes changed only where they now include resources.
+`AreaTravel.guardians_beaten` keeps the areas whose guardian has been beaten at least once
+(`Simulation.is_guardian_beaten`); the area map reads it. On screen, `ResourcePurse` (in the gold panel) shows
+the counts and `ResourceEffects` (made by `CombatEffects`) sends a drop's icons rising from the monster to it.
 
 ## Talent trees and paragon
 
