@@ -390,9 +390,16 @@ func test_r3_two_spans() -> void:
 				met.append(monster.def_id)
 			fights.append({"depth": _sim.expedition.depth, "kinds": met})
 	_world.sim_event.connect(note)
+	# Two fights or more, the last with healing and blows taken, so every measure of the last
+	# fight has something in it (spec 046 R10).
 	var two: Callable = func() -> bool:
-		return _count(SimEvent.Kind.ENCOUNTER_ENDED) >= 2 and not _fighting()
-	assert_true(_run_until(two), "two fights")
+		if _count(SimEvent.Kind.ENCOUNTER_ENDED) < 2 or _fighting():
+			return false
+		var latest: Array[SimEvent] = _last_fight_events()
+		var healed: int = _sums(latest, HEALING).values().max()
+		var taken: int = _sums(latest, TAKEN).values().max()
+		return healed > 0 and taken > 0
+	assert_true(_run_until(two), "two fights, the last with healing")
 	tally.open()
 	tally.set_measure(DAMAGE)
 	tally.set_span(LAST)
