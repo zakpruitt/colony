@@ -25,6 +25,7 @@ const KEYS: Array[Array] = [
 	["Q E", "On a hero sheet: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
+	["O", "Open or close the party's orders"],
 	["L", "Show or hide the depth ladder"],
 	["G", "Show or hide the goals"],
 	["Z", "Zoom in or out"],

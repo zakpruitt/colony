@@ -15,6 +15,10 @@ extends RefCounted
 ## simulation tick; [method drain_events] hands them over once.
 
 enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING }
+## The party's orders (spec 035): how hurt it may be before it rests after a fight (see
+## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
+enum Pace { CAUTIOUS, STEADY, BOLD }
+enum GuardianOrder { CHALLENGE, HOLD }
 
 const PARTY_SPEED: float = 3.0  # tiles per second
 const CLIMB_SPEED: float = 4.0  # tiles per second
@@ -62,6 +66,9 @@ var deepest_depth: int = 1
 var stable_seconds: float = 600.0
 ## The fight in progress, or null.
 var battle: Battle
+## The orders (spec 035). Read-only outside the class: see [method command_pace].
+var pace: Pace = Pace.STEADY
+var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
 
 var _labyrinth: Labyrinth
 var _party: Party
@@ -91,6 +98,9 @@ var _battle_key: Vector2i = Vector2i(0, -1)
 var _entered_key: Vector2i = Vector2i(0, -1)
 ## A target depth asked for by a command, applied on the next tick; 0 when none.
 var _pending_target: int = 0
+## Orders asked for by a command, applied on the next tick; -1 when none.
+var _pending_pace: int = -1
+var _pending_guardian_order: int = -1
 
 ## Distance walked, and the last turn, so followers retrace the anchor's path.
 var _odometer: float = 0.0
@@ -160,6 +170,26 @@ func step(tick: int) -> void:
 ## Asks for a new target depth (1 or more); it applies from the next tick.
 func command_target_depth(new_depth: int) -> void:
 	_pending_target = maxi(new_depth, 1)
+
+
+## Asks for a new pace or guardian order (spec 035); each applies from the next tick, even while
+## the party is down, and an unknown value is ignored.
+func command_pace(new_pace: Pace) -> void:
+	_pending_pace = new_pace
+
+
+func command_guardian_order(order: GuardianOrder) -> void:
+	_pending_guardian_order = order
+
+
+## True while the party is being kept from a living guardian by the Hold order: its way to the
+## target depth leads through the guardian's chamber on this depth (down) or the one above (up).
+func is_holding() -> bool:
+	if guardian_order != GuardianOrder.HOLD or state in [State.CLIMBING, State.REVIVING]:
+		return false
+	if depth < target_depth:
+		return _guardian_alive(depth)
+	return depth > target_depth and _guardian_alive(depth - 1)
 
 
 ## The events recorded since the last call, oldest first.
@@ -255,16 +285,7 @@ static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: i
 ## on every GUARDIAN_EVERY-th depth, the guardian with the deepest [member MonsterDef.min_depth]
 ## at or above it.
 func guardian_of(level_depth: int) -> StringName:
-	if level_depth < GUARDIAN_EVERY or level_depth % GUARDIAN_EVERY != 0:
-		return &""
-	var found: StringName = &""
-	var found_depth: int = 0
-	for id: StringName in Content.monster_ids():
-		var def: MonsterDef = Content.monster(id)
-		if def.guardian and def.min_depth <= level_depth and def.min_depth > found_depth:
-			found = id
-			found_depth = def.min_depth
-	return found
+	return EncounterRoll.guardian_at(level_depth)
 
 
 ## Seconds the party must still hold this depth before it becomes stable; 0.0 when it already is.
@@ -357,6 +378,10 @@ func hash_parts() -> Array:
 		parts.append(
 			[battle.tick, battle.result(), _combatant_parts(battle.heroes + battle.monsters)]
 		)
+	# With the orders at their defaults and none asked for, the hash is what it was before them.
+	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
+	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:
+		parts.append(["orders", pace, guardian_order, _pending_pace, _pending_guardian_order])
 	return parts
 
 
@@ -364,12 +389,26 @@ func hash_parts() -> Array:
 
 
 func _apply_commands() -> void:
+	if _pending_pace >= 0 or _pending_guardian_order >= 0:
+		_apply_orders()
 	# While the party is down a command waits, so it wins over the fallback target on revival.
 	if _pending_target <= 0 or state == State.REVIVING:
 		return
 	var wanted: int = _pending_target
 	_pending_target = 0
 	_set_target(wanted)
+
+
+func _apply_orders() -> void:
+	if _pending_pace in Pace.values() and _pending_pace != pace:
+		pace = _pending_pace as Pace
+		_emit(SimEvent.Kind.ORDER_CHANGED, -1, PartyOrders.PACE, pace)
+	var order: int = _pending_guardian_order
+	if order in GuardianOrder.values() and order != guardian_order:
+		guardian_order = order as GuardianOrder
+		_emit(SimEvent.Kind.ORDER_CHANGED, -1, PartyOrders.GUARDIANS, guardian_order)
+	_pending_pace = -1
+	_pending_guardian_order = -1
 
 
 func _set_target(new_target: int) -> void:
@@ -413,15 +452,19 @@ func _restart_depth_count(since: int) -> void:
 
 func _travel() -> void:
 	var level: LabyrinthLevel = _labyrinth.level(depth)
+	# Held back from a guardian, the party hunts on this depth as if it were the target.
+	var holding: bool = is_holding()
 	var goal: float
-	if depth < target_depth:
+	if depth < target_depth and not holding:
 		goal = _shaft_middle(depth)
-	elif depth > target_depth:
+	elif depth > target_depth and not holding:
 		goal = _landing_column(depth)
 	elif facing > 0:
 		goal = level.chambers[level.chambers.size() - 1].rect.end.x - 1
 	else:
 		goal = level.chambers[0].rect.position.x
+	if guardian_order == GuardianOrder.HOLD and _guardian_alive(depth):
+		goal = PartyOrders.short_of(level.shaft_chamber(), x, goal)
 	_walk_toward(goal)
 
 	var here: LabyrinthChamber = level.chamber_at(floori(x))
@@ -439,7 +482,9 @@ func _travel() -> void:
 
 	if absf(x - goal) > EPSILON:
 		return
-	if depth < target_depth:
+	if holding:
+		_turn(-facing)
+	elif depth < target_depth:
 		_start_climb(1)
 	elif depth > target_depth:
 		_start_climb(-1)
@@ -562,6 +607,14 @@ func _is_always_empty(level: LabyrinthLevel, chamber_index: int) -> bool:
 	return false
 
 
+## True if the guardian of that depth waits in its chamber (not beaten, not being fought).
+func _guardian_alive(level_depth: int) -> bool:
+	if level_depth < 1 or guardian_of(level_depth) == &"":
+		return false
+	var shaft: LabyrinthChamber = _labyrinth.level(level_depth).shaft_chamber()
+	return shaft != null and is_populated(level_depth, shaft.index)
+
+
 ## True for the shaft chamber of a level a guardian holds.
 func _is_guardian_chamber(level_depth: int, chamber_index: int) -> bool:
 	if guardian_of(level_depth) == &"":
@@ -643,57 +696,11 @@ func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> String
 ## seed, depth, chamber and visit (see [method monster_id]).
 func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[Combatant]:
 	var room: LabyrinthChamber = _labyrinth.level(level_depth).chambers[chamber_index]
-	var monsters: Array[Combatant] = []
+	var guardian: StringName = &""
 	if _is_guardian_chamber(level_depth, chamber_index):
-		# The guardian alone, whatever the chamber's kind.
-		var guardian: MonsterDef = Content.monster(guardian_of(level_depth))
-		var guardian_id: int = monster_id(level_depth, chamber_index, visit, 0)
-		monsters.append(Combatant.from_monster(guardian, level_depth, guardian_id))
-		_spread(monsters, room)
-		return monsters
+		guardian = guardian_of(level_depth)
 	var rng: SimRng = _rng.fork("encounter/%d/%d/%d" % [level_depth, chamber_index, visit])
-	var count_range: Vector2i = PLAIN_MONSTERS
-	if room.kind == LabyrinthChamber.Kind.DEN:
-		count_range = DEN_MONSTERS
-	elif room.kind == LabyrinthChamber.Kind.VAULT:
-		count_range = VAULT_MONSTERS
-	var count: int = rng.next_int(count_range.x, count_range.y)
-
-	# Eligible monsters, each as likely as its min_depth: deeper dwellers are favoured.
-	var eligible: Array[MonsterDef] = []
-	var total_weight: int = 0
-	for id: StringName in Content.monster_ids():
-		var def: MonsterDef = Content.monster(id)
-		if def.min_depth <= level_depth and not def.guardian:
-			eligible.append(def)
-			total_weight += def.min_depth
-	if eligible.is_empty():
-		return monsters
-	for i: int in count:
-		var roll: int = rng.next_int(1, total_weight)
-		var picked: MonsterDef = eligible[eligible.size() - 1]
-		for def: MonsterDef in eligible:
-			roll -= def.min_depth
-			if roll <= 0:
-				picked = def
-				break
-		monsters.append(
-			Combatant.from_monster(
-				picked, level_depth, monster_id(level_depth, chamber_index, visit, i)
-			)
-		)
-	_spread(monsters, room)
-	return monsters
-
-
-## Stands waiting monsters evenly over the middle half of the chamber's floor.
-func _spread(monsters: Array[Combatant], room: LabyrinthChamber) -> void:
-	var left: float = room.rect.position.x
-	var right: float = room.rect.end.x - 1
-	var quarter: float = (right - left) / 4.0
-	for i: int in monsters.size():
-		var share: float = (i + 0.5) / monsters.size()
-		monsters[i].x = left + quarter + (right - left - 2.0 * quarter) * share
+	return EncounterRoll.roll(room, level_depth, visit, guardian, rng)
 
 
 func _start_battle(room: LabyrinthChamber) -> void:
@@ -820,7 +827,7 @@ func _end_battle(won: bool) -> void:
 			monster.state = Combatant.State.IDLE
 			monster.target_id = -1
 			survivors.append(monster)
-	_spread(survivors, room)
+	EncounterRoll.spread(survivors, room)
 	fill.monsters = survivors
 	_fallen.clear()
 	for fighter: Combatant in battle.heroes:
@@ -895,7 +902,7 @@ func _work() -> void:
 
 func _needs_rest() -> bool:
 	for hero: Hero in _party.heroes:
-		if not hero.is_alive() or hero.health < REST_BELOW * hero.max_health():
+		if not hero.is_alive() or hero.health < PartyOrders.rest_below(pace) * hero.max_health():
 			return true
 	return false
 
@@ -989,9 +996,4 @@ func _emit(
 
 
 func _combatant_parts(fighters: Array) -> Array:
-	var parts: Array = []
-	for c: Combatant in fighters:
-		var part: Array = [c.id, c.def_id, c.x, c.health, c.max_health, c.damage, c.state]
-		part.append_array([c.target_id, c.strike_tick, c.ready_tick])
-		parts.append(part)
-	return parts
+	return EncounterRoll.hash_parts(fighters)

@@ -238,7 +238,7 @@ func test_r4_saved() -> void:
 		assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 		if loaded != null:
 			assert_eq(loaded.auto_buy, enabled, "round trip of %s" % enabled)
-	assert_eq(Simulation.SAVE_VERSION, 4, "4 since spec 029")
+	assert_eq(Simulation.SAVE_VERSION, 5, "4 since spec 029, 5 since spec 035")
 
 	# A version 2 save loads with auto-buy off, through the upgrade step.
 	var current: Dictionary = _through_json(Simulation.new(SEED).to_save())

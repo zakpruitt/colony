@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 4
+const SAVE_VERSION: int = 5
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## The largest whole number a JSON float holds exactly (2^53).
@@ -82,6 +82,20 @@ func set_target_depth(depth: int) -> void:
 ## Turns auto-push (going one level deeper once the target depth is stable) on or off.
 func set_auto_push(enabled: bool) -> void:
 	expedition.auto_push = enabled
+
+
+## Sets the party's pace (spec 035): how hurt it may be before it rests after a fight. It applies
+## from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an unknown value is
+## ignored.
+func set_pace(pace: Expedition.Pace) -> void:
+	expedition.command_pace(pace)
+
+
+## Sets the party's guardian order (spec 035): under Hold it never enters a living guardian's
+## chamber. It applies from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an
+## unknown value is ignored.
+func set_guardian_order(order: Expedition.GuardianOrder) -> void:
+	expedition.command_guardian_order(order)
 
 
 ## Asks to buy the next rank of upgrade [param id] at the next step. It is bought
@@ -257,6 +271,8 @@ func to_save() -> Dictionary:
 		"auto_push": expedition.auto_push,
 		"upgrades": ranks,
 		"auto_buy": _auto_buy,
+		"pace": PartyOrders.PACE_SAVED[expedition.pace],
+		"guardian_order": PartyOrders.GUARDIAN_SAVED[expedition.guardian_order],
 	}
 
 
@@ -298,6 +314,12 @@ static func from_save(data: Dictionary) -> Simulation:
 	sim.expedition.arrive_from_save(sim._tick, stable, deepest, target, auto_push)
 	var auto_buy_on: bool = current["auto_buy"]
 	sim._auto_buy = auto_buy_on
+	var pace_text: String = current["pace"]
+	var order_text: String = current["guardian_order"]
+	sim.expedition.pace = PartyOrders.PACE_SAVED.find(pace_text) as Expedition.Pace
+	sim.expedition.guardian_order = (
+		PartyOrders.GUARDIAN_SAVED.find(order_text) as Expedition.GuardianOrder
+	)
 	return sim
 
 
@@ -323,6 +345,8 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 		problems.append("auto_push: missing or not true or false")
 	if typeof(current.get("auto_buy")) != TYPE_BOOL:
 		problems.append("auto_buy: missing or not true or false")
+	_check_name(problems, current, "pace", PartyOrders.PACE_SAVED)
+	_check_name(problems, current, "guardian_order", PartyOrders.GUARDIAN_SAVED)
 	var heroes: Variant = current.get("heroes")
 	if not (heroes is Array) or (heroes as Array).is_empty():
 		problems.append("heroes: missing, not a list or empty")
@@ -352,6 +376,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = _save_2_to_3(current)
 	if _whole(current["version"]) == 3:
 		current = _save_3_to_4(current)
+	if _whole(current["version"]) == 4:
+		current = _save_4_to_5(current)
 	return current
 
 
@@ -379,6 +405,25 @@ static func _save_3_to_4(data: Dictionary) -> Dictionary:
 			if saved is Dictionary:
 				(saved as Dictionary)["training"] = {}
 	return data
+
+
+## Version 4 had no orders: version 5 adds them at their defaults, Steady and Challenge.
+static func _save_4_to_5(data: Dictionary) -> Dictionary:
+	data["version"] = 5
+	data["pace"] = PartyOrders.PACE_SAVED[Expedition.Pace.STEADY]
+	data["guardian_order"] = PartyOrders.GUARDIAN_SAVED[Expedition.GuardianOrder.CHALLENGE]
+	return data
+
+
+## Adds a problem unless [param data][[param field]] is one of [param names], naming the field.
+static func _check_name(
+	problems: PackedStringArray, data: Dictionary, field: String, names: Array[String]
+) -> void:
+	var value: Variant = data.get(field)
+	if typeof(value) != TYPE_STRING or not names.has(value as String):
+		problems.append(
+			"%s: missing or not one of %s" % [field, ", ".join(PackedStringArray(names))]
+		)
 
 
 ## Adds a problem for each saved upgrade rank that is not a known upgrade's
