@@ -289,12 +289,16 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   into the same place) is open. `Depths` in `steel` over a `dusk` line, then 12 rows of 20 pixels, all drawn
   in code: two `slate` rails with a 3-pixel rung between them per depth, `silver`/`steel` solid when held,
   `green`/`forest` for the safe depth, a `steel` outline when visited, a 1-pixel `dusk` line when never
-  reached. The depth number sits left of the rails in the rung's colour (`white` for the party's, `yellow`
-  for the target's, `slate` when unreached). The party is a 7x7 `white` diamond with an `ink` edge and a `cyan`
+  reached. The depth number sits left of the rails in the colour of how that depth looks for the party
+  (spec 043): `cyan` safe, `orange` within reach, `red` dangerous, never the `white`, `yellow` or `green` of
+  the party's, the target's or the safe depth's marks. The party is a 7x7 `white` diamond with an `ink` edge and a `cyan`
   glint, bobbing a pixel; the target is a 4x7 `yellow` arrow left of its number; a guardian is a 5x5 `white`
   skull right of the rails, `slate` and crossed in `red` while beaten. A rung under the mouse gets a `slate`
   outline, and after the tooltips' delay its line shows left of the ladder in the tooltip's box, with
-  `Click to send the party here` in `yellow`. It scrolls smoothly, never a whole rung in one frame.
+  `Click to send the party here` in `yellow`, and under it, in the risk's colour, `Within reach` or
+  `Dangerous: heroes are level L`. It scrolls smoothly, never a whole rung in one frame. Scrolled away by the
+  wheel, it shows a 15x8 `night` box with an `ink` edge on the rails at its top or bottom edge, holding a 7x4
+  `white` triangle pointing toward the party.
 - **The goals tracker** (spec 037) drops from under the top band at the left, below the depth panel, in the
   place the hero sheet and journal use (it hides while either is open): `Goals` in `steel` and `G hide` in
   `slate` over up to three rows. A row is a small `steel` square (a 7x5 `green` tick drawn in code once
