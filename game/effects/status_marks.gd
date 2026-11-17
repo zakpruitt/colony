@@ -14,8 +14,8 @@ extends Node2D
 ## - mending: green motes rising;
 ## - nimble, untouchable: the sprite half faded.
 ##
-## A child of the [World] just before [member World.effects_layer], at its height: over the darkness,
-## under the numbers. [AbilityEffects]
+## A child of the [World] just before [member World.effects_layer], at its height: over the
+## darkness, under the numbers. [AbilityEffects]
 ## advances it; [method advance] works out what shows, [method _draw] draws it.
 
 ## The sheet of status marks, one 7x7 part per status, named as [enum AbilityEffect.Status].
