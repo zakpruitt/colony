@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="TrainingDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/training_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"toughness"
+display_name = "Toughness"
+description = "+5% maximum health"
+order = 2
+stat = 1
+per_rank = 0.05
+base_cost = 35
+cost_growth = 1.35
+max_rank = 20

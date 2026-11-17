@@ -31,6 +31,11 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - For "always" and "never" claims, run many seeds in a loop, and print the seed in the assertion message so a
   failure can be replayed.
 - Determinism has its own kind of test: run the same seed and commands twice and compare the whole state.
+- An "off changes nothing" test compares hashes recorded before the change. If `dev` changes the game after
+  you recorded, record again on it with your sim code set aside: commit your work, merge `origin/dev`,
+  `git checkout origin/dev -- sim`, run a throwaway recorder test that only uses `Simulation` (one that names
+  a `game/` class will not load against the old `sim/`), then `git checkout HEAD -- sim` and delete the
+  recorder.
 
 ## Testing nodes (`game/`)
 
@@ -40,6 +45,10 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - `await get_tree().process_frame` resumes before that frame's `_process` calls have run. To see what a node's
   `_process` did, await two frames, or use GUT's `await wait_process_frames(2)`.
 - The headless window is tiny. Send keys and actions with `Input.parse_input_event`, not mouse positions.
+- Gold set directly (`sim.party.gold = 10_000`) is counted up on the HUD like coins, after
+  `Hud.GOLD_CATCH_UP_SECONDS`. A test of "the gold count drops at once" must let the count catch up first
+  (`hud.advance(Hud.GOLD_CATCH_UP_SECONDS + 0.1)`), or the count is still below the gold and has nothing to
+  drop from.
 
 ## Files
 

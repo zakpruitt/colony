@@ -18,6 +18,8 @@ enum Kind {
 	SIDE_QUEST_STARTED,
 	SIDE_QUEST_DONE,
 	SIDE_QUEST_MISSED,
+	# A command's result (spec 029), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
+	HERO_TRAINED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -48,7 +50,9 @@ var target_id: int = -1
 ## For SIDE_QUEST_STARTED and SIDE_QUEST_DONE: the work in ticks, or the gold or XP given,
 ## with [member source_id] the worker and [member target_id] the quest's position in
 ## [method Content.side_quest_ids]. For SIDE_QUEST_MISSED: the needed microskill's position,
-## with [member target_id] the quest's position.
+## with [member target_id] the quest's position. For HERO_TRAINED: the hero's new rank, with
+## [member source_id] the hero's id and [member target_id] the training's position in
+## [method Content.training_ids].
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for SIDE_QUEST_MISSED.

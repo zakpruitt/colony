@@ -149,9 +149,13 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			if not shop.is_open():
+			# The shop and the hero sheet are never open together (spec 029).
+			if shop.is_open():
+				shop.buy_row(key.keycode - KEY_1)
+			elif hero_sheet.is_open() and key.keycode <= KEY_3:
+				hero_sheet.train_row(key.keycode - KEY_1)
+			else:
 				return
-			shop.buy_row(key.keycode - KEY_1)
 		_:
 			return
 	get_viewport().set_input_as_handled()

@@ -165,8 +165,22 @@ func test_r1_progress_is_plain_data() -> void:
 		assert_true(data.has(field), "the save holds %s" % field)
 	assert_true(_is_plain(data), "only plain values: %s" % data)
 	var heroes: Array = []
-	for hero: Hero in sim.party.heroes:
-		heroes.append({"class": String(hero.class_id), "level": hero.level, "xp": hero.xp})
+	var saved_heroes: Array = data.get("heroes", [])
+	for i: int in sim.party.heroes.size():
+		var hero: Hero = sim.party.heroes[i]
+		# Spec 029: each hero's training ranks, tested there.
+		var saved: Dictionary = saved_heroes[i] if i < saved_heroes.size() else {}
+		(
+			heroes
+			. append(
+				{
+					"class": String(hero.class_id),
+					"level": hero.level,
+					"xp": hero.xp,
+					"training": saved.get("training"),
+				}
+			)
+		)
 	var expected: Dictionary = {
 		"version": Simulation.SAVE_VERSION,
 		"seed": SEED,
@@ -323,18 +337,21 @@ func test_r4_bad_data_is_refused() -> void:
 
 
 func test_r5_upgrade_is_a_pass_through() -> void:
-	# Spec 016 raised the version to 2 and spec 022 to 3; their own tests cover those steps.
-	assert_eq(Simulation.SAVE_VERSION, 3)
+	# Spec 016 raised the version to 2, spec 022 to 3 and spec 029 to 4; their own tests cover
+	# those steps.
+	assert_eq(Simulation.SAVE_VERSION, 4)
 	var data: Dictionary = _valid()
-	data["version"] = 3
+	data["version"] = 4
 	data["upgrades"] = {}
 	data["auto_buy"] = false
+	for saved: Dictionary in data["heroes"]:
+		saved["training"] = {}
 	var current: Dictionary = data.duplicate(true)
 	assert_eq(Simulation.upgrade_save(data), current, "the current version is unchanged")
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 4]:
+	for version: int in [0, 5]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)
