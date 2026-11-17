@@ -202,7 +202,9 @@ func applicable() -> Array[Goal]:
 	var guardian: Goal = _guardian_goal()
 	if guardian != null:
 		found.append(guardian)
-	found.append(_depth_goal())
+	# Held back from a guardian (spec 035), the way on is the guardian's goal (spec 039 R3).
+	if not _simulation.expedition.is_holding():
+		found.append(_depth_goal())
 	var skill: Goal = _microskill_goal()
 	if skill != null:
 		found.append(skill)
@@ -298,21 +300,29 @@ func _guardian_beaten(depth: int) -> bool:
 	return not e.is_populated(depth, shaft.index)
 
 
-## Reaching the depth below the deepest yet.
+## Reaching the depth below the deepest yet. At the deepest depth its bar counts down to
+## auto-push's next push, reads "on the way" once the target is below, and "Auto is off" when
+## nothing will take the party deeper.
 func _depth_goal() -> Goal:
 	var e: Expedition = _simulation.expedition
 	var next: int = e.deepest_depth + 1
 	var fraction: float = clampf(float(e.depth) / float(next), 0.0, 1.0)
 	var detail_text: String = "depth %d of %d" % [e.depth, next]
 	var how: String = "The party works its way back down, a stable depth at a time."
-	if e.depth >= e.deepest_depth:
+	# Spec 039 R3: at the deepest depth the bar follows the timer that decides what comes next.
+	if e.depth >= e.deepest_depth and e.target_depth > e.depth:
 		fraction = 1.0
-		detail_text = "stable"
+		detail_text = "on the way"
+		how = "The party is heading down to its target."
+	elif e.depth >= e.deepest_depth and e.auto_push and e.depth == e.target_depth:
+		var left: float = e.seconds_to_push()
+		if e.stable_seconds > 0.0:
+			fraction = clampf(1.0 - left / e.stable_seconds, 0.0, 1.0)
+		detail_text = "in " + Hud.clock(left)
 		how = "Hold this depth until it is stable, and the party moves on by itself."
-		if e.stable_seconds > 0.0 and e.depth > e.last_stable_depth:
-			fraction = clampf(1.0 - e.seconds_to_stable() / e.stable_seconds, 0.0, 1.0)
-			var seconds: int = ceili(e.seconds_to_stable())
-			detail_text = "stable in %d:%02d" % [seconds / 60, seconds % 60]
+	elif e.depth >= e.deepest_depth and not e.auto_push:
+		fraction = 0.0
+		detail_text = "Auto is off"
 	if not e.auto_push and e.target_depth < next:
 		how = "Raise the target or turn Auto on, and the party heads down."
 	var goal := Goal.new(

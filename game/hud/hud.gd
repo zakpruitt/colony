@@ -11,6 +11,7 @@ extends Control
 ## Spec 027 makes the party readable: the depth panel says what the party is doing and why
 ## ([method status_text]) and how long until this depth is stable ([method stable_text]), and a
 ## [Journal] keeps the last happenings, with a ticker over the frames and a panel on [kbd]J[/kbd].
+## Spec 039 makes that note count down to auto-push's next push once the depth is stable.
 
 ## The screen the HUD is laid out on, in pixels.
 const SCREEN: Vector2 = Vector2(640, 360)
@@ -72,8 +73,8 @@ var target_caption: Label
 var target_label: Label
 ## What the party is doing and why, in a short sentence: [method status_text].
 var state_label: Label
-## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" over a thin bar and
-## what auto-push does next, or "Stable".
+## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" or "Deeper in m:ss"
+## over a thin bar and what happens next, or "Stable" (spec 039 R2).
 var stable_note: Label
 var stable_bar: Control
 var stable_next: Label
@@ -278,19 +279,29 @@ func status_text() -> String:
 	return line
 
 
-## The road to stable (spec 027 R2): "Stable in m:ss" while the party must still hold this depth,
-## "Stable" once it is, followed with auto-push on by what happens next (", then depth N").
+## The road to stable (spec 027 R2, spec 039 R2): "Stable in m:ss" while the party must still hold
+## this depth, "Deeper in m:ss" while auto-push counts down to the next, "Stable" otherwise, or
+## "Holding" at a guardian, followed by what happens next (", then depth N",
+## ", staying on depth N", ", Orders (O) to go in").
 func stable_text() -> String:
 	var parts: PackedStringArray = _stable_parts()
 	return parts[0] if parts[1].is_empty() else "%s, %s" % [parts[0], parts[1]]
 
 
-## How far the party is along the road to stable on this depth, from 0 to 1.
+## How far the bar beside the note has filled, from 0 to 1: toward stable on this depth, or, once
+## it is stable, toward auto-push's next push (spec 039 R2).
 func stable_progress() -> float:
 	var e: Expedition = _simulation.expedition
 	if e.stable_seconds <= 0.0:
 		return 1.0
-	return clampf(1.0 - e.seconds_to_stable() / e.stable_seconds, 0.0, 1.0)
+	var left: float = e.seconds_to_push() if _pushing() else e.seconds_to_stable()
+	return clampf(1.0 - left / e.stable_seconds, 0.0, 1.0)
+
+
+## [param seconds] as a countdown, "m:ss", rounded up to the whole second.
+static func clock(seconds: float) -> String:
+	var whole: int = ceili(seconds)
+	return "%d:%02d" % [whole / 60, whole % 60]
 
 
 ## The gold count currently displayed.
@@ -612,12 +623,12 @@ func _advance_depth(delta: float) -> void:
 	var road: PackedStringArray = _stable_parts()
 	changed = _set_text(stable_note, road[0]) or changed
 	changed = _set_text(stable_next, road[1]) or changed
-	var counting: bool = road[0] != "Stable"
+	var counting: bool = road[0].contains(" in ")
 	if stable_bar.visible != counting:
 		stable_bar.visible = counting
 		changed = true
 	stable_note.add_theme_color_override(
-		&"font_color", Palette.color(&"silver" if counting else &"green")
+		&"font_color", Palette.color(&"green" if road[0] == "Stable" else &"silver")
 	)
 	stable_bar.queue_redraw()
 	var auto_text: String = "Auto on" if _auto_on else "Auto off"
@@ -681,18 +692,36 @@ func _layout_depth() -> void:
 	depth_panel.queue_redraw()
 
 
-## The road to stable's two parts: the note ("Stable in m:ss" or "Stable") and what auto-push
-## does next ("then depth N", or "").
+## The road to stable's two parts (spec 039 R2): the note ("Stable in m:ss" while this depth is
+## not yet stable, "Deeper in m:ss" while auto-push counts down to the next, "Stable", or
+## "Holding" at a guardian) and what happens next at the target ("then depth N", "staying on
+## depth N", "Orders (O) to go in", or "").
 func _stable_parts() -> PackedStringArray:
 	var e: Expedition = _simulation.expedition
-	var note: String = "Stable"
-	if e.state != Expedition.State.REVIVING and e.depth > e.last_stable_depth:
-		var seconds: int = ceili(e.seconds_to_stable())
-		note = "Stable in %d:%02d" % [seconds / 60, seconds % 60]
-	var next: String = ""
-	if e.auto_push and e.depth == e.target_depth and e.state != Expedition.State.REVIVING:
-		next = "then depth %d" % (e.depth + 1)
-	return PackedStringArray([note, next])
+	if e.is_holding():
+		return PackedStringArray(["Holding", "Orders (O) to go in"])
+	if e.state == Expedition.State.REVIVING:
+		return PackedStringArray(["Stable", ""])
+	var at_target: bool = e.depth == e.target_depth
+	var next: String = "then depth %d" % (e.depth + 1) if at_target and e.auto_push else ""
+	if e.depth > e.last_stable_depth:
+		return PackedStringArray(["Stable in " + clock(e.seconds_to_stable()), next])
+	if _pushing():
+		return PackedStringArray(["Deeper in " + clock(e.seconds_to_push()), next])
+	if at_target and not e.auto_push:
+		next = "staying on depth %d" % e.depth
+	return PackedStringArray(["Stable", next])
+
+
+## True while this depth is stable and auto-push is counting down to the next (spec 039 R2).
+func _pushing() -> bool:
+	var e: Expedition = _simulation.expedition
+	return (
+		e.auto_push
+		and e.depth == e.target_depth
+		and e.depth <= e.last_stable_depth
+		and e.state != Expedition.State.REVIVING
+	)
 
 
 func _draw_stable_bar() -> void:

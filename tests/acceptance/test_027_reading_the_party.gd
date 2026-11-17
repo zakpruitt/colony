@@ -310,7 +310,9 @@ func test_r2_road_to_stable() -> void:
 	_hud.advance(0.0)
 	assert_eq(e.seconds_to_stable(), 0.0, "depth 1 is stable from the start")
 	_sim.set_auto_push(false)
-	assert_eq(_hud.stable_text(), "Stable", "a stable depth reads Stable")
+	_hud.advance(0.0)
+	# Spec 039 R2: at the target with auto-push off, the note says the party stays.
+	assert_eq(_hud.stable_text(), "Stable, staying on depth 1", "a stable depth reads Stable")
 	assert_false(_hud.stable_bar.visible, "with no bar")
 
 	assert_true(_down_to_two(), "the party reaches depth 2")
@@ -346,7 +348,7 @@ func test_r2_road_to_stable() -> void:
 	assert_eq(stable_at - started, predicted, "the count ends on the tick the depth turns stable")
 	_hud.advance(0.0)
 	assert_eq(e.seconds_to_stable(), 0.0, "0 at a stable depth")
-	assert_eq(_hud.stable_text(), "Stable", "Stable")
+	assert_eq(_hud.stable_text(), "Stable, staying on depth 2", "Stable (spec 039 R2)")
 	assert_false(_hud.stable_bar.visible, "no bar")
 
 	# Auto-push: what happens next.
