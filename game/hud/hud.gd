@@ -7,6 +7,10 @@ extends Control
 ## and [method Simulation.set_auto_push]. It keeps to the top [constant TOP_BAND] and the bottom
 ## [constant BOTTOM_BAND] pixels of the 640x360 screen, and every text and bar sits on a dark
 ## [HudPanel]. Laid out in screen pixels from the top-left corner.
+##
+## Spec 027 makes the party readable: the depth panel says what the party is doing and why
+## ([method status_text]) and how long until this depth is stable ([method stable_text]), and a
+## [Journal] keeps the last happenings, with a ticker over the frames and a panel on [kbd]J[/kbd].
 
 ## The screen the HUD is laid out on, in pixels.
 const SCREEN: Vector2 = Vector2(640, 360)
@@ -29,7 +33,10 @@ const GOLD_CATCH_UP_SECONDS: float = 3.0
 const GOLD_BUMP_SECONDS: float = 0.15
 ## Seconds the depth number is emphasised after a change of depth.
 const DEPTH_EMPHASIS_SECONDS: float = 0.6
-## The word for each expedition state, and its colour.
+## The road to stable (spec 027 R2): the bar's size in pixels.
+const STABLE_BAR: Vector2 = Vector2(40, 5)
+## The word for each expedition state, and its colour. A state with no line of its own in
+## [method status_text] shows its word.
 const STATE_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.TRAVELLING: "Travelling",
 	Expedition.State.FIGHTING: "Fighting",
@@ -63,8 +70,14 @@ var stable_label: Label
 var target_caption: Label
 ## The target depth's number, between the - and + buttons.
 var target_label: Label
-## The expedition's state, in one word.
+## What the party is doing and why, in a short sentence: [method status_text].
 var state_label: Label
+## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" over a thin bar and
+## what auto-push does next, or "Stable".
+var stable_note: Label
+var stable_bar: Control
+var stable_next: Label
+var stable_divider: ColorRect
 var minus_button: HudButton
 var plus_button: HudButton
 var auto_button: HudButton
@@ -78,6 +91,8 @@ var shop_tab: HudPanel
 var shop_marker: ShopMarker
 ## The guardian's health during a guardian fight (spec 024).
 var boss_bar: BossBar
+## The last happenings, the ticker over the party frames and the J panel (spec 027).
+var journal: Journal
 ## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
 var hero_sheet: HeroSheet
 
@@ -157,6 +172,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	boss_bar = BossBar.new()
 	add_child(boss_bar)
 	boss_bar.setup(simulation, world)
+	journal = Journal.new()
+	add_child(journal)
+	journal.setup(simulation, world)
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -170,15 +188,60 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
+	var reviving: bool = _simulation.expedition.state == Expedition.State.REVIVING
 	for hero: Hero in _simulation.party.heroes:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
+			frame.recovering = reviving
 			frame.refresh(hero, delta)
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
 	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
+	journal.advance(delta)
+
+
+## What the party is doing and why, as the depth panel shows it: "Heading down to depth 5",
+## "Fighting 3 monsters", "Resting, 64% health" and so on (spec 027 R1).
+func status_text() -> String:
+	var e: Expedition = _simulation.expedition
+	var line: String = STATE_WORDS.get(e.state, "")
+	match e.state:
+		Expedition.State.TRAVELLING:
+			line = "Hunting on depth %d" % e.depth
+			if e.target_depth > e.depth:
+				line = "Heading down to depth %d" % e.target_depth
+			elif e.target_depth < e.depth:
+				line = "Heading up to depth %d" % e.target_depth
+		Expedition.State.FIGHTING:
+			line = _fight_text(e.battle)
+		Expedition.State.RESTING:
+			line = "Resting, %d%% health" % _party_health_percent()
+		Expedition.State.CLIMBING:
+			line = "Climbing down" if _climbing_down() else "Climbing up"
+		Expedition.State.REVIVING:
+			line = "Chased home! Regrouping"
+		Expedition.State.WORKING:
+			var quest: SideQuestDef = Content.side_quest(e.working_quest())
+			if quest != null:
+				line = "Working: %s" % quest.display_name
+	return line
+
+
+## The road to stable (spec 027 R2): "Stable in m:ss" while the party must still hold this depth,
+## "Stable" once it is, followed with auto-push on by what happens next (", then depth N").
+func stable_text() -> String:
+	var parts: PackedStringArray = _stable_parts()
+	return parts[0] if parts[1].is_empty() else "%s, %s" % [parts[0], parts[1]]
+
+
+## How far the party is along the road to stable on this depth, from 0 to 1.
+func stable_progress() -> float:
+	var e: Expedition = _simulation.expedition
+	if e.stable_seconds <= 0.0:
+		return 1.0
+	return clampf(1.0 - e.seconds_to_stable() / e.stable_seconds, 0.0, 1.0)
 
 
 ## The gold count currently displayed.
@@ -252,6 +315,19 @@ func _build_depth() -> void:
 	_make_big(depth_label)
 	state_label = _label(depth_panel, "State", "", &"silver", Vector2(0, 3))
 	stable_label = _label(depth_panel, "Stable", "", &"silver", Vector2(0, 14))
+	stable_divider = ColorRect.new()
+	stable_divider.name = "StableDivider"
+	stable_divider.color = Palette.color(&"dusk")
+	stable_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	depth_panel.add_child(stable_divider)
+	stable_note = _label(depth_panel, "StableNote", "", &"silver", Vector2(0, 3))
+	stable_bar = Control.new()
+	stable_bar.name = "StableBar"
+	stable_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stable_bar.size = STABLE_BAR
+	stable_bar.draw.connect(_draw_stable_bar)
+	depth_panel.add_child(stable_bar)
+	stable_next = _label(depth_panel, "StableNext", "", &"steel", Vector2(0, 14))
 	target_caption = _label(depth_panel, "TargetCaption", "Target", &"steel", Vector2(0, 14))
 	minus_button = _button("Minus", "-", HudButton.HEIGHT)
 	minus_button.pressed.connect(_step_target.bind(-1))
@@ -409,8 +485,18 @@ func _advance_depth(delta: float) -> void:
 	changed = _set_text(depth_label, str(_depth)) or changed
 	changed = _set_text(stable_label, "Stable %d" % expedition.last_stable_depth) or changed
 	changed = _set_text(target_label, str(target)) or changed
-	var word: String = STATE_WORDS.get(expedition.state, "")
-	changed = _set_text(state_label, word) or changed
+	changed = _set_text(state_label, status_text()) or changed
+	var road: PackedStringArray = _stable_parts()
+	changed = _set_text(stable_note, road[0]) or changed
+	changed = _set_text(stable_next, road[1]) or changed
+	var counting: bool = road[0] != "Stable"
+	if stable_bar.visible != counting:
+		stable_bar.visible = counting
+		changed = true
+	stable_note.add_theme_color_override(
+		&"font_color", Palette.color(&"silver" if counting else &"green")
+	)
+	stable_bar.queue_redraw()
 	var auto_text: String = "Auto on" if _auto_on else "Auto off"
 	if auto_button.text != auto_text:
 		auto_button.text = auto_text
@@ -454,11 +540,83 @@ func _layout_depth() -> void:
 	x += plus_button.size.x + 6.0
 	auto_button.position = Vector2(x, 12)
 	minus_button.position.y = 12
-	x += auto_button.size.x + 3.0
-	depth_panel.size = Vector2(maxf(x, column + state_label.size.x + 5.0), TOP_HEIGHT)
+	x += auto_button.size.x
+	# The road to stable, in a column of its own after a second divider.
+	var road: float = maxf(x, column + state_label.size.x) + 11.0
+	stable_divider.position = Vector2(road - 5.0, 4.0)
+	stable_divider.size = Vector2(1.0, TOP_HEIGHT - 8.0)
+	stable_note.position.x = road
+	var next_x: float = road
+	if stable_bar.visible:
+		stable_bar.position = Vector2(road, 15.0)
+		next_x += STABLE_BAR.x + 4.0
+	stable_next.position.x = next_x
+	var right: float = maxf(road + stable_note.size.x, next_x + stable_next.size.x)
+	depth_panel.size = Vector2(right + 5.0, TOP_HEIGHT)
 	depth_divider.position = Vector2(column - 5.0, 4.0)
 	depth_divider.size = Vector2(1.0, TOP_HEIGHT - 8.0)
 	depth_panel.queue_redraw()
+
+
+## The road to stable's two parts: the note ("Stable in m:ss" or "Stable") and what auto-push
+## does next ("then depth N", or "").
+func _stable_parts() -> PackedStringArray:
+	var e: Expedition = _simulation.expedition
+	var note: String = "Stable"
+	if e.state != Expedition.State.REVIVING and e.depth > e.last_stable_depth:
+		var seconds: int = ceili(e.seconds_to_stable())
+		note = "Stable in %d:%02d" % [seconds / 60, seconds % 60]
+	var next: String = ""
+	if e.auto_push and e.depth == e.target_depth and e.state != Expedition.State.REVIVING:
+		next = "then depth %d" % (e.depth + 1)
+	return PackedStringArray([note, next])
+
+
+func _draw_stable_bar() -> void:
+	HudPanel.draw_bar(
+		stable_bar,
+		Rect2(Vector2.ZERO, STABLE_BAR),
+		stable_progress(),
+		Palette.color(&"yellow"),
+		Palette.color(&"amber"),
+		Palette.color(&"ink")
+	)
+
+
+func _fight_text(battle: Battle) -> String:
+	if battle == null:
+		return STATE_WORDS[Expedition.State.FIGHTING]
+	var alive: int = 0
+	for monster: Combatant in battle.monsters:
+		var def: MonsterDef = Content.monster(monster.def_id)
+		if def != null and def.guardian and monster.is_alive():
+			return "Fighting the %s" % def.display_name
+		if monster.is_alive():
+			alive += 1
+	return "Fighting %d monster%s" % [alive, "" if alive == 1 else "s"]
+
+
+## The party's health together, as a whole percentage of its most.
+func _party_health_percent() -> int:
+	var health: int = 0
+	var most: int = 0
+	for hero: Hero in _simulation.party.heroes:
+		health += hero.health
+		most += hero.max_health()
+	return floori(100.0 * health / maxi(most, 1))
+
+
+## True while the party climbs down: its leader is below the floor of the depth it left. At the
+## very start of a climb, before anyone has moved, the target says which way.
+func _climbing_down() -> bool:
+	var e: Expedition = _simulation.expedition
+	if _simulation.party.heroes.is_empty():
+		return e.target_depth > e.depth
+	var leader_y: float = e.hero_position(_simulation.party.heroes[0].id).y
+	var floor_y: float = _simulation.labyrinth.level(e.depth).floor_y
+	if is_equal_approx(leader_y, floor_y):
+		return e.target_depth > e.depth
+	return leader_y > floor_y
 
 
 func _advance_shop(delta: float) -> void:

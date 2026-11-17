@@ -218,17 +218,22 @@ func test_r4_depth_readout() -> void:
 
 
 func test_r5_state_word() -> void:
-	var words: Dictionary[Expedition.State, String] = {
-		Expedition.State.TRAVELLING: "Travelling",
-		Expedition.State.FIGHTING: "Fighting",
-		Expedition.State.RESTING: "Resting",
-		Expedition.State.CLIMBING: "Climbing",
-		Expedition.State.REVIVING: "Reviving",
-	}
-	for state: Expedition.State in words:
+	# Spec 027 R1 turned the one word into a short line; its own tests check each line.
+	var states: Array[Expedition.State] = [
+		Expedition.State.TRAVELLING,
+		Expedition.State.FIGHTING,
+		Expedition.State.RESTING,
+		Expedition.State.CLIMBING,
+		Expedition.State.REVIVING,
+	]
+	var shown: Dictionary[String, bool] = {}
+	for state: Expedition.State in states:
 		_sim.expedition.state = state
 		_hud.advance(0.016)
-		assert_eq(_hud.state_label.text, words[state], "the word for state %d" % state)
+		assert_eq(_hud.state_label.text, _hud.status_text(), "the line for state %d" % state)
+		assert_ne(_hud.state_label.text, "", "something is shown")
+		shown[_hud.state_label.text] = true
+	assert_eq(shown.size(), states.size(), "each state reads differently")
 	assert_lt(_hud.state_label.get_global_rect().position.x, SCREEN.x / 2.0, "next to the depth")
 
 

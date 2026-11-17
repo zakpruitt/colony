@@ -35,6 +35,8 @@ var hero_id: int
 var icon: TextureRect
 var name_label: Label
 var level_label: Label
+## True while the party is being revived after a wipe: set by the HUD before [method refresh].
+var recovering: bool = false
 ## True while this hero's sheet is open (spec 026): the frame's edge is drawn in yellow.
 var marked: bool = false
 
@@ -102,9 +104,15 @@ func refresh(hero: Hero, delta: float) -> void:
 	if part != _icon_part:
 		_icon_part = part
 		icon.texture = _hud.icon(part)
-	if hero.level != _level:
-		_level = hero.level
-		level_label.text = "Lv %d" % _level
+	_level = hero.level
+	# Spec 027 R4: where the level was, "Down" for a fallen hero, "Recovering" during a revival.
+	var level_text: String = "Lv %d" % _level
+	if recovering:
+		level_text = "Recovering"
+	elif _dead:
+		level_text = "Down"
+	if level_label.text != level_text:
+		level_label.text = level_text
 		level_label.reset_size()
 	var right: float = HEALTH_BAR.end.x - level_label.size.x
 	var lift: float = 1.0 if _pulse > 0.0 else 0.0
@@ -112,8 +120,10 @@ func refresh(hero: Hero, delta: float) -> void:
 	var level_colour: StringName = &"yellow"
 	if _pulse > 0.0 and int(_pulse / 0.1) % 2 == 0:
 		level_colour = &"white"
-	if _dead:
-		level_colour = &"slate"
+	if recovering:
+		level_colour = &"pink"
+	elif _dead:
+		level_colour = &"red"
 	level_label.add_theme_color_override(&"font_color", Palette.color(level_colour))
 	name_label.add_theme_color_override(
 		&"font_color", Palette.color(&"slate" if _dead else &"white")
