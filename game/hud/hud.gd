@@ -36,6 +36,7 @@ const STATE_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.RESTING: "Resting",
 	Expedition.State.CLIMBING: "Climbing",
 	Expedition.State.REVIVING: "Reviving",
+	Expedition.State.WORKING: "Working",
 }
 const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.TRAVELLING: &"silver",
@@ -43,6 +44,7 @@ const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.RESTING: &"green",
 	Expedition.State.CLIMBING: &"tan",
 	Expedition.State.REVIVING: &"pink",
+	Expedition.State.WORKING: &"amber",
 }
 
 ## One frame per hero, in formation order, left to right.
