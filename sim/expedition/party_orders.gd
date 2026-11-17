@@ -7,9 +7,6 @@ extends RefCounted
 ## Which order an [constant SimEvent.Kind.ORDER_CHANGED] event is about, in its target_id.
 const PACE: int = 0
 const GUARDIANS: int = 1
-## Read only by the journal's order line (game/hud/journal.gd), which spec 040 may not touch; the
-## panel's own names are [constant OrdersPanel.PACE_NAMES]. To go once the journal reads those.
-const PACE_NAMES: Array[String] = ["Cautious", "Steady", "Bold"]
 ## The same names as the save writes them.
 const PACE_SAVED: Array[String] = ["cautious", "steady", "bold"]
 const GUARDIAN_SAVED: Array[String] = ["challenge", "hold"]

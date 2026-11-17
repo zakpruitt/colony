@@ -14,9 +14,6 @@ const INTO_CLIMB: int = 5
 ## The orders' names as the panel shows them, before this spec moved them.
 const PACE_TEXTS: Array[String] = ["Cautious", "Steady", "Bold"]
 const GUARDIAN_TEXTS: Array[String] = ["Challenge", "Hold"]
-## The pace names' one copy left under sim/, for the journal (see test_r5_names_live_in_the_view).
-const JOURNAL_KEEPS: String = "res://sim/expedition/party_orders.gd"
-const JOURNAL_LINE: String = 'const PACE_NAMES: Array[String] = ["Cautious", "Steady", "Bold"]'
 
 var _sim: Simulation
 var _world: World
@@ -281,14 +278,10 @@ func test_r5_names_live_in_the_view() -> void:
 	var quoted: Array[String] = []
 	for text: String in PACE_TEXTS + GUARDIAN_TEXTS:
 		quoted.append('"%s"' % text)
-	var left_for_the_journal: bool = false
 	for path: String in scripts:
 		var source: String = FileAccess.get_file_as_string(path)
+		assert_false(source.contains("PACE_NAMES"), "%s defines no pace names" % path)
 		assert_false(source.contains("GUARDIAN_NAMES"), "%s defines no guardian names" % path)
-		if path == JOURNAL_KEEPS and source.contains(JOURNAL_LINE):
-			# The one copy game/hud/journal.gd still reads; it is outside this spec's Paths.
-			source = source.replace(JOURNAL_LINE, "")
-			left_for_the_journal = true
 		for text: String in quoted:
 			assert_false(source.contains(text), "%s does not name %s" % [path, text])
 	assert_eq(OrdersPanel.PACE_NAMES, PACE_TEXTS, "the panel holds the pace names")
@@ -300,5 +293,3 @@ func test_r5_names_live_in_the_view() -> void:
 		for button: HudButton in row:
 			shown.append(button.text)
 	assert_eq(shown, PACE_TEXTS + GUARDIAN_TEXTS, "the panel's text is unchanged")
-	if left_for_the_journal:
-		pending("PartyOrders.PACE_NAMES stays until journal.gd reads OrdersPanel.PACE_NAMES")
