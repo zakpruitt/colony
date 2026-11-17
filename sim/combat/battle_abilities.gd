@@ -9,12 +9,17 @@ const MAX_CHAIN: int = 4
 
 
 ## The first of [param c]'s actions that is off cooldown, whose condition holds and which has
-## someone to aim at, or null.
+## someone to aim at, or null. A healer with an ally to heal uses none aimed at an enemy: it
+## heals first.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
+	var heal_first: bool = c.role == HeroClassDef.Role.HEALER and battle.hurt_ally(c) != null
 	for ability: AbilityDef in c.abilities:
 		if not ability.is_action() or battle.tick < c.action_ready_tick.get(ability.id, 0):
 			continue
-		if _condition_holds(battle, c, ability) and aim(battle, c, ability) != null:
+		if heal_first and not ability.aims_at_ally():
+			continue
+		var target: Combatant = aim(battle, c, ability)
+		if target != null and _condition_holds(battle, c, ability, target):
 			return ability
 	return null
 
@@ -31,26 +36,62 @@ static func aim(battle: Battle, c: Combatant, ability: AbilityDef) -> Combatant:
 		AbilityDef.Aim.WEAKEST_ALLY:
 			return _weakest(battle.allies_of(c))
 		AbilityDef.Aim.WEAKEST_ENEMY:
-			return _weakest(battle.enemies_of(c))
+			return _weakest(battle.aimable(c))
 		AbilityDef.Aim.FURTHEST_ENEMY:
 			var furthest: Combatant = null
 			var best: float = -1.0
-			for enemy: Combatant in battle.enemies_of(c):
-				if enemy.is_alive() and absf(enemy.x - c.x) > best:
+			for enemy: Combatant in battle.aimable(c):
+				if absf(enemy.x - c.x) > best:
 					furthest = enemy
 					best = absf(enemy.x - c.x)
 			return furthest
 	return battle.nearest_enemy(c)
 
 
-## [param c] uses [param ability] on [param target]: an ABILITY_USED event, then each effect in
-## order on everyone it lands on.
-static func use(battle: Battle, c: Combatant, ability: AbilityDef, target: Combatant) -> void:
-	var used: SimEvent = battle.record(SimEvent.Kind.ABILITY_USED, c.id, target.id)
-	used.ability_id = ability.id
+## [param c] uses [param ability] on [param target]: an ABILITY_USED event (unless
+## [param report] is false), then each effect in order on everyone it lands on. An effect that
+## multiplies a strike belongs to the strike and is not done here. Returns false, with no
+## event, if no effect lands on anyone.
+static func use(
+	battle: Battle, c: Combatant, ability: AbilityDef, target: Combatant, report: bool = true
+) -> bool:
+	var lands: bool = false
 	for effect: AbilityEffect in ability.effects:
+		if not effect.on_strike and not _receivers(battle, c, effect, target).is_empty():
+			lands = true
+			break
+	if not lands:
+		return false
+	if report:
+		battle.record(SimEvent.Kind.ABILITY_USED, c.id, target.id).ability_id = ability.id
+	for effect: AbilityEffect in ability.effects:
+		if effect.on_strike:
+			continue
+		var reviving: bool = effect.does == AbilityEffect.Does.REVIVE
 		for receiver: Combatant in _receivers(battle, c, effect, target):
-			_apply(battle, c, ability, effect, receiver)
+			# Worked out before any of them, so one that a passive set off by an earlier receiver
+			# has killed is passed over: nothing but a revive lands on the dead.
+			if receiver.is_alive() != reviving:
+				_apply(battle, c, ability, effect, receiver)
+	return true
+
+
+## The passives of [param c] that multiply the ordinary strike it is landing on [param target]
+## now (see [method AbilityDef.boosts_strike]), each counted and rolled as [method fire] does.
+static func strike_boosts(battle: Battle, c: Combatant, target: Combatant) -> Array[AbilityDef]:
+	var boosts: Array[AbilityDef] = []
+	if c.abilities.is_empty() or not target.is_alive():
+		return boosts
+	for ability: AbilityDef in c.abilities:
+		if not ability.boosts_strike():
+			continue
+		var counts: bool = ability.trigger == AbilityDef.Trigger.LANDS_HIT
+		counts = counts or ability.trigger == AbilityDef.Trigger.EVERY_NTH_STRIKE
+		if counts and _answers(battle, c, ability, ability.trigger, 0.0):
+			if ability.once_per_fight:
+				c.spent[ability.id] = true
+			boosts.append(ability)
+	return boosts
 
 
 ## Every fighter's passives that answer to the fight starting.
@@ -60,8 +101,10 @@ static func fight_starts(battle: Battle) -> void:
 
 
 ## The passives set off by [param source] dealing damage to [param target], whose share of
-## health was [param before]: hits and crits (by strikes and actions only, so passives never
-## answer each other's damage), falling below a share, kills and allies' deaths.
+## health was [param before]. Landing a hit or a crit, and being hit, answer ordinary strikes
+## and actions only; falling below a share, a kill and an ally's death answer any damage, a
+## passive's or a status's too, so passives can set off passives: [constant MAX_CHAIN] limits
+## how deep.
 static func after_damage(
 	battle: Battle, source: Combatant, target: Combatant, before: float, crit: bool, via: Battle.Via
 ) -> void:
@@ -80,7 +123,8 @@ static func after_damage(
 
 
 ## Uses each of [param owner]'s passives that answer to [param trigger], on [param target].
-## [param before] is the owner's share of health before the damage, for FALLS_BELOW.
+## [param before] is the owner's share of health before the damage, for FALLS_BELOW. A passive
+## that lands on nobody is not used, and a once-a-fight one is not spent by it.
 static func fire(
 	battle: Battle,
 	owner: Combatant,
@@ -91,27 +135,40 @@ static func fire(
 	if owner.abilities.is_empty() or not owner.is_alive() or battle.chain >= MAX_CHAIN:
 		return
 	for ability: AbilityDef in owner.abilities:
-		if ability.is_action() or ability.trigger != trigger:
+		if ability.boosts_strike() or not _answers(battle, owner, ability, trigger, before):
 			continue
-		if trigger == AbilityDef.Trigger.EVERY_NTH_STRIKE:
-			if owner.strikes % maxi(ability.trigger_every, 1) != 0:
-				continue
-		if trigger == AbilityDef.Trigger.FALLS_BELOW:
-			var share: float = ability.trigger_share
-			if before < share or owner.health_fraction() >= share:
-				continue
-		if ability.once_per_fight and owner.spent.has(ability.id):
-			continue
-		if ability.chance < 1.0 and not battle.roll_chance(ability.chance):
-			continue
-		if ability.once_per_fight:
-			owner.spent[ability.id] = true
 		battle.chain += 1
-		use(battle, owner, ability, target)
+		if use(battle, owner, ability, target) and ability.once_per_fight:
+			owner.spent[ability.id] = true
 		battle.chain -= 1
 
 
-static func _condition_holds(battle: Battle, c: Combatant, ability: AbilityDef) -> bool:
+## True if [param owner]'s passive [param ability] answers [param trigger] now: its count of
+## strikes or share of health is right, it is not spent, and its chance came up.
+static func _answers(
+	battle: Battle,
+	owner: Combatant,
+	ability: AbilityDef,
+	trigger: AbilityDef.Trigger,
+	before: float
+) -> bool:
+	if ability.is_action() or ability.trigger != trigger:
+		return false
+	if trigger == AbilityDef.Trigger.EVERY_NTH_STRIKE:
+		if owner.strikes % maxi(ability.trigger_every, 1) != 0:
+			return false
+	if trigger == AbilityDef.Trigger.FALLS_BELOW:
+		var share: float = ability.trigger_share
+		if before < share or owner.health_fraction() >= share:
+			return false
+	if ability.once_per_fight and owner.spent.has(ability.id):
+		return false
+	return ability.chance >= 1.0 or battle.roll_chance(ability.chance)
+
+
+static func _condition_holds(
+	battle: Battle, c: Combatant, ability: AbilityDef, target: Combatant
+) -> bool:
 	match ability.condition:
 		AbilityDef.Condition.ALLY_BELOW:
 			for ally: Combatant in battle.allies_of(c):
@@ -126,6 +183,14 @@ static func _condition_holds(battle: Battle, c: Combatant, ability: AbilityDef) 
 				if enemy.is_alive():
 					alive += 1
 			return alive >= ability.condition_count
+		AbilityDef.Condition.ENEMY_WITHIN:
+			for enemy: Combatant in battle.enemies_of(c):
+				var near: bool = absf(enemy.x - c.x) <= ability.condition_tiles + Battle.EPSILON
+				if near and enemy.is_alive() and not battle.untouchable(c, enemy):
+					return true
+			return false
+		AbilityDef.Condition.TARGET_BELOW:
+			return target.health_fraction() < ability.condition_share
 	return true
 
 
@@ -139,7 +204,7 @@ static func _weakest(side: Array[Combatant]) -> Combatant:
 
 
 ## Whom [param effect] lands on, in the order of their side: the living, or for a revive the
-## fallen of the fighter's own side.
+## fallen of the fighter's own side; never, if it hurts, an enemy that is untouchable.
 static func _receivers(
 	battle: Battle, c: Combatant, effect: AbilityEffect, target: Combatant
 ) -> Array[Combatant]:
@@ -157,11 +222,16 @@ static func _receivers(
 			pool = battle.allies_of(c)
 		AbilityEffect.Lands.ENEMIES:
 			pool = battle.enemies_of(c)
+		AbilityEffect.Lands.NEAREST_ENEMY:
+			var nearest: Combatant = battle.nearest_enemy(c)
+			if nearest != null:
+				pool = [nearest]
 	var radius: float = effect.radius
-	var by_place: bool = effect.lands != AbilityEffect.Lands.TARGET
-	by_place = by_place and effect.lands != AbilityEffect.Lands.SELF
-	by_place = by_place and (radius > 0.0 or effect.lands == AbilityEffect.Lands.AROUND_TARGET)
+	var by_place: bool = effect.lands == AbilityEffect.Lands.AROUND_TARGET
+	if effect.lands in [AbilityEffect.Lands.ALLIES, AbilityEffect.Lands.ENEMIES]:
+		by_place = radius > 0.0
 	var reviving: bool = effect.does == AbilityEffect.Does.REVIVE
+	var hurts: bool = not effect.is_helpful()
 	var found: Array[Combatant] = []
 	for receiver: Combatant in pool:
 		if by_place and absf(receiver.x - center) > radius + Battle.EPSILON:
@@ -169,6 +239,8 @@ static func _receivers(
 		if reviving and (receiver.is_alive() or receiver.team != c.team):
 			continue
 		if not reviving and not receiver.is_alive():
+			continue
+		if hurts and battle.untouchable(c, receiver):
 			continue
 		found.append(receiver)
 	return found

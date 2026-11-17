@@ -5,12 +5,18 @@ extends RefCounted
 
 ## Statuses that do something each second.
 const PULSING: Array[AbilityEffect.Status] = [
-	AbilityEffect.Status.BURNING, AbilityEffect.Status.BLEEDING, AbilityEffect.Status.MENDING
+	AbilityEffect.Status.BURNING,
+	AbilityEffect.Status.BLEEDING,
+	AbilityEffect.Status.MENDING,
+	AbilityEffect.Status.CHILLED,
 ]
 
 
 ## Puts the status of [param effect], from [param source]'s ability [param ability_id], on
-## [param receiver]. The same status again restarts its time and keeps the stronger amount.
+## [param receiver]. The same status again restarts its time and keeps the stronger amount,
+## but not its once-a-second clock. A status in points worth nothing (a shield measured by a
+## healing power of 0, say) is not put on, and nothing lands on the dead or, from an enemy, on
+## the untouchable.
 static func apply(
 	battle: Battle,
 	source: Combatant,
@@ -18,11 +24,16 @@ static func apply(
 	effect: AbilityEffect,
 	ability_id: StringName
 ) -> void:
+	var shut_out: bool = not effect.is_helpful() and battle.untouchable(source, receiver)
+	if shut_out or not receiver.is_alive():
+		return
 	var amount: float = effect.amount
 	if effect.status in AbilityEffect.IN_POINTS:
 		amount *= _base(effect.scale, source, receiver)
-	if effect.status == AbilityEffect.Status.SHIELDED:
-		amount = roundi(amount)
+		if effect.status == AbilityEffect.Status.SHIELDED:
+			amount = roundi(amount)
+		if amount <= 0.0:
+			return
 	var ticks: int = Combatant.seconds_to_ticks(effect.seconds)
 	var fresh := CombatStatus.new(effect.status, source.id, ability_id, amount, battle.tick, ticks)
 	var old: CombatStatus = receiver.status(effect.status)
@@ -30,6 +41,8 @@ static func apply(
 		fresh.amount = old.amount
 		fresh.source_id = old.source_id
 		fresh.ability_id = old.ability_id
+	if old != null:
+		fresh.pulse_tick = old.pulse_tick
 	receiver.statuses[effect.status] = fresh
 	var began: SimEvent = battle.record(SimEvent.Kind.STATUS_BEGAN, source.id, receiver.id, ticks)
 	began.ability_id = ability_id

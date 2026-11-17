@@ -8,7 +8,7 @@ var kind: AbilityEffect.Status
 var source_id: int
 ## The ability that put it there.
 var ability_id: StringName
-## Points for SHIELDED (what is left to absorb), BURNING, BLEEDING and MENDING (per second);
+## Points for SHIELDED (what is left to absorb), BURNING, BLEEDING, CHILLED, MENDING (each second);
 ## a multiplier or a chance for the others (see [enum AbilityEffect.Status]).
 var amount: float
 ## The tick it ends on.

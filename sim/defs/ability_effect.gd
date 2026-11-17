@@ -10,6 +10,7 @@ enum Lands {
 	SELF,  ## the fighter itself
 	ALLIES,  ## every ally, the fighter too; within [member radius] of the fighter if above 0
 	ENEMIES,  ## every enemy; within [member radius] of the fighter if above 0
+	NEAREST_ENEMY,  ## the enemy nearest the fighter, as an ordinary strike would choose it
 }
 
 ## What the effect does to each receiver.
@@ -32,6 +33,10 @@ enum Scale {
 ## [br]- MIGHTY (above 1), WEAKENED (below 1): damage dealt is multiplied by it.
 ## [br]- MARKED (above 1): damage taken is multiplied by it.
 ## [br]- NIMBLE (0 to 1): the chance an ordinary strike misses.
+## [br]- UNTOUCHABLE: nothing. No strike, action, passive or status damage from an enemy lands
+## on it, and enemies aim at someone else while anyone else on its side stands.
+## [br]- CHILLED: damage each second (ignoring armor), times [member scale]; a status of its
+## own, so the view can show it apart from burning and bleeding.
 enum Status {
 	STUNNED,
 	TAUNTING,
@@ -45,6 +50,8 @@ enum Status {
 	WEAKENED,
 	MARKED,
 	NIMBLE,
+	UNTOUCHABLE,
+	CHILLED,
 }
 
 ## Statuses that help their bearer; the others hurt it.
@@ -55,9 +62,12 @@ const HELPFUL: Array[Status] = [
 	Status.HASTED,
 	Status.MIGHTY,
 	Status.NIMBLE,
+	Status.UNTOUCHABLE,
 ]
 ## Statuses whose amount is a number of points, measured by [member scale].
-const IN_POINTS: Array[Status] = [Status.SHIELDED, Status.BURNING, Status.BLEEDING, Status.MENDING]
+const IN_POINTS: Array[Status] = [
+	Status.SHIELDED, Status.BURNING, Status.BLEEDING, Status.MENDING, Status.CHILLED
+]
 
 @export var lands: Lands = Lands.TARGET
 ## Tiles. For AROUND_TARGET, ALLIES and ENEMIES; 0 means only the target, or everyone.
@@ -72,6 +82,10 @@ const IN_POINTS: Array[Status] = [Status.SHIELDED, Status.BURNING, Status.BLEEDI
 @export var low_multiplier: float = 1.0
 ## DAMAGE: the fighter heals this share of what was dealt.
 @export var life_steal: float = 0.0
+## DAMAGE, on an EVERY_NTH_STRIKE or LANDS_HIT passive only: rather than a hit of its own, the
+## ordinary strike that set it off is [member multiplier] times as strong, and
+## [member life_steal] is a share of that whole strike. Then it never fires on a miss.
+@export var on_strike: bool = false
 ## HEAL and the statuses in points: what [member multiplier] or [member amount] multiplies.
 @export var scale: Scale = Scale.FIGHTER_HEALING
 ## PUSH: tiles away from the fighter.
@@ -109,6 +123,8 @@ func validate() -> PackedStringArray:
 				problems.append("low_multiplier %s adds nothing" % low_multiplier)
 			if life_steal < 0.0 or life_steal > 1.0:
 				problems.append("life_steal %s is outside 0 to 1" % life_steal)
+			if on_strike and (low_health_below > 0.0 or ignores_armor or lands != Lands.TARGET):
+				problems.append("a multiplied strike lands on its target, with no other bonus")
 		Does.HEAL:
 			if multiplier <= 0.0:
 				problems.append("heal multiplier %s is not positive" % multiplier)
@@ -132,8 +148,10 @@ func _status_problems() -> PackedStringArray:
 		problems.append("%s lasts %s seconds" % [label, seconds])
 	var fine: bool = true
 	match status:
-		Status.SHIELDED, Status.BURNING, Status.BLEEDING, Status.MENDING, Status.MIGHTY:
-			fine = amount > (1.0 if status == Status.MIGHTY else 0.0)
+		Status.SHIELDED, Status.BURNING, Status.BLEEDING, Status.MENDING, Status.CHILLED:
+			fine = amount > 0.0
+		Status.MIGHTY:
+			fine = amount > 1.0
 		Status.SLOWED, Status.MARKED:
 			fine = amount > 1.0
 		Status.HASTED, Status.WEAKENED:

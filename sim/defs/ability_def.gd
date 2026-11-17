@@ -15,11 +15,14 @@ enum Condition {
 	ALLY_BELOW,  ## a living ally (the fighter too) below [member condition_share] of health
 	SELF_BELOW,  ## the fighter below [member condition_share] of health
 	ENEMIES_AT_LEAST,  ## at least [member condition_count] enemies alive
+	## an enemy within [member condition_tiles] of the fighter; it does not walk to make it true
+	ENEMY_WITHIN,
+	TARGET_BELOW,  ## the one it aims at below [member condition_share] of health
 }
 
 ## What sets a passive off, and what its target is.
 enum Trigger {
-	FIGHT_STARTS,  ## target: the fighter
+	FIGHT_STARTS,  ## target: the fighter (an effect may land on the nearest enemy instead)
 	LANDS_HIT,  ## an ordinary strike or an action's damage; target: the one struck
 	LANDS_CRIT,  ## an ordinary strike that crits; target: the one struck
 	KILLS,  ## target: the one killed
@@ -46,6 +49,7 @@ enum Trigger {
 @export var condition: Condition = Condition.NONE
 @export var condition_share: float = 0.0
 @export var condition_count: int = 0
+@export var condition_tiles: float = 0.0
 
 @export_group("Passive")
 @export var trigger: Trigger = Trigger.FIGHT_STARTS
@@ -58,6 +62,25 @@ enum Trigger {
 ## True if this ability is an action.
 func is_action() -> bool:
 	return kind == Kind.ACTION
+
+
+## True if this passive multiplies the ordinary strike that sets it off (see
+## [member AbilityEffect.on_strike]) rather than landing a hit of its own.
+func boosts_strike() -> bool:
+	if is_action():
+		return false
+	for effect: AbilityEffect in effects:
+		if effect != null and effect.does == AbilityEffect.Does.DAMAGE and effect.on_strike:
+			return true
+	return false
+
+
+## True if this ability's target is on the fighter's own side: an action aimed at an ally or
+## itself, or a passive whose target is the fighter or a fallen ally.
+func aims_at_ally() -> bool:
+	if is_action():
+		return aim in [Aim.WEAKEST_ALLY, Aim.SELF]
+	return trigger in [Trigger.FIGHT_STARTS, Trigger.FALLS_BELOW, Trigger.ALLY_DIES]
 
 
 ## One line per problem; empty when the ability can do something.
@@ -79,6 +102,8 @@ func validate() -> PackedStringArray:
 			continue
 		for problem: String in effect.validate():
 			problems.append("effects[%d]: %s" % [i, problem])
+		if effect.on_strike and not _strikes():
+			problems.append("effects[%d]: only a passive on a strike can multiply it" % i)
 		var side: String = _side_problem(effect)
 		if not side.is_empty():
 			problems.append("effects[%d]: %s" % [i, side])
@@ -94,12 +119,15 @@ func _action_problems() -> PackedStringArray:
 	if not anywhere and aim != Aim.SELF and reach <= 0.0:
 		problems.append("reach %s is not positive" % reach)
 	match condition:
-		Condition.ALLY_BELOW, Condition.SELF_BELOW:
+		Condition.ALLY_BELOW, Condition.SELF_BELOW, Condition.TARGET_BELOW:
 			if condition_share <= 0.0 or condition_share > 1.0:
 				problems.append("condition_share %s is outside 0 to 1" % condition_share)
 		Condition.ENEMIES_AT_LEAST:
 			if condition_count < 1:
 				problems.append("condition_count %d is below 1" % condition_count)
+		Condition.ENEMY_WITHIN:
+			if condition_tiles <= 0.0:
+				problems.append("condition_tiles %s is not positive" % condition_tiles)
 	return problems
 
 
@@ -124,14 +152,14 @@ func _side_problem(effect: AbilityEffect) -> String:
 		var fallen_ally: bool = (
 			effect.lands == AbilityEffect.Lands.ALLIES
 			or (on_target and not is_action() and trigger == Trigger.ALLY_DIES)
-			or (effect.lands == AbilityEffect.Lands.AROUND_TARGET and _target_is_ally())
+			or (effect.lands == AbilityEffect.Lands.AROUND_TARGET and aims_at_ally())
 		)
 		return "" if fallen_ally else "a revive that can never find a fallen ally"
 	if effect.lands == AbilityEffect.Lands.TARGET and target_is_dead:
 		return "it lands on a target that is already dead"
 	var on_allies: bool = effect.lands in [AbilityEffect.Lands.SELF, AbilityEffect.Lands.ALLIES]
 	if on_target:
-		on_allies = _target_is_ally()
+		on_allies = aims_at_ally()
 	if effect.is_helpful() and not on_allies:
 		return "it helps the enemy"
 	if not effect.is_helpful() and on_allies:
@@ -139,7 +167,5 @@ func _side_problem(effect: AbilityEffect) -> String:
 	return ""
 
 
-func _target_is_ally() -> bool:
-	if is_action():
-		return aim in [Aim.WEAKEST_ALLY, Aim.SELF]
-	return trigger in [Trigger.FIGHT_STARTS, Trigger.FALLS_BELOW, Trigger.ALLY_DIES]
+func _strikes() -> bool:
+	return not is_action() and trigger in [Trigger.EVERY_NTH_STRIKE, Trigger.LANDS_HIT]

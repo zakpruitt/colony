@@ -96,9 +96,14 @@ func step() -> void:
 	if _result == Result.ONGOING and tick >= MAX_TICKS:
 		_result = Result.MONSTERS_WON
 	if _result != Result.ONGOING:
-		# Every status ends with the fight.
-		for c: Combatant in heroes + monsters:
-			BattleStatuses.clear(self, c)
+		end()
+
+
+## Ends every status in the fight, each with its STATUS_ENDED event. The battle does this as it
+## ends; whatever stops a fight early (the expedition's time limit) calls it too.
+func end() -> void:
+	for c: Combatant in heroes + monsters:
+		BattleStatuses.clear(self, c)
 
 
 ## Who has won, or ONGOING.
@@ -142,7 +147,30 @@ func enemies_of(c: Combatant) -> Array[Combatant]:
 	return monsters if c.team == Combatant.Team.HEROES else heroes
 
 
-## The enemy [param c] strikes at: a taunting one it can reach, else the nearest; or null.
+## True if nothing hostile [param source] does lands on [param target]: an enemy of it that is
+## untouchable.
+func untouchable(source: Combatant, target: Combatant) -> bool:
+	if target.statuses.is_empty() or source.team == target.team:
+		return false
+	return target.has_status(AbilityEffect.Status.UNTOUCHABLE)
+
+
+## The living enemies [param c] may aim at: those that are not untouchable, or if every one of
+## them is, all of them.
+func aimable(c: Combatant) -> Array[Combatant]:
+	var open: Array[Combatant] = []
+	var shut: Array[Combatant] = []
+	for enemy: Combatant in enemies_of(c):
+		if enemy.is_alive():
+			if untouchable(c, enemy):
+				shut.append(enemy)
+			else:
+				open.append(enemy)
+	return shut if open.is_empty() else open
+
+
+## The enemy [param c] strikes at: a taunting one it can reach, else the nearest it may aim at
+## (see [method aimable]); or null.
 func nearest_enemy(c: Combatant) -> Combatant:
 	var enemies: Array[Combatant] = enemies_of(c)
 	var taunter: Combatant = _taunter(c, enemies)
@@ -150,20 +178,34 @@ func nearest_enemy(c: Combatant) -> Combatant:
 		return taunter
 	var nearest: Combatant = null
 	var best: float = INF
-	for enemy: Combatant in enemies:
+	for enemy: Combatant in aimable(c):
 		var distance: float = absf(enemy.x - c.x)
-		if enemy.is_alive() and distance < best:
+		if distance < best:
 			nearest = enemy
 			best = distance
 	return nearest
 
 
+## The ally a healer [param c] would heal now: the living one with the lowest share of health,
+## if it is below [constant HEAL_THRESHOLD]; or null.
+func hurt_ally(c: Combatant) -> Combatant:
+	var hurt: Combatant = null
+	var lowest: float = HEAL_THRESHOLD
+	for ally: Combatant in allies_of(c):
+		if ally.is_alive() and ally.health_fraction() < lowest:
+			hurt = ally
+			lowest = ally.health_fraction()
+	return hurt
+
+
 ## [param source] deals [param dealt] damage to [param target]: a shield absorbs what it can
 ## (a MISSED event, flagged), the rest is a HIT, and the passives it sets off answer.
-## Returns the damage that got through.
+## Returns the damage that got through. Nothing lands on the dead, or on the untouchable.
 func deal(source: Combatant, target: Combatant, dealt: int, crit: bool, via: Via) -> int:
+	if not target.is_alive() or untouchable(source, target):
+		return 0
 	var shield: CombatStatus = target.status(AbilityEffect.Status.SHIELDED)
-	if shield != null:
+	if shield != null and roundi(shield.amount) > 0:
 		var absorbed: int = mini(dealt, roundi(shield.amount))
 		shield.amount -= absorbed
 		dealt -= absorbed
@@ -181,8 +223,11 @@ func deal(source: Combatant, target: Combatant, dealt: int, crit: bool, via: Via
 	return dealt
 
 
-## [param source] heals [param target] by up to [param amount], never past its maximum.
+## [param source] heals [param target] by up to [param amount], never past its maximum; the
+## dead are not healed.
 func heal(source: Combatant, target: Combatant, amount: int) -> void:
+	if not target.is_alive():
+		return
 	var healed: int = maxi(mini(amount, target.max_health - target.health), 0)
 	target.health += healed
 	record(SimEvent.Kind.HEALED, source.id, target.id, healed)
@@ -329,14 +374,8 @@ func _use(c: Combatant, target: Combatant) -> void:
 
 
 func _pick_target(c: Combatant) -> Combatant:
-	var allies: Array[Combatant] = heroes if c.team == Combatant.Team.HEROES else monsters
 	if c.role == HeroClassDef.Role.HEALER:
-		var hurt: Combatant = null
-		var lowest: float = HEAL_THRESHOLD
-		for ally: Combatant in allies:
-			if ally.is_alive() and ally.health_fraction() < lowest:
-				hurt = ally
-				lowest = ally.health_fraction()
+		var hurt: Combatant = hurt_ally(c)
 		if hurt != null:
 			return hurt
 	return nearest_enemy(c)
@@ -487,10 +526,10 @@ func _strike(c: Combatant, target: Combatant) -> void:
 func _apply(source: Combatant, target: Combatant, is_heal: bool) -> void:
 	if not is_heal:
 		source.strikes += 1
+		# A strike that does not land (on the untouchable, or dodged) sets nothing off.
 		var dodge: CombatStatus = target.status(AbilityEffect.Status.NIMBLE)
-		if dodge != null and _rng.chance(dodge.amount):
+		if untouchable(source, target) or (dodge != null and _rng.chance(dodge.amount)):
 			record(SimEvent.Kind.MISSED, source.id, target.id)
-			BattleAbilities.fire(self, source, AbilityDef.Trigger.EVERY_NTH_STRIKE, target)
 			return
 	var roll: float = ROLL_MIN + _rng.next_float() * (ROLL_MAX - ROLL_MIN)
 	if is_heal:
@@ -500,9 +539,23 @@ func _apply(source: Combatant, target: Combatant, is_heal: bool) -> void:
 		record(SimEvent.Kind.HEALED, source.id, target.id, healed)
 		return
 	var crit: bool = _rng.chance(source.crit_chance)
+	# Passives that multiply this strike, rather than add a hit of their own.
+	var boosts: Array[AbilityDef] = BattleAbilities.strike_boosts(self, source, target)
+	var boost: float = 1.0
+	var steal: float = 0.0
+	for ability: AbilityDef in boosts:
+		record(SimEvent.Kind.ABILITY_USED, source.id, target.id).ability_id = ability.id
+		for effect: AbilityEffect in ability.effects:
+			if effect.on_strike:
+				boost *= effect.multiplier
+				steal += effect.life_steal
 	var raw: float = source.damage * roll * (2.0 if crit else 1.0) * source.dealt_multiplier()
-	raw = (raw - target.armor) * target.taken_multiplier()
-	deal(source, target, maxi(1, roundi(raw)), crit, Via.STRIKE)
+	raw = (raw * boost - target.armor) * target.taken_multiplier()
+	var dealt: int = deal(source, target, maxi(1, roundi(raw)), crit, Via.STRIKE)
+	if steal > 0.0 and dealt > 0 and source.is_alive():
+		heal(source, source, roundi(dealt * steal))
+	for ability: AbilityDef in boosts:
+		BattleAbilities.use(self, source, ability, target, false)
 	BattleAbilities.fire(self, source, AbilityDef.Trigger.EVERY_NTH_STRIKE, target)
 
 

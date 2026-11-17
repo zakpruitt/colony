@@ -123,3 +123,37 @@ func test_action_and_passive_numbers() -> void:
 	passive.trigger = AbilityDef.Trigger.FALLS_BELOW
 	passive.trigger_share = 1.0
 	assert_eq(passive.validate().size(), 1, "it can never fall below all its health")
+
+
+func test_the_amended_rules() -> void:
+	var hit: AbilityEffect = _effect(AbilityEffect.Does.DAMAGE, AbilityEffect.Lands.TARGET)
+	var action: AbilityDef = _ability(AbilityDef.Kind.ACTION, hit)
+	action.condition = AbilityDef.Condition.ENEMY_WITHIN
+	assert_eq(action.validate().size(), 1, "an enemy within no tiles")
+	action.condition_tiles = 1.5
+	assert_eq(action.validate(), PackedStringArray())
+	action.condition = AbilityDef.Condition.TARGET_BELOW
+	assert_eq(action.validate().size(), 1, "a target below no share")
+
+	var swing: AbilityEffect = _effect(AbilityEffect.Does.DAMAGE, AbilityEffect.Lands.TARGET)
+	swing.on_strike = true
+	var passive: AbilityDef = _ability(AbilityDef.Kind.PASSIVE, swing)
+	passive.trigger = AbilityDef.Trigger.LANDS_HIT
+	assert_eq(passive.validate(), PackedStringArray(), "a strike multiplied")
+	assert_true(passive.boosts_strike())
+	passive.trigger = AbilityDef.Trigger.KILLS
+	assert_eq(passive.validate().size(), 2, "no strike to multiply; and the target is dead")
+	passive.trigger = AbilityDef.Trigger.EVERY_NTH_STRIKE
+	passive.trigger_every = 2
+	swing.lands = AbilityEffect.Lands.ENEMIES
+	assert_eq(passive.validate().size(), 1, "a multiplied strike lands on its target")
+
+	var stun: AbilityEffect = _status(AbilityEffect.Status.STUNNED, 0.0)
+	stun.lands = AbilityEffect.Lands.NEAREST_ENEMY
+	var ambush: AbilityDef = _ability(AbilityDef.Kind.PASSIVE, stun)
+	assert_eq(ambush.validate(), PackedStringArray(), "a stun on the nearest enemy")
+	ambush.effects[0] = _status(AbilityEffect.Status.UNTOUCHABLE, 0.0)
+	ambush.effects[0].lands = AbilityEffect.Lands.NEAREST_ENEMY
+	assert_eq(ambush.validate().size(), 1, "making the nearest enemy untouchable helps it")
+	assert_eq(_status(AbilityEffect.Status.CHILLED, 0.0).validate().size(), 1, "a chill of 0")
+	assert_eq(_status(AbilityEffect.Status.CHILLED, 0.3).validate(), PackedStringArray())
