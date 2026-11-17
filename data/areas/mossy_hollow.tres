@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="AreaDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/area_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"mossy_hollow"
+display_name = "Mossy Hollow"
+order = 1
+base_level = 1
+monsters = Array[StringName]([&"slime", &"cave_bat", &"spider", &"goblin"])
+monster_stages = Array[int]([1, 1, 2, 3])
+guardian = &"slime_king"
+guardian_stage = 5
+opened_by = &""

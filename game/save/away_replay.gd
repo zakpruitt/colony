@@ -30,6 +30,8 @@ func _init(sim: Simulation, seconds: float) -> void:
 	report.seconds = seconds
 	report.depth_before = sim.expedition.depth
 	report.depth_after = sim.expedition.depth
+	report.area_before = sim.expedition.place
+	report.area_after = sim.expedition.place
 	_gold_before = sim.party.gold
 	for hero: Hero in sim.party.heroes:
 		_levels_before[hero.id] = hero.level
@@ -83,6 +85,7 @@ func fraction() -> float:
 func _update_report() -> void:
 	report.gold_gained = simulation.party.gold - _gold_before
 	report.depth_after = simulation.expedition.depth
+	report.area_after = simulation.expedition.place
 	for hero: Hero in simulation.party.heroes:
 		report.levels_gained[hero.id] = hero.level - _levels_before.get(hero.id, hero.level)
 	if _deepest_guardian_depth >= 0:

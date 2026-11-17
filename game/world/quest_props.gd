@@ -185,6 +185,14 @@ static func sheet_of(quest: StringName) -> PixelSheet:
 	return PixelSheet.load_sheet(SHEETS[quest])
 
 
+## Takes every prop away (spec 049: the party arrived in another area); [method scan] gives the new
+## area's chambers theirs.
+func clear() -> void:
+	for key: Vector2i in _props.keys():
+		_props[key].free()
+		_props.erase(key)
+
+
 ## Gives every chamber of [param built] that holds a side quest its prop, and takes away the
 ## props of those that no longer do.
 func scan(built: Array[int]) -> void:

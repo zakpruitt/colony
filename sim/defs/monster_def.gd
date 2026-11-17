@@ -1,7 +1,7 @@
 class_name MonsterDef
 extends Resource
-## A monster: the numbers it fights with at [member min_depth], the shallowest
-## depth it appears on, and what it is worth. One .tres file per monster under
+## A monster: the numbers it fights with at [member base_level] and what it is worth. Where it
+## lives is the areas' to say ([AreaDef], spec 049). One .tres file per monster under
 ## res://data/monsters.
 
 enum Size { SMALL, LARGE, BOSS }
@@ -9,7 +9,10 @@ enum Size { SMALL, LARGE, BOSS }
 @export var id: StringName
 @export var display_name: String
 @export var size: Size
-@export var min_depth: int
+## The level its numbers are for: met at a higher level it is stronger by
+## [constant Combatant.DEPTH_GROWTH] a level, and never weaker below it. (It was the shallowest
+## depth the monster appeared on before spec 049, so the strengths are those depths gave.)
+@export var base_level: int
 @export var max_health: int
 @export var damage: int
 @export var armor: int
@@ -21,8 +24,8 @@ enum Size { SMALL, LARGE, BOSS }
 @export var xp: int
 @export var gold_min: int
 @export var gold_max: int
-## A guardian holds the way down on the levels it guards (from [member min_depth]
-## on) and never appears in an ordinary encounter.
+## A guardian holds an area's way on at its guardian stages and never appears in an ordinary
+## encounter.
 @export var guardian: bool = false
 
 
@@ -33,6 +36,6 @@ func validate() -> PackedStringArray:
 	)
 	if gold_min > gold_max:
 		problems.append("gold_min %d is above gold_max %d" % [gold_min, gold_max])
-	if min_depth < 1:
-		problems.append("min_depth %d is below 1" % min_depth)
+	if base_level < 1:
+		problems.append("base_level %d is below 1" % base_level)
 	return problems

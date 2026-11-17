@@ -14,7 +14,8 @@ extends RefCounted
 ## Every change worth showing is reported as a [SimEvent] stamped with the
 ## simulation tick; [method drain_events] hands them over once.
 
-enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING }
+## JOURNEYING: on the way to another area (spec 049), standing where it left until it arrives.
+enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING, JOURNEYING }
 ## The party's orders (spec 035): how hurt it may be before it rests after a fight (see
 ## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
 enum Pace { CAUTIOUS, STEADY, BOLD }
@@ -54,6 +55,9 @@ const EPSILON: float = 0.0001
 const SIDE_QUEST_SHARE: float = 0.3
 
 var state: State = State.TRAVELLING
+## The area the party is in, or heading to while JOURNEYING (spec 049). The depths below are
+## stages of the area it is in.
+var area: StringName
 var depth: int = 1
 ## The party anchor: column on the floor, and which way it faces (1 right, -1 left).
 var x: float
@@ -66,7 +70,9 @@ var deepest_depth: int = 1
 ## or, once set by hand (a test or tool), that value at every depth.
 var stable_seconds: float:
 	get:
-		return _stable_set if _stable_set >= 0.0 else DepthTiming.stable_seconds_at(depth)
+		if _stable_set >= 0.0:
+			return _stable_set
+		return DepthTiming.stable_seconds_at(level_at(depth))
 	set(value):
 		_stable_set = value
 ## The fight in progress, or null.
@@ -78,8 +84,25 @@ var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
 var revive_tick: int:
 	get:
 		return _revive_tick
+## The levels of the area the party is in. Read-only outside the class.
+var labyrinth: Labyrinth:
+	get:
+		return _labyrinth
+
+## The area whose labyrinth the party stands in: [member area], except while JOURNEYING, when it
+## is the area being left (spec 049). Read-only.
+var place: StringName:
+	get:
+		return _here.id
+## The areas' state (spec 049). Read-only outside the class.
+var travel: AreaTravel:
+	get:
+		return _areas
 
 var _labyrinth: Labyrinth
+## The area of [member _labyrinth], where the party is (spec 049), and the areas' other state.
+var _here: AreaDef
+var _areas: AreaTravel
 var _party: Party
 var _rng: SimRng
 var _loot_rng: SimRng
@@ -137,13 +160,17 @@ var _target_since: int = 0
 var _timer_target: int = 1
 
 
-## An expedition for [param party] standing in the middle of depth 1's START chamber.
-## [param rng] is the expedition's own stream; encounters and battles fork from it.
-func _init(labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
-	_labyrinth = labyrinth
+## An expedition for [param party] standing in the middle of the START chamber of the first
+## area's stage 1; [param first_labyrinth] is that area's labyrinth. [param rng] is the
+## expedition's own stream; encounters and battles fork from it.
+func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
+	_labyrinth = first_labyrinth
 	_party = party
 	_rng = rng
 	_loot_rng = rng.fork("loot")
+	_here = Content.area(AreaTravel.first_area())
+	area = _here.id
+	_areas = AreaTravel.new(first_labyrinth)
 	var level: LabyrinthLevel = _labyrinth.level(1)
 	var start: LabyrinthChamber = level.chambers[0]
 	for room: LabyrinthChamber in level.chambers:
@@ -171,7 +198,10 @@ func step(tick: int) -> void:
 			if _tick >= _revive_tick:
 				_revive()
 		State.WORKING:
-			_work()
+			QuestWork.work(self)
+		State.JOURNEYING:
+			if _tick >= _areas.arrive_tick:
+				_areas.arrive(self)
 	if state != State.FIGHTING and state != State.REVIVING and not _party.any_alive():
 		_wipe()
 	_count_time()
@@ -192,10 +222,16 @@ func command_guardian_order(order: GuardianOrder) -> void:
 	_pending_guardian_order = order
 
 
+## The level of [param stage] in the area the party is in: base level + stage - 1.
+func level_at(stage: int) -> int:
+	return _here.level_at(stage)
+
+
 ## True while the party is being kept from a living guardian by the Hold order: its way to the
 ## target depth leads through the guardian's chamber on this depth (down) or the one above (up).
 func is_holding() -> bool:
-	if guardian_order != GuardianOrder.HOLD or state in [State.CLIMBING, State.REVIVING]:
+	var away: Array[State] = [State.CLIMBING, State.REVIVING, State.JOURNEYING]
+	if guardian_order != GuardianOrder.HOLD or state in away:
 		return false
 	if depth < target_depth:
 		return _guardian_alive(depth)
@@ -213,7 +249,7 @@ func drain_events() -> Array[SimEvent]:
 func chamber() -> LabyrinthChamber:
 	var level: LabyrinthLevel = _labyrinth.level(depth)
 	match state:
-		State.CLIMBING:
+		State.CLIMBING, State.JOURNEYING:
 			return null
 		State.FIGHTING:
 			if _battle_key.x == depth and _battle_key.y >= 0:
@@ -287,20 +323,21 @@ func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 ## among the monsters that exist together; a chamber's ids come round again after VISIT_SPAN
 ## refills. Ids stay below 2^31 to depth 500,000.
 static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: int) -> int:
-	var place: int = level_depth * CHAMBER_SPAN + chamber_index
-	return FIRST_MONSTER_ID + (place * VISIT_SPAN + visit % VISIT_SPAN) * SLOT_SPAN + slot
+	var spot: int = level_depth * CHAMBER_SPAN + chamber_index
+	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * SLOT_SPAN + slot
 
 
-## The id of the guardian that holds that depth's way down, or &"" if the depth has none:
-## on every GUARDIAN_EVERY-th depth, the guardian with the deepest [member MonsterDef.min_depth]
-## at or above it.
+## The id of the guardian that holds that stage's way down in the area the party is in, or &"" if
+## the stage has none (see [method EncounterRoll.guardian_at]).
 func guardian_of(level_depth: int) -> StringName:
-	return EncounterRoll.guardian_at(level_depth)
+	return EncounterRoll.guardian_at(_here, level_depth)
 
 
 ## Seconds the party must still hold this depth before it becomes stable; 0.0 when it already is.
 ## Reading it changes nothing.
 func seconds_to_stable() -> float:
+	if state == State.JOURNEYING:
+		return 0.0
 	return DepthTiming.stable_left(self, _tick, _depth_since, _timer_depth)
 
 
@@ -313,6 +350,8 @@ func revival_place() -> Vector3:
 ## Seconds until auto-push raises the target depth (spec 039); 0.0 when it is off or the party is
 ## not at its target. Reading it changes nothing.
 func seconds_to_push() -> float:
+	if state == State.JOURNEYING:
+		return 0.0
 	var timers: Array[int] = [_depth_since, _timer_depth, _target_since, _timer_target]
 	return DepthTiming.push_left(self, _tick, timers)
 
@@ -382,6 +421,7 @@ func hash_parts() -> Array:
 		_worker,
 		_work_start,
 		_work_ticks,
+		["areas", area, _here.id, _areas.hash_parts()],
 	]
 	var keys: Array[Vector2i] = []
 	keys.assign(_chambers.keys())
@@ -408,6 +448,9 @@ func hash_parts() -> Array:
 func _apply_commands() -> void:
 	if _pending_pace >= 0 or _pending_guardian_order >= 0:
 		_apply_orders()
+	# A destination waits for the fight to end and the party to stand.
+	if _areas.pending_area != &"" and state not in [State.FIGHTING, State.REVIVING]:
+		_areas.depart(self)
 	# While the party is down a command waits, so it wins over the fallback target on revival.
 	if _pending_target <= 0 or state == State.REVIVING:
 		return
@@ -440,7 +483,7 @@ func _set_target(new_target: int) -> void:
 ## Checks time on this depth (for the last stable depth) and at the target (for auto-push).
 func _count_time() -> void:
 	deepest_depth = maxi(deepest_depth, depth)
-	if state == State.CLIMBING or state == State.REVIVING:
+	if state in [State.CLIMBING, State.REVIVING, State.JOURNEYING]:
 		return
 	# A depth or target set from outside counts from the tick before this one.
 	if depth != _timer_depth:
@@ -493,7 +536,7 @@ func _travel() -> void:
 			return
 		var quest: StringName = side_quest_in(depth, here.index) if here != null else &""
 		if quest != &"":
-			_meet_side_quest(here, quest)
+			QuestWork.meet(self, here, quest)
 			if state != State.TRAVELLING:
 				return
 
@@ -668,7 +711,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
-		fill = ChamberState.new(level_depth)
+		fill = ChamberState.new(level_at(level_depth))
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
@@ -688,7 +731,8 @@ func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> String
 		return &""
 	if _is_guardian_chamber(level_depth, chamber_index) or _is_always_empty(level, chamber_index):
 		return &""
-	var rng: SimRng = _rng.fork("sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
+	var label: String = AreaTravel.label(_here.id)
+	var rng: SimRng = _rng.fork(label + "sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
 	if not rng.chance(SIDE_QUEST_SHARE):
 		return &""
 	var ids: Array[StringName] = Content.side_quest_ids()
@@ -704,8 +748,9 @@ func _roll_monsters(level_depth: int, chamber_index: int, visit: int) -> Array[C
 	var guardian: StringName = &""
 	if _is_guardian_chamber(level_depth, chamber_index):
 		guardian = guardian_of(level_depth)
-	var rng: SimRng = _rng.fork("encounter/%d/%d/%d" % [level_depth, chamber_index, visit])
-	return EncounterRoll.roll(room, level_depth, visit, guardian, rng)
+	var label: String = AreaTravel.label(_here.id)
+	var rng: SimRng = _rng.fork(label + "encounter/%d/%d/%d" % [level_depth, chamber_index, visit])
+	return EncounterRoll.roll(room, _here, level_depth, visit, guardian, rng)
 
 
 func _start_battle(room: LabyrinthChamber) -> void:
@@ -786,6 +831,9 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
 	if def.guardian:
 		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
+		if _battle_key.x == _here.guardian_stage:
+			for opened: StringName in _areas.open_after(_here.id):
+				_emit(SimEvent.Kind.AREA_OPENED, -1, -1, Content.area_ids().find(opened))
 
 
 ## Gives [param hero] [param amount] XP, reporting it, each level it pays for and each
@@ -840,66 +888,6 @@ func _end_battle(won: bool) -> void:
 	battle = null
 	_battle_key = Vector2i(0, -1)
 	_wipe()
-
-
-# --- Side quests ---------------------------------------------------------------
-
-
-## The party reaches [param quest] in [param room]: a living hero with its microskill starts on it;
-## with nobody able, the party walks past, and a hazard springs on it.
-func _meet_side_quest(room: LabyrinthChamber, quest: StringName) -> void:
-	var def: SideQuestDef = Content.side_quest(quest)
-	var quest_index: int = Content.side_quest_ids().find(quest)
-	var fill: ChamberState = _record(depth, room.index)
-	var worker: Hero = _party.hero_with_microskill(def.microskill)
-	if worker != null:
-		state = State.WORKING
-		_work_key = Vector2i(depth, room.index)
-		_work_quest = quest
-		_worker = worker.id
-		_work_start = _tick
-		_work_ticks = maxi(Combatant.seconds_to_ticks(def.work_seconds), 1)
-		_emit(SimEvent.Kind.SIDE_QUEST_STARTED, worker.id, quest_index, _work_ticks)
-		return
-	var skill_index: int = Content.microskill_ids().find(def.microskill)
-	if def.miss_damage > 0.0:
-		_emit(SimEvent.Kind.SIDE_QUEST_MISSED, -1, quest_index, skill_index, true)
-		for hero: Hero in _party.heroes:
-			# Never below 1, and nothing to the dead: a hazard hurts, but cannot wipe the party.
-			var lost: int = mini(roundi(def.miss_damage * hero.max_health()), hero.health - 1)
-			if lost <= 0:
-				continue
-			hero.health -= lost
-			_emit(SimEvent.Kind.HIT, -1, hero.id, lost)
-		fill.cleared_tick = _tick
-		return
-	if not fill.missed:
-		fill.missed = true
-		_emit(SimEvent.Kind.SIDE_QUEST_MISSED, -1, quest_index, skill_index, false)
-
-
-## Waits out the work, then gives the reward, clears the chamber and travels on.
-func _work() -> void:
-	if _tick - _work_start < _work_ticks:
-		return
-	var def: SideQuestDef = Content.side_quest(_work_quest)
-	var quest_index: int = Content.side_quest_ids().find(_work_quest)
-	var amount: int = def.reward_at(_work_key.x)
-	_emit(SimEvent.Kind.SIDE_QUEST_DONE, _worker, quest_index, amount)
-	if def.reward == SideQuestDef.Reward.XP:
-		for hero: Hero in _party.heroes:
-			if hero.is_alive():
-				_give_xp(hero, amount)
-	else:
-		_party.gold += amount
-		_emit(SimEvent.Kind.GOLD_GAINED, _worker, -1, amount)
-	var fill: ChamberState = _chambers[_work_key]
-	fill.cleared_tick = _tick
-	fill.missed = false
-	_work_key = Vector2i(0, -1)
-	_work_quest = &""
-	_worker = -1
-	state = State.TRAVELLING
 
 
 # --- Rest, wipe and revival ----------------------------------------------------
@@ -958,23 +946,6 @@ func _revive() -> void:
 	if _pending_target > 0:
 		_set_target(_pending_target)
 		_pending_target = 0
-	state = State.TRAVELLING
-
-
-## Stands a new expedition up from saved progress at simulation tick [param tick]:
-## where revival puts the party (the arrival point of [param stable], its last
-## stable depth), travelling, with no events. Called once, before the first step.
-func arrive_from_save(tick: int, stable: int, deepest: int, target: int, push: bool) -> void:
-	_tick = tick
-	last_stable_depth = stable
-	deepest_depth = maxi(deepest, stable)
-	auto_push = push
-	depth = stable
-	_place(Arrival.column(_labyrinth, depth))
-	_restart_depth_count(_tick)
-	target_depth = maxi(target, 1)
-	_timer_target = target_depth
-	_target_since = _tick
 	state = State.TRAVELLING
 
 

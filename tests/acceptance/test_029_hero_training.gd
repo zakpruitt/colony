@@ -15,25 +15,25 @@ const TRAININGS: Array = [
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2084462142,
-		1561799888,
-		3430649855,
-		3211837043,
-		4285711305,
-		628014606,
-		3523731703,
-		1401816699,
+		235412439,
+		2784050463,
+		1761028361,
+		363122329,
+		3350523849,
+		1473335814,
+		2420058670,
+		2254641605,
 	],
 	29:
 	[
-		2137347314,
-		1257746763,
-		1616045309,
-		257261949,
-		388501477,
-		1050815822,
-		1209199514,
-		2783104606,
+		3987235243,
+		1395746236,
+		837014264,
+		3469722866,
+		167584572,
+		1449751589,
+		1372440260,
+		2733464942,
 	],
 }
 const SEED: int = 29
@@ -343,8 +343,8 @@ func test_r4_saved() -> void:
 	sim.party.heroes[3].set_training_rank(QUICKNESS, 7)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
-	assert_eq(version, Simulation.SAVE_VERSION, "the version rose by one (5 since spec 035)")
-	assert_eq(Simulation.SAVE_VERSION, 5)
+	assert_eq(version, Simulation.SAVE_VERSION, "the version rose by one (6 since spec 049)")
+	assert_eq(Simulation.SAVE_VERSION, 6)
 	var loaded: Simulation = Simulation.from_save(data)
 	assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 	if loaded == null:

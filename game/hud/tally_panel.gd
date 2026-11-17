@@ -93,7 +93,8 @@ var _start_tick: int = 0
 ## depth, its monsters' kinds when the battle could be read, and every monster seen in its hits.
 var _fight_start: int = -1
 var _fight_end: int = -1
-var _fight_depth: int = 0
+## Where the fight was, "Mossy Hollow 7" (spec 049).
+var _fight_place: String = ""
 var _fight_kinds: Array[StringName] = []
 var _fight_monsters: Dictionary[int, bool] = {}
 var _fight_label: Label
@@ -321,7 +322,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_fight_start = event.tick
 			_fight_end = -1
-			_fight_depth = _simulation.expedition.depth
+			_fight_place = PlaceText.here(_simulation, _simulation.expedition.depth)
 			_fight_kinds = _battle_kinds(event.amount)
 			_fight_monsters.clear()
 		SimEvent.Kind.ENCOUNTER_ENDED:
@@ -477,7 +478,7 @@ func _fight_text() -> String:
 	var end: int = _simulation.tick if ongoing else _fight_end
 	var seconds: int = roundi(float(end - _fight_start) / Simulation.TICKS_PER_SECOND)
 	var head: String = "This fight: " if ongoing else "Last fight: "
-	var tail: String = ", depth %d, %d s" % [_fight_depth, seconds]
+	var tail: String = ", %s, %d s" % [_fight_place, seconds]
 	var room: float = BODY_RIGHT - BODY_LEFT - PixelText.width(head + tail)
 	return head + monsters_text(room) + tail
 

@@ -154,7 +154,7 @@ func test_r1_guardian_is_announced() -> void:
 	assert_true(_start_guardian_fight(), "the guardian's fight starts")
 	var words: Array[String] = _words(&"announce")
 	assert_has(words, "SLIME KING", "its name is announced")
-	assert_has(words, "GUARDIAN OF DEPTH 5", "with the depth it guards")
+	assert_has(words, "GUARDIAN OF MOSSY HOLLOW 5", "with the place it guards (spec 049)")
 	for text: FxText in _texts(&"announce"):
 		assert_true(text.on_screen, "%s is pinned to the screen" % text.text)
 		assert_lt(text.screen_offset.y, 0.0, "%s sits in the upper screen" % text.text)

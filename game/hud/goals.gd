@@ -292,7 +292,8 @@ func applicable() -> Array[Goal]:
 	return found
 
 
-## The level a guardian of [param depth] is balanced for: see [constant GUARDIAN_LEVEL_OVER_DEPTH].
+## The level a guardian at level [param depth] is balanced for (spec 049: a stage's level, see
+## [method Expedition.level_at]): see [constant GUARDIAN_LEVEL_OVER_DEPTH].
 static func guardian_level(depth: int) -> int:
 	return depth + GUARDIAN_LEVEL_OVER_DEPTH
 
@@ -309,9 +310,9 @@ func _guardian_goal() -> Goal:
 	var def: MonsterDef = Content.monster(e.guardian_of(depth))
 	var who: String = def.display_name if def != null else "guardian"
 	var lowest: int = _lowest_level()
-	var wanted: int = guardian_level(depth)
+	var wanted: int = guardian_level(e.level_at(depth))
 	var goal := Goal.new(
-		"guardian/%d" % depth,
+		"guardian/%s/%d" % [e.place, depth],
 		Kind.GUARDIAN,
 		"Beat the %s" % who,
 		clampf(float(lowest) / float(maxi(wanted, 1)), 0.0, 1.0),
@@ -322,6 +323,7 @@ func _guardian_goal() -> Goal:
 	if e.is_holding() and (depth == e.depth or depth == e.depth - 1):
 		goal.hint = "The party is holding back on the Hold order: Orders (O) sends it in."
 	goal.target = depth
+	goal.area = e.place
 	goal.done = "Goal: beat the %s" % who
 	return goal
 
@@ -363,7 +365,7 @@ func _depth_goal() -> Goal:
 	var e: Expedition = _simulation.expedition
 	var next: int = e.deepest_depth + 1
 	var fraction: float = clampf(float(e.depth) / float(next), 0.0, 1.0)
-	var detail_text: String = "depth %d of %d" % [e.depth, next]
+	var detail_text: String = "stage %d of %d" % [e.depth, next]
 	var how: String = "The party works its way back down, a stable depth at a time."
 	# Spec 039 R3: at the deepest depth the bar follows the timer that decides what comes next.
 	if e.depth >= e.deepest_depth and e.target_depth > e.depth:
@@ -381,11 +383,13 @@ func _depth_goal() -> Goal:
 		detail_text = "Auto is off"
 	if not e.auto_push and e.target_depth < next:
 		how = "Raise the target or turn Auto on, and the party heads down."
+	var place: String = PlaceText.here(_simulation, next)
 	var goal := Goal.new(
-		"depth/%d" % next, Kind.DEPTH, "Reach depth %d" % next, fraction, detail_text, how
+		"depth/%s/%d" % [e.place, next], Kind.DEPTH, "Reach " + place, fraction, detail_text, how
 	)
 	goal.target = next
-	goal.done = "Goal: reached depth %d" % next
+	goal.area = e.place
+	goal.done = "Goal: reached " + place
 	return goal
 
 
@@ -478,9 +482,9 @@ func _lowest_level() -> int:
 func _achieved(goal: Goal) -> bool:
 	match goal.kind:
 		Kind.GUARDIAN:
-			return _guardian_beaten(goal.target)
+			return goal.area == _simulation.expedition.place and _guardian_beaten(goal.target)
 		Kind.DEPTH:
-			return _simulation.expedition.deepest_depth >= goal.target
+			return _simulation.area_progress(goal.area).y >= goal.target
 		Kind.MICROSKILL:
 			var hero: Hero = _simulation.party.hero(goal.hero_id)
 			return hero != null and hero.level >= goal.target
@@ -558,6 +562,8 @@ class Goal:
 	var done: String = ""
 	## The depth (a guardian's or the one to reach) or the level (a microskill's) it is about.
 	var target: int = 0
+	## The area a guardian's or depth's goal is in (spec 049).
+	var area: StringName = &""
 	## The hero a microskill goal is about, or -1.
 	var hero_id: int = -1
 	## Seconds of its tick left once achieved; 0 before.

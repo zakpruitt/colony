@@ -206,11 +206,11 @@ func test_r2_hover_says_it() -> void:
 	_levels(3)
 	_situation(2, 2, 2, 2)
 	var lines: Dictionary[int, String] = {
-		1: "Depth 1: held. %s" % CLICK_HINT,
-		3: "Depth 3: not reached yet. %s\nWithin reach" % CLICK_HINT,
-		4: "Depth 4: not reached yet. %s\nWithin reach" % CLICK_HINT,
-		5: "Depth 5: Slime King. %s\nDangerous: heroes are level 3" % CLICK_HINT,
-		6: "Depth 6: not reached yet. %s\nDangerous: heroes are level 3" % CLICK_HINT,
+		1: "Mossy Hollow 1: held. %s" % CLICK_HINT,
+		3: "Mossy Hollow 3: not reached yet. %s\nWithin reach" % CLICK_HINT,
+		4: "Mossy Hollow 4: not reached yet. %s\nWithin reach" % CLICK_HINT,
+		5: "Mossy Hollow 5: Slime King. %s\nDangerous: heroes are level 3" % CLICK_HINT,
+		6: "Mossy Hollow 6: not reached yet. %s\nDangerous: heroes are level 3" % CLICK_HINT,
 	}
 	for depth: int in lines:
 		assert_eq(ladder.hover_text(depth), lines[depth], "depth %d's hint" % depth)
@@ -236,7 +236,7 @@ func test_r3_dangerous_click() -> void:
 	var ladder: DepthLadder = _ladder()
 	_levels(3)
 	_situation(2, 2, 2, 2)
-	var line: String = "Target set to depth 6: dangerous for level 3 heroes"
+	var line: String = "Target set to Mossy Hollow 6: dangerous for level 3 heroes"
 	_click_at(ladder.rung_rect(6).get_center())
 	_sim.step()
 	_hud.advance(STEP)
@@ -275,7 +275,9 @@ func test_r3_dangerous_click() -> void:
 		_click_at(ladder.rung_rect(depth).get_center())
 		_sim.step()
 		_hud.advance(STEP)
-		assert_eq(_sim.expedition.target_depth, depth, "the click on depth %d sets it" % depth)
+		assert_eq(
+			_sim.expedition.target_depth, depth, "the click on Mossy Hollow %d sets it" % depth
+		)
 		assert_eq(_hud.journal.ticker_text(), "", "no line for depth %d" % depth)
 	assert_eq(_hud.journal.lines().size(), written, "nothing written")
 
@@ -403,10 +405,11 @@ func test_r6_nothing_else_changes() -> void:
 	var ladder: DepthLadder = _ladder()
 	_situation(3, 3, 20, 3)
 	var rect: Rect2 = ladder.get_global_rect()
-	assert_eq(rect.size, Vector2(52, 258), "the ladder's size as before")
+	# Spec 049 widened it by 8 pixels, from 52, to hold an area's name in its heading.
+	assert_eq(rect.size, Vector2(60, 258), "the ladder's size as before")
 	assert_eq(
 		rect.position,
-		Vector2(Hud.SCREEN.x - Hud.MARGIN - 52, Hud.TOP_BAND + ShopPanel.DROP),
+		Vector2(Hud.SCREEN.x - Hud.MARGIN - 60, Hud.TOP_BAND + ShopPanel.DROP),
 		"place"
 	)
 	var hash_before: int = _sim.state_hash()

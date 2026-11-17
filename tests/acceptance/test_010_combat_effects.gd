@@ -423,8 +423,8 @@ func test_r10_loop_beats() -> void:
 	assert_eq(_particles(&"light").size(), 0, "brief")
 
 	_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 3)
-	var stable: FxText = _find_text("DEPTH 3 STABLE")
-	assert_not_null(stable, "DEPTH 3 STABLE is shown")
+	var stable: FxText = _find_text("MOSSY HOLLOW 3 STABLE")  # spec 049 names the area
+	assert_not_null(stable, "MOSSY HOLLOW 3 STABLE is shown")
 	assert_almost_eq(stable.position.x, middle.x, 2.0, "centred")
 	_advance(1.9)
 	assert_true(_fx._texts.has(stable), "for 2 seconds")

@@ -5,34 +5,31 @@ extends RefCounted
 ## Plain functions of their arguments; nothing here keeps state.
 
 
-## The id of the guardian that holds that depth's way down, or &"" if the depth has none:
-## on every [constant Expedition.GUARDIAN_EVERY]-th depth, the guardian with the deepest
-## [member MonsterDef.min_depth] at or above it.
-static func guardian_at(level_depth: int) -> StringName:
-	var every: int = Expedition.GUARDIAN_EVERY
-	if level_depth < every or level_depth % every != 0:
+## The id of the guardian that holds stage [param stage] of [param area], or &"" if the stage has
+## none: the area's guardian at its [member AreaDef.guardian_stage] and every
+## [constant Expedition.GUARDIAN_EVERY] stages after it (spec 049).
+static func guardian_at(area: AreaDef, stage: int) -> StringName:
+	if area == null or stage < area.guardian_stage:
 		return &""
-	var found: StringName = &""
-	var found_depth: int = 0
-	for id: StringName in Content.monster_ids():
-		var def: MonsterDef = Content.monster(id)
-		if def.guardian and def.min_depth <= level_depth and def.min_depth > found_depth:
-			found = id
-			found_depth = def.min_depth
-	return found
+	if (stage - area.guardian_stage) % Expedition.GUARDIAN_EVERY != 0:
+		return &""
+	return area.guardian
 
 
-## The monsters of visit [param visit] to [param room] at [param level_depth]: the guardian
-## [param guardian] alone when it is not &"", otherwise a count and mix drawn from [param rng].
-## Their ids come from [method Expedition.monster_id].
+## The monsters of visit [param visit] to [param room] at stage [param stage] of [param area]: the
+## guardian [param guardian] alone when it is not &"", otherwise a count and mix drawn from
+## [param rng] of the area's monsters that have appeared by that stage. They are as strong as the
+## stage's level makes them ([method AreaDef.level_at]); their ids come from
+## [method Expedition.monster_id].
 static func roll(
-	room: LabyrinthChamber, level_depth: int, visit: int, guardian: StringName, rng: SimRng
+	room: LabyrinthChamber, area: AreaDef, stage: int, visit: int, guardian: StringName, rng: SimRng
 ) -> Array[Combatant]:
 	var monsters: Array[Combatant] = []
+	var level: int = area.level_at(stage)
 	if guardian != &"":
 		# The guardian alone, whatever the chamber's kind.
-		var guardian_id: int = Expedition.monster_id(level_depth, room.index, visit, 0)
-		monsters.append(Combatant.from_monster(Content.monster(guardian), level_depth, guardian_id))
+		var guardian_id: int = Expedition.monster_id(stage, room.index, visit, 0)
+		monsters.append(Combatant.from_monster(Content.monster(guardian), level, guardian_id))
 		spread(monsters, room)
 		return monsters
 	var count_range: Vector2i = Expedition.PLAIN_MONSTERS
@@ -42,26 +39,32 @@ static func roll(
 		count_range = Expedition.VAULT_MONSTERS
 	var count: int = rng.next_int(count_range.x, count_range.y)
 
-	# Eligible monsters, each as likely as its min_depth: deeper dwellers are favoured.
+	# The area's monsters that have appeared, in content order, each as likely as its base level
+	# (as each was as likely as its shallowest depth before spec 049, so Mossy Hollow's first
+	# stage rolls exactly as depth 1 did): the stronger kinds are favoured.
+	var appeared: Dictionary[StringName, bool] = {}
+	for i: int in mini(area.monsters.size(), area.monster_stages.size()):
+		if area.monster_stages[i] <= stage:
+			appeared[area.monsters[i]] = true
 	var eligible: Array[MonsterDef] = []
 	var total_weight: int = 0
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
-		if def.min_depth <= level_depth and not def.guardian:
+		if appeared.has(id) and not def.guardian:
 			eligible.append(def)
-			total_weight += def.min_depth
+			total_weight += def.base_level
 	if eligible.is_empty():
 		return monsters
 	for i: int in count:
 		var roll_value: int = rng.next_int(1, total_weight)
 		var picked: MonsterDef = eligible[eligible.size() - 1]
 		for def: MonsterDef in eligible:
-			roll_value -= def.min_depth
+			roll_value -= def.base_level
 			if roll_value <= 0:
 				picked = def
 				break
-		var id: int = Expedition.monster_id(level_depth, room.index, visit, i)
-		monsters.append(Combatant.from_monster(picked, level_depth, id))
+		var id: int = Expedition.monster_id(stage, room.index, visit, i)
+		monsters.append(Combatant.from_monster(picked, level, id))
 	spread(monsters, room)
 	return monsters
 

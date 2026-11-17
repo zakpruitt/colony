@@ -73,18 +73,18 @@ func _before_quest(kind: StringName, min_depth: int = 1) -> Simulation:
 
 
 ## The mean gold and XP of one kill at [param depth], each monster as likely as an encounter
-## makes it (by its min_depth): Vector2(gold, xp).
+## makes it (by its base level, as encounters weighed them before spec 049): Vector2(gold, xp).
 func _kill_value(depth: int) -> Vector2:
 	var gold: float = 0.0
 	var xp: float = 0.0
 	var weight: float = 0.0
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
-		if def.guardian or def.min_depth > depth:
+		if def.guardian or def.base_level > depth:
 			continue
-		gold += def.min_depth * (def.gold_min + def.gold_max) / 2.0
-		xp += def.min_depth * def.xp
-		weight += def.min_depth
+		gold += def.base_level * (def.gold_min + def.gold_max) / 2.0
+		xp += def.base_level * def.xp
+		weight += def.base_level
 	return Vector2(gold, xp) / weight
 
 

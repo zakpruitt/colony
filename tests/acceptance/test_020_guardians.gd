@@ -80,17 +80,16 @@ func _best_ordinary(depth: int) -> Vector2i:
 	var best := Vector2i.ZERO
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
-		if not def.guardian and def.min_depth <= depth:
+		if not def.guardian and def.base_level <= depth:
 			best = Vector2i(maxi(best.x, def.xp), maxi(best.y, def.gold_max))
 	return best
 
 
 ## The share of FIGHT_SEEDS fights a party of four at [param level] wins in time against the
-## guardian of [param depth].
-func _win_rate(depth: int, level: int) -> float:
-	var def: MonsterDef = Content.monster(
-		Expedition.new(Labyrinth.new(1), Party.new(), SimRng.new(1)).guardian_of(depth)
-	)
+## guardian [param id] met at [param depth]. Spec 049: the Clay Colossus now stands at the
+## Claypits' stage 5, which is level 10, the depth it held before.
+func _win_rate(id: StringName, depth: int, level: int) -> float:
+	var def: MonsterDef = Content.monster(id)
 	var limit: int = Combatant.seconds_to_ticks(Expedition.BATTLE_LIMIT_SECONDS)
 	var wins: int = 0
 	for seed_value: int in range(1, FIGHT_SEEDS + 1):
@@ -124,7 +123,7 @@ func test_r1_four_guardians_are_valid() -> void:
 		assert_eq(def.validate().size(), 0, "%s is valid: %s" % [id, def.validate()])
 		assert_eq(def.size, MonsterDef.Size.BOSS, "%s is a boss" % id)
 		assert_true(def.guardian, "%s is flagged a guardian" % id)
-		assert_eq(def.min_depth, GUARDIANS[id], "%s guards from depth %d" % [id, GUARDIANS[id]])
+		assert_eq(def.base_level, GUARDIANS[id], "%s guards from depth %d" % [id, GUARDIANS[id]])
 	var guardians: int = 0
 	for id: StringName in Content.monster_ids():
 		if Content.monster(id).guardian:
@@ -165,10 +164,8 @@ func test_r2_guardian_holds_the_way_down() -> void:
 		var sim := Simulation.new(seed_value)
 		var e: Expedition = sim.expedition
 		for depth: int in GUARDIAN_DEPTHS:
-			var expected: StringName = &"deep_maw"
-			for id: StringName in GUARDIANS:
-				if GUARDIANS[id] == depth:
-					expected = id
+			# Spec 049: every fifth stage of an area is held by that area's guardian.
+			var expected: StringName = Content.area(e.area).guardian
 			assert_eq(e.guardian_of(depth), expected, "depth %d's guardian" % depth)
 			var shaft: LabyrinthChamber = sim.labyrinth.level(depth).shaft_chamber()
 			var where: String = "seed %d, depth %d" % [seed_value, depth]
@@ -238,13 +235,17 @@ func test_r3_guardians_stay_beaten() -> void:
 
 
 func test_r4_beating_one_pays() -> void:
-	var probe := Simulation.new(1)
-	for depth: int in GUARDIAN_DEPTHS:
-		var def: MonsterDef = Content.monster(probe.expedition.guardian_of(depth))
-		var best: Vector2i = _best_ordinary(depth)
-		assert_gte(def.xp, 10 * best.x, "%s's XP is ten ordinary kills at %d" % [def.id, depth])
+	# Spec 049: each area's guardian pays at least ten of the best kills in its own area.
+	for area: StringName in Content.area_ids():
+		var place: AreaDef = Content.area(area)
+		var def: MonsterDef = Content.monster(place.guardian)
+		var best := Vector2i.ZERO
+		for id: StringName in place.monsters:
+			var monster: MonsterDef = Content.monster(id)
+			best = Vector2i(maxi(best.x, monster.xp), maxi(best.y, monster.gold_max))
+		assert_gte(def.xp, 10 * best.x, "%s's XP is ten ordinary kills in %s" % [def.id, area])
 		assert_gte(
-			def.gold_min, 10 * best.y, "%s's gold is ten ordinary kills at %d" % [def.id, depth]
+			def.gold_min, 10 * best.y, "%s's gold is ten ordinary kills in %s" % [def.id, area]
 		)
 
 	var sim := Simulation.new(SEEDS[2])
@@ -277,10 +278,10 @@ func test_r4_beating_one_pays() -> void:
 
 
 func test_r5_wall_then_milestone() -> void:
-	var weak_5: float = _win_rate(5, 5)
-	var strong_5: float = _win_rate(5, 9)
-	var weak_10: float = _win_rate(10, 10)
-	var strong_10: float = _win_rate(10, 15)
+	var weak_5: float = _win_rate(&"slime_king", 5, 5)
+	var strong_5: float = _win_rate(&"slime_king", 5, 9)
+	var weak_10: float = _win_rate(&"clay_colossus", 10, 10)
+	var strong_10: float = _win_rate(&"clay_colossus", 10, 15)
 	gut.p(
 		(
 			"guardian win rates: depth 5 lv5 %.2f lv9 %.2f; depth 10 lv10 %.2f lv15 %.2f"

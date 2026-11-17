@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 5
+const SAVE_VERSION: int = 6
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## The largest whole number a JSON float holds exactly (2^53).
@@ -23,8 +23,11 @@ var tick: int:
 	set(_value):
 		push_error("Simulation.tick is read-only; call step() to advance it")
 
-## The endless levels, made from the seed.
-var labyrinth: Labyrinth
+## The endless levels of the area the party is in, made from the seed (spec 049: each area has its
+## own). Read-only.
+var labyrinth: Labyrinth:
+	get:
+		return expedition.labyrinth
 ## True while the camp buys upgrades by itself. Read-only outside this class: call
 ## [method set_auto_buy].
 var auto_buy: bool:
@@ -55,10 +58,10 @@ var _pending_auto_buy: int = -1
 
 func _init(seed_value: int) -> void:
 	_seed = seed_value
-	labyrinth = Labyrinth.new(seed_value)
 	party = Party.new()
 	upgrades = party.upgrades
-	expedition = Expedition.new(labyrinth, party, SimRng.new(seed_value).fork("expedition"))
+	var first := Labyrinth.new(seed_value)
+	expedition = Expedition.new(first, party, SimRng.new(seed_value).fork("expedition"))
 
 
 ## Advances the simulation by exactly one tick.
@@ -96,6 +99,27 @@ func set_pace(pace: Expedition.Pace) -> void:
 ## unknown value is ignored.
 func set_guardian_order(order: Expedition.GuardianOrder) -> void:
 	expedition.command_guardian_order(order)
+
+
+## Sends the party to [param stage] of area [param area_id] (spec 049). If the area is open, the
+## party finishes any fight it is in, leaves, spends [constant AreaTravel.JOURNEY_SECONDS] on the
+## way and arrives alive, as hurt as it was, at the start of that stage (or of the area's safe
+## stage, if the stage asked for is beyond it), with the stage asked for as its target. A command
+## for an area that is not open does nothing.
+func set_destination(area_id: StringName, stage: int) -> void:
+	expedition.travel.ask(area_id, stage)
+
+
+## True if the party may be sent to area [param area_id]: it is open from the start, or its
+## opener's guardian has been beaten.
+func is_area_open(area_id: StringName) -> bool:
+	return expedition.travel.open.has(area_id)
+
+
+## The safe stage (x) and furthest stage (y) of area [param area_id]; Vector2i(1, 0) for an area
+## the party has never been in.
+func area_progress(area_id: StringName) -> Vector2i:
+	return expedition.travel.progress(expedition, area_id)
 
 
 ## Asks to buy the next rank of upgrade [param id] at the next step. It is bought
@@ -259,7 +283,7 @@ func to_save() -> Dictionary:
 	var ranks: Dictionary = {}
 	for id: StringName in Content.upgrade_ids():
 		ranks[String(id)] = upgrades.rank(id)
-	return {
+	var saved: Dictionary = {
 		"version": SAVE_VERSION,
 		"seed": _seed,
 		"tick": _tick,
@@ -274,6 +298,8 @@ func to_save() -> Dictionary:
 		"pace": PartyOrders.PACE_SAVED[expedition.pace],
 		"guardian_order": PartyOrders.GUARDIAN_SAVED[expedition.guardian_order],
 	}
+	AreaSave.write(expedition, saved)
+	return saved
 
 
 ## A simulation carrying on from saved progress, or null if [param data] has
@@ -314,7 +340,8 @@ static func from_save(data: Dictionary) -> Simulation:
 	var stable: int = _whole(current["last_stable_depth"])
 	var deepest: int = _whole(current["deepest_depth"])
 	var target: int = _whole(current["target_depth"])
-	sim.expedition.arrive_from_save(sim._tick, stable, deepest, target, auto_push)
+	AreaSave.read(sim, current)
+	Arrival.from_save(sim.expedition, sim._tick, stable, deepest, target, auto_push)
 	var auto_buy_on: bool = current["auto_buy"]
 	sim._auto_buy = auto_buy_on
 	var pace_text: String = current["pace"]
@@ -362,6 +389,7 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 	if _is_whole(stable) and _is_whole(deepest) and _whole(stable) > _whole(deepest):
 		problems.append("last_stable_depth: deeper than deepest_depth")
 	_check_upgrades(problems, current.get("upgrades"))
+	AreaSave.check(problems, current)
 	return problems
 
 
@@ -381,6 +409,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = _save_3_to_4(current)
 	if _whole(current["version"]) == 4:
 		current = _save_4_to_5(current)
+	if _whole(current["version"]) == 5:
+		current = AreaSave.upgrade_5_to_6(current)
 	return current
 
 

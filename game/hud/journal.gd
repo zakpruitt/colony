@@ -235,9 +235,16 @@ func _sentence(event: SimEvent) -> String:
 			_depth = event.amount
 			if event.amount > _deepest:
 				_deepest = event.amount
-				sentence = "Reached depth %d, the deepest yet" % event.amount
+				sentence = "Reached %s, the deepest yet" % _place(event.amount)
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
-			sentence = "Depth %d is now stable" % event.amount
+			sentence = "%s is now stable" % _place(event.amount)
+		SimEvent.Kind.AREA_CHANGED:
+			# Spec 049: each area has its own furthest stage.
+			var arrived: StringName = _area_at(event.amount)
+			_deepest = _simulation.area_progress(arrived).y
+			sentence = "Arrived in %s" % PlaceText.area_name(arrived)
+		SimEvent.Kind.AREA_OPENED:
+			sentence = "%s is open" % PlaceText.area_name(_area_at(event.amount))
 		SimEvent.Kind.LEVEL_UP:
 			var hero: Hero = _simulation.party.hero(event.target_id)
 			var who: String = hero.def().display_name if hero != null else "A hero"
@@ -249,13 +256,13 @@ func _sentence(event: SimEvent) -> String:
 			if hud != null and hud.defeat_note != null:
 				return hud.defeat_note.journal_line(event)
 			var back_to: int = _simulation.expedition.last_stable_depth
-			sentence = "Wiped on depth %d, falling back to depth %d" % [_depth, back_to]
+			sentence = "Wiped on %s, falling back to %s" % [_place(_depth), _place(back_to)]
 			if back_to == _depth:
-				sentence = "Wiped on depth %d, regrouping there" % _depth
+				sentence = "Wiped on %s, regrouping there" % _place(_depth)
 		SimEvent.Kind.GUARDIAN_SLAIN:
 			var def: MonsterDef = Content.monster(_simulation.expedition.guardian_of(event.amount))
 			var guardian: String = def.display_name if def != null else "guardian"
-			sentence = "Slew the %s on depth %d" % [guardian, event.amount]
+			sentence = "Slew the %s on %s" % [guardian, _place(event.amount)]
 		SimEvent.Kind.UPGRADE_BOUGHT:
 			# The event is the same whether the player or auto-buy bought it.
 			var ids: Array[StringName] = Content.upgrade_ids()
@@ -406,3 +413,14 @@ func _sheet() -> HeroSheet:
 func _shop_is_open() -> bool:
 	var hud: Hud = get_parent() as Hud
 	return hud != null and hud.shop != null and hud.shop.is_open()
+
+
+## [param stage] of the area the party is in, as the screen names it (spec 049).
+func _place(stage: int) -> String:
+	return PlaceText.here(_simulation, stage)
+
+
+## The area at [param index] in [method Content.area_ids], or &"".
+static func _area_at(index: int) -> StringName:
+	var ids: Array[StringName] = Content.area_ids()
+	return ids[index] if index >= 0 and index < ids.size() else &""

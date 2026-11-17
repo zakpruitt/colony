@@ -95,7 +95,7 @@ func _microskill_situation() -> Hero:
 	return hero
 
 
-## The two gold goals, with no microskill left to learn: [Reach depth 2, Train a hero, Buy an
+## The two gold goals, with no microskill left to learn: [Reach Mossy Hollow 2, Train a hero, Buy an
 ## upgrade].
 func _gold_situation() -> void:
 	for hero: Hero in _sim.party.heroes:
@@ -232,7 +232,9 @@ func test_r1_click_a_goal() -> void:
 	assert_not_null(trainee, "a training is affordable")
 	assert_ne(trainee, _sim.party.heroes[0], "not simply the first hero")
 	assert_eq(
-		goals.lines(), ["Reach depth 2", "Train a hero", "Buy an upgrade"] as Array[String], "setup"
+		goals.lines(),
+		["Reach Mossy Hollow 2", "Train a hero", "Buy an upgrade"] as Array[String],
+		"setup"
 	)
 	for how: String in ["press", "mouse"]:
 		# Buy an upgrade: the shop.
@@ -276,7 +278,7 @@ func test_r1_click_a_goal() -> void:
 
 	# Reach depth N: the ladder shows if hidden, and rung N flashes for about a second.
 	var ladder: DepthLadder = _hud.ladder
-	var depth: int = _line("Reach depth 3")
+	var depth: int = _line("Reach Mossy Hollow 3")
 	assert_ne(depth, -1, "the depth goal shows: %s" % [goals.lines()])
 	for how: String in ["press", "mouse"]:
 		_close_all()
@@ -286,7 +288,7 @@ func test_r1_click_a_goal() -> void:
 		_hud.advance(STEP)
 		assert_false(ladder.is_shown(), "L hid the ladder")
 		_do(how, depth)
-		assert_true(ladder.is_shown(), "%s on Reach depth 3 shows the ladder" % how)
+		assert_true(ladder.is_shown(), "%s on Reach Mossy Hollow 3 shows the ladder" % how)
 		assert_true(ladder.is_flashing(3), "%s: rung 3 flashes" % how)
 		assert_false(ladder.is_flashing(4), "%s: only rung 3" % how)
 		assert_false(ladder.is_flashing(2), "%s: only rung 3" % how)
@@ -311,7 +313,7 @@ func test_r1_click_a_goal() -> void:
 	_sim.expedition.depth = 3
 	_sim.expedition.deepest_depth = 3
 	_hud.advance(STEP)
-	var done: int = _line("Reach depth 3")
+	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "the depth goal shows its tick")
 	_key(KEY_L)
 	_hud.advance(STEP)
@@ -330,7 +332,9 @@ func test_r2_looks_clickable() -> void:
 	var goals: Goals = _hud.goals
 	_gold_situation()
 	var lines: Array[String] = goals.lines()
-	assert_eq(lines, ["Reach depth 2", "Train a hero", "Buy an upgrade"] as Array[String], "setup")
+	assert_eq(
+		lines, ["Reach Mossy Hollow 2", "Train a hero", "Buy an upgrade"] as Array[String], "setup"
+	)
 
 	# The highlight under the mouse, on that line only.
 	for i: int in lines.size():
@@ -372,7 +376,7 @@ func test_r2_looks_clickable() -> void:
 	_sim.expedition.depth = 3
 	_sim.expedition.deepest_depth = 3
 	_hud.advance(STEP)
-	var done: int = _line("Reach depth 3")
+	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
 	_mouse(goals.rows[done].get_global_rect().get_center())
 	_hud.advance(STEP)
@@ -437,7 +441,7 @@ func test_r3_tooltip_says_so() -> void:
 	_sim.expedition.depth = 3
 	_sim.expedition.deepest_depth = 3
 	_hud.advance(STEP)
-	var done: int = _line("Reach depth 3")
+	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
 	assert_eq(goals.action(done), "", "no click sentence")
 	tooltip.point_at(goals.rows[done].get_global_rect().get_center())

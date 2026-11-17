@@ -264,14 +264,14 @@ func test_r2_goals_come_from_the_game() -> void:
 
 	# A new game, no gold: the next depth and the microskill.
 	_situation(1, 1, 1)
-	assert_eq(goals.lines(), ["Reach depth 2", skill_line] as Array[String], "a new game")
+	assert_eq(goals.lines(), ["Reach Mossy Hollow 2", skill_line] as Array[String], "a new game")
 	assert_almost_eq(
 		goals.progress(1), 10.0 / Hero.xp_for_level(skill_level), 0.001, "the hero's XP"
 	)
 
 	# Reach depth N: at the deepest depth, the countdown to stable.
 	_situation(3, 3, 2)
-	var line: int = goals.lines().find("Reach depth 4")
+	var line: int = goals.lines().find("Reach Mossy Hollow 4")
 	assert_ne(line, -1, "the next depth below the deepest: %s" % [goals.lines()])
 	var expected: float = 1.0 - e.seconds_to_stable() / e.stable_seconds
 	assert_almost_eq(goals.progress(line), expected, 0.001, "the countdown to stable")
@@ -280,15 +280,15 @@ func test_r2_goals_come_from_the_game() -> void:
 		_sim.step()
 	_hud.advance(STEP)
 	if e.depth == 3 and e.deepest_depth == 3:
-		line = goals.lines().find("Reach depth 4")
+		line = goals.lines().find("Reach Mossy Hollow 4")
 		assert_gt(goals.progress(line), before, "it fills as the depth is held")
 		expected = 1.0 - e.seconds_to_stable() / e.stable_seconds
 		assert_almost_eq(goals.progress(line), expected, 0.001, "still the countdown")
 	# Away from the deepest depth: the party's depth against it.
 	_situation(2, 4, 2)
-	line = goals.lines().find("Reach depth 5")
+	line = goals.lines().find("Reach Mossy Hollow 5")
 	assert_ne(line, -1, "the next depth below the deepest: %s" % [goals.lines()])
-	assert_almost_eq(goals.progress(line), 2.0 / 5.0, 0.001, "depth 2 of 5")
+	assert_almost_eq(goals.progress(line), 2.0 / 5.0, 0.001, "stage 2 of 5")
 
 	# Beat the guardian: within 3 levels of the deepest depth, never beaten.
 	_situation(1, 1, 1)
@@ -311,21 +311,25 @@ func test_r2_goals_come_from_the_game() -> void:
 	_sim.party.gold = 1_000_000
 	_situation(2, 2, 2)
 	assert_eq(
-		goals.lines(), [beat, "Reach depth 3", skill_line] as Array[String], "the first three"
+		goals.lines(),
+		[beat, "Reach Mossy Hollow 3", skill_line] as Array[String],
+		"the first three"
 	)
 	var all: Array[String] = _sentences(goals.applicable())
-	assert_eq(all, [beat, "Reach depth 3", skill_line, "Train a hero", "Buy an upgrade"])
+	assert_eq(all, [beat, "Reach Mossy Hollow 3", skill_line, "Train a hero", "Buy an upgrade"])
 
 	# Train a hero and buy an upgrade, once the gold is there, with the price.
 	_level(hero, STRONG_LEVEL)
 	_sim.party.gold = 0
 	_situation(1, 1, 1)
-	assert_eq(goals.lines(), ["Reach depth 2"] as Array[String], "no gold, no gold goals")
+	assert_eq(goals.lines(), ["Reach Mossy Hollow 2"] as Array[String], "no gold, no gold goals")
 	var training: int = _cheapest_training()
 	var upgrade: int = _cheapest_upgrade()
 	_sim.party.gold = maxi(training, upgrade)
 	_hud.advance(STEP)
-	assert_eq(goals.lines(), ["Reach depth 2", "Train a hero", "Buy an upgrade"] as Array[String])
+	assert_eq(
+		goals.lines(), ["Reach Mossy Hollow 2", "Train a hero", "Buy an upgrade"] as Array[String]
+	)
 	assert_eq(goals.progress(1), -1.0, "training has no bar")
 	assert_eq(goals.detail(1), "%s gold" % Hud.group_thousands(training), "its price")
 	assert_eq(goals.progress(2), -1.0, "an upgrade has no bar")
@@ -334,7 +338,9 @@ func test_r2_goals_come_from_the_game() -> void:
 	_hud.advance(STEP)
 	var cheaper: String = "Train a hero" if training <= upgrade else "Buy an upgrade"
 	if training != upgrade:
-		assert_eq(goals.lines(), ["Reach depth 2", cheaper] as Array[String], "only the cheaper")
+		assert_eq(
+			goals.lines(), ["Reach Mossy Hollow 2", cheaper] as Array[String], "only the cheaper"
+		)
 
 	# The microskill nearest to being learned, by XP still to earn.
 	_sim = Simulation.new(SEED)
@@ -387,24 +393,26 @@ func test_r3_finished_goal() -> void:
 
 	# A depth reached.
 	_situation(1, 1, 1)
-	assert_eq(goals.lines()[0], "Reach depth 2", "the depth goal shows")
+	assert_eq(goals.lines()[0], "Reach Mossy Hollow 2", "the depth goal shows")
 	e.depth = 2
 	e.deepest_depth = 2
 	_hud.advance(STEP)
-	assert_eq(goals.lines()[0], "Reach depth 2", "the finished goal stays a moment")
+	assert_eq(goals.lines()[0], "Reach Mossy Hollow 2", "the finished goal stays a moment")
 	assert_true(goals.is_finished(0), "with its tick")
 	assert_gt(goals.flash(0), 0.0, "flashing")
 	assert_eq(goals.progress(0), 1.0, "its bar full")
-	assert_true(goals.lines().has("Reach depth 3"), "the next depth goal shows too")
-	assert_true(_hud.journal.lines()[0].ends_with("  Goal: reached depth 2"), "a journal line")
-	assert_signal_emitted_with_parameters(goals, "goal_finished", ["Goal: reached depth 2"])
+	assert_true(goals.lines().has("Reach Mossy Hollow 3"), "the next depth goal shows too")
+	assert_true(
+		_hud.journal.lines()[0].ends_with("  Goal: reached Mossy Hollow 2"), "a journal line"
+	)
+	assert_signal_emitted_with_parameters(goals, "goal_finished", ["Goal: reached Mossy Hollow 2"])
 	_hud.advance(Goals.FLASH_SECONDS)
 	assert_eq(goals.flash(0), 0.0, "the flash is short")
 	assert_true(goals.is_finished(0), "the tick stays")
 	_hud.advance(Goals.CELEBRATE_SECONDS - Goals.FLASH_SECONDS - 0.1)
 	assert_true(goals.is_finished(0), "for 3 seconds")
 	_hud.advance(0.2)
-	assert_false(goals.lines().has("Reach depth 2"), "then it goes")
+	assert_false(goals.lines().has("Reach Mossy Hollow 2"), "then it goes")
 	assert_eq(goals.lines(), _sentences(goals.applicable()).slice(0, 3), "the next takes its place")
 	for i: int in goals.lines().size():
 		assert_false(goals.is_finished(i), "nothing ticked")
@@ -556,7 +564,7 @@ func test_r5_explains_itself() -> void:
 	for kind: String in ["Beat", "Reach", hero.def().display_name, "Train", "Buy"]:
 		assert_true(seen.has(kind), "a tooltip for the %s goal: %s" % [kind, seen.keys()])
 	_situation(1, 1, 0)
-	var depth_line: int = goals.lines().find("Reach depth 2")
+	var depth_line: int = goals.lines().find("Reach Mossy Hollow 2")
 	assert_eq(
 		goals.hint(depth_line),
 		"Hold this depth until it is stable, and the party moves on by itself.",
@@ -684,7 +692,7 @@ func test_r7_follows_the_simulation() -> void:
 	# Each frame: gold arriving shows a gold goal at once.
 	_raise(STRONG_LEVEL)
 	_situation(1, 1, 1)
-	assert_eq(goals.lines(), ["Reach depth 2"] as Array[String], "one goal")
+	assert_eq(goals.lines(), ["Reach Mossy Hollow 2"] as Array[String], "one goal")
 	_sim.party.gold = 1_000_000
 	_hud.advance(STEP)
 	assert_eq(goals.lines().size(), 3, "the gold goals at once: %s" % [goals.lines()])
@@ -696,13 +704,13 @@ func test_r7_follows_the_simulation() -> void:
 		_sim.step()
 	_hud.advance(STEP)
 	var journal_lines: int = _hud.journal.lines().size()
-	assert_true(goals.lines().has("Reach depth 2"), "the depth goal shows")
+	assert_true(goals.lines().has("Reach Mossy Hollow 2"), "the depth goal shows")
 	e.depth = 2
 	e.deepest_depth = 2
 	_emit(SimEvent.Kind.DEPTH_CHANGED, 2, World.ANIMATE_TICKS + 1)
 	_hud.advance(STEP)
-	assert_false(goals.lines().has("Reach depth 2"), "the reached goal is replaced")
-	assert_true(goals.lines().has("Reach depth 3"), "by the next")
+	assert_false(goals.lines().has("Reach Mossy Hollow 2"), "the reached goal is replaced")
+	assert_true(goals.lines().has("Reach Mossy Hollow 3"), "by the next")
 	for i: int in goals.lines().size():
 		assert_false(goals.is_finished(i), "nothing ticked")
 		assert_eq(goals.flash(i), 0.0, "nothing flashing")
@@ -723,7 +731,7 @@ func test_r7_follows_the_simulation() -> void:
 		return
 	_build_hud()
 	goals = _goals()
-	var wanted: Array[String] = ["Beat the %s" % _guardian_name(10), "Reach depth 9"]
+	var wanted: Array[String] = ["Beat the %s" % _guardian_name(10), "Reach Mossy Hollow 9"]
 	assert_eq(goals.lines(), wanted, "the loaded game's goals, at once")
 	for i: int in goals.lines().size():
 		assert_false(goals.is_finished(i), "nothing ticked")

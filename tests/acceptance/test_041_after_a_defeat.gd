@@ -3,7 +3,7 @@ extends GutTest
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
 ## _process turned off, and puts the party in the fight it is to lose by hand: just outside the
-## Slime King's chamber on depth 5, or on a depth with ordinary monsters. Once the fight starts,
+## Slime King's chamber on stage 5, or on a depth with ordinary monsters. Once the fight starts,
 ## every hero's fighter is put at 0 health, so the next tick loses it; nothing waits for a real
 ## defeat.
 
@@ -62,7 +62,7 @@ func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 	return false
 
 
-## Puts the party just outside the guardian's chamber on depth 5, walking in, no auto-push.
+## Puts the party just outside the guardian's chamber on Mossy Hollow 5, walking in, no auto-push.
 func _before_guardian() -> void:
 	var e: Expedition = _sim.expedition
 	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
@@ -176,7 +176,7 @@ func test_r1_defeat_note() -> void:
 	assert_true(_note().is_shown(), "the note shows after the wipe")
 	assert_eq(
 		_first_line(),
-		"Beaten by the %s on depth %d" % [_guardian_name(), GUARDIAN_DEPTH],
+		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH],
 		"it says the guardian beat the party, and where"
 	)
 	var revived: Callable = func() -> bool:
@@ -197,11 +197,11 @@ func test_r1_defeat_note() -> void:
 	_linger(1.0)
 	assert_false(_note().is_shown(), "then it fades and goes")
 
-	# An ordinary fight on depth 7: the monsters alive when the last hero fell, by name. One of
+	# An ordinary fight on Mossy Hollow 7: the monsters alive when the last hero fell, by name. One of
 	# them falls first, and is not named (spec 046 R10).
 	_hunting_on(DEEP, SAFE)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
-	assert_true(_step_until(fighting), "a fight starts on depth 7")
+	assert_true(_step_until(fighting), "a fight starts on Mossy Hollow 7")
 	var battle: Battle = _sim.expedition.battle
 	assert_gt(battle.monsters.size(), 1, "more than one monster")
 	var first: Combatant = battle.monsters[0]
@@ -223,10 +223,10 @@ func test_r1_defeat_note() -> void:
 	assert_true(_note().is_shown(), "the note shows again")
 	assert_eq(
 		_first_line(),
-		"Beaten on depth %d by %s" % [DEEP, DefeatNote.crowd(names)],
+		"Beaten on Mossy Hollow %d by %s" % [DEEP, DefeatNote.crowd(names)],
 		"it says where, and which monsters"
 	)
-	assert_true(_first_line().begins_with("Beaten on depth 7 by "), "in that order")
+	assert_true(_first_line().begins_with("Beaten on Mossy Hollow 7 by "), "in that order")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -260,15 +260,15 @@ func test_r2_says_why() -> void:
 	assert_true(_lose_next_fight(), "the party loses to the guardian again")
 	lines = _note().lines()
 	assert_eq(lines.size(), 2, "a second line")
-	assert_eq(lines[1], "Depth 5 is 3 below the safe depth", "the depth, not the level")
+	assert_eq(lines[1], "Mossy Hollow 5 is 3 below the safe stage", "the depth, not the level")
 	assert_true(_until_standing(), "the heroes stand")
 
 	# 2. Ordinary monsters, two or more below the safe depth.
 	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on depth 7")
+	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
 	lines = _note().lines()
 	assert_eq(lines.size(), 2, "a second line")
-	assert_eq(lines[1], "Depth 7 is 3 below the safe depth", "how far below the safe depth")
+	assert_eq(lines[1], "Mossy Hollow 7 is 3 below the safe stage", "how far below the safe stage")
 	assert_true(_until_standing(), "the heroes stand")
 
 	# 3. Otherwise none: one below the safe depth, or on it.
@@ -326,7 +326,7 @@ func test_r3_offers_help() -> void:
 	# Ordinary monsters below the safe depth, with gold: train and buy, nothing more.
 	_sim.party.gold = RICH
 	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on depth 7")
+	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
 	var trained: Hero = _cheapest_trainee()
 	expected = ["Train %s" % trained.def().display_name, "Buy an upgrade"]
 	assert_eq(_note().suggestions(), expected, "train, buy")
@@ -363,7 +363,7 @@ func test_r3_offers_help() -> void:
 	_sim.party.gold = 0
 	_hunting_on(DEEP, SAFE)
 	assert_true(_lose_next_fight(), "the party loses below its safe depth")
-	assert_eq(_note().suggestions(), [] as Array[String], "nothing below the safe depth")
+	assert_eq(_note().suggestions(), [] as Array[String], "nothing below the safe stage")
 	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(SAFE, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on its safe depth")
@@ -377,7 +377,7 @@ func test_r3_offers_help() -> void:
 
 
 func test_r4_repeats_are_counted() -> void:
-	var beaten: String = "Beaten by the %s on depth %d" % [_guardian_name(), GUARDIAN_DEPTH]
+	var beaten: String = "Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH]
 	assert_true(_guardian_wipe(), "the first defeat")
 	assert_eq(_first_line(), beaten, "no count the first time")
 	assert_true(_until_standing(), "the heroes stand")
@@ -535,7 +535,7 @@ func test_r5_nothing_after_time_away() -> void:
 
 func test_r6_journal() -> void:
 	# The note's first line, then where the party falls back to (spec 046 R6).
-	var back: String = "; falling back to depth %d" % SAFE
+	var back: String = "; falling back to Mossy Hollow %d" % SAFE
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	assert_eq(_journal_sentence(), _first_line() + back, "the journal's line is the note's first")
 	assert_true(_until_standing(), "the heroes stand")
@@ -544,7 +544,7 @@ func test_r6_journal() -> void:
 	assert_true(_journal_sentence().ends_with("(2 times)" + back), "counted")
 	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on depth 7")
+	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
 	assert_eq(_journal_sentence(), _first_line() + back, "an ordinary defeat's line too")
 
 

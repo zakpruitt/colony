@@ -297,6 +297,11 @@ func test_r5_encounter_composition() -> void:
 		LabyrinthChamber.Kind.VAULT: Vector2i(2, 3),
 	}
 	var picks: Dictionary[StringName, int] = {}
+	# Spec 049: a new party is in Mossy Hollow, whose list says from which stage each monster lives.
+	var mossy: AreaDef = Content.area(&"mossy_hollow")
+	var first_stage: Dictionary[StringName, int] = {}
+	for i: int in mossy.monsters.size():
+		first_stage[mossy.monsters[i]] = mossy.monster_stages[i]
 	for seed_value: int in range(1, 61):
 		var sim := Simulation.new(seed_value)
 		var other := Simulation.new(seed_value)
@@ -317,8 +322,9 @@ func test_r5_encounter_composition() -> void:
 				var low: float = room.rect.position.x + width / 4.0
 				var high: float = room.rect.end.x - 1 - width / 4.0
 				for m: Combatant in monsters:
-					var def: MonsterDef = Content.monster(m.def_id)
-					assert_lte(def.min_depth, depth, "no monster above its depth, " + where)
+					assert_true(first_stage.has(m.def_id), "a Mossy Hollow monster, " + where)
+					var first: int = first_stage.get(m.def_id, 0)
+					assert_lte(first, depth, "no monster above its stage, " + where)
 					assert_eq(m.level, depth, "made at the level's depth")
 					assert_between(m.x, low - EPSILON, high + EPSILON, "middle half, " + where)
 					if depth == 5:
@@ -326,13 +332,13 @@ func test_r5_encounter_composition() -> void:
 				var again: Array[Combatant] = other.expedition.monsters_in(depth, room.index)
 				assert_eq(_def_ids(again), _def_ids(monsters), "same monsters, " + where)
 
-	var ids: Array[StringName] = []  # depth 5's ordinary monsters: deeper ones are likelier
-	for id: StringName in Content.monster_ids():
-		if Content.monster(id).min_depth <= 5 and not Content.monster(id).guardian:
+	var ids: Array[StringName] = []  # stage 5's ordinary monsters: deeper ones are likelier
+	for id: StringName in first_stage:
+		if not Content.monster(id).guardian:
 			ids.append(id)
 	for deeper: StringName in ids:
 		for shallower: StringName in ids:
-			if Content.monster(deeper).min_depth > Content.monster(shallower).min_depth:
+			if Content.monster(deeper).base_level > Content.monster(shallower).base_level:
 				var deeper_picks: int = picks.get(deeper, 0)
 				var shallower_picks: int = picks.get(shallower, 0)
 				assert_gt(

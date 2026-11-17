@@ -45,6 +45,7 @@ const STATE_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.CLIMBING: "Climbing",
 	Expedition.State.REVIVING: "Reviving",
 	Expedition.State.WORKING: "Working",
+	Expedition.State.JOURNEYING: "On the way",
 }
 const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.TRAVELLING: &"silver",
@@ -53,6 +54,7 @@ const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.CLIMBING: &"tan",
 	Expedition.State.REVIVING: &"pink",
 	Expedition.State.WORKING: &"amber",
+	Expedition.State.JOURNEYING: &"tan",
 }
 
 ## One frame per hero, in formation order, left to right.
@@ -272,21 +274,22 @@ func advance(delta: float) -> void:
 	tooltip.advance(delta)
 
 
-## What the party is doing and why, as the depth panel shows it: "Heading down to depth 5",
-## "Fighting 3 monsters", "Resting, 64% health" and so on (spec 027 R1).
+## What the party is doing and why, as the depth panel shows it: "Heading down to stage 5",
+## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (spec
+## 027 R1, spec 049 R9: the panel's caption names the area the stages are in).
 func status_text() -> String:
 	var e: Expedition = _simulation.expedition
 	var line: String = STATE_WORDS.get(e.state, "")
 	match e.state:
 		Expedition.State.TRAVELLING:
-			line = "Hunting on depth %d" % e.depth
+			line = "Hunting on stage %d" % e.depth
 			if e.is_holding():
 				var held: int = e.depth if e.target_depth > e.depth else e.depth - 1
 				line = "Holding at the %s" % Content.monster(e.guardian_of(held)).display_name
 			elif e.target_depth > e.depth:
-				line = "Heading down to depth %d" % e.target_depth
+				line = "Heading down to stage %d" % e.target_depth
 			elif e.target_depth < e.depth:
-				line = "Heading up to depth %d" % e.target_depth
+				line = "Heading up to stage %d" % e.target_depth
 		Expedition.State.FIGHTING:
 			line = _fight_text(e.battle)
 		Expedition.State.RESTING:
@@ -299,13 +302,15 @@ func status_text() -> String:
 			var quest: SideQuestDef = Content.side_quest(e.working_quest())
 			if quest != null:
 				line = "Working: %s" % quest.display_name
+		Expedition.State.JOURNEYING:
+			line = "On the way to " + PlaceText.of(e.area, e.travel.journey_stage(e))
 	return line
 
 
 ## The road to stable (spec 027 R2, spec 039 R2): "Stable in m:ss" while the party must still hold
 ## this depth, "Deeper in m:ss" while auto-push counts down to the next, "Stable" otherwise, or
-## "Holding" at a guardian, followed by what happens next (", then depth N",
-## ", staying on depth N", ", Orders (O) to go in").
+## "Holding" at a guardian, followed by what happens next (", then stage N",
+## ", staying on stage N", ", Orders (O) to go in").
 func stable_text() -> String:
 	var parts: PackedStringArray = _stable_parts()
 	return parts[0] if parts[1].is_empty() else "%s, %s" % [parts[0], parts[1]]
@@ -697,6 +702,7 @@ func _advance_depth(delta: float) -> void:
 	var target: int = _asked_target if _asked_target > 0 else expedition.target_depth
 	_auto_on = expedition.auto_push
 	var changed: bool = false
+	changed = _set_text(depth_caption, PlaceText.area_name(expedition.place)) or changed
 	changed = _set_text(depth_label, str(_depth)) or changed
 	changed = _set_text(stable_label, "Safe %d" % expedition.last_stable_depth) or changed
 	changed = _set_text(target_label, str(target)) or changed
@@ -760,6 +766,8 @@ func _layout_depth() -> void:
 	var road: float = maxf(x, column + state_label.size.x) + 11.0
 	stable_divider.position = Vector2(road - 5.0, 4.0)
 	stable_divider.size = Vector2(1.0, TOP_HEIGHT - 8.0)
+	# On the way to another area (spec 049) the road has nothing to say, and no divider.
+	stable_divider.visible = stable_note.text != "" or stable_next.text != ""
 	stable_note.position.x = road
 	var next_x: float = road
 	if stable_bar.visible:
@@ -775,22 +783,24 @@ func _layout_depth() -> void:
 
 ## The road to stable's two parts (spec 039 R2): the note ("Stable in m:ss" while this depth is
 ## not yet stable, "Deeper in m:ss" while auto-push counts down to the next, "Stable", or
-## "Holding" at a guardian) and what happens next at the target ("then depth N", "staying on
-## depth N", "Orders (O) to go in", or "").
+## "Holding" at a guardian) and what happens next at the target ("then stage N", "staying on
+## stage N", "Orders (O) to go in", or "").
 func _stable_parts() -> PackedStringArray:
 	var e: Expedition = _simulation.expedition
 	if e.is_holding():
 		return PackedStringArray(["Holding", "Orders (O) to go in"])
 	if e.state == Expedition.State.REVIVING:
 		return PackedStringArray(["Stable", ""])
+	if e.state == Expedition.State.JOURNEYING:
+		return PackedStringArray(["", ""])
 	var at_target: bool = e.depth == e.target_depth
-	var next: String = "then depth %d" % (e.depth + 1) if at_target and e.auto_push else ""
+	var next: String = "then stage %d" % (e.depth + 1) if at_target and e.auto_push else ""
 	if e.depth > e.last_stable_depth:
 		return PackedStringArray(["Stable in " + clock(e.seconds_to_stable()), next])
 	if _pushing():
 		return PackedStringArray(["Deeper in " + clock(e.seconds_to_push()), next])
 	if at_target and not e.auto_push:
-		next = "staying on depth %d" % e.depth
+		next = "staying on stage %d" % e.depth
 	return PackedStringArray(["Stable", next])
 
 

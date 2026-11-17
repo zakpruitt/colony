@@ -434,7 +434,7 @@ func test_r3_two_spans() -> void:
 	)
 	var line: String = tally.rows()[0]
 	assert_true(line.begins_with("Last fight: "), line)
-	assert_true(line.ends_with(", depth %d, %d s" % [fight["depth"], seconds]), line)
+	assert_true(line.ends_with(", Mossy Hollow %d, %d s" % [fight["depth"], seconds]), line)
 	var kinds: Array[StringName] = fight["kinds"]
 	var counts: Dictionary[StringName, int] = {}
 	for kind: StringName in kinds:
@@ -443,7 +443,7 @@ func test_r3_two_spans() -> void:
 		var only: StringName = counts.keys()[0]
 		var named: String = Content.monster(only).display_name.to_lower()
 		var phrase: String = "%d %s%s" % [kinds.size(), named, "s" if kinds.size() > 1 else ""]
-		assert_eq(line, "Last fight: %s, depth %d, %d s" % [phrase, fight["depth"], seconds])
+		assert_eq(line, "Last fight: %s, Mossy Hollow %d, %d s" % [phrase, fight["depth"], seconds])
 	else:
 		var all_named: bool = true
 		for kind: StringName in counts:
@@ -470,7 +470,7 @@ func test_r3_two_spans() -> void:
 	var now: int = roundi(
 		float(_sim.tick - _last_tick(SimEvent.Kind.ENCOUNTER_STARTED)) / Simulation.TICKS_PER_SECOND
 	)
-	assert_eq(tally.rows()[0], "This fight: the %s, depth 5, %d s" % [guardian, now])
+	assert_eq(tally.rows()[0], "This fight: the %s, Mossy Hollow 5, %d s" % [guardian, now])
 	_check_rows(_sums(_last_fight_events(), DAMAGE), "the fight under way")
 	assert_true(_run_until(func() -> bool: return not _fighting()), "the guardian fight ends")
 	var lasted: int = roundi(
@@ -484,7 +484,7 @@ func test_r3_two_spans() -> void:
 			/ Simulation.TICKS_PER_SECOND
 		)
 	)
-	assert_eq(tally.rows()[0], "Last fight: the %s, depth 5, %d s" % [guardian, lasted])
+	assert_eq(tally.rows()[0], "Last fight: the %s, Mossy Hollow 5, %d s" % [guardian, lasted])
 	_world.sim_event.disconnect(note)
 
 	# A lost fight: after the wipe and the revival it is still the last fight (spec 046 R10).
@@ -613,7 +613,10 @@ func test_r5_nothing_from_time_away() -> void:
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
-	assert_eq(tally.tally.fights(), 0, "no fight from the time away")
+	# Spec 046 R7: a tally made mid-fight counts the fight under way, and since spec 049 changed
+	# the monsters past stage 1 this replay ends in one; still nothing from the time away.
+	var fighting: bool = main.simulation.expedition.state == Expedition.State.FIGHTING
+	assert_eq(tally.tally.fights(), 1 if fighting else 0, "no fight from the time away")
 	for hero: Hero in main.simulation.party.heroes:
 		for measure: Tally.Measure in [DAMAGE, HEALING, TAKEN]:
 			for span: Tally.Span in [LAST, SESSION]:

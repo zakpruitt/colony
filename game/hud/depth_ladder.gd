@@ -35,8 +35,8 @@ enum Risk { SAFE, REACHABLE, DANGEROUS }
 const RUNGS: int = 12
 ## Pixels from one rung to the next.
 const PITCH: float = 20.0
-## The panel's width.
-const WIDTH: float = 52.0
+## The panel's width: room for the longest area name in the heading (spec 049).
+const WIDTH: float = 60.0
 ## The caption's row at the top of the panel, and where the rungs start below it.
 const CAPTION_HEIGHT: float = 13.0
 const RUNGS_TOP: float = 15.0
@@ -264,6 +264,13 @@ func advance(delta: float) -> void:
 	var e: Expedition = _simulation.expedition
 	if _asked_target > 0 and e.target_depth == _asked_target:
 		_asked_target = 0
+	# Spec 049 R9: the heading names the area whose stages the rungs are.
+	var heading: String = PlaceText.area_name(e.place)
+	if _caption.text != heading:
+		_caption.text = heading
+	# A long name leaves no room for the arrow beside it: the arrow takes the row (the depth panel
+	# still names the area).
+	_caption.visible = arrow_rect().position.x >= _caption_end() or not arrow_rect().has_area()
 	_time = fmod(_time + delta, BOB_SECONDS)
 	_flash = maxf(_flash - delta, 0.0)
 	_rested += delta
@@ -317,7 +324,8 @@ func first_depth() -> int:
 func risk(level_depth: int) -> Risk:
 	if _simulation == null or level_depth <= _simulation.expedition.last_stable_depth:
 		return Risk.SAFE
-	if level_depth <= PartyLevels.lowest(_simulation.party) + 1:
+	# Spec 049: a stage is as hard as its level.
+	if _simulation.expedition.level_at(level_depth) <= PartyLevels.lowest(_simulation.party) + 1:
 		return Risk.REACHABLE
 	return Risk.DANGEROUS
 
@@ -377,11 +385,18 @@ func arrow_rect() -> Rect2:
 	var x: float = floorf((RAIL_LEFT + RAIL_RIGHT + 1.0 - ARROW_SIZE.x) / 2.0)
 	var y: float = CAPTION_HEIGHT - ARROW_SIZE.y - 1.0
 	if arrow_points_up():
-		# Beside the caption, not over its last letter.
-		x = maxf(x, _caption.position.x + PixelText.width(_caption.text) + 2.0)
+		# Beside the caption, not over its last letter, when there is room for it there.
+		var beside: float = maxf(x, _caption_end())
+		if beside + ARROW_SIZE.x <= WIDTH - PADDING:
+			x = beside
 	else:
 		y = size.y - ARROW_SIZE.y
 	return Rect2(Vector2(x, y), ARROW_SIZE)
+
+
+## Where an arrow beside the caption may start: two pixels after its last letter.
+func _caption_end() -> float:
+	return _caption.position.x + PixelText.width(_caption.text) + 2.0
 
 
 ## True when the party's rung is above the view, so the arrow points up.
@@ -443,8 +458,8 @@ func click_depth(depth: int) -> void:
 	if changed and journal != null and risk(depth) == Risk.DANGEROUS:
 		journal.announce(
 			(
-				"Target set to depth %d: dangerous for level %d heroes"
-				% [depth, PartyLevels.lowest(_simulation.party)]
+				"Target set to %s: dangerous for level %d heroes"
+				% [PlaceText.here(_simulation, depth), PartyLevels.lowest(_simulation.party)]
 			)
 		)
 
@@ -549,7 +564,8 @@ func _hover_parts(depth: int) -> PackedStringArray:
 	var click: String = ""
 	if _can_target(depth) and not shown.has(&"target"):
 		click = CLICK_HINT
-	return PackedStringArray(["Depth %d: %s" % [depth, what], click, _risk_line(depth)])
+	var place: String = PlaceText.here(_simulation, depth)
+	return PackedStringArray(["%s: %s" % [place, what], click, _risk_line(depth)])
 
 
 ## The hint's line for how [param depth] looks (spec 043 R2): "" for a safe depth.

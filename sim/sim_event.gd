@@ -22,6 +22,9 @@ enum Kind {
 	HERO_TRAINED,
 	# A command's result (spec 035), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
 	ORDER_CHANGED,
+	# Spec 049's: only a run that changes area or beats an area's guardian produces them.
+	AREA_CHANGED,
+	AREA_OPENED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -57,6 +60,7 @@ var target_id: int = -1
 ## [method Content.training_ids]. For ORDER_CHANGED: the order's new value
 ## ([enum Expedition.Pace] or [enum Expedition.GuardianOrder]), with [member target_id] which order:
 ## [constant PartyOrders.PACE] (0) or [constant PartyOrders.GUARDIANS] (1).
+## For AREA_CHANGED and AREA_OPENED: the area's position in [method Content.area_ids].
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for SIDE_QUEST_MISSED.

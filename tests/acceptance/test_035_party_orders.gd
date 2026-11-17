@@ -12,49 +12,49 @@ extends GutTest
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2787906125,
-		990669477,
-		544908974,
-		2330031452,
-		1561799888,
-		2885430671,
-		1512576774,
-		2095297132,
-		3758380940,
-		3211837043,
-		373971517,
-		3405411441,
-		1120602967,
-		2069322551,
-		628014606,
-		759998510,
-		1023609177,
-		976086003,
-		2737661670,
-		1401816699,
+		2840655281,
+		2075673128,
+		1475654766,
+		2875557886,
+		2784050463,
+		3856899135,
+		2838792657,
+		1321820002,
+		2680065727,
+		363122329,
+		1518956812,
+		1963694730,
+		3242618005,
+		4032510544,
+		1473335814,
+		2555808367,
+		2104573394,
+		4011715026,
+		831463122,
+		2254641605,
 	],
 	29:
 	[
-		1754204271,
-		582112477,
-		3717365051,
-		254812515,
-		1257746763,
-		63140123,
-		149478716,
-		1794055068,
-		3631397545,
-		257261949,
-		1105339326,
-		1212758525,
-		1431225514,
-		1429182223,
-		1050815822,
-		2090999159,
-		1183296188,
-		3544825569,
-		3546831771,
-		2783104606,
+		611997602,
+		4245644670,
+		2143765798,
+		2671802714,
+		1395746236,
+		3338831802,
+		4129929813,
+		2159254304,
+		1759025754,
+		3469722866,
+		360968830,
+		3156032218,
+		2805583006,
+		4216963523,
+		1449751589,
+		1586222788,
+		1444904605,
+		1703910579,
+		370663900,
+		2733464942,
 	],
 }
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
@@ -225,7 +225,7 @@ func _run(sim: Simulation, ticks: int) -> Array[SimEvent]:
 	return events
 
 
-## The party fights a chamber on depth 1 at [param pace], every hero at [param share] of its health
+## The party fights a chamber on stage 1 at [param pace], every hero at [param share] of its health
 ## and nobody hurt or healed in the fight; true if it rests afterwards.
 func _rests_after_fight_at(pace: Expedition.Pace, share: float) -> bool:
 	var sim := Simulation.new(SEED)
@@ -393,8 +393,8 @@ func test_r4_saved() -> void:
 	_run(sim, 20)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
-	assert_eq(version, 5, "the version rose by one")
-	assert_eq(Simulation.SAVE_VERSION, 5)
+	assert_eq(version, 6, "the version rose by one (and by one more for spec 049)")
+	assert_eq(Simulation.SAVE_VERSION, 6)
 	var saved_pace: String = str(data.get("pace"))
 	var saved_order: String = str(data.get("guardian_order"))
 	assert_eq(saved_pace, "cautious", "the pace by name")
@@ -419,7 +419,7 @@ func test_r4_saved() -> void:
 	assert_eq(Simulation.save_problems(old).size(), 0, "version 4 is fine: %s" % [old])
 	var upgraded: Dictionary = Simulation.upgrade_save(old)
 	var upgraded_version: int = upgraded["version"]
-	assert_eq(upgraded_version, 5, "through the upgrade step")
+	assert_eq(upgraded_version, 6, "through the upgrade steps")
 	var old_loaded: Simulation = Simulation.from_save(old)
 	assert_not_null(old_loaded, "version 4 loads")
 	if old_loaded != null:
@@ -536,7 +536,9 @@ func test_r6_they_do_what_they_say() -> void:
 		assert_eq(guardian_fights, 0, "seed %d: Hold never fights a guardian" % seed_value)
 		assert_eq(deepest, GUARDIAN_DEPTH, "seed %d: Hold reaches depth 5, never past" % seed_value)
 		assert_gt(
-			late_fights, 0, "seed %d: fighting on depth 5 in the last ten minutes" % seed_value
+			late_fights,
+			0,
+			"seed %d: fighting on Mossy Hollow 5 in the last ten minutes" % seed_value
 		)
 		assert_gt(late_gold, 0, "seed %d: and earning" % seed_value)
 
@@ -739,13 +741,13 @@ func test_r8_status_and_journal() -> void:
 	_sim.set_guardian_order(CHALLENGE)
 	_tick()
 	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling under Challenge")
-	assert_eq(_hud.status_text(), "Heading down to depth 6", "heading down again")
+	assert_eq(_hud.status_text(), "Heading down to stage 6", "heading down again")
 	# With the target here, it only hunts.
 	_sim.set_guardian_order(HOLD)
 	_sim.set_target_depth(GUARDIAN_DEPTH)
 	_tick()
 	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling with the target here")
-	assert_eq(_hud.status_text(), "Hunting on depth 5", "not holding with the target here")
+	assert_eq(_hud.status_text(), "Hunting on stage 5", "not holding with the target here")
 
 	# The journal writes a line for an order change.
 	_sim.set_pace(BOLD)

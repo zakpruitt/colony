@@ -137,7 +137,7 @@ func test_r1_hover_follows_the_rungs() -> void:
 	_hud.advance(HudTooltip.DELAY + STEP)
 	assert_eq(ladder.hovered, 9, "setup: the mouse rests on rung 9")
 	assert_true(ladder.hint.visible, "setup: its hint shows")
-	assert_true(ladder.hint_text().begins_with("Depth 9:"), "setup: " + ladder.hint_text())
+	assert_true(ladder.hint_text().begins_with("Mossy Hollow 9:"), "setup: " + ladder.hint_text())
 
 	# A wheel notch under the still mouse: the rungs move up by one, the mouse is now over 10.
 	_wheel(true, at)

@@ -80,7 +80,7 @@ func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 	return false
 
 
-## Puts the party just outside the guardian's chamber on depth 5, walking in, no auto-push.
+## Puts the party just outside the guardian's chamber on Mossy Hollow 5, walking in, no auto-push.
 func _before_guardian() -> void:
 	var e: Expedition = _sim.expedition
 	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
@@ -185,7 +185,7 @@ func _is_hero(id: int) -> bool:
 
 
 func test_r1_one_frame_defeat() -> void:
-	var beaten: String = "Beaten by the %s on depth %d" % [_guardian_name(), GUARDIAN_DEPTH]
+	var beaten: String = "Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH]
 	_before_guardian()
 	assert_true(_doom_next_fight(), "a guardian fight starts, and is lost")
 	# The defeat, the wipe and the revival stepped with no frame between, as a stall or 4x
@@ -209,7 +209,7 @@ func test_r1_one_frame_defeat() -> void:
 		return
 	assert_eq(
 		_journal_sentence(),
-		"%s; falling back to depth %d" % [beaten, SAFE],
+		"%s; falling back to Mossy Hollow %d" % [beaten, SAFE],
 		"the journal names the guardian and the depth of the lost fight"
 	)
 	assert_eq(_note().wipe_line(wipe), beaten, "the note remembers the depth of the lost fight")
@@ -311,7 +311,7 @@ func test_r5_old_defeat_leaves_the_note() -> void:
 	assert_eq(lines.size(), 2, "a line and a reason")
 	assert_eq(helps, ["Hold here"] as Array[String], "Hold, with no gold")
 	assert_true(_until_standing(), "the heroes stand")
-	# The mouse holds the note while the party walks into an ordinary fight on depth 7.
+	# The mouse holds the note while the party walks into an ordinary fight on Mossy Hollow 7.
 	_note().point_at(_note().panel.get_global_rect().get_center())
 	_hunting_on(DEEP, SAFE)
 	assert_true(_doom_next_fight(), "an ordinary fight, lost")
@@ -336,12 +336,12 @@ func test_r6_journal_keeps_what_it_said() -> void:
 	assert_eq(
 		_journal_sentence(),
 		(
-			"Beaten by the %s on depth %d; falling back to depth %d"
+			"Beaten by the %s on Mossy Hollow %d; falling back to Mossy Hollow %d"
 			% [_guardian_name(), GUARDIAN_DEPTH, SAFE]
 		),
 		"the note's line and where the party falls back to"
 	)
-	assert_eq(_journal_sentence(), _first_line() + "; falling back to depth %d" % SAFE)
+	assert_eq(_journal_sentence(), _first_line() + "; falling back to Mossy Hollow %d" % SAFE)
 	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(SAFE, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on its safe depth")
@@ -373,7 +373,7 @@ func test_r7_started_mid_fight() -> void:
 	tally.set_measure(Tally.Measure.DAMAGE)
 	_hud.advance(STEP)
 	assert_true(tally.rows()[0].begins_with("This fight: "), tally.rows()[0])
-	assert_true(tally.rows()[0].contains(", depth %d, " % depth), tally.rows()[0])
+	assert_true(tally.rows()[0].contains(", Mossy Hollow %d, " % depth), tally.rows()[0])
 	assert_eq(tally.tally.fights(), 1, "the fight under way is counted")
 	# Blows struck from here are this fight's.
 	var hit: Callable = func() -> bool:

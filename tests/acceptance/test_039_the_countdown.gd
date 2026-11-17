@@ -17,29 +17,29 @@ const GUARDIAN_DEPTH: int = 5
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2787906125,
-		990669477,
-		544908974,
-		2330031452,
-		1561799888,
-		2885430671,
-		1512576774,
-		2095297132,
-		3758380940,
-		3211837043,
+		2840655281,
+		2075673128,
+		1475654766,
+		2875557886,
+		2784050463,
+		3856899135,
+		2838792657,
+		1321820002,
+		2680065727,
+		363122329,
 	],
 	39:
 	[
-		1746570300,
-		152044681,
-		3361690917,
-		1940392825,
-		526586535,
-		4071417977,
-		1343788724,
-		3131339095,
-		1551275218,
-		2130361326,
+		3946405204,
+		4083408126,
+		1486015764,
+		2953464303,
+		537785673,
+		3735694914,
+		3381207781,
+		4059733803,
+		3313505566,
+		3875364768,
 	],
 }
 
@@ -212,7 +212,7 @@ func test_r2_stable_note() -> void:
 	# Not yet stable here, at the target, auto-push on: as before.
 	_situation(2, 2, 1, 2, true)
 	var stable_in: String = "Stable in %s" % _clock(e.seconds_to_stable())
-	assert_eq(_hud.stable_text(), stable_in + ", then depth 3", "not yet stable")
+	assert_eq(_hud.stable_text(), stable_in + ", then stage 3", "not yet stable")
 	assert_true(_hud.stable_bar.visible, "with its bar")
 	assert_almost_eq(
 		_hud.stable_progress(), 1.0 - e.seconds_to_stable() / e.stable_seconds, 0.001, "to stable"
@@ -226,13 +226,13 @@ func test_r2_stable_note() -> void:
 	e = _sim.expedition
 	for i: int in 30:
 		_tick()
-	assert_eq(e.depth, 1, "on depth 1")
+	assert_eq(e.depth, 1, "on Mossy Hollow 1")
 	assert_eq(e.seconds_to_stable(), 0.0, "which is stable")
 	assert_gt(e.seconds_to_push(), 0.0, "and the push still to come")
 	var deeper: String = "Deeper in %s" % _clock(e.seconds_to_push())
 	assert_eq(_hud.stable_note.text, deeper, "the note counts to the push")
-	assert_eq(_hud.stable_next.text, "then depth 2", "and says what comes")
-	assert_eq(_hud.stable_text(), deeper + ", then depth 2", "the whole note")
+	assert_eq(_hud.stable_next.text, "then stage 2", "and says what comes")
+	assert_eq(_hud.stable_text(), deeper + ", then stage 2", "the whole note")
 	assert_true(_hud.stable_bar.visible, "with its bar")
 	assert_almost_eq(
 		_hud.stable_progress(),
@@ -246,7 +246,7 @@ func test_r2_stable_note() -> void:
 	_sim.set_auto_push(false)
 	_tick()
 	assert_eq(_hud.stable_note.text, "Stable", "stable")
-	assert_eq(_hud.stable_next.text, "staying on depth 1", "and staying")
+	assert_eq(_hud.stable_next.text, "staying on stage 1", "and staying")
 	assert_false(_hud.stable_bar.visible, "no bar")
 
 	# Heading to another depth: the note is this depth's, with no then line.
@@ -278,7 +278,7 @@ func test_r3_goal_agrees() -> void:
 	# At the deepest depth, auto-push on: the bar fills toward the push and reads the time left.
 	for i: int in 30:
 		_tick()
-	var line: int = _line("Reach depth 2")
+	var line: int = _line("Reach Mossy Hollow 2")
 	assert_ne(line, -1, "the depth goal: %s" % [goals.lines()])
 	assert_eq(e.seconds_to_stable(), 0.0, "depth 1 is already stable")
 	assert_almost_eq(
@@ -293,7 +293,7 @@ func test_r3_goal_agrees() -> void:
 	# Auto-push off.
 	_sim.set_auto_push(false)
 	_tick()
-	line = _line("Reach depth 2")
+	line = _line("Reach Mossy Hollow 2")
 	assert_eq(goals.detail(line), "Auto is off", "says auto is off")
 	assert_lt(goals.progress(line), 1.0, "not full")
 	var how: String = goals.hint(line)
@@ -305,7 +305,7 @@ func test_r3_goal_agrees() -> void:
 	assert_true(e.is_holding(), "the party holds at the guardian")
 	var guardian: String = Content.monster(e.guardian_of(GUARDIAN_DEPTH)).display_name
 	assert_eq(goals.lines()[0], "Beat the %s" % guardian, "the guardian's goal")
-	assert_eq(_line("Reach depth %d" % (GUARDIAN_DEPTH + 1)), -1, "not the depth's")
+	assert_eq(_line("Reach Mossy Hollow %d" % (GUARDIAN_DEPTH + 1)), -1, "not the depth's")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -320,7 +320,7 @@ func test_r4_new_game() -> void:
 		var note: String = _hud.stable_note.text
 		assert_true(note.begins_with("Deeper in "), "tick %d: %s" % [_sim.tick, note])
 		assert_lte(e.seconds_to_push(), DepthTiming.stable_seconds_at(1), "within the stable time")
-		var line: int = _line("Reach depth 2")
+		var line: int = _line("Reach Mossy Hollow 2")
 		assert_ne(line, -1, "the depth goal")
 		assert_lt(goals.progress(line), 1.0, "its bar is not full")
 	# Step to the push, reading both on every tick.
@@ -329,7 +329,7 @@ func test_r4_new_game() -> void:
 	var last_target: int = e.target_depth
 	for i: int in LIMIT_TICKS:
 		last_note = _hud.stable_note.text
-		last_progress = goals.progress(_line("Reach depth 2"))
+		last_progress = goals.progress(_line("Reach Mossy Hollow 2"))
 		last_target = e.target_depth
 		_tick()
 		if e.target_depth != last_target:
@@ -339,7 +339,7 @@ func test_r4_new_game() -> void:
 	assert_lt(last_progress, 1.0, "and the bar short of full")
 	assert_false(_hud.stable_note.text.begins_with("Deeper"), "on the tick: no more countdown")
 	assert_eq(e.seconds_to_push(), 0.0, "the push has come")
-	assert_eq(goals.progress(_line("Reach depth 2")), 1.0, "and the goal's bar is full")
+	assert_eq(goals.progress(_line("Reach Mossy Hollow 2")), 1.0, "and the goal's bar is full")
 
 
 # --- R5 ------------------------------------------------------------------------

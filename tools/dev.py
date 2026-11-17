@@ -366,6 +366,8 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append("--buy-upgrades=true")
     if args.timeline:
         options.append("--timeline=true")
+    if args.area is not None:
+        options.append(f"--area={args.area}")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
         import_project()
@@ -424,6 +426,10 @@ def main() -> int:
         "--timeline",
         action="store_true",
         help="add the game time in seconds of each first (level 2, depth 5, first guardian ...)",
+    )
+    sim.add_argument(
+        "--area",
+        help="send the party to this area (an id, e.g. claypits) at the start, opening it",
     )
     sim.set_defaults(handler=command_sim)
 

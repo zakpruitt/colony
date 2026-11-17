@@ -204,6 +204,8 @@ func sync(delta: float) -> void:
 	_snap_camera = false
 	_last_tick = now
 
+	if labyrinth_view.labyrinth != simulation.labyrinth:
+		_change_area()
 	var focus: Vector2 = simulation.expedition.hero_position(_leader_id())
 	labyrinth_view.set_focus(fallen_party.focus(focus))
 	var built: Array[int] = labyrinth_view.built_depths()
@@ -495,6 +497,23 @@ func _died(id: int, animate: bool) -> void:
 
 
 ## The fight is over: wind-ups still pending stop, and bolts in flight vanish.
+## The party arrived in another area (spec 049): the world shows that area's labyrinth from now
+## on, with none of the last one's monsters, props or bolts, and every sprite and the camera
+## jump to their places.
+func _change_area() -> void:
+	_cut_short_everything()
+	for id: int in _monsters.keys():
+		_remove(id)
+	_gone.clear()
+	_gone_as.clear()
+	_waiting.clear()
+	quest_props.clear()
+	labyrinth_view.show_labyrinth(simulation.labyrinth)
+	_built = []
+	_scan_due = true
+	_snap_all = true
+
+
 func _cut_short_everything() -> void:
 	for attacker: int in _windups:
 		var sprite: CharacterSprite = character(attacker)

@@ -17,8 +17,6 @@ const OLD_MONSTERS: Array[StringName] = [&"slime", &"cave_bat", &"skeleton", &"s
 const RANGED: Array[StringName] = [&"fire_imp", &"wraith"]
 const MONSTERS_DIR: String = "res://assets/sprites/monsters"
 const DEMO: String = "res://game/entities/character_demo.tscn"
-## Levels per depth band (loam 1-5, clay 6-10, stone 11-15, deep 16-20).
-const BAND_LEVELS: int = 5
 const STEP: float = 1.0 / 60.0
 ## R6: the stone-band fight.
 const FIGHT_DEPTH: int = 12
@@ -29,11 +27,6 @@ const WEAK_LEVEL: int = 6
 ## A typical chamber floor, in tiles.
 const FLOOR_LEFT: float = 0.0
 const FLOOR_RIGHT: float = 17.0
-
-
-func _band(depth: int) -> int:
-	return (depth - 1) / BAND_LEVELS
-
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -48,7 +41,7 @@ func test_r1_eight_new_monsters_are_valid() -> void:
 		assert_eq(def.id, id)
 		var first: int = NEW_MONSTERS[id][0]
 		var size: MonsterDef.Size = NEW_MONSTERS[id][1]
-		assert_eq(def.min_depth, first, "%s's first depth" % id)
+		assert_eq(def.base_level, first, "%s's base level (its first depth before spec 049)" % id)
 		assert_eq(def.size, size, "%s's size" % id)
 		assert_ne(def.display_name, "", "%s has a name" % id)
 	for id: StringName in NEW_MONSTERS:
@@ -71,10 +64,10 @@ func test_r1_eight_new_monsters_are_valid() -> void:
 		for shallower: StringName in ids:
 			var a: MonsterDef = Content.monster(deeper)
 			var b: MonsterDef = Content.monster(shallower)
-			if a.min_depth <= b.min_depth:
+			if a.base_level <= b.base_level:
 				continue
 			var pair: String = (
-				"%s (depth %d) vs %s (depth %d)" % [deeper, a.min_depth, shallower, b.min_depth]
+				"%s (depth %d) vs %s (depth %d)" % [deeper, a.base_level, shallower, b.base_level]
 			)
 			assert_gte(a.xp, b.xp, "xp does not decrease: " + pair)
 			assert_gte(a.gold_min, b.gold_min, "gold_min does not decrease: " + pair)
@@ -162,42 +155,44 @@ func test_r3_each_new_monster_builds_and_animates() -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## Every monster waiting in every chamber of [param depth] for seeds 1 to [param seeds].
-func _met_at(depth: int, seeds: int) -> Array[MonsterDef]:
+## Every monster waiting in every chamber of stage [param depth] of [param area] for seeds 1 to
+## [param seeds]. Spec 049: the monsters of the deeper bands now live in areas, not depths.
+func _met_at(area: StringName, depth: int, seeds: int) -> Array[MonsterDef]:
 	var met: Array[MonsterDef] = []
 	for seed_value: int in range(1, seeds + 1):
 		var sim := Simulation.new(seed_value)
-		for room: LabyrinthChamber in sim.labyrinth.level(depth).chambers:
-			for m: Combatant in sim.expedition.monsters_in(depth, room.index):
+		var e: Expedition = sim.expedition
+		var lab: Labyrinth = e.travel.labyrinth(area)
+		if area != e.area:
+			e.travel.open[area] = true
+			sim.set_destination(area, 1)
+			for i: int in 120:
+				sim.step()
+		for room: LabyrinthChamber in lab.level(depth).chambers:
+			for m: Combatant in e.monsters_in(depth, room.index):
 				met.append(Content.monster(m.def_id))
 	return met
 
 
+## Spec 049 amends this test: a band is now an area, and its inhabitants are its own list. Each new
+## monster turns up in the area that lists it, at its first stage and three stages on, and every
+## monster met in an area is one of its own.
 func test_r4_bands_have_their_own_inhabitants() -> void:
-	# Never above first depth, and met from the first depth on.
-	for depth: int in range(1, 21):
-		var seen: Dictionary[StringName, bool] = {}
-		for def: MonsterDef in _met_at(depth, 12):
-			seen[def.id] = true
-			assert_lte(def.min_depth, depth, "%s is not met above depth %d" % [def.id, depth])
-		for id: StringName in NEW_MONSTERS:
-			var first: int = NEW_MONSTERS[id][0]
-			if depth == first or depth == first + 3:
-				assert_true(seen.has(id), "%s turns up at depth %d" % [id, depth])
-
-	# Each band is dominated by its own inhabitants and the band before.
-	for depth: int in [8, 13, 18]:
-		var met: Array[MonsterDef] = _met_at(depth, 40)
-		var local: int = 0
-		for def: MonsterDef in met:
-			if _band(depth) - _band(def.min_depth) <= 1:
-				local += 1
-		assert_gt(met.size(), 100, "many encounters at depth %d" % depth)
-		assert_gte(
-			float(local) / met.size(),
-			0.5,
-			"depth %d: %d of %d from this band or the one before" % [depth, local, met.size()]
-		)
+	for area: StringName in Content.area_ids():
+		var def: AreaDef = Content.area(area)
+		for depth: int in range(1, 8):
+			var seen: Dictionary[StringName, bool] = {}
+			for monster: MonsterDef in _met_at(area, depth, 6):
+				seen[monster.id] = true
+				assert_true(
+					monster.guardian or def.monsters.has(monster.id),
+					"%s lives in %s" % [monster.id, area]
+				)
+			for i: int in def.monsters.size():
+				var id: StringName = def.monsters[i]
+				var first: int = def.monster_stages[i]
+				if NEW_MONSTERS.has(id) and (depth == first or depth == first + 3):
+					assert_true(seen.has(id), "%s turns up at %s %d" % [id, area, depth])
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -209,9 +204,9 @@ func _win_rate(level: int) -> float:
 	for id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(id)
 		# Guardians (spec 020) are never rolled for an ordinary encounter.
-		if def.min_depth <= FIGHT_DEPTH and not def.guardian:
+		if def.base_level <= FIGHT_DEPTH and not def.guardian:
 			# As the expedition rolls them: each as likely as its first depth.
-			for _copy: int in def.min_depth:
+			for _copy: int in def.base_level:
 				weighted.append(def)
 	var limit: int = Combatant.seconds_to_ticks(Expedition.BATTLE_LIMIT_SECONDS)
 	var wins: int = 0
