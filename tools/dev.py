@@ -231,7 +231,8 @@ def step_tests(only: str | None = None) -> str:
     args = ["-s", "res://addons/gut/gut_cmdln.gd", "-gexit"]
     if only:
         args.append(f"-gselect={only}")
-    code, output = godot(args, timeout=600)
+    # The whole suite takes about ten minutes when other lanes are running Godot beside it.
+    code, output = godot(args, timeout=1500)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
         raise StepFailed(f"tests failed (exit {code})\n{tail(output, 400)}")
     passing = re.search(r"^\s*Passing(?: Tests)?\s+(\d+)", output, re.MULTILINE)

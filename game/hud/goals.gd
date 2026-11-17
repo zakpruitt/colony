@@ -471,11 +471,7 @@ func _cheapest_upgrade() -> int:
 
 
 func _lowest_level() -> int:
-	var lowest: int = 0
-	for hero: Hero in _simulation.party.heroes:
-		if lowest == 0 or hero.level < lowest:
-			lowest = hero.level
-	return lowest
+	return PartyLevels.lowest(_simulation.party)
 
 
 ## True when [param goal], no longer listed, was achieved rather than merely dropped.
