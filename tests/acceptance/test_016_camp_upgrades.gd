@@ -14,28 +14,29 @@ const UPGRADES: Array = [
 ## recorded on dev before this spec changed any sim code. Re-recorded by spec 023, whose
 ## monster ids (part of the hash) come from where the monster is; the game is otherwise the same.
 ## Re-recorded by spec 025, whose side quests stand in for some chambers' monsters.
+## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
 const RECORDED_HASHES: Dictionary = {
 	3:
 	[
-		182852528,
-		3345610454,
-		3523892346,
-		268770184,
-		2358983418,
-		4033985059,
-		1709969218,
-		562187619,
+		3565894865,
+		795395768,
+		3305378789,
+		124841024,
+		2691880441,
+		2198466489,
+		4257688331,
+		947359009,
 	],
 	11:
 	[
-		1953912465,
-		1312716134,
-		1878221778,
-		3841284844,
-		3838000736,
-		1925320218,
-		2127646277,
-		3333111590,
+		914652085,
+		3848396188,
+		1189002973,
+		1563193632,
+		3987336099,
+		2126016556,
+		822605520,
+		3984279893,
 	],
 }
 const HOUR_TICKS: int = 36_000
@@ -288,10 +289,13 @@ func test_r4_upgrades_change_the_game() -> void:
 	for i: int in 6000:
 		poor.step()
 		rich.step()
+		# Kills only: a side quest's gold is not the purse's (its source is the worker).
 		for event: SimEvent in _events_of(poor.drain_events(), SimEvent.Kind.GOLD_GAINED):
-			poor_gold.append(event.amount)
+			if event.source_id >= Expedition.FIRST_MONSTER_ID:
+				poor_gold.append(event.amount)
 		for event: SimEvent in _events_of(rich.drain_events(), SimEvent.Kind.GOLD_GAINED):
-			rich_gold.append(event.amount)
+			if event.source_id >= Expedition.FIRST_MONSTER_ID:
+				rich_gold.append(event.amount)
 	assert_gt(poor_gold.size(), 5, "kills pay gold")
 	assert_eq(rich_gold.size(), poor_gold.size(), "the same kills")
 	for i: int in mini(poor_gold.size(), rich_gold.size()):

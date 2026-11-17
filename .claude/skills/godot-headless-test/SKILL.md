@@ -36,6 +36,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `git checkout origin/dev -- sim`, run a throwaway recorder test that only uses `Simulation` (one that names
   a `game/` class will not load against the old `sim/`), then `git checkout HEAD -- sim` and delete the
   recorder.
+- A change to the default game (tuning, timing) breaks every recorded hash at once, and they are in several
+  files with different intervals (016, 022 and 029 every 1500 ticks, 035 every 600). `grep -rn
+  RECORDED_HASHES tests/` and re-run each test's own loop; a later merge can bring in a new one.
+- When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
+  line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
+  Windows writes CRLF; when editing files from a script, read and write bytes.
 
 ## Testing nodes (`game/`)
 

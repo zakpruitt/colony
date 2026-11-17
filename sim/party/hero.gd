@@ -4,8 +4,11 @@ extends RefCounted
 ## fights and its own training (spec 029). Its fighting numbers come from its
 ## [HeroClassDef], times the party's camp upgrades, times its training.
 
-## XP per level step: reaching level n takes XP_STEP * (n - 1) * n in total.
+## XP per level step: reaching level n takes (n - 1) * (XP_STEP * n - XP_DISCOUNT) in total.
 const XP_STEP: int = 25
+## XP taken off each level step (spec 036): the first levels come quickly, the late ones cost
+## nearly what they did.
+const XP_DISCOUNT: int = 30
 
 var id: int
 var class_id: StringName
@@ -47,9 +50,9 @@ func is_alive() -> bool:
 	return health > 0
 
 
-## Total XP needed to be this level: 25 * (level - 1) * level.
+## Total XP needed to be this level: (level - 1) * (25 * level - 30).
 static func xp_for_level(level_number: int) -> int:
-	return XP_STEP * (level_number - 1) * level_number
+	return (level_number - 1) * (XP_STEP * level_number - XP_DISCOUNT)
 
 
 ## Adds XP and takes every level it pays for, healing by the health each level

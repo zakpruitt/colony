@@ -2,11 +2,25 @@ extends SceneTree
 ## Runs the simulation headless for some game time and prints one JSON summary.
 ##
 ## Run: godot --headless --path . -s res://tools/godot/run_sim.gd -- --seed=1 --minutes=10
-##      [--target-depth=3] [--stable-seconds=120] [--buy-upgrades=true]
+##      [--target-depth=3] [--stable-seconds=120] [--buy-upgrades=true] [--timeline=true]
 ## or, more simply: python tools/dev.py sim --seed=1 --minutes=10
 ##
 ## With --buy-upgrades the run buys the cheapest upgrade it can afford whenever it can.
+## With --timeline the summary gains "timeline": the game time in seconds of each first (spec 036),
+## or null for one that did not happen. "level_2" and "level_5" are when every hero had reached
+## that level; "upgrade_affordable" is when the party first held the price of an upgrade.
 ## The summary is printed on one line that starts with "[sim] ".
+
+## The firsts --timeline reports, in order.
+const TIMELINE_KEYS: Array[String] = [
+	"level_2",
+	"level_5",
+	"depth_2",
+	"depth_5",
+	"upgrade_affordable",
+	"guardian_met",
+	"guardian_beaten",
+]
 
 
 func _init() -> void:
@@ -19,6 +33,8 @@ func _init() -> void:
 	if options.has("target-depth"):
 		sim.set_target_depth(_option(options, "target-depth", "").to_int())
 	var buying: bool = options.has("buy-upgrades")
+	var firsts: Dictionary[String, float] = {}
+	var guardian_fight: bool = false
 
 	var won: int = 0
 	var lost: int = 0
@@ -33,8 +49,26 @@ func _init() -> void:
 			if cheapest != &"":
 				sim.buy_upgrade(cheapest)
 		sim.step()
+		var now: float = sim.seconds()
+		if sim.upgrades.cheapest_affordable(sim.party.gold) != &"":
+			_first(firsts, "upgrade_affordable", now)
 		for event: SimEvent in sim.drain_events():
 			match event.kind:
+				SimEvent.Kind.ENCOUNTER_STARTED:
+					guardian_fight = _holds_guardian(sim.expedition)
+					if guardian_fight:
+						_first(firsts, "guardian_met", now)
+				SimEvent.Kind.GUARDIAN_SLAIN:
+					_first(firsts, "guardian_beaten", now)
+				SimEvent.Kind.DEPTH_CHANGED:
+					if event.amount == 2 or event.amount == 5:
+						_first(firsts, "depth_%d" % event.amount, now)
+				SimEvent.Kind.LEVEL_UP:
+					var lowest: int = _lowest_level(sim.party)
+					if lowest >= 2:
+						_first(firsts, "level_2", now)
+					if lowest >= 5:
+						_first(firsts, "level_5", now)
 				SimEvent.Kind.ENCOUNTER_ENDED:
 					if event.flag:
 						won += 1
@@ -76,8 +110,37 @@ func _init() -> void:
 		"kills": sorted_kills,
 		"upgrades": upgrades,
 	}
+	if options.has("timeline"):
+		var timeline: Dictionary = {}
+		for key: String in TIMELINE_KEYS:
+			timeline[key] = firsts.get(key, null)
+		summary["timeline"] = timeline
 	print("[sim] " + JSON.stringify(summary))
 	quit(0)
+
+
+## Records [param seconds] as the time of [param key] unless that first already happened.
+func _first(firsts: Dictionary[String, float], key: String, seconds: float) -> void:
+	if not firsts.has(key):
+		firsts[key] = seconds
+
+
+## The level of the party's lowest hero.
+func _lowest_level(party: Party) -> int:
+	var lowest: int = party.heroes[0].level
+	for hero: Hero in party.heroes:
+		lowest = mini(lowest, hero.level)
+	return lowest
+
+
+## True if the fight just started is against a guardian.
+func _holds_guardian(expedition: Expedition) -> bool:
+	if expedition.battle == null:
+		return false
+	for monster: Combatant in expedition.battle.monsters:
+		if Content.monster(monster.def_id).guardian:
+			return true
+	return false
 
 
 ## The --name=value options after the "--" on the command line.
