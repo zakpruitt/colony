@@ -61,3 +61,4 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| [046 Notes that stay true](046-notes-that-stay-true/spec.md): fixes from the reviews of the defeat note and the tally: both can say something false | provisional, in progress | 041, 045 |
