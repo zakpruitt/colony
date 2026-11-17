@@ -244,17 +244,20 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
 
 ### Abilities and statuses (spec 056)
 
-- **Names.** An ability's name rises 8 px over 1.2 s above the fighter's head, in the pixel font at 1x with
-  the usual `ink` shadow, in the fighter's colour (a hero's class bar colour, a monster's most vivid sheet
-  colour). At most two stack over one fighter, the newest nearest the head, 8 px apart. Names and numbers
-  are kept inside the band between the HUD's top and bottom panels.
+- **Names.** An ability's name rises 8 px over 1.2 s above the fighter's head, in the pixel font at 1x,
+  outlined all round in `ink` (one font pixel) as well as its shadow so it reads against any wall, in the
+  fighter's colour (a hero's class bar colour, a monster's most vivid sheet
+  colour). At most two stack over one fighter, the newest nearest the head, 8 px apart. Names, words and damage
+  numbers are kept inside the band between the HUD's top and bottom panels.
 - **Wind-up.** An action's wind-up lights the whole sprite `yellow`, pulsing between a quarter and
   three-fifths at 6 Hz, for exactly the wind-up's length. An ordinary strike's wind-up is never lit.
-- **Landings.** A heavy blow (an action that deals at least 1.5x a strike, or stuns) adds a 15 px `white`
+- **Landings.** A heavy blow (an ability whose damage is at least 1.5x a strike's; a stun
+  alone does not make it heavy) adds a 15 px `white`
   flash and ten `amber`/`yellow` shards on top of the usual sparks. Damage to many draws a flat ring of
   single-pixel squares (one every 4 px, a third as tall as wide) from the fighter or the target out to the
-  ability's reach in 0.4 s, then blinks out. A push leaves `slate` dust at the pushed one's feet while it
-  slides. `Miss` (`silver`) and `Blocked` (`cyan`) are words at 1x.
+  ability's reach in 0.4 s, then blinks out. A push leaves `tan` and `silver` dust at the feet of those it
+  landed on while they slide. `Miss` (`silver`) and `Blocked` (`cyan`) are words at 1x; a shield shows at
+  most one `Blocked` a second, however many blows it takes.
 - **Status marks** (`assets/sprites/ui/status_icons.px`, one 7x7 part per status, named as the status) sit
   in a row 2 px over the head: taunting (a red `!`), marked (a target), mighty (a bright sword), weakened
   (a broken one), hasted (an arrow up), slowed (an arrow down). The same marks are the hero frame's icons.
