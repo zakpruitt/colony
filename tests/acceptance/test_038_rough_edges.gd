@@ -17,6 +17,9 @@ const ROGUE: int = 2
 const LIMIT_TICKS: int = 3000
 const GUARDIAN_DEPTH: int = 5
 const STRONG_LEVEL: int = 40
+## At its closest, in some pose, the front melee hero's pixels come within this many of the
+## guardian's (a tile), and the one behind it within two tiles.
+const CLOSE_PIXELS: float = 16.0
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 ## Monster sprite positions through the first fight of seed 1, every 15 frames, recorded with the
 ## world as it was before this spec (R5).
@@ -68,6 +71,8 @@ var _world: World
 var _fx: CombatEffects
 var _events: Array[SimEvent] = []
 var _frame: int = 0
+## The opaque pixels of each baked part, by its sheet and region (R3, spec 048 R7).
+var _part_pixels: Dictionary[String, Array] = {}
 
 
 func before_each() -> void:
@@ -173,14 +178,15 @@ func _raise(level: int) -> void:
 		hero.health = hero.max_health()
 
 
-## Puts the party just outside the Slime King's chamber on depth 5, walking in, as spec 024's
-## tests do.
-func _before_guardian() -> void:
+## Puts the party just outside the guardian's chamber on [param depth] (the Slime King's on depth
+## 5 by default), walking in, as spec 024's tests do. The way down is on the right on odd depths
+## and on the left on even ones, so the guardian is on that side of the party.
+func _before_guardian(depth: int = GUARDIAN_DEPTH) -> void:
 	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
+	var lair: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
 	_sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.target_depth = GUARDIAN_DEPTH + 1
+	e.depth = depth
+	e.target_depth = depth + 1
 	if lair.index > 0:
 		e.x = lair.rect.position.x - 1.0
 		e.facing = 1
@@ -189,22 +195,70 @@ func _before_guardian() -> void:
 		e.facing = -1
 
 
-## Pixels by which two rectangles overlap across (0 or less when they do not).
-static func _overlap(a: Rect2, b: Rect2) -> float:
-	return minf(a.end.x, b.end.x) - maxf(a.position.x, b.position.x)
+## The leftmost and rightmost columns of [param pixels] (x, y).
+static func _span(pixels: Dictionary[Vector2i, bool]) -> Vector2:
+	var span := Vector2(INF, -INF)
+	for pixel: Vector2i in pixels:
+		span = Vector2(minf(span.x, pixel.x), maxf(span.y, pixel.x))
+	return span
 
 
-## Problems with the heroes against the guardian now: a hero sprite overlapping its body.
+## The opaque pixels of a baked part, within its texture's region: read from the sheet's image
+## here, not from the helper that places the heroes (spec 048 R7).
+func _opaque_pixels(atlas: AtlasTexture) -> Array:
+	var key: String = "%s %s" % [atlas.atlas.resource_path, atlas.region]
+	if _part_pixels.has(key):
+		return _part_pixels[key]
+	var image: Image = atlas.atlas.get_image()
+	if image == null or image.is_empty():
+		var path: String = ProjectSettings.globalize_path(atlas.atlas.resource_path)
+		image = Image.load_from_file(path)
+	if image.is_compressed():
+		image.decompress()
+	var region := Rect2i(atlas.region)
+	var found: Array = []
+	for y: int in region.size.y:
+		for x: int in region.size.x:
+			if image.get_pixel(region.position.x + x, region.position.y + y).a >= 0.5:
+				found.append(Vector2(x, y))
+	_part_pixels[key] = found
+	return found
+
+
+## The world pixels [param sprite] covers as it is drawn now: each opaque pixel of each part shown,
+## through the part's, the rig's and the mirror's transforms (every pose: a lunge, a swing, a
+## knock back).
+func _drawn(sprite: CharacterSprite) -> Dictionary[Vector2i, bool]:
+	var covered: Dictionary[Vector2i, bool] = {}
+	if not sprite.visible:
+		return covered
+	var to_world: Transform2D = _world.global_transform.affine_inverse()
+	for node: Node in sprite.find_children("*", "Sprite2D", true, false):
+		var part: Sprite2D = node as Sprite2D
+		var atlas: AtlasTexture = part.texture as AtlasTexture
+		if not part.is_visible_in_tree() or atlas == null or atlas.atlas == null:
+			continue
+		var drawn: Transform2D = to_world * part.global_transform
+		for pixel: Vector2 in _opaque_pixels(atlas):
+			var at: Vector2 = drawn * (part.offset + pixel + Vector2(0.5, 0.5))
+			covered[Vector2i(floori(at.x), floori(at.y))] = true
+	return covered
+
+
+## Problems with the heroes against the guardian now: a hero's drawn pixels on the guardian's.
 func _overlaps() -> Array[String]:
 	var problems: Array[String] = []
 	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
 	if guardian == null or _world.character(guardian.id) == null:
 		return problems
-	var body: Rect2 = SpriteBounds.body_rect(_world.character(guardian.id))
+	var body: Dictionary[Vector2i, bool] = _drawn(_world.character(guardian.id))
 	for id: int in HERO_IDS:
-		var hero: Rect2 = SpriteBounds.body_rect(_world.character(id))
-		if _overlap(hero, body) > 0.0:
-			problems.append("hero %d overlaps the guardian by %.1f px" % [id, _overlap(hero, body)])
+		var shared: int = 0
+		for pixel: Vector2i in _drawn(_world.character(id)):
+			if body.has(pixel):
+				shared += 1
+		if shared > 0:
+			problems.append("hero %d covers %d of the guardian's pixels" % [id, shared])
 	return problems
 
 
@@ -304,8 +358,7 @@ func _camera_story(speed: int) -> void:
 	# Where the camera rests there: kept inside the band, as it always is.
 	var half: float = _world.get_viewport_rect().size.x * 0.5
 	destination.x = clampf(destination.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half))
-	var spot: Vector3 = FallenParty.revival_spot(_sim)
-	assert_eq(int(spot.y), (_sim.labyrinth.level(1).floor_y + 1) * int(TILE), "on depth 1")
+	assert_eq(int(_sim.expedition.revival_place().y), 1, "on depth 1")
 	var start: Vector2 = _world.camera.position
 	var distance: float = start.distance_to(destination)
 	assert_gt(distance, 200.0, "the revival is well away from the fall")
@@ -372,12 +425,26 @@ func test_r2_camera_tells_the_story_at_4x() -> void:
 
 
 func test_r3_heroes_at_the_guardian() -> void:
-	_show(Simulation.new(SEED))
+	# The Slime King on depth 5 is on the party's right; the Clay Colossus on depth 10, its left.
+	_guardian_fight(GUARDIAN_DEPTH, 1)
+	_guardian_fight(2 * GUARDIAN_DEPTH, -1)
+
+
+## Plays the fight with the guardian of [param depth], which stands on [param side] of the party,
+## checking the heroes against its body on every frame, as drawn.
+func _guardian_fight(depth: int, side: int) -> void:
+	_frame = 0
+	_events = []
+	_sim = Simulation.new(SEED)
 	_raise(STRONG_LEVEL)
-	_before_guardian()
+	_before_guardian(depth)
+	_show(_sim)
+	assert_eq(_sim.expedition.facing, side, "the guardian of depth %d is on that side" % depth)
 	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "the guardian's fight starts")
 	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
 	assert_not_null(guardian, "it is a guardian's fight")
+	if guardian == null:
+		return
 	var body_sprite: CharacterSprite = _world.character(guardian.id)
 	var problems: Array[String] = []
 	var closest: Dictionary[int, float] = {KNIGHT: INF, ROGUE: INF}
@@ -391,9 +458,11 @@ func test_r3_heroes_at_the_guardian() -> void:
 			break
 		problems.append_array(_overlaps())
 		var body: Rect2 = SpriteBounds.body_rect(body_sprite)
+		var drawn: Vector2 = _span(_drawn(body_sprite))
 		for id: int in closest:
-			var hero: Rect2 = SpriteBounds.body_rect(_world.character(id))
-			closest[id] = minf(closest[id], -_overlap(hero, body))
+			var hero: Vector2 = _span(_drawn(_world.character(id)))
+			var gap: float = drawn.x - hero.y - 1.0 if side > 0 else hero.x - drawn.y - 1.0
+			closest[id] = minf(closest[id], gap)
 		# Each damage number on the guardian (the only monster: not red, a hero's) starts over it.
 		for text: FxText in _fx._texts:
 			if text.kind != &"damage" or numbers.has(text):
@@ -409,15 +478,17 @@ func test_r3_heroes_at_the_guardian() -> void:
 		# The guardian, which every effect on it is placed by, stays where the simulation has it.
 		if absf(_world._goals[guardian.id].x - guardian.x * TILE) > 0.01:
 			off_body.append("the guardian is not drawn where the simulation has it")
-	assert_eq(problems, [] as Array[String], "no hero sprite overlaps the guardian's body")
-	assert_gt(frames, 120, "through a fight of some length")
+	var at: String = " (depth %d)" % depth
+	assert_eq(problems.size(), 0, "no hero's pixels on the guardian's" + at)
+	assert_eq(problems.slice(0, 5), [] as Array[String], "the first of them" + at)
+	assert_gt(frames, 120, "through a fight of some length" + at)
 	# The front melee hero stands at the guardian's edge, the other just behind it, as close as the
-	# fight's own spacing lets it.
+	# fight's own spacing lets it: in some pose, its pixels come within a few of the guardian's.
 	var front: float = minf(closest[KNIGHT], closest[ROGUE])
-	assert_lte(front, GuardianSpacing.GAP + 2.0, "a melee hero stands at the guardian's edge")
+	assert_lte(front, CLOSE_PIXELS, "a melee hero stands at the guardian's edge" + at)
 	for id: int in closest:
-		var near: float = GuardianSpacing.GAP + GuardianSpacing.ROOM + 2.0
-		assert_lte(closest[id], near, "melee hero %d stands at the guardian" % id)
+		var near: float = 2.0 * CLOSE_PIXELS
+		assert_lte(closest[id], near, "melee hero %d stands at the guardian" % id + at)
 	assert_gt(numbers.size(), 0, "the guardian was hit")
 	assert_eq(off_body, [] as Array[String], "every hit's number shows on the guardian")
 

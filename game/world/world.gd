@@ -223,6 +223,11 @@ func sync(delta: float) -> void:
 	for event: SimEvent in simulation.drain_events():
 		_show(event, is_recent(event))
 		sim_event.emit(event)
+	var expedition: Expedition = simulation.expedition
+	if expedition.state == Expedition.State.REVIVING and not fallen_party.is_telling():
+		# Down with no wipe heard (the world made after time away): the story starts part way.
+		var left: float = float(expedition.revive_tick - now) / Simulation.TICKS_PER_SECOND
+		fallen_party.wiped(Expedition.REVIVE_SECONDS - left)
 	if _scan_due:
 		_scan_waiting()
 
@@ -448,9 +453,10 @@ func _show(event: SimEvent, animate: bool) -> void:
 			_cut_short_everything()
 			_scan_due = true
 		SimEvent.Kind.PARTY_WIPED:
-			fallen_party.wiped(age, animate)
+			fallen_party.wiped(age)
 		SimEvent.Kind.PARTY_REVIVED:
-			_snap_camera = not fallen_party.revived(animate)
+			# A revival seen as it happens is acted out whole; one heard late, from where it has got to.
+			_snap_camera = not fallen_party.revived(0.0 if animate else age)
 			_snap_heroes = true
 
 
@@ -625,7 +631,7 @@ func _aim_camera(delta: float) -> void:
 	var leader: CharacterSprite = character(_leader_id())
 	var at: Vector2 = leader.position if leader != null else _hero_feet(_leader_id())
 	camera.target = camera_target(at, simulation.expedition.facing)
-	if not _snap_all and fallen_party.aims_camera(camera, delta):
+	if fallen_party.aims_camera(camera, delta, _snap_all):
 		return
 	if _snap_all or _snap_camera:
 		camera.snap_to(camera.target)

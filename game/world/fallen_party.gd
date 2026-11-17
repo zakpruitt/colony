@@ -5,7 +5,9 @@ extends Node
 ## vanishing, until the fight is won or the party is revived. A wipe is told as a story: the
 ## camera holds on the fallen party, then travels to where the simulation will revive it,
 ## arriving before the revival; there the heroes appear, still lying, under the revival light,
-## and rise back onto their feet.
+## and rise back onto their feet. However the world learns of the wipe (as it happens, late after a
+## stall, or finding the party already down after time away), the story starts from where the
+## time since the wipe has got to (spec 048).
 ##
 ## A child of [World], which asks it each frame where a hero stands ([method goal_for]), lets it
 ## animate the heroes it holds ([method animate]), and lets it steer the camera
@@ -49,11 +51,20 @@ var _standing: Dictionary[int, float] = {}
 var _stand_spots: Dictionary[int, Vector2] = {}
 ## Per fallen or rising hero: how far over it is, 0 upright to 1 on its back.
 var _tilt: Dictionary[int, float] = {}
-## Seconds since the wipe being told, or -1 when none is.
+## Game seconds since the wipe being told, or -1 when none is; and the tick of that wipe, which the
+## age never falls behind (so a stalled frame's time counts).
 var _wipe_age: float = -1.0
-## Where the camera ends its travel, and whether the travel has started.
+var _wipe_tick: int = 0
+## Where the camera ends its travel, and whether the camera has left the fallen (travelling, cut
+## or arrived).
 var _destination: Vector2 = Vector2.ZERO
 var _travelling: bool = false
+## The camera's way, planned on the story's first frame: the view it starts from, how long the
+## travel takes in game seconds (it starts at HOLD_SECONDS), and whether it is a cut instead.
+var _planned: bool = false
+var _from: Vector2 = Vector2.ZERO
+var _length: float = 0.0
+var _cut: bool = false
 
 
 ## Call once, before the first sync.
@@ -82,24 +93,37 @@ func destination() -> Vector2:
 	return _destination
 
 
-## The party was wiped [param age] game seconds ago; [param recent] is false for an old event.
-func wiped(age: float, recent: bool) -> void:
+## The party was wiped [param age] game seconds ago, however the world learned of it (a live event,
+## an old one after a stall, or finding it down): the story starts from where it has got to. Heroes
+## still standing up from an earlier wipe are put back on their feet first, to fall again.
+func wiped(age: float) -> void:
+	for id: int in _standing:
+		var sprite: CharacterSprite = _world.character(id)
+		if sprite == null:
+			continue
+		if _stand_spots.has(id):
+			sprite.position = _stand_spots[id]
+		_forget(id, sprite)
+		sprite.revive()
 	_standing.clear()
 	_stand_spots.clear()
 	_travelling = false
-	_wipe_age = age if recent else -1.0
-	if recent:
-		var spot: Vector3 = revival_spot(_world.simulation)
-		_destination = _world.camera_target(Vector2(spot.x, spot.y), int(spot.z))
+	_planned = false
+	_wipe_age = maxf(age, 0.0)
+	_wipe_tick = _world.simulation.tick - roundi(_wipe_age * Simulation.TICKS_PER_SECOND)
+	var place: Vector3 = _world.simulation.expedition.revival_place()
+	var level: LabyrinthLevel = _world.simulation.labyrinth.level(int(place.y))
+	var feet := Vector2(place.x * World.TILE, (level.floor_y + 1) * World.TILE)
+	_destination = _world.camera_target(feet, int(place.z))
 
 
-## The party was revived; [param recent] is false for an old event. Returns true if the heroes
-## rise (the world must then leave the camera to [method aims_camera]); false if they are simply
-## back on their feet.
-func revived(recent: bool) -> bool:
+## The party was revived [param age] game seconds ago. Returns true if the heroes rise, from where
+## that age has them (the world must then leave the camera to [method aims_camera]); false if they
+## are simply back on their feet (no wipe was being told, or they would have stood already).
+func revived(age: float) -> bool:
 	_dying.clear()
 	_spots.clear()
-	if not recent or _wipe_age < 0.0:
+	if _wipe_age < 0.0 or age >= STAND_SECONDS:
 		_wipe_age = -1.0
 		_tilt.clear()
 		for hero: Hero in _world.simulation.party.heroes:
@@ -109,7 +133,7 @@ func revived(recent: bool) -> bool:
 				sprite.revive()
 		return false
 	for hero: Hero in _world.simulation.party.heroes:
-		_standing[hero.id] = 0.0
+		_standing[hero.id] = maxf(age, 0.0)
 		_tilt[hero.id] = 1.0
 	return true
 
@@ -177,54 +201,66 @@ func animate(id: int, sprite: CharacterSprite, delta: float) -> bool:
 	return true
 
 
-## Steers [param camera] while a wipe is told, moving it on by [param delta] real seconds, and
-## returns true; returns false (the world aims the camera) otherwise.
-func aims_camera(camera: WorldCamera, delta: float) -> bool:
+## Steers [param camera] while a wipe is told, moving the story on by [param delta] real seconds,
+## and returns true; returns false (the world aims the camera at the fallen, as it would the party)
+## while it holds on them, or when no wipe is told. [param snap] is true on a frame that puts every
+## sprite in place: the camera is then put where the story has it, never pulled back to the party.
+## The camera's place is worked out from the story's age, so it is the same however the story was
+## come into: on the fallen, then (from HOLD_SECONDS) travelling, arrived by ARRIVE_BEFORE before
+## the revival; or, for a revival too far away to travel to, on the fallen until that moment and
+## then cut to the revival.
+func aims_camera(camera: WorldCamera, delta: float, snap: bool) -> bool:
 	if _wipe_age < 0.0:
 		return false
-	_wipe_age += delta * maxi(_world.speed, 1)
-	if _wipe_age < HOLD_SECONDS and _standing.is_empty():
-		return false
-	if not _travelling:
-		_travelling = true
-		var gap: Vector2 = _destination - camera.position
-		var screen: Vector2 = camera.get_viewport_rect().size / camera.zoom
-		if (gap / screen).length() > CUT_SCREENS:
-			camera.snap_to(_destination)
-		else:
-			var seconds: float = clampf(gap.length() / TRAVEL_SPEED, TRAVEL_MIN, TRAVEL_MAX)
-			camera.travel(_destination, seconds / maxi(_world.speed, 1))
-	if not camera.is_travelling():
-		camera.target = _destination
-	camera._process(delta)
+	var speed: int = maxi(_world.speed, 1)
+	if _planned:  # a story heard this frame is already as old as it is
+		_wipe_age += delta * speed
+	else:
+		_plan(camera)
+	var behind: float = float(_world.simulation.tick - _wipe_tick) / Simulation.TICKS_PER_SECOND
+	_wipe_age = maxf(_wipe_age, behind)
+	var rising: bool = not _standing.is_empty()
+	var into: float = _wipe_age - HOLD_SECONDS
+	if _cut:
+		into = _wipe_age - (Expedition.REVIVE_SECONDS - ARRIVE_BEFORE)
+	if into < 0.0 and not rising:
+		return false  # holding on the fallen
+	var away: bool = _travelling
+	_travelling = true
+	if not _cut and into < _length and not rising:
+		if not away and not snap:
+			_from = camera.position  # set off from where the hold has the camera
+		camera.travel(_destination, _length / speed, maxf(into / speed - delta, 0.0), _from)
+		camera._process(delta)
+	elif (_cut and not away) or snap:
+		camera.snap_to(_destination)
+	else:
+		if not camera.is_travelling():
+			camera.target = _destination
+		camera._process(delta)
+	if not away or snap:
+		# The labyrinth is built where the camera now is, not a frame later.
+		_world.labyrinth_view.set_focus(camera.position / World.TILE)
 	return true
 
 
-## The world tile to build the labyrinth around: [param party] (the party's own), or while the
-## camera travels to a revival, the camera's.
+## The world tile to build the labyrinth around: [param party] (the party's own), or once the
+## camera has left the fallen for a revival, the camera's.
 func focus(party: Vector2) -> Vector2:
 	if _travelling and _wipe_age >= 0.0 and _standing.is_empty():
 		return _world.camera.position / World.TILE
 	return party
 
 
-## Where [param simulation] will revive its wiped party: the front hero's feet in world pixels
-## (x, y) and the way the party will face (z), as [method Expedition._revive] places it: the
-## arrival point of the last stable depth, the middle of the START chamber at depth 1 or where the
-## shaft from above lands, facing into the level.
-static func revival_spot(simulation: Simulation) -> Vector3:
-	var depth: int = simulation.expedition.last_stable_depth
-	var level: LabyrinthLevel = simulation.labyrinth.level(depth)
-	var column: float = level.chambers[0].rect.position.x
-	if depth > 1:
-		column = simulation.labyrinth.shaft_column(depth - 1) + Labyrinth.SHAFT_WIDTH / 2.0
-	else:
-		for room: LabyrinthChamber in level.chambers:
-			if room.kind == LabyrinthChamber.Kind.START:
-				column = (room.rect.position.x + room.rect.end.x - 1) / 2.0
-				break
-	var facing: int = 1 if column < Labyrinth.LEVEL_WIDTH / 2.0 else -1
-	return Vector3(column * World.TILE, (level.floor_y + 1) * World.TILE, facing)
+## Plans the camera's way from the view it holds on the fallen ([member WorldCamera.target], set by
+## the world this frame) to the revival.
+func _plan(camera: WorldCamera) -> void:
+	_planned = true
+	_from = camera.target
+	var gap: Vector2 = _destination - _from
+	var screen: Vector2 = camera.get_viewport_rect().size / camera.zoom
+	_cut = (gap / screen).length() > CUT_SCREENS
+	_length = clampf(gap.length() / TRAVEL_SPEED, TRAVEL_MIN, TRAVEL_MAX)
 
 
 ## One frame of hero [param id] rising after the revival; true while it is still rising.

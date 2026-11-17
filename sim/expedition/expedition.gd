@@ -74,6 +74,10 @@ var battle: Battle
 ## The orders (spec 035). Read-only outside the class: see [method command_pace].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
+## While the party is down, the tick it revives on (spec 048). Read-only outside the class.
+var revive_tick: int:
+	get:
+		return _revive_tick
 
 var _labyrinth: Labyrinth
 var _party: Party
@@ -298,6 +302,12 @@ func guardian_of(level_depth: int) -> StringName:
 ## Reading it changes nothing.
 func seconds_to_stable() -> float:
 	return DepthTiming.stable_left(self, _tick, _depth_since, _timer_depth)
+
+
+## Where the party arrives when revived: column (x), depth (y), facing (z). Changes nothing.
+func revival_place() -> Vector3:
+	var column: float = Arrival.column(_labyrinth, last_stable_depth)
+	return Vector3(column, last_stable_depth, Arrival.facing(column))
 
 
 ## Seconds until auto-push raises the target depth (spec 039); 0.0 when it is off or the party is
@@ -541,22 +551,10 @@ func _shaft_middle(level_depth: int) -> float:
 	return _labyrinth.shaft_column(level_depth) + Labyrinth.SHAFT_WIDTH / 2.0
 
 
-## Where the party stands when it arrives on this depth without climbing:
-## the middle of the START chamber at depth 1, otherwise where the shaft from above lands.
-func _arrival_x(level_depth: int) -> float:
-	if level_depth > 1:
-		return _shaft_middle(level_depth - 1)  # where the shaft from above lands
-	var level: LabyrinthLevel = _labyrinth.level(1)
-	for room: LabyrinthChamber in level.chambers:
-		if room.kind == LabyrinthChamber.Kind.START:
-			return (room.rect.position.x + room.rect.end.x - 1) / 2.0
-	return level.chambers[0].rect.position.x
-
-
 ## Puts the anchor at [param column] on the current depth, facing into the level.
 func _place(column: float) -> void:
 	x = column
-	facing = 1 if x < Labyrinth.LEVEL_WIDTH / 2.0 else -1
+	facing = Arrival.facing(x)
 	_reset_trail()
 	var here: LabyrinthChamber = _labyrinth.level(depth).chamber_at(floori(x))
 	_entered_key = Vector2i(depth, here.index if here != null else -1)
@@ -953,7 +951,7 @@ func _revive() -> void:
 	if depth != back_to:
 		depth = back_to
 		_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, depth)
-	_place(_arrival_x(depth))
+	_place(Arrival.column(_labyrinth, depth))
 	_restart_depth_count(_tick)
 	_set_target(back_to)
 	# A target asked for while the party was down comes after the fallback, so it wins.
@@ -972,7 +970,7 @@ func arrive_from_save(tick: int, stable: int, deepest: int, target: int, push: b
 	deepest_depth = maxi(deepest, stable)
 	auto_push = push
 	depth = stable
-	_place(_arrival_x(depth))
+	_place(Arrival.column(_labyrinth, depth))
 	_restart_depth_count(_tick)
 	target_depth = maxi(target, 1)
 	_timer_target = target_depth
