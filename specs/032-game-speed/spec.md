@@ -1,9 +1,9 @@
 # 032 — Game speed: watch the loop faster
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 001, 008, 010, 011, 021
-- **Pull request:** —
+- **Pull request:** [#33](https://github.com/zakpruitt/colony/pull/33)
 
 ## Intent
 
