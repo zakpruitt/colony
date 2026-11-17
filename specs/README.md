@@ -60,3 +60,4 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| [045 The party tally](045-the-party-tally/spec.md): each hero's damage, healing and damage taken as bars, for the last fight and the session | provisional, in progress | 006, 025, 026, 029, 030, 037 |
