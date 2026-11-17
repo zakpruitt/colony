@@ -559,14 +559,17 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	hud.advance(0.1)
 	assert_eq(sheet.line(&"paragon_points"), "0 paragon points", "all spent")
 	assert_eq(sheet.line(&"training_power"), "Power 3 +9%")
-	# Spec 055: the tab's marker counts talent points too, and five are left.
-	assert_true(sheet.page_marked(HeroSheet.Page.TALENTS), "talent points still to spend")
+	# Spec 055: the tab's marker counts talent points too; with the tree full, nothing is left.
+	rogue.set_talents(_full(&"rogue", 0))
+	hud.advance(0.1)
+	assert_false(sheet.page_marked(HeroSheet.Page.TALENTS), "nothing more to spend")
 	var row: TalentTab.ParagonCell = sheet.paragon_cell(&"training_power")
 	assert_true(row.buy_button.disabled, "the button is dim with no point")
 	sheet.train_row(0)
 	sim.step()
 	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 3, "and spends nothing")
-	# Taking a node shows at once.
+	# Taking a node shows at once (back to two taken, five to spend).
+	rogue.set_talents([&"backstab", &"smoke_step"] as Array[StringName])
 	sim.take_talent(rogue.id, &"finisher")
 	sim.step()
 	hud.advance(0.1)

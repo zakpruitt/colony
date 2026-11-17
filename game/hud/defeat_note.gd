@@ -396,7 +396,8 @@ func _holding() -> bool:
 	return _simulation.expedition.guardian_order == Expedition.GuardianOrder.HOLD
 
 
-## Reads which suggestions apply now, the first [constant MOST] in [enum Help] order.
+## Reads which suggestions apply now, at most [constant MOST] in [enum Help] order; with four,
+## Buy an upgrade is the one left out.
 func _suggest() -> void:
 	var e: Expedition = _simulation.expedition
 	var gold: int = _simulation.party.gold
@@ -414,6 +415,9 @@ func _suggest() -> void:
 		_helps.append(Help.UPGRADE)
 	if _guardian != &"" and (_held or e.guardian_order == Expedition.GuardianOrder.CHALLENGE):
 		_helps.append(Help.HOLD)
+	# Spec 055: with talent points as well, the upgrade gives way, never Hold here.
+	if _helps.size() > MOST:
+		_helps.erase(Help.UPGRADE)
 	_helps = _helps.slice(0, MOST)
 
 

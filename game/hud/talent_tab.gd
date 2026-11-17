@@ -85,6 +85,8 @@ var _mouse: Vector2 = HudTooltip.NOWHERE
 var _asking: Asking = Asking.NOTHING
 ## The node a path question is about.
 var _asked_node: StringName = &""
+## The price a reset question named: if it changes, the question goes (spec 055 R6).
+var _asked_price: int = 0
 
 
 func _init() -> void:
@@ -152,6 +154,16 @@ func _input(event: InputEvent) -> void:
 		point_at(motion.position)
 
 
+func _notification(what: int) -> void:
+	# The mouse left the window: nothing is pointed at any more.
+	if what == NOTIFICATION_WM_MOUSE_EXIT:
+		point_at(HudTooltip.NOWHERE)
+	# The page or the sheet was hidden: a question asked on it is forgotten, never answered
+	# later at a price or a choice the player no longer sees.
+	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
+		_asking = Asking.NOTHING
+
+
 ## Shows hero [param hero_id]'s tree from now on; a new hero starts with nothing selected and no
 ## question asked.
 func show_hero(hero_id: int) -> void:
@@ -194,7 +206,10 @@ func refresh(delta: float) -> void:
 	_refresh_points(hero)
 	if _asking == Asking.PATH and shown.state_of(_asked_node) != TalentNode.State.AVAILABLE:
 		_asking = Asking.NOTHING  # the node was taken, or can no longer be: nothing to ask
-	if _asking == Asking.RESET and not reset_reason(hero).is_empty():
+	if _asking == Asking.RESET:
+		if not reset_reason(hero).is_empty() or Simulation.reset_price(hero) != _asked_price:
+			_asking = Asking.NOTHING  # in a fight, too poor, or the price is no longer the one asked
+	if not is_visible_in_tree():
 		_asking = Asking.NOTHING
 	_refresh_info(hero, shown)
 	_refresh_paragon(hero, delta)
@@ -205,7 +220,7 @@ func refresh(delta: float) -> void:
 func press_node(ability_id: StringName) -> void:
 	var hero: Hero = _hero()
 	var view: TreeView = _view()
-	if hero == null or view == null or not view.has_ability(ability_id):
+	if hero == null or view == null or not view.has_ability(ability_id) or not is_visible_in_tree():
 		return
 	view.refresh(hero, 0.0)  # what the simulation says now, not at the last frame
 	_selected = ability_id
@@ -225,13 +240,15 @@ func press_node(ability_id: StringName) -> void:
 ## about.
 func confirm() -> void:
 	var hero: Hero = _hero()
-	if hero == null:
+	if hero == null or not is_visible_in_tree():
+		_asking = Asking.NOTHING
 		return
 	match _asking:
 		Asking.PATH:
 			_simulation.take_talent(hero.id, _asked_node)
 		Asking.RESET:
-			_simulation.reset_talents(hero.id)
+			if Simulation.reset_price(hero) == _asked_price:
+				_simulation.reset_talents(hero.id)
 	_asking = Asking.NOTHING
 	refresh(0.0)
 
@@ -245,9 +262,10 @@ func cancel() -> void:
 ## The Reset button: asks before a fresh start, if one can be had now.
 func press_reset() -> void:
 	var hero: Hero = _hero()
-	if hero == null or not reset_reason(hero).is_empty():
+	if hero == null or not is_visible_in_tree() or not reset_reason(hero).is_empty():
 		return
 	_asking = Asking.RESET
+	_asked_price = Simulation.reset_price(hero)
 	refresh(0.0)
 
 
@@ -322,13 +340,11 @@ static func reason(hero: Hero, ability_id: StringName) -> String:
 	if tree == null or not tree.has_node(ability_id):
 		return ""
 	var taken: Array[StringName] = hero.talents()
-	if taken.has(ability_id):
+	if taken.has(ability_id) or hero.can_take(ability_id):
 		return ""
 	var on: int = tree.path_of(ability_id)
 	if on >= 0 and hero.path() >= 0 and hero.path() != on:
 		return "The %s path is closed" % tree.path_names[on]
-	if tree.next_nodes(taken).has(ability_id):
-		return "" if hero.talent_points() > 0 else "No talent point"
 	var before: Array[StringName] = tree.trunk.duplicate()
 	if on >= 0:
 		before.append_array(tree.path_nodes(on).slice(0, tree.path_nodes(on).find(ability_id)))
@@ -337,7 +353,8 @@ static func reason(hero: Hero, ability_id: StringName) -> String:
 	for earlier: StringName in before:
 		if not taken.has(earlier):
 			return "Take %s first" % Content.ability(earlier).display_name
-	return ""
+	# Next in order, and not open to it: the only thing missing is a point.
+	return "No talent point"
 
 
 ## Ability [param ability_id]'s kind in words: [code]Action, every 8 s[/code] or
@@ -687,8 +704,6 @@ class TreeView:
 	## Sets every node's state from [param hero] and runs the pulses on by [param delta] seconds.
 	func refresh(hero: Hero, delta: float) -> void:
 		var taken: Array[StringName] = hero.talents()
-		var next: Array[StringName] = tree.next_nodes(taken)
-		var points: bool = hero.talent_points() > 0
 		var walked: int = hero.path()
 		for made: TalentNode in nodes():
 			var stands: TalentNode.State = TalentNode.State.LOCKED
@@ -696,7 +711,7 @@ class TreeView:
 				stands = TalentNode.State.TAKEN
 			elif walked >= 0 and made.path >= 0 and made.path != walked:
 				stands = TalentNode.State.CLOSED
-			elif points and next.has(made.ability_id):
+			elif hero.can_take(made.ability_id):
 				stands = TalentNode.State.AVAILABLE
 			made.show_state(stands, stands == TalentNode.State.AVAILABLE)
 			made.advance(delta)

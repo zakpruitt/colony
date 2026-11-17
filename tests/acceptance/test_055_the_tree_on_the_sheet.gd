@@ -17,6 +17,9 @@ const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
 ## Pixels kept clear just above the party frames (spec 027's ticker).
 const TICKER_STRIP: float = 12.0
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
+const GUARDIAN_DEPTH: int = 5
+## The pixel font's height of a line of capitals, for a name measured from its text.
+const NAME_HEIGHT: float = 7.0
 
 var _sim: Simulation
 var _world: World
@@ -170,6 +173,24 @@ func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 		if done.call():
 			return true
 	return false
+
+
+## Puts the party just outside the guardian's chamber on [constant GUARDIAN_DEPTH], walking in, as
+## spec 041's tests do.
+func _before_guardian() -> void:
+	var e: Expedition = _sim.expedition
+	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
+	_sim.set_auto_push(false)
+	e.depth = GUARDIAN_DEPTH
+	e.deepest_depth = maxi(e.deepest_depth, GUARDIAN_DEPTH)
+	e.last_stable_depth = GUARDIAN_DEPTH - 1
+	e.target_depth = GUARDIAN_DEPTH + 1
+	if lair.index > 0:
+		e.x = lair.rect.position.x - 1.0
+		e.facing = 1
+	else:
+		e.x = lair.rect.end.x
+		e.facing = -1
 
 
 ## Every Control under [param node] (and itself).
@@ -344,29 +365,49 @@ func test_r2_a_node_shows_its_state() -> void:
 func test_r3_every_ability_can_be_read() -> void:
 	var knight: Hero = _hero(&"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 1)
+	var place: Rect2 = Rect2()
+	# Every node of all four trees, pointed at, tells its name, kind and whole description in the
+	# same place, the description inside its three lines.
+	for class_id: StringName in CLASSES:
+		var hero: Hero = _hero(class_id)
+		_level(hero, 1)
+		_open_talents(hero)
+		if place == Rect2():
+			place = _tab().info_name.get_global_rect()
+		var panel: Rect2 = _sheet().get_global_rect()
+		for node: TalentNode in _tab().tree_view().nodes():
+			var ability: AbilityDef = Content.ability(node.ability_id)
+			_point_at(node)
+			var lines: Array[String] = _tab().info_lines()
+			assert_gt(lines.size(), 1, "%s: told" % node.ability_id)
+			if lines.size() < 2:
+				continue
+			var kind: String = "Passive"
+			if ability.is_action():
+				kind = "Action, every %s s" % HeroSheet.tiles(ability.cooldown)
+			assert_eq(lines[0], "%s %s" % [ability.display_name, kind], "name and kind")
+			var description: String = ""
+			var used: int = 0
+			for label: Label in _tab().info_description:
+				if label.is_visible_in_tree() and not label.text.is_empty():
+					used += 1
+					description += (" " if not description.is_empty() else "") + label.text
+					var box: Rect2 = label.get_global_rect()
+					box.size.x = PixelText.width(label.text)
+					assert_true(panel.encloses(box), "%s: '%s' fits" % [ability.id, label.text])
+					assert_lte(box.size.x, TalentTab.WIDTH, "%s: a line in the width" % ability.id)
+			assert_lte(used, TalentTab.DESCRIPTION_LINES, "%s: three lines at most" % ability.id)
+			assert_eq(description, ability.description, "%s: all of its description" % ability.id)
+			assert_eq(_tab().info_name.get_global_rect().position, place.position, "a fixed place")
+		_sheet().close()
+		_hud.advance(STEP)
 	_open_talents(knight)
-	var place: Rect2 = _tab().info_name.get_global_rect()
-	# Every node, pointed at, tells its name, kind and description in the same place.
-	for node: TalentNode in _tab().tree_view().nodes():
-		var ability: AbilityDef = Content.ability(node.ability_id)
-		_point_at(node)
-		var lines: Array[String] = _tab().info_lines()
-		assert_gt(lines.size(), 1, "%s: told" % node.ability_id)
-		if lines.size() < 2:
-			continue
-		var kind: String = "Passive"
-		if ability.is_action():
-			kind = "Action, every %s s" % HeroSheet.tiles(ability.cooldown)
-		assert_eq(lines[0], "%s %s" % [ability.display_name, kind], "name and kind")
-		var description: String = ""
-		for label: Label in _tab().info_description:
-			if label.is_visible_in_tree() and not label.text.is_empty():
-				description += (" " if not description.is_empty() else "") + label.text
-				var box: Rect2 = label.get_global_rect()
-				assert_true(_sheet().get_global_rect().encloses(box), "the description fits")
-		assert_eq(description, ability.description, "%s: its one-line description" % ability.id)
-		assert_eq(_tab().info_name.get_global_rect().position, place.position, "a fixed place")
+	# The mouse leaving the window points at nothing: the place goes back to the default node.
+	_point_at(_tab().node(tree.trunk[2]))
+	assert_true(_tab().info_lines()[0].begins_with("Bottle-top Block"), "pointed at")
+	_hud.propagate_notification(Node.NOTIFICATION_WM_MOUSE_EXIT)
+	_hud.advance(STEP)
+	assert_true(_tab().info_lines()[0].begins_with("Shield Bash"), "the mouse gone: the default")
 	assert_true(Content.ability(&"shield_bash").is_action(), "an action is told")
 	assert_false(Content.ability(&"bottle_top_block").is_action(), "and a passive")
 	# Why it cannot be taken.
@@ -437,6 +478,17 @@ func test_r4_taking_a_node() -> void:
 	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "no question further on")
 	_frame()
 	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "taken at once")
+	# While the page is hidden its handlers do nothing, whatever reaches them.
+	_level(knight, 14)
+	_sim.party.gold = RICH
+	_click(_sheet().tab_buttons[HeroSheet.Page.STATS])
+	_tab().press_node(tree.path_b[2])
+	_tab().press_reset()
+	_tab().confirm()
+	_frame()
+	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "a hidden page takes nothing")
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "and asks nothing")
+	assert_eq(_sim.party.gold, RICH, "and resets nothing")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -511,10 +563,43 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(knight.talents(), [] as Array[StringName], "reset")
 	assert_eq(_sim.party.gold, RICH - 800, "for its price")
 	assert_eq(_tab().reset_reason_label.text, "Nothing to reset", "nothing left")
-	# In a fight.
+	# A question never outlives what it asked: another tab, the sheet closed, a new price.
+	var gold: int = _sim.party.gold
 	knight.set_talents(tree.trunk)
+	_hud.advance(STEP)
+	_click(reset)
+	assert_eq(_tab().asking(), TalentTab.Asking.RESET, "asked again")
+	_click(_sheet().tab_buttons[HeroSheet.Page.STATS])
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "another tab: the question goes")
+	_click(_sheet().tab_buttons[HeroSheet.Page.TALENTS])
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "and does not come back")
+	_click(reset)
+	_sheet().close()
+	_hud.advance(STEP)
+	_open_talents(knight)
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "the sheet closed: gone")
+	_click(reset)
+	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "asked at 800")
+	_level(knight, 17)
+	_hud.advance(STEP)
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "a new price: the old question goes")
+	_tab().confirm()
+	_frame()
+	assert_eq(knight.talents(), tree.trunk, "nothing reset at a price never read")
+	assert_eq(_sim.party.gold, gold, "nothing charged")
+	assert_eq(reset.text, "Reset 1,700", "the new price shows")
+	# A path question goes with the tab too.
+	_click_node(tree.path_b[0])
+	assert_eq(_tab().asking(), TalentTab.Asking.PATH, "a path question")
+	_click(_sheet().tab_buttons[HeroSheet.Page.SKILLS])
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "another tab: it goes")
+	_click(_sheet().tab_buttons[HeroSheet.Page.TALENTS])
+	# In a fight: an open question goes when the fight starts.
+	_click(reset)
+	assert_eq(_tab().asking(), TalentTab.Asking.RESET, "asked before the fight")
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a fight")
+	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "the fight starts: the question goes")
 	assert_true(reset.disabled, "in a fight: greyed")
 	assert_eq(_tab().reset_reason_label.text, "In a fight", "with the reason")
 
@@ -607,6 +692,26 @@ func test_r8_the_game_points_at_it() -> void:
 	assert_true(_sheet().is_open(), "it opens a sheet")
 	assert_eq(_sheet().shown_hero_id(), knight.id, "of a hero with a point")
 	assert_eq(_sheet().page(), HeroSheet.Page.TALENTS, "on its Talents tab")
+	_sheet().close()
+	_hud.advance(STEP)
+	# At a guardian, with talent points, a paragon point and gold: four things would help, and the
+	# upgrade gives way, never Hold here.
+	var standing: Callable = func() -> bool:
+		return _sim.expedition.state != Expedition.State.REVIVING
+	assert_true(_step_until(standing), "the party stands")
+	_level(knight, 15)
+	_sim.party.gold = RICH
+	_before_guardian()
+	assert_true(_step_until(fighting), "the guardian fight")
+	assert_ne(_sim.expedition.guardian_of(GUARDIAN_DEPTH), &"", "a guardian")
+	for fighter: Combatant in _sim.expedition.battle.heroes:
+		fighter.health = 0
+	assert_true(_step_until(down), "the party loses to the guardian")
+	assert_eq(
+		_hud.defeat_note.suggestions(),
+		["Spend talent points", "Train Knight", "Hold here"] as Array[String],
+		"Hold here keeps its place"
+	)
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -726,15 +831,20 @@ func test_r11_it_fits_and_is_explained() -> void:
 		var nodes: Array[TalentNode] = _tab().tree_view().nodes()
 		for node: TalentNode in nodes:
 			var box: Rect2 = node.get_global_rect()
+			# The name as drawn, measured from its text, not from the node's own size.
 			var label: Rect2 = node.name_label.get_global_rect()
-			label.size.x = PixelText.width(node.name_label.text)
-			assert_true(
-				box.encloses(label), "%s: %s's name in its box" % [class_id, node.ability_id]
-			)
+			label.size = Vector2(PixelText.width(node.name_label.text), NAME_HEIGHT)
+			var named: String = "%s: %s's name" % [class_id, node.ability_id]
+			assert_true(panel.encloses(label), "%s on the sheet" % named)
 			assert_true(panel.encloses(box), "%s: %s on the sheet" % [class_id, node.ability_id])
 			for other: TalentNode in nodes:
-				if other != node:
-					assert_false(box.intersects(other.get_global_rect()), "%s clear" % node.name)
+				if other == node:
+					continue
+				var other_box := Rect2(other.global_position, TalentNode.BOX)
+				var other_label: Rect2 = other.name_label.get_global_rect()
+				other_label.size = Vector2(PixelText.width(other.name_label.text), NAME_HEIGHT)
+				assert_false(label.intersects(other_box), "%s clear of %s" % [named, other.name])
+				assert_false(label.intersects(other_label), "%s clear of its name" % named)
 		for label: Label in _tab().tree_view().path_labels:
 			assert_true(panel.encloses(label.get_global_rect()), "%s: path name fits" % class_id)
 		# Every control of the tab shows inside the sheet.

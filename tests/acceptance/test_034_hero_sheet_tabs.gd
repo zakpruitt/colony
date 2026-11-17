@@ -8,6 +8,8 @@ const TOP_BAND: float = 28.0
 ## Pixels kept clear just above the party frames (spec 027's ticker).
 const TICKER_STRIP: float = 12.0
 const MOST: Vector2 = Vector2(240, 150)
+## Spec 034 R1 as amended for spec 055: the Talents tab may be this tall.
+const TALENTS_MOST_TALL: float = 278.0
 const PAGES: Array[HeroSheet.Page] = [
 	HeroSheet.Page.STATS, HeroSheet.Page.TALENTS, HeroSheet.Page.SKILLS
 ]
@@ -58,10 +60,16 @@ func _sheet() -> HeroSheet:
 
 
 ## Raises [param hero] to the level that gives it [param points] paragon points (spec 051 took
-## the gold off training: a row spends a paragon point).
+## the gold off training: a row spends a paragon point). Its tree is filled, so the paragon
+## points are all it has to spend (spec 055 counts talent points on the same tab).
 func _give_paragon(hero: Hero, points: int) -> void:
 	var level: int = Hero.TALENT_POINTS * Hero.TALENT_EVERY + points
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var full: Array[StringName] = tree.trunk.duplicate()
+	full.append_array(tree.path_a)
+	hero.set_talents(full)
+	assert_eq(hero.talent_points(), 0, "%s: no talent point to spend" % hero.class_id)
 
 
 ## The paragon points [param hero] has in the stat of training [param id].
@@ -148,7 +156,7 @@ func test_r1_compact() -> void:
 			# Spec 055: the Talents tab grows the sheet so the whole tree fits.
 			var tallest: float = MOST.y
 			if page == HeroSheet.Page.TALENTS:
-				tallest = HeroSheet.TALENTS_SIZE.y
+				tallest = TALENTS_MOST_TALL
 			assert_lte(rect.size.y, tallest, "%s at most %d tall" % [what, tallest])
 
 
@@ -421,7 +429,8 @@ func test_r7_number_keys() -> void:
 		_key(KEY_3)
 		sheet.train_row(0)
 		_sim.step()
-		assert_false(rogue.has_grown(), "1 to 3 train nothing on %s" % _page_name(page))
+		for id: StringName in Content.training_ids():
+			assert_eq(_rank(rogue, id), 0, "1 to 3 train nothing on %s" % _page_name(page))
 		assert_eq(rogue.paragon_points(), 5, "no point spent on %s" % _page_name(page))
 	sheet.open_page(HeroSheet.Page.TALENTS)
 	_hud.advance(0.016)
