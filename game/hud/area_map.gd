@@ -58,6 +58,9 @@ var _simulation: Simulation
 var _world: World
 var _chosen: StringName = &""
 var _stage: int = 0
+## The last Go, as "area/stage", and the simulation's tick then.
+var _asked: String = ""
+var _asked_tick: int = -1
 
 
 func _init() -> void:
@@ -151,6 +154,7 @@ func open() -> void:
 					(child as AwayPanel).close()
 	if news != null:
 		news.seen()
+		news.watching = true
 	visible = true
 	advance(0.0)
 
@@ -158,6 +162,8 @@ func open() -> void:
 ## Hides the map.
 func close() -> void:
 	visible = false
+	if news != null:
+		news.watching = false
 
 
 ## Opens the map if it is closed, closes it if it is open.
@@ -212,10 +218,15 @@ func go() -> void:
 		return
 	var e: Expedition = _simulation.expedition
 	var hud: Hud = get_parent() as Hud
-	var changed: bool = true
+	# Warned once per change of where the party is going (review of spec 053): not when it is
+	# already headed there, nor for a second Go before the simulation has taken the first.
+	var asked: String = "%s/%d" % [_chosen, _stage]
+	var changed: bool = asked != _heading(hud)
+	if _asked == asked and _asked_tick == _simulation.tick:
+		changed = false
+	_asked = asked
+	_asked_tick = _simulation.tick
 	if _chosen == e.area:
-		var target: int = hud.ladder.shown_target() if hud != null else e.target_depth
-		changed = _stage != target
 		_simulation.set_target_depth(_stage)
 		if hud != null:
 			hud.ladder.target_asked.emit(_stage)
@@ -231,18 +242,28 @@ func go() -> void:
 	close()
 
 
+## Where the party is headed now, as "area/stage": a destination asked for, the journey's, or
+## the target in the area it is in.
+func _heading(hud: Hud) -> String:
+	var e: Expedition = _simulation.expedition
+	if e.travel.pending_area != &"":
+		return "%s/%d" % [e.travel.pending_area, e.travel.pending_stage]
+	if e.state == Expedition.State.JOURNEYING:
+		return "%s/%d" % [e.area, e.travel.arrival_target(e)]
+	var target: int = hud.ladder.shown_target() if hud != null else e.target_depth
+	return "%s/%d" % [e.area, target]
+
+
 ## How [param stage] of area [param area_id] looks for this party, by the ladder's rule (spec
 ## 043) judged by that area's levels: safe at or above a safe stage the party has held there,
 ## within reach while the stage's level is at most the party's lowest level plus one, dangerous
 ## beyond.
 func risk(area_id: StringName, stage: int) -> DepthLadder.Risk:
 	var progress: Vector2i = _simulation.area_progress(area_id)
-	if stage <= progress.x and stage <= progress.y:
-		return DepthLadder.Risk.SAFE
 	var def: AreaDef = Content.area(area_id)
-	if def != null and def.level_at(stage) <= PartyLevels.lowest(_simulation.party) + 1:
-		return DepthLadder.Risk.REACHABLE
-	return DepthLadder.Risk.DANGEROUS
+	var level: int = def.level_at(stage) if def != null else stage
+	var lowest: int = PartyLevels.lowest(_simulation.party)
+	return StageRisk.judge(stage, progress.x, level, lowest, progress.y)
 
 
 ## The row of area [param area_id], or null.

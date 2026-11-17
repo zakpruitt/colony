@@ -329,6 +329,53 @@ func test_r4_the_warning_travels() -> void:
 	assert_eq(_hud.journal.ticker_text(), warning, "in the ticker as the ladder's does")
 
 
+func test_r4_warned_once_per_destination() -> void:
+	# Another area: a level-2 party sent to Claypits 2 (level 7) is warned once per change.
+	_mossy(1, 1)
+	_level(2)
+	_sim.expedition.travel.open[CLAYPITS] = true
+	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(1, 3)
+	_build_hud()
+	var first: String = "Target set to The Claypits 2: dangerous for level 2 heroes"
+	var second: String = "Target set to The Claypits 3: dangerous for level 2 heroes"
+	_send(CLAYPITS, 2)
+	_send(CLAYPITS, 2)
+	assert_eq(_journal_count(first), 1, "twice before a step: once")
+	for i: int in 50:
+		if _sim.expedition.state == Expedition.State.JOURNEYING:
+			break
+		_sim.step()
+	assert_eq(_sim.expedition.state, Expedition.State.JOURNEYING, "setup: on the way")
+	_send(CLAYPITS, 2)
+	_sim.step()
+	assert_eq(_journal_count(first), 1, "the same destination on the way: no new warning")
+	_send(CLAYPITS, 3)
+	_sim.step()
+	assert_eq(_journal_count(second), 1, "a new destination: warned")
+	_send(CLAYPITS, 3)
+	assert_eq(_journal_count(second), 1, "and not again")
+
+	# The area the party is in: Mossy Hollow 4 is level 4, dangerous for level-1 heroes.
+	_mossy(1, 5)
+	_level(1)
+	_build_hud()
+	var here: String = "Target set to Mossy Hollow 4: dangerous for level 1 heroes"
+	_send(MOSSY, 4)
+	assert_eq(_journal_count(here), 1, "a dangerous Go here is warned")
+	_sim.step()
+	_send(MOSSY, 4)
+	assert_eq(_journal_count(here), 1, "the same target again is not")
+
+
+## Chooses [param area] on the map, sets [param stage] and presses Go.
+func _send(area: StringName, stage: int) -> void:
+	_map().open()
+	_map().choose(area)
+	_map().step_stage(stage - _map().stage_shown())
+	assert_eq(_map().stage_shown(), stage, "setup: stage %d of %s" % [stage, area])
+	_map().go()
+
+
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -418,6 +465,40 @@ func _tip_goal(index: int) -> String:
 	return _tip(_hud.goals.rows[index])
 
 
+func test_r6_opened_before_this_session() -> void:
+	# An area opened during time away or before a reload: its events are gone, so the start counts
+	# it as unseen until the map is opened.
+	_mossy(6, 7)
+	_sim.expedition.travel.open[CLAYPITS] = true
+	_build_hud()
+	_hud.advance(STEP)
+	assert_gte(_hud.goals.lines().find("Visit The Claypits"), 0, "the goal")
+	assert_true(_map().has_mark(), "and the mark")
+	_map().open()
+	_map().close()
+	_hud.advance(STEP)
+	assert_false(_map().has_mark(), "gone once the map has been opened")
+	assert_gte(_hud.goals.lines().find("Visit The Claypits"), 0, "the goal stays until the visit")
+
+
+func test_r6_opened_while_the_map_is_open() -> void:
+	_sim = Simulation.new(SEED)
+	_build_hud()
+	_level(STRONG_LEVEL)
+	_before_guardian(5)
+	_map().open()
+	_hud.advance(STEP)
+	for i: int in 3000:
+		if _sim.is_area_open(CLAYPITS):
+			break
+		_frame()
+	assert_true(_sim.is_area_open(CLAYPITS), "setup: opened with the map open")
+	assert_true(_map().is_open(), "setup: the map stayed open")
+	_map().close()
+	_hud.advance(STEP)
+	assert_false(_map().has_mark(), "it was seen as it opened: no mark")
+
+
 # --- R7 ------------------------------------------------------------------------
 
 
@@ -447,8 +528,9 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	var opened: int = _journal_at("The Claypits is open")
 	var arrived: int = _journal_at("Arrived in The Claypits")
 	assert_gte(opened, 0, "the journal has the opening")
-	assert_gt(opened, arrived, "before the arrival (newest first)")
-	assert_true(_map().news.is_beaten(MOSSY), "the Slime King is Mossy Hollow's")
+	assert_gte(arrived, 0, "and the arrival")
+	assert_gt(opened, arrived, "the opening is written before the arrival (newest first)")
+	assert_true(_map().news.beaten.has(MOSSY), "the Slime King is heard as Mossy Hollow's")
 	assert_false(_map().news.beaten.has(CLAYPITS), "not the Claypits', where the party is now")
 	_map().open()
 	_hud.advance(STEP)
@@ -457,6 +539,39 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	assert_true(_map().row(MOSSY).guardian_thumb.beaten, "its guardian beaten")
 	assert_false(_map().row(CLAYPITS).guardian_thumb.beaten, "the Claypits' not")
 	assert_true(_map().row(CLAYPITS).is_open, "the Claypits open")
+
+
+func test_r7_a_frame_that_ends_on_the_road() -> void:
+	# The Slime King's death and the departure in one batch, the frame ending on the road: the
+	# live state already names the Claypits (Expedition.area), the events still have the party
+	# in Mossy Hollow, where the guardian fell.
+	_sim = Simulation.new(SEED)
+	_build_hud()
+	_level(STRONG_LEVEL)
+	_before_guardian(5)
+	_world.sync(0.1)
+	_hud.advance(STEP)
+	for i: int in 4000:
+		if _sim.expedition.state == Expedition.State.JOURNEYING:
+			break
+		if _sim.is_area_open(CLAYPITS) and _sim.expedition.travel.pending_area == &"":
+			_sim.set_destination(CLAYPITS, 1)
+		_sim.step()
+	assert_eq(_sim.expedition.state, Expedition.State.JOURNEYING, "setup: on the road")
+	assert_eq(_sim.expedition.area, CLAYPITS, "setup: the live state names the destination")
+	_world.sync(0.1)
+	_hud.advance(0.1)
+	assert_eq(_map().news.here, MOSSY, "the events are still in Mossy Hollow")
+	assert_true(_map().news.beaten.has(MOSSY), "the guardian heard as Mossy Hollow's")
+	assert_false(_map().news.beaten.has(CLAYPITS), "not the destination's")
+	assert_true(_map().has_mark(), "the mark")
+	assert_gte(_hud.goals.lines().find("Visit The Claypits"), 0, "the goal, not yet done")
+	_map().open()
+	_hud.advance(STEP)
+	assert_string_starts_with(
+		_map().row(CLAYPITS).tag_label.text, "On the way", "the destination is on the way"
+	)
+	assert_eq(_map().row(MOSSY).tag_label.text, "", "and nowhere is Here")
 
 
 # --- R8 ------------------------------------------------------------------------

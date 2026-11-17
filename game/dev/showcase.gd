@@ -313,6 +313,7 @@ func _begin(current: StringName) -> void:
 		&"journey":
 			_settle_now()
 			_map_on_the_way = false
+			expedition.travel.open[NEW_AREA] = true  # on its own too, after skip_to
 			main.hud.area_map.open()
 			main.hud.area_map.choose(NEW_AREA)
 			main.hud.area_map.go()

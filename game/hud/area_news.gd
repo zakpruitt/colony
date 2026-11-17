@@ -16,8 +16,11 @@ var beaten: Dictionary[StringName, bool] = {}
 var visited: Dictionary[StringName, bool] = {}
 ## Open areas the party has never been in, in the order they opened: each is a goal.
 var to_visit: Array[StringName] = []
-## Areas opened since the map was last opened: the mark on the map's button.
+## Areas opened since the map was last opened: the mark on the map's button. At the start, every
+## open area never visited counts: it opened during time away or before a reload.
 var unseen: int = 0
+## True while the map is open: an area that opens then is seen as it opens.
+var watching: bool = false
 
 var _simulation: Simulation
 
@@ -32,6 +35,7 @@ func _init(simulation: Simulation) -> void:
 			visited[id] = true
 		elif simulation.is_area_open(id):
 			to_visit.append(id)
+	unseen = to_visit.size()
 
 
 ## Takes in one event, in the order the simulation reported it.
@@ -43,7 +47,8 @@ func hear(event: SimEvent) -> void:
 			to_visit.erase(here)
 		SimEvent.Kind.AREA_OPENED:
 			var opened: StringName = area_at(event.amount)
-			unseen += 1
+			if not watching:
+				unseen += 1
 			if not visited.has(opened) and not to_visit.has(opened):
 				to_visit.append(opened)
 		SimEvent.Kind.GUARDIAN_SLAIN:
