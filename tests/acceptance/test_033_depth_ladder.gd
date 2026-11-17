@@ -307,11 +307,14 @@ func test_r4_hover_says_it() -> void:
 		10: "Depth 10: Clay Colossus",
 		12: "Depth 12: not reached yet",
 	}
+	# Spec 043 adds a second line for how the depth looks; the first line is as it was.
 	for depth: int in lines:
-		var text: String = ladder.hover_text(depth)
+		var text: String = ladder.hover_text(depth).get_slice("\n", 0)
 		assert_eq(text, "%s. %s" % [lines[depth], CLICK_HINT], "depth %d's line" % depth)
 	assert_eq(
-		ladder.hover_text(8), "Depth 8: visited, the party is heading here", "the target, no click"
+		ladder.hover_text(8).get_slice("\n", 0),
+		"Depth 8: visited, the party is heading here",
+		"the target, no click"
 	)
 
 	# The guardian beaten.
