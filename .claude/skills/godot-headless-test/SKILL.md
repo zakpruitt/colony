@@ -109,6 +109,13 @@ by value, not with `assert_eq` against ints.
   (a deeper depth, a level that learns a microskill); the finished goal holds its row for 3 s. Advance the
   HUD a frame, then past `Goals.CELEBRATE_SECONDS`, before reading `goals.lines()`.
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.
+- `[Failed]: Unexpected Errors ... at line -1` with no message: a `SCRIPT ERROR` (often a parse error in a
+  script the test loads, or a freed object touched) that `dev.py test` cut from what it shows. Run GUT
+  yourself to see it: `godot_console --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit
+  -gselect=test_038 -gunit_test_name=<test>` and grep the output for `SCRIPT ERROR`.
+- A test that needs a party that *cannot* do a side quest must stay robust to faster levelling (spec 036):
+  a level-1 rogue can reach level 2 and learn Lockpicker on one walk. Pick a quest whose microskill comes
+  late (a rune stone, Runereader at mage level 4) rather than the locked chest.
 - `dev.py test` shows a test's `print` output only when something fails. To read a trace while debugging,
   end the test with a failing assertion, and delete the test (and its `.uid`) afterwards.
 - `[boot] FAIL`: the main scene printed an error while starting; the line is in the output.
