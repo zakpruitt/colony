@@ -177,7 +177,10 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
   decision: `chest` (locked chest, `item`), `door` (stuck door, `fx` 24x24), `wanderer` (hurt wanderer, `item`),
   `stone` (rune stone, `fx` 24x24, `cyan` runes) and `wire` (tripwire, `item`). Each has a hand-drawn `ink`
   outline, stands on the floor line at the middle of its chamber, and is drawn under the darkness like the
-  monsters. Its colours are its burst when the quest is done.
+  monsters. Its colours are its burst when the quest is done. Out of the party's light (spec 038) it
+  carries a glint (the ambience `sparkle`) at its opaque box's top corner, drawn above the darkness: a
+  slow pulse (small, big, small, then nothing, every 2 s), gone in the light and gone for good when the
+  quest is done.
 
 ## Text
 
@@ -221,6 +224,12 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
   shake, a 0.2 s freeze, a burst in three waves of the guardian's own colours (each opening with a `white` or
   `yellow` flash and a ring in its first colour), a fountain of coins and `GUARDIAN SLAIN` at 4x in `yellow`.
   Only a guardian's death may go past the particle cap, and only by its own particles.
+- **The fallen** (spec 038) are their own sprite turned a quarter turn about the feet, head away from the
+  way they faced, and lifted so the back rests on the floor: a quarter turn keeps every pixel whole, so no
+  squashed or smeared death pose. They lie until the fight is won or the party revived; after a wipe
+  they rise in 0.8 s under the revival light, where the camera has travelled (eased, 0.6 to 3 s) after
+  a 1.5 s hold.
+- **Guardian fights** keep melee heroes at the guardian's opaque edge, 2 pixels off, never overlapping it.
 
 ## UI
 

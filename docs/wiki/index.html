@@ -216,12 +216,10 @@ Things marked <span class="tag built">Built</span> work today;
   reviewer.</li>
   <li>All art is a first pass and stays that way by decision: Zak will make the characters, and the world's
   look is to be agreed with him. Weakest: the ghoul, clay hound, fire imp and the Clay Colossus.</li>
-  <li>Side-quest props far from the party's light are dim; the rune stone is the hardest to see.</li>
   <li>The Cautious pace rests four times as often as Bold but wipes barely less (33 against 34 over three
   hours of testing), so pace may not matter enough yet.</li>
   <li>The game accepts any target depth, so the ladder lets you send the party far below what it can
   survive.</li>
-  <li>Heroes vanish while the party is wiped; melee heroes overlap a guardian's body in a fight.</li>
   <li>The Bone Lord and Deep Maw (depths 15 and 20) were balanced by hand, with no test holding them.</li>
   <li>A save from testing may exist. For a fresh start, delete <code>colony.save</code>,
   <code>colony.save.bak</code> and <code>colony.settings</code> in
@@ -346,6 +344,12 @@ shows a grey <em>Needs Lockpicker</em> rising from it, once per visit; a tripwir
 Strongarm</em>, <em>Sprang a Tripwire: needs Trapspotter</em>, <em>Rogue learned Lockpicker</em>), and each
 hero sheet's Skills tab lists the class's microskills: the ones the hero has in white with what they do, the ones to come
 in grey with their level (<em>Trapspotter, level 6</em>).</p>
+<p><span class="tag built">Built: spec 038</span> <strong>Rough edges on screen.</strong> A side quest out
+in the dark, beyond the party's light, now shows a small white glint at the prop's top corner that pulses
+slowly (small, big, small, then a pause, every two seconds) above the darkness, so you can spot it from afar. The
+glint goes when the party's light reaches the prop, comes back once the party has passed a quest nobody can
+do, and is gone for good once the quest is done. In a guardian fight, the knight and the rogue stand at the
+guardian's edge instead of inside its body, the others keeping their room behind them.</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
 (one minute on depth 1, longer each level down, ten minutes from depth 10 on). If the party wipes, it revives there and keeps farming. A wipe costs
@@ -380,8 +384,12 @@ little ahead of it, and glides down shafts with it. Each hero walks smoothly bet
 when the heroes line up for a fight, regroup after one or step onto a ladder, they run to their places rather
 than jumping. Monsters stand idle in every chamber that holds them on the levels near the party, facing the
 party's side, and reappear when a chamber refills. In a fight every attack, hit, death and bolt comes from the
-simulation, so what you see is what happened. After a wipe the heroes stay down until they stand up again
-where they revive. If the game falls behind (a long freeze, say), it catches up at once to the simulation's
+simulation, so what you see is what happened. A hero who falls topples onto their back and lies there
+until the fight is won (spec 038). After a wipe the camera stays on the fallen party for about a second and
+a half, then glides to where the party will revive (it cuts there instead if that is more than three
+screens away) and arrives before the revival, so you see the heroes, still lying, sit up and stand under
+the light. At 2x and 4x the same story plays faster. If the game falls behind (a long freeze, say), it
+catches up at once to the simulation's
 true state instead of replaying old animations.</p>
 <p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each
 chamber has torches on its back wall that throw warm, flickering pools of light in a few hard-edged rings
@@ -688,7 +696,7 @@ the panel reads as before.</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
-  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep, a side quest done, one nobody can do, a tripwire sprung and a microskill learned, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
+  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung and a microskill learned, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
