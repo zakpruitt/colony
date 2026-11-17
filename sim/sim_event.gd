@@ -22,6 +22,13 @@ enum Kind {
 	HERO_TRAINED,
 	# A command's result (spec 035), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
 	ORDER_CHANGED,
+	# Spec 050's: only a battle with abilities produces them, so they sit before ENCOUNTER_STARTED.
+	ABILITY_STARTED,
+	ABILITY_USED,
+	STATUS_BEGAN,
+	STATUS_ENDED,
+	MISSED,
+	REVIVED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -57,10 +64,19 @@ var target_id: int = -1
 ## [method Content.training_ids]. For ORDER_CHANGED: the order's new value
 ## ([enum Expedition.Pace] or [enum Expedition.GuardianOrder]), with [member target_id] which order:
 ## [constant PartyOrders.PACE] (0) or [constant PartyOrders.GUARDIANS] (1).
+## Spec 050's, with [member source_id] the fighter and [member target_id] whom it is on:
+## ABILITY_STARTED: the wind-up in ticks; ABILITY_USED: 0; STATUS_BEGAN: how many ticks it lasts;
+## STATUS_ENDED: 0; MISSED: the damage absorbed by a shield (0 for a miss);
+## REVIVED: the health it stands up with.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
-## "a hazard sprang" for SIDE_QUEST_MISSED.
+## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.
 var flag: bool = false
+## Spec 050: the [AbilityDef] id for ABILITY_STARTED, ABILITY_USED and STATUS_BEGAN (the ability
+## that put the status there), and for STATUS_ENDED; empty otherwise.
+var ability_id: StringName = &""
+## Spec 050: the [enum AbilityEffect.Status] for STATUS_BEGAN and STATUS_ENDED; -1 otherwise.
+var status: int = -1
 
 
 ## Every argument is optional, so [code]SimEvent.new()[/code] still works.
