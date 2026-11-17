@@ -260,6 +260,9 @@ func _guardian_goal() -> Goal:
 		"level %d of about %d" % [lowest, wanted],
 		"Heroes near level %d can win: fights, training and upgrades get them there." % wanted
 	)
+	# Spec 035's Hold order keeps the party from the guardian on its depth (or the one above).
+	if e.is_holding() and (depth == e.depth or depth == e.depth - 1):
+		goal.hint = "The party is holding back on the Hold order: Orders (O) sends it in."
 	goal.target = depth
 	goal.done = "Goal: beat the %s" % who
 	return goal

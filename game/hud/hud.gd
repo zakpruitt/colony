@@ -501,11 +501,10 @@ func _build_orders() -> void:
 			orders.toggle()
 			orders_button.lit = orders.is_open()
 	)
-	# The tooltip has no public way to add an element after its setup.
-	tooltip._tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
+	tooltip.tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
 	for order: int in orders.choice_buttons.size():
 		for value: int in orders.choice_buttons[order].size():
-			tooltip._tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
+			tooltip.tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
 	move_child(tooltip, -1)  # drawn over the panel
 
 

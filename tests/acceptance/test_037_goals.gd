@@ -561,6 +561,20 @@ func test_r5_explains_itself() -> void:
 		"the depth goal at the deepest depth"
 	)
 
+	# Under spec 035's Hold order, the guardian's tooltip says the party is holding.
+	_situation(5, 5, 4)
+	_sim.expedition.guardian_order = Expedition.GuardianOrder.HOLD
+	_sim.expedition.target_depth = 6
+	_hud.advance(STEP)
+	assert_true(_sim.expedition.is_holding(), "the party holds at the guardian")
+	var holding: String = goals.hint(0)
+	assert_eq(goals.lines()[0], "Beat the %s" % _guardian_name(5), "the guardian goal")
+	assert_true(holding.contains("Hold") and holding.contains("(O)"), "says so: %s" % holding)
+	assert_true(holding.ends_with(".") and not holding.trim_suffix(".").contains(". "), holding)
+	_sim.expedition.guardian_order = Expedition.GuardianOrder.CHALLENGE
+	_hud.advance(STEP)
+	assert_false(goals.hint(0).contains("Hold"), "not under Challenge: %s" % goals.hint(0))
+
 	# G in the help panel's key list, and its case in spec 030's test.
 	var listed: bool = false
 	for entry: Array in HelpPanel.KEYS:
@@ -613,6 +627,13 @@ func test_r6_out_of_the_way() -> void:
 	assert_true(goals.is_shown(), "the shop does not hide it")
 	assert_false(rect.intersects(_hud.shop.get_global_rect()), "clear of the shop")
 	_hud.shop.close()
+
+	# Spec 035's orders panel, open.
+	_hud.orders.open()
+	_hud.advance(STEP)
+	assert_true(_hud.orders.is_open(), "the orders panel is open")
+	assert_false(rect.intersects(_hud.orders.get_global_rect()), "clear of the orders panel")
+	_hud.orders.close()
 
 	# The boss bar, during a guardian fight.
 	_raise(STRONG_LEVEL)
