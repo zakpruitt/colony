@@ -1,9 +1,9 @@
 # 044 — Old saves level up: fixes from the review of a livelier start
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 014, 029, 036
-- **Pull request:** —
+- **Pull request:** [#44](https://github.com/zakpruitt/colony/pull/44)
 
 ## Intent
 

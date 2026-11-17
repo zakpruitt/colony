@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 044 | [Old saves level up](044-old-saves-level-up/spec.md) | M5 | landed on dev, [#44](https://github.com/zakpruitt/colony/pull/44), provisional | 014, 029, 036 |
 | 042 | [Goals you can click](042-goals-you-can-click/spec.md) | M5 | landed on dev, [#43](https://github.com/zakpruitt/colony/pull/43), provisional | 034, 035, 037, 039 |
 | 041 | [After a defeat](041-after-a-defeat/spec.md) | M5 | landed on dev, [#42](https://github.com/zakpruitt/colony/pull/42), provisional | 020, 027, 029, 035, 037, 038, 039 |
 | 040 | [Orders that hold](040-orders-that-hold/spec.md) | M4 | landed on dev, [#41](https://github.com/zakpruitt/colony/pull/41), provisional | 035, 039 |
@@ -59,4 +60,3 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [043 A ladder that warns](043-a-ladder-that-warns/spec.md): rungs show how dangerous a depth looks for this party, and the ladder scrolls | provisional, in progress | 033, 036, 042 |
-| [044 Old saves level up](044-old-saves-level-up/spec.md): fixes from the review of 036: a save from before the cheaper XP curve loads with heroes owed a level and a negative XP line | provisional, in progress | 014, 029, 036 |
