@@ -97,6 +97,8 @@ way? Describe the shots.
 - `sim/expedition/expedition.gd` (one read-only accessor, only if needed)
 - `tests/acceptance/test_033_depth_ladder.gd`, `tests/unit/test_hud*.gd`
 - Existing HUD tests only where they count HUD children (say which)
+- `game/hud/help_panel.gd` (the new key's row in `KEYS`) and `tests/acceptance/test_030_help_and_hints.gd` (the
+  new key's case in `_check_entry`): the help panel lists every key, and its test fails otherwise
 - `docs/style-bible.md`, `docs/wiki/index.html`
 
 ## Open questions

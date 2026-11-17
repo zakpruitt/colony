@@ -123,6 +123,8 @@ order does and which is on? Describe the shots.
 - `tests/acceptance/test_035_party_orders.gd`, `tests/unit/test_expedition*.gd`
 - Existing tests only where they assert the save version, the exact saved dictionary, the list of event
   kinds, or count HUD children or top-band controls (say which)
+- `game/hud/help_panel.gd` (the new key's row in `KEYS`) and `tests/acceptance/test_030_help_and_hints.gd` (the
+  new key's case in `_check_entry`): the help panel lists every key, and its test fails otherwise
 - `docs/architecture.md`, `docs/wiki/index.html`
 
 ## Open questions
