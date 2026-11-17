@@ -146,16 +146,28 @@ or a passive; `Combatant.abilities` lists a fighter's, empty for everyone until 
 
 - **Actions** replace an ordinary strike when off cooldown, their condition holds and their aim finds
   someone; the fighter walks into the action's reach as for a strike and keeps that target until the
-  action starts (`chasing`). The cooldown runs from when it lands. A stunned fighter does nothing and loses
-  its wind-up.
-- **Passives** answer to triggers. Hits, crits and "is hit" come only from ordinary strikes and actions,
-  never from passives or statuses, so passives cannot answer each other's damage; kills, deaths and falling
-  below a share answer to any damage. `BattleAbilities.MAX_CHAIN` bounds what is left.
+  action starts (`chasing`). A condition of an enemy within some tiles never makes it walk. The cooldown
+  runs from when it lands. A stunned fighter does nothing and loses its wind-up. A healer with an ally
+  below the healing threshold uses no action aimed at an enemy: it heals first.
+- **Within a tick heroes act before monsters**, each side in its order, so a hero's stun bites a tick
+  sooner than a monster's would: the stunned monster loses the very tick it is stunned on.
+- **Passives** answer to triggers. Landing a hit or a crit and being hit come only from ordinary strikes
+  and actions; kills, allies' deaths and falling below a share answer any damage, a passive's or a
+  status's too, so passives can set off passives, and `BattleAbilities.MAX_CHAIN` bounds how deep. A
+  passive that would land on nobody (its target already dead, say) is not used and reports nothing. A
+  passive on a strike may multiply that strike instead of adding a hit (`AbilityEffect.on_strike`); its
+  life steal is a share of the whole strike, and a strike that misses sets nothing off.
+- **Nothing lands on the dead** but a revive: the receivers of an effect are worked out once, and one
+  that an earlier receiver's passive killed is passed over. An **untouchable** fighter takes nothing
+  hostile from an enemy, and enemies aim at someone else while anyone else on its side stands
+  (`Battle.aimable`). `Battle.end()` ends every status with its event; the battle calls it as it ends,
+  and spec 051's expedition time limit will too.
 - **All damage** goes through `Battle.deal`: a shield absorbs first (a `MISSED` event, flagged), then the
   `HIT` with its true source, then the passives. Ability damage and healing carry no roll and never crit;
   ordinary strikes roll as before, multiplied by mighty or weakened and marked. Statuses in points (shield,
-  burning, bleeding, mending) are a multiple of the fighter's damage or healing, or of the receiver's
-  maximum health, fixed when they are put on.
+  burning, bleeding, chilled, mending) are a multiple of the fighter's damage or healing, or of the
+  receiver's maximum health, fixed when they are put on; one worth nothing is not put on. Putting a status
+  on again moves its end and keeps the stronger amount, but not its once-a-second clock.
 - **Nothing changes without abilities.** Every new roll (a passive's chance, a nimble dodge) happens only
   when an ability or a status asks for it, and every multiplier is exactly 1 without one, so the recorded
   hashes stand. Events: `ABILITY_STARTED`, `ABILITY_USED`, `STATUS_BEGAN`, `STATUS_ENDED`, `MISSED`,
