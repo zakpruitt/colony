@@ -49,6 +49,9 @@ incomplete, stop and report the question.
   says why. No `Co-Authored-By` or "Generated with" lines in commits or pull requests.
 - **Keep the wiki true.** `docs/wiki/index.html` is Zak's plain-language guide to how the game works and how to
   run it. When your change makes a "Planned" item real or changes a command, update it in the same pull request.
+- **A new key goes in the help list.** `HelpPanel.KEYS` (`game/hud/help_panel.gd`) lists every key the game
+  answers to; spec 030's R3 test reads every `KEY_…` name in `game/` and fails on one the list does not cover
+  (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 
