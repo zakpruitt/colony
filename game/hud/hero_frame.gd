@@ -6,9 +6,9 @@ extends HudPanel
 ## dimmed with a skull for an icon; a level-up pulses the level and restarts the XP bar.
 ##
 ## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
-## above), with the level moved left of it, counts what the hero has for the player to do: the trainings the party can
-## pay for, and the microskills learned since the hero's Skills page was last open. It follows the
-## same rules as the hero sheet's tab markers (spec 034).
+## above), with the level moved left of it, counts what the hero has for the player to do: the
+## trainings the party can pay for, and the microskills learned since the hero's Skills page was
+## last open. It follows the same rules as the hero sheet's tab markers (spec 034).
 
 ## Clicking the frame opens or closes this hero's sheet (spec 026).
 signal clicked(hero_id: int)
