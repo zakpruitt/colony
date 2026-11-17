@@ -60,9 +60,11 @@ func _raise(level: int) -> void:
 
 
 ## Raises [param hero] to [param level]. Unless [param keep_points], the paragon points the levels
-## bring (spec 051) are spent at once, so they ask nothing of the player.
+## bring (spec 051) are spent at once, so they ask nothing of the player; the talent points
+## always are (spec 055).
 func _level(hero: Hero, level: int, keep_points: bool = false) -> void:
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+	_spend_talents(hero)
 	if not keep_points:
 		var quickness: TrainingDef.Stat = TrainingDef.Stat.QUICKNESS
 		hero.set_paragon_rank(quickness, hero.paragon_rank(quickness) + hero.paragon_points())
@@ -498,10 +500,10 @@ func test_r4_frames_point_at_themselves() -> void:
 		frame.marker.get_global_rect().intersects(frame.level_label.get_global_rect()),
 		"not over the level"
 	)
-	# The same rule as the sheet's Training tab.
+	# The same rule as the sheet's Talents tab.
 	sheet.open(hero.id)
 	_hud.advance(STEP)
-	assert_eq(frame.marker.visible, sheet.page_marked(HeroSheet.Page.TRAINING), "as the tab")
+	assert_eq(frame.marker.visible, sheet.page_marked(HeroSheet.Page.TALENTS), "as the tab")
 	sheet.close()
 	hero.set_paragon_rank(TrainingDef.Stat.POWER, 1)
 	_hud.advance(STEP)
@@ -746,3 +748,12 @@ func test_r7_follows_the_simulation() -> void:
 	for i: int in goals.lines().size():
 		assert_false(goals.is_finished(i), "nothing ticked")
 		assert_eq(goals.flash(i), 0.0, "nothing flashing")
+
+
+## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
+## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
+func _spend_talents(hero: Hero) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var order: Array[StringName] = tree.trunk.duplicate()
+	order.append_array(tree.path_a)
+	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

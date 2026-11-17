@@ -130,8 +130,8 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   party is doing and counts down to when it goes deeper; the goals under it say what is coming. It should
   reach depth 2 in about 90 seconds.</li>
   <li><strong>Spend the first gold.</strong> Click the <code>Buy an upgrade</code> goal when it appears, or
-  press <kbd>U</kbd>. Heroes earn talent points from level 2 (a Training tab on their sheet counts them);
-  choosing their tree on screen comes with spec 055.</li>
+  press <kbd>U</kbd>. Heroes earn talent points from level 2: click the <code>Spend the Knight's talent
+  point</code> goal, or the hero's frame and its Talents tab, and click a glowing node.</li>
   <li><strong>Watch a side quest.</strong> A glint in the dark is one waiting. The rogue learns Lockpicker
   at level 2; before that the party walks past chests and the game says what was needed.</li>
   <li><strong>Open the tally</strong> (<kbd>T</kbd>) after a few fights: who deals the damage, who takes
@@ -153,9 +153,9 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   stuck door, a hurt wanderer, a rune stone or a tripwire instead of monsters. A hero with the right
   microskill (Lockpicker, Strongarm, Mender, Runereader, Trapspotter, learned by levelling) steps forward and
   does it; without one the party walks past and the game says what was needed.</li>
-  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Training tab with the hero's unspent
-  talent points and its paragon points to put into Power, Toughness or Quickness, and a Skills tab for their
-  microskills.</li>
+  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Talents tab with the hero's whole talent
+  tree (take a node, choose a path) and its paragon points to put into Power, Toughness or Quickness, and a
+  Skills tab for their microskills.</li>
   <li><strong>Reading the party.</strong> A status line that says what and why, a countdown to the next
   stable depth, a journal (<kbd>J</kbd>), a depth ladder you can click to steer, and a "while you were away"
   report that tells the whole story.</li>
@@ -221,7 +221,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   mouse wheel scrolls it. The target's number has a yellow frame and the party's a white one (spec 047).</li>
   <li><strong>Goals</strong> (spec 037): a small panel under the depth says what to look forward to next,
   each goal with a bar or a price; a hero's frame shows a small orange tag when there is something to do on
-  their sheet. Click a goal to go where it is done: the shop, a hero's training or skills, the orders, or
+  their sheet. Click a goal to go where it is done: the shop, a hero's talents or skills, the orders, or
   the depth ladder (spec 042). <kbd>G</kbd> hides the goals.</li>
   <li><strong>The area map</strong> (spec 053): <kbd>W</kbd>, or a click on the area's name at the top left,
   opens a list of every area: its monsters (point at one for its name), its guardian with a green tick once
@@ -255,8 +255,8 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   <tr><td><kbd>U</kbd></td><td>Open or close the shop (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero (<kbd>Esc</kbd> closes it; so does clicking the hero's frame again)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put one of the hero's paragon points into that row (Power, Toughness, Quickness), while their sheet is open on the Training tab</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Move to the previous or next tab of the hero sheet (Stats, Training, Skills) or of the party tally (Damage, Healing, Taken), wrapping round</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put one of the hero's paragon points into that stat (Power, Toughness, Quickness), while their sheet is open on the Talents tab</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Move to the previous or next tab of the hero sheet (Stats, Talents, Skills) or of the party tally (Damage, Healing, Taken), wrapping round</td></tr>
   <tr><td><kbd>B</kbd></td><td>Turn auto-buy on or off, while the shop is open</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Lower or raise the target depth (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Turn auto-push (go deeper after holding the target for the stable time) on or off</td></tr>
@@ -330,8 +330,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
 </ul>
 <h3>Not built yet</h3>
 <p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
-equipment, choosing talents on screen (the trees are in, spec 051, and the headless run spends them; the
-tree on the hero sheet is spec 055), the warren-town at
+equipment, the warren-town at
 the surface, music, a settings screen.</p>
 
 <nav>
@@ -584,10 +583,11 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   the party and where (<em>Beaten by the Slime King on Mossy Hollow 5</em>, or <em>Beaten on Mossy Hollow 7 by 3
   ogres</em>), with <em>(2 times)</em> from the second defeat in a row by the same guardian; the plainest
   reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Mossy Hollow 7 is 3
-  below the safe stage</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the first
-  hero with paragon points to spend on its Training tab), <em>Buy an upgrade</em> (opens the shop),
+  below the safe stage</em>); and up to three buttons that would help: <em>Spend talent points</em> (first,
+  when any hero has one: opens that hero's Talents tab, spec 055), <em>Train Knight</em> (opens the first
+  hero with paragon points to spend on its Talents tab), <em>Buy an upgrade</em> (opens the shop),
   or <em>Hold here</em> (sets the guardian order to Hold; it reads <em>Holding</em> only while the order is
-  Hold). Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
+  Hold). When all four would help, <em>Buy an upgrade</em> is the one left out. Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
   the button said. It hides while a panel is open, and its 8 seconds wait while it is hidden. It says
   nothing about wipes while you were away or seen only after a stall, and it describes the lost fight even
   when the defeat and the revival arrive in one frame (at 4x). The journal writes its first line and where
@@ -632,21 +632,22 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   <em>Reach depth 6</em> (at the deepest depth, filling toward auto-push's next push and showing the time
   left, <em>on the way</em> once the target is below, <em>Auto is off</em> when nothing will take the party
   deeper; elsewhere, as the party works its way back down; it gives way to the guardian's goal while the party
-  is holding at it, spec 039), <em>Rogue learns Trapspotter at level 6</em> (the hero's XP toward that level), <em>Train a hero</em>
+  is holding at it, spec 039), <em>Spend the Knight's talent point</em> (spec 055: the first hero with one;
+  a click opens its Talents tab), <em>Rogue learns Trapspotter at level 6</em> (the hero's XP toward that level), <em>Train a hero</em>
   (when a hero has paragon points, with how many) and <em>Buy an upgrade</em> (when the gold is there, with the price). When one is done its line flashes
   green, shows a tick for 3 seconds and the journal gets a line (<em>Goal: reached depth 6</em>), then the next
   goal takes its place. Resting the mouse on a goal says how to get there (under the Hold order, that the
   party is holding back and Orders sends it in), then what a click does. Each line is a button (spec 042):
   it lights up under the mouse, and those two goals carry a small yellow <em>&gt;</em> since they can be done
   now. Clicking <em>Buy an upgrade</em> opens the shop; <em>Train a hero</em> opens the sheet of the first hero
-  with paragon points to spend, on its Training tab; a microskill opens that hero's sheet
+  with paragon points to spend, on its Talents tab; a microskill opens that hero's sheet
   on its Skills tab; <em>Beat the ...</em> opens the orders; <em>Reach depth N</em> shows the depth ladder
   (closing the shop if it covers it) and flashes that depth's rung for a second. A click only opens things:
   nothing is bought or trained from the goals, and a goal showing its tick does nothing. It gives no
   rewards: it is a signpost. <code>G</code> hides and shows it, and it steps aside while a hero sheet, the journal or the tally is open.
   Things done while the game was catching up are not celebrated.</li>
   <li><strong>Frame tags</strong> (spec 037): a hero's frame carries a small orange tag with a number in its
-  top-right corner while that hero has something for you: paragon points to spend, and microskills
+  top-right corner while that hero has something for you: talent and paragon points to spend, and microskills
   learned since you last looked at their Skills tab. It clears as the sheet's own tab tags do.</li>
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
@@ -688,13 +689,14 @@ with everything about that hero; the hero's frame gets a yellow edge so you can 
 another frame, or press <code>Tab</code> again, to move to the next hero; click the same frame, the small
 <code>x</code>, or press <code>Esc</code> to close it. The sheet and the shop never show together: opening one
 closes the other. The game keeps running behind it, and every other key still works.</p>
-<p><span class="tag built">Built: spec 034</span> The sheet is a compact panel (240 by 150 pixels) that leaves
-the party in view. Its top part, who the hero is, what they are doing and their health and XP bars, is always
-there. Under it are three tabs: <strong>Stats</strong>, <strong>Training</strong> and <strong>Skills</strong>.
+<p><span class="tag built">Built: spec 034</span> The sheet is a compact panel (240 by 150 pixels, taller on the
+Talents tab so the whole tree fits) that leaves the party in view. Its top part, who the hero is (with its path
+once chosen: <code>Knight, Berserker</code>), what they are doing and their health and XP bars, is always
+there. Under it are three tabs: <strong>Stats</strong>, <strong>Talents</strong> and <strong>Skills</strong>.
 Click a tab, or press <kbd>Q</kbd> and <kbd>E</kbd> for the previous and next one (they wrap round). The sheet
 remembers the open tab while you step through heroes with <kbd>Tab</kbd> and when you close and reopen it; a new
-session starts on Stats. A small pulsing tag beside a tab asks for a look: on Training, the number of paragon
-points this hero has to spend; on Skills, the number of microskills the hero learned since you last looked
+session starts on Stats. A small pulsing tag beside a tab asks for a look: on Talents, the number of talent and
+paragon points this hero has to spend; on Skills, the number of microskills the hero learned since you last looked
 at that tab (it clears when you open it).</p>
 <ul>
   <li><strong>Who</strong> (always shown)<strong>:</strong> the hero's portrait at twice the size (a skull while they are down), the class, the
@@ -708,16 +710,31 @@ at that tab (it clears when you open it).</p>
   Range (<code>Melee</code> or tiles) and, for the Cleric, Healing, with the camp upgrades and the hero's
   paragon points already counted in. A stat an upgrade or paragon points raise shows the two bonuses together
   beside it in green (<code>Damage 14 (+21%)</code>).</li>
-  <li><strong>Training</strong> <span class="tag built">Built: spec 051</span> (the Training tab, until spec 055
-  puts the tree there)<strong>:</strong> the hero's unspent talent points and paragon points as numbers, then one
-  row per paragon stat: its name, what a point gives, the points in it and their bonus (<code>2 +6%</code>), and a
-  <code>+1</code> button, lit while the hero has a paragon point. Click it or press <kbd>1</kbd>, <kbd>2</kbd> or
-  <kbd>3</kbd> while the Training tab is open: the row flashes and the Stats tab shows the new numbers.</li>
+  <li><strong>Talents</strong> <span class="tag built">Built: spec 055</span><strong>:</strong> the hero's
+  whole tree on one tab. At the top, the unspent talent points (<code>2 talent points</code>), or the level that
+  brings the next (<code>Next point at level 6</code>), and <code>Reset</code> with its price (100 gold a level),
+  greyed with the reason when it cannot be used (<code>Nothing to reset</code>, <code>In a fight</code>,
+  <code>Not enough gold</code>) and asking before it acts. Then the three trunk nodes in a row and the two paths
+  side by side under their names, four nodes each, joined by lines. Each node has a small picture of its kind
+  (strike, guard, heal, fire, frost, shadow, light, rally) and its ability's name: taken nodes are bright with a
+  green tick; one that can be taken now is framed in yellow and pulses; the rest are plain, and the nodes of the
+  path not chosen go dark with the path's name struck through. Point at a node, or click it, and the place under
+  the tree says what it does, whether it is an action (with its cooldown) or a passive, and why it cannot be
+  taken (<code>Take Taunt first</code>, <code>The Guardian path is closed</code>, <code>No talent point</code>).
+  Click a glowing node to take it; the first node of a path asks first (<code>Choose Berserker? This closes
+  Guardian.</code>, with <code>Choose</code> and <code>Not yet</code>). Under it all, the paragon points: before
+  level 14 it says <code>Paragon points come after level 14</code>; at level 14, with every talent point earned,
+  it shows <code>0 paragon points</code> and the three stats, and each level from 15 brings a point to put in
+  with the <code>+1</code> beside Power, Toughness or Quickness (or <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd>),
+  with each one's bonus so far beside it. A question (a path or a reset) goes away when you change tab or
+  close the sheet; a reset question goes too when a fight starts or the price changes, so you are never
+  charged a price you did not read.
+  The journal notes each talent point and each path chosen (<code>The Knight is now a Berserker</code>).</li>
   <li><strong>Skills</strong> (the Skills tab)<strong>:</strong> the class's microskills, learned ones in white
   with what they do, the ones to come in grey with their level.</li>
 </ul>
 <p>Everything on it is read from the game every frame, so it is right after a level up, a purchase or loading
-a save. Later sheets (equipment, talents) can become tabs of their own.</p>
+a save. Later sheets (equipment) can become tabs of their own.</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -773,7 +790,7 @@ travel speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up 
 rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
 fight. Upgrades are saved. You buy them in the upgrade shop on the HUD (spec 017). In a one-hour headless run, a party that keeps buying the
 cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
-<h3>Talent trees and paragon <span class="tag built">Built: spec 051, in the simulation</span></h3>
+<h3>Talent trees and paragon <span class="tag built">Built: specs 051 and 055</span></h3>
 <p>Camp upgrades lift every hero at once; talents make one hero different. Each class has a small tree
 (<code>data/talents/</code>) of eleven abilities (<code>data/abilities/</code>, the rules are spec 050's): a
 trunk of three, then two named paths of four. A hero earns one talent point at every even level (2, 4 ... 14),
@@ -799,11 +816,11 @@ Miracle, Sanctuary, Rampage), which wait for a fight that goes badly.</p>
 <p>Once a hero has earned its seven talent points, every level after gives a <strong>paragon point</strong>
 instead, the only place plain strength is bought: <strong>Power</strong> (+3% damage and healing),
 <strong>Toughness</strong> (+3% maximum health) or <strong>Quickness</strong> (+3% attack speed), with no limit.
-They are spent on the hero sheet's Training tab. A <strong>fresh start</strong> gives a hero back every talent
+They are spent on the hero sheet's Talents tab. A <strong>fresh start</strong> gives a hero back every talent
 point and opens both paths, for 100 gold per level, outside a fight; paragon points stay. Auto-buy never spends a
 point. Gold training (spec 029) is gone: a save from before gives every hero back the gold its training cost and
-all the talent and paragon points its level earned, unspent. On screen, choosing the tree is spec 055; for now
-<code>python tools/dev.py sim --spend-talents</code> spends them headless (trunk, then the first path, paragon
+all the talent and paragon points its level earned, unspent. On screen the tree is the hero sheet's Talents tab
+(spec 055); <code>python tools/dev.py sim --spend-talents</code> spends them headless (trunk, then the first path, paragon
 into Power): on seeds 1 to 5 it beats the Slime King in 9 to 15 minutes instead of 14 to 28, with 0 or 1 wipes
 before instead of 1 to 4. With auto-buy on as well it wins in 9 to 13 minutes, at the first meeting on four
 seeds of five.</p>
@@ -923,7 +940,7 @@ the panel reads as before.</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten; <code>--area=claypits</code> to send the party to that area at the start, opening it for the run; the summary names the area and stage the party ends in, each area's safe and furthest stage and the open areas)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
-  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, going on a stage and back (the doorway crossing), a wipe and the revival, a stage becoming stable, a fight in The Claypits, The Old Crypt and Ember Deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung, a microskill learned and the four areas in turn, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
+  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, going on a stage and back (the doorway crossing), a wipe and the revival, a stage becoming stable, a fight in The Claypits, The Old Crypt and Ember Deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung, a microskill learned, the four areas in turn and the knight choosing a path on its Talents tab, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
