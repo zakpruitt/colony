@@ -87,6 +87,16 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   under a still mouse as rows move (spec 047), so a mouse placed mid-scroll ends on a different row.
 - gdlint caps a script at 20 public methods (`max-public-methods`), and `DepthLadder` is at the cap. A read
   added for a test there has to replace one, or be a public variable, which does not count.
+- A hidden button still runs its handler when a test emits `pressed`, so a page's handler must check that the
+  page is shown. Check the page (`is_visible_in_tree()` on the page), not the button: a control whose
+  visibility a refresh sets lags one HUD frame, and a key pressed right after a level up finds it still hidden
+  (spec 055 broke spec 030's `1-3` test this way).
+- The showcase's whole pass is held under 90 s by test_018 and runs close to it (89.5 s after spec 055). A new
+  moment gets about a second: do its clicks at once and a few tenths apart, and keep its linger short. To
+  measure, swap the `PASS_LIMIT` assert for `assert_lt(showcase.elapsed, 1.0)` locally, read the value, and
+  restore it.
+- Typed GDScript turns shadowing into an error: a local, loop variable or parameter cannot share a name with a
+  method of its class (`node`, `state`), and a function cannot be named for a builtin (`wrap`).
 
 ## Files
 
