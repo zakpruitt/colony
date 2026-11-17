@@ -50,3 +50,4 @@ until Zak has played them.
 | [032 Game speed](032-game-speed/spec.md): watch the loop at 1x, 2x or 4x | provisional, in progress | 001, 008, 010, 011, 021 |
 | [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, in progress | 011, 020, 027 |
 | [034 A hero sheet that fits](034-hero-sheet-tabs/spec.md): the sheet grew to a third of the screen; a fixed header and three tabs | provisional, in progress | 026, 028, 029 |
+| [035 Party orders](035-party-orders/spec.md): standing instructions the party follows: pace (when to rest) and whether to fight guardians | provisional, waiting for a free lane | 005, 014, 020, 027, 030 |
