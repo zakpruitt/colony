@@ -267,6 +267,18 @@ func guardian_of(level_depth: int) -> StringName:
 	return found
 
 
+## Seconds the party must still hold this depth before it becomes stable; 0.0 when it already is.
+## Reading it changes nothing.
+func seconds_to_stable() -> float:
+	if depth <= last_stable_depth:
+		return 0.0
+	# A depth set from outside counts from the tick before the next step, as _count_time does.
+	var since: int = _depth_since if depth == _timer_depth else _tick
+	var needed: int = roundi(stable_seconds * Simulation.TICKS_PER_SECOND)
+	var left: int = maxi(needed - (_tick - since), 0)
+	return float(left) / Simulation.TICKS_PER_SECOND
+
+
 ## The id of the side quest that chamber holds on its current visit, or &"". Like the monsters,
 ## it depends only on the seed, depth, chamber and visit, and asking changes nothing in the game.
 func side_quest_in(level_depth: int, chamber_index: int) -> StringName:
