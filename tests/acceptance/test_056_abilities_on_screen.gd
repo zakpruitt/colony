@@ -1,4 +1,4 @@
-extends GutTest
+extends "res://tests/unit/abilities_on_screen_rig.gd"
 ## Acceptance tests for specs/056-abilities-on-screen/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects that listen to it (and,
@@ -8,234 +8,6 @@ extends GutTest
 ## them to the simulation's event list, stamped from the tick the battle began on, and syncs a
 ## frame, so the world, the effects and the HUD hear them as they would in play. The others run
 ## real fights of a party with full talent trees.
-
-const SEED: int = 56
-const FRAME: float = 1.0 / 60.0
-const KNIGHT: int = 1
-const ROGUE: int = 2
-const MAGE: int = 3
-const CLERIC: int = 4
-const HERO_IDS: Array[int] = [KNIGHT, ROGUE, MAGE, CLERIC]
-const TPS: int = Simulation.TICKS_PER_SECOND
-## The heroes' level in the fights of full trees (every talent point earned), and the path each
-## class takes: the ones with a status that works each second (bleeding, burning).
-const TREE_LEVEL: int = 14
-const PATHS: Dictionary[StringName, int] = {&"knight": 1, &"rogue": 0, &"mage": 0, &"cleric": 1}
-## How many times their health the monsters of a watched fight have, so it lasts.
-const TOUGHER: int = 8
-## The longest a test waits for something, in ticks.
-const LIMIT_TICKS: int = 20000
-## R8: how long a name or number may cover a health bar, in seconds: a moment.
-const MOMENT: float = 0.1
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## The simulation tick a test's battle began on: its events are stamped from it.
-var _base: int = 0
-## Every event the world told of, oldest first.
-var _heard: Array[SimEvent] = []
-
-
-func before_each() -> void:
-	_heard.clear()
-	_hud = null
-	_build(Simulation.new(SEED))
-
-
-func after_each() -> void:
-	_mouse(Vector2(-1000, -1000))
-
-
-# --- Helpers -------------------------------------------------------------------
-
-
-func _build(simulation: Simulation, with_hud: bool = false) -> void:
-	_sim = simulation
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_world.sim_event.connect(func(event: SimEvent) -> void: _heard.append(event))
-	if with_hud:
-		var layer := CanvasLayer.new()
-		layer.layer = 129
-		add_child_autofree(layer)
-		_hud = Hud.new()
-		layer.add_child(_hud)
-		_hud.set_process(false)
-		_hud.setup(_sim, _world, _fx)
-		_hud.advance(0.0)
-
-
-func _abilities() -> AbilityEffects:
-	return _fx.ability_effects
-
-
-func _marks() -> StatusMarks:
-	return _fx.ability_effects.marks
-
-
-## The id of a monster the world shows.
-func _monster() -> int:
-	for id: int in _world._monsters:
-		if _world.character(id) != null:
-			return id
-	return -1
-
-
-## A battle of the party's fighters and the shown monster [param monster_id] (the simulation's own
-## combatant, left standing where it waits), begun on this tick.
-func _battle(monster_id: int) -> Battle:
-	var heroes: Array[Combatant] = []
-	for hero: Hero in _sim.party.heroes:
-		heroes.append(hero.combatant())
-	var monster: Combatant = _world._monsters[monster_id]
-	var x: float = monster.x
-	var battle := Battle.new(heroes, [monster], x - 8.0, x + 8.0, true, SimRng.new(SEED))
-	monster.x = x
-	_base = _sim.tick
-	return battle
-
-
-## The status effect [param kind] for [param seconds], strong enough to show.
-func _status(kind: int, seconds: float = 6.0) -> AbilityEffect:
-	var effect := AbilityEffect.new()
-	effect.does = AbilityEffect.Does.STATUS
-	effect.status = kind as AbilityEffect.Status
-	effect.seconds = seconds
-	effect.scale = AbilityEffect.Scale.RECEIVER_MAX_HEALTH
-	match kind:
-		AbilityEffect.Status.SHIELDED:
-			effect.amount = 0.5
-		AbilityEffect.Status.BURNING, AbilityEffect.Status.BLEEDING:
-			effect.amount = 0.01
-		AbilityEffect.Status.CHILLED, AbilityEffect.Status.MENDING:
-			effect.amount = 0.01
-		AbilityEffect.Status.HASTED, AbilityEffect.Status.WEAKENED:
-			effect.amount = 0.7
-		AbilityEffect.Status.NIMBLE:
-			effect.amount = 1.0
-		_:
-			effect.amount = 1.3
-	return effect
-
-
-## Hands [param battle]'s events to the simulation, stamped from [member _base], and shows a frame.
-func _deliver(battle: Battle) -> Array[SimEvent]:
-	var events: Array[SimEvent] = battle.drain_events()
-	for event: SimEvent in events:
-		event.tick = _base + event.tick
-	_sim._events.append_array(events)
-	_frame()
-	return events
-
-
-## Hands [param events] (made here) to the simulation as they are, and shows a frame.
-func _tell(events: Array[SimEvent]) -> void:
-	_sim._events.append_array(events)
-	_frame()
-
-
-func _event(
-	kind: SimEvent.Kind, source: int, target: int, amount: int = 0, ability: StringName = &""
-) -> SimEvent:
-	var event := SimEvent.new(kind, _sim.tick, source, target, amount)
-	event.ability_id = ability
-	return event
-
-
-## One frame of [param seconds] (the world, the effects and the HUD), the simulation left as it is.
-func _frame(seconds: float = FRAME) -> void:
-	_world.sync(seconds)
-	_fx.advance(seconds)
-	if _hud != null:
-		_hud.advance(seconds)
-
-
-func _wait(seconds: float) -> void:
-	var left: float = seconds
-	while left > 0.0:
-		_frame(minf(FRAME, left))
-		left -= FRAME
-
-
-## The damage numbers showing, oldest first.
-func _numbers() -> Array[FxText]:
-	var found: Array[FxText] = []
-	for text: FxText in _fx._texts:
-		if text.kind == &"damage" or text.kind == &"heal":
-			found.append(text)
-	return found
-
-
-## Every hero at [constant TREE_LEVEL] with its class's trunk and path, full health.
-func _full_trees() -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
-		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-		var nodes: Array[StringName] = tree.trunk.duplicate()
-		nodes.append_array(tree.path_nodes(PATHS[hero.class_id]))
-		hero.set_talents(nodes)
-		hero.health = hero.max_health()
-
-
-func _fighting() -> bool:
-	return _sim.expedition.state == Expedition.State.FIGHTING and _sim.expedition.battle != null
-
-
-## Steps the simulation, a frame of [param ticks] ticks at a time, until a fight starts with at
-## least [param monsters] monsters; others on the way are ended at once. The monsters of the fight
-## found get [param tougher] times their health. True if one was found.
-func _find_fight(monsters: int, ticks: int = 1, sync: bool = true, tougher: int = TOUGHER) -> bool:
-	for i: int in LIMIT_TICKS:
-		_sim.step()
-		if sync and i % ticks == 0:
-			_frame()
-		if not _fighting():
-			continue
-		var battle: Battle = _sim.expedition.battle
-		if battle.tick <= 1 and battle.monsters.size() >= monsters:
-			for monster: Combatant in battle.monsters:
-				monster.max_health *= tougher
-				monster.health = monster.max_health
-			return true
-		for monster: Combatant in battle.monsters:
-			monster.health = mini(monster.health, 1)
-	return false
-
-
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
-func _click_at(at: Vector2) -> void:
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(Vector2(320, 200))
-
-
-## [param rect] (world pixels) on the screen, through the world's camera.
-func _on_screen(rect: Rect2) -> Rect2:
-	var camera: WorldCamera = _world.camera
-	var view: Vector2 = camera.get_viewport_rect().size
-	var at: Vector2 = (rect.position - camera.position - camera.offset) * camera.zoom + view / 2.0
-	return Rect2(at, rect.size * camera.zoom)
-
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -264,6 +36,7 @@ func test_r1_an_ability_is_announced() -> void:
 			shown.append(text)
 	assert_eq(shown.size(), 1, "one name over the knight")
 	assert_eq(shown[0].color, Palette.color(&"red"), "in the knight's colour")
+	assert_true(shown[0].outline, "outlined in ink, so it reads against the wall")
 	var body: Rect2 = SpriteBounds.body_rect(_world.character(KNIGHT))
 	assert_lt(shown[0].rect().end.y, body.position.y, "over its head")
 	assert_almost_eq(shown[0].position.x, _world.character(KNIGHT).position.x, 2.0, "centred")
@@ -344,6 +117,21 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 	_tell([_event(SimEvent.Kind.ABILITY_USED, MAGE, monster, 0, &"meteor")])
 	assert_almost_eq(_abilities().rings()[0].position.x, target.position.x, 1.0, "from the target")
 
+	# Meteor's every blow lands heavy, though Ignite fires between two of them.
+	var first_blow: Array[SimEvent] = [_event(SimEvent.Kind.HIT, MAGE, monster, 40)]
+	_tell(first_blow)
+	var one: int = _abilities().particles(&"heavy")
+	assert_gt(one, 0, "the first receiver's blow is heavy")
+	var ignite := _event(SimEvent.Kind.ABILITY_USED, MAGE, monster, 0, &"ignite")
+	var burning := _event(SimEvent.Kind.STATUS_BEGAN, MAGE, monster, 30, &"ignite")
+	burning.status = AbilityEffect.Status.BURNING
+	_tell([ignite, burning, _event(SimEvent.Kind.HIT, MAGE, monster, 40)])
+	assert_gt(_abilities().particles(&"heavy"), one, "and so is the next, after Ignite")
+	var ended := _event(SimEvent.Kind.STATUS_ENDED, MAGE, monster, 0, &"ignite")
+	ended.status = AbilityEffect.Status.BURNING
+	_tell([ended])
+	_at += 10
+
 	# A heal: the heal effect on everyone healed.
 	_wait(1.0)
 	var prayer := _event(SimEvent.Kind.ABILITY_USED, CLERIC, KNIGHT, 0, &"prayer")
@@ -358,7 +146,19 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 	assert_eq(heals.size(), 2, "a heal number on each hero healed")
 	assert_eq(heals[0].color, Palette.color(&"green"), "the heal effect")
 
-	# A push: the pushed slide to their new place, kicking dust.
+	# A push: those pushed kick dust, as the events tell it (Frost Nova slows, then pushes, those
+	# round its target), before the fight is even looked at.
+	_wait(1.0)
+	_at += 10
+	var nova := _event(SimEvent.Kind.ABILITY_USED, MAGE, monster, 0, &"frost_nova")
+	var slowed := _event(SimEvent.Kind.STATUS_BEGAN, MAGE, monster, 30, &"frost_nova")
+	slowed.status = AbilityEffect.Status.SLOWED
+	_tell([nova, slowed])
+	assert_gt(_abilities().particles(&"dust"), 0, "dust kicks at the pushed one's feet")
+	var unslowed := _event(SimEvent.Kind.STATUS_ENDED, MAGE, monster, 0, &"frost_nova")
+	unslowed.status = AbilityEffect.Status.SLOWED
+	_tell([unslowed])
+	# And the pushed slide to their new place.
 	_wait(1.0)
 	var battle: Battle = _battle(monster)
 	_sim.expedition.battle = battle
@@ -367,8 +167,7 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 	mage.x = pushed.x - 1.0
 	var before: float = target.position.x
 	battle.push(mage, pushed, 1.5)
-	_tell([_event(SimEvent.Kind.ABILITY_USED, MAGE, monster, 0, &"frost_nova")])
-	assert_gt(_abilities().particles(&"dust"), 0, "dust kicks")
+	_frame()
 	var moved: float = absf(target.position.x - before)
 	assert_gt(moved, 0.0, "it starts sliding")
 	assert_lt(moved, 1.5 * World.TILE - 4.0, "not jumping")
@@ -387,9 +186,67 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 	_deliver(battle)
 	assert_true(_world.fallen_party.is_standing(KNIGHT), "the revive stands it up")
 	_wait(FallenParty.STAND_SECONDS + 0.2)
-	assert_false(knight.is_dead(), "on its feet")
-	assert_true(knight.visible, "seen")
-	assert_eq(knight.rotation, 0.0, "upright")
+	_assert_up(KNIGHT, "revived")
+
+	# Fallen and revived in one frame, as Guardian Angel does: it still stands up, and stays up.
+	battle.deal(pushed, fallen, fallen.max_health * 10, false, Battle.Via.STRIKE)
+	battle.revive(cleric, fallen, 0.5)
+	_deliver(battle)
+	_wait(FallenParty.STAND_SECONDS + 0.5)
+	_assert_up(KNIGHT, "revived in the frame it fell")
+
+	# Fallen again while it rises: it lies down again and stays down.
+	battle.deal(pushed, fallen, fallen.max_health * 10, false, Battle.Via.STRIKE)
+	_deliver(battle)
+	_wait(1.0)
+	battle.revive(cleric, fallen, 0.5)
+	_deliver(battle)
+	_wait(FallenParty.STAND_SECONDS / 3.0)
+	battle.deal(pushed, fallen, fallen.max_health * 10, false, Battle.Via.STRIKE)
+	_deliver(battle)
+	var stood: int = 0
+	for i: int in roundi((FallenParty.STAND_SECONDS + 0.5) / FRAME):
+		_frame()
+		if not knight.is_dead() or _world.fallen_party.is_standing(KNIGHT):
+			stood += 1
+	assert_eq(stood, 0, "fallen again while rising: it never finishes standing")
+	assert_true(_world.fallen_party.is_lying(KNIGHT), "it lies")
+	assert_true(knight.is_dead(), "and stays down")
+
+
+## R2 in a real fight: a cleric with Guardian Angel stands a fallen hero up, and it is seen up.
+func test_r2_a_revive_in_a_real_fight() -> void:
+	var paths: Dictionary[StringName, int] = PATHS.duplicate()
+	paths[&"cleric"] = 0  # Renewal, Sanctuary, Guardian Angel, Miracle
+	_full_trees(paths)
+	assert_true(_find_fight(2), "a fight")
+	# Monsters that fell a hero in a few blows, so one falls and Guardian Angel answers.
+	var hardiest: int = 0
+	for hero: Hero in _sim.party.heroes:
+		hardiest = maxi(hardiest, hero.max_health())
+	for monster: Combatant in _sim.expedition.battle.monsters:
+		monster.damage = hardiest / 3
+	var revived: int = -1
+	var since: float = 0.0
+	var seen: bool = false
+	var frames: int = 0
+	while _fighting() and frames < 60 * 300 and not seen:
+		var start: int = _heard.size()
+		_play_frame()
+		frames += 1
+		for event: SimEvent in _heard.slice(start):
+			if event.kind == SimEvent.Kind.REVIVED:
+				revived = event.target_id
+				since = 0.0
+				for monster: Combatant in _sim.expedition.battle.monsters:
+					monster.damage = 1  # so the revived one lives to be seen
+		if revived < 0:
+			continue
+		since += FRAME
+		if since >= FallenParty.STAND_SECONDS + 0.3:
+			_assert_up(revived, "the hero Guardian Angel revived")
+			seen = true
+	assert_true(seen, "Guardian Angel revived a hero in a real fight, and it was seen up")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -398,7 +255,8 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 func test_r3_statuses_can_be_seen() -> void:
 	var monster: int = _monster()
 	var battle: Battle = _battle(monster)
-	_sim.expedition.battle = battle
+	# The fight is not looked at: what shows is what the events tell.
+	_sim.expedition.battle = null
 	var knight: Combatant = battle.combatant(KNIGHT)
 	var foe: Combatant = battle.combatant(monster)
 	foe.max_health = 100000
@@ -408,27 +266,54 @@ func test_r3_statuses_can_be_seen() -> void:
 		AbilityEffect.Status.BLEEDING: &"red",
 		AbilityEffect.Status.CHILLED: &"cyan",
 	}
+	var drawn_as: Dictionary[int, String] = {
+		AbilityEffect.Status.STUNNED: "star",
+		AbilityEffect.Status.TAUNTING: "mark:taunting",
+		AbilityEffect.Status.SHIELDED: "outline:cyan",
+		AbilityEffect.Status.BURNING: "mote:burning",
+		AbilityEffect.Status.BLEEDING: "mote:bleeding",
+		AbilityEffect.Status.MENDING: "mote:mending",
+		AbilityEffect.Status.HASTED: "mark:hasted",
+		AbilityEffect.Status.SLOWED: "mark:slowed",
+		AbilityEffect.Status.MIGHTY: "mark:mighty",
+		AbilityEffect.Status.WEAKENED: "mark:weakened",
+		AbilityEffect.Status.MARKED: "mark:marked",
+		AbilityEffect.Status.CHILLED: "mote:chilled",
+	}
 	for kind: int in AbilityEffect.Status.size():
 		var label: String = ShownStatus.status_name(kind)
 		var effect: AbilityEffect = _status(kind)
+		var from: StringName = &"shield_bash"
+		if kind == AbilityEffect.Status.SHIELDED:
+			effect = _bulwark_shield()
+			from = &"bulwark"
 		var bearer: Combatant = knight if effect.is_helpful() else foe
 		var sprite: CharacterSprite = _world.character(bearer.id)
-		BattleStatuses.apply(battle, knight, bearer, effect, &"shield_bash")
+		BattleStatuses.apply(battle, knight, bearer, effect, from)
 		var began: Array[SimEvent] = _deliver(battle)
+		await get_tree().process_frame
 		assert_eq(began.size(), 1, "%s began with its event" % label)
 		assert_has(_marks().shown(bearer.id), kind, "%s is shown on its bearer" % label)
+		var drawn: Array[String] = _marks().drawn(bearer.id)
+		if drawn_as.has(kind):
+			assert_has(drawn, drawn_as[kind], "%s: drawn" % label)
 		match kind:
 			AbilityEffect.Status.STUNNED:
-				assert_true(sprite.held, "stunned: the sprite is still")
+				assert_eq(drawn.count("star"), StatusMarks.STARS, "stunned: stars round the head")
+				var pose: Array = _pose_of(sprite)
+				_wait(0.4)
+				assert_eq(_pose_of(sprite), pose, "stunned: the sprite holds still")
 			AbilityEffect.Status.NIMBLE, AbilityEffect.Status.UNTOUCHABLE:
-				assert_eq(sprite.shown_fade(), StatusMarks.FADE, "%s: half faded" % label)
+				assert_eq(_opacity_of(sprite), StatusMarks.FADE, "%s: half faded" % label)
+				assert_eq(drawn, [] as Array[String], "%s: nothing drawn over it" % label)
 			AbilityEffect.Status.SHIELDED:
-				assert_eq(_marks().shield_color(KNIGHT), Palette.color(&"cyan"), "a whole shield")
-				battle.deal(foe, knight, roundi(knight.max_health * 0.4), false, Battle.Via.STRIKE)
+				var shield: CombatStatus = knight.status(AbilityEffect.Status.SHIELDED)
+				battle.deal(foe, knight, roundi(shield.amount * 0.8), false, Battle.Via.STRIKE)
 				_deliver(battle)
-				assert_eq(_marks().shield_color(KNIGHT), Palette.color(&"navy"), "fading as used")
+				await get_tree().process_frame
+				assert_has(_marks().drawn(KNIGHT), "outline:navy", "fading as it is used")
 		if colours.has(kind):
-			assert_gt(sprite.shown_tint(), 0.0, "%s: tinted" % label)
+			assert_eq(_tint_of(sprite), StatusMarks.TINT_SHARE, "%s: tinted" % label)
 			# Its next whole second, it works: its number in its colour.
 			battle.tick += TPS
 			BattleStatuses.pulse(battle)
@@ -441,17 +326,38 @@ func test_r3_statuses_can_be_seen() -> void:
 				Palette.color(colours[kind]),
 				"%s: its damage number in its colour" % label
 			)
-		if kind in StatusMarks.ROW or kind in StatusMarks.MOTE_COLORS:
-			assert_true(true, "%s has a mark or motes of its own" % label)
 		_wait(0.1)
 		assert_has(_marks().shown(bearer.id), kind, "%s lasts" % label)
 		BattleStatuses.end(battle, bearer, kind)
 		var ended: Array[SimEvent] = _deliver(battle)
+		await get_tree().process_frame
 		assert_eq(ended[0].kind, SimEvent.Kind.STATUS_ENDED, "%s ended with its event" % label)
 		assert_does_not_have(_marks().shown(bearer.id), kind, "%s is gone that frame" % label)
-		assert_false(sprite.held, "%s: the sprite moves again" % label)
-		assert_eq(sprite.shown_tint(), 0.0, "%s: no tint left" % label)
-		assert_eq(sprite.shown_fade(), 1.0, "%s: whole again" % label)
+		assert_eq(_marks().drawn(bearer.id), [] as Array[String], "%s: nothing drawn" % label)
+		assert_eq(_tint_of(sprite), 0.0, "%s: no tint left" % label)
+		assert_eq(_opacity_of(sprite), 1.0, "%s: whole again" % label)
+		if kind == AbilityEffect.Status.STUNNED:
+			var still: Array = _pose_of(sprite)
+			_wait(0.4)
+			assert_ne(_pose_of(sprite), still, "unstunned, the sprite moves again")
+
+
+## R3: a fighter stunned in its wind-up loses the swing; it does not finish it when the stun ends.
+func test_r3_a_stun_takes_the_swing() -> void:
+	var monster: int = _monster()
+	var foe: CharacterSprite = _world.character(monster)
+	_tell([_event(SimEvent.Kind.ATTACK_STARTED, monster, KNIGHT, 8)])
+	_wait(0.1)
+	assert_true(foe.is_attacking(), "winding up")
+	var stunned := _event(SimEvent.Kind.STATUS_BEGAN, KNIGHT, monster, 10, &"shield_bash")
+	stunned.status = AbilityEffect.Status.STUNNED
+	_tell([stunned])
+	assert_false(foe.is_attacking(), "the stun took its wind-up")
+	var ended := _event(SimEvent.Kind.STATUS_ENDED, KNIGHT, monster, 0, &"shield_bash")
+	ended.status = AbilityEffect.Status.STUNNED
+	_tell([ended])
+	_wait(1.0)
+	assert_false(foe.is_attacking(), "and it does not swing at nothing after")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -479,6 +385,14 @@ func test_r4_misses_and_blocks_are_told() -> void:
 		words.append(text.text)
 	assert_has(words, "Blocked", "Blocked shows")
 	assert_eq(_numbers().size(), numbers, "and no damage number")
+	for i: int in 4:
+		battle.deal(foe, knight, 1, false, Battle.Via.STRIKE)
+	_deliver(battle)
+	assert_eq(_blocked(), 1, "one Blocked for the shield, not one a blow")
+	battle.tick += TPS
+	battle.deal(foe, knight, 1, false, Battle.Via.STRIKE)
+	_deliver(battle)
+	assert_eq(_blocked(), 2, "and another a second later")
 	BattleStatuses.end(battle, knight, AbilityEffect.Status.SHIELDED)
 	_deliver(battle)
 
@@ -501,6 +415,15 @@ func test_r4_misses_and_blocks_are_told() -> void:
 		if text.kind == &"miss":
 			words.append(text.text)
 	assert_has(words, "Miss", "Miss shows")
+
+
+## How many Blocked words show.
+func _blocked() -> int:
+	var count: int = 0
+	for text: FxText in _abilities().texts():
+		if text.text == "Blocked":
+			count += 1
+	return count
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -557,48 +480,55 @@ func test_r5_the_frames_show_it() -> void:
 
 func test_r6_the_tally_knows_abilities() -> void:
 	_build(Simulation.new(SEED), true)
-	_full_trees()
-	assert_true(_find_fight(2), "a fight")
-	var used: Dictionary[int, Dictionary] = {}
-	var start: int = _heard.size()
-	for i: int in LIMIT_TICKS:
-		_sim.step()
-		_frame()
-		if not _fighting():
-			break
-	for event: SimEvent in _heard.slice(start):
-		if event.kind == SimEvent.Kind.ABILITY_USED and event.source_id in HERO_IDS:
-			var mine: Dictionary = used.get(event.source_id, {})
-			mine[event.ability_id] = true
-			used[event.source_id] = mine
-	assert_false(_fighting(), "the fight ended")
-	var tally: Tally = _hud.tally.tally
+	var by_name: Dictionary[String, AbilityDef] = {}
+	for file: String in DirAccess.get_files_at("res://data/abilities"):
+		if file.ends_with(".tres"):
+			var ability: AbilityDef = Content.ability(StringName(file.get_basename()))
+			by_name[ability.display_name] = ability
 	var named: Dictionary[String, bool] = {}
+	var problems: Array[String] = []
+	var tally: Tally = _hud.tally.tally
+	# Every path of every tree, in turn, over a long run of real fights.
+	for path: int in 2:
+		var paths: Dictionary[StringName, int] = {}
+		for class_id: StringName in PATHS:
+			paths[class_id] = path
+		_full_trees(paths)
+		var fights: int = 0
+		for i: int in 6:
+			if not _find_fight(2):
+				break
+			fights += 1
+			for tick: int in LIMIT_TICKS:
+				_sim.step()
+				if tick % 3 == 0:
+					_frame()
+				if not _fighting():
+					break
+			_frame()
+		assert_gt(fights, 3, "path %d: fights were fought" % path)
 	for id: int in HERO_IDS:
 		for measure: Tally.Measure in [Tally.Measure.DAMAGE, Tally.Measure.HEALING]:
-			var lines: Dictionary[String, int] = tally.by_ability(
-				id, measure, Tally.Span.LAST_FIGHT
-			)
-			var total: int = 0
+			var lines: Dictionary[String, int] = tally.by_ability(id, measure, Tally.Span.SESSION)
 			for each: String in lines:
-				total += lines[each]
 				named[each] = true
-			assert_eq(
-				total,
-				tally.value(id, measure, Tally.Span.LAST_FIGHT),
-				"hero %d: its lines add up to what the tally counts" % id
-			)
-		# Every damaging action a hero used is a line of its own.
-		var mine: Dictionary = used.get(id, {})
-		for ability_id: StringName in mine:
-			var ability: AbilityDef = Content.ability(ability_id)
-			if ability.is_action() and AbilityEffects.is_heavy(ability):
-				var lines: Dictionary[String, int] = tally.by_ability(
-					id, Tally.Measure.DAMAGE, Tally.Span.LAST_FIGHT
+				var ability: AbilityDef = by_name.get(each, null)
+				if ability == null:
+					continue
+				var healing: bool = measure == Tally.Measure.HEALING
+				var fits: bool = (
+					AbilityCredit.heals(ability) if healing else AbilityCredit.damages(ability)
 				)
-				assert_has(lines, ability.display_name, "%s is counted" % ability.display_name)
+				if not fits:
+					problems.append("%s on hero %d's %s" % [each, id, BY[measure]])
+	assert_eq(problems, [] as Array[String], "no line names an ability that does not do it")
 	assert_has(named, AbilityCredit.STRIKES, "ordinary strikes have their line")
 	assert_true(named.has("Bleeding") or named.has("Burning"), "a status's damage has its line")
+	var actions: int = 0
+	for each: String in named:
+		if by_name.has(each) and by_name[each].is_action():
+			actions += 1
+	assert_gt(actions, 3, "actions have lines of their own")
 
 	# The tally's line for a hero opens to show it.
 	var panel: TallyPanel = _hud.tally
@@ -616,7 +546,7 @@ func test_r6_the_tally_knows_abilities() -> void:
 	assert_has(shown, "Healing", "and its healing")
 	var first: Hero = _sim.party.heroes[0]
 	var dealt: Dictionary[String, int] = tally.by_ability(
-		first.id, Tally.Measure.DAMAGE, Tally.Span.LAST_FIGHT
+		first.id, Tally.Measure.DAMAGE, panel._span
 	)
 	var top: String = dealt.keys()[0]
 	assert_eq(shown[1], "%s %s" % [top, Hud.group_thousands(dealt[top])], "largest first")
@@ -701,6 +631,105 @@ func test_r7_true_in_a_crowded_frame() -> void:
 		assert_eq(_abilities().names_over(id), [] as Array[String], "no name over %d" % id)
 
 
+## R7: what the view does for itself, with no STATUS_ENDED to tell it: a fight's end, a wipe, a
+## change of area or of stage takes every mark with it.
+func test_r7_nothing_outlives_its_fight() -> void:
+	var enders: Array[SimEvent.Kind] = [
+		SimEvent.Kind.ENCOUNTER_ENDED,
+		SimEvent.Kind.PARTY_WIPED,
+		SimEvent.Kind.AREA_CHANGED,
+		SimEvent.Kind.DEPTH_CHANGED,
+	]
+	for ender: SimEvent.Kind in enders:
+		_build(Simulation.new(SEED))
+		var label: String = str(SimEvent.Kind.keys()[ender])
+		var monster: int = _monster()
+		var put: Array[SimEvent] = []
+		for id: int in [KNIGHT, monster]:
+			var began := _event(SimEvent.Kind.STATUS_BEGAN, KNIGHT, id, 300, &"shield_bash")
+			began.status = AbilityEffect.Status.STUNNED
+			put.append(began)
+		_tell(put)
+		assert_eq(
+			_marks().shown(KNIGHT), [AbilityEffect.Status.STUNNED] as Array[int], "%s: on" % label
+		)
+		var depth: int = _sim.expedition.depth
+		_tell([_event(ender, -1, -1, depth)])
+		await get_tree().process_frame
+		assert_true(_marks().book.is_empty(), "%s: no status left" % label)
+		for id: int in [KNIGHT, monster]:
+			assert_eq(_marks().shown(id), [] as Array[int], "%s: nothing on %d" % [label, id])
+			assert_eq(_marks().drawn(id), [] as Array[String], "%s: nothing drawn" % label)
+			var sprite: CharacterSprite = _world.character(id)
+			if sprite != null:
+				assert_false(sprite.held, "%s: %d moves" % [label, id])
+
+
+## R7: nothing is drawn on a fighter that has fallen or gone, though no event ended its statuses.
+func test_r7_nothing_on_the_fallen_or_gone() -> void:
+	var monster: int = _monster()
+	var put: Array[SimEvent] = []
+	for id: int in [KNIGHT, monster]:
+		var began := _event(SimEvent.Kind.STATUS_BEGAN, KNIGHT, id, 300, &"mark_for_death")
+		began.status = AbilityEffect.Status.MARKED
+		put.append(began)
+	_tell(put)
+	await get_tree().process_frame
+	assert_has(_marks().drawn(monster), "mark:marked", "marked")
+	_tell([_event(SimEvent.Kind.DIED, monster, -1), _event(SimEvent.Kind.DIED, KNIGHT, -1)])
+	await get_tree().process_frame
+	for id: int in [KNIGHT, monster]:
+		assert_eq(_marks().shown(id), [] as Array[int], "%d fell: nothing shown" % id)
+		assert_eq(_marks().drawn(id), [] as Array[String], "%d fell: nothing drawn" % id)
+	_wait(3.0)
+	await get_tree().process_frame
+	assert_eq(_marks().drawn(monster), [] as Array[String], "nor once it has gone")
+
+
+## R7: the marks are the events', never the fight's own state, which runs ahead of what is shown.
+func test_r7_marks_follow_the_events_not_the_fight() -> void:
+	var monster: int = _monster()
+	var battle: Battle = _battle(monster)
+	_sim.expedition.battle = battle
+	var knight: Combatant = battle.combatant(KNIGHT)
+	var foe: Combatant = battle.combatant(monster)
+	BattleStatuses.apply(battle, knight, knight, _status(AbilityEffect.Status.TAUNTING), &"taunt")
+	var held_back: Array[SimEvent] = battle.drain_events()
+	_frame()
+	assert_eq(_marks().shown(KNIGHT), [] as Array[int], "not shown before its event is heard")
+	for event: SimEvent in held_back:
+		event.tick += _base
+	_tell(held_back)
+	assert_eq(_marks().shown(KNIGHT), [AbilityEffect.Status.TAUNTING] as Array[int], "then shown")
+	BattleStatuses.end(battle, knight, AbilityEffect.Status.TAUNTING)
+	held_back = battle.drain_events()
+	_frame()
+	assert_eq(
+		_marks().shown(KNIGHT),
+		[AbilityEffect.Status.TAUNTING] as Array[int],
+		"shown until its end is heard"
+	)
+	for event: SimEvent in held_back:
+		event.tick += _base
+	_tell(held_back)
+	assert_eq(_marks().shown(KNIGHT), [] as Array[int], "gone once it is")
+
+	# The shield's outline dims by what the events say it absorbed, not by what is left now.
+	BattleStatuses.apply(battle, knight, knight, _bulwark_shield(), &"bulwark")
+	_deliver(battle)
+	var shield: CombatStatus = knight.status(AbilityEffect.Status.SHIELDED)
+	battle.deal(foe, knight, roundi(shield.amount * 0.8), false, Battle.Via.STRIKE)
+	held_back = battle.drain_events()
+	_frame()
+	await get_tree().process_frame
+	assert_has(_marks().drawn(KNIGHT), "outline:cyan", "whole, until the blow is heard")
+	for event: SimEvent in held_back:
+		event.tick += _base
+	_tell(held_back)
+	await get_tree().process_frame
+	assert_has(_marks().drawn(KNIGHT), "outline:navy", "worn down once it is")
+
+
 # --- R8 ------------------------------------------------------------------------
 
 
@@ -759,6 +788,60 @@ func test_r8_still_readable() -> void:
 	assert_lte(longest * FRAME, MOMENT, "no name or number covers a health bar past a moment")
 	assert_gt(named, 10, "at 4x, abilities are named")
 	assert_eq(unnamed, [] as Array[String], "every one of them")
+
+
+## R8: names and numbers that would start on a hero frame's health bar or the boss bar are kept
+## off it: fighters are put right under the bars, and every text is measured, frame by frame.
+func test_r8_kept_off_the_bars() -> void:
+	_build(Simulation.new(SEED), true)
+	_world.speed = 4
+	var monster: int = _monster()
+	var frame: HeroFrame = _hud.frames[0]
+	var health := Rect2(
+		frame.global_position + HeroFrame.HEALTH_BAR.position, HeroFrame.HEALTH_BAR.size
+	)
+	var view: Vector2 = _world.camera.get_viewport_rect().size
+	var boss := Rect2(
+		Vector2((view.x - BossBar.MAX_WIDTH) / 2.0, Hud.TOP_Y),
+		Vector2(BossBar.MAX_WIDTH, BossBar.HEIGHT)
+	)
+	var places: Array[Array] = []
+	for dy: int in range(-8, 40, 6):
+		places.append([KNIGHT, health.get_center() + Vector2(0, dy), health])
+		places.append([monster, boss.get_center() + Vector2(0, dy + 16), boss])
+	var longest: int = 0
+	var started_on: int = 0
+	for place: Array in places:
+		var id: int = place[0]
+		var bar: Rect2 = place[2]
+		var sprite: CharacterSprite = _world.character(id)
+		var at: Vector2 = place[1]
+		sprite.position = _to_world(at).round()
+		var target: int = monster if id == KNIGHT else KNIGHT
+		var ability: StringName = &"whirlwind" if id == KNIGHT else &"meteor"
+		var told: Array[SimEvent] = [
+			_event(SimEvent.Kind.ABILITY_USED, id, target, 0, ability),
+			_event(SimEvent.Kind.HIT, target, id, 123),
+		]
+		for event: SimEvent in told:
+			_world.sim_event.emit(event)
+		var covering: Dictionary[FxText, int] = {}
+		for i: int in 60:
+			if i == 0:
+				# Where the number starts: on the bar, unless it is kept off.
+				var feet: Rect2 = _on_screen(Rect2(sprite.position, Vector2.ONE))
+				if bar.grow(12.0).has_point(feet.position):
+					started_on += 1
+			_fx.advance(FRAME)
+			var texts: Array[FxText] = _abilities().texts()
+			texts.append_array(_numbers())
+			for text: FxText in texts:
+				var over: bool = _on_screen(text.rect()).intersects(bar)
+				covering[text] = covering.get(text, 0) + 1 if over else 0
+				longest = maxi(longest, covering[text])
+		_at += 20
+	assert_gt(started_on, 4, "names and numbers began on the bars")
+	assert_lte(longest * FRAME, MOMENT, "none stayed over a bar past a moment")
 
 
 # --- R9 ------------------------------------------------------------------------
