@@ -58,3 +58,4 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| [043 A ladder that warns](043-a-ladder-that-warns/spec.md): rungs show how dangerous a depth looks for this party, and the ladder scrolls | provisional, in progress | 033, 036, 042 |
