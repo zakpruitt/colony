@@ -67,6 +67,14 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `world.sim_event.connect(func(e: SimEvent) -> void: events.append(e))` and then emptying the list with
   `events = []` leaves the lambda filling the old array, and the test sees nothing happen. Empty it with
   `events.clear()`, or keep the list in a member variable.
+- A "stall" in a World test (the simulation stepped several ticks, then one long `sync`) is only a stall to
+  the world when it is more than `World.STALL_TICKS * speed` ticks since the last sync (half a second of game
+  time). Shorter, the frame does not snap and the test of "a stall keeps X" passes whatever the code does.
+  Assert the stall's length in the test.
+- A test that compares what the world draws with what placed it proves nothing (spec 048 R7). To measure where
+  a character's pixels are as drawn, walk its `Sprite2D` parts and map each opaque pixel of the part's
+  `AtlasTexture` region through `World.global_transform.affine_inverse() * part.global_transform`
+  (`test_038_rough_edges.gd`, `_drawn`).
 
 ## Files
 
