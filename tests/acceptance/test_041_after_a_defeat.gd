@@ -197,16 +197,25 @@ func test_r1_defeat_note() -> void:
 	_linger(1.0)
 	assert_false(_note().is_shown(), "then it fades and goes")
 
-	# An ordinary fight on depth 7: the monsters alive when the last hero fell, by name.
+	# An ordinary fight on depth 7: the monsters alive when the last hero fell, by name. One of
+	# them falls first, and is not named (spec 046 R10).
 	_hunting_on(DEEP, SAFE)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a fight starts on depth 7")
 	var battle: Battle = _sim.expedition.battle
+	assert_gt(battle.monsters.size(), 1, "more than one monster")
+	var first: Combatant = battle.monsters[0]
+	first.health = 1
+	var fell: Callable = func() -> bool: return not first.is_alive()
+	assert_true(_step_until(fell, 600), "one monster falls first")
+	assert_not_null(_sim.expedition.battle, "and the fight goes on")
 	var names: Array[String] = []
 	for monster: Combatant in battle.monsters:
 		var def: MonsterDef = Content.monster(monster.def_id)
 		assert_false(def.guardian, "an ordinary monster")
-		names.append(def.display_name)
+		if monster.is_alive():
+			names.append(def.display_name)
+	assert_eq(names.size(), battle.monsters.size() - 1, "all but one alive")
 	for fighter: Combatant in battle.heroes:
 		fighter.health = 0
 	var down: Callable = func() -> bool: return _sim.expedition.state == Expedition.State.REVIVING
@@ -224,8 +233,11 @@ func test_r1_defeat_note() -> void:
 
 
 func test_r2_says_why() -> void:
-	# 1. A guardian, the heroes below its balanced level.
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	# 1. A guardian, the heroes below its balanced level; the depth is too far below the safe one
+	# as well, and the guardian's reason is the one given (spec 046 R10).
+	_before_guardian()
+	_sim.expedition.last_stable_depth = GUARDIAN_DEPTH - 3
+	assert_true(_lose_next_fight(), "the party loses to the guardian")
 	var lines: Array[String] = _note().lines()
 	assert_eq(lines.size(), 2, "a second line")
 	assert_eq(
@@ -319,6 +331,34 @@ func test_r3_offers_help() -> void:
 	expected = ["Train %s" % trained.def().display_name, "Buy an upgrade"]
 	assert_eq(_note().suggestions(), expected, "train, buy")
 	assert_true(_until_standing(), "the heroes stand")
+
+	# Gold for an upgrade but for no training: Buy an upgrade alone (spec 046 R10).
+	var upgrade: int = 0
+	for id: StringName in Content.upgrade_ids():
+		var price: int = _sim.upgrades.cost(id)
+		if price > 0 and (upgrade == 0 or price < upgrade):
+			upgrade = price
+	_sim.party.gold = upgrade
+	_hud.advance(STEP)
+	assert_null(_cheapest_trainee(), "no training is affordable")
+	assert_eq(_note().suggestions(), ["Buy an upgrade"] as Array[String], "the upgrade alone")
+	assert_true(_until_standing(), "the heroes stand")
+
+	# A guardian with the order already Hold: nothing to hold (spec 046 R10).
+	_sim.party.gold = 0
+	_before_guardian()
+	var met: Callable = func() -> bool: return _sim.expedition.battle != null
+	assert_true(_step_until(met), "the guardian fight starts")
+	_sim.set_guardian_order(Expedition.GuardianOrder.HOLD)
+	for fighter: Combatant in _sim.expedition.battle.heroes:
+		fighter.health = 0
+	var wiped: Callable = func() -> bool:
+		return _sim.expedition.state == Expedition.State.REVIVING
+	assert_true(_step_until(wiped), "the party loses to the guardian")
+	assert_eq(_sim.expedition.guardian_order, Expedition.GuardianOrder.HOLD, "holding already")
+	assert_eq(_note().suggestions(), [] as Array[String], "no Hold here")
+	assert_true(_until_standing(), "the heroes stand")
+	_sim.set_guardian_order(Expedition.GuardianOrder.CHALLENGE)
 
 	# Ordinary monsters, no gold: nothing to suggest, below the safe depth or on it.
 	_sim.party.gold = 0

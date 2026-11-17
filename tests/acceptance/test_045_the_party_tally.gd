@@ -405,6 +405,13 @@ func test_r3_two_spans() -> void:
 	for id: int in last:
 		differs = differs or last[id] != session[id]
 	assert_true(differs, "the last fight is not the session")
+	# Healing and Taken on the last fight too (spec 046 R10).
+	for measure: Tally.Measure in [HEALING, TAKEN]:
+		tally.set_measure(measure)
+		_hud.advance(STEP)
+		_check_rows(_sums(_last_fight_events(), measure), "last fight, measure %d" % measure)
+	tally.set_measure(DAMAGE)
+	_hud.advance(STEP)
 	# The fight's line: what was fought, where and for how long.
 	var fight: Dictionary = fights[-1]
 	var seconds: int = roundi(
@@ -472,6 +479,31 @@ func test_r3_two_spans() -> void:
 	)
 	assert_eq(tally.rows()[0], "Last fight: the %s, depth 5, %d s" % [guardian, lasted])
 	_world.sim_event.disconnect(note)
+
+	# A lost fight: after the wipe and the revival it is still the last fight (spec 046 R10).
+	var started: int = _count(SimEvent.Kind.ENCOUNTER_STARTED)
+	var next: Callable = func() -> bool:
+		return _fighting() and _count(SimEvent.Kind.ENCOUNTER_STARTED) > started
+	assert_true(_run_until(next), "another fight")
+	var struck: Callable = func() -> bool:
+		return _sums(_last_fight_events(), DAMAGE).values().max() > 0 or not _fighting()
+	assert_true(_run_until(struck), "blows are struck")
+	assert_true(_fighting(), "still fighting")
+	for fighter: Combatant in _sim.expedition.battle.heroes:
+		fighter.health = 0
+	var up: Callable = func() -> bool:
+		return _count(SimEvent.Kind.PARTY_REVIVED) > 0 and not _fighting()
+	assert_true(_run_until(up), "wiped and revived")
+	assert_eq(_count(SimEvent.Kind.ENCOUNTER_STARTED), started + 1, "no fight since")
+	_hud.advance(STEP)
+	assert_true(tally.rows()[0].begins_with("Last fight: "), tally.rows()[0])
+	for measure: Tally.Measure in [DAMAGE, HEALING, TAKEN]:
+		tally.set_measure(measure)
+		_hud.advance(STEP)
+		_check_rows(_sums(_last_fight_events(), measure), "the lost fight, measure %d" % measure)
+	var lost: Dictionary[int, int] = _sums(_last_fight_events(), DAMAGE)
+	var most: int = lost.values().max()
+	assert_gt(most, 0, "the lost fight's damage")
 
 
 # --- R4 ------------------------------------------------------------------------
