@@ -8,6 +8,8 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 033 | [The depth ladder](033-depth-ladder/spec.md) | M5 | landed on dev, [#34](https://github.com/zakpruitt/colony/pull/34), provisional | 011, 020, 027 |
+| 034 | [A hero sheet that fits](034-hero-sheet-tabs/spec.md) | M4 | landed on dev, [#35](https://github.com/zakpruitt/colony/pull/35), provisional | 026, 028, 029 |
 | 032 | [Game speed](032-game-speed/spec.md) | M5 | landed on dev, [#33](https://github.com/zakpruitt/colony/pull/33), provisional | 001, 008, 010, 011, 021 |
 | 030 | [Help, tooltips and live health](030-help-and-hints/spec.md) | M5 | landed on dev, [#32](https://github.com/zakpruitt/colony/pull/32), provisional | 011, 017, 021, 026, 027 |
 | 028 | [Seeing side quests and microskills](028-seeing-side-quests/spec.md) | M4 | landed on dev, [#31](https://github.com/zakpruitt/colony/pull/31), provisional | 008, 010, 011, 021, 025, 026, 027 |
@@ -48,6 +50,6 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, in progress | 011, 020, 027 |
-| [034 A hero sheet that fits](034-hero-sheet-tabs/spec.md): the sheet grew to a third of the screen; a fixed header and three tabs | provisional, in progress | 026, 028, 029 |
 | [035 Party orders](035-party-orders/spec.md): standing instructions the party follows: pace (when to rest) and whether to fight guardians | provisional, in progress | 005, 014, 020, 027, 030 |
+| [036 A livelier start](036-a-livelier-start/spec.md): the first half hour is slow to the point of looking broken; stability scales with depth and the opening is retuned | provisional, in progress | 005, 016, 020, 025, 029 |
+| [037 Goals](037-goals/spec.md): the next few things within reach, with progress; hero frames that point at themselves | provisional, in progress | 011, 020, 025, 027, 029, 030, 034 |

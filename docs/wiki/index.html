@@ -125,7 +125,8 @@ Things marked <span class="tag built">Built</span> work today;
   health bar at the top and a big death.</li>
   <li><strong>Spending gold:</strong> a shop with five camp upgrades, and an auto-buy switch.</li>
   <li><strong>Hero sheets:</strong> click a hero's frame (or press <kbd>Tab</kbd>) to see who they are, their
-  health, XP, stats with upgrade bonuses, and what they are doing right now, and to train that one hero.</li>
+  health, XP and what they are doing right now, with three tabs below: their stats, training for that one hero,
+  and their microskills.</li>
   <li><strong>Idle:</strong> the game saves by itself and plays out the time it was closed (up to a limit),
   then shows what happened.</li>
   <li><strong>Reading the party:</strong> the HUD says what the party is doing and why, counts down to the
@@ -136,6 +137,9 @@ Things marked <span class="tag built">Built</span> work today;
   <li><strong>Help in the game</strong> (spec 030): the <kbd>?</kbd> button or <kbd>H</kbd> opens a panel with
   the idea in five lines and every key; resting the mouse on any part of the HUD explains it in one sentence.
   A new game opens the help once by itself.</li>
+  <li><strong>The depth ladder</strong> (spec 033): a column of depths down the right edge shows the whole
+  descent at once: where the party is, the safe depth, how deep it has been, where it is heading and which
+  guardians are beaten. Click a depth to send the party there; <kbd>L</kbd> hides it.</li>
   <li><strong>Feel:</strong> lit chambers, ambient life, damage numbers, bursts, coins, screen shake, a HUD, and
   16 sound effects.</li>
   <li><strong>Cast:</strong> 4 heroes, 13 monsters across three depth bands, 4 guardians, 5 microskills and
@@ -150,13 +154,15 @@ Things marked <span class="tag built">Built</span> work today;
   <tr><td><kbd>U</kbd></td><td>Open or close the shop (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero (<kbd>Esc</kbd> closes it; so does clicking the hero's frame again)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Train the hero in that row (Power, Toughness, Quickness), while their sheet is open</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Train the hero in that row (Power, Toughness, Quickness), while their sheet is open on the Training tab</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Move to the previous or next tab of the hero sheet (Stats, Training, Skills), wrapping round</td></tr>
   <tr><td><kbd>B</kbd></td><td>Turn auto-buy on or off, while the shop is open</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Lower or raise the target depth (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Turn auto-push (go deeper when stable) on or off</td></tr>
   <tr><td><kbd>Z</kbd></td><td>Zoom in or out</td></tr>
   <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
+  <tr><td><kbd>L</kbd></td><td>Hide or show the depth ladder on the right</td></tr>
   <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
   <tr><td><kbd>F</kbd></td><td>Change the game speed: 1x, 2x, 4x, then back to 1x</td></tr>
 </table>
@@ -296,7 +302,7 @@ shows a grey <em>Needs Lockpicker</em> rising from it, once per visit; a tripwir
 <em>Learned Lockpicker</em> over their head with the level-up sound. The journal writes each of these
 (<em>Chest opened: 34 gold</em>, <em>Runes read: 12 XP each</em>, <em>Passed a Stuck Door: needs
 Strongarm</em>, <em>Sprang a Tripwire: needs Trapspotter</em>, <em>Rogue learned Lockpicker</em>), and each
-hero sheet lists the class's microskills: the ones the hero has in white with what they do, the ones to come
+hero sheet's Skills tab lists the class's microskills: the ones the hero has in white with what they do, the ones to come
 in grey with their level (<em>Trapspotter, level 6</em>).</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
@@ -389,6 +395,15 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   <li><strong>The arrow</strong> (spec 027): while the party is heading for a deeper or shallower target, a
   small yellow arrow bobs over its heads pointing down or up. It hides in a fight, while the party is down
   and once it is at its target depth.</li>
+  <li><strong>The depth ladder</strong> (spec 033): a narrow panel on the right, under the gold, shows twelve
+  depths as the rungs of a ladder, shallow at the top. A white diamond marks the party's depth and bobs; the
+  safe depth (where a wipe sends the party) is green; depths at or above it are solid, deeper ones the party
+  has reached are outlined, and depths never reached are dim. A yellow arrow points at the target, and a
+  small skull marks each guardian, crossed out in red while it is beaten. The ladder scrolls as the party
+  climbs, keeping its depth in view. Rest the mouse on a rung for a line in words
+  (<em>Depth 5: Slime King (beaten). Click to send the party here</em>); click it to make that depth the
+  target, as pressing <code>-</code> or <code>+</code> enough times would. <code>L</code> hides and shows it,
+  and it steps aside while the shop is open.</li>
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
   turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
@@ -429,27 +444,37 @@ with everything about that hero; the hero's frame gets a yellow edge so you can 
 another frame, or press <code>Tab</code> again, to move to the next hero; click the same frame, the small
 <code>x</code>, or press <code>Esc</code> to close it. The sheet and the shop never show together: opening one
 closes the other. The game keeps running behind it, and every other key still works.</p>
+<p><span class="tag built">Built: spec 034</span> The sheet is a compact panel (240 by 150 pixels) that leaves
+the party in view. Its top part, who the hero is, what they are doing and their health and XP bars, is always
+there. Under it are three tabs: <strong>Stats</strong>, <strong>Training</strong> and <strong>Skills</strong>.
+Click a tab, or press <kbd>Q</kbd> and <kbd>E</kbd> for the previous and next one (they wrap round). The sheet
+remembers the open tab while you step through heroes with <kbd>Tab</kbd> and when you close and reopen it; a new
+session starts on Stats. A small pulsing tag beside a tab asks for a look: on Training, the number of trainings
+the party can pay for on this hero; on Skills, the number of microskills the hero learned since you last looked
+at that tab (it clears when you open it).</p>
 <ul>
-  <li><strong>Who:</strong> the hero's portrait at twice the size (a skull while they are down), the class, the
+  <li><strong>Who</strong> (always shown)<strong>:</strong> the hero's portrait at twice the size (a skull while they are down), the class, the
   role in one word (Tank, Striker, Caster, Healer) and the level.</li>
   <li><strong>Doing now:</strong> one coloured line: <code>Walking</code>, <code>Fighting Goblin</code> (the
   monster they are attacking), <code>Healing Knight</code>, <code>Resting</code>, <code>Climbing</code>,
   <code>Down</code> in red, or <code>Recovering</code> while the party stands back up.</li>
   <li><strong>Where they stand:</strong> health as numbers and a bar (during a fight, the health they have in
   that fight), and XP toward the next level (<code>30 / 50 XP, 20 to level 2</code>).</li>
-  <li><strong>What they can do:</strong> Health, Damage, Armor, Attack speed (attacks a second), Crit chance,
+  <li><strong>What they can do</strong> (the Stats tab)<strong>:</strong> Health, Damage, Armor, Attack speed (attacks a second), Crit chance,
   Range (<code>Melee</code> or tiles) and, for the Cleric, Healing, with the camp upgrades and the hero's
   training already counted in. A stat an upgrade or training raises shows the two bonuses together beside it in
   green (<code>Damage 14 (+21%)</code>).</li>
-  <li><strong>Training</strong> <span class="tag built">Built: spec 029</span><strong>:</strong> gold spent on
+  <li><strong>Training</strong> <span class="tag built">Built: spec 029</span> (the Training tab)<strong>:</strong> gold spent on
   this hero alone (see "Hero training" below). One row per training, laid out like the shop's: the name, what a
   rank does, the hero's rank (<code>3/20</code>), the bonus so far (<code>+15%</code>) and a button with the
   price, yellow when the party can pay, dim red when not, <code>MAX</code> at the top rank. Click the button or
-  press <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd>: the row flashes, the gold drops and the stats above show the
-  new numbers.</li>
+  press <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd> while the Training tab is open: the row flashes, the gold
+  drops and the Stats tab shows the new numbers.</li>
+  <li><strong>Skills</strong> (the Skills tab)<strong>:</strong> the class's microskills, learned ones in white
+  with what they do, the ones to come in grey with their level.</li>
 </ul>
 <p>Everything on it is read from the game every frame, so it is right after a level up, a purchase or loading
-a save. A later spec will add skills to it.</p>
+a save. Later sheets (equipment, talents) can become tabs of their own.</p>
 
 <h2 id="code">4. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
@@ -663,7 +688,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span> and on screen (spec 028) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; game speed 1x, 2x and 4x (spec 032) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; the depth ladder (spec 033) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; game speed 1x, 2x and 4x (spec 032) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

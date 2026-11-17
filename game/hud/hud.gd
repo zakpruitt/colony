@@ -98,6 +98,8 @@ var boss_bar: BossBar
 var journal: Journal
 ## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
 var hero_sheet: HeroSheet
+## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
+var ladder: DepthLadder
 ## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
 ## tooltips on the HUD's elements.
 var help: HelpPanel
@@ -160,13 +162,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop and the hero sheet are never open together (spec 029).
+			# The shop and the hero sheet are never open together (spec 029); the sheet trains
+			# only on its Training page (spec 034).
+			var training: bool = hero_sheet.page() == HeroSheet.Page.TRAINING
 			if shop.is_open():
 				shop.buy_row(key.keycode - KEY_1)
-			elif hero_sheet.is_open() and key.keycode <= KEY_3:
+			elif hero_sheet.is_open() and training and key.keycode <= KEY_3:
 				hero_sheet.train_row(key.keycode - KEY_1)
 			else:
 				return
+		KEY_Q, KEY_E:
+			# The hero sheet's previous and next page, while it is open (spec 034).
+			if not hero_sheet.is_open():
+				return
+			if key.keycode == KEY_Q:
+				hero_sheet.previous_page()
+			else:
+				hero_sheet.next_page()
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -190,6 +202,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	journal = Journal.new()
 	add_child(journal)
 	journal.setup(simulation, world)
+	_build_ladder()
 	_build_help()
 	_build_orders()
 	_shown_gold = simulation.party.gold
@@ -220,6 +233,7 @@ func advance(delta: float) -> void:
 	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
+	ladder.advance(delta)
 	help.advance(delta)
 	help_button.lit = help.is_open()
 	orders.advance(delta)
@@ -424,6 +438,20 @@ func _build_sheet() -> void:
 	hero_sheet.shown_changed.connect(_mark_frames)
 	for frame: HeroFrame in frames:
 		frame.clicked.connect(hero_sheet.toggle)
+
+
+## The depth ladder (spec 033): it hides itself on L and while the shop is open; a click on a
+## rung asks for a target, which the target number shows at once, as the - and + buttons do.
+func _build_ladder() -> void:
+	ladder = DepthLadder.new()
+	add_child(ladder)
+	ladder.setup(_simulation, _world)
+	ladder.target_asked.connect(_on_ladder_target)
+
+
+func _on_ladder_target(depth: int) -> void:
+	_asked_target = depth
+	_advance_depth(0.0)
 
 
 ## Help (spec 030): the ? button in the shop tab, left of Shop (the tab grows to hold it), the help

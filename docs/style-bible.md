@@ -247,7 +247,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   2x in `white`, sections are split by 1-pixel `dusk` lines, stat names are `steel` captions with `white`
   values and an upgrade's bonus in `green` after them. The hero's activity is one word or phrase in the colour
   of the HUD's state word (`orange` fighting, `green` healing or resting, `red` down). The frame whose sheet
-  is open has a `yellow` edge with an `amber` bevel.
+  is open has a `yellow` edge with an `amber` bevel. Since spec 034 the sheet is at most 240x150: the header
+  (portrait, class, role, level, activity, health and XP with their bars) is always shown, then a row of tab
+  buttons (`Stats`, `Training`, `Skills`) standing on a `dusk` line, the open one lit as a toggle is, with the
+  keys in `slate` at the row's right (`Q E tabs   Tab next hero`). Only the open tab's page is shown; the
+  panel keeps one size on every tab so it never jumps. A tab's marker sits beside it, against its right edge,
+  not over its name.
 - **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
   lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
 - **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,
@@ -270,6 +275,17 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   footer under a `dusk` line. Its `?` button sits in the shop tab, left of `Shop`, lit while help is open. A
   tooltip is one line of `white` text on a 13-pixel `night` panel with a `slate` border: under the top band
   for a top element, just above a bottom one, never over what it explains.
+- **The depth ladder** (spec 033) is the one HUD panel that stays up below the top band: 52 pixels wide on the
+  right edge, from under the top band to well above the ticker's strip, hidden while the shop (which drops
+  into the same place) is open. `Depths` in `steel` over a `dusk` line, then 12 rows of 20 pixels, all drawn
+  in code: two `slate` rails with a 3-pixel rung between them per depth, `silver`/`steel` solid when held,
+  `green`/`forest` for the safe depth, a `steel` outline when visited, a 1-pixel `dusk` line when never
+  reached. The depth number sits left of the rails in the rung's colour (`white` for the party's, `yellow`
+  for the target's, `slate` when unreached). The party is a 7x7 `white` diamond with an `ink` edge and a `cyan`
+  glint, bobbing a pixel; the target is a 4x7 `yellow` arrow left of its number; a guardian is a 5x5 `white`
+  skull right of the rails, `slate` and crossed in `red` while beaten. A rung under the mouse gets a `slate`
+  outline, and after the tooltips' delay its line shows left of the ladder in the tooltip's box, with
+  `Click to send the party here` in `yellow`. It scrolls smoothly, never a whole rung in one frame.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
   `yellow` (the target's colour) with an `ink` outline, bobbing two pixels, above the effects' darkness.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is

@@ -434,6 +434,7 @@ func test_r6_training_section() -> void:
 	var sheet: HeroSheet = _hud.hero_sheet
 	var rogue: Hero = _sim.party.heroes[1]
 	sheet.open(rogue.id)
+	sheet.open_page(HeroSheet.Page.TRAINING)  # spec 034: the rows are on the Training tab
 	assert_eq(sheet.training_rows.size(), 3, "a row per training")
 	var power: HeroSheet.TrainingRow = _row(POWER)
 	var toughness: HeroSheet.TrainingRow = _row(TOUGHNESS)
@@ -574,6 +575,7 @@ func _collect(node: Node, into: Array[Control]) -> void:
 func test_r8_sheet_still_fits() -> void:
 	_make_hud(Simulation.new(SEED))
 	var sheet: HeroSheet = _hud.hero_sheet
+	sheet.open_page(HeroSheet.Page.TRAINING)  # spec 034: the rows are on the Training tab
 	_sim.party.gold = 1_000_000_000
 	for id: StringName in [BLADES, ARMOR]:
 		_sim.upgrades.set_rank(id, 20)
@@ -652,6 +654,7 @@ func test_r9_number_keys() -> void:
 		assert_false(hero.is_trained(), "and trains nobody")
 
 	sheet.open(rogue.id)
+	sheet.open_page(HeroSheet.Page.TRAINING)  # spec 034: 1 to 3 train on the Training tab
 	assert_false(_hud.shop.is_open(), "the sheet and the shop are never open together")
 	_hud.advance(0.016)
 	_key(KEY_1)

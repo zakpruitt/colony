@@ -367,12 +367,19 @@ func _check_entry(main: Main, label: String) -> void:
 			"1-3":
 				var hero: Hero = sim.party.heroes[0]
 				hud.hero_sheet.open(hero.id)
+				hud.hero_sheet.open_page(HeroSheet.Page.TRAINING)  # spec 034
 				sim.party.gold = 10_000_000
 				var training: StringName = hud.hero_sheet.training_rows[code - KEY_1].id
 				var trained: int = hero.training_rank(training)
 				_key(code)
 				sim.step()
 				assert_gt(hero.training_rank(training), trained, "%s trains %s" % [what, training])
+				hud.hero_sheet.close()
+			"Q E":
+				hud.hero_sheet.open(sim.party.heroes[0].id)
+				var page: HeroSheet.Page = hud.hero_sheet.page()
+				_key(code)
+				assert_ne(hud.hero_sheet.page(), page, "%s changes the hero sheet's page" % what)
 				hud.hero_sheet.close()
 			"Tab":
 				var shown: int = hud.hero_sheet.shown_hero_id()
@@ -389,6 +396,13 @@ func _check_entry(main: Main, label: String) -> void:
 				_key(code)
 				assert_ne(hud.orders.is_open(), orders, "%s opens or closes the orders" % what)
 				hud.orders.close()
+			"L":
+				var shown: bool = hud.ladder.is_shown()
+				_key(code)
+				hud.advance(0.0)
+				assert_ne(hud.ladder.is_shown(), shown, "%s shows or hides the depth ladder" % what)
+				_key(code)
+				hud.advance(0.0)
 			"Z":
 				var zoom: int = main.world.camera.zoom_level()
 				_key(code)
