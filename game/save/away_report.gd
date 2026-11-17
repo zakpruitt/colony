@@ -7,6 +7,9 @@ extends RefCounted
 var seconds: float
 ## Gold the party earned.
 var gold_gained: int
+## Each resource the party gathered (spec 052), by id: drops and side quests, before any was
+## spent.
+var resources_gained: Dictionary[StringName, int] = {}
 ## Levels each hero gained, by hero id.
 var levels_gained: Dictionary[int, int] = {}
 ## The depth the party was at when the save loaded, and when the replay ended.

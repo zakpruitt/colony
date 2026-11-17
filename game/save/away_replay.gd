@@ -66,6 +66,13 @@ func run(budget_usec: int) -> bool:
 					report.wipes += 1
 				SimEvent.Kind.UPGRADE_BOUGHT:
 					report.upgrades_bought += 1
+				SimEvent.Kind.RESOURCE_GAINED:
+					var ids: Array[StringName] = Content.resource_ids()
+					if event.target_id >= 0 and event.target_id < ids.size():
+						var id: StringName = ids[event.target_id]
+						report.resources_gained[id] = (
+							report.resources_gained.get(id, 0) + event.amount
+						)
 	_update_report()
 	return is_done()
 

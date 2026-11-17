@@ -167,6 +167,8 @@ const SLAIN_LIFE: float = 2.5
 var gold_screen_target: Vector2 = Vector2(600, 12)
 ## The effects of side quests and microskills (spec 028), advanced with these.
 var quest_effects: QuestEffects
+## Resource drops rising and flying to the purse (spec 052), advanced with these.
+var resource_effects: ResourceEffects
 
 var _world: World
 var _simulation: Simulation
@@ -218,6 +220,10 @@ func setup(world: World, simulation: Simulation) -> void:
 		quest_effects.name = "QuestEffects"
 		add_child(quest_effects)
 	quest_effects.setup(world, simulation)
+	if resource_effects == null:
+		resource_effects = ResourceEffects.new()
+		add_child(resource_effects)
+	resource_effects.setup(world, _screen_to_world)
 
 
 ## Advances every effect. Called every frame; tests call it.
@@ -225,6 +231,7 @@ func advance(delta: float) -> void:
 	if _world == null or _world.effects_layer == null:
 		return
 	quest_effects.advance(delta)
+	resource_effects.advance(delta)
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()

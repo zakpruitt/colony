@@ -427,11 +427,14 @@ func _trainee_with_points() -> int:
 	return -1
 
 
-## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought.
+## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought. One whose
+## resource the party lacks cannot (spec 052).
 func _cheapest_upgrade() -> int:
 	var cheapest: int = 0
 	for id: StringName in Content.upgrade_ids():
 		var price: int = _simulation.upgrades.cost(id)
+		if not _simulation.upgrades.has_resource_for(id, _simulation.party):
+			continue
 		if price > 0 and (cheapest == 0 or price < cheapest):
 			cheapest = price
 	return cheapest

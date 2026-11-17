@@ -6,7 +6,8 @@ extends Control
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
-## the microskill it needed) (spec 028), and an order changed (spec 035). The newest line shows
+## the microskill it needed) (spec 028), an order changed (spec 035) and the first of each resource
+## gathered (spec 052). The newest line shows
 ## in a one-line [member ticker] just above the party frames for [constant TICKER_SECONDS], then
 ## fades through the palette and goes;
 ## events too old to animate ([method World.is_recent]) are written but not shown there.
@@ -60,6 +61,8 @@ var _deepest: int = 1
 ## area's furthest stage.
 var _area: StringName = &""
 var _deepest_in: Dictionary[StringName, int] = {}
+## Resources the party has held, as heard (spec 052): the first of each is written.
+var _gathered: Dictionary[StringName, bool] = {}
 var _shop_was_open: bool = false
 var _sheet_was_open: bool = false
 
@@ -98,6 +101,9 @@ func setup(simulation: Simulation, world: World) -> void:
 	_area = simulation.expedition.place
 	for id: StringName in Content.area_ids():
 		_deepest_in[id] = simulation.area_progress(id).y
+	for id: StringName in Content.resource_ids():
+		if simulation.party.resource(id) > 0:
+			_gathered[id] = true
 	_build_panel()
 	_build_ticker()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
@@ -291,7 +297,23 @@ func _sentence(event: SimEvent) -> String:
 			sentence = _quest_sentence(event)
 		SimEvent.Kind.ORDER_CHANGED:
 			sentence = _order_sentence(event)
+		SimEvent.Kind.RESOURCE_GAINED:
+			sentence = _resource_sentence(event)
 	return sentence
+
+
+## The sentence for the first of a resource the party gathers (spec 052): "First glowcaps, from
+## Mossy Hollow"; "" for any after it.
+func _resource_sentence(event: SimEvent) -> String:
+	var ids: Array[StringName] = Content.resource_ids()
+	if event.target_id < 0 or event.target_id >= ids.size():
+		return ""
+	var id: StringName = ids[event.target_id]
+	if _gathered.has(id):
+		return ""
+	_gathered[id] = true
+	var from: String = PlaceText.area_name(Content.area_of_resource(id))
+	return "First %s, from %s" % [ResourceIcon.plural(id), from]
 
 
 ## The sentence for an order changed (spec 035): "Ordered a Bold pace", "Ordered to hold at
