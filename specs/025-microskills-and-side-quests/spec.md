@@ -1,9 +1,9 @@
 # 025 — Microskills and side quests: more to do down there than fight
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 005, 020, 023
-- **Pull request:** —
+- **Pull request:** [#27](https://github.com/zakpruitt/colony/pull/27)
 
 ## Intent
 
