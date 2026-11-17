@@ -67,9 +67,10 @@ implementer lane builds exactly that.
 
 ### In progress (2026-11-17, after Zak played the demo)
 
-Zak's direction after the demo: areas to choose between instead of one descent, and a skill tree of real
-abilities for every hero, with paragon points after it (`docs/design/world.md`, "Areas and skill trees").
-049, 050, 051, 053 and 054 have landed. New rows go in this table.
+Nothing is in progress: specs 049 to 056 (areas, abilities, talent trees and paragon, resources, the area
+map, zones on screen, the tree on the hero sheet, abilities on screen) have all landed and are in the board
+above, provisional until Zak has played them. Their direction is `docs/design/world.md`, "Areas and skill
+trees". New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|

@@ -110,44 +110,66 @@
 Things marked <span class="tag built">Built</span> work today;
 <span class="tag planned">Planned</span> is designed but not yet in the game.</p>
 
-<h2 id="now">Where we are (17 November 2026): a demo to check in on</h2>
+<h2 id="now">Where we are (17 November 2026, evening): areas and skill trees to check in on</h2>
 <div class="note">
-  <p><strong>In one line:</strong> <code>dev</code> is a playable demo. Every spec written so far has
-  landed (48 of them, pull requests #2 to #49), nothing is in progress, the full check passes (478 tests),
-  and nothing has gone to <code>main</code>. Zak approved spec 001; every spec after it is marked
-  <em>provisional</em> until he has played it. The direction for the world is in
-  <code>docs/design/world.md</code>.</p>
+  <p><strong>In one line:</strong> after Zak played the demo he asked for areas to choose between instead of
+  one descent, and a skill tree of real abilities for every hero. That is now on <code>dev</code>: eight
+  more specs (049 to 056, pull requests #50 to #57), each read by an independent reviewer and fixed before
+  it merged. Nothing is in progress, the full check passes (605 tests), and nothing has gone to
+  <code>main</code>. Every spec after 001 is <em>provisional</em> until Zak has played it. The direction is
+  in <code>docs/design/world.md</code>, "Areas and skill trees".</p>
 </div>
 <h3>Play it</h3>
 <p>From the project folder, on the <code>dev</code> branch: <code>git pull</code>, then
 <code>python tools/dev.py import</code> once (new scripts need it), then <code>godot --path .</code>. For a
 fresh start, first delete <code>colony.save</code>, <code>colony.save.bak</code> and
-<code>colony.settings</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>; an old save loads
-too, and its heroes are brought up to the level their XP now earns.</p>
-<h3>Ten minutes with it</h3>
+<code>colony.settings</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>. An old save loads
+too: it starts in Mossy Hollow at the stage its depth was, gold spent on training comes back, and each
+hero has the talent points its level has earned, unspent.</p>
+<h3>Fifteen minutes with it</h3>
 <ol>
-  <li><strong>Watch the first two minutes without touching anything.</strong> The top left says what the
-  party is doing and counts down to when it goes deeper; the goals under it say what is coming. It should
-  reach depth 2 in about 90 seconds.</li>
-  <li><strong>Spend the first gold.</strong> Click the <code>Buy an upgrade</code> goal when it appears, or
-  press <kbd>U</kbd>. Heroes earn talent points from level 2: click the <code>Spend the Knight's talent
-  point</code> goal, or the hero's frame and its Talents tab, and click a glowing node.</li>
-  <li><strong>Watch a side quest.</strong> A glint in the dark is one waiting. The rogue learns Lockpicker
-  at level 2; before that the party walks past chests and the game says what was needed.</li>
-  <li><strong>Open the tally</strong> (<kbd>T</kbd>) after a few fights: who deals the damage, who takes
-  the hits, who heals.</li>
-  <li><strong>Steer.</strong> Click a rung on the ladder at the right. Blue numbers are safe, orange within
-  reach, red dangerous. Send the party somewhere red and watch it lose: the party lies where it fell, a
-  note says who beat it and what would help, and it stands up again at its safe depth.</li>
-  <li><strong>Meet the Slime King</strong> on depth 5, about nine minutes in (sooner with <kbd>F</kbd> for
-  4x). It will probably win the first time. Try <kbd>O</kbd> and the Hold order, buy upgrades, then send the
-  party back in.</li>
-  <li><strong>Close the game for a few minutes and open it again</strong> for the "while you were away"
-  report.</li>
+  <li><strong>Watch the party change stage.</strong> It walks out through a doorway, the screen dims with
+  the next stage's name, and it steps out somewhere new. Nothing goes down.</li>
+  <li><strong>Spend the first talent point.</strong> A hero's second level gives one; a goal says so.
+  Click it, or click the hero's frame and open <strong>Talents</strong>. Point at any node to read it.</li>
+  <li><strong>Watch the ability get used.</strong> Its name rises over the hero; a stunned monster has
+  stars round its head, a shielded hero an outline, and so on. <kbd>T</kbd> opens the tally; click a
+  hero's line there to see damage by ability.</li>
+  <li><strong>Choose a path.</strong> The fourth point is the fork (level 8). The game asks before it
+  closes the other path.</li>
+  <li><strong>Beat the Slime King</strong> on Mossy Hollow 5. With talents and upgrades it usually falls
+  at the first try, about nine minutes in.</li>
+  <li><strong>Open the map</strong> (<kbd>W</kbd>, or click the area's name) and send the party to the
+  Claypits. It has its own monsters, its own look and its own resource, clay.</li>
+  <li><strong>Open the shop</strong> (<kbd>U</kbd>). Past rank 3 an upgrade costs a resource as well as
+  gold; the row says which and where it comes from.</li>
 </ol>
-<p>To see every moment of the loop in ninety seconds, labelled, including the rare ones:
-<code>godot --path . res://game/dev/showcase.tscn</code>.</p>
-<h3>New since the first playtest</h3>
+<p>To see every moment in about ninety seconds, labelled, including the map, the four areas, each class's
+actions and every status on a row of fighters:
+<code>godot --path . res://game/dev/showcase.tscn</code>. (When it says it is over, the party is left in
+Ember Deep with mismatched levels and loses; that is the showcase's leftovers, not the game.)</p>
+<h3>New since the demo</h3>
+<ul>
+  <li><strong>Areas.</strong> Mossy Hollow, the Claypits, the Old Crypt and Ember Deep. Each has its own
+  monsters, guardian, colouring and layout. Inside an area, stages get harder as depths did. Beating an
+  area's guardian (stage 5) opens the next area.</li>
+  <li><strong>The map</strong> (<kbd>W</kbd>). Every area, what lives there, how far the party has got,
+  and a stage to send it to. The journey takes ten seconds and rests the party.</li>
+  <li><strong>Zones on screen.</strong> A doorway and a short dark crossing in place of the climb down a
+  shaft. The game says stage, further and back; it no longer says depth or deeper.</li>
+  <li><strong>Talent trees.</strong> Each class has a trunk of three abilities and then two paths of four:
+  Knight (Guardian or Berserker), Rogue (Assassin or Trickster), Mage (Pyromancer or Frostbinder),
+  Cleric (Lifebinder or Sunpriest). One point at every even level, seven in all. Taking a path closes the
+  other; a reset costs 100 gold a level.</li>
+  <li><strong>Paragon.</strong> From level 15 each level gives a point for Power, Toughness or Quickness
+  (3% each, no limit). Buying training with gold is gone.</li>
+  <li><strong>Abilities on screen.</strong> Names over fighters, a mark for each of the fourteen statuses,
+  <code>Miss</code> and <code>Blocked</code>, status icons on hero frames, damage by ability in the
+  tally.</li>
+  <li><strong>Resources.</strong> Glowcaps (Mossy Hollow), clay (the Claypits), old bones (the Old Crypt),
+  embers (Ember Deep), dropped by monsters there and paid for upgrade ranks past the third.</li>
+</ul>
+<h3>From the round before (specs 025 to 048)</h3>
 <ul>
   <li><strong>Side quests and microskills.</strong> About three plain chambers in ten hold a locked chest, a
   stuck door, a hurt wanderer, a rune stone or a tripwire instead of monsters. A hero with the right
@@ -282,57 +304,63 @@ too, and its heroes are brought up to the level their XP now earns.</p>
 <pre><code>godot --path . res://game/dev/showcase.tscn</code></pre>
 <h3>What to judge when you play</h3>
 <ul>
-  <li><strong>Is it easy to follow?</strong> Could you say, at any moment, what the party is doing, why, and
-  what happens next? That was the aim of this round.</li>
-  <li><strong>Is there too much on screen?</strong> The top holds the depth panel, the boss bar, and Orders,
-  speed, help, Shop and gold; goals sit under the depth panel, the ladder runs down the right, and the
-  tally's button sits left of the frames. <kbd>G</kbd> and <kbd>L</kbd> hide the goals and the ladder.</li>
-  <li><strong>The opening's pace.</strong> Depth 2 in 90 seconds, level 2 in under a minute, the first
-  guardian at nine minutes. Too fast, too slow, about right? These are the only balance numbers changed
-  this round.</li>
-  <li><strong>The first guardian.</strong> Without upgrades, training or Hold, a new party loses to the
-  Slime King about five times over twelve minutes before it wins. Is that a wall worth having, now that
-  the defeat note says what to do about it?</li>
-  <li><strong>The wipe.</strong> Does it read as a defeat and a return? The camera's travel crosses dark
-  rock for a moment.</li>
-  <li><strong>The ladder's colours.</strong> Orange and red are close at this size. Is the target easy to
-  find?</li>
-  <li><strong>Side quests.</strong> Do they feel like the party doing something different, and is "Needs
-  Lockpicker" enough to make you want a different party? Their props are plain placeholders.</li>
-  <li><strong>The sounds.</strong> Still nobody has heard them; they were only checked on paper.</li>
-  <li><strong>4x.</strong> Does a fight at four times speed still look like the same game?</li>
+  <li><strong>Does it still feel like going down?</strong> The doorway, the crossing and the four looks are
+  meant to end that. The list of stages at the right still runs top to bottom.</li>
+  <li><strong>Is there a reason to go somewhere else?</strong> Today the reasons are different monsters and
+  the resource three upgrades need. Is that enough "intentionality", or do areas need more of their own
+  (their own side quests, upgrades only their resource buys)?</li>
+  <li><strong>Are the trees interesting yet simple?</strong> Read all eight paths. Which abilities are dull,
+  which path would you never take? Pyromancer tested weakest.</li>
+  <li><strong>Can you see what an ability did?</strong> Names, marks and rings are plain placeholders.
+  Which statuses can you not tell apart?</li>
+  <li><strong>Is it too easy now?</strong> With talents and upgrades both used, an hour of automatic play on
+  one seed had no wipe at all, and the Slime King usually falls at the first try.</li>
+  <li><strong>Is the screen too full?</strong> The top bar now holds resources too, and a fight has names,
+  numbers, marks and drops over it.</li>
+  <li><strong>The sheet's size.</strong> It grows from 150 to 278 pixels tall on the Talents tab only.</li>
+  <li><strong>The sounds.</strong> Still nobody has heard them. Abilities reuse existing sounds.</li>
 </ul>
 <h3>Decisions waiting for Zak</h3>
 <ul>
-  <li><strong>Pace barely matters.</strong> Cautious rests four times as often as Bold but wipes almost as
-  much (33 against 34 over three hours of testing). Should pace change more than when the party rests?</li>
-  <li><strong>Fallen heroes stay on the field.</strong> A hero who dies in an ordinary fight now lies there
-  until the fight ends, where before it vanished. This went beyond its spec and was left in.</li>
-  <li><strong>Heroes stand further from a guardian.</strong> About 10 pixels of air, so that lunges and
-  swings never draw over each other; before it was 2.</li>
-  <li><strong>Cheaper levels reach the deep game.</strong> Levels cost about 12% less at level 10 and 6%
-  less at level 20, which the first level-up inside 90 seconds needed. A three-hour run now ends at depth
-  18 to 21, where it ended at 17 to 18.</li>
-  <li><strong>One seed in five misses no side quest</strong> in its first hour, because the heroes learn
-  every microskill before meeting a quest they cannot do.</li>
-  <li><strong>The tally counts overkill</strong> in damage and damage taken (its tooltips say so), but not
-  overhealing.</li>
-  <li><strong>Side-quest gold is not raised by the Fat Purse upgrade.</strong></li>
+  <li><strong>The first guardian is no longer a wall</strong> for a player who spends talents and gold
+  (first win at about 9 minutes on four seeds of five; without either, 14 to 28 minutes). Raise the
+  guardians, or leave it?</li>
+  <li><strong>Talent points:</strong> one at every even level, seven in all, so a tree is full at level 14.
+  Too fast, too slow?</li>
+  <li><strong>Reset for gold</strong> (100 a level). A path is closed while you hold it, not for ever. You
+  said going one way should close the other; is a paid reset within that?</li>
+  <li><strong>Which upgrade needs which resource:</strong> Field Medicine and Quick March glowcaps, Stout
+  Armor clay, Sharp Blades old bones, Fat Purse embers. A party that stays in Mossy Hollow runs out of
+  gold before glowcaps (120 to 162 unspent after half an hour), so glowcaps hardly bind.</li>
+  <li><strong>Ember Deep is a wall.</strong> A level-19 party without talents wiped 8 to 10 times in 20
+  minutes there and got no further than stage 3. Not measured again with talents.</li>
+  <li><strong>Abilities changed from the first draft</strong> so that they are used in real fights:
+  Bloodthirst answers being hit, not a kill; Bulwark fires when another hero is below 80%; Taunt and
+  Frost Nova wait for two enemies; a hero tries its newest ability first.</li>
+  <li><strong>While a hero has a talent point to spend</strong>, that goal takes one of the three goal
+  places ahead of the microskill and upgrade goals.</li>
+  <li><strong>Still open from the demo:</strong> pace barely changes how often the party wipes; fallen
+  heroes lie on the field in ordinary fights; heroes stand about 10 pixels from a guardian; one seed in
+  five misses no side quest in its first hour; side-quest gold ignores Fat Purse.</li>
 </ul>
 <h3>Known rough edges</h3>
 <ul>
-  <li><strong>Reviews.</strong> Six of this round's pull requests were read by an independent reviewer
-  after they landed (#36, #38, #39, #42, #45, #46). Every one of those reviews found real bugs, all since
-  fixed (#41, #44, #47, #48, #49). The others were checked by CI and the lead only, so expect bugs of
-  the same kind in them: mostly at 4x speed, after a hitch, or on returning to the game mid-fight.</li>
-  <li>The fixes themselves (#41, #44, #47, #48, #49) have not been reviewed.</li>
-  <li>All art is a first pass and stays that way by decision: Zak will make the characters, and the world's
-  look is to be agreed with him. Weakest: the ghoul, clay hound, fire imp and the Clay Colossus.</li>
-  <li>The game still accepts any target depth. The ladder warns before and after a dangerous click, but
-  its rule (the lowest hero's level plus one) is a rough guide, not tested against real fights.</li>
-  <li>The Bone Lord and Deep Maw (depths 15 and 20) were balanced by hand, with no test holding them.</li>
-  <li>The full check takes about eight minutes, most of it the tests; longer when several lanes run at
-  once.</li>
+  <li><strong>Reviews.</strong> All eight pull requests of this round were read by an independent reviewer
+  before merging, and every review found real problems that were then fixed. The fixes themselves were
+  checked by tests and the lead, not read a second time. Expect bugs of the usual kind: at 4x speed,
+  after a hitch, or on returning to the game mid-fight.</li>
+  <li>Nobody has watched the new things in motion. The lead looked at stills of the showcase: the map, the
+  tree, the crossing, the four areas, the status row and the top bar read correctly there.</li>
+  <li>A resource icon near a bar may hop a few pixels when it starts flying to the counter.</li>
+  <li>The headless run (<code>dev.py sim</code>) never travels by itself, so numbers for the later areas
+  come from runs started there.</li>
+  <li>Talent pictures are one plain icon per kind of ability, so many nodes share one. All art stays
+  placeholder by decision.</li>
+  <li>In the tally, damage by ability is worked out from the order of events; a hero's total is exact,
+  the split between abilities could be off in rare cases.</li>
+  <li>A frame holding two arrivals in different areas (a long return from time away) may draw the events
+  between them in the last area.</li>
+  <li>The full check takes about nine minutes.</li>
 </ul>
 <h3>Not built yet</h3>
 <p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
