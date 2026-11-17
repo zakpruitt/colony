@@ -351,6 +351,8 @@ func test_r8_stays_in_its_bands() -> void:
 
 func _collect(node: Node, into: Array[Control]) -> void:
 	for child: Node in node.get_children():
+		if child is DepthLadder:
+			continue  # spec 033's ladder sits below the top band; test_033 R6 places it
 		if child is Control:
 			into.append(child)
 		_collect(child, into)
