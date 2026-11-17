@@ -204,27 +204,19 @@ func sync(delta: float) -> void:
 	_snap_camera = false
 	_last_tick = now
 
-	if labyrinth_view.labyrinth != simulation.labyrinth:
-		_change_area()
-	var focus: Vector2 = simulation.expedition.hero_position(_leader_id())
-	labyrinth_view.set_focus(fallen_party.focus(focus))
-	var built: Array[int] = labyrinth_view.built_depths()
-	if built != _built:
-		_built = built
-		for dead: int in _gone.keys():
-			if not _built.has(_gone[dead]):
-				_gone.erase(dead)
-				_gone_as.erase(dead)
-		_scan_due = true
-	_scan_in -= delta
-	_ensure_heroes()
-	if _scan_due or _snap_all or _scan_in <= 0.0:
-		_scan_waiting()
-	_ensure_fighters()
-
+	# Spec 049: when the party has gone to another area, the events from before its arrival are
+	# shown in the old area first, and the world changes area when it reaches AREA_CHANGED (monster
+	# ids do not name the area, so an old death must not touch the new area's monsters).
+	var arriving: bool = labyrinth_view.labyrinth != simulation.labyrinth
+	if not arriving:
+		_catch_up_with_state(delta)
 	for event: SimEvent in simulation.drain_events():
 		_show(event, is_recent(event))
 		sim_event.emit(event)
+	if labyrinth_view.labyrinth != simulation.labyrinth:
+		_change_area()  # no AREA_CHANGED heard: a world made after the arrival
+	if arriving:
+		_catch_up_with_state(delta)
 	var expedition: Expedition = simulation.expedition
 	if expedition.state == Expedition.State.REVIVING and not fallen_party.is_telling():
 		# Down with no wipe heard (the world made after time away): the story starts part way.
@@ -250,6 +242,26 @@ func sync(delta: float) -> void:
 	_place_party_light()
 	target_marker.follow(simulation, _party_feet(), delta)
 	_aim_camera(delta)
+
+
+## Brings the view up to the simulation's state before its events are shown: the levels built
+## around the party, the heroes, the waiting monsters and the fighters.
+func _catch_up_with_state(delta: float) -> void:
+	var focus: Vector2 = simulation.expedition.hero_position(_leader_id())
+	labyrinth_view.set_focus(fallen_party.focus(focus))
+	var built: Array[int] = labyrinth_view.built_depths()
+	if built != _built:
+		_built = built
+		for dead: int in _gone.keys():
+			if not _built.has(_gone[dead]):
+				_gone.erase(dead)
+				_gone_as.erase(dead)
+		_scan_due = true
+	_scan_in -= delta
+	_ensure_heroes()
+	if _scan_due or _snap_all or _scan_in <= 0.0:
+		_scan_waiting()
+	_ensure_fighters()
 
 
 # --- Characters ----------------------------------------------------------------
@@ -449,6 +461,9 @@ func _show(event: SimEvent, animate: bool) -> void:
 			_died(event.source_id, animate)
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
+		SimEvent.Kind.AREA_CHANGED:
+			if labyrinth_view.labyrinth != simulation.labyrinth:
+				_change_area()
 		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
 			_scan_due = true  # a cleared quest's prop goes at once
 		SimEvent.Kind.ENCOUNTER_ENDED:
@@ -496,7 +511,6 @@ func _died(id: int, animate: bool) -> void:
 		_kill(dying, false)
 
 
-## The fight is over: wind-ups still pending stop, and bolts in flight vanish.
 ## The party arrived in another area (spec 049): the world shows that area's labyrinth from now
 ## on, with none of the last one's monsters, props or bolts, and every sprite and the camera
 ## jump to their places.
@@ -514,6 +528,7 @@ func _change_area() -> void:
 	_snap_all = true
 
 
+## The fight is over: wind-ups still pending stop, and bolts in flight vanish.
 func _cut_short_everything() -> void:
 	for attacker: int in _windups:
 		var sprite: CharacterSprite = character(attacker)

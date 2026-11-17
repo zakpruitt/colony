@@ -19,6 +19,9 @@ var pending_stage: int = 0
 ## While the party is on its way: the stage asked for, and the tick it arrives on.
 var stage: int = 0
 var arrive_tick: int = 0
+## True once a target was chosen during the journey: that target, not [member stage], is the
+## target on arrival (spec 049 R4 as amended).
+var target_chosen: bool = false
 
 var _labyrinths: Dictionary[StringName, Labyrinth] = {}
 
@@ -34,9 +37,13 @@ func _init(first: Labyrinth) -> void:
 		_labyrinths[ids[0]] = first
 
 
-## Asks to send the party to [param stage] (1 or more) of area [param id]: taken up, if the area is
-## open then, once the party is free to go (after any fight, and up from a wipe).
+## Asks to send the party to [param stage] (1 or more) of area [param id]. Whether the area is open
+## is judged now (spec 049 R4 as amended): a closed one is ignored. The party goes once it is free
+## (after any fight or side quest, and up from a wipe); on its way, it turns to the new destination
+## and starts the journey again.
 func ask(id: StringName, stage_asked: int) -> void:
+	if not open.has(id):
+		return
 	pending_area = id
 	pending_stage = maxi(stage_asked, 1)
 
@@ -87,7 +94,10 @@ func hash_parts() -> Array:
 	for id: StringName in Content.area_ids():
 		if stages.has(id):
 			kept.append([id, stages[id]])
-	return [open_ids(), kept, pending_area, pending_stage, stage, arrive_tick]
+	var parts: Array = [open_ids(), kept, pending_area, pending_stage, stage, arrive_tick]
+	if target_chosen:
+		parts.append(true)  # only then, so runs without a journey hash as they did
+	return parts
 
 
 ## The safe stage (x) and furthest stage (y) of area [param id] for [param run]; Vector2i(1, 0)
@@ -120,21 +130,40 @@ func restore(
 	_enter(run, area_id)
 
 
-## [param run] leaves for the destination asked for, if it is open: abandoning any rest or work,
-## it is on its way from this tick, and stands where it was until it arrives.
+## The target [param run] will have on arrival: one chosen on the way, or the stage asked for.
+func arrival_target(run: Expedition) -> int:
+	return run.target_depth if target_chosen else stage
+
+
+## [param run] leaves for the destination asked for: a rest it leaves ends (REST_ENDED), and it is
+## on its way from this tick, standing where it was until it arrives. The journey is a rest: fallen
+## heroes stand and everyone heals as [constant JOURNEY_SECONDS] of resting would (spec 049 R4 as
+## amended). A new destination asked for on the way turns it there and starts the journey again.
 func depart(run: Expedition) -> void:
-	var to: StringName = pending_area
+	if run.state == Expedition.State.RESTING:
+		run._emit(SimEvent.Kind.REST_ENDED)
+	if run.state != Expedition.State.JOURNEYING:
+		run._rest_ticks = 0
+		run._rest_start.clear()
+		for hero: Hero in run._party.heroes:
+			run._rest_start[hero.id] = hero.health
+	run.area = pending_area
 	pending_area = &""
-	if not open.has(to):
-		return
-	run.area = to
 	stage = pending_stage
+	target_chosen = false
 	arrive_tick = run._tick + Combatant.seconds_to_ticks(JOURNEY_SECONDS)
 	run._pending_target = 0
-	run._work_key = Vector2i(0, -1)
-	run._work_quest = &""
-	run._worker = -1
 	run.state = Expedition.State.JOURNEYING
+
+
+## One tick on the way: the heroes heal as resting does, up to [constant JOURNEY_SECONDS] of it in
+## all however often the journey restarts, and the party arrives when the time is up.
+func journey(run: Expedition) -> void:
+	if run._rest_ticks < Combatant.seconds_to_ticks(JOURNEY_SECONDS):
+		run._rest_ticks += 1
+		run._heal_resting()
+	if run._tick >= arrive_tick:
+		arrive(run)
 
 
 ## [param run] arrives, alive and as hurt as it was, at the start of the stage asked for (or the
@@ -150,7 +179,9 @@ func arrive(run: Expedition) -> void:
 	run.state = Expedition.State.TRAVELLING
 	run._emit(SimEvent.Kind.AREA_CHANGED, -1, -1, Content.area_ids().find(run.area))
 	run._emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, run.depth)
-	run._set_target(wanted)
+	var target: int = arrival_target(run)
+	target_chosen = false
+	run._set_target(target)
 
 
 ## Makes [param id] the area [param run] is in, with its labyrinth and stages, and its chambers

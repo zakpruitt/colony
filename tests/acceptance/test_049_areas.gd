@@ -79,6 +79,24 @@ func _send(sim: Simulation, area: StringName, stage: int) -> Array[SimEvent]:
 	return events
 
 
+## Health [param hero] gains in ten seconds of rest (the journey, as amended).
+func _rested(hero: Hero) -> int:
+	return floori(Expedition.REST_HEAL_PER_SECOND * hero.max_health() * 10.0 + 0.0001)
+
+
+## Steps [param sim] until [param state] (true) or [param ticks] pass (false); the events go to
+## [param seen].
+func _until_state(
+	sim: Simulation, state: Expedition.State, ticks: int, seen: Array[SimEvent]
+) -> bool:
+	for i: int in ticks:
+		if sim.expedition.state == state:
+			return true
+		sim.step()
+		seen.append_array(sim.drain_events())
+	return sim.expedition.state == state
+
+
 func _kinds(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
 	var found: Array[SimEvent] = []
 	for event: SimEvent in events:
@@ -265,14 +283,16 @@ func test_r3_only_the_areas_monsters() -> void:
 
 
 func test_r4_sent_elsewhere() -> void:
-	# A closed area: nothing happens.
+	# A closed area: nothing happens, and it is judged when the command is given (amended): opening
+	# the area afterwards does not send the party.
 	var closed := Simulation.new(3)
 	closed.set_destination(&"claypits", 1)
+	closed.expedition.travel.open[&"claypits"] = true
 	for i: int in 300:
 		closed.step()
 		assert_ne(closed.expedition.state, Expedition.State.JOURNEYING, "never leaves")
 	assert_eq(closed.expedition.area, &"mossy_hollow", "a closed area is ignored")
-	assert_false(closed.is_area_open(&"claypits"), "the Claypits are closed at first")
+	assert_false(Simulation.new(3).is_area_open(&"claypits"), "the Claypits are closed at first")
 
 	# While travelling: the party leaves on the next tick and spends 10 seconds on the way.
 	var sim := Simulation.new(3)
@@ -299,7 +319,9 @@ func test_r4_sent_elsewhere() -> void:
 	assert_eq(e.target_depth, 3, "the stage asked for is the target")
 	assert_eq(e.x, Arrival.column(sim.labyrinth, 1), "at the start of the stage")
 	assert_ne(sim.labyrinth, before, "in the Claypits' own labyrinth")
-	assert_eq(sim.party.hero(2).health, 17, "health as it was")
+	var mage: Hero = sim.party.hero(2)
+	var rested: int = mini(mage.max_health(), 17 + _rested(mage))
+	assert_eq(mage.health, rested, "healed as ten seconds of rest would (amended)")
 	assert_true(sim.party.any_alive(), "alive")
 
 	# Asked for a stage at or above the safe stage: arrives there.
@@ -333,6 +355,95 @@ func test_r4_sent_elsewhere() -> void:
 			assert_eq(fighter.expedition.state, Expedition.State.FIGHTING, "fights on")
 	assert_true(ended, "the fight ran to its end before the party left")
 	assert_eq(fighter.expedition.state, Expedition.State.JOURNEYING, "then it left")
+
+
+func test_r4_on_the_way() -> void:
+	# A hero down when the party leaves stands up on the way; a new destination turns the party
+	# and restarts the ten seconds; a target chosen on the way is the target on arrival.
+	var sim := Simulation.new(3)
+	sim.expedition.travel.open[&"claypits"] = true
+	sim.expedition.travel.open[&"old_crypt"] = true
+	var knight: Hero = sim.party.hero(1)
+	knight.health = 0
+	sim.set_destination(&"claypits", 1)
+	sim.step()
+	assert_eq(sim.expedition.state, Expedition.State.JOURNEYING, "on its way")
+	for i: int in 40:
+		sim.step()
+	sim.set_destination(&"old_crypt", 2)
+	sim.step()
+	var turned_on: int = sim.tick
+	assert_eq(sim.expedition.area, &"old_crypt", "turned to the Old Crypt")
+	assert_eq(sim.expedition.state, Expedition.State.JOURNEYING, "still on its way")
+	sim.set_target_depth(4)
+	var seen: Array[SimEvent] = []
+	var arrived_on: int = -1
+	for i: int in 300:
+		sim.step()
+		for event: SimEvent in sim.drain_events():
+			seen.append(event)
+			if event.kind == SimEvent.Kind.AREA_CHANGED and arrived_on < 0:
+				arrived_on = sim.tick
+		if arrived_on >= 0:
+			break
+	assert_eq(arrived_on - turned_on, JOURNEY_TICKS, "ten seconds from the turn")
+	assert_eq(_kinds(seen, SimEvent.Kind.AREA_CHANGED).size(), 1, "one arrival")
+	var e: Expedition = sim.expedition
+	assert_eq(e.place, &"old_crypt", "in the Old Crypt")
+	assert_eq(e.depth, 1, "at its safe stage")
+	assert_eq(e.target_depth, 4, "the target chosen on the way")
+	assert_true(knight.is_alive(), "the fallen knight stood up on the way")
+	assert_eq(knight.health, mini(knight.max_health(), _rested(knight)), "ten seconds' rest, once")
+
+
+func test_r4_leaves_rest_work_and_revival() -> void:
+	# Resting: the rest ends with REST_ENDED when the party leaves.
+	var rester := Simulation.new(5)
+	rester.expedition.travel.open[&"claypits"] = true
+	var seen: Array[SimEvent] = []
+	for hero: Hero in rester.party.heroes:
+		hero.health = 1
+	rester.expedition._start_rest()
+	rester.step()
+	rester.drain_events()
+	assert_eq(rester.expedition.state, Expedition.State.RESTING, "setup: the party rests")
+	rester.set_destination(&"claypits", 1)
+	rester.step()
+	seen.append_array(rester.drain_events())
+	assert_eq(rester.expedition.state, Expedition.State.JOURNEYING, "it leaves the rest")
+	assert_eq(_kinds(seen, SimEvent.Kind.REST_ENDED).size(), 1, "and the rest ends")
+
+	# Working a side quest: the party finishes it (SIDE_QUEST_DONE), then leaves.
+	var worker: Simulation = null
+	for seed_value: int in range(1, 40):
+		var candidate := Simulation.new(seed_value)
+		_raise(candidate, STRONG_LEVEL)
+		candidate.set_auto_push(false)
+		var none: Array[SimEvent] = []
+		if _until_state(candidate, Expedition.State.WORKING, 3000, none):
+			worker = candidate
+			break
+	assert_not_null(worker, "setup: some seed's party works a side quest")
+	if worker == null:
+		return
+	worker.drain_events()
+	worker.expedition.travel.open[&"claypits"] = true
+	worker.set_destination(&"claypits", 1)
+	var done: Array[SimEvent] = []
+	assert_true(_until_state(worker, Expedition.State.JOURNEYING, 600, done), "then it leaves")
+	assert_eq(_kinds(done, SimEvent.Kind.SIDE_QUEST_DONE).size(), 1, "after the work is done")
+
+	# Down after a wipe: the party stands up first, then leaves.
+	var beaten := Simulation.new(5)
+	beaten.expedition.travel.open[&"claypits"] = true
+	for hero: Hero in beaten.party.heroes:
+		hero.health = 0
+	beaten.step()
+	assert_eq(beaten.expedition.state, Expedition.State.REVIVING, "setup: down")
+	beaten.set_destination(&"claypits", 1)
+	var waited: Array[SimEvent] = []
+	assert_true(_until_state(beaten, Expedition.State.JOURNEYING, 200, waited), "it leaves")
+	assert_eq(_kinds(waited, SimEvent.Kind.PARTY_REVIVED).size(), 1, "once it has stood up")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -462,6 +573,26 @@ func test_r8_saves() -> void:
 	assert_eq(back.labyrinth.level(1).chambers.size(), sim.labyrinth.level(1).chambers.size())
 	assert_eq(back.to_save(), data, "the same save again")
 
+	# A save made on the way loads in the destination, with the target it will have there.
+	var going := Simulation.new(21)
+	going.expedition.travel.open[&"claypits"] = true
+	going.set_destination(&"claypits", 3)
+	for i: int in 20:
+		going.step()
+	going.set_target_depth(2)
+	going.step()
+	assert_eq(going.expedition.state, Expedition.State.JOURNEYING, "setup: on its way")
+	var on_way: Dictionary = JSON.parse_string(JSON.stringify(going.to_save()))
+	assert_eq(Simulation.save_problems(on_way), PackedStringArray(), "a good save")
+	var landed: Simulation = Simulation.from_save(on_way)
+	assert_not_null(landed, "it loads")
+	if landed != null:
+		assert_eq(landed.expedition.place, &"claypits", "in the Claypits")
+		assert_eq(landed.expedition.depth, 1, "at its safe stage")
+		assert_eq(landed.expedition.target_depth, 2, "the target chosen on the way")
+		assert_eq(landed.area_progress(&"mossy_hollow").y, 1, "Mossy Hollow kept as it was")
+		assert_eq(landed.labyrinth, landed.expedition.travel.labyrinth(&"claypits"))
+
 	# Version 5 saves.
 	var opened_by_depth: Dictionary[int, Array] = {
 		3: [&"mossy_hollow"],
@@ -576,8 +707,25 @@ func test_r9_screen_names_the_area() -> void:
 	assert_eq(world.labyrinth_view.labyrinth, sim.labyrinth, "the world redrew the Claypits")
 	assert_eq(hud.depth_caption.text, "The Claypits")
 	assert_eq(hud.ladder.hover_text(1).get_slice("\n", 0).get_slice(":", 0), "The Claypits 1")
+	# Scrolled away from the party, the ladder's arrow points back up to it, and the heading still
+	# names the area: the arrow finds another place than over it.
+	var deepest_was: int = sim.expedition.deepest_depth
+	sim.expedition.deepest_depth = 20
+	hud.ladder.scroll_by(6)
+	for i: int in 60:
+		hud.advance(1.0 / 60.0)
+	assert_true(hud.ladder.arrow_points_up(), "setup: the arrow points up to the party")
+	var caption: Label = hud.ladder.get_node("Caption")
+	assert_true(caption.visible, "the heading shows")
+	assert_eq(caption.text, "The Claypits", "and names the area")
+	var heading := Rect2(caption.position, Vector2(PixelText.width(caption.text), 8))
+	var arrow: Rect2 = hud.ladder.arrow_rect()
+	assert_false(arrow.intersects(heading), "the arrow %s clear of it %s" % [arrow, heading])
+	assert_true(Rect2(Vector2.ZERO, hud.ladder.size).encloses(arrow), "on the ladder")
+	hud.ladder.follow()
+	sim.expedition.deepest_depth = deepest_was
 	assert_true(
-		hud.journal.lines()[0].ends_with("Arrived in The Claypits"),
+		"\n".join(hud.journal.lines()).contains("Arrived in The Claypits"),
 		"the journal says so: %s" % [hud.journal.lines()]
 	)
 	assert_true(
@@ -616,6 +764,145 @@ func test_r9_screen_names_the_area() -> void:
 	assert_eq(AwayPanel.where(report), "The Claypits 1")
 
 
+## A world, its effects and the HUD on [param sim], every _process off: index 0 the World, 1 the
+## CombatEffects, 2 the Hud.
+func _view(sim: Simulation) -> Array[Node]:
+	var world := World.new()
+	world.simulation = sim
+	add_child_autofree(world)
+	world.set_process(false)
+	var fx := CombatEffects.new()
+	add_child_autofree(fx)
+	fx.set_process(false)
+	fx.setup(world, sim)
+	var hud := Hud.new()
+	add_child_autofree(hud)
+	hud.set_process(false)
+	hud.setup(sim, world, fx)
+	return [world, fx, hud]
+
+
+## The z's floating over resting heroes.
+func _zs(fx: CombatEffects) -> int:
+	var count: int = 0
+	for text: FxText in fx._texts:
+		if text.kind == &"z":
+			count += 1
+	return count
+
+
+func test_r9_no_rest_on_the_road() -> void:
+	# A party resting when it is sent away stops resting: no z's over it on the road or after.
+	var sim := Simulation.new(SEEDS[0])
+	var view: Array[Node] = _view(sim)
+	var world: World = view[0]
+	var fx: CombatEffects = view[1]
+	for hero: Hero in sim.party.heroes:
+		hero.health = 1
+	sim.expedition._start_rest()
+	for i: int in 20:
+		sim.step()
+		world.sync(0.1)
+		fx.advance(0.1)
+	assert_gt(_zs(fx), 0, "setup: z's over the resting party")
+	sim.expedition.travel.open[&"claypits"] = true
+	sim.set_destination(&"claypits", 1)
+	for i: int in JOURNEY_TICKS + 30:
+		sim.step()
+		world.sync(0.1)
+		fx.advance(0.1)
+	assert_eq(sim.expedition.place, &"claypits", "setup: arrived")
+	assert_eq(_zs(fx), 0, "no z's once the party has left its rest")
+
+
+func test_r9_old_deaths_spare_new_monsters() -> void:
+	# Monster ids name the stage and chamber, not the area: the first fight's monsters in Mossy
+	# Hollow 1 share ids with the Claypits 1 monsters waiting in the same chamber. Their deaths,
+	# heard in the frame that also holds the arrival, must not take those monsters off the screen.
+	var sim := Simulation.new(SEEDS[0])
+	var view: Array[Node] = _view(sim)
+	var world: World = view[0]
+	_raise(sim, STRONG_LEVEL)
+	sim.expedition.travel.open[&"claypits"] = true
+	world.sync(0.1)
+	var guard: int = 0
+	while sim.expedition.state != Expedition.State.FIGHTING and guard < 600:
+		sim.step()
+		guard += 1
+	assert_eq(sim.expedition.state, Expedition.State.FIGHTING, "setup: the first fight")
+	var fought: Array[int] = []
+	for monster: Combatant in sim.expedition.battle.monsters:
+		fought.append(monster.id)
+	sim.set_destination(&"claypits", 1)
+	guard = 0
+	while sim.expedition.place != &"claypits" and guard < 2000:
+		sim.step()
+		guard += 1
+	assert_eq(sim.expedition.place, &"claypits", "setup: arrived, with no frame between")
+	world.sync(0.1)
+	var shared: int = 0
+	for depth: int in world.labyrinth_view.built_depths():
+		for index: int in sim.labyrinth.level(depth).chambers.size():
+			if not sim.expedition.is_populated(depth, index):
+				continue
+			for monster: Combatant in sim.expedition.monsters_in(depth, index):
+				if fought.has(monster.id):
+					shared += 1
+				assert_not_null(world.character(monster.id), "%s drawn" % monster.def_id)
+	assert_gt(shared, 0, "setup: a waiting monster shares an id with one that died")
+
+
+func test_r9_one_frame_holds_the_journey() -> void:
+	# The ticks of a fight, the journey and the arrival all stepped before one frame (as at 4x, or
+	# after time away): the new area's waiting monsters all have sprites, and the journal and the
+	# tally name where the fight was.
+	var sim := Simulation.new(SEEDS[0])
+	var view: Array[Node] = _view(sim)
+	var world: World = view[0]
+	var hud: Hud = view[2]
+	world.sync(0.1)
+	hud.advance(0.1)
+	_raise(sim, STRONG_LEVEL)
+	_before_guardian(sim, 5)
+	world.sync(0.1)
+	hud.advance(0.1)
+	sim.expedition.travel.open[&"claypits"] = true
+	var guard: int = 0
+	while sim.expedition.state != Expedition.State.FIGHTING and guard < 600:
+		sim.step()
+		guard += 1
+	assert_eq(sim.expedition.state, Expedition.State.FIGHTING, "setup: the Slime King's fight")
+	sim.set_destination(&"claypits", 1)
+	guard = 0
+	while sim.expedition.place != &"claypits" and guard < 2000:
+		sim.step()
+		guard += 1
+	assert_eq(sim.expedition.place, &"claypits", "setup: arrived, with no frame between")
+	world.sync(0.1)
+	hud.advance(0.1)
+
+	assert_eq(world.labyrinth_view.labyrinth, sim.labyrinth, "the world shows the Claypits")
+	var waiting: int = 0
+	for depth: int in world.labyrinth_view.built_depths():
+		for index: int in sim.labyrinth.level(depth).chambers.size():
+			if not sim.expedition.is_populated(depth, index):
+				continue
+			for monster: Combatant in sim.expedition.monsters_in(depth, index):
+				waiting += 1
+				assert_not_null(world.character(monster.id), "%s drawn" % monster.def_id)
+	assert_gt(waiting, 0, "setup: monsters wait in the Claypits")
+	var slew: String = "Slew the Slime King on Mossy Hollow 5"
+	var lines: Array[String] = hud.journal.lines()
+	var found: bool = false
+	for line: String in lines:
+		found = found or line.ends_with(slew)
+	assert_true(found, "the journal names where it was: %s" % [lines])
+	hud.tally.open()
+	hud.advance(0.1)
+	var row: String = hud.tally.rows()[0] if not hud.tally.rows().is_empty() else ""
+	assert_true(row.contains(", Mossy Hollow 5, "), "and the tally: " + row)
+
+
 # --- R10 -----------------------------------------------------------------------
 
 
@@ -646,6 +933,7 @@ func test_r10_same_fights() -> void:
 	for run: int in 2:
 		var sim := Simulation.new(9)
 		var trail: Array[int] = []
+		var arrivals: Array[StringName] = []
 		for tick: int in 6000:
 			if tick == 1200:
 				sim.expedition.travel.open[&"claypits"] = true
@@ -653,7 +941,11 @@ func test_r10_same_fights() -> void:
 			if tick == 3000:
 				sim.set_destination(&"mossy_hollow", 1)
 			sim.step()
+			for event: SimEvent in sim.drain_events():
+				if event.kind == SimEvent.Kind.AREA_CHANGED:
+					arrivals.append(Content.area_ids()[event.amount])
 			if tick % 600 == 0:
 				trail.append(sim.state_hash())
+		assert_eq(arrivals, [&"claypits", &"mossy_hollow"] as Array[StringName], "there and back")
 		hashes.append(hash(trail))
 	assert_eq(hashes[0], hashes[1], "two runs of one seed agree")

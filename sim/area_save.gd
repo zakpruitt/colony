@@ -18,7 +18,7 @@ static func write(run: Expedition, data: Dictionary) -> void:
 	data["last_stable_depth"] = here.x
 	data["deepest_depth"] = maxi(here.y, here.x)
 	if run.state == Expedition.State.JOURNEYING:
-		data["target_depth"] = travel.stage
+		data["target_depth"] = travel.arrival_target(run)
 	var others: Dictionary = {}
 	for id: StringName in Content.area_ids():
 		var kept: Vector2i = travel.progress(run, id)

@@ -268,9 +268,6 @@ func advance(delta: float) -> void:
 	var heading: String = PlaceText.area_name(e.place)
 	if _caption.text != heading:
 		_caption.text = heading
-	# A long name leaves no room for the arrow beside it: the arrow takes the row (the depth panel
-	# still names the area).
-	_caption.visible = arrow_rect().position.x >= _caption_end() or not arrow_rect().has_area()
 	_time = fmod(_time + delta, BOB_SECONDS)
 	_flash = maxf(_flash - delta, 0.0)
 	_rested += delta
@@ -385,10 +382,15 @@ func arrow_rect() -> Rect2:
 	var x: float = floorf((RAIL_LEFT + RAIL_RIGHT + 1.0 - ARROW_SIZE.x) / 2.0)
 	var y: float = CAPTION_HEIGHT - ARROW_SIZE.y - 1.0
 	if arrow_points_up():
-		# Beside the caption, not over its last letter, when there is room for it there.
+		# Beside the caption, not over its last letter, when there is room for it there; past a
+		# long area name (spec 049), at the right edge of the top row, clear of the rails and so
+		# of the party's diamond.
 		var beside: float = maxf(x, _caption_end())
 		if beside + ARROW_SIZE.x <= WIDTH - PADDING:
 			x = beside
+		else:
+			x = WIDTH - ARROW_SIZE.x - 1.0
+			y = RUNGS_TOP + 1.0
 	else:
 		y = size.y - ARROW_SIZE.y
 	return Rect2(Vector2(x, y), ARROW_SIZE)

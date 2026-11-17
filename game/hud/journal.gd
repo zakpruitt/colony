@@ -56,6 +56,10 @@ var _empty_label: Label
 ## What the journal knows of the party, kept in step with the events.
 var _depth: int = 1
 var _deepest: int = 1
+## The area the events are in, kept from AREA_CHANGED in event order (spec 049), and each other
+## area's furthest stage.
+var _area: StringName = &""
+var _deepest_in: Dictionary[StringName, int] = {}
 var _shop_was_open: bool = false
 var _sheet_was_open: bool = false
 
@@ -91,6 +95,9 @@ func setup(simulation: Simulation, world: World) -> void:
 	_world = world
 	_depth = simulation.expedition.depth
 	_deepest = simulation.expedition.deepest_depth
+	_area = simulation.expedition.place
+	for id: StringName in Content.area_ids():
+		_deepest_in[id] = simulation.area_progress(id).y
 	_build_panel()
 	_build_ticker()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
@@ -241,7 +248,12 @@ func _sentence(event: SimEvent) -> String:
 		SimEvent.Kind.AREA_CHANGED:
 			# Spec 049: each area has its own furthest stage.
 			var arrived: StringName = _area_at(event.amount)
-			_deepest = _simulation.area_progress(arrived).y
+			_deepest_in[_area] = _deepest
+			_area = arrived
+			# The party arrives no deeper than it has been (stage 1 of a new area), so the
+			# arrival is not a new deepest.
+			var been: int = _deepest_in.get(arrived, 0)
+			_deepest = maxi(been, 1)
 			sentence = "Arrived in %s" % PlaceText.area_name(arrived)
 		SimEvent.Kind.AREA_OPENED:
 			sentence = "%s is open" % PlaceText.area_name(_area_at(event.amount))
@@ -260,7 +272,8 @@ func _sentence(event: SimEvent) -> String:
 			if back_to == _depth:
 				sentence = "Wiped on %s, regrouping there" % _place(_depth)
 		SimEvent.Kind.GUARDIAN_SLAIN:
-			var def: MonsterDef = Content.monster(_simulation.expedition.guardian_of(event.amount))
+			var slain: StringName = EncounterRoll.guardian_at(Content.area(_area), event.amount)
+			var def: MonsterDef = Content.monster(slain)
 			var guardian: String = def.display_name if def != null else "guardian"
 			sentence = "Slew the %s on %s" % [guardian, _place(event.amount)]
 		SimEvent.Kind.UPGRADE_BOUGHT:
@@ -415,9 +428,9 @@ func _shop_is_open() -> bool:
 	return hud != null and hud.shop != null and hud.shop.is_open()
 
 
-## [param stage] of the area the party is in, as the screen names it (spec 049).
+## [param stage] of the area the events are in, as the screen names it (spec 049).
 func _place(stage: int) -> String:
-	return PlaceText.here(_simulation, stage)
+	return PlaceText.of(_area, stage)
 
 
 ## The area at [param index] in [method Content.area_ids], or &"".

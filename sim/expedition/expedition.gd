@@ -202,8 +202,7 @@ func step(tick: int) -> void:
 		State.WORKING:
 			QuestWork.work(self)
 		State.JOURNEYING:
-			if _tick >= _areas.arrive_tick:
-				_areas.arrive(self)
+			_areas.journey(self)
 	if state != State.FIGHTING and state != State.REVIVING and not _party.any_alive():
 		_wipe()
 	_count_time()
@@ -450,8 +449,8 @@ func hash_parts() -> Array:
 func _apply_commands() -> void:
 	if _pending_pace >= 0 or _pending_guardian_order >= 0:
 		_apply_orders()
-	# A destination waits for the fight to end and the party to stand.
-	if _areas.pending_area != &"" and state not in [State.FIGHTING, State.REVIVING]:
+	# A destination waits for the fight or side quest to end and the party to stand.
+	if _areas.pending_area != &"" and state not in [State.FIGHTING, State.REVIVING, State.WORKING]:
 		_areas.depart(self)
 	# While the party is down a command waits, so it wins over the fallback target on revival.
 	if _pending_target <= 0 or state == State.REVIVING:
@@ -459,6 +458,8 @@ func _apply_commands() -> void:
 	var wanted: int = _pending_target
 	_pending_target = 0
 	_set_target(wanted)
+	# Chosen on the way to another area: the target there (spec 049 R4 as amended).
+	_areas.target_chosen = _areas.target_chosen or state == State.JOURNEYING
 
 
 func _apply_orders() -> void:
@@ -906,6 +907,14 @@ func _start_rest() -> void:
 
 func _rest() -> void:
 	_rest_ticks += 1
+	if _heal_resting():
+		_emit(SimEvent.Kind.REST_ENDED)
+		state = State.TRAVELLING
+
+
+## Heals every hero as [member _rest_ticks] of resting from [member _rest_start] does; true once all
+## are full.
+func _heal_resting() -> bool:
 	var seconds: float = float(_rest_ticks) / Simulation.TICKS_PER_SECOND
 	var all_full: bool = true
 	var rate: float = REST_HEAL_PER_SECOND * _upgrade(UpgradeDef.Stat.REST_HEALING)
@@ -916,9 +925,7 @@ func _rest() -> void:
 		hero.health = mini(full, maxi(hero.health, start + healed))
 		if hero.health < full:
 			all_full = false
-	if all_full:
-		_emit(SimEvent.Kind.REST_ENDED)
-		state = State.TRAVELLING
+	return all_full
 
 
 func _wipe() -> void:

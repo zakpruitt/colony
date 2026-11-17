@@ -93,8 +93,13 @@ var _start_tick: int = 0
 ## depth, its monsters' kinds when the battle could be read, and every monster seen in its hits.
 var _fight_start: int = -1
 var _fight_end: int = -1
-## Where the fight was, "Mossy Hollow 7" (spec 049).
+## Where the fight was, "Mossy Hollow 7" (spec 049), and the area the events are in, kept from
+## AREA_CHANGED in event order.
 var _fight_place: String = ""
+var _area: StringName = &""
+## The stage the events are on: as it was at the last frame, then moved by DEPTH_CHANGED and
+## PARTY_REVIVED; where a fight heard late was.
+var _depth: int = 1
 var _fight_kinds: Array[StringName] = []
 var _fight_monsters: Dictionary[int, bool] = {}
 var _fight_label: Label
@@ -151,6 +156,8 @@ func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
 	_world = world
 	_start_tick = simulation.tick
+	_area = simulation.expedition.place
+	_depth = simulation.expedition.depth
 	_build()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
@@ -163,6 +170,9 @@ func setup(simulation: Simulation, world: World) -> void:
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
+	# After this frame's events: the next frame's are heard from here on.
+	_area = _simulation.expedition.place
+	_depth = _simulation.expedition.depth
 	if is_open() and _another_is_open():
 		close()
 	if not is_open():
@@ -319,10 +329,23 @@ func monsters_text(room: float) -> String:
 func _on_sim_event(event: SimEvent) -> void:
 	tally.observe(event)
 	match event.kind:
+		SimEvent.Kind.DEPTH_CHANGED, SimEvent.Kind.PARTY_REVIVED:
+			_depth = event.amount
+		SimEvent.Kind.AREA_CHANGED:
+			var ids: Array[StringName] = Content.area_ids()
+			if event.amount >= 0 and event.amount < ids.size():
+				_area = ids[event.amount]
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_fight_start = event.tick
 			_fight_end = -1
-			_fight_place = PlaceText.here(_simulation, _simulation.expedition.depth)
+			# The fight under way is where the party is; one heard late (the party may have gone
+			# on, even to another area) is where the events had it then.
+			var battle: Battle = _simulation.expedition.battle
+			var current: bool = battle != null and battle.tick == event.tick
+			var stage: int = _simulation.expedition.depth if current else _depth
+			_fight_place = PlaceText.of(
+				_area if not current else _simulation.expedition.place, stage
+			)
 			_fight_kinds = _battle_kinds(event.amount)
 			_fight_monsters.clear()
 		SimEvent.Kind.ENCOUNTER_ENDED:

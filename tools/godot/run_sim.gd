@@ -13,7 +13,8 @@ extends SceneTree
 ## With --area the party is sent to that area at the start (opened for the run if it is not open),
 ## at the target depth's stage if one is given, else stage 1 (spec 049). The summary names the area
 ## the party is in and its stage ("area", "stage"), each area's safe and furthest stage ("areas")
-## and the open areas ("open_areas").
+## and the open areas ("open_areas"); a run that ends on the way to another area also names where
+## the party will arrive ("journeying_to").
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -122,11 +123,16 @@ func _init() -> void:
 		"heroes": heroes,
 		"kills": sorted_kills,
 		"upgrades": upgrades,
-		"area": String(sim.expedition.area),
+		# The area the party stands in and its stage; on its way elsewhere, the area it left.
+		"area": String(sim.expedition.place),
 		"stage": sim.expedition.depth,
 		"areas": _areas(sim),
 		"open_areas": _open_areas(sim),
 	}
+	var travel: AreaTravel = sim.expedition.travel
+	if sim.expedition.state == Expedition.State.JOURNEYING:
+		var stage: int = travel.journey_stage(sim.expedition)
+		summary["journeying_to"] = {"area": String(sim.expedition.area), "stage": stage}
 	if options.has("timeline"):
 		var timeline: Dictionary = {}
 		for key: String in TIMELINE_KEYS:

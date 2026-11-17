@@ -60,7 +60,7 @@ last stable depth, deepest depth, target depth and auto-push, the rank of each c
 each hero's training ranks (spec 029) and the party's orders (spec 035).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
-party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
+party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
 stable depth, with every chamber freshly populated.
 
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
@@ -143,14 +143,19 @@ and every `GUARDIAN_EVERY` stages after.
 Each area has its own `Labyrinth`: the first area's is the seed's own, every other's is forked under
 `area/<id>/`, as are its encounter and side-quest rolls. `AreaTravel` (owned by the expedition, read as
 `Expedition.travel`) keeps the open areas, every other area's safe and furthest stage, each area's labyrinth
-and a journey. `Simulation.set_destination(area, stage)` asks for one; once the party is out of any fight and
-standing, it leaves (`JOURNEYING`) if the area is open, and `AreaTravel.JOURNEY_SECONDS` later arrives, as hurt
-as it was, at the start of the stage asked for or the area's safe stage if that is nearer, with the stage asked
-for as its target, every chamber fresh, and `AREA_CHANGED` then `DEPTH_CHANGED`. While it is on its way,
-`Expedition.area` names the destination and `Expedition.place` the area it is leaving, whose labyrinth it
-still stands in. Beating an area's guardian at its guardian stage for the first time opens the areas it opens,
-each with `AREA_OPENED`. `Simulation.labyrinth` is the labyrinth of the area the party stands in; the world
-shows a new one when it changes. The screen names a place as an area and a stage (`PlaceText`,
+and a journey. `Simulation.set_destination(area, stage)` asks for one, and is ignored if the area is not open
+then. Once the party is out of any fight or side quest and standing, it leaves (`JOURNEYING`; a rest it
+leaves ends with `REST_ENDED`). The journey is a rest: the heroes heal as `AreaTravel.JOURNEY_SECONDS` of
+resting would, and the fallen stand. That long after it left, it arrives at the start of the stage asked for
+or the area's safe stage if that is nearer, with the stage asked for as its target (or a target chosen on the
+way), every chamber fresh, and `AREA_CHANGED` then `DEPTH_CHANGED`. A destination asked for on the way turns
+it there and starts the journey again. While it is on its way, `Expedition.area` names the destination and
+`Expedition.place` the area it is leaving, whose labyrinth it still stands in. Beating an area's guardian at
+its guardian stage for the first time opens the areas it opens, each with `AREA_OPENED`.
+`Simulation.labyrinth` is the labyrinth of the area the party stands in. Monster ids do not name the area, so
+the view changes area when it reaches `AREA_CHANGED` among the events, never from the live state ahead of
+them: the world shows the new labyrinth then, and the journal and tally keep the area the events are in
+from that event, as the defeat note does. The screen names a place as an area and a stage (`PlaceText`,
 `Mossy Hollow 3`).
 
 ## Side quests and microskills
