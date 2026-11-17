@@ -1,9 +1,9 @@
 # 029 — Hero training: upgrade each hero from their sheet
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 014, 016, 022, 026
-- **Pull request:** —
+- **Pull request:** [#29](https://github.com/zakpruitt/colony/pull/29)
 
 ## Intent
 

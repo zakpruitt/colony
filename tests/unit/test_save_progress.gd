@@ -85,4 +85,10 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		expected["version"] = Simulation.SAVE_VERSION
 		expected["upgrades"] = sim.to_save()["upgrades"]
 		expected["auto_buy"] = false  # spec 022: version 3 adds the switch, off
+		# Spec 029: version 4 gives each hero its training, every rank 0.
+		var ranks: Dictionary = {}
+		for training_id: StringName in Content.training_ids():
+			ranks[String(training_id)] = 0
+		for saved: Dictionary in expected["heroes"]:
+			saved["training"] = ranks
 		assert_eq(sim.to_save(), expected)

@@ -53,5 +53,12 @@ func hero_with_microskill(id: StringName) -> Hero:
 func hash_parts() -> Array:
 	var parts: Array = [gold]
 	for h: Hero in heroes:
-		parts.append([h.id, h.class_id, h.level, h.xp, h.health])
+		var hero_parts: Array = [h.id, h.class_id, h.level, h.xp, h.health]
+		# Untrained, a hero hashes as it did before training existed (spec 029).
+		if h.is_trained():
+			var ranks: Array = []
+			for training_id: StringName in Content.training_ids():
+				ranks.append(h.training_rank(training_id))
+			hero_parts.append(ranks)
+		parts.append(hero_parts)
 	return parts

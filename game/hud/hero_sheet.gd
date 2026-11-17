@@ -6,12 +6,18 @@ extends Control
 ## or pressing Tab opens it; it never pauses the game. Every value is read from the simulation on
 ## each [method advance], so nothing goes stale across a level up, an upgrade or a loaded save.
 ## Drawn as a [HudPanel] is, in the shop's look.
+##
+## Under the stats, the Training section (spec 029) has one [HeroSheet.TrainingRow] per training,
+## in the shop rows' style: gold spent on this hero alone. Its button, or the number key the HUD
+## passes to [method train_row], asks the simulation to train the shown hero; the row flashes on
+## [constant SimEvent.Kind.HERO_TRAINED]. The section is laid out from [constant TRAINING_Y] down,
+## [constant TRAINING_HEIGHT] tall, so another section can sit below it.
 
 ## Emitted when the sheet opens, closes or switches hero.
 signal shown_changed
 
 ## The panel's size in pixels.
-const SIZE: Vector2 = Vector2(232, 149)
+const SIZE: Vector2 = Vector2(232, 235)
 ## Space inside the border.
 const PADDING: float = 4.0
 ## Pixels between the panel and the top band above it.
@@ -33,6 +39,11 @@ const STATS_SECOND_X: float = 124.0
 ## Pixels between a stat's name and its value, and between the value and its bonus.
 const STAT_GAP: float = 6.0
 const BONUS_GAP: float = 4.0
+## The Training section (spec 029): its top (its divider), the title's row height, and its height
+## down to the line under its last row.
+const TRAINING_Y: float = STATS_Y + 4.0 * STAT_ROW + 4.0
+const TRAINING_TITLE: float = 15.0
+const TRAINING_HEIGHT: float = TRAINING_TITLE + 3.0 * TrainingRow.SIZE.y + 2.0
 ## The role of each class, in one word.
 const ROLE_WORDS: Dictionary[HeroClassDef.Role, String] = {
 	HeroClassDef.Role.TANK: "Tank",
@@ -74,6 +85,8 @@ const STAT_NAMES: Dictionary[StringName, String] = {
 
 ## The close button at the top right.
 var close_button: HudButton
+## One row per training, in [method Content.training_ids] order.
+var training_rows: Array[TrainingRow] = []
 ## The hero's class portrait at twice a frame's size; a skull while the hero is down.
 var portrait: TextureRect
 
@@ -106,7 +119,7 @@ func _draw() -> void:
 	var ink: Color = Palette.color(&"ink")
 	HudPanel.draw_panel(self, Rect2(Vector2.ZERO, size), night, dusk, ink)
 	HudPanel.draw_panel(self, PORTRAIT_BOX, ink, ink, dusk)
-	for y: float in [PORTRAIT_BOX.end.y + 4.0, STATS_Y - 4.0, SIZE.y - 15.0]:
+	for y: float in [PORTRAIT_BOX.end.y + 4.0, STATS_Y - 4.0, TRAINING_Y, SIZE.y - 15.0]:
 		draw_rect(Rect2(BODY_LEFT, y, BODY_RIGHT - BODY_LEFT, 1), dusk)
 	var health_colour: StringName = &"red" if _down else _health_colour(_health.value)
 	HudPanel.draw_bar(
@@ -120,8 +133,8 @@ func _draw() -> void:
 	HudPanel.draw_bar(self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), ink)
 
 
-## Call once, before the first advance. [param world] may be null.
-func setup(simulation: Simulation, _world: World) -> void:
+## Call once, before the first advance. [param world] may be null (no flashes then).
+func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
 	_icons = PixelSheet.load_sheet(Hud.ICONS_PATH)
 	portrait = TextureRect.new()
@@ -144,6 +157,7 @@ func setup(simulation: Simulation, _world: World) -> void:
 	_add_line(&"xp", "", &"silver", Vector2(BODY_LEFT, 69))
 	_build_stats(FIRST_COLUMN, BODY_LEFT)
 	_build_stats(SECOND_COLUMN, STATS_SECOND_X)
+	_build_training()
 	var hint: Label = _caption("Tab next hero   Esc close", Vector2(BODY_LEFT, SIZE.y - 12.0))
 	hint.add_theme_color_override(&"font_color", Palette.color(&"slate"))
 	close_button = HudButton.new("x")
@@ -153,6 +167,8 @@ func setup(simulation: Simulation, _world: World) -> void:
 	close_button.position = Vector2(SIZE.x - PADDING - close_button.size.x, PADDING)
 	close_button.pressed.connect(close)
 	add_child(close_button)
+	if world != null:
+		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
 
 
@@ -191,6 +207,8 @@ func advance(delta: float) -> void:
 	var colour: StringName = DOING_COLOURS.get(word, &"silver")
 	_colour(_values[&"activity"], colour)
 	_refresh_stats(hero)
+	for row: TrainingRow in training_rows:
+		row.refresh(hero, _simulation.party.gold, delta)
 	var part: StringName = &"skull" if _down else hero.class_id
 	var texture: Texture2D = _icons.part(part) if _icons.has_part(part) else null
 	if portrait.texture != texture:
@@ -210,6 +228,8 @@ func open(hero_id: int) -> void:
 	_hero_id = hero_id
 	visible = true
 	if switched:
+		for row: TrainingRow in training_rows:
+			row.stop_flash()
 		advance(0.0)
 		_health.snap(_health_goal)
 		_xp.snap(_xp_goal)
@@ -257,11 +277,28 @@ func shown_hero_id() -> int:
 	return _hero_id if visible else -1
 
 
+## Asks the simulation to train the shown hero in the training of row [param index] (0-based), if
+## the sheet is open and the party can pay for it; otherwise does nothing. The row's button and
+## the number keys call it.
+func train_row(index: int) -> void:
+	var hero: Hero = _shown_hero()
+	if not is_open() or hero == null or index < 0 or index >= training_rows.size():
+		return
+	var row: TrainingRow = training_rows[index]
+	row.refresh(hero, _simulation.party.gold, 0.0)
+	if row.affordable():
+		_simulation.train_hero(hero.id, row.id)
+
+
 ## The text of a line of the sheet, for tests: &"class", &"role", &"level", &"health", &"xp",
 ## &"activity", and one per stat: &"stat_health", &"stat_damage", &"stat_armor",
 ## &"stat_attack_speed", &"stat_crit", &"stat_range", &"stat_healing" ("" when the class does
-## not heal).
+## not heal); and one per training row: &"training_power", &"training_toughness",
+## &"training_quickness", as "<name> <rank>/<max> <bonus> <price or MAX>".
 func line(key: StringName) -> String:
+	var row: TrainingRow = training_row(key)
+	if row != null:
+		return row.text()
 	var value: Label = _values.get(key, null)
 	if value == null or not value.visible:
 		return ""
@@ -288,6 +325,14 @@ func bar_fraction(key: StringName) -> float:
 func line_colour(key: StringName) -> Color:
 	var value: Label = _values.get(key, null)
 	return value.get_theme_color(&"font_color") if value != null else Color.BLACK
+
+
+## The training row a line key names (&"training_power", ...), or null.
+func training_row(key: StringName) -> TrainingRow:
+	for row: TrainingRow in training_rows:
+		if key == StringName("training_" + String(row.id)):
+			return row
+	return null
 
 
 ## The colour a stat's bonus is drawn in.
@@ -343,12 +388,19 @@ func _fighting(fighter: Combatant) -> String:
 func _refresh_stats(hero: Hero) -> void:
 	var def: HeroClassDef = hero.def()
 	var fighter: Combatant = hero.combatant()
-	var toughness: float = _multiplier(UpgradeDef.Stat.HEALTH)
-	var power: float = _multiplier(UpgradeDef.Stat.DAMAGE)
+	# A bonus is the camp upgrade's and the hero's training's together (spec 029).
+	var toughness: float = (
+		_multiplier(UpgradeDef.Stat.HEALTH) * hero.training_multiplier(TrainingDef.Stat.TOUGHNESS)
+	)
+	var power: float = (
+		_multiplier(UpgradeDef.Stat.DAMAGE) * hero.training_multiplier(TrainingDef.Stat.POWER)
+	)
+	var quickness: float = hero.training_multiplier(TrainingDef.Stat.QUICKNESS)
 	_set_stat(&"stat_health", str(hero.max_health()), toughness)
 	_set_stat(&"stat_damage", str(fighter.damage), power)
 	_set_stat(&"stat_armor", str(fighter.armor), 1.0)
-	_set_stat(&"stat_attack_speed", "%.1f/s" % (1.0 / maxf(def.attack_interval, 0.01)), 1.0)
+	var speed: float = quickness / maxf(def.attack_interval, 0.01)
+	_set_stat(&"stat_attack_speed", "%.1f/s" % speed, quickness)
 	_set_stat(&"stat_crit", "%d%%" % roundi(def.crit_chance * 100.0), 1.0)
 	var reach: String = "Melee"
 	if def.attack_range > Battle.MELEE_REACH:
@@ -399,6 +451,28 @@ func _build_stats(keys: Array[StringName], x: float) -> void:
 		add_child(bonus)
 		_bonuses[key] = bonus
 		y += STAT_ROW
+
+
+## The Training section: a divider, the title and one row per training.
+func _build_training() -> void:
+	var title: Label = PixelText.label("Training", &"yellow")
+	title.name = "TrainingTitle"
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.position = Vector2(BODY_LEFT, TRAINING_Y + 3.0)
+	add_child(title)
+	var note: Label = _caption("for this hero only", Vector2.ZERO)
+	note.name = "TrainingNote"
+	note.add_theme_color_override(&"font_color", Palette.color(&"slate"))
+	note.position = Vector2(BODY_RIGHT - PixelText.width(note.text), TRAINING_Y + 3.0)
+	var ids: Array[StringName] = Content.training_ids()
+	var y: float = TRAINING_Y + TRAINING_TITLE
+	for i: int in ids.size():
+		var row := TrainingRow.new(ids[i], i)
+		row.position = Vector2(PADDING, y)
+		row.buy_button.pressed.connect(train_row.bind(i))
+		add_child(row)
+		training_rows.append(row)
+		y += TrainingRow.SIZE.y
 
 
 func _add_line(key: StringName, text: String, colour: StringName, at: Vector2) -> Label:
@@ -459,3 +533,143 @@ func _layout() -> void:
 	for key: StringName in _bonuses:
 		var value: Label = _values[key]
 		_bonuses[key].position.x = value.position.x + value.size.x + BONUS_GAP
+
+
+func _on_sim_event(event: SimEvent) -> void:
+	if event.kind != SimEvent.Kind.HERO_TRAINED or event.source_id != shown_hero_id():
+		return
+	if event.target_id >= 0 and event.target_id < training_rows.size():
+		training_rows[event.target_id].start_flash()
+
+
+## One training's row in the sheet's Training section (spec 029), in a [ShopRow]'s style: its
+## number key, name and one-line description on the left, the hero's rank and bonus so far in the
+## middle, and a train button with the price on the right, or [code]MAX[/code] at the top rank.
+## [method refresh] reads everything from the hero each frame.
+class TrainingRow:
+	extends Control
+
+	## The row's size in pixels: the sheet's width inside its padding, a shop row's height.
+	const SIZE: Vector2 = Vector2(HeroSheet.SIZE.x - 2.0 * HeroSheet.PADDING, ShopRow.SIZE.y)
+	## Where the rank and bonus column starts, and the train button's width.
+	const RANK_X: float = 132.0
+	const BUTTON_WIDTH: float = ShopRow.BUTTON_WIDTH
+
+	## The training this row shows.
+	var id: StringName
+	var key_label: Label
+	var name_label: Label
+	var description_label: Label
+	var rank_label: Label
+	var bonus_label: Label
+	## "MAX", shown in place of the train button at the top rank.
+	var max_label: Label
+	var buy_button: HudButton
+
+	var _flash: float = 0.0
+	var _affordable: bool = false
+
+	## A row for training [param training_id], the [param index]th in the section (0-based).
+	func _init(training_id: StringName, index: int) -> void:
+		id = training_id
+		name = "Training%d" % (index + 1)
+		size = SIZE
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var def: TrainingDef = Content.training(training_id)
+		key_label = _label("Key", str(index + 1), &"slate", Vector2(4, 1))
+		name_label = _label("Name", def.display_name, &"white", Vector2(14, 1))
+		description_label = _label("Description", def.description, &"steel", Vector2(14, 11))
+		rank_label = _label("Rank", "", &"silver", Vector2(RANK_X, 1))
+		bonus_label = _label("Bonus", "", &"green", Vector2(RANK_X, 11))
+		buy_button = HudButton.new("")
+		buy_button.name = "Train"
+		buy_button.custom_minimum_size = Vector2(BUTTON_WIDTH, HudButton.HEIGHT)
+		buy_button.size = buy_button.get_combined_minimum_size()
+		buy_button.position = Vector2(
+			SIZE.x - 4.0 - BUTTON_WIDTH, floorf((SIZE.y - HudButton.HEIGHT) / 2)
+		)
+		add_child(buy_button)
+		max_label = _label("Max", "MAX", &"yellow", Vector2.ZERO)
+		max_label.position = Vector2(
+			buy_button.position.x + floorf((BUTTON_WIDTH - PixelText.width("MAX")) / 2.0), 6
+		)
+
+	func _draw() -> void:
+		if _flash <= 0.0:
+			return
+		var bright: bool = _flash > ShopRow.FLASH_SECONDS / 2.0
+		var fill: Color = Palette.color(&"forest" if bright else &"dusk")
+		var edge: Color = Palette.color(&"green" if bright else &"slate")
+		HudPanel.draw_panel(self, Rect2(Vector2.ZERO, size), fill, edge, edge)
+
+	## Brings the row up to date with [param hero] and the party's [param gold], and runs its
+	## flash down by [param delta] seconds.
+	func refresh(hero: Hero, gold: int, delta: float) -> void:
+		var def: TrainingDef = Content.training(id)
+		var rank: int = hero.training_rank(id)
+		var price: int = hero.training_cost(id)
+		var maxed: bool = price <= 0
+		_affordable = not maxed and price <= gold
+		_set_text(rank_label, "%d/%d" % [rank, def.max_rank])
+		_set_text(bonus_label, "+%d%%" % roundi(rank * def.per_rank * 100.0))
+		buy_button.visible = not maxed
+		max_label.visible = maxed
+		if not maxed:
+			var price_text: String = Hud.group_thousands(price)
+			if buy_button.text != price_text:
+				buy_button.text = price_text
+				buy_button.size = buy_button.get_combined_minimum_size()
+			buy_button.disabled = not _affordable
+			buy_button.text_colour = (
+				ShopRow.PRICE_AFFORDABLE if _affordable else ShopRow.PRICE_TOO_DEAR
+			)
+		if _flash > 0.0:
+			var was_bright: bool = _flash > ShopRow.FLASH_SECONDS / 2.0
+			_flash = maxf(_flash - delta, 0.0)
+			if was_bright != (_flash > ShopRow.FLASH_SECONDS / 2.0) or _flash == 0.0:
+				queue_redraw()
+		var lit: bool = _flash > 0.0
+		rank_label.add_theme_color_override(
+			&"font_color", Palette.color(&"yellow" if lit else &"silver")
+		)
+
+	## The row as one line: "<name> <rank>/<max> <bonus> <price or MAX>".
+	func text() -> String:
+		var price: String = max_label.text if max_label.visible else buy_button.text
+		return "%s %s %s %s" % [name_label.text, rank_label.text, bonus_label.text, price]
+
+	## Starts the row's flash: the hero was just trained in it.
+	func start_flash() -> void:
+		_flash = ShopRow.FLASH_SECONDS
+		queue_redraw()
+
+	## Stops the flash at once (the sheet moved to another hero).
+	func stop_flash() -> void:
+		if _flash > 0.0:
+			_flash = 0.0
+			queue_redraw()
+
+	## Seconds of the row's flash left; 0 when still.
+	func flash() -> float:
+		return _flash
+
+	## True when the party can pay for the shown hero's next rank.
+	func affordable() -> bool:
+		return _affordable
+
+	## The palette colour the price is drawn in.
+	func price_colour() -> StringName:
+		return buy_button.text_colour
+
+	func _label(label_name: String, text_in: String, colour: StringName, at: Vector2) -> Label:
+		var made: Label = PixelText.label(text_in, colour)
+		made.name = label_name
+		made.position = at
+		made.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(made)
+		return made
+
+	func _set_text(label: Label, text_in: String) -> void:
+		if label.text != text_in:
+			label.text = text_in
+			label.reset_size()

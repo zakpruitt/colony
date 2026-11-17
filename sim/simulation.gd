@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 3
+const SAVE_VERSION: int = 4
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## The largest whole number a JSON float holds exactly (2^53).
@@ -45,6 +45,9 @@ var _tick: int = 0
 var _events: Array[SimEvent] = []
 ## Upgrades asked for by [method buy_upgrade], bought in order on the next step.
 var _pending_buys: Array[StringName] = []
+## Training asked for by [method train_hero], each [hero id, training id], bought in order on the
+## next step.
+var _pending_training: Array[Array] = []
 var _auto_buy: bool = false
 ## The switch asked for by [method set_auto_buy], applied on the next step: 1 on, 0 off, -1 none.
 var _pending_auto_buy: int = -1
@@ -65,6 +68,7 @@ func step() -> void:
 		_auto_buy = _pending_auto_buy == 1
 		_pending_auto_buy = -1
 	_apply_buys()
+	_apply_training()
 	_apply_auto_buy()
 	expedition.step(_tick)
 	_events.append_array(expedition.drain_events())
@@ -87,6 +91,14 @@ func buy_upgrade(id: StringName) -> void:
 	_pending_buys.append(id)
 
 
+## Asks to train hero [param hero_id] in [param training_id] at the next step (spec 029). It is
+## bought then if the hero and the training are known, the hero's rank is below the maximum and
+## the party has the gold: the gold is taken, that hero's rank rises by one and
+## [constant SimEvent.Kind.HERO_TRAINED] is reported. Otherwise nothing happens.
+func train_hero(hero_id: int, training_id: StringName) -> void:
+	_pending_training.append([hero_id, training_id])
+
+
 ## Turns auto-buy on or off, from the next step. While on, the camp buys the cheapest
 ## affordable upgrade (earlier in the shop on a tie) at most once every
 ## [constant AUTO_BUY_SECONDS], exactly as [method buy_upgrade] would.
@@ -99,6 +111,40 @@ func _apply_buys() -> void:
 	_pending_buys = []
 	for id: StringName in buys:
 		_buy(id)
+
+
+func _apply_training() -> void:
+	var asked: Array[Array] = _pending_training
+	_pending_training = []
+	for entry: Array in asked:
+		var hero_id: int = entry[0]
+		var training_id: StringName = entry[1]
+		_train(hero_id, training_id)
+
+
+## Trains [param hero_id] in [param training_id] if the party can pay for the hero's next rank.
+## A hero in a fight fights on with the new numbers; more maximum health leaves the health it has
+## as it is.
+func _train(hero_id: int, training_id: StringName) -> void:
+	var hero: Hero = party.hero(hero_id)
+	if hero == null:
+		return
+	var price: int = hero.training_cost(training_id)
+	if price <= 0 or price > party.gold:
+		return
+	party.gold -= price
+	hero.set_training_rank(training_id, hero.training_rank(training_id) + 1)
+	var fight: Battle = expedition.battle
+	var fighter: Combatant = fight.combatant(hero.id) if fight != null else null
+	if fighter != null:
+		var grown: Combatant = hero.combatant()
+		fighter.max_health = grown.max_health
+		fighter.damage = grown.damage
+		fighter.heal_power = grown.heal_power
+		fighter.attack_interval_ticks = grown.attack_interval_ticks
+	var position: int = Content.training_ids().find(training_id)
+	var rank: int = hero.training_rank(training_id)
+	_events.append(SimEvent.new(SimEvent.Kind.HERO_TRAINED, _tick, hero.id, position, rank))
 
 
 ## Auto-buy looks for a purchase on the ticks that start a whole [constant AUTO_BUY_SECONDS], so
@@ -182,7 +228,20 @@ func state_hash() -> int:
 func to_save() -> Dictionary:
 	var heroes: Array = []
 	for hero: Hero in party.heroes:
-		heroes.append({"class": String(hero.class_id), "level": hero.level, "xp": hero.xp})
+		var training: Dictionary = {}
+		for training_id: StringName in Content.training_ids():
+			training[String(training_id)] = hero.training_rank(training_id)
+		(
+			heroes
+			. append(
+				{
+					"class": String(hero.class_id),
+					"level": hero.level,
+					"xp": hero.xp,
+					"training": training,
+				}
+			)
+		)
 	var ranks: Dictionary = {}
 	for id: StringName in Content.upgrade_ids():
 		ranks[String(id)] = upgrades.rank(id)
@@ -225,6 +284,10 @@ static func from_save(data: Dictionary) -> Simulation:
 		hero.upgrades = sim.upgrades
 		hero.level = _whole(saved["level"])
 		hero.xp = _whole(saved["xp"])
+		var training: Dictionary = saved["training"]
+		for key: Variant in training:
+			var training_text: String = key
+			hero.set_training_rank(StringName(training_text), _whole(training[key]))
 		hero.health = hero.max_health()
 		heroes.append(hero)
 	sim.party.heroes = heroes
@@ -287,6 +350,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = _save_1_to_2(current)
 	if _whole(current["version"]) == 2:
 		current = _save_2_to_3(current)
+	if _whole(current["version"]) == 3:
+		current = _save_3_to_4(current)
 	return current
 
 
@@ -301,6 +366,18 @@ static func _save_1_to_2(data: Dictionary) -> Dictionary:
 static func _save_2_to_3(data: Dictionary) -> Dictionary:
 	data["version"] = 3
 	data["auto_buy"] = false
+	return data
+
+
+## Version 3 had no hero training: version 4 gives each saved hero its training, every rank 0.
+## A hero that is not a dictionary is left for [method save_problems] to refuse.
+static func _save_3_to_4(data: Dictionary) -> Dictionary:
+	data["version"] = 4
+	var heroes: Variant = data.get("heroes")
+	if heroes is Array:
+		for saved: Variant in heroes as Array:
+			if saved is Dictionary:
+				(saved as Dictionary)["training"] = {}
 	return data
 
 
@@ -366,7 +443,7 @@ static func _check_whole(
 ## Adds a problem for each thing wrong with one saved hero, [param where] in the list.
 static func _check_hero(problems: PackedStringArray, value: Variant, where: String) -> void:
 	if not (value is Dictionary):
-		problems.append("%s: not a hero (class, level, xp)" % where)
+		problems.append("%s: not a hero (class, level, xp, training)" % where)
 		return
 	var saved: Dictionary = value
 	var class_text: Variant = saved.get("class")
@@ -376,3 +453,32 @@ static func _check_hero(problems: PackedStringArray, value: Variant, where: Stri
 		problems.append("%s.class: unknown hero class '%s'" % [where, class_text])
 	_check_whole(problems, saved, "level", 1, where + ".")
 	_check_whole(problems, saved, "xp", 0, where + ".")
+	_check_training(problems, saved.get("training"), where + ".training")
+
+
+## Adds a problem for each saved training rank of one hero that is not a known training's
+## whole rank from 0 to its maximum. Trainings left out are rank 0.
+static func _check_training(problems: PackedStringArray, value: Variant, where: String) -> void:
+	if not (value is Dictionary):
+		problems.append("%s: missing or not a dictionary of ranks" % where)
+		return
+	var ranks: Dictionary = value
+	for key: Variant in ranks:
+		if typeof(key) != TYPE_STRING:
+			problems.append("%s: key %s is not a training id" % [where, str(key)])
+			continue
+		var id_text: String = key
+		var def: TrainingDef = Content.training(StringName(id_text))
+		var field: String = "%s.%s" % [where, id_text]
+		if def == null:
+			problems.append("%s: unknown training '%s'" % [field, id_text])
+			continue
+		var rank_value: Variant = ranks[key]
+		if not _is_whole(rank_value):
+			problems.append("%s: rank missing or not a whole number" % field)
+		elif _whole(rank_value) < 0:
+			problems.append("%s: rank %d is below 0" % [field, _whole(rank_value)])
+		elif _whole(rank_value) > def.max_rank:
+			problems.append(
+				"%s: rank %d is above the maximum %d" % [field, _whole(rank_value), def.max_rank]
+			)
