@@ -7,16 +7,19 @@ extends Node
 ##   passive as it fires.
 ## - R2: an action's wind-up lights its fighter (a pulsing glow for its length) and swings as a
 ##   strike does; a heavy blow throws a larger spark, damage to many a ring on the floor, a push
-##   kicks dust as the pushed slide. A heal shows the heal effect [CombatEffects] already draws for
-##   every HEALED, and a revive stands the fallen hero up ([method FallenParty.stand]).
+##   kicks dust at the feet of those the events say it landed on (its target, and whoever its
+##   ability's other effects reached in that tick) as they slide. A heal shows the heal effect
+##   [CombatEffects] already draws for every HEALED, and a revive stands the fallen hero up
+##   ([method FallenParty.stand]), even one revived in the frame it fell.
 ## - R3: the statuses are [StatusMarks], drawn from [member AbilityCredit.statuses]; a status's
 ##   damage number takes its colour ([method number_color]).
-## - R4: a strike that misses shows [code]Miss[/code], damage a shield absorbs [code]Blocked[/code].
+## - R4: a strike that misses shows [code]Miss[/code], damage a shield absorbs [code]Blocked[/code]
+##   (once a second for one shield, however many blows it takes).
 ##
 ## It listens to [signal World.sim_event] before [CombatEffects] does (that one asks it the colour
 ## of a number), and draws on [member World.effects_layer]. Everything moves in [method advance],
-## from elapsed time, so a test can step it exactly. Names and words keep inside the band between
-## the HUD's top and bottom, so they never cover a health bar (R8).
+## from elapsed time, so a test can step it exactly. Names, words and [CombatEffects]' numbers keep
+## inside the band between the HUD's top and bottom, so they never cover a health bar (R8).
 
 # Names (R1).
 ## Seconds a name shows, and how fast it drifts up, in pixels a second.
@@ -47,9 +50,7 @@ const HEAVY_SHARDS: int = 10
 ## A ring's seconds, and its reach in tiles when its effect reaches everyone.
 const RING_LIFE: float = 0.4
 const RING_EVERYONE: float = 4.0
-## A fighter this many pixels from where the simulation has it, just after a push, is sliding;
-## its dust kicks for this many seconds.
-const PUSHED_GAP: float = 4.0
+## Seconds a pushed fighter's dust kicks.
 const DUST_SECONDS: float = 0.35
 ## The most particles these effects make at once.
 const MAX_PARTICLES: int = 150
@@ -90,6 +91,12 @@ var _glow_time: float = 0.0
 var _announced: Dictionary[int, StringName] = {}
 ## Per pushed fighter: seconds of dust left.
 var _dust: Dictionary[int, float] = {}
+## The push being told: its fighter, its ability and its tick (a push lands on its target and on
+## whoever that ability's other effects reach in the same tick).
+var _pushing: Dictionary[int, StringName] = {}
+var _push_tick: int = -1
+## Per fighter: the tick a Blocked last showed over it.
+var _blocked: Dictionary[int, int] = {}
 ## The last HIT heard, for [method number_color].
 var _last_hit: SimEvent
 ## A monster's name colour, by its sheet's path.
@@ -116,6 +123,7 @@ func setup(world: World, simulation: Simulation) -> void:
 		_world.add_child(marks)
 		_world.move_child(marks, _world.effects_layer.get_index())
 	marks.setup(world, credit.statuses)
+	credit.statuses.power = _power
 
 
 ## Advances every effect by [param delta] real seconds. [CombatEffects] calls it each frame.
@@ -141,6 +149,14 @@ func advance(delta: float) -> void:
 			_rings.erase(ring)
 			ring.queue_free()
 	marks.advance(delta)
+
+
+## Keeps each of [param shown] (texts on the effects layer, [CombatEffects]' numbers) inside the
+## band between the HUD's top and bottom, so none covers a health bar (R8). Call after they move.
+func keep_in_band(shown: Array[FxText]) -> void:
+	for text: FxText in shown:
+		if not text.on_screen:
+			text.position += _band_shift(text.rect())
 
 
 ## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
@@ -194,6 +210,10 @@ func is_glowing(id: int) -> bool:
 func _on_sim_event(event: SimEvent) -> void:
 	credit.observe(event)
 	var recent: bool = _world.is_recent(event)
+	if event.tick != _push_tick:
+		_pushing.clear()
+	if _pushing.get(event.source_id, &"") != &"" and recent:
+		_pushed_by(event)
 	match event.kind:
 		SimEvent.Kind.ABILITY_STARTED:
 			_started(event, recent)
@@ -210,12 +230,24 @@ func _on_sim_event(event: SimEvent) -> void:
 			_died(event.source_id)
 		SimEvent.Kind.STATUS_BEGAN:
 			if event.status == AbilityEffect.Status.STUNNED:
-				_stop_glow(event.target_id, true)  # a stunned fighter loses its wind-up
+				# A stunned fighter loses its wind-up: it never swings at nothing after.
+				_stop_glow(event.target_id, true)
+				var stunned: CharacterSprite = _world.character(event.target_id)
+				if stunned != null:
+					stunned.cancel_attack()
 		SimEvent.Kind.ENCOUNTER_ENDED, SimEvent.Kind.PARTY_WIPED, SimEvent.Kind.AREA_CHANGED:
-			for id: int in _glows.keys():
-				_stop_glow(id, true)
-			_announced.clear()
-			_dust.clear()
+			_forget_fight()
+		SimEvent.Kind.DEPTH_CHANGED:
+			_forget_fight()
+
+
+func _forget_fight() -> void:
+	for id: int in _glows.keys():
+		_stop_glow(id, true)
+	_announced.clear()
+	_dust.clear()
+	_pushing.clear()
+	_blocked.clear()
 
 
 ## An action's wind-up begins: its fighter glows and swings for its length, and it is named.
@@ -259,7 +291,10 @@ func _used(event: SimEvent, recent: bool) -> void:
 			break
 	for effect: AbilityEffect in ability.effects:
 		if effect.does == AbilityEffect.Does.PUSH:
-			_kick_dust(event.source_id)
+			_pushing[event.source_id] = ability.id
+			_push_tick = event.tick
+			if effect.lands in [AbilityEffect.Lands.TARGET, AbilityEffect.Lands.AROUND_TARGET]:
+				_dust[event.target_id] = DUST_SECONDS
 			break
 
 
@@ -331,22 +366,30 @@ func _ring(event: SimEvent, effect: AbilityEffect) -> void:
 	_rings.append(ring)
 
 
-## Dust at the feet of every enemy of [param source] that a push has left sliding.
-func _kick_dust(source: int) -> void:
-	var battle: Battle = _simulation.expedition.battle
-	var fighter: Combatant = battle.combatant(source) if battle != null else null
-	if fighter == null:
-		return
-	for enemy: Combatant in battle.enemies_of(fighter):
-		var sprite: CharacterSprite = _world.character(enemy.id)
-		if sprite != null and absf(sprite.position.x - enemy.x * World.TILE) > PUSHED_GAP:
-			_dust[enemy.id] = DUST_SECONDS
+## [param event] follows a push by its fighter in the same tick: if it is that ability's (a status
+## it put on, a blow it dealt), its receiver was pushed too, and kicks dust.
+func _pushed_by(event: SimEvent) -> void:
+	var ability: StringName = _pushing[event.source_id]
+	var landed: bool = false
+	match event.kind:
+		SimEvent.Kind.STATUS_BEGAN:
+			landed = event.ability_id == ability
+		SimEvent.Kind.HIT, SimEvent.Kind.MISSED:
+			landed = credit.ability_id == ability
+	if landed and event.target_id >= 0:
+		_dust[event.target_id] = DUST_SECONDS
 
 
 func _miss(event: SimEvent) -> void:
 	var target: CharacterSprite = _world.character(event.target_id)
 	if target == null:
 		return
+	if event.flag:
+		# One Blocked a second over a shield, however many blows it takes.
+		var last: int = _blocked.get(event.target_id, -Simulation.TICKS_PER_SECOND)
+		if event.tick - last < Simulation.TICKS_PER_SECOND:
+			return
+		_blocked[event.target_id] = event.tick
 	var word := FxText.new()
 	word.name = "Word"
 	word.kind = &"miss"
@@ -363,9 +406,39 @@ func _miss(event: SimEvent) -> void:
 	word.start(target.position + Vector2(0, -roundf(height)))
 
 
+## What a status's strength is a multiple of ([enum AbilityEffect.Scale]), for fighter
+## [param source]'s status on [param receiver]: their damage, healing power or maximum health,
+## measures that do not change in a fight ([member StatusBook.power]).
+func _power(source: int, receiver: int, scale: int) -> float:
+	var measured: Combatant = _measures(
+		receiver if scale == AbilityEffect.Scale.RECEIVER_MAX_HEALTH else source
+	)
+	if measured == null:
+		return 0.0
+	match scale:
+		AbilityEffect.Scale.FIGHTER_DAMAGE:
+			return measured.damage
+		AbilityEffect.Scale.FIGHTER_HEALING:
+			return measured.heal_power
+	return measured.max_health
+
+
+## Fighter [param id]'s measures: its fighter in the fight, a hero's own, or a waiting monster's.
+func _measures(id: int) -> Combatant:
+	var battle: Battle = _simulation.expedition.battle
+	var fighter: Combatant = battle.combatant(id) if battle != null else null
+	if fighter != null:
+		return fighter
+	var hero: Hero = _simulation.party.hero(id)
+	if hero != null:
+		return hero.combatant()
+	return _world._monsters.get(id, null)
+
+
 func _died(id: int) -> void:
 	_stop_glow(id, true)
 	_dust.erase(id)
+	_blocked.erase(id)
 	for attacker: int in _aims.keys():
 		if _aims[attacker] == id and _glows.has(attacker):
 			_stop_glow(attacker, true)  # the simulation drops a wind-up whose target died
@@ -405,6 +478,7 @@ func _announce(id: int, ability: AbilityDef) -> void:
 	name_text.text = ability.display_name
 	name_text.color = _fighter_color(id)
 	name_text.scale_factor = 1
+	name_text.outline = true
 	name_text.life = NAME_LIFE
 	name_text.velocity = Vector2(0, -NAME_DRIFT)
 	name_text.follow_id = id

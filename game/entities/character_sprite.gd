@@ -225,6 +225,11 @@ func cancel_attack() -> void:
 	_apply_pose()
 
 
+## True while an attack is wound up or swinging (not once it eases back after a cancel).
+func is_attacking() -> bool:
+	return _attack_time >= 0.0
+
+
 ## Flashes white, flinches back from its facing with a squash, and recovers to what it was doing.
 func play_hit() -> void:
 	if _dead:

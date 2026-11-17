@@ -8,7 +8,8 @@ extends Node2D
 ##   ([member CharacterSprite.held]);
 ## - taunting, marked, mighty, weakened, hasted, slowed: their marks in a row over the head (a
 ##   red "!", a target, a bright or a broken sword, an arrow up or down);
-## - shielded: an outline round the body that dims (cyan, blue, navy) as the shield is used;
+## - shielded: an outline round the body that dims (cyan, blue, navy) as the shield is used, by
+##   what the flagged MISSED events say it absorbed;
 ## - burning, bleeding, chilled: the sprite washed orange, red or pale blue, with small motes of
 ##   that colour (their damage numbers take it too, [method AbilityEffects.number_color]);
 ## - mending: green motes rising;
@@ -60,8 +61,9 @@ var _time: float = 0.0
 var _shown: Dictionary[int, Array] = {}
 ## The fighters whose sprite was given a status's look last frame.
 var _looked: Dictionary[int, bool] = {}
-## Per shielded fighter: the most its shield has held, to tell how much is left.
-var _shield_full: Dictionary[int, float] = {}
+## What the last draw drew on each fighter, as words ("star", "mark:taunting",
+## "outline:cyan", "mote:burning"): the tests read what is truly drawn.
+var _drawn: Dictionary[int, Array] = {}
 
 
 ## Call once, before the first advance.
@@ -97,44 +99,45 @@ func advance(delta: float) -> void:
 		_shown[id] = kinds
 		_look(sprite, kinds)
 		looked[id] = true
-		if AbilityEffect.Status.SHIELDED in kinds:
-			var full: float = _shield_full.get(id, 0.0)
-			_shield_full[id] = maxf(full, _shield_amount(id))
-		else:
-			_shield_full.erase(id)
 	for id: int in _looked:
 		var sprite: CharacterSprite = _world.character(id)
 		if not looked.has(id) and sprite != null:
 			sprite.set_status_look(Color.WHITE, 0.0, 1.0)
 			sprite.held = false
 	_looked = looked
-	for id: int in _shield_full.keys():
-		if not _shown.has(id):
-			_shield_full.erase(id)
 	queue_redraw()
 
 
 ## The statuses drawn on fighter [param id] this frame; empty for one that has fallen or gone.
 func shown(id: int) -> Array[int]:
 	var kinds: Array[int] = []
-	var drawn: Array = _shown.get(id, [])
-	kinds.assign(drawn)
+	var showing: Array = _shown.get(id, [])
+	kinds.assign(showing)
 	return kinds
 
 
-## The share of fighter [param id]'s shield still to absorb, from 0 to 1 (1 when unknown).
+## What the last draw drew on fighter [param id] (see [member _drawn]).
+func drawn(id: int) -> Array[String]:
+	var words: Array[String] = []
+	var said: Array = _drawn.get(id, [])
+	words.assign(said)
+	return words
+
+
+## The share of fighter [param id]'s shield still to absorb, from 0 to 1, as the events tell it.
 func shield_left(id: int) -> float:
-	var full: float = _shield_full.get(id, 0.0)
-	if full <= 0.0:
-		return 1.0
-	return clampf(_shield_amount(id) / full, 0.0, 1.0)
+	return book.shield_left(id)
 
 
 ## The outline's colour for fighter [param id]'s shield now: it dims as the shield is used.
 func shield_color(id: int) -> Color:
+	return Palette.color(SHIELD_COLORS[_shield_step(id)])
+
+
+## Which of [constant SHIELD_COLORS] fighter [param id]'s shield is drawn in now.
+func _shield_step(id: int) -> int:
 	var left: float = shield_left(id)
-	var index: int = 0 if left > 2.0 / 3.0 else (1 if left > 1.0 / 3.0 else 2)
-	return Palette.color(SHIELD_COLORS[index])
+	return 0 if left > 2.0 / 3.0 else (1 if left > 1.0 / 3.0 else 2)
 
 
 func _drawable(sprite: CharacterSprite) -> bool:
@@ -158,17 +161,8 @@ func _look(sprite: CharacterSprite, kinds: Array[int]) -> void:
 	sprite.held = AbilityEffect.Status.STUNNED in kinds
 
 
-## What fighter [param id]'s shield holds now, read from the fight (0 when it cannot be read).
-func _shield_amount(id: int) -> float:
-	var battle: Battle = _world.simulation.expedition.battle
-	var fighter: Combatant = battle.combatant(id) if battle != null else null
-	var shield: CombatStatus = (
-		fighter.status(AbilityEffect.Status.SHIELDED) if fighter != null else null
-	)
-	return shield.amount if shield != null else 0.0
-
-
 func _draw() -> void:
+	_drawn.clear()
 	for id: int in _shown:
 		var sprite: CharacterSprite = _world.character(id)
 		if sprite == null:
@@ -177,9 +171,11 @@ func _draw() -> void:
 		var body: Rect2 = SpriteBounds.body_rect(sprite)
 		if AbilityEffect.Status.SHIELDED in kinds:
 			_draw_outline(body.grow(2.0), shield_color(id))
+			_note(id, "outline:%s" % SHIELD_COLORS[_shield_step(id)])
 		for kind: int in MOTE_COLORS:
 			if kind in kinds:
 				_draw_motes(id, kind, body)
+				_note(id, "mote:%s" % ShownStatus.status_name(kind).to_lower())
 		var stunned: bool = AbilityEffect.Status.STUNNED in kinds
 		var row: Array[int] = []
 		for kind: int in ROW:
@@ -189,10 +185,17 @@ func _draw() -> void:
 		var row_width: float = row.size() * (MARK + 1) - 1
 		var x: float = roundf(sprite.position.x - row_width / 2.0)
 		for kind: int in row:
-			_draw_mark(kind, Vector2(x, row_y))
+			if _draw_mark(kind, Vector2(x, row_y)):
+				_note(id, "mark:%s" % ShownStatus.status_name(kind).to_lower())
 			x += MARK + 1
 		if stunned:
 			_draw_stars(id, sprite.position.x, body)
+
+
+func _note(id: int, what: String) -> void:
+	var words: Array = _drawn.get(id, [])
+	words.append(what)
+	_drawn[id] = words
 
 
 ## A rectangle's edge, one pixel wide, its corners cut.
@@ -204,14 +207,16 @@ func _draw_outline(rect: Rect2, colour: Color) -> void:
 	draw_rect(Rect2(r.end.x - 1, r.position.y + 1, 1, r.size.y - 2), colour)
 
 
-func _draw_mark(kind: int, at: Vector2) -> void:
+func _draw_mark(kind: int, at: Vector2) -> bool:
 	var texture: Texture2D = (
 		_sheet.part(StringName(str(AbilityEffect.Status.keys()[kind]).to_lower()))
 		if _sheet != null
 		else null
 	)
-	if texture != null:
-		draw_texture(texture, at.round())
+	if texture == null:
+		return false
+	draw_texture(texture, at.round())
+	return true
 
 
 ## Stars going round the head of fighter [param id], whose feet are at [param middle] across.
@@ -222,7 +227,8 @@ func _draw_stars(id: int, middle: float, body: Rect2) -> void:
 		var angle: float = TAU * (_time * STAR_TURNS + float(i) / STARS + id * 0.17)
 		var at := Vector2(middle + cos(angle) * across, y + sin(angle) * 2.0)
 		var half: float = floorf(MARK / 2.0)
-		_draw_mark(AbilityEffect.Status.STUNNED, at - Vector2(half, half))
+		if _draw_mark(AbilityEffect.Status.STUNNED, at - Vector2(half, half)):
+			_note(id, "star")
 
 
 ## Small motes of status [param kind] over [param body]: drips falling for bleeding, rising for

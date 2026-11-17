@@ -252,6 +252,7 @@ func advance(delta: float) -> void:
 		if not text.advance(delta):
 			_texts.erase(text)
 			text.queue_free()
+	ability_effects.keep_in_band(_texts)  # off the health bars (spec 056 R8)
 	var purse: Vector2 = _screen_to_world(gold_screen_target)
 	for coin: FxCoin in _coins.duplicate():
 		if coin.advance(delta, purse):
