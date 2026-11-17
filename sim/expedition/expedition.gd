@@ -837,7 +837,9 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
+	ResourceDrops.on_kill(self, dead, def)  # spec 052
 	if def.guardian:
+		_areas.guardians_beaten[_here.id] = true  # spec 052 R12
 		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
 		if _battle_key.x == _here.guardian_stage:
 			for opened: StringName in _areas.open_after(_here.id):

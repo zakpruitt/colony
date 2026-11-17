@@ -13,3 +13,4 @@ monster_stages = Array[int]([1, 1, 3])
 guardian = &"bone_lord"
 guardian_stage = 5
 opened_by = &"claypits"
+resource = &"old_bones"

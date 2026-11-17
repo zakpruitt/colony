@@ -806,8 +806,10 @@ func test_r8_still_readable() -> void:
 	assert_eq(unnamed, [] as Array[String], "every one of them")
 
 
-## R8: names and numbers that would start on a hero frame's health bar or the boss bar are kept
-## off it: fighters are put right under the bars, and every text is measured, frame by frame.
+## R8: names, numbers and resource drops (spec 052) that would start on a hero frame's health bar
+## or the boss bar are kept off it: fighters are put right under the bars, and every text and
+## every rising icon is measured, frame by frame. (An icon flying to the purse beside the gold
+## crosses the screen to get there, as a coin does; only its rise and hang are measured.)
 func test_r8_kept_off_the_bars() -> void:
 	_build(Simulation.new(SEED), true)
 	_world.speed = 4
@@ -827,6 +829,7 @@ func test_r8_kept_off_the_bars() -> void:
 		places.append([monster, boss.get_center() + Vector2(0, dy + 16), boss])
 	var longest: int = 0
 	var started_on: int = 0
+	var drops: int = 0
 	for place: Array in places:
 		var id: int = place[0]
 		var bar: Rect2 = place[2]
@@ -838,10 +841,11 @@ func test_r8_kept_off_the_bars() -> void:
 		var told: Array[SimEvent] = [
 			_event(SimEvent.Kind.ABILITY_USED, id, target, 0, ability),
 			_event(SimEvent.Kind.HIT, target, id, 123),
+			_event(SimEvent.Kind.RESOURCE_GAINED, id, 0, 3),
 		]
 		for event: SimEvent in told:
 			_world.sim_event.emit(event)
-		var covering: Dictionary[FxText, int] = {}
+		var covering: Dictionary[Node2D, int] = {}
 		for i: int in 60:
 			if i == 0:
 				# Where the number starts: on the bar, unless it is kept off.
@@ -851,12 +855,20 @@ func test_r8_kept_off_the_bars() -> void:
 			_fx.advance(FRAME)
 			var texts: Array[FxText] = _abilities().texts()
 			texts.append_array(_numbers())
+			var boxes: Dictionary[Node2D, Rect2] = {}
 			for text: FxText in texts:
-				var over: bool = _on_screen(text.rect()).intersects(bar)
-				covering[text] = covering.get(text, 0) + 1 if over else 0
-				longest = maxi(longest, covering[text])
+				boxes[text] = text.rect()
+			for icon: FxResource in _fx.resource_effects.live_icons():
+				if icon.phase == FxResource.Phase.RISE:
+					boxes[icon] = Rect2(icon.position - ResourceIcon.SIZE / 2.0, ResourceIcon.SIZE)
+					drops += 1
+			for shown: Node2D in boxes:
+				var over: bool = _on_screen(boxes[shown]).intersects(bar)
+				covering[shown] = covering.get(shown, 0) + 1 if over else 0
+				longest = maxi(longest, covering[shown])
 		_at += 20
 	assert_gt(started_on, 4, "names and numbers began on the bars")
+	assert_gt(drops, 0, "resource drops rose there too")
 	assert_lte(longest * FRAME, MOMENT, "none stayed over a bar past a moment")
 
 

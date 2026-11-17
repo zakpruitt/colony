@@ -157,6 +157,9 @@ func test_r1_a_map_of_every_area() -> void:
 	_mossy(6, 7)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(2, 4)
+	# Spec 052 R12: the map reads the beaten guardians from the simulation, which a game that got
+	# here by playing would hold.
+	_sim.expedition.travel.guardians_beaten[MOSSY] = true
 	_build_hud()
 	_map().open()
 	_hud.advance(STEP)
@@ -185,7 +188,7 @@ func test_r1_a_map_of_every_area() -> void:
 	assert_eq(clay.tag_label.text, "", "and no other")
 	assert_eq(mossy.stages_label.text, "Safe 6, furthest 7", "safe and furthest here")
 	assert_eq(clay.stages_label.text, "Safe 2, furthest 4", "and in another area")
-	assert_true(mossy.guardian_thumb.beaten, "the Slime King is beaten: the party went past it")
+	assert_true(mossy.guardian_thumb.beaten, "the Slime King is beaten")
 	assert_false(clay.guardian_thumb.beaten, "the Clay Colossus is not")
 	assert_eq(_map().row(CRYPT).stages_label.text, "Stage 1 is level 11", "a closed area's level")
 

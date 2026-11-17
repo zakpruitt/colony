@@ -13,6 +13,8 @@ var open: Dictionary[StringName, bool] = {}
 ## area it is in keeps them in [member Expedition.last_stable_depth] and
 ## [member Expedition.deepest_depth].
 var stages: Dictionary[StringName, Vector2i] = {}
+## Areas whose guardian the party has beaten at least once (spec 052 R12), by id.
+var guardians_beaten: Dictionary[StringName, bool] = {}
 ## A destination asked for by a command, taken up once the party is free to go; &"" when none.
 var pending_area: StringName = &""
 var pending_stage: int = 0
@@ -97,6 +99,13 @@ func hash_parts() -> Array:
 	var parts: Array = [open_ids(), kept, pending_area, pending_stage, stage, arrive_tick]
 	if target_chosen:
 		parts.append(true)  # only then, so runs without a journey hash as they did
+	if not guardians_beaten.is_empty():
+		# Spec 052: only then, so runs that beat no guardian hash as they did.
+		var ids: Array[StringName] = []
+		for id: StringName in Content.area_ids():
+			if guardians_beaten.has(id):
+				ids.append(id)
+		parts.append(["beaten", ids])
 	return parts
 
 

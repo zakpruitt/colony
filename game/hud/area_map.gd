@@ -407,6 +407,7 @@ func _show_row(shown: AreaMapRow) -> void:
 			stages = level
 			level = "Beat the %s in %s" % [guardian.display_name, opener.display_name]
 	shown.show_area(is_open_now, tag, tag_colour, level, stages, news.is_beaten(id))
+	shown.show_resource(_simulation.party.resource(def.resource))  # spec 052
 	shown.chosen = id == _chosen
 
 

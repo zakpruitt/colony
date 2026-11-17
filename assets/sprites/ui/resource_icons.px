@@ -1,0 +1,44 @@
+# Resource icons (spec 052): one 8x8 part per resource, named by its id, beside the gold, on the
+# shop's rows and the area map, and rising from a monster that drops one. Light from the top-left.
+category = ui
+size = 8x8
+
+[glowcaps]
+..pppp..
+.pijiip.
+pjiiiihp
+phhhhhgp
+.ppkkpp.
+..pjkp..
+..pklp..
+..pppp..
+
+[clay]
+........
+..pppp..
+.p2334p.
+p233345p
+p334455p
+p344556p
+.pppppp.
+........
+
+[old_bones]
+pp....pp
+pjp..pkp
+.pjppkp.
+..pjkp..
+..pkjp..
+.pkppjp.
+pkp..plp
+pp....pp
+
+[embers]
+...pp...
+..pbap..
+.pbaa9p.
+.pba99p.
+pba9987p
+p998877p
+.p8777p.
+..pppp..

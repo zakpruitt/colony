@@ -169,6 +169,8 @@ var gold_screen_target: Vector2 = Vector2(600, 12)
 var quest_effects: QuestEffects
 ## Abilities and statuses on screen (spec 056), advanced with these.
 var ability_effects: AbilityEffects
+## Resource drops rising and flying to the purse (spec 052), advanced with these.
+var resource_effects: ResourceEffects
 
 var _world: World
 var _simulation: Simulation
@@ -225,6 +227,10 @@ func setup(world: World, simulation: Simulation) -> void:
 		quest_effects.name = "QuestEffects"
 		add_child(quest_effects)
 	quest_effects.setup(world, simulation)
+	if resource_effects == null:
+		resource_effects = ResourceEffects.new()
+		add_child(resource_effects)
+	resource_effects.setup(world, _screen_to_world)
 
 
 ## Advances every effect. Called every frame; tests call it.
@@ -233,6 +239,8 @@ func advance(delta: float) -> void:
 		return
 	quest_effects.advance(delta)
 	ability_effects.advance(delta)
+	resource_effects.advance(delta)
+	ability_effects.keep_drops_in_band(resource_effects.live_icons())  # spec 056 R8
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()

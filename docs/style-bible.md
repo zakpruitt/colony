@@ -411,6 +411,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
 - **Icons** are 16x16 parts of `assets/sprites/ui/hud_icons.px` (category `ui`): a portrait per hero class,
   cropped from the hero's own head and body, a `skull` for a fallen hero and a `coin`. A new class needs a
   portrait part named for its id.
+- **Resource icons** (spec 052) are 8x8 parts of `assets/sprites/ui/resource_icons.px` (category `ui`), one
+  named for each resource's id: a `cyan` glowing mushroom on a `silver` stalk (glowcaps), a `sand`-to-`umber`
+  lump (clay), two crossed `white`/`silver` bones (old bones) and a coal burning `yellow` to `crimson`
+  (embers), each drawn with an `ink` edge so it reads on any panel. They stand beside the gold with their count
+  in `white`, on the shop's rows (the price `white`, `slate` while the party has too little) and the area map,
+  and rise from a monster that drops one. A new resource needs a part named for its id.
 - **Talent pictures** (spec 055) are 12x12 parts of `assets/sprites/ui/talent_icons.px`, one per kind of
   ability, not one per ability: `strike` (a sword), `guard` (a shield), `heal` (a green cross), `fire` (a
   flame), `frost` (an ice crystal), `shadow` (a crescent), `light` (a four-pointed spark) and `rally` (a red

@@ -36,6 +36,8 @@ enum Kind {
 	# Spec 049's: only a run that changes area or beats an area's guardian produces them.
 	AREA_CHANGED,
 	AREA_OPENED,
+	# Spec 052's: not every run gathers a resource, so it too sits before ENCOUNTER_STARTED.
+	RESOURCE_GAINED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -78,6 +80,9 @@ var target_id: int = -1
 ## STATUS_ENDED: 0; MISSED: the damage absorbed by a shield (0 for a miss);
 ## REVIVED: the health it stands up with.
 ## For AREA_CHANGED and AREA_OPENED: the area's position in [method Content.area_ids].
+## For RESOURCE_GAINED (spec 052): how many, with [member target_id] the resource's position in
+## [method Content.resource_ids] and [member source_id] the monster that dropped it, or the hero
+## who finished a side quest.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.

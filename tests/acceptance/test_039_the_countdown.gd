@@ -14,32 +14,34 @@ const LIMIT_TICKS: int = 6000
 const GUARDIAN_DEPTH: int = 5
 ## State hashes every 600 ticks over the first 10 minutes of a default game, recorded on dev before
 ## this spec (R5).
+## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
+## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2840655281,
-		2075673128,
-		1475654766,
-		2875557886,
-		2784050463,
-		3856899135,
-		2838792657,
-		1321820002,
-		2680065727,
-		363122329,
+		2894827325,
+		1945528636,
+		1128693549,
+		1276362820,
+		2139888516,
+		1167871002,
+		1988223463,
+		625401331,
+		455972621,
+		3181058316,
 	],
 	39:
 	[
-		3946405204,
-		4083408126,
-		1486015764,
-		2953464303,
-		537785673,
-		3735694914,
-		3381207781,
-		4059733803,
-		3313505566,
-		3875364768,
+		3699167120,
+		2491842055,
+		2065065973,
+		2243162567,
+		1931022560,
+		444176140,
+		3351257073,
+		3374559654,
+		2868346502,
+		3505079905,
 	],
 }
 

@@ -175,7 +175,12 @@ func test_r3_gold_follows_the_coins() -> void:
 	assert_eq(_hud.shown_gold(), 100, "behind until 3 s after the last coin")
 	_hud.advance(0.2)
 	assert_eq(_hud.shown_gold(), 1_234_567, "then catches up at once")
-	assert_eq(_hud.gold_label.text, "1,234,567", "with thousands separators")
+	# Spec 052: from 10,000 the top bar shortens the count so the resources fit beside it; below
+	# that it keeps its thousands separators.
+	assert_eq(_hud.gold_label.text, "1.2M", "shortened")
+	_sim.party.gold = 9_876
+	_hud.advance(0.016)
+	assert_eq(_hud.gold_label.text, "9,876", "with thousands separators")
 
 	_sim.party.gold = 50
 	_hud.advance(0.016)

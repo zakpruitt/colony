@@ -20,6 +20,7 @@ extends SceneTree
 ## the summary lists the nodes it took ("talents"). "slime_king_won" is the game time of the first
 ## win over the Slime King, or null, and "wipes_before_slime_king" counts the wipes before it (all
 ## of the run's, without one).
+## The summary names the resources the party holds at the end ("resources", spec 052).
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -67,14 +68,14 @@ func _init() -> void:
 		# A battle can end within the step, so remember it to name the dead.
 		var fight: Battle = sim.expedition.battle
 		if buying:
-			var cheapest: StringName = sim.upgrades.cheapest_affordable(sim.party.gold)
+			var cheapest: StringName = sim.upgrades.cheapest_affordable(sim.party)
 			if cheapest != &"":
 				sim.buy_upgrade(cheapest)
 		if spending:
 			TalentSpender.spend(sim)
 		sim.step()
 		var now: float = sim.seconds()
-		if sim.upgrades.cheapest_affordable(sim.party.gold) != &"":
+		if sim.upgrades.cheapest_affordable(sim.party) != &"":
 			_first(firsts, "upgrade_affordable", now)
 		for event: SimEvent in sim.drain_events():
 			match event.kind:
@@ -137,6 +138,9 @@ func _init() -> void:
 	var upgrades: Dictionary = {}
 	for id: StringName in Content.upgrade_ids():
 		upgrades[String(id)] = sim.upgrades.rank(id)
+	var resources: Dictionary = {}
+	for id: StringName in Content.resource_ids():
+		resources[String(id)] = sim.party.resource(id)
 	var summary: Dictionary = {
 		"seed": seed_value,
 		"minutes": minutes,
@@ -151,6 +155,7 @@ func _init() -> void:
 		"heroes": heroes,
 		"kills": sorted_kills,
 		"upgrades": upgrades,
+		"resources": resources,
 		# The area the party stands in and its stage; on its way elsewhere, the area it left.
 		"area": String(sim.expedition.place),
 		"stage": sim.expedition.depth,

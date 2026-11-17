@@ -159,6 +159,16 @@ func keep_in_band(shown: Array[FxText]) -> void:
 			text.position += _band_shift(text.rect())
 
 
+## Keeps each of [param icons] (spec 052's resource drops) inside that band while it rises and
+## hangs where the fighter fell; one flying to its place beside the gold crosses the screen to get
+## there, as a coin does, and is left alone.
+func keep_drops_in_band(icons: Array[FxResource]) -> void:
+	for icon: FxResource in icons:
+		if icon.phase == FxResource.Phase.RISE:
+			var box := Rect2(icon.position - ResourceIcon.SIZE / 2.0, ResourceIcon.SIZE)
+			icon.position += _band_shift(box)
+
+
 ## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
 ## burning, bleeding or chilled status did (R3), [param fallback] otherwise.
 func number_color(event: SimEvent, fallback: StringName) -> StringName:

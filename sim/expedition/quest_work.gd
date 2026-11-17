@@ -52,6 +52,7 @@ static func work(run: Expedition) -> void:
 	else:
 		run._party.gold += amount
 		run._emit(SimEvent.Kind.GOLD_GAINED, run._worker, -1, amount)
+	ResourceDrops.on_quest(run, run._worker, run._work_key.x)  # spec 052
 	var fill: ChamberState = run._chambers[run._work_key]
 	fill.cleared_tick = run._tick
 	fill.missed = false
