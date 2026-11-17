@@ -126,6 +126,9 @@ Things marked <span class="tag built">Built</span> work today;
   <li><strong>Spending gold:</strong> a shop with five camp upgrades, and an auto-buy switch.</li>
   <li><strong>Idle:</strong> the game saves by itself and plays out the time it was closed (up to a limit),
   then shows what happened.</li>
+  <li><strong>Reading the party:</strong> the HUD says what the party is doing and why, counts down to the
+  next stable depth, and keeps a journal (<kbd>J</kbd>) of what has happened; an arrow over the party points
+  the way it is heading.</li>
   <li><strong>Feel:</strong> lit chambers, ambient life, damage numbers, bursts, coins, screen shake, a HUD, and
   16 sound effects.</li>
   <li><strong>Cast:</strong> 4 heroes, 13 monsters across three depth bands, 4 guardians.</li>
@@ -141,6 +144,7 @@ Things marked <span class="tag built">Built</span> work today;
   <tr><td><kbd>A</kbd></td><td>Turn auto-push (go deeper when stable) on or off</td></tr>
   <tr><td><kbd>Z</kbd></td><td>Zoom in or out</td></tr>
   <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
+  <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
 </table>
 </div>
 <p>To see every moment of the loop in about a minute, labelled, without waiting for it:</p>
@@ -318,13 +322,29 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
 <ul>
   <li><strong>Party frames</strong> (bottom), in marching order: each hero's portrait, class, level, a health
   bar (green above half, yellow down to a quarter, red below) that drains smoothly, and an XP bar toward the
-  next level. A hit flashes the frame; a dead hero's frame goes dark with a skull until it stands up again; a
+  next level. A hit flashes the frame; a dead hero's frame goes dark with a skull and reads <em>Down</em>
+  where the level was until it stands up again (after a wipe all four read <em>Recovering</em>); a
   level-up makes the level number pulse and the XP bar start again from empty.</li>
   <li><strong>Gold</strong> (top right), with commas. It counts up as coins arrive; if it is still behind 3
   seconds after the last coin, it catches up at once.</li>
   <li><strong>Depth</strong> (top left): the current depth in big numbers (it lights up when it changes), the
-  last stable depth, the target depth, and one word for what the party is doing (Travelling, Fighting,
-  Resting, Climbing, Reviving).</li>
+  last stable depth, the target depth, and a short line for what the party is doing and why (spec 027):
+  <em>Heading down to depth 5</em>, <em>Hunting on depth 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting
+  the Slime King</em>, <em>Resting, 64% health</em>, <em>Climbing down</em>, <em>Chased home!
+  Regrouping</em>.</li>
+  <li><strong>The road to stable</strong> (right of the depth, spec 027): on a depth that is not yet stable,
+  <em>Stable in 8:29</em> over a thin yellow bar that fills as the time passes; on a stable depth, a green
+  <em>Stable</em>. With auto-push on and the party at its target, it also says what comes next
+  (<em>then depth 3</em>).</li>
+  <li><strong>The journal</strong> (spec 027): the game remembers the last 50 notable happenings with the game
+  time (a new deepest depth, a depth turning stable, a level up, a wipe and where the party fell back to, a
+  guardian slain, an upgrade bought). The newest shows for 4 seconds in a one-line ticker just above the party
+  frames, then fades. <code>J</code> opens a panel with the last 12, newest at the top, under the depth; the
+  game keeps running, every other key still works, <code>Esc</code> closes it and so does opening the shop.
+  Things that happened while the game was catching up are written but not flashed in the ticker.</li>
+  <li><strong>The arrow</strong> (spec 027): while the party is heading for a deeper or shallower target, a
+  small yellow arrow bobs over its heads pointing down or up. It hides in a fight, while the party is down
+  and once it is at its target depth.</li>
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
   turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
@@ -543,7 +563,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 
