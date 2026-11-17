@@ -52,6 +52,8 @@ incomplete, stop and report the question.
 - **A new key goes in the help list.** `HelpPanel.KEYS` (`game/hud/help_panel.gd`) lists every key the game
   answers to; spec 030's R3 test reads every `KEY_…` name in `game/` and fails on one the list does not cover
   (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
+- **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
+  in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 
