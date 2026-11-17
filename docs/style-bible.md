@@ -301,7 +301,11 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   done), the sentence in `white`, and under it a 4-pixel bar (`cyan`/`blue` for levels and XP,
   `yellow`/`amber` for depth) ending at one column for every row, with its count in `steel` to its right; a
   gold goal has no bar and its price in `yellow` at the sentence's right. A finished row flashes `forest`
-  with a `green` edge (text `white`), then its sentence and bar turn `green` for 3 s.
+  with a `green` edge (text `white`), then its sentence and bar turn `green` for 3 s. Since spec 042 each row
+  is a button: under the mouse it is lit as a `HudButton` is (`slate` fill, `steel` bevel, `ink` edge), a
+  finished row is not, and a gold goal ends in a 3x5 `>` in `yellow` with an `ink` shadow, drawn in code
+  after its price. The depth goal's click flashes its rung on the ladder for 1 s: a `yellow` outline round
+  the row with an `amber` one inside it, blinking on and off every quarter second.
 - **The defeat note** (spec 041) is an overlay of its own after a wipe: a `HudPanel` centred across the
   screen, its bottom 6 pixels above `WIPED` (popped size) and so below the goals tracker. What beat the party
   in `white`, the reason under it in `silver`, both centred, then a centred row of up to three `HudButton`s 4

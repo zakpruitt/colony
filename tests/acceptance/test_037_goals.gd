@@ -542,9 +542,11 @@ func test_r5_explains_itself() -> void:
 			tooltip.point_at(goals.rows[i].get_global_rect().get_center())
 			_hud.advance(HudTooltip.DELAY + 0.01)
 			var text: String = tooltip.shown_text()
-			assert_eq(text, goals.hint(i), "%s: its tooltip" % line)
-			assert_true(text.ends_with("."), "%s: one sentence: %s" % [line, text])
-			assert_false(text.trim_suffix(".").contains(". "), "%s: only one: %s" % [line, text])
+			var how: String = goals.hint(i)
+			# Spec 042 R3: the tooltip is the hint, then what a click does.
+			assert_eq(text, how + " " + goals.action(i), "%s: its tooltip" % line)
+			assert_true(how.ends_with("."), "%s: one sentence: %s" % [line, how])
+			assert_false(how.trim_suffix(".").contains(". "), "%s: only one: %s" % [line, how])
 			assert_false(
 				tooltip.box.get_global_rect().intersects(goals.rows[i].get_global_rect()),
 				"%s: clear of its line" % line

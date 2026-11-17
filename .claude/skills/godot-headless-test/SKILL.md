@@ -51,6 +51,11 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - `await get_tree().process_frame` resumes before that frame's `_process` calls have run. To see what a node's
   `_process` did, await two frames, or use GUT's `await wait_process_frames(2)`.
 - The headless window is tiny. Send keys and actions with `Input.parse_input_event`, not mouse positions.
+- A mouse event pushed into the viewport (`get_viewport().push_input(event, true)`) does reach a HUD's
+  `_gui_input` and its hover, but only if the HUD is on a `CanvasLayer` above GUT's own window (layer 128,
+  whose panel otherwise takes every click) and not on the root canvas (where the world's camera moves it away
+  from its screen rect). Spec 042's test builds the HUD in a `CanvasLayer` with `layer = 129`; move the mouse
+  away in `after_each`, since the viewport remembers where it was.
 - Gold set directly (`sim.party.gold = 10_000`) is counted up on the HUD like coins, after
   `Hud.GOLD_CATCH_UP_SECONDS`. A test of "the gold count drops at once" must let the count catch up first
   (`hud.advance(Hud.GOLD_CATCH_UP_SECONDS + 0.1)`), or the count is still below the gold and has nothing to
@@ -92,6 +97,10 @@ by value, not with `assert_eq` against ints.
   with `assert_push_error("part of the message")`.
 - `[compile] FAIL` with `is shadowing an already-declared function`: a local or parameter has the name of a
   method of the class (a `chamber()` method and a `var chamber` local). Rename the local.
+- gdformat (4.5.0) mangles a lambda of more than one line written as a value in a dictionary literal: it
+  copies every comment in the file into the lambda, and the file then fails `--check` for ever. Keep such
+  lambdas to one line (`"x": func() -> void: _helper(a),`), and if it has happened, cut the copied comments
+  out by hand. Format writes CRLF on Windows; git turns it back to LF (`.gitattributes`).
 - `[format] FAIL` with `max-file-lines`: gdlint caps a file at 1000 lines. A long acceptance file stays
   under it with small helpers (one that returns the amounts of every event of a kind, say) rather than
   repeated `if x.size() == 1:` guards. `tests/acceptance/test_005_expedition_loop.gd` sits at exactly 1000:
