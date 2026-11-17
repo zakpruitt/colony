@@ -67,6 +67,14 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `world.sim_event.connect(func(e: SimEvent) -> void: events.append(e))` and then emptying the list with
   `events = []` leaves the lambda filling the old array, and the test sees nothing happen. Empty it with
   `events.clear()`, or keep the list in a member variable.
+- A test that calls a Control's `_gui_input` directly must also send what the GUI sends around it: call
+  `_notification(Control.NOTIFICATION_MOUSE_ENTER)` before the first motion and `NOTIFICATION_MOUSE_EXIT` when
+  the mouse leaves. Since spec 047 the depth ladder counts the mouse as over it only from those (a press
+  dragged off it keeps sending `_gui_input` from outside), so a test that only sends motion has no mouse over it.
+- A hover test must let a scrolling panel settle before putting the mouse on a row: a hover follows the row
+  under a still mouse as rows move (spec 047), so a mouse placed mid-scroll ends on a different row.
+- gdlint caps a script at 20 public methods (`max-public-methods`), and `DepthLadder` is at the cap. A read
+  added for a test there has to replace one, or be a public variable, which does not count.
 
 ## Files
 
