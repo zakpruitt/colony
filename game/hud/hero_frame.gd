@@ -5,6 +5,9 @@ extends HudPanel
 ## own dark panel. The bars ease to new values; a hit flashes the frame; a dead hero's frame is
 ## dimmed with a skull for an icon; a level-up pulses the level and restarts the XP bar.
 
+## Clicking the frame opens or closes this hero's sheet (spec 026).
+signal clicked(hero_id: int)
+
 const SIZE: Vector2 = Vector2(142, 34)
 ## Seconds a bar takes to ease to a new value.
 const EASE_SECONDS: float = 0.3
@@ -32,6 +35,8 @@ var hero_id: int
 var icon: TextureRect
 var name_label: Label
 var level_label: Label
+## True while this hero's sheet is open (spec 026): the frame's edge is drawn in yellow.
+var marked: bool = false
 
 var _hud: Hud
 var _class_id: StringName
@@ -126,7 +131,25 @@ func refresh(hero: Hero, delta: float) -> void:
 		fill = Palette.color(&"night")
 		bevel = Palette.color(&"dusk")
 		border = Palette.color(&"ink")
+	_apply_mark()
 	queue_redraw()
+
+
+func _gui_input(event: InputEvent) -> void:
+	var button: InputEventMouseButton = event as InputEventMouseButton
+	if button != null and button.pressed and button.button_index == MOUSE_BUTTON_LEFT:
+		clicked.emit(hero_id)
+		accept_event()
+
+
+## Makes the frame clickable, and edges it in yellow while [member marked] (the hero's sheet is
+## open); a hit's flash still shows. Called by [method refresh].
+func _apply_mark() -> void:
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	if marked and _flash <= 0.0:
+		border = Palette.color(&"yellow")
+		bevel = Palette.color(&"amber")
 
 
 ## The hero was hit: flash the frame for an instant.

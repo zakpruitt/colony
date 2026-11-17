@@ -1,9 +1,9 @@
 # 026 — The hero sheet: one place to look at each hero
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 011, 016, 017
-- **Pull request:** —
+- **Pull request:** [#26](https://github.com/zakpruitt/colony/pull/26)
 
 ## Intent
 
