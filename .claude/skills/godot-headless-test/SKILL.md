@@ -21,6 +21,9 @@ python tools/dev.py check --only=compile,tests
 - For a change to existing behaviour, put the old value back (copy the file aside; do not `git checkout` over
   uncommitted work), see the test fail, restore.
 - Assert the outcome the requirement names. "No error occurred" and "the method was called" are not outcomes.
+- A comparison of a count with sums made in the test passes when both are 0. Spec 045's Healing check on the
+  last fight passed with healing left out of it, because that fight had no healing; make the test wait for
+  data that has something in it (spec 046 found this by breaking the code on purpose).
 
 ## Testing the sim
 

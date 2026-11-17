@@ -170,12 +170,13 @@ Things marked <span class="tag built">Built</span> work today;
   <li><strong>The party tally</strong> (spec 045): <kbd>T</kbd>, or the small button with three bars left of
   the hero frames, opens a damage meter on the left. Three tabs (<kbd>Q</kbd> <kbd>E</kbd> move between them)
   show each hero's damage dealt to monsters, healing done (only the health actually restored: healing past
-  full health is never counted) or damage taken (traps included), as a bar in the hero's colour scaled to the
+  full health is never counted) or damage taken (traps included; damage dealt and taken count a killing blow whole, overkill included,
+  as the tooltips say), as a bar in the hero's colour scaled to the
   largest, with the number and the hero's share. A switch picks <em>Last fight</em> (the fight under way
   while fighting; the line above the bars says what it was, where and how long:
   <em>Last fight: 3 ogres, depth 7, 14 s</em>) or <em>Session</em> (since the game was opened or loaded, with
   each hero's side quests under the bars). It counts only what happens while you watch: the time away is
-  the away report's. It is never saved, and it changes nothing about the game.</li>
+  the away report's; a game opened in the middle of a fight shows that fight as the one under way. It is never saved, and it changes nothing about the game.</li>
   <li><strong>The depth ladder</strong> (spec 033): a column of depths down the right edge shows the whole
   descent at once: where the party is, the safe depth, how deep it has been, where it is heading and which
   guardians are beaten. Click a depth to send the party there; <kbd>L</kbd> hides it. Each depth's number
@@ -478,12 +479,16 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   <code>WIPED</code> in the middle of the screen and stays until 8 seconds after the heroes stand up
   again (longer while the mouse rests on it, and a new fight does not hide it). It says what beat
   the party and where (<em>Beaten by the Slime King on depth 5</em>, or <em>Beaten on depth 7 by 3
-  ogres</em>), with <em>(3 times)</em> after the third defeat in a row by the same guardian; the plainest
+  ogres</em>), with <em>(2 times)</em> from the second defeat in a row by the same guardian; the plainest
   reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Depth 7 is 3
   below the safe depth</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the hero
   with the cheapest training you can afford on its Training tab), <em>Buy an upgrade</em> (opens the shop),
-  or <em>Hold here</em> (sets the guardian order to Hold). Each has a tooltip. It hides while a panel is open, and says nothing about wipes while you were
-  away; the journal keeps its first line.</li>
+  or <em>Hold here</em> (sets the guardian order to Hold; it reads <em>Holding</em> only while the order is
+  Hold). Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
+  the button said. It hides while a panel is open, and its 8 seconds wait while it is hidden. It says
+  nothing about wipes while you were away or seen only after a stall, and it describes the lost fight even
+  when the defeat and the revival arrive in one frame (at 4x). The journal writes its first line and where
+  the party falls back to: <em>Beaten by the Slime King on depth 5; falling back to depth 4</em>.</li>
   <li><strong>The journal</strong> (spec 027): the game remembers the last 50 notable happenings with the game
   time (a new deepest depth, a depth turning stable, a level up, a wipe and what beat the party where, a
   guardian slain, an upgrade bought, a side quest done, passed or sprung, a microskill learned). The newest shows for 4 seconds in a one-line ticker just above the party

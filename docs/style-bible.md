@@ -313,8 +313,8 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
 - **The defeat note** (spec 041) is an overlay of its own after a wipe: a `HudPanel` centred across the
   screen, its bottom 6 pixels above `WIPED` (popped size) and so below the goals tracker. What beat the party
   in `white`, the reason under it in `silver`, both centred, then a centred row of up to three `HudButton`s 4
-  pixels apart; `Holding` is lit as a toggle is. 8 s after the heroes stand (not while the mouse is
-  on it) its text steps down `silver`, `steel`,
+  pixels apart; `Holding` is lit as a toggle is, only while the order is Hold. 8 s after the heroes stand (not while
+  the mouse is on it or a panel hides it) its text steps down `silver`, `steel`,
   `slate` (0.2 s each), buttons too, and it goes; never by opacity. It hides while any panel is open.
 - **The party tally** (spec 045) is a damage meter in the hero sheet's place and at its size (240x150),
   never sharing the screen with the other panels. `Party tally` in `yellow`; the span switch (`Last fight`,

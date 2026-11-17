@@ -52,10 +52,11 @@ const KEYS_HINT: String = "Q E tabs   T close"
 const TAB_NAMES: Array[String] = ["Damage", "Healing", "Taken"]
 const SPAN_NAMES: Array[String] = ["Last fight", "Session"]
 ## The tooltip of each tab and of each side of the switch (spec 045 R6), in the same orders.
+## A blow's whole size is what the events carry, so Damage and Taken include overkill (spec 046 R8).
 const TAB_TIPS: Array[String] = [
-	"Damage each hero dealt to monsters.",
+	"Damage each hero dealt to monsters, overkill on a killing blow included.",
 	"Health each hero gave back to the party, not counting healing past full health.",
-	"Damage each hero took, from monsters and from sprung traps.",
+	"Damage each hero took from monsters and sprung traps, overkill on a last blow included.",
 ]
 const SPAN_TIPS: Array[String] = [
 	"Count only the last fight, or the one under way.",
@@ -152,6 +153,7 @@ func setup(simulation: Simulation, world: World) -> void:
 	_build()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
+		_join_fight()
 	advance(0.0)
 
 
@@ -328,6 +330,18 @@ func _on_sim_event(event: SimEvent) -> void:
 			for id: int in [event.source_id, event.target_id]:
 				if id >= Expedition.FIRST_MONSTER_ID:
 					_fight_monsters[id] = true
+
+
+## Made while the party is fighting (the game opened or returned to mid-fight), the tally takes the
+## fight under way as begun, from the tick it began, as if it had heard it start (spec 046 R7):
+## the fight's line names it, its blows from here count in it, and the session counts it.
+func _join_fight() -> void:
+	var e: Expedition = _simulation.expedition
+	var room: LabyrinthChamber = e.chamber()
+	if e.state != Expedition.State.FIGHTING or e.battle == null or room == null:
+		return
+	var began: int = maxi(0, _simulation.tick - e.battle.tick)
+	_on_sim_event(SimEvent.new(SimEvent.Kind.ENCOUNTER_STARTED, began, -1, -1, room.index))
 
 
 ## The kinds of monster in the battle in chamber [param chamber_index], if the expedition is still
