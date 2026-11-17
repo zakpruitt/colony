@@ -186,6 +186,18 @@ func write(sentence: String) -> void:
 		_fill_panel()
 
 
+## Writes [param sentence] as a line now and shows it in the ticker: the ladder's warning for a
+## dangerous target (spec 043 R3).
+func announce(sentence: String) -> void:
+	if _simulation == null or sentence.is_empty():
+		return
+	write(sentence)
+	_ticker_label.text = sentence
+	_ticker_label.reset_size()
+	_ticker_age = 0.0
+	_show_ticker()
+
+
 ## Game time as m:ss, or h:mm:ss from an hour on.
 static func clock(tick: int) -> String:
 	var seconds: int = floori(float(tick) / Simulation.TICKS_PER_SECOND)
