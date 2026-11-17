@@ -20,7 +20,7 @@ const PARTY_SPEED: float = 3.0  # tiles per second
 const CLIMB_SPEED: float = 4.0  # tiles per second
 const REST_BELOW: float = 0.6
 const REST_HEAL_PER_SECOND: float = 0.04
-const RESPAWN_SECONDS: float = 90.0
+const RESPAWN_SECONDS: float = 90.0  # from DepthTiming.DEEP_DEPTH down; less nearer the surface
 const REVIVE_SECONDS: float = 5.0
 ## A fight that lasts this long overwhelms the party (it is wiped).
 const BATTLE_LIMIT_SECONDS: float = 90.0
@@ -58,8 +58,13 @@ var target_depth: int = 1
 var auto_push: bool = true
 var last_stable_depth: int = 1
 var deepest_depth: int = 1
-## Seconds on one depth without a wipe before it counts as stable. Tunable.
-var stable_seconds: float = 600.0
+## Seconds on a depth without a wipe before it is stable: [method DepthTiming.stable_seconds_at],
+## or, once set by hand (a test or tool), that value at every depth.
+var stable_seconds: float:
+	get:
+		return _stable_set if _stable_set >= 0.0 else DepthTiming.stable_seconds_at(depth)
+	set(value):
+		_stable_set = value
 ## The fight in progress, or null.
 var battle: Battle
 
@@ -68,6 +73,7 @@ var _party: Party
 var _rng: SimRng
 var _loot_rng: SimRng
 var _tick: int = 0
+var _stable_set: float = -1.0
 var _events: Array[SimEvent] = []
 
 ## Chambers the party has fought in, by Vector2i(depth, index). Only stepping changes them:
@@ -417,7 +423,7 @@ func _travel() -> void:
 	if depth < target_depth:
 		goal = _shaft_middle(depth)
 	elif depth > target_depth:
-		goal = _landing_column(depth)
+		goal = _shaft_middle(depth - 1)
 	elif facing > 0:
 		goal = level.chambers[level.chambers.size() - 1].rect.end.x - 1
 	else:
@@ -484,11 +490,6 @@ func _formation_x(rank: int) -> float:
 	return clampf(hero_x, first, last)
 
 
-## Where the shaft from the level above lands on this depth: the middle of the shaft.
-func _landing_column(level_depth: int) -> float:
-	return _shaft_middle(level_depth - 1)
-
-
 ## The middle of the shaft down from [param level_depth], where a climber stands on the ladder.
 func _shaft_middle(level_depth: int) -> float:
 	return _labyrinth.shaft_column(level_depth) + Labyrinth.SHAFT_WIDTH / 2.0
@@ -498,7 +499,7 @@ func _shaft_middle(level_depth: int) -> float:
 ## the middle of the START chamber at depth 1, otherwise where the shaft from above lands.
 func _arrival_x(level_depth: int) -> float:
 	if level_depth > 1:
-		return _landing_column(level_depth)
+		return _shaft_middle(level_depth - 1)  # where the shaft from above lands
 	var level: LabyrinthLevel = _labyrinth.level(1)
 	for room: LabyrinthChamber in level.chambers:
 		if room.kind == LabyrinthChamber.Kind.START:
@@ -571,8 +572,7 @@ func _is_guardian_chamber(level_depth: int, chamber_index: int) -> bool:
 
 
 func _refill_tick(fill: ChamberState) -> int:
-	var seconds: float = GUARDIAN_RESPAWN_SECONDS if fill.guardian else RESPAWN_SECONDS
-	return fill.cleared_tick + Combatant.seconds_to_ticks(seconds)
+	return fill.cleared_tick + Combatant.seconds_to_ticks(DepthTiming.refill_seconds(fill))
 
 
 ## The visit a chamber with record [param fill] (null if none) is on now: the next one once a
@@ -612,6 +612,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	if fill == null:
 		fill = ChamberState.new()
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
+		fill.depth = level_depth
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
 		fill.visit += 1

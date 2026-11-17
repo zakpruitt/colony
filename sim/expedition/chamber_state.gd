@@ -5,6 +5,8 @@ extends RefCounted
 
 ## How many times the chamber has refilled: 0 for its first monsters.
 var visit: int = 0
+## The depth of the chamber's level.
+var depth: int = 1
 ## True for a guardian's chamber, which stays empty longer once beaten.
 var guardian: bool = false
 ## The tick the party last cleared it, or -1 while it holds monsters.
