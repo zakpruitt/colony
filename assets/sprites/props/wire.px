@@ -1,0 +1,21 @@
+# A tripwire (a side quest): a taut wire between two pegs, a little bell on it.
+category = item
+size = 16x16
+
+[taut]
+................
+................
+................
+................
+................
+................
+..pp........pp..
+.p34pppppppp34p.
+.p34kkkkkkkk34p.
+.p34pppabppp34p.
+.p34p.pa9p.p34p.
+.p34p..pp..p34p.
+.p34p......p34p.
+.p34p......p34p.
+.p55p......p55p.
+..pp........pp..
