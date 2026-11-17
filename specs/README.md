@@ -63,7 +63,7 @@ implementer lane builds exactly that.
 
 Zak's direction after the demo: areas to choose between instead of one descent, and a skill tree of real
 abilities for every hero, with paragon points after it (`docs/design/world.md`, "Areas and skill trees").
-049 areas and 050 abilities in combat have landed. Still to write: 055 the tree on the hero sheet. New rows go in this table.
+049 areas and 050 abilities in combat have landed. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
@@ -71,3 +71,5 @@ abilities for every hero, with paragon points after it (`docs/design/world.md`, 
 | [053 The area map](053-the-area-map/spec.md) | in progress, provisional | 030, 037, 042, 049 |
 | [054 Zones on screen](054-zones-on-screen/spec.md) | in progress, provisional | 006, 008, 012, 018, 048, 049 |
 | [052 Resources](052-resources/spec.md) | written, waits for 051 and 053; provisional | 016, 017, 022, 031, 049, 051, 053 |
+| [055 The tree on the hero sheet](055-the-tree-on-the-sheet/spec.md) | written, waits for 051; provisional | 034, 037, 041, 042, 051 |
+| [056 Abilities on screen](056-abilities-on-screen/spec.md) | written, waits for 051; provisional | 010, 027, 045, 050, 051 |
