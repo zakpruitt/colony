@@ -106,6 +106,20 @@ stable depth, with every chamber freshly populated.
   Monster ids come from where the monster waits (`Expedition.monster_id`: depth, chamber, visit and place in
   the encounter), not from the order anything was asked for.
 
+## Pace by depth
+
+Spec 036. How long things take on a level depends on its depth, in `DepthTiming` (`sim/expedition/`), so a new
+game is busy and the deep game keeps its slow pace. A depth is stable after
+`DepthTiming.stable_seconds_at(depth)`: 60 s at depth 1, growing by the same factor each level to 600 s at
+depth 10 and every depth below. `Expedition.stable_seconds` reads that curve at the party's depth; a value set
+by hand (a test, the `sim` tool) holds flat at every depth. A cleared chamber refills after
+`DepthTiming.respawn_seconds_at(depth)`: 5 s at depth 1, rising evenly to `Expedition.RESPAWN_SECONDS` (90 s)
+at depth 10; a beaten guardian's chamber still waits `GUARDIAN_RESPAWN_SECONDS`. Each `ChamberState` knows its
+depth for that. Reaching level n takes `(n - 1) * (25n - 30)` XP (`Hero.xp_for_level`): 20 for level 2, 380
+for level 5, a few percent under the old `25 * (n - 1) * n` for late levels. `python tools/dev.py sim
+--timeline` prints the game time of each first (level 2 and 5 of every hero, depth 2 and 5, the first
+affordable upgrade, the first guardian met and beaten), which is how the opening is measured.
+
 ## Side quests and microskills
 
 Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists
