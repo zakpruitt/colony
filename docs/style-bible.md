@@ -173,6 +173,11 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
   bones, a skull and a nest; VAULT a chest among coin piles with a gold gleam; PLAIN one to three of
   stalactites, mushrooms, a broken crate or a puddle, with glowing mushrooms from the stone band down and
   crystals in the deep.
+- **Side-quest props** (`assets/sprites/props/`, spec 028): one plain prop per side quest, placeholder by
+  decision: `chest` (locked chest, `item`), `door` (stuck door, `fx` 24x24), `wanderer` (hurt wanderer, `item`),
+  `stone` (rune stone, `fx` 24x24, `cyan` runes) and `wire` (tripwire, `item`). Each has a hand-drawn `ink`
+  outline, stands on the floor line at the middle of its chamber, and is drawn under the darkness like the
+  monsters. Its colours are its burst when the quest is done.
 
 ## Text
 

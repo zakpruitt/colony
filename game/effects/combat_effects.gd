@@ -165,6 +165,8 @@ const SLAIN_LIFE: float = 2.5
 
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
+## The effects of side quests and microskills (spec 028), advanced with these.
+var quest_effects: QuestEffects
 
 var _world: World
 var _simulation: Simulation
@@ -211,12 +213,18 @@ func setup(world: World, simulation: Simulation) -> void:
 	_spark_texture = sheet.part(&"spark") if sheet != null else null
 	if not _world.sim_event.is_connected(_on_sim_event):
 		_world.sim_event.connect(_on_sim_event)
+	if quest_effects == null:
+		quest_effects = QuestEffects.new()
+		quest_effects.name = "QuestEffects"
+		add_child(quest_effects)
+	quest_effects.setup(world, simulation)
 
 
 ## Advances every effect. Called every frame; tests call it.
 func advance(delta: float) -> void:
 	if _world == null or _world.effects_layer == null:
 		return
+	quest_effects.advance(delta)
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()

@@ -2,11 +2,13 @@ class_name Showcase
 extends Node
 ## A development scene (spec 018) that plays the loop's moments on demand, one after another, each
 ## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, a climb down and up, a
-## wipe and the revival, a depth becoming stable, and a fight in each deeper band.
+## wipe and the revival, a depth becoming stable, a fight in each deeper band, and side quests
+## (spec 028): one done, one nobody can do, a tripwire sprung and a microskill learned.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
-## simulation's own classes: hero health and XP, a combatant's crit chance, the expedition's target
-## depth and stable time, and [method Expedition.arrive_from_save] to cut to another depth. The
+## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
+## target depth, stable time and place, and [method Expedition.arrive_from_save] to cut to another
+## depth. The
 ## pictures are the game's own. Everything moves in [method advance], so a test can drive a pass.
 ##
 ## Run it with [code]godot --path . res://game/dev/showcase.tscn[/code].
@@ -32,6 +34,10 @@ const MOMENTS: Array[StringName] = [
 	&"clay_fight",
 	&"stone_fight",
 	&"deep_fight",
+	&"quest_done",
+	&"quest_missed",
+	&"tripwire_sprung",
+	&"microskill_learned",
 ]
 ## What the label says during each moment.
 const CAPTIONS: Dictionary[StringName, String] = {
@@ -49,6 +55,10 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"clay_fight": "A FIGHT IN THE CLAY",
 	&"stone_fight": "A FIGHT IN THE STONE",
 	&"deep_fight": "A FIGHT IN THE DEEP",
+	&"quest_done": "A SIDE QUEST: THE ROGUE PICKS A LOCK",
+	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
+	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
+	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
 }
 ## Seconds a moment goes on showing once what it is about has happened.
 const LINGER: Dictionary[StringName, float] = {
@@ -66,6 +76,10 @@ const LINGER: Dictionary[StringName, float] = {
 	&"clay_fight": 4.0,
 	&"stone_fight": 4.0,
 	&"deep_fight": 4.0,
+	&"quest_done": 2.2,
+	&"quest_missed": 2.0,
+	&"tripwire_sprung": 1.8,
+	&"microskill_learned": 2.2,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
@@ -81,6 +95,23 @@ const BAND_LEVELS: Dictionary[StringName, int] = {
 }
 ## How many times their health the monsters of the first fight have.
 const TOUGHER: int = 3
+## The side quest each quest moment walks into, and the depth its search starts from.
+const QUEST_OF: Dictionary[StringName, StringName] = {
+	&"quest_done": &"locked_chest",
+	&"quest_missed": &"locked_chest",
+	&"tripwire_sprung": &"tripwire",
+	&"microskill_learned": &"rune_stone",
+}
+const QUEST_DEPTH: int = 2
+## The level of the heroes in the quest moments (all four can then do every quest), and the
+## deepest depth searched for a quest.
+const QUEST_LEVEL: int = 6
+const QUEST_SEARCH: int = 40
+## The rogue's id, and the level of its first microskill.
+const ROGUE: int = 2
+const FIRST_SKILL_LEVEL: int = 2
+## How many tiles before a quest's chamber the party is put, at most, so the walk in shows.
+const QUEST_APPROACH: float = 3.0
 ## The depth the climbs happen from (down to the next and back up).
 const CLIMB_DEPTH: int = 2
 ## How many tiles short of the shaft the cut to a climb stops, so the walk onto the ladder shows.
@@ -139,6 +170,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	advance(delta)
+
+
+## Starts the moment [param wanted] now, skipping those before it (for tests and a quick look).
+func skip_to(wanted: StringName) -> void:
+	var index: int = MOMENTS.find(wanted)
+	if index < 0 or done:
+		return
+	moment_index = index - 1
+	_next_moment()
 
 
 ## The moment showing now, or &"" once the pass is over.
@@ -228,6 +268,18 @@ func _begin(current: StringName) -> void:
 				hero.health = hero.max_health()
 			_cut_to_depth(BAND_DEPTHS[current], BAND_DEPTHS[current])
 			_cut_to_fight()
+		&"quest_done", &"quest_missed", &"tripwire_sprung", &"microskill_learned":
+			_settle_now()
+			for hero: Hero in sim.party.heroes:
+				_set_level(hero, QUEST_LEVEL)
+			var rogue: Hero = sim.party.hero(ROGUE)
+			if current != &"quest_done":
+				# Nobody else picks locks or spots traps: at level 1, neither does the rogue.
+				_set_level(rogue, 1)
+			if current == &"microskill_learned":
+				# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
+				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
+			_cut_to_quest(QUEST_OF[current])
 
 
 func _end_moment() -> void:
@@ -342,6 +394,18 @@ func _on_sim_event(event: SimEvent) -> void:
 		&"depth_stable":
 			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:
 				_see()
+		&"quest_done":
+			if event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+				_see()
+		&"quest_missed":
+			if event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and not event.flag:
+				_see()
+		&"tripwire_sprung":
+			if event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and event.flag:
+				_see()
+		&"microskill_learned":
+			if event.kind == SimEvent.Kind.MICROSKILL_LEARNED:
+				_see()
 
 
 ## True while the moment waits for a fight the party is still walking to.
@@ -408,3 +472,35 @@ func _cut_to_shaft() -> void:
 				return
 		_settle_now()
 		sim.step()
+
+
+## Cuts to the first depth from QUEST_DEPTH holding [param quest] in a chamber, and puts the party
+## a few tiles before that chamber, in the tunnel, walking in.
+func _cut_to_quest(quest: StringName) -> void:
+	var sim: Simulation = main.simulation
+	for depth: int in range(QUEST_DEPTH, QUEST_SEARCH + 1):
+		var level: LabyrinthLevel = sim.labyrinth.level(depth)
+		var found: LabyrinthChamber = null
+		for room: LabyrinthChamber in level.chambers:
+			if sim.expedition.side_quest_in(depth, room.index) == quest:
+				found = room
+				break
+		if found == null:
+			continue
+		sim.set_auto_push(false)
+		_cut_to_depth(depth, depth)
+		_settle_now()
+		if sim.expedition.side_quest_in(depth, found.index) != quest:
+			continue
+		var back: float = QUEST_APPROACH
+		while back > 0.1 and level.chamber_at(floori(found.rect.position.x - back)) != null:
+			back -= 0.5
+		sim.expedition.x = found.rect.position.x - maxf(back, 0.1)
+		sim.expedition.facing = 1
+		return
+
+
+func _set_level(hero: Hero, level: int) -> void:
+	hero.level = level
+	hero.xp = Hero.xp_for_level(level)
+	hero.health = hero.max_health()

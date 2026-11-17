@@ -10,7 +10,8 @@ extends Node2D
 ## [code]_process[/code] is turned off), so a test that calls [method sync] sees exactly what a
 ## frame would show.
 ##
-## Children, in draw order: the labyrinth view, Characters, Effects, and the camera.
+## Children, in draw order: the labyrinth view, the ambience, QuestProps, Characters, Effects,
+## and the camera.
 
 ## Every simulation event, once, in order, in the frame it happened.
 signal sim_event(event: SimEvent)
@@ -64,6 +65,8 @@ var effects_layer: Node2D
 var ambience: Ambience
 ## The arrow over the party pointing toward its target depth (spec 027 R5).
 var target_marker: TargetMarker
+## The side quests waiting in chambers, and the work on one (spec 028).
+var quest_props: QuestProps
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -111,6 +114,11 @@ func _ready() -> void:
 	ambience.process_priority = 2  # after this node has placed the party's light
 	add_child(ambience)
 	ambience.setup(labyrinth_view)
+	# Props stand on the floor behind the characters.
+	quest_props = QuestProps.new()
+	quest_props.name = "QuestProps"
+	add_child(quest_props)
+	quest_props.setup(self, simulation)
 	_characters = Node2D.new()
 	_characters.name = "Characters"
 	_characters.position = FEET_LIFT
@@ -210,6 +218,7 @@ func sync(delta: float) -> void:
 	var game_delta: float = delta * maxi(speed, 1)
 	_follow(game_delta)
 	_act()
+	quest_props.animate(delta)
 	if _frozen > 0.0:
 		_frozen -= delta
 	else:
@@ -316,6 +325,7 @@ func _scan_waiting() -> void:
 			for monster: Combatant in expedition.monsters_in(depth, chamber_index):
 				_waiting[monster.id] = true
 				_add_monster(monster, floor_pixels)
+	quest_props.scan(_built)
 
 
 ## Gives a sprite to every living monster in the fight that has none (after a stall, say).
@@ -418,6 +428,8 @@ func _show(event: SimEvent, animate: bool) -> void:
 			_died(event.source_id, animate)
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
+		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
+			_scan_due = true  # a cleared quest's prop goes at once
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_cut_short_everything()
 			_scan_due = true
@@ -516,7 +528,7 @@ func _follow(delta: float) -> void:
 		if _monsters.has(id):
 			goal = Vector2(_monsters[id].x * TILE, _floors[id])
 		else:
-			goal = _hero_feet(id)
+			goal = quest_props.goal_for(id, _hero_feet(id))
 		_goals[id] = goal
 		var sprite: CharacterSprite = _sprites[id]
 		if _snap_all or (_snap_heroes and not _monsters.has(id)):

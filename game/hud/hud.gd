@@ -65,7 +65,7 @@ var depth_label: Label
 var depth_caption: Label
 ## The line between the depth and the rest of the panel.
 var depth_divider: ColorRect
-## "Stable N": the last stable depth.
+## "Safe N": the last stable depth, the one the party falls back to (spec 028 R8).
 var stable_label: Label
 var target_caption: Label
 ## The target depth's number, between the - and + buttons.
@@ -503,7 +503,7 @@ func _advance_depth(delta: float) -> void:
 	_auto_on = expedition.auto_push
 	var changed: bool = false
 	changed = _set_text(depth_label, str(_depth)) or changed
-	changed = _set_text(stable_label, "Stable %d" % expedition.last_stable_depth) or changed
+	changed = _set_text(stable_label, "Safe %d" % expedition.last_stable_depth) or changed
 	changed = _set_text(target_label, str(target)) or changed
 	changed = _set_text(state_label, status_text()) or changed
 	var road: PackedStringArray = _stable_parts()
