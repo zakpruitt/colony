@@ -1,9 +1,9 @@
 # 041 — After a defeat: what went wrong and what to do
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 020, 027, 029, 035, 037, 038, 039
-- **Pull request:** —
+- **Pull request:** [#42](https://github.com/zakpruitt/colony/pull/42)
 
 ## Intent
 
