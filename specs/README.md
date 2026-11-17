@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 042 | [Goals you can click](042-goals-you-can-click/spec.md) | M5 | landed on dev, [#43](https://github.com/zakpruitt/colony/pull/43), provisional | 034, 035, 037, 039 |
 | 041 | [After a defeat](041-after-a-defeat/spec.md) | M5 | landed on dev, [#42](https://github.com/zakpruitt/colony/pull/42), provisional | 020, 027, 029, 035, 037, 038, 039 |
 | 040 | [Orders that hold](040-orders-that-hold/spec.md) | M4 | landed on dev, [#41](https://github.com/zakpruitt/colony/pull/41), provisional | 035, 039 |
 | 039 | [The countdown tells the truth](039-the-countdown-tells-the-truth/spec.md) | M5 | landed on dev, [#40](https://github.com/zakpruitt/colony/pull/40), provisional | 027, 036, 037 |
@@ -57,4 +58,3 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [042 Goals you can click](042-goals-you-can-click/spec.md): a goal's line takes the player to the shop, the hero's sheet, the orders or the ladder | provisional, in progress | 034, 035, 037, 039 |

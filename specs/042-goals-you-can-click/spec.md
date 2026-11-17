@@ -1,9 +1,9 @@
 # 042 — Goals you can click
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 034, 035, 037, 039
-- **Pull request:** —
+- **Pull request:** [#43](https://github.com/zakpruitt/colony/pull/43)
 
 ## Intent
 
