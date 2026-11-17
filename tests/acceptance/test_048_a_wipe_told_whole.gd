@@ -260,7 +260,7 @@ func test_r2_a_stall_keeps_the_camera() -> void:
 		frames += 1
 	var down_at: int = _sim.tick
 	# Game ticks since the wipe to stall at, and ticks the stall lasts; what the camera is doing.
-	var stalls: Array[Vector2i] = [Vector2i(3, 6), Vector2i(17, 4), Vector2i(42, 5)]
+	var stalls: Array[Vector2i] = [Vector2i(3, 8), Vector2i(15, 7), Vector2i(38, 8)]
 	var doing: Array[String] = ["holding", "travelling", "arrived"]
 	for n: int in stalls.size():
 		var stall: Vector2i = stalls[n]
@@ -271,6 +271,7 @@ func test_r2_a_stall_keeps_the_camera() -> void:
 				steady_world.sync(FRAME)
 				_world.sync(FRAME)
 		var ticks: int = stall.y
+		assert_gt(ticks, World.STALL_TICKS, "a stall long enough to snap the sprites")
 		for i: int in ticks:
 			steady.step()
 			for j: int in FRAMES_PER_TICK:
