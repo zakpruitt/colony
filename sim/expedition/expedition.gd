@@ -72,7 +72,9 @@ var stable_seconds: float:
 	get:
 		if _stable_set >= 0.0:
 			return _stable_set
-		return DepthTiming.stable_seconds_at(level_at(depth))
+		# Spec 049 R2 as amended: by the stage number, not its level, so every area's first
+		# stage is safe in a minute.
+		return DepthTiming.stable_seconds_at(depth)
 	set(value):
 		_stable_set = value
 ## The fight in progress, or null.
@@ -711,7 +713,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
-		fill = ChamberState.new(level_at(level_depth))
+		fill = ChamberState.new(level_depth)  # refills by the stage number (spec 049 R2)
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):

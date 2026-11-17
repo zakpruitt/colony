@@ -186,14 +186,23 @@ func test_r2_a_stage_is_a_depth() -> void:
 			var level: int = def.base_level + stage - 1
 			assert_eq(e.level_at(stage), level, "%s %d is level %d" % [area, stage, level])
 			e.depth = stage
+			# Amended by the lead: the timers go by the stage number, not the level.
 			assert_almost_eq(
 				e.stable_seconds,
-				DepthTiming.stable_seconds_at(level),
+				DepthTiming.stable_seconds_at(stage),
 				0.001,
-				"%s %d's safe timer is level %d's" % [area, stage, level]
+				"%s %d's safe timer is depth %d's" % [area, stage, stage]
 			)
 			var level_map: LabyrinthLevel = sim.labyrinth.level(stage)
 			for room: LabyrinthChamber in level_map.chambers:
+				var fill: ChamberState = e._record(stage, room.index)
+				if not fill.guardian:
+					assert_almost_eq(
+						DepthTiming.refill_seconds(fill),
+						DepthTiming.respawn_seconds_at(stage),
+						0.001,
+						"%s %d refills as depth %d did" % [area, stage, stage]
+					)
 				for monster: Combatant in e.monsters_in(stage, room.index):
 					var monster_def: MonsterDef = Content.monster(monster.def_id)
 					var expected := Combatant.from_monster(monster_def, level, monster.id)

@@ -134,7 +134,9 @@ opens it. Inside an area the party moves through stages exactly as it moved thro
 keeps the old names: `Expedition.depth`, `target_depth`, `last_stable_depth` and `deepest_depth` are stages
 of the area the party is in. A stage's level is `base level + stage - 1` (`Expedition.level_at`): monsters
 are made at that level (`Combatant.from_monster`, growing from `MonsterDef.base_level`, which kept the
-numbers of the old `min_depth`), and `DepthTiming` and `SideQuestDef.reward_at` read it. A chamber holds only
+numbers of the old `min_depth`), and `SideQuestDef.reward_at` reads it. The timers to become safe and to refill
+a chamber (`DepthTiming`) go by the stage number instead, so every area's first stage is safe in a minute.
+A chamber holds only
 its area's monsters that have appeared by its stage (`EncounterRoll`), and the guardian stands at its stage
 and every `GUARDIAN_EVERY` stages after.
 
