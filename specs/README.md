@@ -33,9 +33,11 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### Planned for the 2026-11-16 overnight run
+### Drafts awaiting Zak
 
-Written and spawned by the lead as each wave's dependencies land; numbers and scope may shift.
+The direction these follow is `docs/design/world.md`.
 
-| Wave | Spec | Depends on |
+| Spec | Status | Depends on |
 |---|---|---|
+| [025 Finds and trades](025-finds-and-trades/spec.md): chambers that hold something other than a fight, worked by a hero's trade (simulation) | draft, three open questions | 005, 014, 020, 023 |
+| [026 Seeing finds](026-seeing-finds/spec.md): props, the worker at work, success and failure on screen | draft | 008, 010, 011, 021, 025 |
