@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 045 | [The party tally](045-the-party-tally/spec.md) | M5 | landed on dev, [#46](https://github.com/zakpruitt/colony/pull/46), provisional | 006, 025, 026, 029, 030, 037 |
 | 043 | [A ladder that warns and can be scrolled](043-a-ladder-that-warns/spec.md) | M5 | landed on dev, [#45](https://github.com/zakpruitt/colony/pull/45), provisional | 033, 036, 042 |
 | 044 | [Old saves level up](044-old-saves-level-up/spec.md) | M5 | landed on dev, [#44](https://github.com/zakpruitt/colony/pull/44), provisional | 014, 029, 036 |
 | 042 | [Goals you can click](042-goals-you-can-click/spec.md) | M5 | landed on dev, [#43](https://github.com/zakpruitt/colony/pull/43), provisional | 034, 035, 037, 039 |
@@ -60,4 +61,3 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [045 The party tally](045-the-party-tally/spec.md): each hero's damage, healing and damage taken as bars, for the last fight and the session | provisional, in progress | 006, 025, 026, 029, 030, 037 |

@@ -1,9 +1,9 @@
 # 045 — The party tally: who is doing what
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 006, 025, 026, 029, 030, 037
-- **Pull request:** —
+- **Pull request:** [#46](https://github.com/zakpruitt/colony/pull/46)
 
 ## Intent
 
