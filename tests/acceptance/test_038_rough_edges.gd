@@ -440,17 +440,17 @@ func test_r3_ordinary_fights_are_unchanged() -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## A simulation of seed 1 or later whose depth 2 or 3 holds a locked chest on its first visit
-## two chambers or more along from the party's way in; the party, at [param level], stands at
+## A simulation of seed 1 or later whose depth 2 or 3 holds side quest [param quest] on its first
+## visit two chambers or more along from the party's way in; the party, at [param level], stands at
 ## the start of that depth facing it, auto-push off. Returns Vector2i(depth, chamber).
-func _quest_far_away(level: int) -> Vector2i:
+func _quest_far_away(level: int, quest: StringName) -> Vector2i:
 	for seed_value: int in range(1, 400):
 		var sim := Simulation.new(seed_value)
 		var e: Expedition = sim.expedition
 		for depth: int in [2, 3]:
 			var rooms: Array[LabyrinthChamber] = sim.labyrinth.level(depth).chambers
 			for room: LabyrinthChamber in rooms:
-				if room.index < 2 or e.side_quest_in(depth, room.index) != &"locked_chest":
+				if room.index < 2 or e.side_quest_in(depth, room.index) != quest:
 					continue
 				sim.set_auto_push(false)
 				e.depth = depth
@@ -465,7 +465,7 @@ func _quest_far_away(level: int) -> Vector2i:
 				_show(sim)
 				_play_frame()
 				return Vector2i(depth, room.index)
-	fail_test("no seed has a locked chest far along depth 2 or 3")
+	fail_test("no seed has a %s far along depth 2 or 3" % quest)
 	return Vector2i(0, -1)
 
 
@@ -479,12 +479,14 @@ func _glint_parts(at: Vector2i, seconds: float) -> Dictionary[StringName, bool]:
 
 
 func test_r4_side_quests_in_the_dark() -> void:
-	var at: Vector2i = _quest_far_away(1)
+	# A rune stone: the mage reads runes only from level 4, out of reach of a level-1 party's walk
+	# (a level-1 rogue can be level 2, a Lockpicker, by the time it reaches a chest).
+	var at: Vector2i = _quest_far_away(1, &"rune_stone")
 	var props: QuestProps = _world.quest_props
-	var chest: Sprite2D = props.prop(at.x, at.y)
-	assert_not_null(chest, "the chest's prop is shown")
+	var stone: Sprite2D = props.prop(at.x, at.y)
+	assert_not_null(stone, "the rune stone's prop is shown")
 	assert_gt(
-		chest.position.distance_to(_world.ambience.party_light_position),
+		stone.position.distance_to(_world.ambience.party_light_position),
 		3.0 * Ambience.PARTY_RADIUS,
 		"far out of the party's light"
 	)
@@ -502,7 +504,7 @@ func test_r4_side_quests_in_the_dark() -> void:
 	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		var near: bool = (
-			chest.position.distance_to(_world.ambience.party_light_position)
+			stone.position.distance_to(_world.ambience.party_light_position)
 			< Ambience.PARTY_RADIUS - 8.0
 		)
 		if near:
@@ -512,14 +514,14 @@ func test_r4_side_quests_in_the_dark() -> void:
 		missed = missed or _has(events, SimEvent.Kind.SIDE_QUEST_MISSED)
 		if missed and lit and props.is_glinting(at.x, at.y):
 			break
-	assert_true(lit, "the party came into the chest's chamber")
-	assert_true(missed, "and passed the chest it could not open")
-	assert_eq(props.prop(at.x, at.y), chest, "the chest is still there")
+	assert_true(lit, "the party came into the stone's chamber")
+	assert_true(missed, "and passed the stone it could not read")
+	assert_eq(props.prop(at.x, at.y), stone, "the stone is still there")
 	assert_true(props.is_glinting(at.x, at.y), "out of the light again, it glints again")
 
 
 func test_r4_a_done_quest_loses_its_glint() -> void:
-	var at: Vector2i = _quest_far_away(6)
+	var at: Vector2i = _quest_far_away(6, &"locked_chest")
 	var props: QuestProps = _world.quest_props
 	assert_true(props.is_glinting(at.x, at.y), "the chest glints from afar")
 	assert_true(_play_until(SimEvent.Kind.SIDE_QUEST_DONE), "the rogue opens it")
