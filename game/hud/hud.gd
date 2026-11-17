@@ -387,6 +387,26 @@ static func group_thousands(amount: int) -> String:
 	return ("-" if amount < 0 else "") + digits + grouped
 
 
+## [param amount] short enough for the top bar: as [method group_thousands] below 10,000, then
+## rounded down to three figures with k or M ("12.3k", "123k", "9.9M", "123M"), so a count never
+## shows more than it is.
+static func short_count(amount: int) -> String:
+	if absi(amount) < 10_000:
+		return group_thousands(amount)
+	var minus: String = "-" if amount < 0 else ""
+	var value: int = absi(amount)
+	var suffix: String = "k"
+	var unit: int = 1000
+	if value >= 1_000_000:
+		suffix = "M"
+		unit = 1_000_000
+	var whole: int = value / unit
+	if whole >= 100:
+		return "%s%s%s" % [minus, group_thousands(whole), suffix]
+	var tenths: int = (value * 10 / unit) % 10
+	return "%s%d.%d%s" % [minus, whole, tenths, suffix]
+
+
 # --- Building ------------------------------------------------------------------
 
 
@@ -693,7 +713,7 @@ func _advance_gold(delta: float) -> void:
 
 
 func _show_gold() -> void:
-	var text: String = group_thousands(_shown_gold)
+	var text: String = short_count(_shown_gold)  # spec 052: short, so the purse fits beside it
 	if gold_label.text != text:
 		gold_label.text = text
 		gold_label.reset_size()

@@ -49,6 +49,8 @@ const HASHES_BEFORE: Dictionary = {
 ## R10: minutes the Mossy-only party plays, and the most it may then take to hold clay.
 const MOSSY_MINUTES: float = 30.0
 const CLAY_MINUTES: float = 5.0
+## R2: kills of each size rolled for a drop.
+const KILLS: int = 200
 
 var _sim: Simulation
 var _world: World
@@ -273,6 +275,35 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 	assert_eq(ResourceDrops.amount_at(MonsterDef.Size.BOSS, 1), 6, "a guardian's")
 	assert_eq(ResourceDrops.amount_at(MonsterDef.Size.SMALL, 9), 3, "more further in")
 	assert_eq(ResourceDrops.amount_at(MonsterDef.Size.BOSS, 5), 12, "a stage-5 guardian's")
+	# Many kills through the drop roll itself, each monster rolling its own stream: every
+	# guardian drops, most large monsters do and only some small ones.
+	var rolls := Simulation.new(SEED)
+	var by_size: Dictionary = {
+		MonsterDef.Size.BOSS: Content.monster(rolls.expedition.guardian_of(5)),
+		MonsterDef.Size.LARGE: Content.monster(&"mud_golem"),
+		MonsterDef.Size.SMALL: Content.monster(&"slime"),
+	}
+	var dropped_by_size: Dictionary = {}
+	for size: Variant in by_size:
+		var def: MonsterDef = by_size[size]
+		var wanted: MonsterDef.Size = size
+		assert_eq(def.size, wanted, "(%s is the size wanted)" % def.id)
+		var dropped: int = 0
+		for i: int in KILLS:
+			var dead: Combatant = Combatant.from_monster(def, 5, Expedition.FIRST_MONSTER_ID + i)
+			var before: int = rolls.party.resource(GLOWCAPS)
+			ResourceDrops.on_kill(rolls.expedition, dead, def)
+			if rolls.party.resource(GLOWCAPS) > before:
+				dropped += 1
+		dropped_by_size[size] = dropped
+	var guardians: int = dropped_by_size[MonsterDef.Size.BOSS]
+	var larges: int = dropped_by_size[MonsterDef.Size.LARGE]
+	var smalls: int = dropped_by_size[MonsterDef.Size.SMALL]
+	assert_eq(guardians, KILLS, "every one of %d guardians drops" % KILLS)
+	assert_gt(larges * 2, KILLS, "most large monsters (%d of %d)" % [larges, KILLS])
+	assert_lt(larges, KILLS, "not every one")
+	assert_gt(smalls, 0, "some small ones")
+	assert_lt(smalls * 2, KILLS, "but not most (%d of %d)" % [smalls, KILLS])
 	# A guardian always, and several.
 	var king := Simulation.new(SEED)
 	_level(king, STRONG_LEVEL)
@@ -388,6 +419,16 @@ func test_r3_the_party_keeps_a_count() -> void:
 		if not _heard_of(SimEvent.Kind.RESOURCE_GAINED).is_empty():
 			break
 	assert_false(_heard_of(SimEvent.Kind.RESOURCE_GAINED).is_empty(), "(a drop happened)")
+	assert_lt(
+		_hud.resource_purse.shown(GLOWCAPS),
+		_sim.party.resource(GLOWCAPS),
+		"the count waits for the drop's icons"
+	)
+	assert_eq(
+		_hud.resource_purse.labels[GLOWCAPS].text,
+		str(_hud.resource_purse.shown(GLOWCAPS)),
+		"and shows what it has counted"
+	)
 	for i: int in 400:
 		_frame(1, STEP)
 	_hud.advance(ResourcePurse.CATCH_UP_SECONDS + 0.1)
@@ -402,6 +443,45 @@ func test_r3_the_party_keeps_a_count() -> void:
 	assert_eq(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "many a frame")
 	assert_eq(_hud.resource_purse.labels[GLOWCAPS].text, str(_sim.party.resource(GLOWCAPS)))
 	assert_eq(_fx.resource_effects.live_icons().size(), 0, "with no icon for old drops")
+
+
+## The top bar with counts too long to write out: they are shortened, and nothing overlaps.
+func test_r3_large_counts_fit_the_top_bar() -> void:
+	assert_eq(Hud.short_count(9_999), "9,999", "written out below 10,000")
+	assert_eq(Hud.short_count(12_345), "12.3k", "then shortened")
+	assert_eq(Hud.short_count(99_999), "99.9k", "rounded down, never more than it is")
+	assert_eq(Hud.short_count(123_456), "123k")
+	assert_eq(Hud.short_count(9_999_999), "9.9M")
+	assert_eq(Hud.short_count(123_456_789), "123M")
+	_sim = Simulation.new(SEED)
+	_sim.party.gold = 9_999_999
+	for id: StringName in Content.resource_ids():
+		_sim.party.set_resource(id, 99_999)
+	_build_hud()
+	for i: int in 2:
+		_hud.advance(10.0)  # past every catch-up
+	assert_eq(_hud.gold_label.text, "9.9M", "the gold, shortened")
+	var parts: Array[Control] = [_hud.coin_icon, _hud.gold_label]
+	for id: StringName in Content.resource_ids():
+		assert_eq(_hud.resource_purse.labels[id].text, "99.9k", "%s, shortened" % id)
+		parts.append(_hud.resource_purse.icons[id])
+		parts.append(_hud.resource_purse.labels[id])
+	var panel: Rect2 = _hud.gold_panel.get_global_rect()
+	var screen := Rect2(Vector2.ZERO, Hud.SCREEN)
+	assert_true(screen.encloses(panel), "the gold's panel is on the screen: %s" % panel)
+	for i: int in parts.size():
+		var rect: Rect2 = parts[i].get_global_rect()
+		assert_true(panel.encloses(rect), "%s is in the panel" % parts[i].name)
+		for j: int in range(i + 1, parts.size()):
+			var other: Rect2 = parts[j].get_global_rect()
+			assert_false(
+				rect.intersects(other), "%s and %s do not overlap" % [parts[i].name, parts[j].name]
+			)
+	var tab: Rect2 = _hud.shop_tab.get_global_rect()
+	assert_false(tab.intersects(panel), "the Shop tab is clear of the gold")
+	var depth: Rect2 = _hud.depth_panel.get_global_rect()
+	assert_false(tab.intersects(depth), "and of the stage panel on the left")
+	assert_lte(depth.end.x, tab.position.x, "the stage panel ends before the Shop tab")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -509,6 +589,68 @@ func test_r5_the_shop_says_what_is_missing() -> void:
 	assert_eq(armor.resource_colour(), ShopRow.RESOURCE_AFFORDABLE, "the clay still there")
 	assert_true(armor.buy_button.disabled, "and it cannot be bought")
 	assert_true(_hud.shop.get_global_rect().end.x <= Hud.SCREEN.x, "the shop fits the screen")
+
+
+## With gold to spare and none of the resource, nothing points at an upgrade: no shop marker, no
+## goal to buy one, and no such suggestion after a defeat. With the resource, they come back.
+func test_r5_nothing_offers_an_upgrade_the_party_cannot_pay() -> void:
+	_sim = Simulation.new(SEED)
+	for id: StringName in Content.upgrade_ids():
+		_sim.upgrades.set_rank(id, 3)  # every next rank costs a resource
+	_sim.party.gold = 1_000_000
+	_build_hud()
+	_hunting_on(7, 4)
+	_frame(0)
+	assert_eq(_hud.shop.affordable_count(), 0, "none can be paid")
+	assert_eq(_hud.shop_marker.count, 0, "the shop's marker counts none")
+	assert_false(_hud.shop_marker.visible, "and is not shown")
+	assert_false(_offers_upgrade_goal(), "no goal to buy an upgrade")
+	assert_true(_lose_a_fight(), "(the party loses a fight)")
+	assert_true(_hud.defeat_note.visible, "(the defeat note is up)")
+	assert_false(_hud.defeat_note.suggestions().has("Buy an upgrade"), "and it suggests no upgrade")
+	# Clay for Stout Armor: that one can be paid now.
+	_sim.party.set_resource(CLAY, 1000)
+	_hud.advance(STEP)
+	assert_eq(_hud.shop.affordable_count(), 1, "Stout Armor can be paid")
+	assert_eq(_hud.shop_marker.count, 1, "the marker counts it")
+	assert_true(_offers_upgrade_goal(), "the goal to buy one is back")
+	assert_true(_hud.defeat_note.suggestions().has("Buy an upgrade"), "and the suggestion")
+
+
+func _offers_upgrade_goal() -> bool:
+	for goal: Goals.Goal in _hud.goals.applicable():
+		if goal.kind == Goals.Kind.UPGRADE:
+			return true
+	return false
+
+
+## Puts the party at the start of stage [param depth] of Mossy Hollow, hunting, [param stable]
+## its safe stage (as spec 041's tests do).
+func _hunting_on(depth: int, stable: int) -> void:
+	var e: Expedition = _sim.expedition
+	_sim.set_auto_push(false)
+	e.depth = depth
+	e.x = _sim.labyrinth.level(depth).chambers[0].rect.position.x
+	e.deepest_depth = maxi(e.deepest_depth, depth)
+	e.last_stable_depth = stable
+	e.target_depth = depth
+
+
+## Plays to the next fight and loses it, a frame a tick. True once the party is down.
+func _lose_a_fight() -> bool:
+	for i: int in 3000:
+		_frame()
+		if _sim.expedition.battle != null:
+			break
+	if _sim.expedition.battle == null:
+		return false
+	for fighter: Combatant in _sim.expedition.battle.heroes:
+		fighter.health = 0
+	for i: int in 3000:
+		_frame()
+		if _sim.expedition.state == Expedition.State.REVIVING:
+			return true
+	return false
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -713,6 +855,58 @@ func test_r8_told_like_gold() -> void:
 				)
 
 
+## The journal notes a first once in a game's life: a count spent back to 0 and reloaded is not a
+## first again. A first gathered while the game was closed is in the away report.
+func test_r8_firsts_are_remembered() -> void:
+	var fresh := Simulation.new(SEED)
+	assert_false(fresh.has_gathered(GLOWCAPS), "a new game has gathered nothing")
+	fresh.upgrades.set_rank(&"field_medicine", 3)
+	assert_false(fresh.has_gathered(GLOWCAPS), "ranks of gold alone say nothing")
+	# Glowcaps gathered and spent down to none, then saved and loaded.
+	var spent := Simulation.new(SEED)
+	spent.upgrades.set_rank(&"field_medicine", 4)
+	spent.party.set_resource(GLOWCAPS, 0)
+	var through_json: Dictionary = JSON.parse_string(JSON.stringify(spent.to_save()))
+	_sim = Simulation.from_save(through_json)
+	assert_not_null(_sim, "(it loads)")
+	if _sim == null:
+		return
+	assert_true(_sim.has_gathered(GLOWCAPS), "a rank that cost glowcaps: they were held")
+	assert_false(_sim.has_gathered(CLAY), "but not clay")
+	_level(_sim, STRONG_LEVEL)
+	_build_hud()
+	for i: int in 3000:
+		_frame()
+		if _sim.party.resource(GLOWCAPS) > 0:
+			break
+	assert_gt(_sim.party.resource(GLOWCAPS), 0, "(glowcaps gathered again)")
+	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 0, "not a first again")
+	# Away: the first glowcaps are in the report, as the journal would have put them.
+	var away := Simulation.new(SEED)
+	_level(away, STRONG_LEVEL)
+	var replay := AwayReplay.new(away, 600.0)
+	while not replay.is_done():
+		replay.run(1_000_000)
+	assert_eq(replay.report.resources_first, [GLOWCAPS] as Array[StringName], "the first, once")
+	var panel := AwayPanel.new(replay.report, away.party)
+	add_child_autofree(panel)
+	assert_string_contains(panel.text(), "First glowcaps, from Mossy Hollow", "in the report")
+	_build_hud_on(away)
+	for i: int in 3000:
+		_frame()
+	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 0, "and not again after")
+	# Already held before going away: no first.
+	var again := AwayReplay.new(away, 600.0)
+	while not again.is_done():
+		again.run(1_000_000)
+	assert_eq(again.report.resources_first, [] as Array[StringName], "nothing new: no first")
+
+
+func _build_hud_on(sim: Simulation) -> void:
+	_sim = sim
+	_build_hud()
+
+
 func _journal_count(sentence: String) -> int:
 	var count: int = 0
 	for line: String in _hud.journal.lines():
@@ -761,6 +955,14 @@ func test_r9_saves_carry_it() -> void:
 	assert_true(problems.has("resources.gold_dust: unknown resource"), "an unknown resource")
 	assert_true(problems.has("resources.clay: missing or not a whole number"), "not whole")
 	assert_null(Simulation.from_save(bad), "and not loaded")
+	var lost: Dictionary = saved.duplicate(true)
+	lost["guardians_beaten"] = ["mossy_hollow", "atlantis"]
+	assert_eq(
+		Simulation.save_problems(lost),
+		PackedStringArray(["guardians_beaten[1]: unknown area 'atlantis'"]),
+		"an unknown area among the beaten guardians, by name"
+	)
+	assert_null(Simulation.from_save(lost), "and not loaded")
 	var none: Dictionary = saved.duplicate(true)
 	none.erase("resources")
 	assert_true(
@@ -793,6 +995,9 @@ func test_r10_worth_the_trip() -> void:
 				sim.party.resource(id), 0, "seed %d: no %s in Mossy Hollow" % [seed_value, id]
 			)
 		var glowcaps: int = sim.party.resource(GLOWCAPS)
+		# Read now, before the trip: the ranks and gold of the party that stayed.
+		var ranks: String = str(sim.upgrades.hash_parts())
+		var gold: int = sim.party.gold
 		var medicine: int = sim.upgrades.rank(&"field_medicine")
 		var march: int = sim.upgrades.rank(&"quick_march")
 		assert_gt(medicine + march, 6, "seed %d: glowcaps buy past rank 3" % seed_value)
@@ -822,13 +1027,14 @@ func test_r10_worth_the_trip() -> void:
 			. append(
 				(
 					(
-						"seed %d: at %d min in Mossy Hollow ranks %s, %d glowcaps; first clay %.0f s after"
-						+ " arriving, %d clay at 5 min"
+						"seed %d: at %d min in Mossy Hollow ranks %s, %d gold, %d glowcaps; first clay"
+						+ " %.0f s after arriving, %d clay at 5 min"
 					)
 					% [
 						seed_value,
 						MOSSY_MINUTES,
-						str(sim.upgrades.hash_parts()),
+						ranks,
+						gold,
 						glowcaps,
 						float(first_clay - arrived) / Simulation.TICKS_PER_SECOND,
 						sim.party.resource(CLAY),
@@ -944,6 +1150,25 @@ func test_r12_beaten_guardians_are_remembered() -> void:
 	assert_true(from_old.is_guardian_beaten(CLAYPITS), "the Old Crypt is open: the Colossus")
 	assert_true(from_old.is_guardian_beaten(CRYPT), "Ember Deep is open: the Bone Lord")
 	assert_true(from_old.is_guardian_beaten(EMBER), "furthest 6, past stage 5: the Deep Maw")
+	# Beyond the guardian's stage in an area the party is not in, its next area not open.
+	var elsewhere: Dictionary = old.duplicate(true)
+	elsewhere["open_areas"] = ["mossy_hollow", "claypits"]
+	elsewhere["area"] = "mossy_hollow"
+	elsewhere["deepest_depth"] = 3
+	elsewhere["last_stable_depth"] = 3
+	elsewhere["target_depth"] = 3
+	elsewhere["areas"] = {"claypits": {"safe": 5, "furthest": 6}}
+	var from_elsewhere: Simulation = Simulation.from_save(elsewhere)
+	assert_not_null(from_elsewhere, "(a version 7 save with the Claypits at 6 loads)")
+	if from_elsewhere != null:
+		assert_true(from_elsewhere.is_guardian_beaten(CLAYPITS), "furthest 6 there: the Colossus")
+		assert_false(from_elsewhere.is_guardian_beaten(CRYPT), "and not the Bone Lord")
+	elsewhere["areas"] = {"claypits": {"safe": 5, "furthest": 5}}
+	var at_the_guardian: Simulation = Simulation.from_save(elsewhere)
+	assert_true(
+		at_the_guardian != null and not at_the_guardian.is_guardian_beaten(CLAYPITS),
+		"furthest 5, the guardian's own stage: not beaten"
+	)
 	var shallow: Dictionary = old.duplicate(true)
 	shallow["open_areas"] = ["mossy_hollow"]
 	shallow["area"] = "mossy_hollow"

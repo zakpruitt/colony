@@ -102,7 +102,7 @@ func setup(simulation: Simulation, world: World) -> void:
 	for id: StringName in Content.area_ids():
 		_deepest_in[id] = simulation.area_progress(id).y
 	for id: StringName in Content.resource_ids():
-		if simulation.party.resource(id) > 0:
+		if simulation.has_gathered(id):
 			_gathered[id] = true
 	_build_panel()
 	_build_ticker()

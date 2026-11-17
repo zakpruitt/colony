@@ -133,6 +133,10 @@ func _add_resource_line(report: AwayReport) -> void:
 			parts.append("%s %s" % [Hud.group_thousands(gained), ResourceIcon.plural(id)])
 	if not parts.is_empty():
 		_add_line("Gathered " + ", ".join(parts), &"tan")
+	# The firsts the journal did not see (spec 052 R8), as it would have written them.
+	for id: StringName in report.resources_first:
+		var from: String = PlaceText.area_name(Content.area_of_resource(id))
+		_add_line("First %s, from %s" % [ResourceIcon.plural(id), from], &"tan")
 
 
 ## One line per microskill learned, at most [constant MAX_LEARNED_LINES], then "and N more".

@@ -127,7 +127,7 @@ func _lay_out() -> void:
 		label.visible = held
 		if not held:
 			continue
-		var text: String = Hud.group_thousands(shown(id))
+		var text: String = Hud.short_count(shown(id))
 		if label.text != text:
 			label.text = text
 			label.reset_size()

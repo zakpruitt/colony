@@ -95,7 +95,7 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	var price: int = upgrades.cost(id)
 	var needed: int = upgrades.resource_cost(id)
 	_gold_affordable = price >= 0 and price <= party.gold
-	_resource_affordable = needed <= party.resource(def.resource)
+	_resource_affordable = upgrades.has_resource_for(id, party)
 	_affordable = _gold_affordable and _resource_affordable
 	var costs_resource: bool = needed > 0
 	resource_icon.visible = costs_resource

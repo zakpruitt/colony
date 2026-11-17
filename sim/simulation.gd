@@ -134,6 +134,19 @@ func is_guardian_beaten(area_id: StringName) -> bool:
 	return expedition.travel.guardians_beaten.has(area_id)
 
 
+## True once the party has held resource [param id] (spec 052 R8: the journal notes the first).
+## It needs no saved field: a resource is only ever spent on upgrade ranks, so the party has held it
+## when it holds some now or owns a rank of an upgrade that cost it.
+func has_gathered(id: StringName) -> bool:
+	if party.resource(id) > 0:
+		return true
+	for upgrade_id: StringName in Content.upgrade_ids():
+		var def: UpgradeDef = Content.upgrade(upgrade_id)
+		if def.resource == id and upgrades.rank(upgrade_id) > def.resource_from_rank:
+			return true
+	return false
+
+
 ## Asks to buy the next rank of upgrade [param id] at the next step. It is bought
 ## then if the id is known, the rank is below the maximum and the party has the
 ## gold and the resource it costs (spec 052); otherwise nothing happens.

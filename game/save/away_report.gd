@@ -10,6 +10,9 @@ var gold_gained: int
 ## Each resource the party gathered (spec 052), by id: drops and side quests, before any was
 ## spent.
 var resources_gained: Dictionary[StringName, int] = {}
+## The resources the party gathered for the first time while away, in the order it did: the
+## journal, which did not see them, notes no first for them.
+var resources_first: Array[StringName] = []
 ## Levels each hero gained, by hero id.
 var levels_gained: Dictionary[int, int] = {}
 ## The depth the party was at when the save loaded, and when the replay ended.

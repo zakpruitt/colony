@@ -20,6 +20,8 @@ var _deepest_guardian_depth: int = -1
 ## Side quests missed for want of each microskill (by its position in
 ## [method Content.microskill_ids]), in the order each was first missed.
 var _missed_by_skill: Dictionary[int, int] = {}
+## The resources the party had already held when the replay began (spec 052).
+var _gathered_before: Dictionary[StringName, bool] = {}
 
 
 ## A replay of [param seconds] of game time on [param sim], from its current state.
@@ -36,6 +38,9 @@ func _init(sim: Simulation, seconds: float) -> void:
 	for hero: Hero in sim.party.heroes:
 		_levels_before[hero.id] = hero.level
 		report.levels_gained[hero.id] = 0
+	for id: StringName in Content.resource_ids():
+		if sim.has_gathered(id):
+			_gathered_before[id] = true
 	sim.drain_events()
 
 
@@ -73,6 +78,8 @@ func run(budget_usec: int) -> bool:
 						report.resources_gained[id] = (
 							report.resources_gained.get(id, 0) + event.amount
 						)
+						if not _gathered_before.has(id) and not report.resources_first.has(id):
+							report.resources_first.append(id)
 	_update_report()
 	return is_done()
 
