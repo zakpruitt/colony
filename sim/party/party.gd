@@ -39,6 +39,16 @@ func any_alive() -> bool:
 	return false
 
 
+## The living hero who would do a quest needing this microskill, or null.
+## With several able, the one with the lowest id.
+func hero_with_microskill(id: StringName) -> Hero:
+	var found: Hero = null
+	for h: Hero in heroes:
+		if h.is_alive() and h.has_microskill(id) and (found == null or h.id < found.id):
+			found = h
+	return found
+
+
 ## The party's state as plain values, for the simulation's state hash.
 func hash_parts() -> Array:
 	var parts: Array = [gold]

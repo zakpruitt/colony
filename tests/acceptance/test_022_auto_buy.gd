@@ -4,29 +4,30 @@ extends GutTest
 
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes, recorded on dev
 ## before this spec changed any sim code. Re-recorded by spec 023, whose monster ids (part of
-## the hash) come from where the monster is; the game is otherwise the same.
+## the hash) come from where the monster is; the game is otherwise the same. Re-recorded by
+## spec 025, whose side quests stand in for some chambers' monsters.
 const RECORDED_HASHES: Dictionary = {
 	5:
 	[
-		2553867283,
-		1779355755,
-		1657101120,
-		116128504,
-		1185605439,
-		2024595440,
-		2049983728,
-		3258618189,
+		1901784997,
+		1397016354,
+		2576903934,
+		3446934969,
+		3476502320,
+		1875885765,
+		384646798,
+		620339908,
 	],
 	17:
 	[
-		584957337,
-		3328090793,
-		2807633393,
-		953770360,
-		1065946019,
-		952743839,
-		2769244448,
-		1007605909,
+		3882251249,
+		3538596988,
+		596932171,
+		3381586239,
+		4082283393,
+		1721780422,
+		3160132652,
+		1506313942,
 	],
 }
 const HOUR_TICKS: int = 36_000

@@ -13,6 +13,11 @@ enum Kind {
 	UPGRADE_BOUGHT,
 	# Only a run that beats a guardian produces it, so it too sits before ENCOUNTER_STARTED.
 	GUARDIAN_SLAIN,
+	# Spec 025's: not every run need produce each of them, so they too sit before ENCOUNTER_STARTED.
+	MICROSKILL_LEARNED,
+	SIDE_QUEST_STARTED,
+	SIDE_QUEST_DONE,
+	SIDE_QUEST_MISSED,
 	# A command's result (spec 029), kept before ENCOUNTER_STARTED like UPGRADE_BOUGHT.
 	HERO_TRAINED,
 	ENCOUNTER_STARTED,
@@ -39,11 +44,18 @@ var target_id: int = -1
 ## (LEVEL_UP), or the depth (DEPTH_CHANGED, PARTY_REVIVED, STABLE_DEPTH_REACHED,
 ## TARGET_DEPTH_CHANGED). For UPGRADE_BOUGHT: the new rank, with [member source_id]
 ## the upgrade's position in [method Content.upgrade_ids]. For GUARDIAN_SLAIN: the depth,
-## with [member source_id] the guardian's combatant id. For HERO_TRAINED: the hero's new
-## rank, with [member source_id] the hero's id and [member target_id] the training's
-## position in [method Content.training_ids].
+## with [member source_id] the guardian's combatant id.
+## For MICROSKILL_LEARNED: the hero's level, with [member source_id] the hero and
+## [member target_id] the microskill's position in [method Content.microskill_ids].
+## For SIDE_QUEST_STARTED and SIDE_QUEST_DONE: the work in ticks, or the gold or XP given,
+## with [member source_id] the worker and [member target_id] the quest's position in
+## [method Content.side_quest_ids]. For SIDE_QUEST_MISSED: the needed microskill's position,
+## with [member target_id] the quest's position. For HERO_TRAINED: the hero's new rank, with
+## [member source_id] the hero's id and [member target_id] the training's position in
+## [method Content.training_ids].
 var amount: int = 0
-## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED.
+## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
+## "a hazard sprang" for SIDE_QUEST_MISSED.
 var flag: bool = false
 
 

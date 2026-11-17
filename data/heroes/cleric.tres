@@ -18,3 +18,5 @@ crit_chance = 0.05
 heal_power = 22
 health_per_level = 10
 damage_per_level = 1
+microskills = Array[StringName]([&"mender"])
+microskill_levels = Array[int]([3])

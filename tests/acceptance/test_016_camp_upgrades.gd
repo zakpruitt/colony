@@ -13,28 +13,29 @@ const UPGRADES: Array = [
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes,
 ## recorded on dev before this spec changed any sim code. Re-recorded by spec 023, whose
 ## monster ids (part of the hash) come from where the monster is; the game is otherwise the same.
+## Re-recorded by spec 025, whose side quests stand in for some chambers' monsters.
 const RECORDED_HASHES: Dictionary = {
 	3:
 	[
-		3154249765,
-		1097359994,
-		4209185757,
-		161986172,
-		2107550454,
-		57912363,
-		2785551243,
-		3919456357,
+		182852528,
+		3345610454,
+		3523892346,
+		268770184,
+		2358983418,
+		4033985059,
+		1709969218,
+		562187619,
 	],
 	11:
 	[
-		1603796506,
-		1110538116,
-		920169410,
-		698398633,
-		2833055051,
-		1538828919,
-		1005250968,
-		3954478739,
+		1953912465,
+		1312716134,
+		1878221778,
+		3841284844,
+		3838000736,
+		1925320218,
+		2127646277,
+		3333111590,
 	],
 }
 const HOUR_TICKS: int = 36_000
