@@ -44,6 +44,10 @@ build decides where the party goes. This is the first use of resources; gear and
   gathered; the tally of a fight is unchanged.
 - **R9. Saves carry it** (the next save version): the count of each resource. Older saves load with
   none; upgrade ranks they already hold stay.
+- **R12. Beaten guardians are remembered.** The simulation keeps, and the save holds, which areas'
+  guardians have been beaten at least once (`Simulation.is_guardian_beaten(area_id)`), and the map reads
+  that instead of working it out. Today the last area's guardian shows as not beaten after a reload.
+  Older saves count a guardian beaten when the area it opens is open or the furthest stage is past it.
 - **R10. Worth the trip.** In the headless run with auto-buy, a party that only ever stays in Mossy
   Hollow stops being able to buy Stout Armor, Sharp Blades and Fat Purse at rank 3, and a party sent to
   the Claypits once it is open holds clay within five minutes of arriving. The numbers are the lane's
