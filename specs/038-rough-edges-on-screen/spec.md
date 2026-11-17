@@ -1,9 +1,9 @@
 # 038 — Rough edges on screen
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 008, 010, 012, 020, 028
-- **Pull request:** —
+- **Pull request:** [#39](https://github.com/zakpruitt/colony/pull/39)
 
 ## Intent
 
