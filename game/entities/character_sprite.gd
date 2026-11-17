@@ -107,6 +107,10 @@ const PHASE_SPREAD: float = 0.618034
 
 static var _created: int = 0
 
+## Spec 056: true while the character is stunned: it stands still in the pose it had, though a hit
+## or a death still plays.
+var held: bool = false
+
 var _sheet: PixelSheet
 var _mirror: Node2D
 var _rig: Node2D
@@ -140,6 +144,11 @@ var _hit_time: float = -1.0
 ## Seconds since play_death(), or -1 when not dying.
 var _death_time: float = -1.0
 var _dead: bool = false
+## Spec 056: the looks of the statuses it bears and of an action's wind-up (see
+## [method set_status_look] and [method set_glow]).
+var _tint_share: float = 0.0
+var _fade: float = 1.0
+var _glow: float = 0.0
 
 # The pose being built in _apply_pose: whole-body channels and per-part channels.
 var _rig_shift: Vector2
@@ -268,10 +277,62 @@ func is_dead() -> bool:
 	return _dead
 
 
+## Spec 056: washes the character toward [param tint] by [param share] (0 for none) and draws it
+## at [param fade] of its opacity (1 for whole), for the statuses it bears.
+func set_status_look(tint: Color, share: float, fade: float) -> void:
+	_tint_share = share
+	_fade = fade
+	_flash.set_shader_parameter("tint", tint)
+	_flash.set_shader_parameter("tint_share", share)
+	_mirror.modulate.a = fade
+
+
+## Spec 056: lights the character toward [param color] by [param amount] (0 for none), while it
+## winds up an action.
+func set_glow(color: Color, amount: float) -> void:
+	_glow = amount
+	_flash.set_shader_parameter("glow_color", color)
+	_flash.set_shader_parameter("glow", amount)
+
+
+## How far the character is washed toward a status's colour, from 0 to 1.
+func shown_tint() -> float:
+	return _tint_share
+
+
+## The share of its opacity it is drawn at: below 1 while nimble or untouchable.
+func shown_fade() -> float:
+	return _fade
+
+
+## How far it is lit by an action's wind-up, from 0 to 1.
+func shown_glow() -> float:
+	return _glow
+
+
 ## Advances animation by this much time. Called from _process; tests call it directly.
 func advance(delta: float) -> void:
 	if _dead and _death_time < 0.0:
 		return
+	if not held:
+		_advance_motion(delta)
+	if _hit_time >= 0.0:
+		_hit_time += delta
+		if _hit_time >= HIT_TIME:
+			_hit_time = -1.0
+	if _death_time >= 0.0:
+		_death_time += delta
+		if _death_time >= DEATH_TIME:
+			_death_time = -1.0
+			_reset_pose()
+			visible = false
+			died.emit()
+			return
+	_apply_pose()
+
+
+## Breathing, walking and attacking move on by [param delta]; held still while stunned.
+func _advance_motion(delta: float) -> void:
 	_time += delta
 	var target: float = 1.0 if _walking else 0.0
 	_walk_weight = move_toward(_walk_weight, target, delta / WALK_BLEND)
@@ -287,19 +348,6 @@ func advance(delta: float) -> void:
 		_cancel_time += delta
 		if _cancel_time >= SETTLE_TIME:
 			_cancel_time = -1.0
-	if _hit_time >= 0.0:
-		_hit_time += delta
-		if _hit_time >= HIT_TIME:
-			_hit_time = -1.0
-	if _death_time >= 0.0:
-		_death_time += delta
-		if _death_time >= DEATH_TIME:
-			_death_time = -1.0
-			_reset_pose()
-			visible = false
-			died.emit()
-			return
-	_apply_pose()
 
 
 func _build(sheet: PixelSheet, sheet_path: String) -> void:

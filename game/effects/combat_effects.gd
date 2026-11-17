@@ -167,6 +167,8 @@ const SLAIN_LIFE: float = 2.5
 var gold_screen_target: Vector2 = Vector2(600, 12)
 ## The effects of side quests and microskills (spec 028), advanced with these.
 var quest_effects: QuestEffects
+## Abilities and statuses on screen (spec 056), advanced with these.
+var ability_effects: AbilityEffects
 
 var _world: World
 var _simulation: Simulation
@@ -211,6 +213,11 @@ func setup(world: World, simulation: Simulation) -> void:
 	_rng.seed = 10
 	var sheet: PixelSheet = PixelSheet.load_sheet(SPARK_SHEET)
 	_spark_texture = sheet.part(&"spark") if sheet != null else null
+	if ability_effects == null:
+		ability_effects = AbilityEffects.new()
+		ability_effects.name = "AbilityEffects"
+		add_child(ability_effects)
+	ability_effects.setup(world, simulation)  # it hears each event first: see _hit
 	if not _world.sim_event.is_connected(_on_sim_event):
 		_world.sim_event.connect(_on_sim_event)
 	if quest_effects == null:
@@ -225,6 +232,7 @@ func advance(delta: float) -> void:
 	if _world == null or _world.effects_layer == null:
 		return
 	quest_effects.advance(delta)
+	ability_effects.advance(delta)
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
@@ -362,6 +370,7 @@ func _hit(event: SimEvent) -> void:
 	var color_name: StringName = &"white" if on_monster else &"red"
 	if crit:
 		color_name = &"amber"
+	color_name = ability_effects.number_color(event, color_name)  # a status's own (spec 056)
 	var words: String = str(event.amount) + ("!" if crit else "")
 	_number(event.target_id, words, color_name, CRIT_SCALE if crit else NUMBER_SCALE, &"damage")
 	var impact: Vector2 = feet + Vector2(-away * 3.0, -roundf(height * IMPACT_HEIGHT))

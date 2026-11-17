@@ -145,6 +145,18 @@ func revived(age: float) -> bool:
 	return true
 
 
+## Hero [param id], lying fallen in a fight, was revived there (spec 056 R2): it rises from its
+## back onto its feet where it lies, as the party does after a wipe.
+func stand(id: int) -> void:
+	if not _spots.has(id):
+		return
+	_stand_spots[id] = _spots[id]
+	_spots.erase(id)
+	_dying.erase(id)
+	_standing[id] = 0.0
+	_tilt[id] = 1.0
+
+
 ## Where hero [param id] is heading this frame: where it lies or rises while it does (lifted as
 ## far as it is over), [param goal] (where the simulation has it) otherwise.
 func goal_for(id: int, goal: Vector2) -> Vector2:
