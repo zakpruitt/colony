@@ -11,7 +11,7 @@ extends Node2D
 ## frame would show.
 ##
 ## Children, in draw order: the labyrinth view, the ambience, QuestProps, Characters, Effects,
-## and the camera.
+## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe (spec 038).
 
 ## Every simulation event, once, in order, in the frame it happened.
 signal sim_event(event: SimEvent)
@@ -67,6 +67,8 @@ var ambience: Ambience
 var target_marker: TargetMarker
 ## The side quests waiting in chambers, and the work on one (spec 028).
 var quest_props: QuestProps
+## The fallen heroes, and the story of a wipe (spec 038).
+var fallen_party: FallenParty
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -99,6 +101,10 @@ var _snap_all: bool = false
 var _snap_heroes: bool = false
 ## Seconds left in which character animation stands still (a crit's hit-stop, spec 010).
 var _frozen: float = 0.0
+## Heroes kept out of a fighting guardian's body (spec 038 R3).
+var _spacing := GuardianSpacing.new()
+## True for the sync in progress when the camera is to jump to the party.
+var _snap_camera: bool = false
 
 
 func _ready() -> void:
@@ -137,6 +143,10 @@ func _ready() -> void:
 	camera.name = "WorldCamera"
 	add_child(camera)
 	camera.set_process(false)
+	fallen_party = FallenParty.new()
+	fallen_party.name = "FallenParty"
+	add_child(fallen_party)
+	fallen_party.setup(self)
 	sync(0.0)
 
 
@@ -163,10 +173,11 @@ func character(id: int) -> CharacterSprite:
 	return _sprites.get(id, null)
 
 
-## Pixel position of that character's feet, or Vector2.ZERO if there is none.
+## Pixel position of that character's feet, or Vector2.ZERO if there is none. A hero lying on its
+## back (spec 038) has its feet on the floor under it.
 func feet_position(id: int) -> Vector2:
 	var sprite: CharacterSprite = character(id)
-	return sprite.position if sprite != null else Vector2.ZERO
+	return fallen_party.feet_of(id, sprite.position) if sprite != null else Vector2.ZERO
 
 
 ## False for an event so old (after a stall) that it should start no animation or effect. Listeners
@@ -190,9 +201,11 @@ func sync(delta: float) -> void:
 	var now: int = simulation.tick
 	_snap_all = _last_tick < 0 or now - _last_tick > STALL_TICKS * maxi(speed, 1)
 	_snap_heroes = false
+	_snap_camera = false
 	_last_tick = now
 
-	labyrinth_view.set_focus(simulation.expedition.hero_position(_leader_id()))
+	var focus: Vector2 = simulation.expedition.hero_position(_leader_id())
+	labyrinth_view.set_focus(fallen_party.focus(focus))
 	var built: Array[int] = labyrinth_view.built_depths()
 	if built != _built:
 		_built = built
@@ -222,8 +235,9 @@ func sync(delta: float) -> void:
 	if _frozen > 0.0:
 		_frozen -= delta
 	else:
-		for sprite: CharacterSprite in _sprites.values():
-			sprite.advance(delta)
+		for id: int in _sprites:
+			if not fallen_party.animate(id, _sprites[id], delta):
+				_sprites[id].advance(delta)
 	_remove_finished()
 	_fly_bolts(game_delta)
 	_place_party_light()
@@ -353,7 +367,7 @@ func _settle_heroes() -> void:
 	var expedition: Expedition = simulation.expedition
 	for hero: Hero in simulation.party.heroes:
 		var sprite: CharacterSprite = character(hero.id)
-		if sprite == null:
+		if sprite == null or fallen_party.is_standing(hero.id):
 			continue
 		var alive: bool = hero.is_alive()
 		if expedition.state == Expedition.State.FIGHTING and expedition.battle != null:
@@ -433,11 +447,10 @@ func _show(event: SimEvent, animate: bool) -> void:
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_cut_short_everything()
 			_scan_due = true
+		SimEvent.Kind.PARTY_WIPED:
+			fallen_party.wiped(age, animate)
 		SimEvent.Kind.PARTY_REVIVED:
-			for hero: Hero in simulation.party.heroes:
-				var sprite: CharacterSprite = character(hero.id)
-				if sprite != null:
-					sprite.revive()
+			_snap_camera = not fallen_party.revived(animate)
 			_snap_heroes = true
 
 
@@ -528,13 +541,17 @@ func _follow(delta: float) -> void:
 		if _monsters.has(id):
 			goal = Vector2(_monsters[id].x * TILE, _floors[id])
 		else:
-			goal = quest_props.goal_for(id, _hero_feet(id))
+			goal = fallen_party.goal_for(id, quest_props.goal_for(id, _hero_feet(id)))
 		_goals[id] = goal
+	_spacing.space(self, _goals)
+	for id: int in _sprites:
+		var goal: Vector2 = _goals[id]
 		var sprite: CharacterSprite = _sprites[id]
 		if _snap_all or (_snap_heroes and not _monsters.has(id)):
 			sprite.position = goal
 		else:
 			sprite.position = _eased(sprite.position, goal, delta, climbing)
+	_spacing.hold_back(self)
 
 
 ## One frame's move from [param from] toward [param goal]: a share of the gap, at most RUN_SPEED.
@@ -596,13 +613,21 @@ func _toward(sprite: CharacterSprite, target_id: int, otherwise: int) -> int:
 	return 1 if target.position.x > sprite.position.x else -1
 
 
+## Where the camera aims to show a party whose front hero's feet are at [param feet], facing
+## [param facing]: ahead of it and above it.
+func camera_target(feet: Vector2, facing: int) -> Vector2:
+	# The look-ahead is a share of the view, so the closer view stays centred on the party.
+	var look := Vector2(facing * LOOK_AHEAD, -LOOK_ABOVE) / camera.zoom.x
+	return feet + look.round()
+
+
 func _aim_camera(delta: float) -> void:
 	var leader: CharacterSprite = character(_leader_id())
 	var at: Vector2 = leader.position if leader != null else _hero_feet(_leader_id())
-	# The look-ahead is a share of the view, so the closer view stays centred on the party.
-	var look := Vector2(simulation.expedition.facing * LOOK_AHEAD, -LOOK_ABOVE) / camera.zoom.x
-	camera.target = at + look.round()
-	if _snap_all or _snap_heroes:
+	camera.target = camera_target(at, simulation.expedition.facing)
+	if not _snap_all and fallen_party.aims_camera(camera, delta):
+		return
+	if _snap_all or _snap_camera:
 		camera.snap_to(camera.target)
 	else:
 		camera._process(delta)

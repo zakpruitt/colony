@@ -4,7 +4,8 @@ extends Camera2D
 ## band's columns, sits on whole pixels, and can be shaken.
 ##
 ## [member position] is the followed point (clamped and rounded); a shake only moves
-## [member offset], so it never disturbs where the camera is going.
+## [member offset], so it never disturbs where the camera is going. A [method travel] (spec 038)
+## carries the view to a far place at a pace of its own, eased in and out.
 
 ## How fast the camera closes on its target: each second it covers all but e^-rate of the
 ## remaining distance. 6 settles in about half a second.
@@ -32,13 +33,26 @@ var _rng := RandomNumberGenerator.new()
 var _zoom_level: int = 1
 var _zoom_from: float = 1.0
 var _zoom_age: float = ZOOM_TIME
+## A travel in progress: where it started and ends, its length and seconds into it (-1 for none).
+var _travel_from: Vector2
+var _travel_to: Vector2
+var _travel_time: float = 0.0
+var _travel_age: float = -1.0
 
 
 func _process(delta: float) -> void:
 	_ease_zoom(delta)
-	_followed = _followed.lerp(target, 1.0 - exp(-FOLLOW_RATE * delta))
-	if _followed.distance_to(target) < SETTLE:
-		_followed = target
+	if _travel_age >= 0.0:
+		_travel_age = minf(_travel_age + delta, _travel_time)
+		var share: float = smoothstep(0.0, 1.0, _travel_age / _travel_time)
+		_followed = _travel_from.lerp(_travel_to, share)
+		if _travel_age >= _travel_time:
+			_travel_age = -1.0
+			_followed = _travel_to
+	else:
+		_followed = _followed.lerp(target, 1.0 - exp(-FOLLOW_RATE * delta))
+		if _followed.distance_to(target) < SETTLE:
+			_followed = target
 	_shake *= exp(-SHAKE_DECAY * delta)
 	if _shake < SHAKE_STOP:
 		_shake = 0.0
@@ -47,9 +61,30 @@ func _process(delta: float) -> void:
 
 ## Jumps to a world pixel position and follows it from there, with no easing.
 func snap_to(world_pixels: Vector2) -> void:
+	_travel_age = -1.0
 	target = world_pixels
 	_followed = world_pixels
 	_apply()
+
+
+## Carries the view from where it is to [param world_pixels] over [param seconds], eased in and
+## out, whatever [member target] says meanwhile; then it follows [member target] again. The end is
+## kept inside the band, so the travel ends where the view will rest.
+func travel(world_pixels: Vector2, seconds: float) -> void:
+	if seconds <= 0.0:
+		snap_to(world_pixels)
+		return
+	var half: float = _view_size().x * 0.5 / zoom.x
+	_travel_from = _followed
+	_travel_to = Vector2(_clamp_to_band(world_pixels.x, half), world_pixels.y)
+	_travel_time = seconds
+	_travel_age = 0.0
+	target = world_pixels
+
+
+## True while a [method travel] is under way.
+func is_travelling() -> bool:
+	return _travel_age >= 0.0
 
 
 ## Asks for zoom [param level] (1 the normal view, 2 the close one); the view eases to it over
