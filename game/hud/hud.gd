@@ -86,6 +86,9 @@ var clock_label: Label
 ## The upgrade shop (spec 017), its button beside the gold and the marker on it.
 var shop: ShopPanel
 var shop_button: HudButton
+## The game's speed (spec 032), left of the Shop button on its tab: "1x", "2x" or "4x", lit above
+## 1x. Main connects its click and tells it the speed through [method show_speed].
+var speed_button: HudButton
 ## The small panel the Shop button sits on.
 var shop_tab: HudPanel
 var shop_marker: ShopMarker
@@ -364,18 +367,31 @@ func _build_shop() -> void:
 	shop_tab = HudPanel.new()
 	shop_tab.name = "ShopTab"
 	add_child(shop_tab)
+	speed_button = HudButton.new("4x")  # the widest label, kept for every speed
+	speed_button.name = "SpeedButton"
+	speed_button.custom_minimum_size = speed_button.size
+	speed_button.text = "1x"
+	speed_button.position = Vector2(4, 7)
+	shop_tab.add_child(speed_button)
 	shop_button = HudButton.new("Shop")
 	shop_button.name = "ShopButton"
-	shop_button.position = Vector2(4, 7)
+	shop_button.position = Vector2(speed_button.position.x + speed_button.size.x + 3.0, 7)
 	shop_button.pressed.connect(_toggle_shop)
 	shop_tab.add_child(shop_button)
-	shop_tab.size = Vector2(shop_button.size.x + 4.0 + SHOP_TAB_RIGHT, TOP_HEIGHT)
+	var tab_width: float = shop_button.position.x + shop_button.size.x + SHOP_TAB_RIGHT
+	shop_tab.size = Vector2(tab_width, TOP_HEIGHT)
 	shop_marker = ShopMarker.new()
 	shop_marker.visible = false
 	shop_tab.add_child(shop_marker)
 	shop = ShopPanel.new()
 	add_child(shop)
 	shop.setup(_simulation, _world)
+
+
+## Shows the game's speed (spec 032) on [member speed_button]: its label, lit above 1x.
+func show_speed(value: int) -> void:
+	speed_button.text = "%dx" % value
+	speed_button.lit = value > 1
 
 
 ## The hero sheet (spec 026): a frame's click opens or closes it, and the open hero's frame is

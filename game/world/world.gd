@@ -51,6 +51,10 @@ const PARTY_LIGHT_HEIGHT: float = 14.0
 
 ## Set before entering the tree.
 var simulation: Simulation
+## How many times real time the simulation runs (spec 032), set by Main. Ticks come that many
+## times faster, so the windows above (in ticks) widen by it, and sprites and bolts move by that
+## many seconds of game time a second: the same game as at 1x, sooner.
+var speed: int = 1
 
 var labyrinth_view: LabyrinthView
 var camera: WorldCamera
@@ -160,7 +164,7 @@ func feet_position(id: int) -> Vector2:
 ## False for an event so old (after a stall) that it should start no animation or effect. Listeners
 ## to [signal sim_event] use this rather than working it out again.
 func is_recent(event: SimEvent) -> bool:
-	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS
+	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS * maxi(speed, 1)
 
 
 ## Holds every character's animation still for [param seconds] (a hit-stop): [method sync] goes on
@@ -176,7 +180,7 @@ func sync(delta: float) -> void:
 	if simulation == null or labyrinth_view == null:
 		return
 	var now: int = simulation.tick
-	_snap_all = _last_tick < 0 or now - _last_tick > STALL_TICKS
+	_snap_all = _last_tick < 0 or now - _last_tick > STALL_TICKS * maxi(speed, 1)
 	_snap_heroes = false
 	_last_tick = now
 
@@ -203,7 +207,8 @@ func sync(delta: float) -> void:
 
 	_settle_heroes()
 	_remove_unwanted()
-	_follow(delta)
+	var game_delta: float = delta * maxi(speed, 1)
+	_follow(game_delta)
 	_act()
 	if _frozen > 0.0:
 		_frozen -= delta
@@ -211,7 +216,7 @@ func sync(delta: float) -> void:
 		for sprite: CharacterSprite in _sprites.values():
 			sprite.advance(delta)
 	_remove_finished()
-	_fly_bolts(delta)
+	_fly_bolts(game_delta)
 	_place_party_light()
 	target_marker.follow(simulation, _party_feet(), delta)
 	_aim_camera(delta)
@@ -398,7 +403,8 @@ func _show(event: SimEvent, animate: bool) -> void:
 			if animate and attacker != null:
 				var windup: float = float(event.amount) / Simulation.TICKS_PER_SECOND
 				var reach: float = _ranges.get(event.source_id, 0.0)
-				attacker.play_attack(maxf(windup - age, 0.0), reach > Battle.MELEE_REACH)
+				var left: float = maxf(windup - age, 0.0) / maxi(speed, 1)  # in real seconds
+				attacker.play_attack(left, reach > Battle.MELEE_REACH)
 		SimEvent.Kind.PROJECTILE_LAUNCHED:
 			_struck(event.source_id, event.tick)
 			if animate:
