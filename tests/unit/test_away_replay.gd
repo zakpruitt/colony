@@ -42,3 +42,15 @@ func test_durations_read_as_hours_and_minutes() -> void:
 	assert_eq(AwayPanel.duration(30.0 * 60.0), "30m")
 	assert_eq(AwayPanel.duration(65.0 * 60.0), "1h 5m")
 	assert_eq(AwayPanel.duration(8.0 * 3600.0), "8h 0m")
+
+
+func test_the_most_needed_microskill_was_missed_most_ties_to_the_first() -> void:
+	var replay := AwayReplay.new(Simulation.from_save(_saved()), 0.0)
+	var ids: Array[StringName] = Content.microskill_ids()
+	assert_eq(replay.report.most_needed_microskill, &"", "nothing missed, nothing needed")
+	replay._missed_by_skill = {3: 1, 1: 2, 4: 2}
+	replay.run(1_000)
+	assert_eq(replay.report.most_needed_microskill, ids[1], "the most missed; a tie to the first")
+	replay._missed_by_skill = {3: 1, 1: 2, 4: 3}
+	replay.run(1_000)
+	assert_eq(replay.report.most_needed_microskill, ids[4])
