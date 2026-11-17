@@ -9,29 +9,30 @@ const TRAININGS: Array = [
 	[&"quickness", "Quickness", TrainingDef.Stat.QUICKNESS, 0.03, 10],
 ]
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes, recorded on dev
-## (f2aab10) before this spec changed any sim code.
+## before this spec changed any sim code: first on f2aab10, then again on 9a496cf (spec 025's
+## side quests change the game) with this spec's sim code set aside.
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		1144295452,
-		1442468581,
-		1035394576,
-		33058421,
-		4101337661,
-		3821674815,
-		1478286231,
-		3317147596,
+		2138702493,
+		2516982573,
+		3852944666,
+		3745694668,
+		1494098986,
+		2869340306,
+		2310054196,
+		3299673341,
 	],
 	29:
 	[
-		2543804132,
-		75473755,
-		202177756,
-		3824105975,
-		1528741642,
-		1473728609,
-		3775710376,
-		1713034147,
+		717491089,
+		123440885,
+		2058545794,
+		653061822,
+		2482246253,
+		2344692318,
+		1818886748,
+		2302445392,
 	],
 }
 const SEED: int = 29
