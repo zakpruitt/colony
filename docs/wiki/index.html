@@ -218,6 +218,18 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   each goal with a bar or a price; a hero's frame shows a small orange tag when there is something to do on
   their sheet. Click a goal to go where it is done: the shop, a hero's training or skills, the orders, or
   the depth ladder (spec 042). <kbd>G</kbd> hides the goals.</li>
+  <li><strong>The area map</strong> (spec 053): <kbd>W</kbd>, or a click on the area's name at the top left,
+  opens a list of every area: its monsters (point at one for its name), its guardian with a green tick once
+  beaten, the level of its first stage, and how far the party has got there (<em>Safe 3, furthest 5</em>). The
+  area the party is in says <em>Here</em>; on the road the destination says <em>On the way, 7 s</em>. A closed
+  area is dimmed and says which guardian opens it (<em>Beat the Slime King in Mossy Hollow</em>). Click an open
+  area to choose it: a stage shows under the list, starting at that area's safe stage, with <kbd>-</kbd> and
+  <kbd>+</kbd> from 1 to one past the furthest, coloured as the ladder colours depths (blue safe, orange within
+  reach, red dangerous, by that area's levels). <em>Go</em> sends the party there (ten seconds on the road), or
+  for the area it is in sets the target, as a click on the ladder does; a dangerous choice is warned of in the
+  journal. When a guardian opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears
+  (click it for the map) and the area's name at the top left carries a small orange mark until you open the
+  map.</li>
   <li><strong>Party orders</strong> (spec 035): the <em>Orders</em> button (or <kbd>O</kbd>) opens a small panel
   with two standing orders the party follows by itself. <em>Pace</em> says how hurt it may get before it
   rests after a fight: Cautious (below 80% health), Steady (below 60%, the usual) or Bold (only below 40%).
@@ -247,6 +259,7 @@ too, and its heroes are brought up to the level their XP now earns.</p>
   <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>L</kbd></td><td>Hide or show the depth ladder on the right</td></tr>
+  <tr><td><kbd>W</kbd></td><td>Open or close the area map, where you choose where the party goes (a click on the area's name does the same; <kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>G</kbd></td><td>Hide or show the goals under the depth</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders (the Orders button does the same; <kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the party tally of damage, healing and hits taken (the button left of the hero frames does the same; <kbd>Esc</kbd> closes it)</td></tr>
@@ -409,9 +422,8 @@ of any area is safe in a minute. Each area's guardian waits on its stage 5 and e
 after; beating it the first time opens the next area (<em>The Claypits is open</em> in the journal). A new game
 has only Mossy Hollow open. Sending the party to another open area takes ten seconds on the road
 (<em>On the way to The Claypits 1</em>), which rests it as ten seconds of resting would (the fallen stand up),
-and every area keeps its own safe and furthest stage, so it can go back. There is no control to choose an area
-in the game yet: the map to choose from is spec 053, so for now only tests and <code>dev.py sim --area</code>
-send the party elsewhere.
+and every area keeps its own safe and furthest stage, so it can go back. The area map (spec 053, below) is
+where you choose; <code>dev.py sim --area</code> does it for a headless run.
 An old save opens the areas its deepest depth had already reached past. The labyrinth of each area is its
 own, and a monster appears in only its own area.</p>
 <p><span class="tag built">Built: spec 024</span> <strong>Guardian fights feel like boss fights.</strong> When the

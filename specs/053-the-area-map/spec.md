@@ -1,9 +1,9 @@
 # 053 — The area map: choosing where the party goes
 
-- **Status:** provisional (direction agreed with Zak 2026-11-17; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction agreed with Zak 2026-11-17; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 030, 037, 042, 049
-- **Pull request:** —
+- **Pull request:** [#52](https://github.com/zakpruitt/colony/pull/52)
 
 ## Intent
 

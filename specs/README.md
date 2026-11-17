@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 053 | [The area map](053-the-area-map/spec.md) | M6 | landed on dev, [#52](https://github.com/zakpruitt/colony/pull/52), provisional | 030, 037, 042, 049 |
 | 049 | [Areas](049-areas/spec.md) | M6 | landed on dev, [#51](https://github.com/zakpruitt/colony/pull/51), provisional | 005, 013, 014, 020, 035 |
 | 050 | [Abilities in combat](050-abilities-in-combat/spec.md) | M6 | landed on dev, [#50](https://github.com/zakpruitt/colony/pull/50), provisional | 004, 015 |
 | 048 | [A wipe told whole](048-a-wipe-told-whole/spec.md) | M5 | landed on dev, [#49](https://github.com/zakpruitt/colony/pull/49), provisional | 038 |
@@ -63,11 +64,12 @@ implementer lane builds exactly that.
 
 Zak's direction after the demo: areas to choose between instead of one descent, and a skill tree of real
 abilities for every hero, with paragon points after it (`docs/design/world.md`, "Areas and skill trees").
-049 areas and 050 abilities in combat have landed. Still to write: 055 the tree on the hero sheet. New rows go in this table.
+049 areas and 050 abilities in combat have landed. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
 | [051 Talent trees and paragon](051-talent-trees-and-paragon/spec.md) | in progress, provisional | 029, 049, 050 |
-| [053 The area map](053-the-area-map/spec.md) | in progress, provisional | 030, 037, 042, 049 |
 | [054 Zones on screen](054-zones-on-screen/spec.md) | in progress, provisional | 006, 008, 012, 018, 048, 049 |
 | [052 Resources](052-resources/spec.md) | written, waits for 051 and 053; provisional | 016, 017, 022, 031, 049, 051, 053 |
+| [055 The tree on the hero sheet](055-the-tree-on-the-sheet/spec.md) | written, waits for 051; provisional | 034, 037, 041, 042, 051 |
+| [056 Abilities on screen](056-abilities-on-screen/spec.md) | written, waits for 051; provisional | 010, 027, 045, 050, 051 |

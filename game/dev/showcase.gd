@@ -4,7 +4,9 @@ extends Node
 ## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, going on a stage and
 ## back (spec 054: the crossing), a wipe and the revival, a stage becoming stable, a fight in each
 ## other area, a guardian's fight (spec 038), side quests (spec 028): one done, one nobody can do,
-## a tripwire sprung and a microskill learned; and the four areas' looks in turn (spec 054).
+## a tripwire sprung and a microskill learned; then the area map (spec 053) with two areas open
+## and the rest closed, a journey to the Claypits and the arrival there, with the map open on the
+## way; and the four areas' looks in turn (spec 054).
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -40,6 +42,8 @@ const MOMENTS: Array[StringName] = [
 	&"quest_missed",
 	&"tripwire_sprung",
 	&"microskill_learned",
+	&"area_map",
+	&"journey",
 	&"four_areas",
 ]
 ## What the label says during each moment.
@@ -63,6 +67,8 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
 	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
+	&"area_map": "THE AREA MAP: WHERE THE PARTY CAN GO",
+	&"journey": "A JOURNEY TO THE CLAYPITS",
 	&"four_areas": "THE FOUR AREAS",
 }
 ## Seconds a moment goes on showing once what it is about has happened.
@@ -72,20 +78,22 @@ const LINGER: Dictionary[StringName, float] = {
 	&"monster_death": 1.6,
 	&"heal": 1.2,
 	&"level_up": 1.6,
-	&"resting": 3.5,
+	&"resting": 2.5,
 	&"climb_down": 1.0,
 	&"climb_up": 1.0,
 	&"wipe": 2.5,
 	&"revival": 2.0,
 	&"depth_stable": 2.2,
-	&"clay_fight": 4.0,
-	&"stone_fight": 4.0,
-	&"deep_fight": 4.0,
-	&"guardian_fight": 4.0,
+	&"clay_fight": 3.0,
+	&"stone_fight": 3.0,
+	&"deep_fight": 3.0,
+	&"guardian_fight": 3.5,
 	&"quest_done": 2.2,
 	&"quest_missed": 2.0,
 	&"tripwire_sprung": 1.8,
 	&"microskill_learned": 2.2,
+	&"area_map": 3.0,
+	&"journey": 2.5,
 	&"four_areas": 0.2,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
@@ -99,7 +107,7 @@ const BAND_AREAS: Dictionary[StringName, StringName] = {
 }
 const BAND_STAGE: int = 3
 ## Seconds each area is shown in the four areas' moment, and the heroes' level there.
-const AREA_SECONDS: float = 1.6
+const AREA_SECONDS: float = 1.0
 const AREA_LEVEL: int = 20
 ## The hero level used in a band's fight, so it lasts long enough to watch.
 const BAND_LEVELS: Dictionary[StringName, int] = {
@@ -137,6 +145,8 @@ const CUT_TICKS: int = 1200
 ## Where the showcase's Main would keep a save: a per-process name under user:// that is only
 ## ever read (it does not exist), never written. The store is dropped as soon as Main is ready.
 const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
+## The area the map moments open and the journey goes to.
+const NEW_AREA: StringName = &"claypits"
 
 ## The game, as the main scene builds it.
 var main: Main
@@ -155,6 +165,8 @@ var _since_evidence: float = -1.0
 var _caption: Label
 ## Battles already steered in this moment (by its first combatant's id), so a change is made once.
 var _steered: Dictionary[int, bool] = {}
+## True once the journey's map has been opened on the way.
+var _map_on_the_way: bool = false
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
@@ -214,7 +226,7 @@ func advance(delta: float) -> void:
 		return
 	elapsed += delta
 	var speed: float = 1.0
-	if _walks_to_a_fight():
+	if _walks_to_a_fight() or _on_a_journey():
 		speed = WALK_SPEED_UP
 	_steer()
 	main.driver.advance(roundi(delta * speed * 1_000_000.0))
@@ -307,6 +319,18 @@ func _begin(current: StringName) -> void:
 				# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 			_cut_to_quest(QUEST_OF[current])
+		&"area_map":
+			_settle_now()
+			expedition.travel.open[NEW_AREA] = true
+			main.hud.area_map.open()
+			main.hud.area_map.choose(NEW_AREA)
+		&"journey":
+			_settle_now()
+			_map_on_the_way = false
+			expedition.travel.open[NEW_AREA] = true  # on its own too, after skip_to
+			main.hud.area_map.open()
+			main.hud.area_map.choose(NEW_AREA)
+			main.hud.area_map.go()
 		&"four_areas":
 			_settle_now()
 			sim.set_auto_push(false)
@@ -334,6 +358,8 @@ func _end_moment() -> void:
 				hero.health = hero.max_health()
 		&"depth_stable":
 			sim.expedition.stable_seconds = 600.0
+		&"area_map", &"journey":
+			main.hud.area_map.close()
 
 
 ## Changes made every frame while a moment waits for its event: in a fight, once per fight.
@@ -398,6 +424,14 @@ func _look() -> void:
 		&"guardian_fight":
 			if GuardianSpacing.fighting_guardian(main.simulation) != null:
 				_see()
+		&"area_map":
+			if main.hud.area_map.is_open():
+				_see()
+		&"journey":
+			# On the way, the map shows where to and how long.
+			if expedition.state == Expedition.State.JOURNEYING and not _map_on_the_way:
+				_map_on_the_way = true
+				main.hud.area_map.open()
 		&"four_areas":
 			_show_areas()
 
@@ -444,6 +478,9 @@ func _on_sim_event(event: SimEvent) -> void:
 		&"microskill_learned":
 			if event.kind == SimEvent.Kind.MICROSKILL_LEARNED:
 				_see()
+		&"journey":
+			if event.kind == SimEvent.Kind.AREA_CHANGED:
+				_see()
 
 
 ## True while the moment waits for a fight the party is still walking to.
@@ -452,6 +489,13 @@ func _walks_to_a_fight() -> bool:
 		return false
 	var current: StringName = moment()
 	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting"]
+
+
+## True while the journey's moment waits for the party to arrive.
+func _on_a_journey() -> bool:
+	if done or moment() != &"journey":
+		return false
+	return main.simulation.expedition.state == Expedition.State.JOURNEYING
 
 
 # --- Cuts ----------------------------------------------------------------------

@@ -119,6 +119,8 @@ var defeat_note: DefeatNote
 ## party frames.
 var tally: TallyPanel
 var tally_button: HudButton
+## The area map (spec 053): where the party can go, opened with W or the area's name.
+var area_map: AreaMap
 
 var _simulation: Simulation
 var _world: World
@@ -232,6 +234,10 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_tally()  # spec 045: before help, so its tabs get tooltips
 	_build_help()
 	_build_orders()
+	area_map = AreaMap.new()  # spec 053: after the tooltips, which it gives its controls
+	add_child(area_map)
+	area_map.setup(simulation, world)
+	area_map.add_tips(tooltip)
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
@@ -273,6 +279,7 @@ func advance(delta: float) -> void:
 	orders_button.lit = orders.is_open()
 	tally.advance(delta)
 	_light_tally_button()
+	area_map.advance(delta)
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
 

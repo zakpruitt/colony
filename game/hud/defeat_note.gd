@@ -477,6 +477,7 @@ func _covered() -> bool:
 		_hud.help != null and _hud.help.is_open(),
 		_hud.orders != null and _hud.orders.is_open(),
 		_hud.tally != null and _hud.tally.is_open(),  # spec 045
+		_hud.area_map != null and _hud.area_map.is_open(),  # spec 053
 	]:
 		if open:
 			return true
