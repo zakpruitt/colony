@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 033 | [The depth ladder](033-depth-ladder/spec.md) | M5 | landed on dev, [#34](https://github.com/zakpruitt/colony/pull/34), provisional | 011, 020, 027 |
 | 034 | [A hero sheet that fits](034-hero-sheet-tabs/spec.md) | M4 | landed on dev, [#35](https://github.com/zakpruitt/colony/pull/35), provisional | 026, 028, 029 |
 | 032 | [Game speed](032-game-speed/spec.md) | M5 | landed on dev, [#33](https://github.com/zakpruitt/colony/pull/33), provisional | 001, 008, 010, 011, 021 |
 | 030 | [Help, tooltips and live health](030-help-and-hints/spec.md) | M5 | landed on dev, [#32](https://github.com/zakpruitt/colony/pull/32), provisional | 011, 017, 021, 026, 027 |
@@ -49,5 +50,4 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, in progress | 011, 020, 027 |
 | [035 Party orders](035-party-orders/spec.md): standing instructions the party follows: pace (when to rest) and whether to fight guardians | provisional, in progress | 005, 014, 020, 027, 030 |

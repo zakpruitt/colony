@@ -1,9 +1,9 @@
 # 033 — The depth ladder: see the whole expedition at once
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 011, 020, 027
-- **Pull request:** —
+- **Pull request:** [#34](https://github.com/zakpruitt/colony/pull/34)
 
 ## Intent
 
