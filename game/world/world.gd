@@ -11,7 +11,13 @@ extends Node2D
 ## frame would show.
 ##
 ## Children, in draw order: the labyrinth view, the ambience, QuestProps, Characters, Effects,
-## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe (spec 038).
+## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe (spec 038),
+## and ZoneCrossing, which dims the screen between places (spec 054).
+##
+## Spec 054: the world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
+## The party never climbs on screen: it walks into a doorway, the screen dims, the world changes
+## to the stage it is going to while it is dark ([method ZoneCrossing.stage_shown]) and opens on
+## the party stepping out of a doorway there. Nothing on screen moves up or down between stages.
 
 ## Every simulation event, once, in order, in the frame it happened.
 signal sim_event(event: SimEvent)
@@ -69,6 +75,8 @@ var target_marker: TargetMarker
 var quest_props: QuestProps
 ## The fallen heroes, and the story of a wipe (spec 038).
 var fallen_party: FallenParty
+## The dimming and the title between places (spec 054).
+var crossing: ZoneCrossing
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -105,6 +113,8 @@ var _frozen: float = 0.0
 var _spacing := GuardianSpacing.new()
 ## True for the sync in progress when the camera is to jump to the party.
 var _snap_camera: bool = false
+## The stage shown (spec 054), or 0 before the first.
+var _shown: int = 0
 
 
 func _ready() -> void:
@@ -113,6 +123,8 @@ func _ready() -> void:
 	labyrinth_view = LabyrinthView.new()
 	labyrinth_view.name = "LabyrinthView"
 	labyrinth_view.labyrinth = simulation.labyrinth
+	labyrinth_view.zoned = true
+	labyrinth_view.area = simulation.expedition.place
 	add_child(labyrinth_view)
 	# After the view and before the characters, so props draw behind the heroes.
 	ambience = Ambience.new()
@@ -147,6 +159,9 @@ func _ready() -> void:
 	fallen_party.name = "FallenParty"
 	add_child(fallen_party)
 	fallen_party.setup(self)
+	crossing = ZoneCrossing.new()
+	crossing.name = "ZoneCrossing"
+	add_child(crossing)
 	sync(0.0)
 
 
@@ -212,6 +227,7 @@ func sync(delta: float) -> void:
 		_catch_up_with_state(delta)
 	for event: SimEvent in simulation.drain_events():
 		_show(event, is_recent(event))
+		crossing.heard(event)
 		sim_event.emit(event)
 	if labyrinth_view.labyrinth != simulation.labyrinth:
 		_change_area()  # no AREA_CHANGED heard: a world made after the arrival
@@ -222,6 +238,7 @@ func sync(delta: float) -> void:
 		# Down with no wipe heard (the world made after time away): the story starts part way.
 		var left: float = float(expedition.revive_tick - now) / Simulation.TICKS_PER_SECOND
 		fallen_party.wiped(Expedition.REVIVE_SECONDS - left)
+	crossing.update(simulation)
 	if _scan_due:
 		_scan_waiting()
 
@@ -237,6 +254,7 @@ func sync(delta: float) -> void:
 		for id: int in _sprites:
 			if not fallen_party.animate(id, _sprites[id], delta):
 				_sprites[id].advance(delta)
+	_show_heroes()
 	_remove_finished()
 	_fly_bolts(game_delta)
 	_place_party_light()
@@ -247,8 +265,13 @@ func sync(delta: float) -> void:
 ## Brings the view up to the simulation's state before its events are shown: the levels built
 ## around the party, the heroes, the waiting monsters and the fighters.
 func _catch_up_with_state(delta: float) -> void:
-	var focus: Vector2 = simulation.expedition.hero_position(_leader_id())
-	labyrinth_view.set_focus(fallen_party.focus(focus))
+	var stage: int = ZoneCrossing.stage_shown(simulation)
+	if stage != _shown:
+		if _shown > 0:
+			_change_stage()
+		_shown = stage
+	var focus: Vector2 = fallen_party.focus(simulation.expedition.hero_position(_leader_id()))
+	labyrinth_view.set_focus(Vector2(focus.x, simulation.labyrinth.level(_shown).floor_y))
 	var built: Array[int] = labyrinth_view.built_depths()
 	if built != _built:
 		_built = built
@@ -296,8 +319,28 @@ func _leader_id() -> int:
 	return heroes[0].id if not heroes.is_empty() else 1
 
 
+## Where hero [param hero_id] stands, as the simulation has it; while the party changes stage, at
+## the doorway on the floor of the stage shown (spec 054), never on the way up or down.
 func _hero_feet(hero_id: int) -> Vector2:
-	return _feet(simulation.expedition.hero_position(hero_id))
+	var e: Expedition = simulation.expedition
+	if e.state == Expedition.State.CLIMBING and _shown > 0:
+		return _feet(Vector2(e.x, simulation.labyrinth.level(_shown).floor_y))
+	return _feet(e.hero_position(hero_id))
+
+
+## The stage the world shows (spec 054): the party's, or the one it is crossing to once the
+## screen is dark.
+func shown_stage() -> int:
+	return _shown
+
+
+## Heroes go into the doorway and out of it on a change of stage (spec 054 R1).
+func _show_heroes() -> void:
+	var door: float = simulation.expedition.x * TILE
+	for hero: Hero in simulation.party.heroes:
+		var sprite: CharacterSprite = character(hero.id)
+		if sprite != null:
+			sprite.modulate.a = ZoneCrossing.hero_shown(simulation, sprite.position.x - door)
 
 
 ## The feet pixel of a simulation position: the bottom of the row it stands in.
@@ -523,7 +566,20 @@ func _change_area() -> void:
 	_waiting.clear()
 	quest_props.clear()
 	labyrinth_view.show_labyrinth(simulation.labyrinth)
+	labyrinth_view.area = simulation.expedition.place
+	_shown = 0  # the next catch-up shows the stage it arrived on
 	_built = []
+	_scan_due = true
+	_snap_all = true
+
+
+## The world shows another stage (spec 054): none of the last one's monsters or bolts are left,
+## and every sprite and the camera jump to their places on the new one, out of sight in the dark.
+func _change_stage() -> void:
+	_cut_short_everything()
+	for id: int in _monsters.keys():
+		_remove(id)
+	_waiting.clear()
 	_scan_due = true
 	_snap_all = true
 

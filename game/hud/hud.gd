@@ -42,7 +42,7 @@ const STATE_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.TRAVELLING: "Travelling",
 	Expedition.State.FIGHTING: "Fighting",
 	Expedition.State.RESTING: "Resting",
-	Expedition.State.CLIMBING: "Climbing",
+	Expedition.State.CLIMBING: "Moving on",
 	Expedition.State.REVIVING: "Reviving",
 	Expedition.State.WORKING: "Working",
 	Expedition.State.JOURNEYING: "On the way",
@@ -75,7 +75,7 @@ var target_caption: Label
 var target_label: Label
 ## What the party is doing and why, in a short sentence: [method status_text].
 var state_label: Label
-## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" or "Deeper in m:ss"
+## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" or "Further in m:ss"
 ## over a thin bar and what happens next, or "Stable" (spec 039 R2).
 var stable_note: Label
 var stable_bar: Control
@@ -210,6 +210,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_world = world
 	_effects = effects
 	_icons = PixelSheet.load_sheet(ICONS_PATH)
+	var veil := CrossingVeil.new()  # spec 054: first, so the rest of the HUD is drawn over it
+	add_child(veil)
+	veil.setup(world)
 	_build_frames()
 	_build_depth()
 	_build_gold()
@@ -274,7 +277,7 @@ func advance(delta: float) -> void:
 	tooltip.advance(delta)
 
 
-## What the party is doing and why, as the depth panel shows it: "Heading down to stage 5",
+## What the party is doing and why, as the depth panel shows it: "Heading on to stage 5",
 ## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (spec
 ## 027 R1, spec 049 R9: the panel's caption names the area the stages are in).
 func status_text() -> String:
@@ -287,15 +290,16 @@ func status_text() -> String:
 				var held: int = e.depth if e.target_depth > e.depth else e.depth - 1
 				line = "Holding at the %s" % Content.monster(e.guardian_of(held)).display_name
 			elif e.target_depth > e.depth:
-				line = "Heading down to stage %d" % e.target_depth
+				line = "Heading on to stage %d" % e.target_depth
 			elif e.target_depth < e.depth:
-				line = "Heading up to stage %d" % e.target_depth
+				line = "Heading back to stage %d" % e.target_depth
 		Expedition.State.FIGHTING:
 			line = _fight_text(e.battle)
 		Expedition.State.RESTING:
 			line = "Resting, %d%% health" % _party_health_percent()
 		Expedition.State.CLIMBING:
-			line = "Climbing down" if _climbing_down() else "Climbing up"
+			var to: int = ClimbProgress.stage_to(e)  # spec 054: on or back, never down or up
+			line = ("Going on to stage %d" if to > e.depth else "Going back to stage %d") % to
 		Expedition.State.REVIVING:
 			line = "Chased home! Regrouping"
 		Expedition.State.WORKING:
@@ -308,7 +312,7 @@ func status_text() -> String:
 
 
 ## The road to stable (spec 027 R2, spec 039 R2): "Stable in m:ss" while the party must still hold
-## this depth, "Deeper in m:ss" while auto-push counts down to the next, "Stable" otherwise, or
+## this depth, "Further in m:ss" while auto-push counts down to the next, "Stable" otherwise, or
 ## "Holding" at a guardian, followed by what happens next (", then stage N",
 ## ", staying on stage N", ", Orders (O) to go in").
 func stable_text() -> String:
@@ -398,8 +402,8 @@ func _build_depth() -> void:
 	depth_divider.color = Palette.color(&"dusk")
 	depth_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	depth_panel.add_child(depth_divider)
-	depth_caption = _label(depth_panel, "DepthCaption", "Depth", &"steel", Vector2(5, 3))
-	depth_label = _label(depth_panel, "Depth", "1", &"white", Vector2(5, 10))
+	depth_caption = _label(depth_panel, "DepthCaption", "Stage", &"steel", Vector2(5, 3))
+	depth_label = _label(depth_panel, "StageNumber", "1", &"white", Vector2(5, 10))
 	_make_big(depth_label)
 	state_label = _label(depth_panel, "State", "", &"silver", Vector2(0, 3))
 	stable_label = _label(depth_panel, "Stable", "", &"silver", Vector2(0, 14))
@@ -782,7 +786,7 @@ func _layout_depth() -> void:
 
 
 ## The road to stable's two parts (spec 039 R2): the note ("Stable in m:ss" while this depth is
-## not yet stable, "Deeper in m:ss" while auto-push counts down to the next, "Stable", or
+## not yet stable, "Further in m:ss" while auto-push counts down to the next, "Stable", or
 ## "Holding" at a guardian) and what happens next at the target ("then stage N", "staying on
 ## stage N", "Orders (O) to go in", or "").
 func _stable_parts() -> PackedStringArray:
@@ -798,7 +802,7 @@ func _stable_parts() -> PackedStringArray:
 	if e.depth > e.last_stable_depth:
 		return PackedStringArray(["Stable in " + clock(e.seconds_to_stable()), next])
 	if _pushing():
-		return PackedStringArray(["Deeper in " + clock(e.seconds_to_push()), next])
+		return PackedStringArray(["Further in " + clock(e.seconds_to_push()), next])
 	if at_target and not e.auto_push:
 		next = "staying on stage %d" % e.depth
 	return PackedStringArray(["Stable", next])
@@ -847,19 +851,6 @@ func _party_health_percent() -> int:
 		health += hero.health
 		most += hero.max_health()
 	return floori(100.0 * health / maxi(most, 1))
-
-
-## True while the party climbs down: its leader is below the floor of the depth it left. At the
-## very start of a climb, before anyone has moved, the target says which way.
-func _climbing_down() -> bool:
-	var e: Expedition = _simulation.expedition
-	if _simulation.party.heroes.is_empty():
-		return e.target_depth > e.depth
-	var leader_y: float = e.hero_position(_simulation.party.heroes[0].id).y
-	var floor_y: float = _simulation.labyrinth.level(e.depth).floor_y
-	if is_equal_approx(leader_y, floor_y):
-		return e.target_depth > e.depth
-	return leader_y > floor_y
 
 
 func _advance_shop(delta: float) -> void:

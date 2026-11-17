@@ -175,7 +175,7 @@ func test_r1_status_line() -> void:
 	_sim.step()
 	_hud.advance(0.0)
 	assert_eq(e.state, Expedition.State.TRAVELLING)
-	assert_eq(_hud.status_text(), "Heading down to stage 2", "travelling toward a deeper target")
+	assert_eq(_hud.status_text(), "Heading on to stage 2", "travelling toward a further target")
 
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a fight starts")
 	var count: int = _alive_monsters()
@@ -192,14 +192,14 @@ func test_r1_status_line() -> void:
 		e.battle.monsters[i].health = healths[i]  # the fight goes on as it was
 
 	assert_true(_step_until(_in_state(Expedition.State.CLIMBING)), "the party climbs")
-	assert_eq(_hud.status_text(), "Climbing down", "climbing down the shaft")
+	assert_eq(_hud.status_text(), "Going on to stage 2", "crossing to the next stage (spec 054)")
 	assert_true(_step_until(_at_depth(2)), "and arrives")
 	_walk_away()
 	_sim.set_target_depth(1)
 	assert_true(_step_until(_at_depth(2)), "on its way up, out of any fight")
-	assert_eq(_hud.status_text(), "Heading up to stage 1", "toward a shallower target")
+	assert_eq(_hud.status_text(), "Heading back to stage 1", "toward an earlier target")
 	assert_true(_step_until(_in_state(Expedition.State.CLIMBING)), "the party climbs back")
-	assert_eq(_hud.status_text(), "Climbing up", "climbing up the shaft")
+	assert_eq(_hud.status_text(), "Going back to stage 1", "crossing back (spec 054)")
 	assert_true(_step_until(_at_depth(1)), "and arrives")
 
 	# Resting: a won fight leaves the party hurt.
@@ -391,7 +391,7 @@ func test_r3_journal() -> void:
 
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 2)
 	assert_eq(
-		journal.lines()[0], "0:12  Reached Mossy Hollow 2, the deepest yet", "a new deepest depth"
+		journal.lines()[0], "0:12  Reached Mossy Hollow 2, the furthest yet", "a new deepest depth"
 	)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 1)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 2)

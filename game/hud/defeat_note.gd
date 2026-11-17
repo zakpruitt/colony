@@ -374,7 +374,7 @@ func _reason() -> String:
 			return "Heroes are level %d; it is balanced for about %d" % [lowest, wanted]
 	if _wipe_depth - _wipe_safe >= TOO_DEEP:
 		var below: int = _wipe_depth - _wipe_safe
-		return "%s is %d below the safe stage" % [_place(_wipe_depth), below]
+		return "%s is %d past the safe stage" % [_place(_wipe_depth), below]
 	return ""
 
 

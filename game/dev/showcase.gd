@@ -1,10 +1,10 @@
 class_name Showcase
 extends Node
 ## A development scene (spec 018) that plays the loop's moments on demand, one after another, each
-## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, a climb down and up, a
-## wipe and the revival, a depth becoming stable, a fight in each deeper band, a guardian's fight
-## (spec 038), and side quests (spec 028): one done, one nobody can do, a tripwire sprung and a
-## microskill learned.
+## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, going on a stage and
+## back (spec 054: the crossing), a wipe and the revival, a stage becoming stable, a fight in each
+## other area, a guardian's fight (spec 038), side quests (spec 028): one done, one nobody can do,
+## a tripwire sprung and a microskill learned; and the four areas' looks in turn (spec 054).
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -40,6 +40,7 @@ const MOMENTS: Array[StringName] = [
 	&"quest_missed",
 	&"tripwire_sprung",
 	&"microskill_learned",
+	&"four_areas",
 ]
 ## What the label says during each moment.
 const CAPTIONS: Dictionary[StringName, String] = {
@@ -49,19 +50,20 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"heal": "THE CLERIC HEALS",
 	&"level_up": "A LEVEL UP",
 	&"resting": "RESTING",
-	&"climb_down": "CLIMBING DOWN",
-	&"climb_up": "CLIMBING UP",
+	&"climb_down": "ON TO THE NEXT STAGE",
+	&"climb_up": "BACK A STAGE",
 	&"wipe": "THE PARTY IS WIPED",
 	&"revival": "THE REVIVAL",
-	&"depth_stable": "A DEPTH BECOMES STABLE",
-	&"clay_fight": "A FIGHT IN THE CLAY",
-	&"stone_fight": "A FIGHT IN THE STONE",
-	&"deep_fight": "A FIGHT IN THE DEEP",
-	&"guardian_fight": "A GUARDIAN HOLDS THE WAY DOWN",
+	&"depth_stable": "A STAGE BECOMES STABLE",
+	&"clay_fight": "A FIGHT IN THE CLAYPITS",
+	&"stone_fight": "A FIGHT IN THE OLD CRYPT",
+	&"deep_fight": "A FIGHT IN EMBER DEEP",
+	&"guardian_fight": "A GUARDIAN HOLDS THE WAY ON",
 	&"quest_done": "A SIDE QUEST: THE ROGUE PICKS A LOCK",
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
 	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
+	&"four_areas": "THE FOUR AREAS",
 }
 ## Seconds a moment goes on showing once what it is about has happened.
 const LINGER: Dictionary[StringName, float] = {
@@ -84,16 +86,22 @@ const LINGER: Dictionary[StringName, float] = {
 	&"quest_missed": 2.0,
 	&"tripwire_sprung": 1.8,
 	&"microskill_learned": 2.2,
+	&"four_areas": 0.2,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
 ## How much faster than real time the simulation runs while the party walks to its next fight.
 const WALK_SPEED_UP: float = 3.0
-## The depths of the band fights: one in each deeper stratum (clay, stone, deep).
-const BAND_DEPTHS: Dictionary[StringName, int] = {
-	&"clay_fight": 8, &"stone_fight": 13, &"deep_fight": 18
+## The areas of the band fights (spec 054: one in each area after the first, each its own look),
+## and the stage each is fought on there: levels 8, 13 and 18, as the old depths were.
+const BAND_AREAS: Dictionary[StringName, StringName] = {
+	&"clay_fight": &"claypits", &"stone_fight": &"old_crypt", &"deep_fight": &"ember_deep"
 }
-## The hero level used at a band's depth, so a fight there lasts long enough to watch.
+const BAND_STAGE: int = 3
+## Seconds each area is shown in the four areas' moment, and the heroes' level there.
+const AREA_SECONDS: float = 1.6
+const AREA_LEVEL: int = 20
+## The hero level used in a band's fight, so it lasts long enough to watch.
 const BAND_LEVELS: Dictionary[StringName, int] = {
 	&"clay_fight": 8, &"stone_fight": 13, &"deep_fight": 18
 }
@@ -147,6 +155,9 @@ var _since_evidence: float = -1.0
 var _caption: Label
 ## Battles already steered in this moment (by its first combatant's id), so a change is made once.
 var _steered: Dictionary[int, bool] = {}
+## The four areas' moment: the area being shown (an index into the areas), and those seen.
+var _area_turn: int = -1
+var _areas_seen: Dictionary[StringName, bool] = {}
 
 
 func _ready() -> void:
@@ -274,10 +285,12 @@ func _begin(current: StringName) -> void:
 			for hero: Hero in sim.party.heroes:
 				hero.level = BAND_LEVELS[current]
 				hero.health = hero.max_health()
-			_cut_to_depth(BAND_DEPTHS[current], BAND_DEPTHS[current])
+			_cut_to_area(BAND_AREAS[current])
+			_cut_to_depth(BAND_STAGE, BAND_STAGE)
 			_cut_to_fight()
 		&"guardian_fight":
 			_settle_now()
+			_cut_to_area(AreaTravel.first_area())
 			for hero: Hero in sim.party.heroes:
 				_set_level(hero, GUARDIAN_LEVEL)
 			_cut_to_depth(GUARDIAN_DEPTH, GUARDIAN_DEPTH + 1)
@@ -294,6 +307,13 @@ func _begin(current: StringName) -> void:
 				# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 			_cut_to_quest(QUEST_OF[current])
+		&"four_areas":
+			_settle_now()
+			sim.set_auto_push(false)
+			for hero: Hero in sim.party.heroes:
+				_set_level(hero, AREA_LEVEL)
+			_area_turn = -1
+			_areas_seen.clear()
 
 
 func _end_moment() -> void:
@@ -369,16 +389,17 @@ func _look() -> void:
 			if expedition.state == Expedition.State.RESTING:
 				_see()
 		&"clay_fight", &"stone_fight", &"deep_fight":
-			var band: int = AmbienceMood.band(BAND_DEPTHS[moment()])
 			if (
 				expedition.state == Expedition.State.FIGHTING
 				and expedition.battle != null
-				and AmbienceMood.band(expedition.depth) == band
+				and expedition.place == BAND_AREAS[moment()]
 			):
 				_see()
 		&"guardian_fight":
 			if GuardianSpacing.fighting_guardian(main.simulation) != null:
 				_see()
+		&"four_areas":
+			_show_areas()
 
 
 func _on_sim_event(event: SimEvent) -> void:
@@ -528,6 +549,40 @@ func _cut_to_quest(quest: StringName) -> void:
 		sim.expedition.x = found.rect.position.x - maxf(back, 0.1)
 		sim.expedition.facing = 1
 		return
+
+
+## The four areas' moment: each area in turn for AREA_SECONDS, cut to its first stage; seen once
+## the party has stood in all four.
+func _show_areas() -> void:
+	var ids: Array[StringName] = Content.area_ids()
+	var turn: int = floori(_moment_time / AREA_SECONDS)
+	if turn >= ids.size():
+		if _areas_seen.size() == ids.size():
+			_see()
+		return
+	if turn != _area_turn:
+		_area_turn = turn
+		_cut_to_area(ids[turn])
+		_cut_to_depth(1, 1)
+	var expedition: Expedition = main.simulation.expedition
+	if expedition.state != Expedition.State.JOURNEYING:
+		_areas_seen[expedition.place] = true
+
+
+## Sends the party to area [param id] and steps the simulation (ending fights and rests on the way)
+## until it has arrived; the world shows the arrival as it would after a long frame.
+func _cut_to_area(id: StringName) -> void:
+	var sim: Simulation = main.simulation
+	if sim.expedition.place == id and sim.expedition.state != Expedition.State.JOURNEYING:
+		return
+	sim.expedition.travel.open[id] = true
+	sim.set_destination(id, 1)
+	for i: int in CUT_TICKS:
+		_settle_now()
+		sim.step()
+		var there: bool = sim.expedition.place == id
+		if there and sim.expedition.state != Expedition.State.JOURNEYING:
+			return
 
 
 func _set_level(hero: Hero, level: int) -> void:

@@ -106,7 +106,7 @@ func _add_quest_lines(report: AwayReport) -> void:
 		)
 		_add_line(
 			(
-				"Guardians slain %s (deepest: %s)"
+				"Guardians slain %s (furthest: %s)"
 				% [Hud.group_thousands(report.guardians_slain), deepest]
 			),
 			&"amber"

@@ -214,7 +214,7 @@ func _draw() -> void:
 func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
 	_world = world
-	_caption = PixelText.label("Depths", &"steel")
+	_caption = PixelText.label(PlaceText.area_name(simulation.expedition.place), &"steel")
 	_caption.name = "Caption"
 	_caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_caption.position = Vector2(PADDING + 2.0, 3.0)

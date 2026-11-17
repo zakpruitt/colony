@@ -154,10 +154,10 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	var level: LabyrinthLevel = view.labyrinth.level(depth)
 	_seed = level_seed(level)
 	_rng.seed = _seed
-	_band = AmbienceMood.band(depth)
+	_band = view.band_of(depth)
 	_floor_px = (level.floor_y + 1) * TILE
 	_top = (depth - 1) * Labyrinth.LEVEL_HEIGHT
-	_map_open(view.labyrinth)
+	_map_open(view)
 	var shafts: Array[Rect2i] = [level.shaft_down]
 	if depth > 1:
 		shafts.append(view.labyrinth.level(depth - 1).shaft_down)
@@ -275,7 +275,7 @@ func _place_torches(chamber: LabyrinthChamber) -> void:
 			torch.rect.position + FLAME_CENTRE,
 			TORCH_RADIUS,
 			TORCH_ENERGY,
-			AmbienceMood.light_tint(depth),
+			AmbienceMood.band_tint(_band),
 			TORCH_FLICKER,
 			_roll(2, column)
 		)
@@ -572,7 +572,7 @@ func _light_campfire(prop: AmbienceProp) -> void:
 		prop.rect.position + Vector2(12, 13),
 		CAMPFIRE_RADIUS,
 		CAMPFIRE_ENERGY,
-		AmbienceMood.light_tint(depth).lerp(Palette.color(&"orange"), 0.3),
+		AmbienceMood.band_tint(_band).lerp(Palette.color(&"orange"), 0.3),
 		CAMPFIRE_FLICKER,
 		_roll(3, roundi(prop.rect.position.x))
 	)
@@ -629,18 +629,18 @@ func exposure_at(tile: Vector2i) -> float:
 
 
 ## Marks the open tiles of this band as the view draws them (chambers, tunnels and shafts,
-## including the shaft from the level above and those of the levels either side reaching in),
-## and from them how much light reaches each tile.
-func _map_open(labyrinth: Labyrinth) -> void:
+## including the shaft from the level above and those of the levels either side reaching in; a
+## stage shown as its own place, spec 054, has no shafts), and from them how much light reaches
+## each tile.
+func _map_open(view: LabyrinthView) -> void:
 	var width: int = Labyrinth.LEVEL_WIDTH + 2
 	_open.resize(width * (Labyrinth.LEVEL_HEIGHT + 2))
 	var band := Rect2i(-1, _top - 1, width, Labyrinth.LEVEL_HEIGHT + 2)
-	for near: int in range(maxi(1, depth - 1), depth + 2):
-		for rect: Rect2i in labyrinth.level(near).open_rects():
-			var overlap: Rect2i = rect.intersection(band)
-			for y: int in range(overlap.position.y, overlap.end.y):
-				for x: int in range(overlap.position.x, overlap.end.x):
-					_open[(y - _top + 1) * width + x + 1] = 1
+	for rect: Rect2i in view.open_rects_near(depth):
+		var overlap: Rect2i = rect.intersection(band)
+		for y: int in range(overlap.position.y, overlap.end.y):
+			for x: int in range(overlap.position.x, overlap.end.x):
+				_open[(y - _top + 1) * width + x + 1] = 1
 	exposure = Image.create_empty(
 		Labyrinth.LEVEL_WIDTH, Labyrinth.LEVEL_HEIGHT, false, Image.FORMAT_R8
 	)

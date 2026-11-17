@@ -33,17 +33,23 @@ func test_a_far_revival_is_a_cut() -> void:
 	var biggest: float = 0.0
 	var last: Vector2 = world.camera.position
 	var built_there: bool = false
-	# The cut waits until shortly before the revival, 5 s after the wipe (spec 048 R6).
-	for i: int in roundi(5.0 / FRAME):
+	# Spec 054 R8: another stage, so the cut comes at the revival, 5 s after the wipe, under a dark
+	# screen (it waited until shortly before it in spec 048 R6).
+	var dark_at_cut: bool = true
+	for i: int in roundi(5.5 / FRAME):
 		if i % FRAMES_PER_TICK == 0:
 			sim.step()
 		world.sync(FRAME)
-		biggest = maxf(biggest, world.camera.position.distance_to(last))
+		var step: float = world.camera.position.distance_to(last)
+		if step > TILE * 4.0 and world.crossing.darkness() < 1.0:
+			dark_at_cut = false
+		biggest = maxf(biggest, step)
 		last = world.camera.position
 		built_there = built_there or world.labyrinth_view.built_depths().has(8)
 	var screens: float = 3.0 * world.get_viewport_rect().size.y
 	assert_gt(biggest, screens, "more than three screens away: the camera cuts")
 	assert_true(built_there, "and the labyrinth is built where it cut to")
+	assert_true(dark_at_cut, "the cut is made while the screen is dark")
 	var there: Vector2 = world.fallen_party.destination()
 	var half: float = world.get_viewport_rect().size.x * 0.5
 	there.x = clampf(there.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half))

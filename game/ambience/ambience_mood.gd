@@ -56,7 +56,11 @@ static func depth_at(y: float) -> int:
 
 ## The light everything at [param depth] has with no lamp near it.
 static func ambient_color(depth: int) -> Color:
-	var index: int = band(depth)
+	return band_ambient(band(depth))
+
+
+## The ambient light of stratum [param index] (0 loam, 1 clay, 2 stone, 3 deep).
+static func band_ambient(index: int) -> Color:
 	var level: float = AMBIENT_LEVEL[index]
 	var grey := Color(level, level, level)
 	var tone: Color = Palette.color(AMBIENT_HUE[index])
@@ -66,7 +70,11 @@ static func ambient_color(depth: int) -> Color:
 
 ## The colour of torchlight at [param depth], at full strength.
 static func light_tint(depth: int) -> Color:
-	var index: int = band(depth)
+	return band_tint(band(depth))
+
+
+## The colour of torchlight in stratum [param index], at full strength.
+static func band_tint(index: int) -> Color:
 	return Color.WHITE.lerp(Palette.color(LIGHT_HUE[index]), LIGHT_SATURATION[index])
 
 
@@ -92,18 +100,23 @@ static func daylight(y: float) -> float:
 
 ## The light at a world pixel from the ambient darkness, daylight and [param lights], of which
 ## a share of [param exposure] reaches it (see [constant EDGE_EXPOSURE]). Each channel is
-## between 0 and 1.
+## between 0 and 1. With a [param look] (spec 054: a stage shown as its own place) there is no sky
+## and no daylight, and the look's stratum and stage set the ambient light.
 static func light_at(
-	world_pixels: Vector2, lights: Array[AmbienceLight], exposure: float = 1.0
+	world_pixels: Vector2,
+	lights: Array[AmbienceLight],
+	exposure: float = 1.0,
+	look: ZoneLook = null
 ) -> Color:
 	# Lights are sampled at pixel centres, as the shader does.
 	var point := Vector2(floorf(world_pixels.x) + 0.5, floorf(world_pixels.y) + 0.5)
-	var sun: float = daylight(point.y)
+	var sun: float = daylight(point.y) if look == null else 0.0
 	if sun >= 1.0:
 		return Color.WHITE
-	var depth: int = depth_at(point.y)
-	var lift: float = sun + EARTH_LIFT[band(depth)] * (1.0 - exposure)
-	var total: Color = ambient_color(depth) + Color(lift, lift, lift, 0.0)
+	var index: int = band(depth_at(point.y)) if look == null else look.band
+	var lift: float = sun + EARTH_LIFT[index] * (1.0 - exposure)
+	var ambient: Color = band_ambient(index) if look == null else look.ambient()
+	var total: Color = ambient + Color(lift, lift, lift, 0.0)
 	total += lamps_at(point, lights, exposure)
 	return Color(minf(total.r, 1.0), minf(total.g, 1.0), minf(total.b, 1.0))
 

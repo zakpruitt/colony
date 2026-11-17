@@ -16,8 +16,8 @@ extends Control
 const KEYS: Array[Array] = [
 	["H", "Show or hide this help"],
 	["Esc", "Close any open panel"],
-	["- +", "Lower or raise the target depth"],
-	["A", "Auto on or off: go deeper when a depth is safe"],
+	["- +", "Set the target a stage back or further"],
+	["A", "Auto on or off: go further when a stage is safe"],
 	["U", "Open or close the Shop"],
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
@@ -27,7 +27,7 @@ const KEYS: Array[Array] = [
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],
 	["T", "Open or close the party tally"],
-	["L", "Show or hide the depth ladder"],
+	["L", "Show or hide the stage ladder"],
 	["G", "Show or hide the goals"],
 	["Z", "Zoom in or out"],
 	["F", "Game speed: 1x, 2x or 4x"],
@@ -37,8 +37,8 @@ const KEYS: Array[Array] = [
 ## What the game is about, one short line each.
 const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
-	"When a depth turns stable (safe), it heads one deeper.",
-	"A wipe sends it back to the last safe depth.",
+	"When a stage turns stable (safe), it heads one further.",
+	"A wipe sends it back to the last safe stage.",
 	"Gold buys upgrades in the Shop, and training on hero sheets.",
 	"It keeps going while the game is closed.",
 ]

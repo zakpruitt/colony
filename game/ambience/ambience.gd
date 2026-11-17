@@ -32,6 +32,9 @@ var _party_light: AmbienceLight
 ## The built levels' exposure maps in one texture for the darkness; remade when levels change.
 var _exposure := ImageTexture.new()
 var _exposure_stale: bool = true
+## The look the darkness was last given (spec 054): its band and stage, or (-1, 0) for none, and
+## (-2, 0) before the first.
+var _zone: Vector2i = Vector2i(-2, 0)
 
 
 func _process(delta: float) -> void:
@@ -61,6 +64,11 @@ func setup(view: LabyrinthView) -> void:
 ## tests call it.
 func advance(delta: float) -> void:
 	_sync_levels()
+	var look: ZoneLook = _view.zone_look()
+	var key: Vector2i = Vector2i(look.band, look.stage) if look != null else Vector2i(-1, 0)
+	if key != _zone:
+		_zone = key
+		_darkness.set_zone(look)
 	_party_light.position = party_light_position
 	for depth: int in _levels:
 		_levels[depth].advance(delta)
@@ -120,7 +128,8 @@ func lights() -> Array[AmbienceLight]:
 
 ## The light at a world pixel, as the darkness draws it (1 in each channel is unlit).
 func light_at(world_pixels: Vector2) -> Color:
-	return AmbienceMood.light_at(world_pixels, lights(), _exposure_at(world_pixels))
+	var look: ZoneLook = _view.zone_look() if _view != null else null
+	return AmbienceMood.light_at(world_pixels, lights(), _exposure_at(world_pixels), look)
 
 
 ## How bright the world is drawn at a world pixel, 0 (black) to 1 (unlit).

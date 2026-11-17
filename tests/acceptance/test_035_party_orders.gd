@@ -628,7 +628,7 @@ func test_r7_orders_panel() -> void:
 		guardian_texts.append(button.text)
 	assert_eq(guardian_texts, ["Challenge", "Hold"] as Array[String], "the guardian orders")
 	assert_eq(orders.line(0), "Steady: rest below 60% health", "Steady explained")
-	assert_eq(orders.line(1), "Challenge: fight guardians to go deeper", "Challenge explained")
+	assert_eq(orders.line(1), "Challenge: fight guardians to go further", "Challenge explained")
 	assert_eq(orders.line_labels[0].text, orders.line(0), "the line is shown")
 	assert_eq(_lit_choice(0), STEADY, "Steady lit")
 	assert_eq(_lit_choice(1), CHALLENGE, "Challenge lit")
@@ -741,7 +741,7 @@ func test_r8_status_and_journal() -> void:
 	_sim.set_guardian_order(CHALLENGE)
 	_tick()
 	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling under Challenge")
-	assert_eq(_hud.status_text(), "Heading down to stage 6", "heading down again")
+	assert_eq(_hud.status_text(), "Heading on to stage 6", "heading on again")
 	# With the target here, it only hunts.
 	_sim.set_guardian_order(HOLD)
 	_sim.set_target_depth(GUARDIAN_DEPTH)
