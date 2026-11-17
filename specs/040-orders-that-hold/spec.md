@@ -56,6 +56,7 @@ In `tests/acceptance/test_040_orders_that_hold.gd`, plus the amended 035 tests.
 
 - `sim/expedition/` (the climb under Hold; the names leaving `party_orders.gd`)
 - `game/hud/orders_panel.gd`
+- `game/hud/journal.gd` (only the line that reads the pace names; added by the lead when the lane found it)
 - `tests/acceptance/test_040_orders_that_hold.gd`, `tests/acceptance/test_035_party_orders.gd`,
   `tests/unit/test_expedition_orders.gd`
 - `docs/wiki/index.html` only if a sentence there becomes untrue
