@@ -297,8 +297,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   outline, and after the tooltips' delay its line shows left of the ladder in the tooltip's box, with
   `Click to send the party here` in `yellow`, and under it, in the risk's colour, `Within reach` or
   `Dangerous: heroes are level L`. It scrolls smoothly, never a whole rung in one frame. Scrolled away by the
-  wheel, it shows a 15x8 `night` box with an `ink` edge on the rails at its top or bottom edge, holding a 7x4
-  `white` triangle pointing toward the party.
+  wheel, it shows a 15x8 `night` box with an `ink` edge, holding a 7x4 `white` triangle pointing toward the
+  party: in the caption's row just right of `Depths` when the party is above, on the panel's bottom edge over
+  the rails when below, never over the party's diamond, which is drawn above everything else on the rungs.
+  Since spec 047 the target's number sits in a 21x14 `yellow` frame whose left edge the target's arrow
+  touches, and the party's in a 19x12 `white` frame one pixel inside where the two share a rung, so neither
+  depends on the number's risk colour.
 - **The goals tracker** (spec 037) drops from under the top band at the left, below the depth panel, in the
   place the hero sheet and journal use (it hides while either, or the tally, is open): `Goals` in `steel` and `G hide` in
   `slate` over up to three rows. A row is a small `steel` square (a 7x5 `green` tick drawn in code once
