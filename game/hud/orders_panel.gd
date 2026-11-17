@@ -7,12 +7,17 @@ extends Control
 ##
 ## It reads the orders from the simulation every frame, so a loaded save shows the saved orders;
 ## a click sends [method Simulation.set_pace] or [method Simulation.set_guardian_order], and the
-## choice is lit at once, before the simulation applies it on its next step. It never shares the
+## choice is lit at once, before the simulation applies it on its next step. From that step on each
+## row lights the simulation's own value again, whatever it holds (spec 040 R2). It never shares the
 ## screen with the shop, the hero sheet, the journal or help: opening it closes them, and
 ## [method advance] closes it should one of them open. Drawn as a [HudPanel] is.
 
 ## The rows, in order: [constant PartyOrders.PACE] then [constant PartyOrders.GUARDIANS].
 const ORDER_NAMES: Array[String] = ["Pace", "Guardians"]
+## The name of each pace and each guardian order, by value: [enum Expedition.Pace] and
+## [enum Expedition.GuardianOrder].
+const PACE_NAMES: Array[String] = ["Cautious", "Steady", "Bold"]
+const GUARDIAN_NAMES: Array[String] = ["Challenge", "Hold"]
 ## Each choice's explanation, by order then value.
 const LINES: Array[Array] = [
 	[
@@ -60,6 +65,9 @@ var _world: World
 ## A choice asked for that the simulation has not applied yet (it applies on its next step), by
 ## order; -1 when none.
 var _asked: Array[int] = [-1, -1]
+## The simulation's tick when the last choice was asked for: once it has stepped past it, the
+## simulation's own values are shown, whatever they are.
+var _asked_tick: int = 0
 
 
 func _init() -> void:
@@ -100,9 +108,9 @@ func setup(simulation: Simulation, world: World) -> void:
 	var y: float = PADDING + TITLE_HEIGHT + 2.0
 	for order: int in ORDER_NAMES.size():
 		name_labels.append(_add(ORDER_NAMES[order], &"steel", Vector2(PADDING + 2.0, y + 2.0)))
-		var names: Array[String] = PartyOrders.PACE_NAMES
+		var names: Array[String] = PACE_NAMES
 		if order == PartyOrders.GUARDIANS:
-			names = PartyOrders.GUARDIAN_NAMES
+			names = GUARDIAN_NAMES
 		var buttons: Array[HudButton] = []
 		var x: float = CHOICES_X
 		for value: int in names.size():
@@ -139,8 +147,9 @@ func setup(simulation: Simulation, world: World) -> void:
 func advance(_delta: float) -> void:
 	if _simulation == null:
 		return
+	var stepped: bool = _simulation.tick != _asked_tick
 	for order: int in choice_buttons.size():
-		if _asked[order] >= 0 and _asked[order] == _current(order):
+		if _asked[order] >= 0 and (stepped or _asked[order] == _current(order)):
 			_asked[order] = -1
 		var shown: int = _shown(order)
 		var buttons: Array = choice_buttons[order]
@@ -214,6 +223,7 @@ func choose(order: int, value: int) -> void:
 	if value < 0 or value >= (LINES[order] as Array).size():
 		return
 	_asked[order] = value
+	_asked_tick = _simulation.tick
 	if order == PartyOrders.PACE:
 		_simulation.set_pace(value as Expedition.Pace)
 	else:

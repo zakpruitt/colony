@@ -1,9 +1,9 @@
 # 040 — Orders that hold: fixes from the review of party orders
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 035, 039
-- **Pull request:** —
+- **Pull request:** [#41](https://github.com/zakpruitt/colony/pull/41)
 
 ## Intent
 

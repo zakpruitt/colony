@@ -735,17 +735,17 @@ func test_r8_status_and_journal() -> void:
 			break
 	assert_true(turned, "it turned back")
 	assert_true(hunting_seen, "and hunts on, still holding")
-	# Challenge: no longer holding.
+	# Challenge: no longer holding. (Spec 040 R4: the party is certainly travelling here.)
 	_sim.set_guardian_order(CHALLENGE)
 	_tick()
-	if _sim.expedition.state == Expedition.State.TRAVELLING:
-		assert_eq(_hud.status_text(), "Heading down to depth 6", "heading down again")
+	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling under Challenge")
+	assert_eq(_hud.status_text(), "Heading down to depth 6", "heading down again")
 	# With the target here, it only hunts.
 	_sim.set_guardian_order(HOLD)
 	_sim.set_target_depth(GUARDIAN_DEPTH)
 	_tick()
-	if _sim.expedition.state == Expedition.State.TRAVELLING:
-		assert_eq(_hud.status_text(), "Hunting on depth 5", "not holding with the target here")
+	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling with the target here")
+	assert_eq(_hud.status_text(), "Hunting on depth 5", "not holding with the target here")
 
 	# The journal writes a line for an order change.
 	_sim.set_pace(BOLD)

@@ -18,7 +18,9 @@ the party and offers the things that would help, each one click away. It changes
 Everything follows `docs/style-bible.md`; drawn in code, no new sprites.
 
 - **R1. A defeat note.** When the party is wiped, a small note appears in the upper middle of the screen
-  and stays until the heroes stand again (spec 038), then fades. Its first line says what beat the party
+  and stays until 8 seconds after the heroes stand again (spec 038), then fades; it does not
+  fade while the mouse is over it, and a new fight does not hide it. (Amended by the lead: the first
+  wording hid it when the heroes stood, about five seconds, too short to read it and click.) Its first line says what beat the party
   and where: `Beaten by the Slime King on depth 5`, or for ordinary monsters `Beaten on depth 7 by 3
   ogres` (the monsters alive when the last hero fell, grouped by name).
 - **R2. It says why, when it can.** A second line gives the plainest true reason, the first that applies:
@@ -33,8 +35,8 @@ Everything follows `docs/style-bible.md`; drawn in code, no new sprites.
   2. `Buy an upgrade` when gold affords a camp upgrade: opens the shop.
   3. `Hold here` when the party was beaten by a guardian and the order is Challenge: sets the guardian
      order to Hold through the simulation's command, and the button then reads `Holding`.
-  4. `Go up a depth` when beaten by ordinary monsters below the safe depth: lowers the target depth by
-     one through the existing command.
+  (Amended by the lead: a fourth suggestion, `Go up a depth`, is removed. A wipe already sends the party
+  back to its safe depth, and the button sent it deeper than doing nothing.)
   With none applicable the note shows only its lines.
 - **R4. Repeated defeats are counted.** From the second wipe in a row to the same guardian (no victory
   over it between), the first line ends with the count: `Beaten by the Slime King on depth 5 (3 times)`.

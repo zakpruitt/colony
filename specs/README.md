@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 040 | [Orders that hold](040-orders-that-hold/spec.md) | M4 | landed on dev, [#41](https://github.com/zakpruitt/colony/pull/41), provisional | 035, 039 |
 | 039 | [The countdown tells the truth](039-the-countdown-tells-the-truth/spec.md) | M5 | landed on dev, [#40](https://github.com/zakpruitt/colony/pull/40), provisional | 027, 036, 037 |
 | 038 | [Rough edges on screen](038-rough-edges-on-screen/spec.md) | M5 | landed on dev, [#39](https://github.com/zakpruitt/colony/pull/39), provisional | 008, 010, 012, 020, 028 |
 | 036 | [A livelier start](036-a-livelier-start/spec.md) | M5 | landed on dev, [#38](https://github.com/zakpruitt/colony/pull/38), provisional | 005, 016, 020, 025, 029 |
@@ -55,5 +56,4 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [040 Orders that hold](040-orders-that-hold/spec.md): fixes from the review of party orders: Hold can be broken on the ladder, the panel can show the wrong choice, two tests prove too little | provisional, in progress | 035, 039 |
 | [041 After a defeat](041-after-a-defeat/spec.md): a wipe says who beat the party and why, and offers what would help, one click away | provisional, in progress | 020, 027, 029, 035, 037, 038, 039 |

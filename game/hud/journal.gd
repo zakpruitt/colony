@@ -265,7 +265,7 @@ func _sentence(event: SimEvent) -> String:
 ## guardians", or "".
 func _order_sentence(event: SimEvent) -> String:
 	if event.target_id == PartyOrders.PACE and event.amount in Expedition.Pace.values():
-		return "Ordered a %s pace" % PartyOrders.PACE_NAMES[event.amount]
+		return "Ordered a %s pace" % OrdersPanel.PACE_NAMES[event.amount]
 	if event.target_id != PartyOrders.GUARDIANS:
 		return ""
 	match event.amount:
