@@ -48,3 +48,4 @@ until Zak has played them.
 | [028 Seeing side quests](028-seeing-side-quests/spec.md): props, the worker at work, misses that say what was needed, microskills in the sheet and journal | provisional, waiting on 025 and 027 | 008, 010, 011, 021, 025, 026, 027 |
 | [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |
 | [032 Game speed](032-game-speed/spec.md): watch the loop at 1x, 2x or 4x | provisional, in progress | 001, 008, 010, 011, 021 |
+| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, waiting for a free lane | 011, 020, 027 |
