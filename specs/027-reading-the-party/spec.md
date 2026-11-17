@@ -1,9 +1,9 @@
 # 027 — Reading the party: what they are doing, and why
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 008, 010, 011, 020
-- **Pull request:** —
+- **Pull request:** [#28](https://github.com/zakpruitt/colony/pull/28)
 
 ## Intent
 
