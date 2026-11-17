@@ -134,6 +134,33 @@ remembers the miss so it is reported once per visit), a hazard springs, hurts ev
 1) and is cleared. Events: `MICROSKILL_LEARNED`, `SIDE_QUEST_STARTED`, `SIDE_QUEST_DONE`, `SIDE_QUEST_MISSED`,
 with the usual gold, XP and hit events beside them.
 
+## Abilities in combat
+
+Spec 050. An `AbilityDef` (`data/abilities/`, its `AbilityEffect`s embedded as sub-resources) is an action
+or a passive; `Combatant.abilities` lists a fighter's, empty for everyone until spec 051 hands them out.
+`Battle` keeps the movement and the strike; the new rules live beside it, stateless, in `BattleAbilities`
+(which action is ready and at whom, what sets passives off, what each effect does) and `BattleStatuses`
+(putting a status on, its work each second, its end), with the per-fight state on the `Combatant`
+(`statuses`, `action_ready_tick`, `spent`, `strikes`, `pending_action`, `chasing`), cleared by
+`Combatant.reset_abilities` when a battle starts.
+
+- **Actions** replace an ordinary strike when off cooldown, their condition holds and their aim finds
+  someone; the fighter walks into the action's reach as for a strike and keeps that target until the
+  action starts (`chasing`). The cooldown runs from when it lands. A stunned fighter does nothing and loses
+  its wind-up.
+- **Passives** answer to triggers. Hits, crits and "is hit" come only from ordinary strikes and actions,
+  never from passives or statuses, so passives cannot answer each other's damage; kills, deaths and falling
+  below a share answer to any damage. `BattleAbilities.MAX_CHAIN` bounds what is left.
+- **All damage** goes through `Battle.deal`: a shield absorbs first (a `MISSED` event, flagged), then the
+  `HIT` with its true source, then the passives. Ability damage and healing carry no roll and never crit;
+  ordinary strikes roll as before, multiplied by mighty or weakened and marked. Statuses in points (shield,
+  burning, bleeding, mending) are a multiple of the fighter's damage or healing, or of the receiver's
+  maximum health, fixed when they are put on.
+- **Nothing changes without abilities.** Every new roll (a passive's chance, a nimble dodge) happens only
+  when an ability or a status asks for it, and every multiplier is exactly 1 without one, so the recorded
+  hashes stand. Events: `ABILITY_STARTED`, `ABILITY_USED`, `STATUS_BEGAN`, `STATUS_ENDED`, `MISSED`,
+  `REVIVED`, with `SimEvent.ability_id` and `SimEvent.status`.
+
 ## Conventions
 
 - One class per file, `class_name` in PascalCase, file in snake_case, a `##` doc comment on the class and on
