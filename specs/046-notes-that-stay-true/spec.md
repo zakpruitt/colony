@@ -1,9 +1,9 @@
 # 046 — Notes that stay true: fixes from the reviews of the defeat note and the tally
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 041, 045
-- **Pull request:** —
+- **Pull request:** [#47](https://github.com/zakpruitt/colony/pull/47)
 
 ## Intent
 
