@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 048 | [A wipe told whole](048-a-wipe-told-whole/spec.md) | M5 | landed on dev, [#49](https://github.com/zakpruitt/colony/pull/49), provisional | 038 |
 | 047 | [A ladder that points true](047-a-ladder-that-points-true/spec.md) | M5 | landed on dev, [#48](https://github.com/zakpruitt/colony/pull/48), provisional | 043 |
 | 046 | [Notes that stay true](046-notes-that-stay-true/spec.md) | M5 | landed on dev, [#47](https://github.com/zakpruitt/colony/pull/47), provisional | 041, 045 |
 | 045 | [The party tally](045-the-party-tally/spec.md) | M5 | landed on dev, [#46](https://github.com/zakpruitt/colony/pull/46), provisional | 006, 025, 026, 029, 030, 037 |
@@ -63,4 +64,3 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [048 A wipe told whole](048-a-wipe-told-whole/spec.md): fixes from the review of 038: a wipe seen late gets a cut and no stand-up; the view copies the simulation's revival rule | provisional, in progress | 038 |

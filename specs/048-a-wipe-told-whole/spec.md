@@ -1,9 +1,9 @@
 # 048 — A wipe told whole: fixes from the review of the rough edges
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 038
-- **Pull request:** —
+- **Pull request:** [#49](https://github.com/zakpruitt/colony/pull/49)
 
 ## Intent
 
