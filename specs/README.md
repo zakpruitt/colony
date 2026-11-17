@@ -51,3 +51,5 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [035 Party orders](035-party-orders/spec.md): standing instructions the party follows: pace (when to rest) and whether to fight guardians | provisional, in progress | 005, 014, 020, 027, 030 |
+| [036 A livelier start](036-a-livelier-start/spec.md): the first half hour is slow to the point of looking broken; stability scales with depth and the opening is retuned | provisional, in progress | 005, 016, 020, 025, 029 |
+| [037 Goals](037-goals/spec.md): the next few things within reach, with progress; hero frames that point at themselves | provisional, in progress | 011, 020, 025, 027, 029, 030, 034 |
