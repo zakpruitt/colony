@@ -7,28 +7,30 @@ extends GutTest
 ## the hash) come from where the monster is; the game is otherwise the same. Re-recorded by
 ## spec 025, whose side quests stand in for some chambers' monsters.
 ## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
+## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
+## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
 const RECORDED_HASHES: Dictionary = {
 	5:
 	[
-		90617096,
-		1843544079,
-		3990530965,
-		179066290,
-		1074777023,
-		3005114552,
-		1156117692,
-		2672916873,
+		2175997582,
+		763909170,
+		504535480,
+		977110909,
+		1672667560,
+		3599790346,
+		3333976926,
+		3308732211,
 	],
 	17:
 	[
-		2556285521,
-		1862429911,
-		188183527,
-		159247602,
-		2511983039,
-		3981661745,
-		586360381,
-		2459882785,
+		3055813990,
+		2078239010,
+		1371108405,
+		1490681253,
+		1127691303,
+		2999623990,
+		686771038,
+		3864756292,
 	],
 }
 const HOUR_TICKS: int = 36_000
@@ -129,7 +131,7 @@ func test_r2_buys_the_cheapest() -> void:
 	var bought_ticks: Array[int] = []
 	var ids: Array[StringName] = Content.upgrade_ids()
 	for i: int in 200:
-		var expected: StringName = sim.upgrades.cheapest_affordable(sim.party.gold)
+		var expected: StringName = sim.upgrades.cheapest_affordable(sim.party)
 		var ranks_before: Array = sim.upgrades.hash_parts()
 		var gold_before: int = sim.party.gold
 		sim.step()
@@ -239,7 +241,7 @@ func test_r4_saved() -> void:
 		assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 		if loaded != null:
 			assert_eq(loaded.auto_buy, enabled, "round trip of %s" % enabled)
-	assert_eq(Simulation.SAVE_VERSION, 7, "5 since spec 035, 6 since spec 049, 7 since spec 051")
+	assert_eq(Simulation.SAVE_VERSION, 8, "6 since spec 049, 7 since spec 051, 8 since spec 052")
 
 	# A version 2 save loads with auto-buy off, through the upgrade step.
 	var current: Dictionary = _through_json(Simulation.new(SEED).to_save())

@@ -199,6 +199,8 @@ func test_r1_progress_is_plain_data() -> void:
 		"area": data.get("area"),  # spec 049: the areas, tested there
 		"areas": data.get("areas"),
 		"open_areas": data.get("open_areas"),
+		"resources": data.get("resources"),  # spec 052: the resources, tested there
+		"guardians_beaten": data.get("guardians_beaten"),
 	}
 	assert_true(_same(data, expected), "the save holds\n%s\nnot\n%s" % [expected, data])
 	assert_gt(sim.party.gold, 0, "20 minutes of play earns gold")
@@ -303,7 +305,7 @@ func test_r4_bad_data_is_refused() -> void:
 		listed[field] = [1]
 		cases.append([field, listed])
 	var cases_by_value: Array = [
-		["version", "version", 8],
+		["version", "version", 9],
 		["class", "heroes", [{"class": "bard", "level": 1, "xp": 0}]],
 		["level", "heroes", [{"class": "knight", "level": 0, "xp": 0}]],
 		["xp", "heroes", [{"class": "knight", "level": 1, "xp": -5}]],
@@ -344,10 +346,12 @@ func test_r4_bad_data_is_refused() -> void:
 
 func test_r5_upgrade_is_a_pass_through() -> void:
 	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4, spec 035 to 5, spec 049
-	# to 6 and spec 051 to 7; their own tests cover those steps.
-	assert_eq(Simulation.SAVE_VERSION, 7)
+	# to 6, spec 051 to 7 and spec 052 to 8; their own tests cover those steps.
+	assert_eq(Simulation.SAVE_VERSION, 8)
 	var data: Dictionary = _valid()
-	data["version"] = 7
+	data["version"] = 8
+	data["resources"] = {}
+	data["guardians_beaten"] = []
 	data["area"] = "mossy_hollow"
 	data["areas"] = {}
 	data["open_areas"] = ["mossy_hollow"]
@@ -363,7 +367,7 @@ func test_r5_upgrade_is_a_pass_through() -> void:
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 8]:
+	for version: int in [0, 9]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)

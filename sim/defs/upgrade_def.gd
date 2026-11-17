@@ -16,6 +16,14 @@ enum Stat { DAMAGE, HEALTH, REST_HEALING, TRAVEL_SPEED, GOLD }
 @export var base_cost: int
 @export var cost_growth: float
 @export var max_rank: int
+## The resource the later ranks also cost (spec 052), a [ResourceDef] id.
+@export var resource: StringName
+## The first rank (counting from 0) that also costs the resource: the ranks before it cost gold
+## alone.
+@export var resource_from_rank: int = 3
+## The resource rank [member resource_from_rank] costs; each later rank costs [member cost_growth]
+## times the one before, as the gold does.
+@export var resource_base: int
 
 
 ## The price of rank [param rank] + 1, or -1 when [param rank] is the maximum or beyond.
@@ -23,6 +31,18 @@ func cost_at(rank: int) -> int:
 	if rank < 0 or rank >= max_rank:
 		return -1
 	return roundi(base_cost * pow(cost_growth, rank))
+
+
+## The resource the step from rank [param rank] to the next costs: 0 before
+## [member resource_from_rank],
+## [code]resource_base * cost_growth ^ (rank - resource_from_rank)[/code] from it, and -1
+## when [param rank] is the maximum or beyond (as [method cost_at]).
+func resource_cost_at(rank: int) -> int:
+	if rank < 0 or rank >= max_rank:
+		return -1
+	if rank < resource_from_rank:
+		return 0
+	return roundi(resource_base * pow(cost_growth, rank - resource_from_rank))
 
 
 ## One line per problem; empty when the upgrade is usable.
@@ -42,4 +62,10 @@ func validate() -> PackedStringArray:
 		problems.append("cost_growth %s is not above 1" % cost_growth)
 	if max_rank < 1:
 		problems.append("max_rank %d is below 1" % max_rank)
+	if Content.resource_def(resource) == null:
+		problems.append("resource: unknown resource '%s'" % resource)
+	if resource_from_rank < 0:
+		problems.append("resource_from_rank %d is below 0" % resource_from_rank)
+	if resource_base < 1:
+		problems.append("resource_base %d is below 1" % resource_base)
 	return problems

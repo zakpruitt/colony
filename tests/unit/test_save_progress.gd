@@ -100,4 +100,7 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		expected["area"] = "mossy_hollow"
 		expected["areas"] = {}
 		expected["open_areas"] = ["mossy_hollow"]
+		# Spec 052: version 8 adds no resources, and no guardian beaten at depth 3.
+		expected["resources"] = {}
+		expected["guardians_beaten"] = []
 		assert_eq(sim.to_save(), expected)

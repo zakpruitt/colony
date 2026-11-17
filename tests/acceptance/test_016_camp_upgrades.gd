@@ -15,28 +15,30 @@ const UPGRADES: Array = [
 ## monster ids (part of the hash) come from where the monster is; the game is otherwise the same.
 ## Re-recorded by spec 025, whose side quests stand in for some chambers' monsters.
 ## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
+## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
+## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
 const RECORDED_HASHES: Dictionary = {
 	3:
 	[
-		3793668176,
-		1214036140,
-		3894860287,
-		816719926,
-		637789871,
-		3221476330,
-		3183358185,
-		3928131485,
+		2088869351,
+		1317287107,
+		2134628266,
+		1698720485,
+		1954781545,
+		2695845907,
+		298120728,
+		2082791177,
 	],
 	11:
 	[
-		3372118570,
-		622540149,
-		1375365754,
-		1948124930,
-		1885808759,
-		1752451346,
-		2263356909,
-		2125969758,
+		4212334920,
+		3973968880,
+		2586099486,
+		722505920,
+		91127050,
+		1110065276,
+		2240902745,
+		42202787,
 	],
 }
 const HOUR_TICKS: int = 36_000
@@ -67,9 +69,14 @@ func _hour(seed_value: int, buying: bool) -> Vector2i:
 	var sim := Simulation.new(seed_value)
 	sim.expedition.stable_seconds = 120.0
 	var wipes: int = 0
+	if buying:
+		# Spec 052: ranks past 3 cost a resource from an area this run never visits. This test asks
+		# whether upgrades are worth their gold, so the buyer holds plenty of every resource.
+		for resource_id: StringName in Content.resource_ids():
+			sim.party.set_resource(resource_id, 1_000_000)
 	for i: int in HOUR_TICKS:
 		if buying:
-			var cheapest: StringName = sim.upgrades.cheapest_affordable(sim.party.gold)
+			var cheapest: StringName = sim.upgrades.cheapest_affordable(sim.party)
 			if cheapest != &"":
 				sim.buy_upgrade(cheapest)
 		sim.step()

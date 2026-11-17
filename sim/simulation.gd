@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 7
+const SAVE_VERSION: int = 8
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero (spec 051).
@@ -128,9 +128,15 @@ func area_progress(area_id: StringName) -> Vector2i:
 	return expedition.travel.progress(expedition, area_id)
 
 
+## True once area [param area_id]'s guardian has been beaten at least once (spec 052 R12); a save
+## keeps it.
+func is_guardian_beaten(area_id: StringName) -> bool:
+	return expedition.travel.guardians_beaten.has(area_id)
+
+
 ## Asks to buy the next rank of upgrade [param id] at the next step. It is bought
 ## then if the id is known, the rank is below the maximum and the party has the
-## gold; otherwise nothing happens.
+## gold and the resource it costs (spec 052); otherwise nothing happens.
 func buy_upgrade(id: StringName) -> void:
 	_pending_buys.append(id)
 
@@ -164,7 +170,7 @@ static func reset_price(hero: Hero) -> int:
 
 
 ## Turns auto-buy on or off, from the next step. While on, the camp buys the cheapest
-## affordable upgrade (earlier in the shop on a tie) at most once every
+## upgrade it can pay both prices of (earlier in the shop on a tie) at most once every
 ## [constant AUTO_BUY_SECONDS], exactly as [method buy_upgrade] would.
 func set_auto_buy(enabled: bool) -> void:
 	_pending_auto_buy = 1 if enabled else 0
@@ -240,19 +246,20 @@ func _apply_auto_buy() -> void:
 	var every: int = maxi(roundi(AUTO_BUY_SECONDS * TICKS_PER_SECOND), 1)
 	if _tick % every != 0:
 		return
-	var id: StringName = upgrades.cheapest_affordable(party.gold)
+	var id: StringName = upgrades.cheapest_affordable(party)
 	if id != &"":
 		_buy(id)
 
 
 ## Buys the next rank of [param id] if it is known, below the maximum and affordable: takes
-## the gold, raises the rank and the heroes' health, and reports
+## the gold and the resource, raises the rank and the heroes' health, and reports
 ## [constant SimEvent.Kind.UPGRADE_BOUGHT].
 func _buy(id: StringName) -> void:
-	var price: int = upgrades.cost(id)
-	if price < 0 or price > party.gold:
+	if not upgrades.can_pay(id, party):
 		return
-	party.gold -= price
+	party.gold -= upgrades.cost(id)
+	var resource_id: StringName = Content.upgrade(id).resource
+	party.set_resource(resource_id, party.resource(resource_id) - upgrades.resource_cost(id))
 	var before: Dictionary[int, int] = {}
 	for hero: Hero in party.heroes:
 		before[hero.id] = hero.max_health()
@@ -339,6 +346,7 @@ func to_save() -> Dictionary:
 		"guardian_order": PartyOrders.GUARDIAN_SAVED[expedition.guardian_order],
 	}
 	AreaSave.write(expedition, saved)
+	ResourceSave.write(self, saved)
 	return saved
 
 
@@ -378,6 +386,7 @@ static func from_save(data: Dictionary) -> Simulation:
 	var deepest: int = _whole(current["deepest_depth"])
 	var target: int = _whole(current["target_depth"])
 	AreaSave.read(sim, current)
+	ResourceSave.read(sim, current)
 	Arrival.from_save(sim.expedition, sim._tick, stable, deepest, target, auto_push)
 	var auto_buy_on: bool = current["auto_buy"]
 	sim._auto_buy = auto_buy_on
@@ -427,6 +436,7 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 		problems.append("last_stable_depth: deeper than deepest_depth")
 	_check_upgrades(problems, current.get("upgrades"))
 	AreaSave.check(problems, current)
+	ResourceSave.check(problems, current)
 	return problems
 
 
@@ -450,6 +460,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = AreaSave.upgrade_5_to_6(current)
 	if _whole(current["version"]) == 6:
 		current = TalentSave.upgrade_6_to_7(current)
+	if _whole(current["version"]) == 7:
+		current = ResourceSave.upgrade_7_to_8(current)
 	return current
 
 

@@ -557,7 +557,7 @@ func test_r8_saves() -> void:
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
 	var area_saved: String = data["area"]
-	assert_eq(version, 7, "version 7 since spec 051 (6 when spec 049 landed)")
+	assert_eq(version, 8, "version 8 since spec 052 (6 when spec 049 landed)")
 	assert_eq(area_saved, "claypits", "the area the party is in")
 	var parsed: Dictionary = JSON.parse_string(JSON.stringify(data))
 	var back: Simulation = Simulation.from_save(parsed)

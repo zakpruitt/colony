@@ -13,3 +13,6 @@ per_rank = 0.05
 base_cost = 40
 cost_growth = 1.4
 max_rank = 20
+resource = &"embers"
+resource_from_rank = 3
+resource_base = 4
