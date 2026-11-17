@@ -1,9 +1,9 @@
 # 031 — The away report tells the whole story
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 019, 020, 022, 025
-- **Pull request:** —
+- **Pull request:** [#30](https://github.com/zakpruitt/colony/pull/30)
 
 ## Intent
 
