@@ -4,6 +4,11 @@ extends HudPanel
 ## class name, the level, a health bar and an XP bar toward the next level, all on the frame's
 ## own dark panel. The bars ease to new values; a hit flashes the frame; a dead hero's frame is
 ## dimmed with a skull for an icon; a level-up pulses the level and restarts the XP bar.
+##
+## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
+## above), with the level moved left of it, counts what the hero has for the player to do: the trainings the party can
+## pay for, and the microskills learned since the hero's Skills page was last open. It follows the
+## same rules as the hero sheet's tab markers (spec 034).
 
 ## Clicking the frame opens or closes this hero's sheet (spec 026).
 signal clicked(hero_id: int)
@@ -30,6 +35,9 @@ const ICON_BOX: Rect2 = Rect2(4, 7, 20, 20)
 const HEALTH_BAR: Rect2 = Rect2(28, 14, 110, 8)
 const XP_BAR: Rect2 = Rect2(28, 24, 110, 5)
 const TEXT_Y: float = 3.0
+## The marker's top, and the pixels between it and the level left of it.
+const MARKER_Y: float = 2.0
+const MARKER_GAP: float = 2.0
 
 var hero_id: int
 var icon: TextureRect
@@ -42,6 +50,10 @@ var marked: bool = false
 ## The hero's fighter in the battle under way, or null outside a fight: set by the HUD before
 ## [method refresh] (spec 030 R1).
 var fighter: Combatant
+## The party's gold: set by the HUD before [method refresh], for [member marker].
+var gold: int = 0
+## The marker saying this hero has something for the player to do (spec 037 R4).
+var marker: ShopMarker
 
 var _hud: Hud
 var _class_id: StringName
@@ -52,6 +64,9 @@ var _pulse: float = 0.0
 var _level: int = 0
 var _health: EasedValue = EasedValue.new(EASE_SECONDS)
 var _xp: EasedValue = EasedValue.new(EASE_SECONDS)
+## How many microskills the hero had when their Skills page was last open (or when the frame was
+## made), as the hero sheet counts them.
+var _skills_seen: int = 0
 
 
 ## A frame for [param hero], drawing its icons from [param hud].
@@ -84,6 +99,11 @@ func _init(hero: Hero, hud: Hud) -> void:
 	level_label = PixelText.label("", &"yellow")
 	level_label.name = "Level"
 	add_child(level_label)
+	marker = ShopMarker.new()
+	marker.name = "Marker"
+	marker.visible = false
+	add_child(marker)
+	_skills_seen = hero.microskills().size()
 	_health.snap(_health_fraction(hero))
 	_xp.snap(xp_progress(hero))
 	refresh(hero, 0.0)
@@ -122,7 +142,10 @@ func refresh(hero: Hero, delta: float) -> void:
 	if level_label.text != level_text:
 		level_label.text = level_text
 		level_label.reset_size()
+	_refresh_marker(hero, delta)
 	var right: float = HEALTH_BAR.end.x - level_label.size.x
+	if marker.visible:
+		right = marker.position.x - MARKER_GAP - level_label.size.x
 	var lift: float = 1.0 if _pulse > 0.0 else 0.0
 	level_label.position = Vector2(right, TEXT_Y - lift)
 	var level_colour: StringName = &"yellow"
@@ -168,6 +191,26 @@ func _apply_mark() -> void:
 	if marked and _flash <= 0.0:
 		border = Palette.color(&"yellow")
 		bevel = Palette.color(&"amber")
+
+
+## Brings [member marker] up to date with [param hero] (marking the microskills its open Skills
+## page shows as seen, as the sheet does), pins it in the top-right corner and runs its pulse on by
+## [param delta] seconds.
+func _refresh_marker(hero: Hero, delta: float) -> void:
+	var learned: int = hero.microskills().size()
+	var sheet: HeroSheet = _hud.hero_sheet if _hud != null else null
+	if sheet != null and sheet.shown_hero_id() == hero_id:
+		if sheet.page() == HeroSheet.Page.SKILLS:
+			_skills_seen = learned
+	var affordable: int = 0
+	for id: StringName in Content.training_ids():
+		var price: int = hero.training_cost(id)
+		if price > 0 and price <= gold:
+			affordable += 1
+	marker.count = affordable + maxi(learned - _skills_seen, 0)
+	marker.visible = marker.count > 0
+	marker.advance(delta)
+	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)
 
 
 ## The hero was hit: flash the frame for an instant.

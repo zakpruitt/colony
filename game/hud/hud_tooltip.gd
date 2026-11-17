@@ -85,6 +85,10 @@ func setup(hud: Hud) -> void:
 		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
 		_tip([frame], "Click for details")
+	if hud.goals != null:
+		# Spec 037 R5: each goal line says how to get there.
+		for i: int in hud.goals.rows.size():
+			_tip([hud.goals.rows[i]], hud.goals.hint.bind(i))
 
 
 ## Moves the mouse to [param at], in screen pixels. A move onto another element starts its delay

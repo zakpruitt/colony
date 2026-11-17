@@ -100,6 +100,8 @@ var journal: Journal
 var hero_sheet: HeroSheet
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
+## The next few things within reach, under the depth panel (spec 037); G hides it.
+var goals: Goals
 ## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
 ## tooltips on the HUD's elements.
 var help: HelpPanel
@@ -200,6 +202,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	add_child(journal)
 	journal.setup(simulation, world)
 	_build_ladder()
+	goals = Goals.new()  # spec 037: before help, so its lines get tooltips
+	add_child(goals)
+	goals.setup(simulation, world)
 	_build_help()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
@@ -221,6 +226,7 @@ func advance(delta: float) -> void:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.recovering = reviving
+			frame.gold = _simulation.party.gold  # for its marker (spec 037 R4)
 			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
 	_advance_gold(delta)
@@ -230,6 +236,7 @@ func advance(delta: float) -> void:
 	boss_bar.advance(delta)
 	journal.advance(delta)
 	ladder.advance(delta)
+	goals.advance(delta)
 	help.advance(delta)
 	help_button.lit = help.is_open()
 	tooltip.advance(delta)
