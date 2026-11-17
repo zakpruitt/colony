@@ -110,14 +110,42 @@
 Things marked <span class="tag built">Built</span> work today;
 <span class="tag planned">Planned</span> is designed but not yet in the game.</p>
 
-<h2 id="now">Where we are (17 November 2026)</h2>
+<h2 id="now">Where we are (17 November 2026): a demo to check in on</h2>
 <div class="note">
-  <p><strong>In one line:</strong> the core loop is playable end to end on <code>dev</code>, and since Zak's
-  first playtest it has been reworked for ease: what the party is doing, what is coming next, and a place to
-  manage each hero. 42 specs have landed (pull requests #2 to #43), the check passes, and nothing has gone to
-  <code>main</code>. Zak approved spec 001; every spec after it is marked <em>provisional</em> until he has
-  played it. The direction for the world is in <code>docs/design/world.md</code>.</p>
+  <p><strong>In one line:</strong> <code>dev</code> is a playable demo. Every spec written so far has
+  landed (48 of them, pull requests #2 to #49), nothing is in progress, the full check passes (478 tests),
+  and nothing has gone to <code>main</code>. Zak approved spec 001; every spec after it is marked
+  <em>provisional</em> until he has played it. The direction for the world is in
+  <code>docs/design/world.md</code>.</p>
 </div>
+<h3>Play it</h3>
+<p>From the project folder, on the <code>dev</code> branch: <code>git pull</code>, then
+<code>python tools/dev.py import</code> once (new scripts need it), then <code>godot --path .</code>. For a
+fresh start, first delete <code>colony.save</code>, <code>colony.save.bak</code> and
+<code>colony.settings</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>; an old save loads
+too, and its heroes are brought up to the level their XP now earns.</p>
+<h3>Ten minutes with it</h3>
+<ol>
+  <li><strong>Watch the first two minutes without touching anything.</strong> The top left says what the
+  party is doing and counts down to when it goes deeper; the goals under it say what is coming. It should
+  reach depth 2 in about 90 seconds.</li>
+  <li><strong>Spend the first gold.</strong> Click the <code>Buy an upgrade</code> goal when it appears, or
+  press <kbd>U</kbd>. Then click a hero's frame and train them on the Training tab.</li>
+  <li><strong>Watch a side quest.</strong> A glint in the dark is one waiting. The rogue learns Lockpicker
+  at level 2; before that the party walks past chests and the game says what was needed.</li>
+  <li><strong>Open the tally</strong> (<kbd>T</kbd>) after a few fights: who deals the damage, who takes
+  the hits, who heals.</li>
+  <li><strong>Steer.</strong> Click a rung on the ladder at the right. Blue numbers are safe, orange within
+  reach, red dangerous. Send the party somewhere red and watch it lose: the party lies where it fell, a
+  note says who beat it and what would help, and it stands up again at its safe depth.</li>
+  <li><strong>Meet the Slime King</strong> on depth 5, about nine minutes in (sooner with <kbd>F</kbd> for
+  4x). It will probably win the first time. Try <kbd>O</kbd> and the Hold order, train, then send the
+  party back in.</li>
+  <li><strong>Close the game for a few minutes and open it again</strong> for the "while you were away"
+  report.</li>
+</ol>
+<p>To see every moment of the loop in ninety seconds, labelled, including the rare ones:
+<code>godot --path . res://game/dev/showcase.tscn</code>.</p>
 <h3>New since the first playtest</h3>
 <ul>
   <li><strong>Side quests and microskills.</strong> About three plain chambers in ten hold a locked chest, a
@@ -144,8 +172,12 @@ Things marked <span class="tag built">Built</span> work today;
   will really move on.</li>
   <li><strong>After a defeat</strong> a note says who beat the party and why, and offers what would help:
   train a hero, buy an upgrade, or hold at the guardian.</li>
-  <li><strong>On screen:</strong> the party lies where it fell and stands up again at its revival, heroes
-  stand at a guardian's edge, and side quests glint in the dark.</li>
+  <li><strong>On screen:</strong> the party lies where it fell, the camera travels to where it revives and
+  the heroes stand up again; melee heroes stand a sword's reach from a guardian; side quests glint in the
+  dark.</li>
+  <li><strong>A ladder that warns.</strong> Each rung's number is coloured safe, within reach or dangerous
+  for this party; the target's rung has a yellow frame and the party's a white one; the mouse wheel
+  scrolls it.</li>
 </ul>
 <h3>What is in the game</h3>
 <ul>
@@ -228,35 +260,57 @@ Things marked <span class="tag built">Built</span> work today;
 <ul>
   <li><strong>Is it easy to follow?</strong> Could you say, at any moment, what the party is doing, why, and
   what happens next? That was the aim of this round.</li>
-  <li><strong>Is the top of the screen too busy?</strong> It now holds the depth panel, the boss bar, and
-  Orders, speed, help, Shop and gold, with the ladder below on the right.</li>
+  <li><strong>Is there too much on screen?</strong> The top holds the depth panel, the boss bar, and Orders,
+  speed, help, Shop and gold; goals sit under the depth panel, the ladder runs down the right, and the
+  tally's button sits left of the frames. <kbd>G</kbd> and <kbd>L</kbd> hide the goals and the ladder.</li>
+  <li><strong>The opening's pace.</strong> Depth 2 in 90 seconds, level 2 in under a minute, the first
+  guardian at nine minutes. Too fast, too slow, about right? These are the only balance numbers changed
+  this round.</li>
+  <li><strong>The first guardian.</strong> Without upgrades, training or Hold, a new party loses to the
+  Slime King about five times over twelve minutes before it wins. Is that a wall worth having, now that
+  the defeat note says what to do about it?</li>
+  <li><strong>The wipe.</strong> Does it read as a defeat and a return? The camera's travel crosses dark
+  rock for a moment.</li>
+  <li><strong>The ladder's colours.</strong> Orange and red are close at this size. Is the target easy to
+  find?</li>
   <li><strong>Side quests.</strong> Do they feel like the party doing something different, and is "Needs
   Lockpicker" enough to make you want a different party? Their props are plain placeholders.</li>
-  <li><strong>Training against camp upgrades.</strong> Is choosing between them a real decision?</li>
+  <li><strong>Training against camp upgrades.</strong> Is choosing between them a real decision, and does
+  the tally help you choose?</li>
   <li><strong>The sounds.</strong> Still nobody has heard them; they were only checked on paper.</li>
-  <li><strong>A guardian's death.</strong> It should be the best moment in the game.</li>
   <li><strong>4x.</strong> Does a fight at four times speed still look like the same game?</li>
+</ul>
+<h3>Decisions waiting for Zak</h3>
+<ul>
+  <li><strong>Pace barely matters.</strong> Cautious rests four times as often as Bold but wipes almost as
+  much (33 against 34 over three hours of testing). Should pace change more than when the party rests?</li>
+  <li><strong>Fallen heroes stay on the field.</strong> A hero who dies in an ordinary fight now lies there
+  until the fight ends, where before it vanished. This went beyond its spec and was left in.</li>
+  <li><strong>Heroes stand further from a guardian.</strong> About 10 pixels of air, so that lunges and
+  swings never draw over each other; before it was 2.</li>
+  <li><strong>Cheaper levels reach the deep game.</strong> Levels cost about 12% less at level 10 and 6%
+  less at level 20, which the first level-up inside 90 seconds needed. A three-hour run now ends at depth
+  18 to 21, where it ended at 17 to 18.</li>
+  <li><strong>One seed in five misses no side quest</strong> in its first hour, because the heroes learn
+  every microskill before meeting a quest they cannot do.</li>
+  <li><strong>The tally counts overkill</strong> in damage and damage taken (its tooltips say so), but not
+  overhealing.</li>
+  <li><strong>Side-quest gold is not raised by the Fat Purse upgrade.</strong></li>
 </ul>
 <h3>Known rough edges</h3>
 <ul>
-  <li>Every pull request since the first few was checked by CI and the lead only, not by a separate
-  reviewer. The one exception is party orders (#36), whose review found a way to break Hold; that is
-  fixed (#41).</li>
-  <li>Without upgrades, training or the Hold order, a new party loses to the Slime King about five times
-  over twelve minutes before it wins.</li>
-  <li>After a wipe the camera's glide to the revival crosses dark rock for a moment; it may want to be
-  faster.</li>
-  <li>A hero who dies in a fight now lies on the field until the fight ends.</li>
+  <li><strong>Reviews.</strong> Six of this round's pull requests were read by an independent reviewer
+  after they landed (#36, #38, #39, #42, #45, #46). Every one of those reviews found real bugs, all since
+  fixed (#41, #44, #47, #48, #49). The others were checked by CI and the lead only, so expect bugs of
+  the same kind in them: mostly at 4x speed, after a hitch, or on returning to the game mid-fight.</li>
+  <li>The fixes themselves (#41, #44, #47, #48, #49) have not been reviewed.</li>
   <li>All art is a first pass and stays that way by decision: Zak will make the characters, and the world's
   look is to be agreed with him. Weakest: the ghoul, clay hound, fire imp and the Clay Colossus.</li>
-  <li>The Cautious pace rests four times as often as Bold but wipes barely less (33 against 34 over three
-  hours of testing), so pace may not matter enough yet.</li>
-  <li>The game still accepts any target depth. The ladder now warns before and after a dangerous click,
-  but its rule (the lowest hero's level plus one) is a rough guide, not tested against real fights.</li>
+  <li>The game still accepts any target depth. The ladder warns before and after a dangerous click, but
+  its rule (the lowest hero's level plus one) is a rough guide, not tested against real fights.</li>
   <li>The Bone Lord and Deep Maw (depths 15 and 20) were balanced by hand, with no test holding them.</li>
-  <li>A save from testing may exist. For a fresh start, delete <code>colony.save</code>,
-  <code>colony.save.bak</code> and <code>colony.settings</code> in
-  <code>%APPDATA%\Godot\app_userdata\Colony</code>.</li>
+  <li>The full check takes about eight minutes, most of it the tests; longer when several lanes run at
+  once.</li>
 </ul>
 <h3>Not built yet</h3>
 <p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
