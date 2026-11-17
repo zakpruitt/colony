@@ -57,3 +57,4 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [041 After a defeat](041-after-a-defeat/spec.md): a wipe says who beat the party and why, and offers what would help, one click away | provisional, in progress | 020, 027, 029, 035, 037, 038, 039 |
+| [042 Goals you can click](042-goals-you-can-click/spec.md): a goal's line takes the player to the shop, the hero's sheet, the orders or the ladder | provisional, in progress | 034, 035, 037, 039 |
