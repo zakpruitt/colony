@@ -110,13 +110,30 @@
 Things marked <span class="tag built">Built</span> work today;
 <span class="tag planned">Planned</span> is designed but not yet in the game.</p>
 
-<h2 id="now">Where we are (16 November 2026)</h2>
+<h2 id="now">Where we are (17 November 2026)</h2>
 <div class="note">
-  <p><strong>In one line:</strong> the core loop is playable end to end on <code>dev</code>. 24 specs have
-  landed (pull requests #2 to #25), the check passes, and nothing has gone to <code>main</code>. Zak approved
-  spec 001; every spec after it was written and landed without him and is marked <em>provisional</em> until
-  he has played it.</p>
+  <p><strong>In one line:</strong> the core loop is playable end to end on <code>dev</code>, and since Zak's
+  first playtest it has been reworked for ease: what the party is doing, what is coming next, and a place to
+  manage each hero. 35 specs have landed (pull requests #2 to #36), the check passes, and nothing has gone to
+  <code>main</code>. Zak approved spec 001; every spec after it is marked <em>provisional</em> until he has
+  played it. The direction for the world is in <code>docs/design/world.md</code>.</p>
 </div>
+<h3>New since the first playtest</h3>
+<ul>
+  <li><strong>Side quests and microskills.</strong> About three plain chambers in ten hold a locked chest, a
+  stuck door, a hurt wanderer, a rune stone or a tripwire instead of monsters. A hero with the right
+  microskill (Lockpicker, Strongarm, Mender, Runereader, Trapspotter, learned by levelling) steps forward and
+  does it; without one the party walks past and the game says what was needed.</li>
+  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Training tab to spend gold on that hero
+  (Power, Toughness, Quickness), and a Skills tab for their microskills.</li>
+  <li><strong>Reading the party.</strong> A status line that says what and why, a countdown to the next
+  stable depth, a journal (<kbd>J</kbd>), a depth ladder you can click to steer, and a "while you were away"
+  report that tells the whole story.</li>
+  <li><strong>Party orders</strong> (<kbd>O</kbd>): how hurt the party gets before it rests, and whether it
+  fights guardians or holds until told.</li>
+  <li><strong>Help in the game</strong> (<kbd>H</kbd>), tooltips on every control, and a game speed of 1x, 2x
+  or 4x (<kbd>F</kbd>).</li>
+</ul>
 <h3>What is in the game</h3>
 <ul>
   <li><strong>The loop:</strong> four heroes walk an endless labyrinth, fight, earn XP and gold, level up,
@@ -178,29 +195,37 @@ Things marked <span class="tag built">Built</span> work today;
 <pre><code>godot --path . res://game/dev/showcase.tscn</code></pre>
 <h3>What to judge when you play</h3>
 <ul>
-  <li><strong>The sounds.</strong> Nobody has heard them; they were only checked on paper.</li>
-  <li><strong>A guardian's death.</strong> It should be the best moment in the game. The first one is the Slime
-  King at depth 5, and the party needs to be about level 9 to beat it.</li>
-  <li><strong>Pacing.</strong> A simulated three hours with upgrades reached depth 17 at level 39 with one
-  wipe. That may be too easy, or too slow to start.</li>
-  <li><strong>The art.</strong> All of it is a first pass. Weakest: the ghoul, clay hound, fire imp and the Clay
-  Colossus.</li>
-  <li><strong>The zoom</strong> (<kbd>Z</kbd>) has never been seen on screen, only tested.</li>
-  <li><strong>4x.</strong> Does it look like the same game played faster, not a broken one? Fights get busy
-  with numbers; the animations themselves play at their normal speed.</li>
+  <li><strong>Is it easy to follow?</strong> Could you say, at any moment, what the party is doing, why, and
+  what happens next? That was the aim of this round.</li>
+  <li><strong>Is the top of the screen too busy?</strong> It now holds the depth panel, the boss bar, and
+  Orders, speed, help, Shop and gold, with the ladder below on the right.</li>
+  <li><strong>Side quests.</strong> Do they feel like the party doing something different, and is "Needs
+  Lockpicker" enough to make you want a different party? Their props are plain placeholders.</li>
+  <li><strong>Training against camp upgrades.</strong> Is choosing between them a real decision?</li>
+  <li><strong>The sounds.</strong> Still nobody has heard them; they were only checked on paper.</li>
+  <li><strong>A guardian's death.</strong> It should be the best moment in the game.</li>
+  <li><strong>4x.</strong> Does a fight at four times speed still look like the same game?</li>
 </ul>
 <h3>Known rough edges</h3>
 <ul>
-  <li>Heroes vanish while the party is wiped, so the screen shows an empty chamber for a moment.</li>
-  <li>Melee heroes overlap a guardian's body in a fight.</li>
+  <li>Every pull request since the first few was checked by CI and the lead only, not by a separate
+  reviewer.</li>
+  <li>All art is a first pass and stays that way by decision: Zak will make the characters, and the world's
+  look is to be agreed with him. Weakest: the ghoul, clay hound, fire imp and the Clay Colossus.</li>
+  <li>Side-quest props far from the party's light are dim; the rune stone is the hardest to see.</li>
+  <li>The Cautious pace rests four times as often as Bold but wipes barely less (33 against 34 over three
+  hours of testing), so pace may not matter enough yet.</li>
+  <li>The game accepts any target depth, so the ladder lets you send the party far below what it can
+  survive.</li>
+  <li>Heroes vanish while the party is wiped; melee heroes overlap a guardian's body in a fight.</li>
   <li>The Bone Lord and Deep Maw (depths 15 and 20) were balanced by hand, with no test holding them.</li>
-  <li>Most pull requests after the first few were checked by CI and the lead only, not by a separate reviewer.</li>
-  <li>A save from testing may exist. For a fresh start, delete <code>colony.save</code> and
-  <code>colony.save.bak</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>. To see the first-run
-  help again, delete <code>colony.settings</code> there too (it also keeps the mute choice).</li>
+  <li>A save from testing may exist. For a fresh start, delete <code>colony.save</code>,
+  <code>colony.save.bak</code> and <code>colony.settings</code> in
+  <code>%APPDATA%\Godotpp_userdata\Colony</code>.</li>
 </ul>
 <h3>Not built yet</h3>
-<p>Loot and equipment, talents, more hero classes, music, a settings screen, and a balance pass.</p>
+<p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
+equipment, talents, the warren-town at the surface, music, a settings screen.</p>
 
 <nav>
   <ol start="0">
