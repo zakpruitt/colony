@@ -58,6 +58,8 @@ var camera: WorldCamera
 var effects_layer: Node2D
 ## Light, darkness and decoration around the labyrinth view.
 var ambience: Ambience
+## The arrow over the party pointing toward its target depth (spec 027 R5).
+var target_marker: TargetMarker
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -115,6 +117,10 @@ func _ready() -> void:
 	effects_layer.z_index = EFFECTS_Z
 	effects_layer.z_as_relative = false
 	add_child(effects_layer)
+	target_marker = TargetMarker.new()
+	target_marker.z_index = EFFECTS_Z
+	target_marker.z_as_relative = false
+	add_child(target_marker)
 	camera = WorldCamera.new()
 	camera.name = "WorldCamera"
 	add_child(camera)
@@ -207,6 +213,7 @@ func sync(delta: float) -> void:
 	_remove_finished()
 	_fly_bolts(delta)
 	_place_party_light()
+	target_marker.follow(simulation, _party_feet(), delta)
 	_aim_camera(delta)
 
 
@@ -215,6 +222,13 @@ func sync(delta: float) -> void:
 
 ## Centres the party's light on the heroes that are showing.
 func _place_party_light() -> void:
+	var feet: Vector2 = _party_feet()
+	if feet.is_finite():
+		ambience.party_light_position = feet - Vector2(0, PARTY_LIGHT_HEIGHT)
+
+
+## The middle of the heroes that are showing, at their feet; not finite when none is showing.
+func _party_feet() -> Vector2:
 	var low: float = INF
 	var high: float = -INF
 	var feet_y: float = 0.0
@@ -225,8 +239,9 @@ func _place_party_light() -> void:
 		low = minf(low, sprite.position.x)
 		high = maxf(high, sprite.position.x)
 		feet_y = sprite.position.y
-	if low <= high:
-		ambience.party_light_position = Vector2((low + high) / 2.0, feet_y - PARTY_LIGHT_HEIGHT)
+	if low > high:
+		return Vector2(INF, INF)
+	return Vector2((low + high) / 2.0, feet_y)
 
 
 func _leader_id() -> int:
