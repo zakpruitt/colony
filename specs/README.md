@@ -48,4 +48,5 @@ until Zak has played them.
 |---|---|---|
 | [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |
 | [032 Game speed](032-game-speed/spec.md): watch the loop at 1x, 2x or 4x | provisional, in progress | 001, 008, 010, 011, 021 |
-| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, waiting for a free lane | 011, 020, 027 |
+| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, in progress | 011, 020, 027 |
+| [034 A hero sheet that fits](034-hero-sheet-tabs/spec.md): the sheet grew to a third of the screen; a fixed header and three tabs | provisional, waiting for a free lane | 026, 028, 029 |
