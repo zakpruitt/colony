@@ -19,5 +19,6 @@ kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 15.0
 windup = 1.0
+ready_at_start = true
 aim = 2
 anywhere = true

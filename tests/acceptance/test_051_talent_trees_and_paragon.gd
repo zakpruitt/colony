@@ -192,6 +192,14 @@ func test_r1_trees_are_content() -> void:
 	bad = _tree(&"knight").duplicate()
 	bad.path_names = ["Guardian"] as Array[String]
 	assert_true("\n".join(bad.validate()).contains("path_names"), "one path name")
+	# A second tree for a class that has one is refused: one tree a class.
+	var second: TalentTreeDef = _tree(&"knight").duplicate()
+	assert_true(
+		"\n".join(second.validate()).contains("already has a tree"),
+		"a second knight tree: %s" % second.validate()
+	)
+	assert_eq(_tree(&"knight").validate(), PackedStringArray(), "the knight's own tree is fine")
+	assert_eq(Content.talent_tree(&"knight").resource_path, "res://data/talents/knight.tres")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -231,6 +239,25 @@ func test_r2_points_from_levels() -> void:
 		assert_true(levelled, "a level-up from level %d" % start)
 	assert_false(wanted.is_empty(), "levels that earn a point were reached")
 	assert_eq(told, wanted, "one event per point, with the hero and the level")
+
+	# Several levels in one award: one event for each point they earn, at once.
+	var leap := Simulation.new(SEED)
+	var rogue: Hero = leap.party.heroes[1]
+	rogue.xp = Hero.xp_for_level(7) - 1
+	var points: Array[int] = []
+	var levels: Array[int] = []
+	for i: int in 6000:
+		leap.step()
+		for e: SimEvent in leap.drain_events():
+			if e.kind == SimEvent.Kind.LEVEL_UP and e.target_id == rogue.id:
+				levels.append(e.amount)
+			elif e.kind == SimEvent.Kind.TALENT_POINT_GAINED and e.source_id == rogue.id:
+				points.append(e.amount)
+		if not levels.is_empty():
+			break
+	assert_eq(levels, [2, 3, 4, 5, 6, 7] as Array[int], "one award, six levels")
+	assert_eq(points, [2, 4, 6] as Array[int], "a point at 2, 4 and 6, each said once")
+	assert_eq(rogue.talent_points(), 3, "three points to spend")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -330,7 +357,14 @@ func test_r5_abilities_take_effect() -> void:
 		for path: int in 2:
 			var nodes: Array[StringName] = _full(class_id, path)
 			hero.set_talents(nodes)
-			assert_eq(_ids(hero.combatant().abilities), nodes, "%s: its nodes, in order" % class_id)
+			# The newest first: a deeper node is tried before the trunk (R14, so it is seen).
+			var newest_first: Array[StringName] = nodes.duplicate()
+			newest_first.reverse()
+			assert_eq(
+				_ids(hero.combatant().abilities),
+				newest_first,
+				"%s: its nodes, newest first" % class_id
+			)
 		hero.set_talents([] as Array[StringName])
 
 	# A party with no nodes fights exactly as the class numbers alone did before talents.
@@ -444,6 +478,98 @@ func test_r6_paragon() -> void:
 		var def: TrainingDef = Content.training(id)
 		assert_almost_eq(def.per_rank, 0.03, 0.0001, "%s is 3%% a point" % id)
 		assert_true(def.description.begins_with("+3%"), "%s says so" % id)
+
+	# A point spent mid-fight changes the fighter at once.
+	var fresh := Simulation.new(SEED)
+	var knight: Hero = fresh.party.heroes[0]
+	_level(knight, 22)
+	for i: int in 3000:
+		if fresh.expedition.battle != null:
+			break
+		fresh.step()
+	var battle: Battle = fresh.expedition.battle
+	assert_not_null(battle, "a fight")
+	if battle == null:
+		return
+	var fighter: Combatant = battle.combatant(knight.id)
+	var damage: int = fighter.damage
+	var health: int = fighter.max_health
+	var interval: int = fighter.attack_interval_ticks
+	fresh.spend_paragon(knight.id, TrainingDef.Stat.POWER)
+	fresh.spend_paragon(knight.id, TrainingDef.Stat.TOUGHNESS)
+	for point: int in 6:
+		fresh.spend_paragon(knight.id, TrainingDef.Stat.QUICKNESS)
+	fresh.step()
+	assert_eq(fresh.expedition.battle, battle, "the same fight")
+	assert_eq(fighter.damage, knight.combatant().damage, "Power: the fighter's damage now")
+	assert_gt(fighter.damage, damage, "higher")
+	assert_eq(fighter.max_health, knight.max_health(), "Toughness: its health now")
+	assert_gt(fighter.max_health, health, "higher")
+	assert_lt(fighter.attack_interval_ticks, interval, "Quickness: faster now")
+
+
+## A HUD over [param sim], as spec 034's tests build it, for the Training tab.
+func _hud_over(sim: Simulation) -> Hud:
+	var world := World.new()
+	world.simulation = sim
+	add_child_autofree(world)
+	world.set_process(false)
+	var effects := CombatEffects.new()
+	add_child_autofree(effects)
+	effects.setup(world, sim)
+	effects.set_process(false)
+	var hud := Hud.new()
+	add_child_autofree(hud)
+	hud.set_process(false)
+	hud.setup(sim, world, effects)
+	hud.advance(0.0)
+	return hud
+
+
+func after_each() -> void:
+	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
+	if bus >= 0:
+		AudioServer.set_bus_mute(bus, false)
+
+
+func test_r6_the_sheet_shows_the_points() -> void:
+	var sim := Simulation.new(SEED)
+	var hud: Hud = _hud_over(sim)
+	var sheet: HeroSheet = hud.hero_sheet
+	var rogue: Hero = sim.party.heroes[1]
+	_level(rogue, 17)
+	rogue.set_talents([&"backstab", &"smoke_step"] as Array[StringName])
+	sheet.open(rogue.id)
+	sheet.open_page(HeroSheet.Page.TRAINING)
+	hud.advance(0.1)
+	assert_eq(sheet.line(&"talent_points"), "5", "level 17 earns 7, two are spent")
+	assert_eq(sheet.line(&"paragon_points"), "3", "and three paragon points")
+	assert_eq(sheet.line(&"training_power"), "Power 0", "nothing in Power yet")
+	assert_true(sheet.page_marked(HeroSheet.Page.TRAINING), "the tab asks for a look")
+	# A row's button (or its key) spends a point there, and the lines follow.
+	sheet.train_row(0)
+	sim.step()
+	hud.advance(0.1)
+	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 1, "a point in Power")
+	assert_eq(sheet.line(&"paragon_points"), "2", "one fewer")
+	assert_eq(sheet.line(&"training_power"), "Power 1 +3%", "the points and the bonus")
+	sheet.train_row(0)
+	sheet.train_row(0)
+	sim.step()
+	hud.advance(0.1)
+	assert_eq(sheet.line(&"paragon_points"), "0", "all spent")
+	assert_eq(sheet.line(&"training_power"), "Power 3 +9%")
+	assert_false(sheet.page_marked(HeroSheet.Page.TRAINING), "nothing more to spend")
+	var row: HeroSheet.TrainingRow = sheet.training_row(&"training_power")
+	assert_true(row.buy_button.disabled, "the button is dim with no point")
+	sheet.train_row(0)
+	sim.step()
+	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 3, "and spends nothing")
+	# Taking a node shows at once.
+	sim.take_talent(rogue.id, &"finisher")
+	sim.step()
+	hud.advance(0.1)
+	assert_eq(sheet.line(&"talent_points"), "4", "one talent point fewer")
 
 
 # --- R7 ------------------------------------------------------------------------

@@ -755,7 +755,12 @@ cheapest upgrade it can afford holds a few depths deeper than one that buys noth
 trunk of three, then two named paths of four. A hero earns one talent point at every even level (2, 4 ... 14),
 seven in all, which fills the trunk and one path. Points are spent in order: the trunk first, then the first node
 of either path, then that path in order. Taking a node of one path closes the other, so two knights can be
-different heroes. A hero fights with its nodes' abilities from its next fight on.</p>
+different heroes. A hero fights with its nodes' abilities from its next fight on. Ordinary fights last a few
+seconds, so every action is ready as a fight starts and waits only for its condition (Prayer for an ally
+below 80%, say) and, once used, its cooldown; a hero tries its newest node first, so a deeper one is not
+crowded out by the trunk. In half an hour of headless play every action a hero has held for ten minutes is
+used at least five times and every passive fires, except the rescues (Last Stand, Vanish, Guardian Angel,
+Miracle, Sanctuary, Rampage), which wait for a fight that goes badly.</p>
 <ul>
   <li><strong>Knight:</strong> Shield Bash, Taunt, Bottle-top Block; then <em>Guardian</em> (Hold the Line,
   Last Stand, Bulwark, Rallying Cry: shields and taunts that keep the party up) or <em>Berserker</em>
@@ -776,7 +781,8 @@ point. Gold training (spec 029) is gone: a save from before gives every hero bac
 all the talent and paragon points its level earned, unspent. On screen, choosing the tree is spec 055; for now
 <code>python tools/dev.py sim --spend-talents</code> spends them headless (trunk, then the first path, paragon
 into Power): on seeds 1 to 5 it beats the Slime King in 9 to 15 minutes instead of 14 to 28, with 0 or 1 wipes
-before instead of 1 to 4.</p>
+before instead of 1 to 4. With auto-buy on as well it wins in 9 to 13 minutes, at the first meeting on four
+seeds of five.</p>
 <h3>Fights <span class="tag built">Built</span></h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
 then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the

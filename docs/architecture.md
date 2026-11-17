@@ -175,7 +175,7 @@ either path, then the next node of the path begun; `order_problem` checks a save
 A `Hero` keeps the nodes it took, in order, and the paragon points it put into each `TrainingDef.Stat`;
 neither unspent count is stored: `TalentRules.talent_points_at(level)` (one at every even level, up to
 `Hero.TALENT_POINTS`, 7) and `paragon_points_at(level)` (one a level after 14) less what was spent.
-`Hero.combatant()` hands the fighter its nodes' abilities in the order taken and multiplies its damage and
+`Hero.combatant()` hands the fighter its nodes' abilities, the newest first (a fighter tries its actions in that order), and multiplies its damage and
 healing, maximum health and attack speed by `1 + points * TrainingDef.per_rank` (3%) of Power, Toughness and
 Quickness, after the camp upgrades. A node taken mid-fight waits for the next fight; a paragon point spent
 mid-fight changes the fighter at once, as spec 029's training did. A fresh start (`reset_talents`) costs
@@ -184,6 +184,10 @@ and leaves paragon points alone. Events: `TALENT_POINT_GAINED` (from `Expedition
 `LEVEL_UP` that earned it), `TALENT_TAKEN` (with `ability_id`), `PARAGON_SPENT`, `TALENTS_RESET`. Auto-buy
 never spends a point. When the expedition's 90-second limit ends a fight, it calls `Battle.end()` first, so
 every status ends with its event and no monster goes back to its chamber carrying one.
+R14: fights last seconds, so every talent action has `ready_at_start` (`TalentTreeDef.validate` refuses one
+that has not) and waits only for its condition; `AbilityDef.Condition.OTHER_ALLY_BELOW` is `ALLY_BELOW`
+without the fighter itself (Bulwark). A second tree for a class is refused by its `validate()`, and
+`Content` keeps the first.
 `TalentSpender` (`tools/godot/`) is the headless run's way of spending (`dev.py sim --spend-talents`): the
 trunk, then the first path, and every paragon point into Power.
 

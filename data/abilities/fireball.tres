@@ -8,7 +8,7 @@ script = ExtResource("2")
 lands = 1
 radius = 1.0
 does = 0
-multiplier = 1.5
+multiplier = 1.2
 
 [sub_resource type="Resource" id="effect_2"]
 script = ExtResource("2")
@@ -24,7 +24,7 @@ amount = 0.2
 script = ExtResource("1")
 id = &"fireball"
 display_name = "Fireball"
-description = "Hits the target and enemies beside it for 1.5x damage and sets them burning. Every 8 s."
+description = "Hits the target and enemies beside it for 1.2x damage and sets them burning. Every 8 s."
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 8.0

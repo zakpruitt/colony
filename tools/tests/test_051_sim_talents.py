@@ -29,7 +29,10 @@ class SimTalentsTest(unittest.TestCase):
         spent = run_sim("--seed=1", "--minutes=4", "--spend-talents")
         for hero in spent["heroes"]:
             self.assertGreaterEqual(hero["level"], 2, "four minutes earn a talent point")
-            self.assertEqual(len(hero["talents"]), min(hero["level"] // 2, 7), hero)
+            earned = min(hero["level"] // 2, 7)
+            # Points are spent before each step, so one earned on the last step is still unspent.
+            self.assertIn(len(hero["talents"]), (earned, earned - 1), hero)
+            self.assertGreaterEqual(len(hero["talents"]), 1, hero)
             self.assertEqual(hero["talents"][0], FIRST_NODES[hero["class"]], "the trunk first")
 
 

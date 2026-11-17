@@ -92,7 +92,8 @@ func has_microskill(skill_id: StringName) -> bool:
 
 ## A battle combatant for this hero, with the hero's id and current health, the party's
 ## upgrades and the hero's paragon points in its damage, healing power, maximum health and
-## attack speed, and the abilities of its talents in the order taken.
+## attack speed, and the abilities of its talents, the newest first: a fighter tries its actions in
+## that order, so a deeper node is not starved by the trunk in fights of a few seconds (R14).
 func combatant() -> Combatant:
 	var c: Combatant = Combatant.from_hero(_def, level, id)
 	var power: float = (
@@ -108,7 +109,7 @@ func combatant() -> Combatant:
 	for ability_id: StringName in _talents:
 		var ability: AbilityDef = Content.ability(ability_id)
 		if ability != null:
-			c.abilities.append(ability)
+			c.abilities.push_front(ability)
 	return c
 
 

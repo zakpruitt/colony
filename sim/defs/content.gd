@@ -195,6 +195,16 @@ static func _load() -> void:
 		if tree == null:
 			push_error("Content: %s is not a TalentTreeDef" % resource.resource_path)
 			continue
+		var known: TalentTreeDef = _talent_trees.get(tree.class_id, null)
+		if known != null:
+			# One tree a class; the second is refused here and by its own validate().
+			push_error(
+				(
+					"Content: %s is a second tree for %s, after %s"
+					% [tree.resource_path, tree.class_id, known.resource_path]
+				)
+			)
+			continue
 		_talent_trees[tree.class_id] = tree
 
 

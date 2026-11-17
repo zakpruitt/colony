@@ -18,6 +18,8 @@ enum Condition {
 	## an enemy within [member condition_tiles] of the fighter; it does not walk to make it true
 	ENEMY_WITHIN,
 	TARGET_BELOW,  ## the one it aims at below [member condition_share] of health
+	## a living ally other than the fighter below [member condition_share] of health (spec 051)
+	OTHER_ALLY_BELOW,
 }
 
 ## What sets a passive off, and what its target is.
@@ -119,7 +121,7 @@ func _action_problems() -> PackedStringArray:
 	if not anywhere and aim != Aim.SELF and reach <= 0.0:
 		problems.append("reach %s is not positive" % reach)
 	match condition:
-		Condition.ALLY_BELOW, Condition.SELF_BELOW, Condition.TARGET_BELOW:
+		Condition.ALLY_BELOW, Condition.SELF_BELOW, Condition.TARGET_BELOW, Condition.OTHER_ALLY_BELOW:
 			if condition_share <= 0.0 or condition_share > 1.0:
 				problems.append("condition_share %s is outside 0 to 1" % condition_share)
 		Condition.ENEMIES_AT_LEAST:

@@ -80,6 +80,12 @@ func validate() -> PackedStringArray:
 		problems.append("class_id is empty")
 	elif Content.hero_class(class_id) == null:
 		problems.append("class_id '%s' is not a hero class" % class_id)
+	else:
+		var known: TalentTreeDef = Content.talent_tree(class_id)
+		if known != null and known != self and known.resource_path != resource_path:
+			problems.append(
+				"the %s already has a tree, %s: one tree a class" % [class_id, known.resource_path]
+			)
 	if trunk.size() != TRUNK_LENGTH:
 		problems.append("trunk has %d nodes, not %d" % [trunk.size(), TRUNK_LENGTH])
 	if path_names.size() != 2:
@@ -99,4 +105,7 @@ func validate() -> PackedStringArray:
 		var ability: AbilityDef = Content.ability(node)
 		if ability == null:
 			problems.append("'%s' is not an ability under %s" % [node, Content.ABILITIES_DIR])
+		elif ability.is_action() and not ability.ready_at_start:
+			# Spec 051 R14: fights last seconds, so an action waits only for its condition.
+			problems.append("'%s' is an action not ready as a fight starts" % node)
 	return problems

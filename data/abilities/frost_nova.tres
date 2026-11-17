@@ -5,8 +5,8 @@
 
 [sub_resource type="Resource" id="effect_1"]
 script = ExtResource("2")
-lands = 4
-radius = 2.5
+lands = 1
+radius = 1.5
 does = 4
 status = 7
 seconds = 3.0
@@ -14,20 +14,21 @@ amount = 1.5
 
 [sub_resource type="Resource" id="effect_2"]
 script = ExtResource("2")
-lands = 4
-radius = 2.5
+lands = 1
+radius = 1.5
 does = 2
-push_tiles = 2.0
+push_tiles = 1.5
 
 [resource]
 script = ExtResource("1")
 id = &"frost_nova"
 display_name = "Frost Nova"
-description = "With an enemy beside the mage: pushes near enemies back and slows them. Every 12 s."
+description = "With two enemies or more, a burst around the nearest: enemies there are pushed back and slowed for 3 s. Every 12 s."
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 12.0
 windup = 0.3
-aim = 4
-condition = 4
-condition_tiles = 1.5
+ready_at_start = true
+anywhere = true
+condition = 3
+condition_count = 2
