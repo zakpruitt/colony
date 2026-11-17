@@ -1,9 +1,9 @@
 # 039 — The countdown tells the truth
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 027, 036, 037
-- **Pull request:** —
+- **Pull request:** [#40](https://github.com/zakpruitt/colony/pull/40)
 
 ## Intent
 
