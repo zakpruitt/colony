@@ -574,6 +574,12 @@ func _start_climb(direction: int) -> void:
 
 
 func _climb() -> void:
+	# Hold set on the way up to a living guardian: back down the ladder to the level it left.
+	if _climb_direction < 0 and guardian_order == GuardianOrder.HOLD and _guardian_alive(depth - 1):
+		var y: float = _climb_y
+		depth -= 1
+		_start_climb(1)
+		_climb_y = y
 	var speed: float = CLIMB_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
 	var stride: float = speed / Simulation.TICKS_PER_SECOND
 	if absf(_climb_to_y - _climb_y) > stride:
@@ -816,7 +822,7 @@ func _end_battle(won: bool) -> void:
 		_reset_trail()
 		battle = null
 		_battle_key = Vector2i(0, -1)
-		if _needs_rest():
+		if PartyOrders.needs_rest(_party.heroes, pace):
 			_start_rest()
 		else:
 			state = State.TRAVELLING
@@ -900,13 +906,6 @@ func _work() -> void:
 
 
 # --- Rest, wipe and revival ----------------------------------------------------
-
-
-func _needs_rest() -> bool:
-	for hero: Hero in _party.heroes:
-		if not hero.is_alive() or hero.health < PartyOrders.rest_below(pace) * hero.max_health():
-			return true
-	return false
 
 
 func _start_rest() -> void:
