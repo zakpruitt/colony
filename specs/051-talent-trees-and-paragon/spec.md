@@ -41,6 +41,16 @@ what abilities look like are spec 055.
 - **R13. A fight the expedition ends, ends its statuses.** When the expedition ends a fight itself (the
   90-second limit), it calls `Battle.end()` first, so every status ends with its event and no monster
   goes back to its chamber carrying one. (`test_r13_limit_ends_statuses`.)
+- **R14. Every ability is seen.** (Added by the lead after the review of pull request 54, which found
+  Frost Nova, Prayer, Miracle and Inferno never used in hours of play, and Whirlwind never used against
+  a guardian.) Ordinary fights last a few seconds, so every action is ready as a fight starts and is
+  held back only by its condition and, after its first use, its cooldown. In 30 minutes of headless play
+  from level 1 on each of seeds 1 to 3, with each path spent in turn, every action a hero has had for
+  ten minutes is used at least five times and every passive fires at least once; an ability may be
+  excused only if it answers a rescue (Last Stand, Vanish, Guardian Angel, Miracle, Sanctuary, Rampage),
+  and then it must fire in a fight built to need it. Whirlwind has no condition beyond an enemy in
+  reach. Frost Nova becomes: a burst around the nearest enemy, enemies there pushed back and slowed;
+  every 12 s (the mage does not walk in to cast it). (`test_r14_every_ability_is_seen`.)
 - **R10. Auto-buy leaves heroes alone.** Auto-buy never spends talent or paragon points.
 - **R11. Worth having.** With `--spend-talents` (trunk in order, then the first path; paragon into Power)
   the headless run reaches the first Slime King win sooner and with fewer wipes than without, on seeds 1
