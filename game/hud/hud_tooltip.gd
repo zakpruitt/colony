@@ -85,6 +85,10 @@ func setup(hud: Hud) -> void:
 		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
 		_tip([frame], "Click for details")
+	if hud.goals != null:
+		# Spec 037 R5: each goal line says how to get there.
+		for i: int in hud.goals.rows.size():
+			tip([hud.goals.rows[i]], hud.goals.hint.bind(i))
 
 
 ## Moves the mouse to [param at], in screen pixels. A move onto another element starts its delay
@@ -119,6 +123,12 @@ func _follow() -> bool:
 	_rested = 0.0
 	box.visible = false
 	return false
+
+
+## Gives an element its sentence after [method setup]: [param controls] are its controls (the first
+## is the element itself), and [param sentence] is a String or a Callable returning one.
+func tip(controls: Array, sentence: Variant) -> void:
+	_tip(controls, sentence)
 
 
 func _tip(controls: Array, sentence: Variant) -> void:

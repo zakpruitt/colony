@@ -100,6 +100,8 @@ var journal: Journal
 var hero_sheet: HeroSheet
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
+## The next few things within reach, under the depth panel (spec 037); G hides it.
+var goals: Goals
 ## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
 ## tooltips on the HUD's elements.
 var help: HelpPanel
@@ -203,6 +205,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	add_child(journal)
 	journal.setup(simulation, world)
 	_build_ladder()
+	goals = Goals.new()  # spec 037: before help, so its lines get tooltips
+	add_child(goals)
+	goals.setup(simulation, world)
 	_build_help()
 	_build_orders()
 	_shown_gold = simulation.party.gold
@@ -225,6 +230,7 @@ func advance(delta: float) -> void:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.recovering = reviving
+			frame.gold = _simulation.party.gold  # for its marker (spec 037 R4)
 			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
 	_advance_gold(delta)
@@ -234,6 +240,7 @@ func advance(delta: float) -> void:
 	boss_bar.advance(delta)
 	journal.advance(delta)
 	ladder.advance(delta)
+	goals.advance(delta)
 	help.advance(delta)
 	help_button.lit = help.is_open()
 	orders.advance(delta)
@@ -494,11 +501,10 @@ func _build_orders() -> void:
 			orders.toggle()
 			orders_button.lit = orders.is_open()
 	)
-	# The tooltip has no public way to add an element after its setup.
-	tooltip._tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
+	tooltip.tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
 	for order: int in orders.choice_buttons.size():
 		for value: int in orders.choice_buttons[order].size():
-			tooltip._tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
+			tooltip.tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
 	move_child(tooltip, -1)  # drawn over the panel
 
 

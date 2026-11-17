@@ -353,6 +353,8 @@ func _collect(node: Node, into: Array[Control]) -> void:
 	for child: Node in node.get_children():
 		if child is DepthLadder:
 			continue  # spec 033's ladder sits below the top band; test_033 R6 places it
+		if child is Goals:
+			continue  # spec 037's goals sit under the depth panel; test_037 R6 places them
 		if child is Control:
 			into.append(child)
 		_collect(child, into)
