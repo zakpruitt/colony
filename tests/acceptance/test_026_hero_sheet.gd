@@ -234,15 +234,15 @@ func test_r3_where_they_stand() -> void:
 	sheet.open(hero.id)
 	_hud.advance(0.016)
 	assert_eq(sheet.line(&"health"), "%d / %d" % [hero.max_health(), hero.max_health()], "full")
-	assert_eq(sheet.line(&"xp"), "0 / 50 XP, 50 to level 2", "no XP yet")
+	assert_eq(sheet.line(&"xp"), "0 / 20 XP, 20 to level 2", "no XP yet")
 	assert_almost_eq(sheet.bar_fraction(&"health"), 1.0, 0.001, "a full health bar")
 	assert_almost_eq(sheet.bar_fraction(&"xp"), 0.0, 0.001, "an empty XP bar")
 
 	hero.health -= 23
-	hero.gain_xp(30)
+	hero.gain_xp(12)
 	_hud.advance(1.0)
 	assert_eq(sheet.line(&"health"), "%d / %d" % [hero.health, hero.max_health()], "after damage")
-	assert_eq(sheet.line(&"xp"), "30 / 50 XP, 20 to level 2", "after XP")
+	assert_eq(sheet.line(&"xp"), "12 / 20 XP, 8 to level 2", "after XP")
 	assert_eq(sheet.line(&"xp"), _expected_xp(hero))
 	var health: float = float(hero.health) / hero.max_health()
 	assert_almost_eq(sheet.bar_fraction(&"health"), health, 0.001, "the health bar follows")

@@ -403,10 +403,11 @@ func test_r4_the_party_does_it() -> void:
 	# Refilled after the usual respawn time, and not before. The expedition is stepped on its own
 	# so the party, still in the chamber, does not walk away first.
 	var done_tick: int = sim.tick
-	e.step(done_tick + _ticks(Expedition.RESPAWN_SECONDS) - 1)
+	var respawn: int = _ticks(DepthTiming.respawn_seconds_at(at.x))  # quicker near the surface
+	e.step(done_tick + respawn - 1)
 	assert_eq(e.side_quest_in(at.x, at.y), &"", "still empty just before the respawn time")
 	assert_false(e.is_populated(at.x, at.y))
-	e.step(done_tick + _ticks(Expedition.RESPAWN_SECONDS))
+	e.step(done_tick + respawn)
 	var refilled: bool = e.side_quest_in(at.x, at.y) != &"" or e.is_populated(at.x, at.y)
 	assert_true(refilled, "refilled after the respawn time")
 
@@ -620,6 +621,9 @@ func test_r7_still_the_game() -> void:
 	assert_eq(_of_kind(events, SimEvent.Kind.PARTY_WIPED).size(), 0, "no wipe")
 
 	var beaten_runs: int = 0
+	# Since spec 036 refills quickly near the surface, a run may learn every microskill before it
+	# meets a quest it cannot do: misses are counted over the five runs.
+	var missing_runs: int = 0
 	for seed_value: int in [1, 2, 3, 4, 5]:
 		var run := Simulation.new(seed_value)
 		run.expedition.stable_seconds = 120.0
@@ -662,5 +666,7 @@ func test_r7_still_the_game() -> void:
 		for hero: Hero in run.party.heroes:
 			assert_true(learned.has(hero.id), "hero %d learned a microskill, %s" % [hero.id, where])
 		assert_gte(done, 5, "at least five side quests done, " + where)
-		assert_gte(missed, 1, "at least one missed, " + where)
+		if missed >= 1:
+			missing_runs += 1
 	assert_gte(beaten_runs, 3, "at least three of five runs beat the first guardian")
+	assert_gte(missing_runs, 4, "at least four of five runs miss a side quest")

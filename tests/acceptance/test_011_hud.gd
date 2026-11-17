@@ -138,11 +138,11 @@ func test_r2_frames_react() -> void:
 
 	var mage: Hero = _sim.party.hero(MAGE)
 	var mage_frame: HeroFrame = frames[2]
-	mage.xp = Hero.xp_for_level(2) - 2
+	mage.xp = Hero.xp_for_level(2) - 1
 	_hud.advance(1.0)
 	assert_gt(mage_frame.shown_xp(), 0.9, "nearly a level of XP")
 	assert_eq(mage_frame.level_pulse(), 0.0, "no pulse yet")
-	mage.gain_xp(2 + (Hero.xp_for_level(3) - Hero.xp_for_level(2)) / 2)
+	mage.gain_xp(1 + (Hero.xp_for_level(3) - Hero.xp_for_level(2)) / 2)
 	_emit(SimEvent.Kind.LEVEL_UP, MAGE, 2)
 	_hud.advance(0.016)
 	assert_gt(mage_frame.level_pulse(), 0.0, "the level number pulses")

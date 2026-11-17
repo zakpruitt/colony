@@ -6,28 +6,29 @@ extends GutTest
 ## before this spec changed any sim code. Re-recorded by spec 023, whose monster ids (part of
 ## the hash) come from where the monster is; the game is otherwise the same. Re-recorded by
 ## spec 025, whose side quests stand in for some chambers' monsters.
+## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
 const RECORDED_HASHES: Dictionary = {
 	5:
 	[
-		1901784997,
-		1397016354,
-		2576903934,
-		3446934969,
-		3476502320,
-		1875885765,
-		384646798,
-		620339908,
+		2116424635,
+		2345330524,
+		4081671612,
+		3960625133,
+		2794441276,
+		3246698699,
+		1403250376,
+		2791031753,
 	],
 	17:
 	[
-		3882251249,
-		3538596988,
-		596932171,
-		3381586239,
-		4082283393,
-		1721780422,
-		3160132652,
-		1506313942,
+		2117581513,
+		3959706640,
+		3161554897,
+		2334876158,
+		453949610,
+		703506246,
+		804695567,
+		2470773072,
 	],
 }
 const HOUR_TICKS: int = 36_000
