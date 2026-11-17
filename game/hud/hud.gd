@@ -98,6 +98,8 @@ var boss_bar: BossBar
 var journal: Journal
 ## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
 var hero_sheet: HeroSheet
+## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
+var ladder: DepthLadder
 ## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
 ## tooltips on the HUD's elements.
 var help: HelpPanel
@@ -197,6 +199,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	journal = Journal.new()
 	add_child(journal)
 	journal.setup(simulation, world)
+	_build_ladder()
 	_build_help()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
@@ -226,6 +229,7 @@ func advance(delta: float) -> void:
 	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
+	ladder.advance(delta)
 	help.advance(delta)
 	help_button.lit = help.is_open()
 	tooltip.advance(delta)
@@ -425,6 +429,20 @@ func _build_sheet() -> void:
 	hero_sheet.shown_changed.connect(_mark_frames)
 	for frame: HeroFrame in frames:
 		frame.clicked.connect(hero_sheet.toggle)
+
+
+## The depth ladder (spec 033): it hides itself on L and while the shop is open; a click on a
+## rung asks for a target, which the target number shows at once, as the - and + buttons do.
+func _build_ladder() -> void:
+	ladder = DepthLadder.new()
+	add_child(ladder)
+	ladder.setup(_simulation, _world)
+	ladder.target_asked.connect(_on_ladder_target)
+
+
+func _on_ladder_target(depth: int) -> void:
+	_asked_target = depth
+	_advance_depth(0.0)
 
 
 ## Help (spec 030): the ? button in the shop tab, left of Shop (the tab grows to hold it), the help

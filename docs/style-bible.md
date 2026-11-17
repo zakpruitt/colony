@@ -275,6 +275,17 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   footer under a `dusk` line. Its `?` button sits in the shop tab, left of `Shop`, lit while help is open. A
   tooltip is one line of `white` text on a 13-pixel `night` panel with a `slate` border: under the top band
   for a top element, just above a bottom one, never over what it explains.
+- **The depth ladder** (spec 033) is the one HUD panel that stays up below the top band: 52 pixels wide on the
+  right edge, from under the top band to well above the ticker's strip, hidden while the shop (which drops
+  into the same place) is open. `Depths` in `steel` over a `dusk` line, then 12 rows of 20 pixels, all drawn
+  in code: two `slate` rails with a 3-pixel rung between them per depth, `silver`/`steel` solid when held,
+  `green`/`forest` for the safe depth, a `steel` outline when visited, a 1-pixel `dusk` line when never
+  reached. The depth number sits left of the rails in the rung's colour (`white` for the party's, `yellow`
+  for the target's, `slate` when unreached). The party is a 7x7 `white` diamond with an `ink` edge and a `cyan`
+  glint, bobbing a pixel; the target is a 4x7 `yellow` arrow left of its number; a guardian is a 5x5 `white`
+  skull right of the rails, `slate` and crossed in `red` while beaten. A rung under the mouse gets a `slate`
+  outline, and after the tooltips' delay its line shows left of the ladder in the tooltip's box, with
+  `Click to send the party here` in `yellow`. It scrolls smoothly, never a whole rung in one frame.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
   `yellow` (the target's colour) with an `ink` outline, bobbing two pixels, above the effects' darkness.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is
