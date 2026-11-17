@@ -19,6 +19,10 @@ uniform float earth_exposure = 0.0;
 uniform float tile_size = 16.0;
 uniform float level_pixels = 256.0;
 uniform float levels_per_stratum = 5.0;
+// Spec 054: a stage shown as its own place has one stratum (its area's look), or -1 for the
+// stratum by depth; and no sky: rows above sky_line are open sky.
+uniform int zone_band = -1;
+uniform float sky_line = 0.0;
 
 varying vec2 world;
 
@@ -28,6 +32,9 @@ void vertex() {
 
 // The earth stratum (0 loam, 1 clay, 2 stone, 3 deep) at world row y, as the earth is drawn.
 int stratum_at(float y) {
+	if (zone_band >= 0) {
+		return zone_band;
+	}
 	return int(mod(floor(floor(y / level_pixels) / levels_per_stratum), 4.0));
 }
 

@@ -7,6 +7,8 @@ render_mode blend_mul, unshaded;
 
 // The ambient light of each stratum: loam, clay, stone, deep.
 uniform vec4 ambient[4];
+// Spec 054: how much of the ambient light a stage keeps (ZoneLook.dim).
+uniform float ambient_scale = 1.0;
 // Per stratum, how much brighter solid earth is than open space when no lamp reaches it.
 uniform float earth_lift[4];
 // Each ring's strength is raised to this (AmbienceMood.RING_POWER).
@@ -17,12 +19,12 @@ uniform vec3 daylight_levels = vec3(0.35, 0.2, 0.1);
 
 void fragment() {
 	vec2 p = floor(world) + 0.5;
-	if (p.y < 0.0) {
+	if (p.y < sky_line) {
 		COLOR = vec4(1.0);
 	} else {
 		float share = share_at(p);
 		int stratum = stratum_at(p.y);
-		vec3 total = ambient[stratum].rgb + vec3(earth_lift[stratum] * (1.0 - share));
+		vec3 total = ambient[stratum].rgb * ambient_scale + vec3(earth_lift[stratum] * (1.0 - share));
 		if (p.y < daylight_depths.x) {
 			total += vec3(daylight_levels.x);
 		} else if (p.y < daylight_depths.y) {

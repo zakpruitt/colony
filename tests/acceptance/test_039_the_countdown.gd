@@ -229,7 +229,7 @@ func test_r2_stable_note() -> void:
 	assert_eq(e.depth, 1, "on Mossy Hollow 1")
 	assert_eq(e.seconds_to_stable(), 0.0, "which is stable")
 	assert_gt(e.seconds_to_push(), 0.0, "and the push still to come")
-	var deeper: String = "Deeper in %s" % _clock(e.seconds_to_push())
+	var deeper: String = "Further in %s" % _clock(e.seconds_to_push())
 	assert_eq(_hud.stable_note.text, deeper, "the note counts to the push")
 	assert_eq(_hud.stable_next.text, "then stage 2", "and says what comes")
 	assert_eq(_hud.stable_text(), deeper + ", then stage 2", "the whole note")
@@ -318,7 +318,7 @@ func test_r4_new_game() -> void:
 	for i: int in Simulation.TICKS_PER_SECOND:
 		_tick()
 		var note: String = _hud.stable_note.text
-		assert_true(note.begins_with("Deeper in "), "tick %d: %s" % [_sim.tick, note])
+		assert_true(note.begins_with("Further in "), "tick %d: %s" % [_sim.tick, note])
 		assert_lte(e.seconds_to_push(), DepthTiming.stable_seconds_at(1), "within the stable time")
 		var line: int = _line("Reach Mossy Hollow 2")
 		assert_ne(line, -1, "the depth goal")
@@ -335,9 +335,9 @@ func test_r4_new_game() -> void:
 		if e.target_depth != last_target:
 			break
 	assert_eq(e.target_depth, 2, "the target becomes 2")
-	assert_eq(last_note, "Deeper in 0:01", "the tick before, the last second")
+	assert_eq(last_note, "Further in 0:01", "the tick before, the last second")
 	assert_lt(last_progress, 1.0, "and the bar short of full")
-	assert_false(_hud.stable_note.text.begins_with("Deeper"), "on the tick: no more countdown")
+	assert_false(_hud.stable_note.text.begins_with("Further"), "on the tick: no more countdown")
 	assert_eq(e.seconds_to_push(), 0.0, "the push has come")
 	assert_eq(goals.progress(_line("Reach Mossy Hollow 2")), 1.0, "and the goal's bar is full")
 

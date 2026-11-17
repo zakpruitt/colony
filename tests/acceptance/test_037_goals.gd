@@ -576,7 +576,7 @@ func test_r5_explains_itself() -> void:
 	var depth_line: int = goals.lines().find("Reach Mossy Hollow 2")
 	assert_eq(
 		goals.hint(depth_line),
-		"Hold this depth until it is stable, and the party moves on by itself.",
+		"Hold this stage until it is stable, and the party moves on by itself.",
 		"the depth goal at the deepest depth"
 	)
 

@@ -86,7 +86,7 @@ const ROLE_WORDS: Dictionary[HeroClassDef.Role, String] = {
 const DOING_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.TRAVELLING: "Walking",
 	Expedition.State.RESTING: "Resting",
-	Expedition.State.CLIMBING: "Climbing",
+	Expedition.State.CLIMBING: "Moving on",
 	Expedition.State.REVIVING: "Recovering",
 }
 ## The colour of each activity, matching the HUD's state word.
@@ -95,7 +95,7 @@ const DOING_COLOURS: Dictionary[String, StringName] = {
 	"Fighting": &"orange",
 	"Healing": &"green",
 	"Resting": &"green",
-	"Climbing": &"tan",
+	"Moving on": &"tan",
 	"Recovering": &"pink",
 	"Down": &"red",
 }

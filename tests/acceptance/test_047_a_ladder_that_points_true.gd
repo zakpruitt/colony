@@ -283,7 +283,8 @@ func test_r3_stays_where_put() -> void:
 
 
 ## Steps the party from depth 8 toward depth 9 until the ladder, following it, has its top part
-## way between two rungs; false if it never is.
+## way between two rungs; false if it never is. (Spec 054: the party's marker moves a whole rung
+## when the shown stage changes, so the ladder is part way while it eases after it.)
 func _part_way() -> bool:
 	_hud.ladder.follow()
 	for p: int in _sim.party.heroes.size():
@@ -294,9 +295,23 @@ func _part_way() -> bool:
 	_situation(8, 8, 20, 9)
 	for i: int in LIMIT_TICKS:
 		_sim.step()
-		_hud.advance(STEP)
-		if _sim.expedition.state != Expedition.State.CLIMBING:
-			continue
+		for frame: int in 6:  # in frames, so the short ease is caught on its way
+			_hud.advance(STEP / 6.0)
+			if ZoneCrossing.stage_shown(_sim) != 9:
+				continue
+			var part: float = _scroll() - floorf(_scroll())
+			if part > 0.25 and part < 0.75:
+				return true
+	return false
+
+
+## Scrolls the ladder a rung away and has it follow the party again, stopping part way back.
+func _easing_back(ladder: DepthLadder) -> bool:
+	ladder.scroll_by(1)
+	_settle()
+	ladder.follow()
+	for i: int in 600:
+		_hud.advance(STEP / 6.0)
 		var part: float = _scroll() - floorf(_scroll())
 		if part > 0.25 and part < 0.75:
 			return true
@@ -305,12 +320,12 @@ func _part_way() -> bool:
 
 func test_r4_a_notch_is_a_rung() -> void:
 	var ladder: DepthLadder = _ladder()
-	assert_true(_part_way(), "setup: the party part way through a climb")
-	# The simulation is not stepped again: the party stays where it is, part way up the shaft.
+	# Spec 054: the party never stands part way between stages, so the ladder is caught part way
+	# through easing to the next one, afresh for each way.
 	for down: bool in [true, false]:
 		var way: String = "down" if down else "up"
-		ladder.follow()
-		_settle()
+		var caught: bool = _part_way() if down else _easing_back(ladder)
+		assert_true(caught, "%s: setup, the ladder part way" % way)
 		var before: float = _scroll()
 		assert_between(
 			before - floorf(before), 0.05, 0.95, "%s: setup, part way (%.2f)" % [way, before]
@@ -319,7 +334,9 @@ func test_r4_a_notch_is_a_rung() -> void:
 		var at: Vector2 = ladder.rung_rect(10).get_center()
 		_enters()
 		_wheel(down, at)
-		assert_false(ladder.is_following(), "%s: scrolled away" % way)
+		# Spec 054: the rung it eases to is a whole one, so a notch onto it keeps following it.
+		var onto_goal: bool = ladder.is_following() and ladder.first_depth() == expected
+		assert_true(onto_goal or not ladder.is_following(), "%s: scrolled away" % way)
 		assert_eq(ladder.first_depth(), expected, "%s: to the next whole rung" % way)
 		_settle()
 		var moved: float = absf(_scroll() - before)

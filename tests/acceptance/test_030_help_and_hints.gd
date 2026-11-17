@@ -238,7 +238,7 @@ func test_r2_help_panel() -> void:
 	var idea: Array[String] = lines.slice(idea_at + 1, keys_at)
 	assert_between(idea.size(), 3, 5, "the idea in at most five lines")
 	var told: String = " ".join(idea).to_lower()
-	for words: String in ["on its own", "stable", "wipe", "last safe depth", "gold", "upgrades"]:
+	for words: String in ["on its own", "stable", "wipe", "last safe stage", "gold", "upgrades"]:
 		assert_string_contains(told, words, "the idea says: %s" % words)
 	assert_string_contains(told, "while the game is closed", "and that it goes on while closed")
 	assert_gt(HelpPanel.KEYS.size(), 8, "the keys list")

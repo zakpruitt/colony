@@ -260,7 +260,7 @@ func test_r2_says_why() -> void:
 	assert_true(_lose_next_fight(), "the party loses to the guardian again")
 	lines = _note().lines()
 	assert_eq(lines.size(), 2, "a second line")
-	assert_eq(lines[1], "Mossy Hollow 5 is 3 below the safe stage", "the depth, not the level")
+	assert_eq(lines[1], "Mossy Hollow 5 is 3 past the safe stage", "the depth, not the level")
 	assert_true(_until_standing(), "the heroes stand")
 
 	# 2. Ordinary monsters, two or more below the safe depth.
@@ -268,7 +268,7 @@ func test_r2_says_why() -> void:
 	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
 	lines = _note().lines()
 	assert_eq(lines.size(), 2, "a second line")
-	assert_eq(lines[1], "Mossy Hollow 7 is 3 below the safe stage", "how far below the safe stage")
+	assert_eq(lines[1], "Mossy Hollow 7 is 3 past the safe stage", "how far below the safe stage")
 	assert_true(_until_standing(), "the heroes stand")
 
 	# 3. Otherwise none: one below the safe depth, or on it.

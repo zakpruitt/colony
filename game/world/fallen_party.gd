@@ -9,6 +9,10 @@ extends Node
 ## stall, or finding the party already down after time away), the story starts from where the
 ## time since the wipe has got to (spec 048).
 ##
+## A revival on another stage (spec 054 R8) is a crossing instead: the camera holds on the fallen
+## while the screen dims ([ZoneCrossing]) and cuts to the revival as it happens, so the view never
+## travels up or down.
+##
 ## A child of [World], which asks it each frame where a hero stands ([method goal_for]), lets it
 ## animate the heroes it holds ([method animate]), and lets it steer the camera
 ## ([method aims_camera]). The story's times are game time (real time times
@@ -65,6 +69,8 @@ var _planned: bool = false
 var _from: Vector2 = Vector2.ZERO
 var _length: float = 0.0
 var _cut: bool = false
+## True when the revival is on another stage than the wipe (spec 054): the cut waits for it.
+var _elsewhere: bool = false
 
 
 ## Call once, before the first sync.
@@ -115,6 +121,7 @@ func wiped(age: float) -> void:
 	var level: LabyrinthLevel = _world.simulation.labyrinth.level(int(place.y))
 	var feet := Vector2(place.x * World.TILE, (level.floor_y + 1) * World.TILE)
 	_destination = _world.camera_target(feet, int(place.z))
+	_elsewhere = int(place.y) != _world.simulation.expedition.depth
 
 
 ## The party was revived [param age] game seconds ago. Returns true if the heroes rise, from where
@@ -223,8 +230,8 @@ func aims_camera(camera: WorldCamera, delta: float, snap: bool) -> bool:
 	var into: float = _wipe_age - HOLD_SECONDS
 	if _cut:
 		into = _wipe_age - (Expedition.REVIVE_SECONDS - ARRIVE_BEFORE)
-	if into < 0.0 and not rising:
-		return false  # holding on the fallen
+	if (into < 0.0 or _elsewhere) and not rising:
+		return false  # holding on the fallen (until the revival, when it is elsewhere)
 	var away: bool = _travelling
 	_travelling = true
 	if not _cut and into < _length and not rising:
@@ -259,7 +266,7 @@ func _plan(camera: WorldCamera) -> void:
 	_from = camera.target
 	var gap: Vector2 = _destination - _from
 	var screen: Vector2 = camera.get_viewport_rect().size / camera.zoom
-	_cut = (gap / screen).length() > CUT_SCREENS
+	_cut = _elsewhere or (gap / screen).length() > CUT_SCREENS
 	_length = clampf(gap.length() / TRAVEL_SPEED, TRAVEL_MIN, TRAVEL_MAX)
 
 

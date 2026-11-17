@@ -111,8 +111,8 @@ func add_tips(tooltip: HudTooltip) -> void:
 		if each_row.guardian_thumb != null:
 			tooltip.tip([each_row.guardian_thumb], _guardian_tip.bind(each_row))
 		tooltip.tip([each_row], _row_tip.bind(each_row))
-	tooltip.tip([minus_button], "One stage up.")
-	tooltip.tip([plus_button], "One stage deeper.")
+	tooltip.tip([minus_button], "One stage back.")
+	tooltip.tip([plus_button], "One stage further.")
 	tooltip.tip([stage_label, place_label], _stage_tip)
 	tooltip.tip([risk_label], "How the stage looks for heroes of the party's lowest level.")
 	tooltip.tip([go_button], _go_tip)

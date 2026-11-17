@@ -15,6 +15,8 @@ const KNIGHT: int = 1
 ## The longest any wait here lasts, in simulation ticks (five minutes).
 const LIMIT_TICKS: int = 3000
 const TICKS: int = Simulation.TICKS_PER_SECOND
+## How far from where it revives, in tiles, the party is when it is wiped.
+const AWAY: float = 24.0
 
 var _sim: Simulation
 var _world: World
@@ -117,28 +119,28 @@ func _on_the_fallen() -> Vector2:
 	return _rest(_world.camera_target(knight.position, _sim.expedition.facing))
 
 
-## The party walking on depth 2 with depth 1 its last stable one: a wipe now revives it on depth
-## 1, a level up and part of the band away. Played with no world when [param world] is false.
-func _to_depth_two(simulation: Simulation, world: bool, speed: int = 1) -> void:
+## The party walking on stage 1, at least AWAY tiles from where it revives there (the start
+## chamber), with Auto off: a wipe now revives it on the same stage, part of the band away. Spec
+## 054 R8 tells a revival on another stage as a crossing instead (test_054's R8), so the camera's
+## travel, which this spec is about, is told on one stage. (It was a wipe on depth 2 reviving on
+## depth 1.) Played with no world when [param world] is false.
+func _away_on_stage_one(simulation: Simulation, world: bool, speed: int = 1) -> void:
 	_sim = simulation
-	_sim.set_target_depth(2)
+	_sim.set_auto_push(false)
 	if world:
 		_show(simulation, speed)
+	var home: float = _sim.expedition.revival_place().x
 	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
 		if world:
 			_play_frame()
 		elif i % FRAMES_PER_TICK == 0:
 			_sim.step()
 		var e: Expedition = _sim.expedition
-		if e.depth == 2 and e.state == Expedition.State.TRAVELLING:
+		if absf(e.x - home) >= AWAY and e.state == Expedition.State.TRAVELLING:
 			break
-	for i: int in 60:
-		if world:
-			_play_frame()
-		elif i % FRAMES_PER_TICK == 0:
-			_sim.step()
-	assert_eq(_sim.expedition.depth, 2, "the party is on depth 2")
-	assert_eq(_sim.expedition.last_stable_depth, 1, "with depth 1 the last stable one")
+	assert_eq(_sim.expedition.depth, 1, "the party is on stage 1")
+	assert_eq(_sim.expedition.last_stable_depth, 1, "which is where it revives")
+	assert_gte(absf(_sim.expedition.x - home), AWAY, "well away from where it revives")
 
 
 ## Plays on from a wipe being told to the heroes standing at the revival: no cut on the way, the
@@ -181,7 +183,7 @@ func _told_to_the_end(distance: float, label: String) -> void:
 
 func test_r1_starts_from_where_it_is() -> void:
 	# A world made while the party is down, its wipe 1.8 s ago and drained unseen (time away).
-	_to_depth_two(Simulation.new(SEED), false)
+	_away_on_stage_one(Simulation.new(SEED), false)
 	_wipe()
 	var down: int = _step_until_down(_sim)
 	assert_gt(down, 0, "the party is down")
@@ -214,7 +216,7 @@ func test_r1_starts_from_where_it_is() -> void:
 	# A wipe heard as an old event, after a stall of 1.1 s: the camera holds on the fallen.
 	_events = []
 	_frame = 0
-	_to_depth_two(Simulation.new(SEED), true)
+	_away_on_stage_one(Simulation.new(SEED), true)
 	_wipe()
 	var ticks: int = _step_until_down(_sim)
 	for i: int in 11:
@@ -241,8 +243,8 @@ func test_r2_a_stall_keeps_the_camera() -> void:
 	# Two worlds of the same game: one plays every frame, the other stalls now and then.
 	var steady := Simulation.new(SEED)
 	var steady_world: World = _make_world(steady, 1)
-	steady.set_target_depth(2)
-	_to_depth_two(Simulation.new(SEED), true)
+	steady.set_auto_push(false)
+	_away_on_stage_one(Simulation.new(SEED), true)
 	for i: int in _frame:
 		if i % FRAMES_PER_TICK == 0:
 			steady.step()
@@ -310,7 +312,7 @@ func test_r3_camera_arrives_first() -> void:
 			var label: String = "%dx, %s" % [speed, "seen 2 s late" if late else "seen at once"]
 			_events = []
 			_frame = 0
-			_to_depth_two(Simulation.new(SEED), true, speed)
+			_away_on_stage_one(Simulation.new(SEED), true, speed)
 			_wipe()
 			if late:
 				var ticks: int = _step_until_down(_sim)
@@ -412,23 +414,28 @@ func test_r6_far_cut_waits() -> void:
 	var last: Vector2 = _world.camera.position
 	var seconds: float = 0.0
 	var revived: bool = false
+	var dark: float = -1.0
 	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		seconds = float(_sim.tick - wiped_at) / TICKS
-		if _has(events, SimEvent.Kind.PARTY_REVIVED):
-			revived = true
-			break
 		var now: Vector2 = _world.camera.position
 		if cut_at < 0.0 and now.distance_to(last) > 3.0 * screen:
 			cut_at = seconds
 			built = _world.labyrinth_view.built_depths().has(8)
+			dark = _world.crossing.darkness()
+		if _has(events, SimEvent.Kind.PARTY_REVIVED):
+			revived = true
+			break
 		if cut_at < 0.0 and seconds > 1.0 and now.distance_to(_on_the_fallen()) > 2.0:
 			away.append("at %.1f s the camera is off the fallen" % seconds)
 		last = now
 	assert_true(revived, "the party is revived")
 	assert_eq(away.slice(0, 3), [] as Array[String], "until the cut the camera is on the fallen")
+	# Spec 054 R8: stage 8 is another stage, so the cut is the crossing's, at the revival itself and
+	# under a dark screen (it came shortly before the revival in spec 048).
 	var revive_at: float = Expedition.REVIVE_SECONDS
-	assert_between(cut_at, revive_at - 1.0, revive_at - 0.1, "it cuts shortly before the revival")
+	assert_between(cut_at, revive_at - 0.05, revive_at + 0.05, "it cuts by the revival")
+	assert_eq(dark, 1.0, "while the screen is dark")
 	assert_true(built, "to a labyrinth already built there")
 	assert_lt(_world.camera.position.distance_to(destination), 1.0, "and is there when they rise")
 	assert_true(_world.fallen_party.is_standing(KNIGHT), "where they stand up")

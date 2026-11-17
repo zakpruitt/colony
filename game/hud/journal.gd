@@ -242,7 +242,7 @@ func _sentence(event: SimEvent) -> String:
 			_depth = event.amount
 			if event.amount > _deepest:
 				_deepest = event.amount
-				sentence = "Reached %s, the deepest yet" % _place(event.amount)
+				sentence = "Reached %s, the furthest yet" % _place(event.amount)
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			sentence = "%s is now stable" % _place(event.amount)
 		SimEvent.Kind.AREA_CHANGED:

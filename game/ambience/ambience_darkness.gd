@@ -67,6 +67,17 @@ func set_exposure(map: Texture2D, top_row: int) -> void:
 	_set_both(&"exposure_size", Vector2(map.get_size()))
 
 
+## Lights the world as stage [param look] (spec 054): its stratum everywhere, its ambient light,
+## and no sky or daylight; or, with null, by depth under a sky, as spec 012 drew it.
+func set_zone(look: ZoneLook) -> void:
+	_set_both(&"zone_band", look.band if look != null else -1)
+	_set_both(&"sky_line", -1.0e9 if look != null else 0.0)
+	_darkness.set_shader_parameter(&"ambient_scale", look.dim() if look != null else 1.0)
+	var levels: Array[float] = AmbienceMood.DAYLIGHT_LEVELS
+	var sun: Vector3 = Vector3(levels[0], levels[1], levels[2]) if look == null else Vector3.ZERO
+	_darkness.set_shader_parameter(&"daylight_levels", sun)
+
+
 ## Covers [param view_rect] (world pixels) and lights it with those of [param lights] that reach
 ## into it.
 func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:

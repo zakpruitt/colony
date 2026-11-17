@@ -25,7 +25,7 @@ const LINES: Array[Array] = [
 		"Steady: rest below 60% health",
 		"Bold: rest only below 40% health",
 	],
-	["Challenge: fight guardians to go deeper", "Hold: do not fight guardians until told"],
+	["Challenge: fight guardians to go further", "Hold: do not fight guardians until told"],
 ]
 ## Each choice's tooltip, by order then value: one plain sentence.
 const TIPS: Array[Array] = [
@@ -35,7 +35,7 @@ const TIPS: Array[Array] = [
 		"Fastest but riskier: the party rests only when a hero drops below 40% health.",
 	],
 	[
-		"The party fights each guardian that blocks its way down.",
+		"The party fights each guardian that blocks its way on.",
 		"The party stays away from living guardians and keeps hunting until told.",
 	],
 ]

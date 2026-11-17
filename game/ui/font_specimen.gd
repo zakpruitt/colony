@@ -6,7 +6,7 @@ extends Control
 ## Run: python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font
 
 ## The line spec 009 asks to be comfortably readable at 640x360.
-const SAMPLE: String = "Depth 12  Gold 3,450  Lv 7"
+const SAMPLE: String = "Stage 12  Gold 3,450  Lv 7"
 ## Every character the font draws, grouped.
 const CHARACTER_SET: PackedStringArray = [
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ",

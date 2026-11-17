@@ -14,7 +14,7 @@ uniform vec4 glow_tint[4];
 
 void fragment() {
 	vec2 p = floor(world) + 0.5;
-	if (p.y < 0.0) {
+	if (p.y < sky_line) {
 		COLOR = vec4(0.0, 0.0, 0.0, 1.0);
 	} else {
 		vec3 glow = lamps(p, 2.0, share_at(p), false) * glow_tint[stratum_at(p.y)].rgb;

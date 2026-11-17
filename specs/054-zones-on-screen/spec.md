@@ -1,9 +1,9 @@
 # 054 — Zones on screen: walking on, not climbing down
 
-- **Status:** provisional (direction agreed with Zak 2026-11-17; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction agreed with Zak 2026-11-17; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 006, 008, 012, 018, 048, 049
-- **Pull request:** —
+- **Pull request:** [#53](https://github.com/zakpruitt/colony/pull/53)
 
 ## Intent
 

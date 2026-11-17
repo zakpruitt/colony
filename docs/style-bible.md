@@ -126,6 +126,16 @@ category `tile` (16x16, not outlined). Each sheet holds many parts; the view pic
   - **Shade** falls on the back wall under a ceiling and beside the walls, never above a floor.
 - **The ladder** (`ladder.px`) is two tiles wide, as shafts are: `left` and `right`, with `top_left` and
   `top_right` standing on the floor above the shaft. Wood is `tan` with `clay` and `umber`.
+- **Areas, not strata, on screen** (spec 054). The main game shows one stage at a time, and each area wears
+  one stratum's look by its place in the list of areas: Mossy Hollow `loam`, The Claypits `clay`, The Old
+  Crypt `stone`, Ember Deep `deep` (with that stratum's mood below). Each stage after an area's first keeps
+  2% less of its ambient light, never less than 80%, so later stages read a little darker without becoming
+  another place. The ladder and the surface are not drawn there; the ways on and back are doorways.
+- **The doorway** (`props/doorway.px`, category `fx`, 32x44) is a rounded stone arch two tiles wide, standing
+  on the floor where a shaft would have met it: `steel` blocks lit with `silver` and shaded with `slate` and
+  `dusk`, outlined in `ink`, a `night` and `ink` dark inside so the party can vanish into it, and a
+  threshold on the floor. It is the same in
+  every area; the area's light colours it.
 - **The surface** (`surface.px`): `sky` is plain `blue`; `ground` is the grass line in `green`, `forest` and
   `pine`, sitting directly on the first row of earth.
 

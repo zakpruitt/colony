@@ -63,35 +63,35 @@ func _notification(what: int) -> void:
 
 ## Gives each of [param hud]'s elements its sentence. Call once, after the HUD has built them.
 func setup(hud: Hud) -> void:
-	_tip([hud.depth_label, hud.depth_caption], "How deep the party is now.")
+	_tip([hud.depth_label, hud.depth_caption], "The stage the party is on now.")
 	_tip([hud.state_label], "What the party is doing right now, and why.")
-	_tip([hud.stable_label], "The last safe depth: a wipe sends the party back there.")
+	_tip([hud.stable_label], "The last safe stage: a wipe sends the party back there.")
 	_tip(
 		[hud.stable_note, hud.stable_bar, hud.stable_next],
 		func() -> String:
 			# Spec 039 R2: the note says what decides what happens next.
 			var note: String = hud.stable_note.text
-			if note.begins_with("Deeper in"):
-				return "Time left until Auto takes the party a depth deeper."
+			if note.begins_with("Further in"):
+				return "Time left until Auto takes the party a stage further."
 			if note == "Holding":
 				return "The Hold order keeps the party from the guardian: Orders (O) sends it in."
 			if hud.stable_bar.visible:
-				return "Time left until this depth is safe."
+				return "Time left until this stage is safe."
 			if hud.stable_next.text.begins_with("staying"):
-				return "Safe, and Auto is off: the party stays until Auto is on or the target is deeper."
-			return "This depth is safe: a wipe comes back here."
+				return "Safe, and Auto is off: the party stays until Auto is on or the target is further."
+			return "This stage is safe: a wipe comes back here."
 	)
-	_tip([hud.target_label, hud.target_caption], "The depth the party is heading for.")
-	_tip([hud.minus_button], "Set the target one depth up.")
-	_tip([hud.plus_button], "Set the target one depth down.")
+	_tip([hud.target_label, hud.target_caption], "The stage the party is heading for.")
+	_tip([hud.minus_button], "Set the target one stage back.")
+	_tip([hud.plus_button], "Set the target one stage further.")
 	_tip(
 		[hud.auto_button],
-		"When on, the party goes deeper each time it holds its target long enough."
+		"When on, the party goes a stage further each time it holds its target long enough."
 	)
 	_tip([hud.shop_button], "Spend gold on upgrades for the whole party.")
 	_tip([hud.speed_button], "How fast the game runs: click (or press F) for 1x, 2x or 4x.")
 	_tip([hud.gold_panel], "Gold from fights, to spend in the Shop.")
-	_tip([hud.boss_bar], "A guardian holds the way down: beat it to go deeper.")
+	_tip([hud.boss_bar], "A guardian holds the way on: beat it to go further.")
 	if hud.help_button != null:
 		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
