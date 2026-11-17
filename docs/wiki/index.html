@@ -157,6 +157,9 @@ Things marked <span class="tag built">Built</span> work today;
   <li><strong>The depth ladder</strong> (spec 033): a column of depths down the right edge shows the whole
   descent at once: where the party is, the safe depth, how deep it has been, where it is heading and which
   guardians are beaten. Click a depth to send the party there; <kbd>L</kbd> hides it.</li>
+  <li><strong>Goals</strong> (spec 037): a small panel under the depth says what to look forward to next,
+  each goal with a bar or a price; a hero's frame shows a small orange tag when there is something to do on
+  their sheet. <kbd>G</kbd> hides the goals.</li>
   <li><strong>Party orders</strong> (spec 035): the <em>Orders</em> button (or <kbd>O</kbd>) opens a small panel
   with two standing orders the party follows by itself. <em>Pace</em> says how hurt it may get before it
   rests after a fight: Cautious (below 80% health), Steady (below 60%, the usual) or Bold (only below 40%).
@@ -186,6 +189,7 @@ Things marked <span class="tag built">Built</span> work today;
   <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>L</kbd></td><td>Hide or show the depth ladder on the right</td></tr>
+  <tr><td><kbd>G</kbd></td><td>Hide or show the goals under the depth</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders (the Orders button does the same; <kbd>Esc</kbd> closes it)</td></tr>
   <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
   <tr><td><kbd>F</kbd></td><td>Change the game speed: 1x, 2x, 4x, then back to 1x</td></tr>
@@ -443,6 +447,20 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   (<em>Depth 5: Slime King (beaten). Click to send the party here</em>); click it to make that depth the
   target, as pressing <code>-</code> or <code>+</code> enough times would. <code>L</code> hides and shows it,
   and it steps aside while the shop is open.</li>
+  <li><strong>Goals</strong> (spec 037): a small panel under the depth panel on the left lists up to three
+  things within reach, first that apply of: <em>Beat the Slime King</em> (once its depth is within three of the
+  deepest reached, with the party's lowest level against the level it is about right for, its depth plus 4),
+  <em>Reach depth 6</em> (filling as the current depth turns stable, or as the party works its way back
+  down), <em>Rogue learns Trapspotter at level 6</em> (the hero's XP toward that level), <em>Train a hero</em>
+  and <em>Buy an upgrade</em> (when the gold is there, with the price). When one is done its line flashes
+  green, shows a tick for 3 seconds and the journal gets a line (<em>Goal: reached depth 6</em>), then the next
+  goal takes its place. Resting the mouse on a goal says how to get there (under the Hold order, that the
+  party is holding back and Orders sends it in). It gives no rewards: it is a
+  signpost. <code>G</code> hides and shows it, and it steps aside while a hero sheet or the journal is open.
+  Things done while the game was catching up are not celebrated.</li>
+  <li><strong>Frame tags</strong> (spec 037): a hero's frame carries a small orange tag with a number in its
+  top-right corner while that hero has something for you: trainings the party can afford, and microskills
+  learned since you last looked at their Skills tab. It clears as the sheet's own tab tags do.</li>
   <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
   keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
   turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
@@ -727,7 +745,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; party orders, pace and guardians (spec 035) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span> and on screen (spec 028) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; the depth ladder (spec 033) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; game speed 1x, 2x and 4x (spec 032) <span class="tag built">Built</span>; a livelier first half hour (spec 036) <span class="tag built">Built</span>; the rest of the balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; the depth ladder (spec 033) <span class="tag built">Built</span>; goals and frame tags (spec 037) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; game speed 1x, 2x and 4x (spec 032) <span class="tag built">Built</span>; a livelier first half hour (spec 036) <span class="tag built">Built</span>; the rest of the balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>
 

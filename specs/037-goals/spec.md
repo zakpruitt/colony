@@ -1,9 +1,9 @@
 # 037 — Goals: what to look forward to
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 011, 020, 025, 027, 029, 030, 034
-- **Pull request:** —
+- **Pull request:** [#37](https://github.com/zakpruitt/colony/pull/37)
 
 ## Intent
 

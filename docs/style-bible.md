@@ -286,6 +286,15 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   skull right of the rails, `slate` and crossed in `red` while beaten. A rung under the mouse gets a `slate`
   outline, and after the tooltips' delay its line shows left of the ladder in the tooltip's box, with
   `Click to send the party here` in `yellow`. It scrolls smoothly, never a whole rung in one frame.
+- **The goals tracker** (spec 037) drops from under the top band at the left, below the depth panel, in the
+  place the hero sheet and journal use (it hides while either is open): `Goals` in `steel` and `G hide` in
+  `slate` over up to three rows. A row is a small `steel` square (a 7x5 `green` tick drawn in code once
+  done), the sentence in `white`, and under it a 4-pixel bar (`cyan`/`blue` for levels and XP,
+  `yellow`/`amber` for depth) ending at one column for every row, with its count in `steel` to its right; a
+  gold goal has no bar and its price in `yellow` at the sentence's right. A finished row flashes `forest`
+  with a `green` edge (text `white`), then its sentence and bar turn `green` for 3 s.
+- **Frame markers** (spec 037) sit inside a hero frame's top-right corner, not above it (the ticker's strip
+  stays clear); the level moves left of the marker.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
   `yellow` (the target's colour) with an `ink` outline, bobbing two pixels, above the effects' darkness.
 - **Bars** have an `ink` border and fill from the left in whole pixels, with a darker bottom row: health is

@@ -27,6 +27,7 @@ const KEYS: Array[Array] = [
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],
 	["L", "Show or hide the depth ladder"],
+	["G", "Show or hide the goals"],
 	["Z", "Zoom in or out"],
 	["F", "Game speed: 1x, 2x or 4x"],
 	["M", "Sound on or off"],
