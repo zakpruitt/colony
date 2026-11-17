@@ -393,10 +393,11 @@ func test_r3_journal() -> void:
 	_sim.expedition.last_stable_depth = 3
 	_hud.advance(0.0)
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
-	assert_eq(journal.lines()[0], "0:12  Wiped on depth 7, falling back to depth 3", "a wipe")
+	# Spec 041 R6: the defeat note's first line; with no fight lost, only where.
+	assert_eq(journal.lines()[0], "0:12  Beaten on depth 7", "a wipe")
 	_sim.expedition.last_stable_depth = 7
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
-	assert_eq(journal.lines()[0], "0:12  Wiped on depth 7, regrouping there", "on a stable depth")
+	assert_eq(journal.lines()[0], "0:12  Beaten on depth 7", "on a stable depth")
 	_emit(SimEvent.Kind.GUARDIAN_SLAIN, 777, -1, 5)
 	var guardian_line: String = "0:12  Slew the %s on depth 5" % slain.display_name
 	assert_eq(journal.lines()[0], guardian_line, "a guardian slain")
