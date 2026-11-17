@@ -247,7 +247,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   2x in `white`, sections are split by 1-pixel `dusk` lines, stat names are `steel` captions with `white`
   values and an upgrade's bonus in `green` after them. The hero's activity is one word or phrase in the colour
   of the HUD's state word (`orange` fighting, `green` healing or resting, `red` down). The frame whose sheet
-  is open has a `yellow` edge with an `amber` bevel.
+  is open has a `yellow` edge with an `amber` bevel. Since spec 034 the sheet is at most 240x150: the header
+  (portrait, class, role, level, activity, health and XP with their bars) is always shown, then a row of tab
+  buttons (`Stats`, `Training`, `Skills`) standing on a `dusk` line, the open one lit as a toggle is, with the
+  keys in `slate` at the row's right (`Q E tabs   Tab next hero`). Only the open tab's page is shown; the
+  panel keeps one size on every tab so it never jumps. A tab's marker sits beside it, against its right edge,
+  not over its name.
 - **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
   lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
 - **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,

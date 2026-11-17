@@ -460,6 +460,7 @@ func test_r7_sheet_lists_microskills() -> void:
 	var sim := Simulation.new(28)
 	_show(sim)
 	var sheet: HeroSheet = _hud.hero_sheet
+	sheet.open_page(HeroSheet.Page.SKILLS)  # spec 034: the microskills are on the Skills tab
 	var ids: Dictionary[StringName, int] = {
 		&"knight": KNIGHT, &"rogue": ROGUE, &"mage": MAGE, &"cleric": CLERIC
 	}
