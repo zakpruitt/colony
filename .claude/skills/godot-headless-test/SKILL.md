@@ -49,6 +49,10 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `Hud.GOLD_CATCH_UP_SECONDS`. A test of "the gold count drops at once" must let the count catch up first
   (`hud.advance(Hud.GOLD_CATCH_UP_SECONDS + 0.1)`), or the count is still below the gold and has nothing to
   drop from.
+- A lambda captures a local variable's value when it is made. Recording events with
+  `world.sim_event.connect(func(e: SimEvent) -> void: events.append(e))` and then emptying the list with
+  `events = []` leaves the lambda filling the old array, and the test sees nothing happen. Empty it with
+  `events.clear()`, or keep the list in a member variable.
 
 ## Files
 
