@@ -505,7 +505,7 @@ func test_r5_marker() -> void:
 	_sim.step()
 	_world.sync(0.1)
 	assert_true(marker.visible, "shown for a deeper target")
-	assert_eq(marker.pointing(), 1, "pointing down")
+	assert_eq(marker.pointing(), 1, "showing the way on (spec 054: sideways, not down)")
 	var leader: Vector2 = _world.feet_position(KNIGHT)
 	assert_lt(marker.position.y, leader.y - 24.0, "above the party's heads")
 	var low: float = INF
@@ -528,7 +528,7 @@ func test_r5_marker() -> void:
 	_sim.set_target_depth(1)
 	assert_true(_step_until(_at_depth(2)), "on its way up, out of any fight")
 	assert_true(marker.visible, "shown for a shallower target")
-	assert_eq(marker.pointing(), -1, "pointing up")
+	assert_eq(marker.pointing(), -1, "showing the way back (spec 054: sideways, not up)")
 
 
 # --- R6 ------------------------------------------------------------------------

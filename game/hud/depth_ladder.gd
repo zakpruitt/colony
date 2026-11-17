@@ -109,7 +109,7 @@ var _numbers: Array[Label] = []
 var _wanted: bool = true
 ## The top of the ladder as drawn: a depth, fractional while it scrolls.
 var _scroll: float = 1.0
-## The party's depth, fractional while it climbs.
+## The party's stage, as the world shows it.
 var _party_at: float = 1.0
 var _time: float = 0.0
 ## Seconds the mouse has rested on that rung: the line shows after HudTooltip.DELAY, as the
@@ -347,7 +347,7 @@ func scroll_by(rungs: int) -> void:
 ## Where [param mark] is drawn on the rung at [param depth] now, in the ladder's own coordinates,
 ## or an empty rectangle when that rung does not carry it: &"target" and &"party" are the frames
 ## round its number ([constant MARK_BOXES]), &"diamond" the box the party's diamond is drawn in at
-## either height of its bob (on the party's rung; while it climbs it is between two).
+## either height of its bob (on the party's rung).
 func mark_rect(depth: int, mark: StringName) -> Rect2:
 	if _simulation == null or not marks(depth).has(&"party" if mark == &"diamond" else mark):
 		return Rect2()
@@ -622,16 +622,10 @@ func _under(at: Vector2) -> int:
 	return 0 if arrow_rect().has_point(at) else depth_at(at)
 
 
-## The party's depth, fractional while it climbs: its leader's height between two floors.
+## The party's stage (spec 054): the one the world shows, so the marker moves a whole rung when
+## the stage changes in the dark of a crossing, never sliding by the climb's height.
 func _party_depth() -> float:
-	var e: Expedition = _simulation.expedition
-	if _simulation.party.heroes.is_empty():
-		return float(e.depth)
-	var leader_y: float = e.hero_position(_simulation.party.heroes[0].id).y
-	var between: float = (
-		(leader_y - _simulation.labyrinth.level(e.depth).floor_y) / Labyrinth.LEVEL_HEIGHT
-	)
-	return e.depth + clampf(between, -1.0, 1.0)
+	return float(ZoneCrossing.stage_shown(_simulation))
 
 
 ## The top of the ladder that keeps [param party_at] [constant ABOVE] rungs down.

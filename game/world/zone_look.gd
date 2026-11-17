@@ -5,11 +5,6 @@ extends RefCounted
 ## [constant LabyrinthTiles.STRATA] order) by its place in the list of areas, so the four areas
 ## all differ. Within an area every stage is the same place, each later one a little darker.
 
-## The palette colours each look is known by, in [constant LabyrinthTiles.STRATA] order: its
-## rock (the buried earth of the sheet) and its floor (the crust on the floor's top). Its light is
-## [constant AmbienceMood.LIGHT_HUE].
-const ROCK_HUE: Array[StringName] = [&"umber", &"clay", &"dusk", &"deep_teal"]
-const FLOOR_HUE: Array[StringName] = [&"tan", &"tan", &"steel", &"forest"]
 ## How much of the ambient light each stage after the first takes away, and the most taken.
 const STAGE_DIM: float = 0.02
 const MOST_DIM: float = 0.2
@@ -34,16 +29,6 @@ static func of(area_id: StringName, stage_number: int) -> ZoneLook:
 ## The earth sheet the area is drawn with.
 func stratum() -> StringName:
 	return LabyrinthTiles.STRATA[band]
-
-
-## The palette colour of the area's rock.
-func rock_hue() -> StringName:
-	return ROCK_HUE[band]
-
-
-## The palette colour of the area's floor.
-func floor_hue() -> StringName:
-	return FLOOR_HUE[band]
 
 
 ## The palette colour the area's lamplight leans toward.

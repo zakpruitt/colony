@@ -12,7 +12,9 @@ extends Node
 ##   it ends exactly when the simulation's change of stage does.
 ## - A journey to another area dims over [constant FADE_SECONDS] and holds "Leaving <area>" for
 ##   its first half and the arrival's name for the second; it opens over [constant OPEN_SECONDS]
-##   once the party has arrived.
+##   once the party has arrived. Once dark it stays at least as dark until the party arrives:
+##   a journey that starts during a change of stage, or turns to a new destination (which starts
+##   its clock again), never lights the screen on the way.
 ## - A revival on another stage (spec 048 as amended) holds on the fallen for
 ##   [constant FallenParty.HOLD_SECONDS], dims, names the stage, and opens over
 ##   [constant OPEN_SECONDS] as the heroes stand up.
@@ -38,6 +40,9 @@ var _title: String = ""
 var _opened_tick: int = -1
 ## The last PARTY_REVIVED heard, by tick, so the DEPTH_CHANGED after it is known for a revival.
 var _revived_tick: int = -1
+## The darkness of the last update while the party was between places (climbing or on its way),
+## kept so a journey never lightens it; 0 once it is not.
+var _held: float = 0.0
 
 
 ## How dark the screen is now, from 0 (not at all) to 1 (black).
@@ -72,18 +77,23 @@ func heard(event: SimEvent) -> void:
 func update(simulation: Simulation) -> void:
 	var e: Expedition = simulation.expedition
 	var now: int = simulation.tick
+	var held: float = _held
 	_darkness = 0.0
 	_title = ""
 	match e.state:
 		Expedition.State.CLIMBING:
 			var share: float = ClimbProgress.share(e)
 			_darkness = clampf(minf(share, 1.0 - share) / FADE_SHARE, 0.0, 1.0)
-			_name(PlaceText.here(simulation, ClimbProgress.stage_to(e)))
+			if e.travel.pending_area != &"":
+				_name("Leaving " + PlaceText.area_name(e.place))  # a journey is ordered: it goes there
+			else:
+				_name(PlaceText.here(simulation, ClimbProgress.stage_to(e)))
 		Expedition.State.JOURNEYING:
 			var left: float = float(e.travel.arrive_tick - now) / Simulation.TICKS_PER_SECOND
 			var since: float = AreaTravel.JOURNEY_SECONDS - left
-			_darkness = clampf(since / FADE_SECONDS, 0.0, 1.0)
-			if since < AreaTravel.JOURNEY_SECONDS / 2.0:
+			_darkness = maxf(clampf(since / FADE_SECONDS, 0.0, 1.0), held)
+			var turning: bool = e.travel.pending_area != &""  # a new destination, taken next tick
+			if turning or since < AreaTravel.JOURNEY_SECONDS / 2.0:
 				_name("Leaving " + PlaceText.area_name(e.place))
 			else:
 				_name(PlaceText.of(e.area, e.travel.journey_stage(e)))
@@ -94,6 +104,8 @@ func update(simulation: Simulation) -> void:
 				var since: float = Expedition.REVIVE_SECONDS - left - FallenParty.HOLD_SECONDS
 				_darkness = clampf(since / FADE_SECONDS, 0.0, 1.0)
 				_name(PlaceText.here(simulation, back_to))
+	var between: bool = e.state in [Expedition.State.CLIMBING, Expedition.State.JOURNEYING]
+	_held = _darkness if between else 0.0
 	if _opened_tick >= 0 and _darkness <= 0.0:
 		var since: float = float(now - _opened_tick) / Simulation.TICKS_PER_SECOND
 		_darkness = clampf(1.0 - since / OPEN_SECONDS, 0.0, 1.0)
@@ -102,9 +114,12 @@ func update(simulation: Simulation) -> void:
 
 
 ## The stage the world shows for [param simulation]: the party's, or, past the middle of a change
-## of stage, the one it is going to.
-static func stage_shown(simulation: Simulation) -> int:
+## of stage, the one it is going to. On a journey it keeps [param shown], the stage it showed (a
+## journey can start half way through a change of stage), until the party arrives.
+static func stage_shown(simulation: Simulation, shown: int = 0) -> int:
 	var e: Expedition = simulation.expedition
+	if e.state == Expedition.State.JOURNEYING and shown > 0:
+		return shown
 	if e.state == Expedition.State.CLIMBING and ClimbProgress.share(e) >= SWITCH_SHARE:
 		return ClimbProgress.stage_to(e)
 	return e.depth

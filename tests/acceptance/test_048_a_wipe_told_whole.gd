@@ -434,7 +434,7 @@ func test_r6_far_cut_waits() -> void:
 	# Spec 054 R8: stage 8 is another stage, so the cut is the crossing's, at the revival itself and
 	# under a dark screen (it came shortly before the revival in spec 048).
 	var revive_at: float = Expedition.REVIVE_SECONDS
-	assert_between(cut_at, revive_at - 1.0, revive_at + 0.05, "it cuts by the revival")
+	assert_between(cut_at, revive_at - 0.05, revive_at + 0.05, "it cuts by the revival")
 	assert_eq(dark, 1.0, "while the screen is dark")
 	assert_true(built, "to a labyrinth already built there")
 	assert_lt(_world.camera.position.distance_to(destination), 1.0, "and is there when they rise")

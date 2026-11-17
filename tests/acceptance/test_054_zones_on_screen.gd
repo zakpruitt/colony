@@ -14,15 +14,21 @@ const HERO_IDS: Array[int] = [1, 2, 3, 4]
 const KNIGHT: int = 1
 ## The longest any wait here lasts, in simulation ticks (five minutes).
 const LIMIT_TICKS: int = 3000
+const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 ## A stage's band of world pixels, top to bottom.
 const BAND_PIXELS: float = Labyrinth.LEVEL_HEIGHT * TILE
 ## The words nothing on screen may say (R6), as whole words or their start.
 const DOWN_WORDS: String = "\\b(deeper|descend\\w*|climb\\w*|depths?|shafts?)\\b"
-## Where the HUD's, the effects' and the world's texts are written.
-const TEXT_DIRS: Array[String] = ["res://game/hud/", "res://game/effects/", "res://game/world/"]
-## Texts the HUD shows from data/, outside spec 054's Paths: reported to the lead, not changed here.
-## (The Quick March upgrade's description, data/upgrades/quick_march.tres.)
-const OUTSIDE_PATHS: Array[String] = ["+4% travel and climb speed"]
+## Where every text the player can see is written: the HUD, effects, world, UI and dev scenes'
+## scripts, and the content in data/ (each searched with the folders under it).
+const TEXT_DIRS: Array[String] = [
+	"res://game/hud/",
+	"res://game/effects/",
+	"res://game/world/",
+	"res://game/ui/",
+	"res://game/dev/",
+	"res://data/",
+]
 
 var _sim: Simulation
 var _world: World
@@ -121,6 +127,24 @@ func _all_gone() -> bool:
 	return true
 
 
+## The rectangles of the doorway sprites the view draws, in world pixels, left to right.
+func _door_sprites(view: LabyrinthView) -> Array[Rect2]:
+	var rects: Array[Rect2] = []
+	for node: Node in view.find_children("Doorway*", "Sprite2D", true, false):
+		var sprite: Sprite2D = node as Sprite2D
+		if sprite.is_queued_for_deletion() or not sprite.is_visible_in_tree():
+			continue
+		var at: Vector2 = view.to_local(sprite.global_position)
+		rects.append(Rect2(at, sprite.texture.get_size()))
+	return _sorted(rects)
+
+
+func _sorted(rects: Array[Rect2]) -> Array[Rect2]:
+	var out: Array[Rect2] = rects.duplicate()
+	out.sort_custom(func(a: Rect2, b: Rect2) -> bool: return a.position.x < b.position.x)
+	return out
+
+
 func _band_top(stage: int) -> float:
 	return (stage - 1) * BAND_PIXELS
 
@@ -155,6 +179,7 @@ func test_r1_out_through_a_doorway() -> void:
 				bare += 1
 	assert_eq(bare, 2 * shaft.size.x, "the floor runs on where the shaft was")
 	assert_eq(view.doorways(1).size(), 1, "stage 1 has only its way on")
+	assert_eq(_door_sprites(view), _sorted(view.doorways(1)), "a doorway is drawn at each doorway")
 
 	var vertical_moves: int = 0
 	var switches: int = 0
@@ -192,6 +217,8 @@ func test_r1_out_through_a_doorway() -> void:
 		_has_door(view.doorways(2), door, _floor_px(sim, 2)),
 		"stage 2 has a doorway back where the party came out"
 	)
+	assert_eq(view.doorways(2).size(), 2, "stage 2 has its way back and its way on")
+	assert_eq(_door_sprites(view), _sorted(view.doorways(2)), "each drawn, and stage 1's are gone")
 	for id: int in HERO_IDS:
 		assert_eq(_world.character(id).modulate.a, 1.0, "hero %d is out of the doorway" % id)
 
@@ -239,6 +266,39 @@ func test_r2_a_short_crossing() -> void:
 		assert_gte(title_frames, 20, "%dx: long enough to read" % speed)
 		climb_frames[speed] = climbing
 	assert_lt(climb_frames[4] * 3, climb_frames[1], "at 4x the crossing is shorter")
+
+	# In the real game: the HUD has the veil, shown and dark over the whole screen in a crossing.
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	main.driver.set_process(false)
+	main.world.set_process(false)
+	_sim = main.simulation
+	_world = main.world
+	_events = []
+	_frame = 0
+	_near_the_way_on(_sim, 1)
+	var veils: Array[Node] = main.hud.find_children("CrossingVeil", "CrossingVeil", false, false)
+	assert_eq(veils.size(), 1, "the HUD holds one veil")
+	if veils.is_empty():
+		return
+	var shown_veil: CrossingVeil = veils[0] as CrossingVeil
+	assert_eq(shown_veil.get_index(), 0, "first, so the rest of the HUD is drawn over it")
+	var dark_seen: int = 0
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		shown_veil.refresh()
+		if _world.crossing.darkness() >= 1.0:
+			assert_true(shown_veil.is_visible_in_tree(), "the veil is shown")
+			assert_eq(shown_veil.darkness(), 1.0, "and dark")
+			assert_eq(
+				Rect2(shown_veil.global_position, shown_veil.size), Rect2(Vector2.ZERO, Hud.SCREEN)
+			)
+			assert_eq(shown_veil.title_label.text, "Mossy Hollow 2", "with the title")
+			dark_seen += 1
+		if _has(events, SimEvent.Kind.DEPTH_CHANGED):
+			break
+	assert_gt(dark_seen, 5, "the game's own veil was dark in the crossing")
+	assert_false(shown_veil.visible, "and hidden once it is over")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -353,26 +413,83 @@ func test_r4_a_journey() -> void:
 	assert_eq(_world.labyrinth_view.area, &"claypits", "on the Claypits")
 
 
+## A journey ordered half way through a change of stage, and one turned to a new destination on
+## the way: once dark the screen stays at least as dark until the party arrives, the world shows
+## no other stage meanwhile, and the title never goes blank or names a place it is not going to.
+func test_r4_a_journey_never_lightens() -> void:
+	# Ordered while the party is changing stage, in the dark.
+	var sim := Simulation.new(SEED)
+	_near_the_way_on(sim, 1)
+	_show(sim)
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		var run: Expedition = sim.expedition
+		if run.state == Expedition.State.CLIMBING and ClimbProgress.share(run) >= 0.6:
+			break
+	assert_eq(sim.expedition.state, Expedition.State.CLIMBING, "half way through a change")
+	sim.expedition.travel.open[&"claypits"] = true
+	sim.set_destination(&"claypits", 1)
+	_journey_stays_dark(["Leaving Mossy Hollow", "The Claypits 1"], &"claypits", "from a crossing")
+
+	# Turned to another area at 6 s, with "The Claypits 1" showing.
+	sim = Simulation.new(SEED)
+	sim.set_auto_push(false)
+	_show(sim)
+	sim.expedition.travel.open[&"claypits"] = true
+	sim.expedition.travel.open[&"old_crypt"] = true
+	sim.set_destination(&"claypits", 1)
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		if _world.crossing.title() == "The Claypits 1":
+			break
+	assert_eq(_world.crossing.darkness(), 1.0, "dark on the way to the Claypits")
+	sim.set_destination(&"old_crypt", 1)
+	_journey_stays_dark(["Leaving Mossy Hollow", "The Old Crypt 1"], &"old_crypt", "re-routed")
+
+
+## Plays on from an order to travel to the party's arrival in [param area], checking the dark
+## never lightens, the stage shown never changes and every title is one of [param titles].
+func _journey_stays_dark(titles: Array[String], area: StringName, label: String) -> void:
+	var stage: int = _world.shown_stage()
+	var last: float = _world.crossing.darkness()
+	var seen_dark: bool = last >= ZoneCrossing.TITLE_FROM
+	var arrived: bool = false
+	var lighter: Array[String] = []
+	var said: Dictionary[String, bool] = {}
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		if _has(events, SimEvent.Kind.AREA_CHANGED):
+			arrived = true
+			break
+		var dark: float = _world.crossing.darkness()
+		if dark < last and lighter.size() < 3:
+			lighter.append("%.2f after %.2f at tick %d" % [dark, last, _sim.tick])
+		last = maxf(last, dark)
+		if dark < 1.0:
+			assert_eq(_world.shown_stage(), stage, label + ": no other stage shows")
+		seen_dark = seen_dark or dark >= ZoneCrossing.TITLE_FROM
+		if seen_dark:
+			var title: String = _world.crossing.title()
+			assert_ne(title, "", label + ": the title never goes blank")
+			said[title] = true
+	assert_true(arrived, label + ": the party arrived")
+	assert_eq(lighter, [] as Array[String], label + ": the screen never lightened on the way")
+	for title: String in said:
+		assert_has(titles, title, label + ": a title of where it goes")
+	assert_has(said, titles[1], label + ": the arrival is named")
+	assert_eq(_world.labyrinth_view.area, area, label + ": it shows the new area")
+
+
 # --- R5 ------------------------------------------------------------------------
 
 
 func test_r5_its_own_place() -> void:
 	var ids: Array[StringName] = Content.area_ids()
 	assert_eq(ids.size(), 4, "four areas")
-	var palette: PackedColorArray = Palette.all()
-	var faces: Dictionary[String, bool] = {}
-	var rocks: Dictionary[StringName, bool] = {}
 	var lights: Dictionary[StringName, bool] = {}
 	for id: StringName in ids:
-		var look: ZoneLook = ZoneLook.of(id, 1)
-		for hue: StringName in [look.rock_hue(), look.floor_hue(), look.light_hue()]:
-			assert_true(palette.has(Palette.color(hue)), "%s: %s is a palette colour" % [id, hue])
-		rocks[look.rock_hue()] = true
-		lights[look.light_hue()] = true
-		faces["%s %s %s" % [look.rock_hue(), look.floor_hue(), look.light_hue()]] = true
-	assert_eq(rocks.size(), 4, "every area's rock differs")
+		lights[ZoneLook.of(id, 1).light_hue()] = true
 	assert_eq(lights.size(), 4, "every area's light differs")
-	assert_eq(faces.size(), 4, "every area's colouring differs")
 	for id: StringName in ids:
 		var first: Color = ZoneLook.of(id, 1).ambient()
 		var sixth: Color = ZoneLook.of(id, 6).ambient()
@@ -384,8 +501,9 @@ func test_r5_its_own_place() -> void:
 				continue
 			var between: float = _distance(first, ZoneLook.of(other, 1).ambient())
 			assert_lt(within, between, "%s 1 and 6 are nearer than %s and %s" % [id, id, other])
-	# Drawn so: each area's stage shows its own earth, and its darkness takes its look.
-	var stratums: Dictionary[String, bool] = {}
+	# Drawn so: each area's stage is drawn with its own earth, measured from the tiles the view
+	# draws, and its darkness takes its look.
+	var earths: Array[Color] = []
 	for id: StringName in ids:
 		var view := LabyrinthView.new()
 		view.labyrinth = Labyrinth.new(SEED, AreaTravel.label(id))
@@ -393,14 +511,42 @@ func test_r5_its_own_place() -> void:
 		view.area = id
 		add_child_autofree(view)
 		view.set_focus(Vector2(60, view.labyrinth.level(1).floor_y))
-		var earth: String = view.visuals_at(Vector2i(60, 1))[0]
-		assert_string_starts_with(earth, String(ZoneLook.of(id, 1).stratum()) + "/", String(id))
-		stratums[earth.get_slice("/", 0)] = true
+		var earth: Color = _drawn_colour(view.visuals_at(Vector2i(60, 1))[0])
+		for other: Color in earths:
+			assert_gt(_distance(earth, other), 0.1, "%s: its earth looks unlike the others" % id)
+		earths.append(earth)
 		var lit: Color = AmbienceMood.light_at(
 			Vector2(5, 5), [] as Array[AmbienceLight], 1.0, view.zone_look()
 		)
 		assert_eq(lit, view.zone_look().ambient(), "%s: the darkness takes the look" % id)
-	assert_eq(stratums.size(), 4, "four different earths")
+	assert_eq(earths.size(), 4, "four earths measured")
+
+
+## The mean colour of the tile drawn as [param visual] ("<sheet>/<part>"), read from its sheet.
+func _drawn_colour(visual: String) -> Color:
+	var sheet: PixelSheet = PixelSheet.load_sheet(
+		"res://assets/sprites/tiles/%s.png" % visual.get_slice("/", 0)
+	)
+	var image: Image = sheet.part(StringName(visual.get_slice("/", 1))).get_image()
+	var sum := Vector3.ZERO
+	var count: int = 0
+	for y: int in image.get_height():
+		for x: int in image.get_width():
+			var pixel: Color = image.get_pixel(x, y)
+			if pixel.a > 0.0:
+				sum += Vector3(pixel.r, pixel.g, pixel.b)
+				count += 1
+	sum /= maxi(count, 1)
+	return Color(sum.x, sum.y, sum.z)
+
+
+## Adds every script and resource under [param dir] to [param paths].
+func _text_files(dir: String, paths: PackedStringArray) -> void:
+	for file: String in DirAccess.get_files_at(dir):
+		if file.ends_with(".gd") or file.ends_with(".tres"):
+			paths.append(dir + file)
+	for sub: String in DirAccess.get_directories_at(dir):
+		_text_files(dir + sub + "/", paths)
 
 
 func _distance(a: Color, b: Color) -> float:
@@ -414,30 +560,28 @@ func test_r6_nothing_says_down() -> void:
 	var down := RegEx.create_from_string("(?i)" + DOWN_WORDS)
 	var literal := RegEx.create_from_string('"([^"\\\\]|\\\\.)*"')
 	var found: PackedStringArray = []
-	var files: int = 0
+	var paths: PackedStringArray = []
 	for dir: String in TEXT_DIRS:
-		for file: String in DirAccess.get_files_at(dir):
-			if not file.ends_with(".gd"):
+		_text_files(dir, paths)
+	for path: String in paths:
+		var lines: PackedStringArray = FileAccess.get_file_as_string(path).split("\n")
+		for n: int in lines.size():
+			var line: String = lines[n].strip_edges()
+			if line.begins_with("#") or "name = " in line or "push_error" in line:
 				continue
-			files += 1
-			var lines: PackedStringArray = FileAccess.get_file_as_string(dir + file).split("\n")
-			for n: int in lines.size():
-				var line: String = lines[n].strip_edges()
-				if line.begins_with("#") or "name = " in line or "push_error" in line:
-					continue
-				for match: RegExMatch in literal.search_all(line):
-					var text: String = match.get_string()
-					if match.get_start() > 0 and line[match.get_start() - 1] in ["&", "^"]:
-						continue  # a StringName or a NodePath, never shown
-					if " " not in text and text.substr(1, 1) == text.substr(1, 1).to_lower():
-						continue  # an id or a key, not words
-					if down.search(text) != null:
-						found.append("%s:%d %s" % [file, n + 1, text])
-	assert_gt(files, 30, "the HUD's, effects' and world's scripts were read")
+			for match: RegExMatch in literal.search_all(line):
+				var text: String = match.get_string()
+				if match.get_start() > 0 and line[match.get_start() - 1] in ["&", "^"]:
+					continue  # a StringName or a NodePath, never shown
+				if "/" in text and " " not in text:
+					continue  # a path or a key such as "depth/<area>/<stage>", never shown
+				if down.search(text) != null:
+					found.append("%s:%d %s" % [path.get_file(), n + 1, text])
+	assert_gt(paths.size(), 80, "the scripts and content were read")
 	assert_eq(found, PackedStringArray(), "texts the player can see that say down")
 
 	# What the HUD shows as the party goes on, comes back and is wiped.
-	var main: Main = (load("res://game/main.tscn") as PackedScene).instantiate() as Main
+	var main: Main = MAIN_SCENE.instantiate() as Main
 	add_child_autofree(main)
 	main.driver.set_process(false)
 	main.world.set_process(false)
@@ -462,10 +606,58 @@ func test_r6_nothing_says_down() -> void:
 				for label: Node in main.hud.find_children("*", "Label", true, false):
 					shown[(label as Label).text] = true
 	for text: String in shown:
-		if text in OUTSIDE_PATHS:
-			continue
 		assert_null(down.search(text), "the HUD showed: " + text)
 	assert_gt(shown.size(), 20, "many texts were seen")
+
+
+## Nothing points down either: the arrow over the party points sideways at the doorway it will
+## leave by and hides in a crossing, and the ladder's party marker moves a whole rung when the
+## stage changes instead of sliding by the climb's height.
+func test_r6_the_marker_and_the_ladder() -> void:
+	var main: Main = MAIN_SCENE.instantiate() as Main
+	add_child_autofree(main)
+	main.driver.set_process(false)
+	main.world.set_process(false)
+	_sim = main.simulation
+	_world = main.world
+	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
+	_stand_on(_sim, 2)
+	var marker: TargetMarker = _world.target_marker
+	var ladder: DepthLadder = main.hud.ladder
+	for way: int in [1, -1]:
+		_sim.set_target_depth(2 + way)
+		# On, it walks two seconds from the doorway back it stood at; then back, at once.
+		for i: int in 120 if way > 0 else FRAMES_PER_TICK:
+			_play_frame()
+			main.hud.advance(FRAME)
+		var leaves_from: int = 2 if way > 0 else 1
+		var door: float = _door_x(_sim, leaves_from)
+		var toward: int = signi(roundi(door - _world.feet_position(KNIGHT).x))
+		assert_true(marker.visible, "the arrow shows for a target %d" % (2 + way))
+		assert_eq(marker.side(), toward, "it points sideways at the doorway it leaves by")
+	# Through the crossing back to stage 1 (the target is 1 now).
+	var offset: float = INF
+	var hidden: int = 0
+	var moved: Array[String] = []
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		var events: Array[SimEvent] = _play_frame()
+		main.hud.advance(FRAME)
+		var shown: int = _world.shown_stage()
+		var diamond: Rect2 = ladder.mark_rect(_sim.expedition.depth, &"diamond")
+		if diamond.size == Vector2.ZERO:
+			diamond = ladder.mark_rect(shown, &"diamond")
+		var gap: float = diamond.get_center().y - ladder.rung_rect(shown).get_center().y
+		if offset == INF:
+			offset = gap
+		if absf(gap - offset) > 1.5 and moved.size() < 3:
+			moved.append("%.1f px off the rung at tick %d" % [gap - offset, _sim.tick])
+		if _sim.expedition.state == Expedition.State.CLIMBING:
+			assert_false(marker.visible, "the arrow hides in a crossing")
+			hidden += 1
+		if _has(events, SimEvent.Kind.DEPTH_CHANGED):
+			break
+	assert_gt(hidden, 10, "a crossing was played")
+	assert_eq(moved, [] as Array[String], "the ladder's marker stays on the shown stage's rung")
 
 
 # --- R7 ------------------------------------------------------------------------
@@ -515,10 +707,17 @@ func _play_frame_without_stepping() -> Array[SimEvent]:
 
 
 func test_r8_the_wipe_still_reads() -> void:
+	for speed: int in [1, 4]:
+		_wipe_reads(speed)
+
+
+## Plays a wipe on stage 2 reviving on stage 1 at [param speed], checking it reads as hold, dim,
+## title and open on the heroes standing up.
+func _wipe_reads(speed: int) -> void:
 	var sim := Simulation.new(SEED)
 	_stand_on(sim, 2)
 	sim.expedition.last_stable_depth = 1
-	_show(sim)
+	_show(sim, speed)
 	for i: int in 30:
 		_play_frame()
 	for hero: Hero in sim.party.heroes:
@@ -541,7 +740,9 @@ func test_r8_the_wipe_still_reads() -> void:
 			if fallen_at == Vector2.INF:
 				fallen_at = camera
 			assert_lte(
-				camera.distance_to(fallen_at), TILE, "the camera holds on the fallen until then"
+				camera.distance_to(fallen_at),
+				TILE * speed,
+				"the camera holds on the fallen until then"
 			)
 			if dark <= 0.0:
 				step = "hold"
@@ -569,6 +770,80 @@ func test_r8_the_wipe_still_reads() -> void:
 	assert_eq(_world.shown_stage(), 1, "on the stage it revived on")
 
 
+## The same story picked up part way: a world made while the party is down (time away), and a
+## frame that holds both the wipe and the revival.
+func test_r8_picked_up_part_way() -> void:
+	# Made 3 s into the wipe on stage 2: past the hold, so dark, named, then open on stage 1.
+	var sim := Simulation.new(SEED)
+	_stand_on(sim, 2)
+	sim.expedition.last_stable_depth = 1
+	for hero: Hero in sim.party.heroes:
+		hero.health = 0
+	while sim.expedition.state != Expedition.State.REVIVING and sim.tick < LIMIT_TICKS:
+		sim.step()
+	for i: int in 3 * Simulation.TICKS_PER_SECOND:
+		sim.step()
+	sim.drain_events()
+	_show(sim)
+	_world.sync(0.0)
+	assert_eq(_world.crossing.darkness(), 1.0, "time away: dark at once, as 3 s says")
+	assert_eq(_world.crossing.title(), "Mossy Hollow 1", "and named")
+	assert_true(_world.fallen_party.is_telling(), "the wipe is told")
+	var order: Array[String] = []
+	var last_dark: float = 1.0
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		var dark: float = _world.crossing.darkness()
+		var step: String = "title" if sim.expedition.state == Expedition.State.REVIVING else "open"
+		if step == "title":
+			assert_eq(dark, 1.0, "time away: dark until the revival")
+		else:
+			assert_lte(dark, last_dark, "time away: then it only opens")
+			assert_eq(_world.shown_stage(), 1, "time away: on stage 1")
+		if order.is_empty() or order[-1] != step:
+			order.append(step)
+		last_dark = dark
+		if step == "open" and dark <= 0.0 and not _world.fallen_party.is_telling():
+			break
+	assert_eq(order, ["title", "open"], "time away: the story goes on from where it is")
+	for id: int in HERO_IDS:
+		assert_eq(_world.character(id).rotation, 0.0, "time away: hero %d stood up" % id)
+
+	# Wiped and revived inside one long frame: it opens on stage 1, never showing stage 2 again.
+	sim = Simulation.new(SEED)
+	_stand_on(sim, 2)
+	sim.expedition.last_stable_depth = 1
+	_show(sim)
+	for i: int in 30:
+		_play_frame()
+	for hero: Hero in sim.party.heroes:
+		hero.health = 0
+	var revived: bool = false
+	for i: int in LIMIT_TICKS:
+		sim.step()
+		if sim.expedition.state != Expedition.State.REVIVING and sim.expedition.depth == 1:
+			revived = true
+			break
+	assert_true(revived, "one frame: the party was revived on stage 1")
+	var long_frame: Array[SimEvent] = _play_frame_without_stepping()
+	assert_true(_has(long_frame, SimEvent.Kind.PARTY_WIPED), "one frame: the wipe")
+	assert_true(_has(long_frame, SimEvent.Kind.PARTY_REVIVED), "and the revival in it")
+	assert_eq(_world.shown_stage(), 1, "one frame: it shows stage 1")
+	last_dark = _world.crossing.darkness()
+	assert_gt(last_dark, 0.0, "one frame: it opens from dark")
+	var top: float = _band_top(1)
+	for i: int in 120:
+		_play_frame()
+		var dark: float = _world.crossing.darkness()
+		assert_lte(dark, last_dark, "one frame: then it only opens")
+		assert_eq(_world.shown_stage(), 1, "one frame: still stage 1")
+		last_dark = dark
+		for id: int in HERO_IDS:
+			var y: float = _world.character(id).position.y
+			assert_between(y, top, top + BAND_PIXELS, "one frame: hero %d on stage 1" % id)
+	assert_eq(last_dark, 0.0, "one frame: open")
+
+
 # --- R9 ------------------------------------------------------------------------
 
 
@@ -584,16 +859,17 @@ func test_r9_in_the_showcase() -> void:
 	add_child_autofree(showcase)
 	showcase.set_process(false)
 	var areas: Dictionary[StringName, bool] = {}
-	var dark_frames: int = 0
-	for moment: StringName in [&"climb_down", &"four_areas"]:
+	var dark_frames: Dictionary[StringName, int] = {&"climb_down": 0, &"climb_up": 0}
+	for moment: StringName in [&"climb_down", &"climb_up", &"four_areas"]:
 		showcase.skip_to(moment)
 		while showcase.moment() == moment and showcase.elapsed < 600.0:
 			showcase.advance(FRAME)
 			if moment == &"four_areas":
 				areas[showcase.main.world.labyrinth_view.area] = true
 			elif showcase.main.world.crossing.darkness() >= 1.0:
-				dark_frames += 1
+				dark_frames[moment] += 1
 		var happened: bool = showcase.evidence.get(moment, false)
 		assert_true(happened, "%s happened" % moment)
-	assert_gt(dark_frames, 10, "the change of stage shows the crossing")
+	for moment: StringName in dark_frames:
+		assert_gt(dark_frames[moment], 10, "%s shows the crossing" % moment)
 	assert_eq(areas.size(), 4, "the four areas were shown in turn")

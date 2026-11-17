@@ -265,7 +265,7 @@ func sync(delta: float) -> void:
 ## Brings the view up to the simulation's state before its events are shown: the levels built
 ## around the party, the heroes, the waiting monsters and the fighters.
 func _catch_up_with_state(delta: float) -> void:
-	var stage: int = ZoneCrossing.stage_shown(simulation)
+	var stage: int = ZoneCrossing.stage_shown(simulation, _shown)
 	if stage != _shown:
 		if _shown > 0:
 			_change_stage()
@@ -323,8 +323,11 @@ func _leader_id() -> int:
 ## the doorway on the floor of the stage shown (spec 054), never on the way up or down.
 func _hero_feet(hero_id: int) -> Vector2:
 	var e: Expedition = simulation.expedition
-	if e.state == Expedition.State.CLIMBING and _shown > 0:
-		return _feet(Vector2(e.x, simulation.labyrinth.level(_shown).floor_y))
+	# Between stages (a climb, or a journey that began in one) the heroes stand on the shown floor.
+	var between: bool = e.state in [Expedition.State.CLIMBING, Expedition.State.JOURNEYING]
+	if between and _shown > 0:
+		var x: float = e.x if e.state == Expedition.State.CLIMBING else e.hero_position(hero_id).x
+		return _feet(Vector2(x, simulation.labyrinth.level(_shown).floor_y))
 	return _feet(e.hero_position(hero_id))
 
 

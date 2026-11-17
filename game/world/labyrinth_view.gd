@@ -244,9 +244,11 @@ func _surround(layer: TileMapLayer, sheet: StringName, top: int) -> void:
 ## Zoned: a doorway sprite at each of [method doorways], behind everything on the stage.
 func _place_doorways(level: Node2D, depth: int) -> void:
 	var texture: AtlasTexture = PixelSheet.load_sheet(DOORWAY).part(&"doorway")
-	for rect: Rect2 in doorways(depth):
+	var rects: Array[Rect2] = doorways(depth)
+	for n: int in rects.size():
+		var rect: Rect2 = rects[n]
 		var door := Sprite2D.new()
-		door.name = "Doorway"
+		door.name = "Doorway%d" % n  # each its own name: a second "Doorway" would be renamed
 		door.texture = texture
 		door.centered = false
 		door.position = rect.position
