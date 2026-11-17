@@ -33,11 +33,13 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### Drafts awaiting Zak
+### In progress (2026-11-16, after Zak's first playtest)
 
-The direction these follow is `docs/design/world.md`.
+The direction these follow is `docs/design/world.md`. Written by the lead from that conversation; provisional
+until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [025 Finds and trades](025-finds-and-trades/spec.md): chambers that hold something other than a fight, worked by a hero's trade (simulation) | draft, three open questions | 005, 014, 020, 023 |
-| [026 Seeing finds](026-seeing-finds/spec.md): props, the worker at work, success and failure on screen | draft | 008, 010, 011, 021, 025 |
+| [025 Microskills and side quests](025-microskills-and-side-quests/spec.md): chambers that hold something other than a fight, opened by a hero's microskill (simulation) | provisional, in progress | 005, 020, 023 |
+| [026 Hero sheet](026-hero-sheet/spec.md): click a hero to see who they are, their stats and what they are doing | provisional, in progress | 011, 016, 017 |
+| [027 Reading the party](027-reading-the-party/spec.md): a status line that says what and why, the countdown to stable, a journal | provisional, in progress | 008, 010, 011, 020 |

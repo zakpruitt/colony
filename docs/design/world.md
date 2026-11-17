@@ -24,17 +24,26 @@ mean simulating daily life. It means the party keeps meeting different challenge
 its members' skills, in ways the player can optimise for.
 
 - **Fights stay the most common thing** a chamber holds.
-- **Finds** are everything else: a trapped cache, an ore vein, a rune stone, a herb patch, and more later
-  (sealed doors, collapsed tunnels, springs). The party stops, one member steps forward and works on it.
-- **Every hero has a class and a trade.** The class is what they do in a fight. The trade (trapwork,
-  digging, lore, herbalism, and more later) is what they do at a find. Trades improve with use.
-- **Failure is real.** A sprung trap hurts. Who is in the party decides which finds pay off and which are
-  better left alone, and that is the thing the player tunes.
+- **Side quests** are everything else: a locked chest, a tripwire, a stuck door, a rune stone, a hurt
+  wanderer, and more later. They are small things the party comes across, not gathering.
+- **Microskills open them.** A microskill is a minor passive a hero has (Lockpicker, Trapspotter, Strongarm,
+  Runereader, Mender). If someone in the party has the one a side quest asks for, the party can do it;
+  if nobody does, the party walks past, or the hazard catches them. Heroes pick microskills up as they level.
+- **Professions are a different thing** (crafting or gathering trades), not designed yet. Microskills are
+  not professions.
+- **The player tunes the party.** Which microskills the party has decides which side quests pay off.
+
+## Ease first
+
+Zak's priority after the first playtest: the game must be easy to read and easy to manage. At a glance the
+player should know what the party is doing and why, and each hero should have a clear place to be looked at,
+upgraded and managed.
 
 ## What this means for work in progress
 
 - **Art is placeholder.** Zak will make characters himself and the world's look will be agreed with him. New
   specs reuse existing sprites or add the plainest prop, and say so.
 - **Names move toward the premise** as specs touch them; nothing is renamed for its own sake.
-- **Order:** finds and trades with the four existing heroes first; then choosing who goes down (a roster);
-  then new classes, starting with the one Zak wants to draw.
+- **Order:** readability and a sheet for each hero; side quests and microskills with the four existing
+  heroes; per-hero upgrades; then choosing who goes down (a roster); then new classes, starting with the one
+  Zak wants to draw.
