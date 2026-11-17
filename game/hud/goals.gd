@@ -663,7 +663,7 @@ class Row:
 		var right: float = width - 2.0
 		_arrow = Rect2()
 		if price:
-			_arrow = Rect2(right - 3.0, 3.0, 3.0, 5.0)
+			_arrow = Rect2(right - 3.0, 1.0, 3.0, 5.0)
 			right -= ARROW_ROOM
 		if goal.progress >= 0.0:
 			size = Vector2(width, LINE + BAR_HEIGHT + 5.0)
