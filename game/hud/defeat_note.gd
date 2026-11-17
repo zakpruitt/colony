@@ -27,7 +27,7 @@ extends Control
 ## is open. It moves only in [method advance], so a test can step it exactly.
 
 ## What the note can suggest, in the order it prefers them.
-enum Help { TRAIN, UPGRADE, HOLD }
+enum Help { TALENTS, TRAIN, UPGRADE, HOLD }
 
 ## The most suggestions shown at once.
 const MOST: int = 3
@@ -51,7 +51,8 @@ const FADE_COLOURS: Array[StringName] = [&"silver", &"steel", &"slate"]
 const FADE_STEP: float = 0.2
 ## Each suggestion's tooltip: one plain sentence.
 const TIPS: Dictionary[Help, String] = {
-	Help.TRAIN: "Opens this hero's Training tab: paragon points make one hero stronger for good.",
+	Help.TALENTS: "Opens the Talents tab of a hero with talent points: new abilities to take.",
+	Help.TRAIN: "Opens this hero's Talents tab: paragon points make one hero stronger for good.",
 	Help.UPGRADE: "Opens the Shop: upgrades make the whole party stronger.",
 	Help.HOLD: "Orders the party to stay away from guardians and grow stronger first.",
 }
@@ -80,9 +81,13 @@ var _linger: float = -1.0
 var _fade: float = -1.0
 ## Where the mouse is, in screen pixels.
 var _mouse: Vector2 = HudTooltip.NOWHERE
-## The suggestions the buttons show, as last laid out, and the hero Train showed then.
+## The suggestions the buttons show, as last laid out, and the heroes Train and Spend talent
+## points showed then.
 var _shown: Array[Help] = []
 var _shown_trainee: int = -1
+var _shown_spender: int = -1
+## The hero the Spend talent points suggestion opens, or -1 (spec 055).
+var _spender: int = -1
 ## The guardian of the defeat being told (or &""): Hold is offered against it.
 var _guardian: StringName = &""
 ## True once Hold here was pressed for this defeat: the button stays, whatever the order.
@@ -214,14 +219,19 @@ func suggestions() -> Array[String]:
 
 
 ## What clicking button [param index] does, by the suggestion that button showed: opens the
-## Training tab of the hero it named, opens the shop, or sets the guardian order to Hold.
+## Talents tab of a hero with talent points (spec 055) or of the hero it named, opens the shop, or
+## sets the guardian order to Hold.
 func press(index: int) -> void:
 	if index < 0 or index >= _shown.size():
 		return
 	match _shown[index]:
+		Help.TALENTS:
+			if _hud != null and _hud.hero_sheet != null:
+				_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
+				_hud.hero_sheet.open(_shown_spender)
 		Help.TRAIN:
 			if _hud != null and _hud.hero_sheet != null:
-				_hud.hero_sheet.open_page(HeroSheet.Page.TRAINING)
+				_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
 				_hud.hero_sheet.open(_shown_trainee)
 		Help.UPGRADE:
 			if _hud != null and _hud.shop != null:
@@ -386,11 +396,18 @@ func _holding() -> bool:
 	return _simulation.expedition.guardian_order == Expedition.GuardianOrder.HOLD
 
 
-## Reads which suggestions apply now, the first [constant MOST] in [enum Help] order.
+## Reads which suggestions apply now, at most [constant MOST] in [enum Help] order; with four,
+## Buy an upgrade is the one left out.
 func _suggest() -> void:
 	var e: Expedition = _simulation.expedition
 	var gold: int = _simulation.party.gold
 	_helps.clear()
+	_spender = -1
+	for hero: Hero in _simulation.party.heroes:
+		if _spender < 0 and hero.talent_points() > 0:
+			_spender = hero.id
+	if _spender >= 0:
+		_helps.append(Help.TALENTS)  # spec 055 R8: ahead of the other advice
 	_trainee = _trainee_with_points()
 	if _trainee >= 0:
 		_helps.append(Help.TRAIN)
@@ -398,6 +415,9 @@ func _suggest() -> void:
 		_helps.append(Help.UPGRADE)
 	if _guardian != &"" and (_held or e.guardian_order == Expedition.GuardianOrder.CHALLENGE):
 		_helps.append(Help.HOLD)
+	# Spec 055: with talent points as well, the upgrade gives way, never Hold here.
+	if _helps.size() > MOST:
+		_helps.erase(Help.UPGRADE)
 	_helps = _helps.slice(0, MOST)
 
 
@@ -408,6 +428,8 @@ func _text(help: Help) -> String:
 			return "Train %s" % (hero.def().display_name if hero != null else "a hero")
 		Help.UPGRADE:
 			return "Buy an upgrade"
+		Help.TALENTS:
+			return "Spend talent points"
 	return "Holding" if _holding() else "Hold here"
 
 
@@ -533,6 +555,7 @@ func _show() -> void:
 		y += HudButton.HEIGHT
 	_shown = _helps.duplicate()
 	_shown_trainee = _trainee
+	_shown_spender = _spender
 	panel.size = Vector2(full, y + PADDING.y)
 	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (WIPED_SCALE + 1))
 	var bottom: float = Hud.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP

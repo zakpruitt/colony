@@ -95,7 +95,8 @@ func setup(hud: Hud) -> void:
 	if hud.help_button != null:
 		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
-		_tip([frame], "Click for details")
+		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
+		_tip([frame], frame.tip)
 	if hud.tally != null:
 		# Spec 045 R6: the tally's tabs, its span switch and its button.
 		for i: int in hud.tally.tab_buttons.size():

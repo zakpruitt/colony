@@ -7,8 +7,9 @@ extends HudPanel
 ##
 ## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
 ## above), with the level moved left of it, counts what the hero has for the player to do: its
-## unspent paragon points (spec 051), and the microskills learned since the hero's Skills page was
-## last open. It follows the same rules as the hero sheet's tab markers (spec 034).
+## unspent talent and paragon points (spec 051, spec 055), and the microskills learned since the
+## hero's Skills page was last open. It follows the same rules as the hero sheet's tab markers
+## (spec 034).
 
 ## Clicking the frame opens or closes this hero's sheet (spec 026).
 signal clicked(hero_id: int)
@@ -72,8 +73,6 @@ var _xp: EasedValue = EasedValue.new(EASE_SECONDS)
 ## How many microskills the hero had when their Skills page was last open (or when the frame was
 ## made), as the hero sheet counts them.
 var _skills_seen: int = 0
-## True once the frame has given the HUD's tooltips its own line (spec 056 R5).
-var _tipped: bool = false
 
 
 ## A frame for [param hero], drawing its icons from [param hud].
@@ -212,7 +211,7 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	if sheet != null and sheet.shown_hero_id() == hero_id:
 		if sheet.page() == HeroSheet.Page.SKILLS:
 			_skills_seen = learned
-	marker.count = hero.paragon_points() + maxi(learned - _skills_seen, 0)
+	marker.count = HeroSheet.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
 	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)
@@ -226,16 +225,16 @@ func _refresh_statuses() -> void:
 		statuses = tally.tally.credit.statuses.statuses_of(hero_id)
 	status_icons.show_statuses(statuses)
 	status_icons.position = Vector2(name_label.position.x + name_label.size.x + 3.0, TEXT_Y + 1.0)
-	if not _tipped and _hud != null and _hud.tooltip != null:
-		_tipped = true
-		_hud.tooltip.tip_first([self], tip)
 
 
-## The frame's tooltip: the hero's statuses with the seconds each has left, then what a click does.
+## The frame's tooltip, as [method TalentTab.frame_tip] builds it: the class and its path (spec
+## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
 func tip() -> String:
 	var tally: TallyPanel = _hud.tally if _hud != null else null
 	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
-	return CLICK_TIP if line.is_empty() else "%s. %s" % [line, CLICK_TIP]
+	if _hud == null or _hud.hero_sheet == null:
+		return CLICK_TIP if line.is_empty() else "%s. %s" % [line, CLICK_TIP]
+	return _hud.hero_sheet.talents.frame_tip(hero_id, line)
 
 
 ## The hero was hit: flash the frame for an instant.

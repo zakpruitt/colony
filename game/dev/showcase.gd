@@ -6,8 +6,9 @@ extends Node
 ## other area, a guardian's fight (spec 038), side quests (spec 028): one done, one nobody can do,
 ## a tripwire sprung and a microskill learned; then the area map (spec 053) with two areas open
 ## and the rest closed, a journey to the Claypits and the arrival there, with the map open on the
-## way; and the four areas' looks in turn (spec 054). Spec 056: each class's hero using its
-## actions, and every status on a row of fighters, each labelled with its statuses.
+## way; the four areas' looks in turn (spec 054); the knight's talent tree (spec 055), a node
+## taken and a path chosen. Spec 056: each class's hero using its actions, and every status on
+## a row of fighters, each labelled with its statuses.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -51,6 +52,7 @@ const MOMENTS: Array[StringName] = [
 	&"area_map",
 	&"journey",
 	&"four_areas",
+	&"talent_tree",
 ]
 ## What the label says during each moment.
 const CAPTIONS: Dictionary[StringName, String] = {
@@ -81,6 +83,7 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"area_map": "THE AREA MAP: WHERE THE PARTY CAN GO",
 	&"journey": "A JOURNEY TO THE CLAYPITS",
 	&"four_areas": "THE FOUR AREAS",
+	&"talent_tree": "THE KNIGHT CHOOSES A PATH",
 }
 ## Seconds a moment goes on showing once what it is about has happened.
 const LINGER: Dictionary[StringName, float] = {
@@ -111,6 +114,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"area_map": 1.5,
 	&"journey": 1.2,
 	&"four_areas": 0.2,
+	&"talent_tree": 0.6,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
@@ -211,6 +215,10 @@ const STATUS_FROM: Dictionary[int, StringName] = {
 }
 const STATUS_SECONDS: float = 30.0
 const STATUS_MONSTERS: int = 3
+## The tree's moment: the knight's level (four talent points), and seconds between its clicks
+## (short: the whole pass must stay within test_018's limit).
+const TREE_LEVEL: int = 8
+const TREE_STEP: float = 0.2
 
 ## The game, as the main scene builds it.
 var main: Main
@@ -231,6 +239,8 @@ var _caption: Label
 var _steered: Dictionary[int, bool] = {}
 ## True once the journey's map has been opened on the way.
 var _map_on_the_way: bool = false
+## The tree's moment: the clicks made so far.
+var _tree_clicks: int = 0
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
@@ -418,6 +428,15 @@ func _begin(current: StringName) -> void:
 				_set_level(hero, AREA_LEVEL)
 			_area_turn = -1
 			_areas_seen.clear()
+		&"talent_tree":
+			# Spec 055: the knight at level 8 with one trunk node taken, three points to spend.
+			_settle_now()
+			var knight: Hero = sim.party.heroes[0]
+			_set_level(knight, TREE_LEVEL)
+			knight.set_talents([Content.talent_tree(knight.class_id).trunk[0]] as Array[StringName])
+			main.hud.hero_sheet.open(knight.id)
+			main.hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
+			_tree_clicks = 0
 
 
 func _end_moment() -> void:
@@ -443,6 +462,8 @@ func _end_moment() -> void:
 		&"statuses":
 			for hero: Hero in sim.party.heroes:
 				hero.set_talents([])  # the class moments' trees are for those moments only
+		&"talent_tree":
+			main.hud.hero_sheet.close()
 
 
 ## Changes made every frame while a moment waits for its event: in a fight, once per fight.
@@ -536,6 +557,8 @@ func _look() -> void:
 					seen[kind] = true
 			if seen.size() == AbilityEffect.Status.size():
 				_see()
+		&"talent_tree":
+			_click_through_tree()
 
 
 func _on_sim_event(event: SimEvent) -> void:
@@ -589,6 +612,10 @@ func _on_sim_event(event: SimEvent) -> void:
 			if event.kind == SimEvent.Kind.ABILITY_USED and ability != null and hero != null:
 				if ability.is_action() and hero.class_id == CLASS_MOMENTS[moment()]:
 					_see()
+		&"talent_tree":
+			var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
+			if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
+				_see()
 
 
 ## True while the moment waits for a fight the party is still walking to.
@@ -839,6 +866,22 @@ func _cut_to_area(id: StringName) -> void:
 		var there: bool = sim.expedition.place == id
 		if there and sim.expedition.state != Expedition.State.JOURNEYING:
 			return
+
+
+## The tree's moment: at once and then every TREE_STEP seconds, the next click on the knight's
+## Talents tab: the two trunk nodes left, then the first Berserker node, which asks, then Choose.
+func _click_through_tree() -> void:
+	var tab: TalentTab = main.hud.hero_sheet.talents
+	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
+	var clicks: Array[StringName] = [tree.trunk[1], tree.trunk[2], tree.path_b[0], &"choose"]
+	var due: int = mini(floori(_moment_time / TREE_STEP) + 1, clicks.size())
+	while _tree_clicks < due:
+		var click: StringName = clicks[_tree_clicks]
+		if click == &"choose":
+			tab.confirm()
+		else:
+			tab.press_node(click)
+		_tree_clicks += 1
 
 
 func _set_level(hero: Hero, level: int) -> void:

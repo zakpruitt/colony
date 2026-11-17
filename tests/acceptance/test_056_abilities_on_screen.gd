@@ -466,6 +466,22 @@ func test_r5_the_frames_show_it() -> void:
 	_hud.tooltip.point_at(frame.get_global_rect().get_center())
 	_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
 	assert_eq(_hud.tooltip.shown_text(), line, "as the HUD's tooltip")
+	# With a path chosen (spec 055), the class and its path come first, then the statuses.
+	var hero: Hero = _sim.party.hero(KNIGHT)
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var taken: Array[StringName] = tree.trunk.duplicate()
+	taken.append(tree.path_nodes(0)[0])
+	hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
+	hero.set_talents(taken)
+	var titled: String = TalentTab.title(hero)
+	assert_true(titled.begins_with("Knight, "), "the knight has a path")
+	var both: String = "%s: Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
+	_mouse(Vector2(-1000, -1000))
+	_hud.tooltip.point_at(Vector2(-1000, -1000))
+	_hud.tooltip.point_at(frame.get_global_rect().get_center())
+	_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
+	assert_eq(_hud.tooltip.shown_text(), both % titled, "path and statuses, in one tooltip")
+	hero.set_talents([])
 	var other: HeroFrame = _hud.frames[1] if _hud.frames[0] == frame else _hud.frames[0]
 	assert_eq(other.status_icons.kinds, [] as Array[int], "a hero with none shows none")
 	for kind: int in lasting:

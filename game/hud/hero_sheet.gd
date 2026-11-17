@@ -12,14 +12,15 @@ extends Control
 ## [enum Page]. Only the open page's content is shown, so only it takes clicks. [kbd]Q[/kbd] and
 ## [kbd]E[/kbd] (passed on by the HUD) move between pages, wrapping; the open page is kept across
 ## heroes and across closing and reopening, and a new HUD starts on Stats. A [ShopMarker] on the
-## Training tab counts the shown hero's unspent paragon points, and one on the Skills tab counts
-## the microskills the hero learned since their Skills page was last open.
+## Talents tab counts the shown hero's unspent talent and paragon points, and one on the Skills tab
+## counts the microskills the hero learned since their Skills page was last open.
 ##
-## The Training page (spec 051, in place of spec 029's gold training until spec 055's tree) says
-## how many talent and paragon points the shown hero has unspent, then has one
-## [HeroSheet.TrainingRow] per paragon stat. A row's button, or the number key the HUD passes to
-## [method train_row], asks the simulation to put one of the hero's paragon points into that
-## stat; the row flashes on [constant SimEvent.Kind.PARAGON_SPENT].
+## The Talents page (spec 055) is a [TalentTab]: the hero's whole tree, what each node does, and
+## its paragon points. The sheet grows to [constant TALENTS_SIZE] while it is open, as the tree
+## needs, and is [constant SIZE] on the other pages. A paragon stat's [code]+1[/code], or the number
+## key the HUD passes to [method train_row], asks the simulation to put one of the hero's paragon
+## points into that stat. Once the hero chooses a path, the class line reads
+## [code]Knight, Berserker[/code].
 ##
 ## The Skills page (spec 028) lists each microskill the hero's class learns, in the class's order:
 ## one the hero has in white with its one-line description, one to come in grey with the level it
@@ -29,10 +30,12 @@ extends Control
 signal shown_changed
 
 ## The sheet's pages, in tab order.
-enum Page { STATS, TRAINING, SKILLS }
+enum Page { STATS, TALENTS, SKILLS }
 
-## The panel's size in pixels (spec 034 R1: at most 240x150).
+## The panel's size in pixels (spec 034 R1: at most 240x150), and its size while the Talents page
+## is open (spec 055: the whole tree, nothing to scroll), still clear of the strip above the frames.
 const SIZE: Vector2 = Vector2(240, 150)
+const TALENTS_SIZE: Vector2 = TalentTab.SIZE
 ## Space inside the border.
 const PADDING: float = 4.0
 ## Pixels between the panel and the top band above it.
@@ -55,7 +58,7 @@ const TABS_Y: float = 78.0
 const TABS_X: float = 6.0
 const TAB_GAP: float = 10.0
 ## The tab names, in [enum Page] order.
-const TAB_NAMES: Array[String] = ["Stats", "Training", "Skills"]
+const TAB_NAMES: Array[String] = ["Stats", "Talents", "Skills"]
 ## The dim line of keys at the right of the tab row.
 const KEYS_HINT: String = "Q E tabs   Tab next hero"
 ## The line the tabs stand on, and the top of a page's content.
@@ -68,9 +71,6 @@ const STATS_SECOND_X: float = 124.0
 ## Pixels between a stat's name and its value, and between the value and its bonus.
 const STAT_GAP: float = 6.0
 const BONUS_GAP: float = 4.0
-## The Training page's line of unspent points, and its first row.
-const POINTS_Y: float = PAGE_Y
-const TRAINING_Y: float = PAGE_Y + 12.0
 ## The Skills page: its first row, a row's height and the most rows any class needs.
 const MICROSKILLS_Y: float = PAGE_Y
 const MICROSKILL_ROW: float = 10.0
@@ -118,12 +118,12 @@ const STAT_NAMES: Dictionary[StringName, String] = {
 var close_button: HudButton
 ## The tab buttons, in [enum Page] order; the open page's is lit.
 var tab_buttons: Array[HudButton] = []
-## The markers on the Training tab (the shown hero's unspent paragon points) and on the Skills
-## tab (microskills learned since that hero's Skills page was last open).
-var training_marker: ShopMarker
+## The markers on the Talents tab (the shown hero's unspent talent and paragon points) and on the
+## Skills tab (microskills learned since that hero's Skills page was last open).
+var talents_marker: ShopMarker
 var skills_marker: ShopMarker
-## One row per paragon stat, in [method Content.training_ids] order.
-var training_rows: Array[TrainingRow] = []
+## The Talents page (spec 055).
+var talents: TalentTab
 ## The hero's class portrait at twice a frame's size; a skull while the hero is down.
 var portrait: TextureRect
 
@@ -201,14 +201,17 @@ func setup(simulation: Simulation, world: World) -> void:
 	_add_line(self, &"xp", &"silver", Vector2(BODY_LEFT, XP_Y))
 	for page_name: String in TAB_NAMES:
 		var page_box := Control.new()
+		if page_name == TAB_NAMES[Page.TALENTS]:
+			talents = TalentTab.new()
+			talents.setup(simulation)
+			page_box = talents
 		page_box.name = "%sPage" % page_name
 		page_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		page_box.size = SIZE
+		page_box.size = TALENTS_SIZE if page_box == talents else SIZE
 		add_child(page_box)
 		_pages.append(page_box)
 	_build_stats(FIRST_COLUMN, BODY_LEFT)
 	_build_stats(SECOND_COLUMN, STATS_SECOND_X)
-	_build_training()
 	_build_microskills()
 	_build_tabs()
 	close_button = HudButton.new("x")
@@ -241,7 +244,7 @@ func advance(delta: float) -> void:
 	_health.advance(_health_goal, delta)
 	_xp.advance(_xp_goal, delta)
 	var def: HeroClassDef = hero.def()
-	_set_line(&"class", def.display_name)
+	_set_line(&"class", TalentTab.title(hero))  # spec 055 R9: the path beside the class
 	var role: String = ROLE_WORDS.get(def.role, "")
 	_set_line(&"role", role)
 	_set_line(&"level", "Level %d" % hero.level)
@@ -261,10 +264,8 @@ func advance(delta: float) -> void:
 	var colour: StringName = DOING_COLOURS.get(word, &"silver")
 	_colour(_values[&"activity"], colour)
 	_refresh_stats(hero)
-	_set_line(&"talent_points", str(hero.talent_points()))
-	_set_line(&"paragon_points", str(hero.paragon_points()))
-	for row: TrainingRow in training_rows:
-		row.refresh(hero, delta)
+	talents.show_hero(hero.id)
+	talents.refresh(delta)
 	_refresh_microskills(hero)
 	_refresh_markers(hero, delta)
 	var part: StringName = &"skull" if _down else hero.class_id
@@ -289,8 +290,7 @@ func open(hero_id: int) -> void:
 	_hero_id = hero_id
 	visible = true
 	if switched:
-		for row: TrainingRow in training_rows:
-			row.stop_flash()
+		talents.show_hero(hero_id)
 		advance(0.0)
 		_health.snap(_health_goal)
 		_xp.snap(_xp_goal)
@@ -362,42 +362,43 @@ func previous_page() -> void:
 	open_page(((_page + TAB_NAMES.size() - 1) % TAB_NAMES.size()) as Page)
 
 
-## True when the tab of [param which] carries its marker for the shown hero: Training when the
-## hero has a paragon point to spend, Skills when the hero learned a microskill since their Skills
-## page was last open. False while the sheet is closed, and for Stats.
+## True when the tab of [param which] carries its marker for the shown hero: Talents when the hero
+## has a talent or paragon point to spend, Skills when the hero learned a microskill since their
+## Skills page was last open. False while the sheet is closed, and for Stats.
 func page_marked(which: Page) -> bool:
 	var hero: Hero = _shown_hero()
 	if hero == null or not is_open():
 		return false
 	match which:
-		Page.TRAINING:
-			return hero.paragon_points() > 0
+		Page.TALENTS:
+			return HeroSheet.unspent(hero) > 0
 		Page.SKILLS:
 			return _new_skills(hero) > 0
 	return false
 
 
-## Asks the simulation to put one of the shown hero's paragon points into the stat of row
-## [param index] (0-based), if the sheet is open on its Training page and the hero has a point;
-## otherwise does nothing. The row's button and the number keys call it.
+## Asks the simulation to put one of the shown hero's paragon points into paragon stat
+## [param index] (0-based), if the sheet is open on its Talents page and the hero has a point;
+## otherwise does nothing. The stat's [code]+1[/code] and the number keys call it.
 func train_row(index: int) -> void:
-	var hero: Hero = _shown_hero()
-	if not is_open() or _page != Page.TRAINING or hero == null:
+	if not is_open() or _page != Page.TALENTS or _shown_hero() == null:
 		return
-	if index < 0 or index >= training_rows.size():
-		return
-	var row: TrainingRow = training_rows[index]
-	row.refresh(hero, 0.0)
-	if row.affordable():
-		_simulation.spend_paragon(hero.id, Content.training(row.id).stat)
+	talents.spend_paragon(index)
+
+
+## The talent and paragon points [param hero] has to spend (spec 055: its frame's and its Talents
+## tab's marker count them, with the frame's new microskills).
+static func unspent(hero: Hero) -> int:
+	return hero.talent_points() + hero.paragon_points()
 
 
 ## The text of a line of the sheet, for tests, whichever page is open: &"class", &"role",
 ## &"level", &"health", &"xp", &"activity", and one per stat: &"stat_health", &"stat_damage",
 ## &"stat_armor", &"stat_attack_speed", &"stat_crit", &"stat_range", &"stat_healing" ("" when the
-## class does not heal); the Training page's &"talent_points" and &"paragon_points" (the unspent
-## points, as numbers); one per paragon row: &"training_power", &"training_toughness",
-## &"training_quickness", as "<name> <points> <bonus>"; and &"microskills", the Skills page's rows,
+## class does not heal); the Talents page's &"talent_points" ([code]2 talent points[/code], or
+## when the next comes) and &"paragon_points" ([code]3 paragon points[/code], or when they come);
+## one per paragon stat: &"training_power", &"training_toughness", &"training_quickness", as
+## "<name> <points> <bonus>" ([code]Power 2 +6%[/code]); and &"microskills", the Skills page's rows,
 ## one per line ("Lockpicker: Opens locks", "Trapspotter, level 6").
 func line(key: StringName) -> String:
 	if key == &"microskills":
@@ -406,9 +407,9 @@ func line(key: StringName) -> String:
 			if row.visible:
 				rows.append(row.text)
 		return "\n".join(rows)
-	var row: TrainingRow = training_row(key)
-	if row != null:
-		return row.text()
+	var talent_text: String = _talent_line(key)
+	if not talent_text.is_empty():
+		return talent_text
 	var value: Label = _values.get(key, null)
 	if value == null or not value.visible:
 		return ""
@@ -437,11 +438,22 @@ func line_colour(key: StringName) -> Color:
 	return value.get_theme_color(&"font_color") if value != null else Color.BLACK
 
 
-## The training row a line key names (&"training_power", ...), or null.
-func training_row(key: StringName) -> TrainingRow:
-	for row: TrainingRow in training_rows:
-		if key == StringName("training_" + String(row.id)):
-			return row
+## The Talents page's line [param key] names, or "" for a key of another page.
+func _talent_line(key: StringName) -> String:
+	var cell: TalentTab.ParagonCell = paragon_cell(key)
+	var text: String = cell.text() if cell != null else ""
+	if key == &"talent_points":
+		text = talents.points_label.text
+	elif key == &"paragon_points":
+		text = talents.paragon_label.text
+	return text
+
+
+## The paragon stat's cell a line key names (&"training_power", ...), or null.
+func paragon_cell(key: StringName) -> TalentTab.ParagonCell:
+	for cell: TalentTab.ParagonCell in talents.paragon_cells:
+		if key == StringName("training_" + String(cell.id)):
+			return cell
 	return null
 
 
@@ -571,27 +583,6 @@ func _build_stats(keys: Array[StringName], x: float) -> void:
 		y += STAT_ROW
 
 
-## The Training page: the unspent points, then one row per paragon stat.
-func _build_training() -> void:
-	var page_box: Control = _pages[Page.TRAINING]
-	var x: float = BODY_LEFT
-	for key: StringName in [&"talent_points", &"paragon_points"]:
-		var caption: String = "Talent points" if key == &"talent_points" else "Paragon points"
-		_caption(page_box, caption, Vector2(x, POINTS_Y))
-		x += PixelText.width(caption) + STAT_GAP
-		_add_line(page_box, key, &"yellow", Vector2(x, POINTS_Y))
-		x += 3 * STAT_GAP + PixelText.width("00")
-	var ids: Array[StringName] = Content.training_ids()
-	var y: float = TRAINING_Y
-	for i: int in ids.size():
-		var row := TrainingRow.new(ids[i], i)
-		row.position = Vector2(PADDING, y)
-		row.buy_button.pressed.connect(train_row.bind(i))
-		_pages[Page.TRAINING].add_child(row)
-		training_rows.append(row)
-		y += TrainingRow.SIZE.y
-
-
 ## The Skills page: a row per microskill the class can learn.
 func _build_microskills() -> void:
 	var y: float = MICROSKILLS_Y
@@ -617,7 +608,7 @@ func _build_tabs() -> void:
 	hint.name = "KeysHint"
 	_colour(hint, &"slate")
 	hint.position = Vector2(BODY_RIGHT - PixelText.width(KEYS_HINT), TABS_Y + 2.0)
-	training_marker = _marker("TrainingMarker")
+	talents_marker = _marker("TalentsMarker")
 	skills_marker = _marker("SkillsMarker")
 
 
@@ -629,12 +620,14 @@ func _marker(marker_name: String) -> ShopMarker:
 	return made
 
 
-## Shows only the open page's content and lights its tab.
+## Shows only the open page's content and lights its tab; the sheet takes the page's size.
 func _show_page() -> void:
 	for i: int in _pages.size():
 		_pages[i].visible = i == _page
 	for i: int in tab_buttons.size():
 		tab_buttons[i].lit = i == _page
+	size = TALENTS_SIZE if _page == Page.TALENTS else SIZE  # spec 055: room for the tree
+	queue_redraw()
 
 
 ## Brings the two markers up to date with [param hero] (marking what the open Skills page shows
@@ -642,7 +635,7 @@ func _show_page() -> void:
 func _refresh_markers(hero: Hero, delta: float) -> void:
 	if _page == Page.SKILLS:
 		_skills_seen[hero.id] = hero.microskills().size()
-	_pin(training_marker, tab_buttons[Page.TRAINING], hero.paragon_points(), delta)
+	_pin(talents_marker, tab_buttons[Page.TALENTS], HeroSheet.unspent(hero), delta)
 	_pin(skills_marker, tab_buttons[Page.SKILLS], _new_skills(hero), delta)
 
 
@@ -740,128 +733,4 @@ func _layout() -> void:
 func _on_sim_event(event: SimEvent) -> void:
 	if event.kind != SimEvent.Kind.PARAGON_SPENT or event.source_id != shown_hero_id():
 		return
-	if event.target_id >= 0 and event.target_id < training_rows.size():
-		training_rows[event.target_id].start_flash()
-
-
-## One paragon stat's row on the sheet's Training page (spec 051), in a [ShopRow]'s style, on one
-## line: its number key, name and what one point gives on the left, the points the hero has put
-## in and their bonus, and a button that spends a point, lit while the hero has one.
-## [method refresh] reads everything from the hero each frame.
-class TrainingRow:
-	extends Control
-
-	## The row's size in pixels: the sheet's width inside its padding, and one line of text.
-	const SIZE: Vector2 = Vector2(HeroSheet.SIZE.x - 2.0 * HeroSheet.PADDING, 14)
-	## Where the description starts; the points and bonus end [constant RANK_GAP] pixels before
-	## the button, so a long number grows to the left; the button's width.
-	const DESCRIPTION_X: float = 60.0
-	const RANK_GAP: float = 4.0
-	const BUTTON_WIDTH: float = 20.0
-	## The button's text.
-	const SPEND: String = "+1"
-
-	## The stat this row shows: a [TrainingDef] id.
-	var id: StringName
-	var key_label: Label
-	var name_label: Label
-	var description_label: Label
-	var rank_label: Label
-	var buy_button: HudButton
-
-	var _flash: float = 0.0
-	var _affordable: bool = false
-
-	## A row for the stat [param training_id], the [param index]th on the page (0-based).
-	func _init(training_id: StringName, index: int) -> void:
-		id = training_id
-		name = "Training%d" % (index + 1)
-		size = SIZE
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var def: TrainingDef = Content.training(training_id)
-		var text_y: float = floorf((SIZE.y - HudButton.HEIGHT) / 2) + 1.0
-		key_label = _label("Key", str(index + 1), &"slate", Vector2(4, text_y))
-		name_label = _label("Name", def.display_name, &"white", Vector2(14, text_y))
-		description_label = _label(
-			"Description", def.description, &"steel", Vector2(DESCRIPTION_X, text_y)
-		)
-		rank_label = _label("Rank", "", &"silver", Vector2(0, text_y))
-		buy_button = HudButton.new(SPEND)
-		buy_button.name = "Train"
-		buy_button.custom_minimum_size = Vector2(BUTTON_WIDTH, HudButton.HEIGHT)
-		buy_button.size = buy_button.get_combined_minimum_size()
-		buy_button.position = Vector2(
-			SIZE.x - 4.0 - BUTTON_WIDTH, floorf((SIZE.y - HudButton.HEIGHT) / 2)
-		)
-		add_child(buy_button)
-
-	func _draw() -> void:
-		if _flash <= 0.0:
-			return
-		var bright: bool = _flash > ShopRow.FLASH_SECONDS / 2.0
-		var fill: Color = Palette.color(&"forest" if bright else &"dusk")
-		var edge: Color = Palette.color(&"green" if bright else &"slate")
-		HudPanel.draw_panel(self, Rect2(Vector2.ZERO, size), fill, edge, edge)
-
-	## Brings the row up to date with [param hero], and runs its flash down by [param delta]
-	## seconds.
-	func refresh(hero: Hero, delta: float) -> void:
-		var def: TrainingDef = Content.training(id)
-		var rank: int = hero.paragon_rank(def.stat)
-		_affordable = hero.paragon_points() > 0
-		var text_in: String = str(rank)
-		if rank > 0:
-			text_in += " +%d%%" % roundi(rank * def.per_rank * 100.0)
-		_set_text(rank_label, text_in)
-		rank_label.position.x = buy_button.position.x - RANK_GAP - rank_label.size.x
-		buy_button.disabled = not _affordable
-		buy_button.text_colour = ShopRow.PRICE_AFFORDABLE if _affordable else ShopRow.PRICE_TOO_DEAR
-		if _flash > 0.0:
-			var was_bright: bool = _flash > ShopRow.FLASH_SECONDS / 2.0
-			_flash = maxf(_flash - delta, 0.0)
-			if was_bright != (_flash > ShopRow.FLASH_SECONDS / 2.0) or _flash == 0.0:
-				queue_redraw()
-		var lit: bool = _flash > 0.0
-		rank_label.add_theme_color_override(
-			&"font_color", Palette.color(&"yellow" if lit else &"silver")
-		)
-
-	## The row as one line: "<name> <points> <bonus>" ("Power 2 +6%", or "Power 0").
-	func text() -> String:
-		return "%s %s" % [name_label.text, rank_label.text]
-
-	## Starts the row's flash: a point was just put into its stat.
-	func start_flash() -> void:
-		_flash = ShopRow.FLASH_SECONDS
-		queue_redraw()
-
-	## Stops the flash at once (the sheet moved to another hero).
-	func stop_flash() -> void:
-		if _flash > 0.0:
-			_flash = 0.0
-			queue_redraw()
-
-	## Seconds of the row's flash left; 0 when still.
-	func flash() -> float:
-		return _flash
-
-	## True when the shown hero has a paragon point to put in.
-	func affordable() -> bool:
-		return _affordable
-
-	## The palette colour the button's text is drawn in.
-	func price_colour() -> StringName:
-		return buy_button.text_colour
-
-	func _label(label_name: String, text_in: String, colour: StringName, at: Vector2) -> Label:
-		var made: Label = PixelText.label(text_in, colour)
-		made.name = label_name
-		made.position = at
-		made.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(made)
-		return made
-
-	func _set_text(label: Label, text_in: String) -> void:
-		if label.text != text_in:
-			label.text = text_in
-			label.reset_size()
+	talents.flash_paragon(event.target_id)

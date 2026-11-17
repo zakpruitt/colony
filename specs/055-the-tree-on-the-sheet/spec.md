@@ -1,9 +1,9 @@
 # 055 — The tree on the hero sheet
 
-- **Status:** provisional (direction agreed with Zak 2026-11-17; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction agreed with Zak 2026-11-17; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 034, 037, 041, 042, 051
-- **Pull request:** —
+- **Pull request:** [#56](https://github.com/zakpruitt/colony/pull/56)
 
 ## Intent
 

@@ -7,8 +7,8 @@ extends Control
 ## At each [method advance] it reads the simulation and lists the first [constant MOST] goals that
 ## apply, in this order: beating the next guardian (when its depth is within
 ## [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching the next
-## depth, the microskill nearest to being learned, training a hero (spending its paragon points,
-## spec 051), and buying an upgrade. A shown
+## depth, spending a hero's talent points (spec 055), the microskill nearest to being learned,
+## training a hero (spending its paragon points, spec 051), and buying an upgrade. A shown
 ## goal that is achieved (the guardian slain, the depth reached, the microskill learned) flashes,
 ## shows a tick for [constant CELEBRATE_SECONDS], writes a line in the journal and emits
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
@@ -26,8 +26,8 @@ extends Control
 signal goal_finished(sentence: String)
 
 ## The kinds of goal, in the order the tracker prefers them, but a visit to a new area (spec 053)
-## comes first.
-enum Kind { GUARDIAN, DEPTH, MICROSKILL, TRAINING, UPGRADE, VISIT }
+## comes first and a talent point to spend (spec 055) comes after the depth.
+enum Kind { GUARDIAN, DEPTH, MICROSKILL, TRAINING, UPGRADE, VISIT, TALENT }
 
 ## The most goals shown at once.
 const MOST: int = 3
@@ -211,7 +211,8 @@ func flash(index: int) -> float:
 
 
 ## What clicking the line at [param index] does (spec 042 R1): an upgrade opens the shop, training
-## opens the sheet of the first hero with paragon points to spend on its Training tab, a
+## opens the sheet of the first hero with paragon points to spend on its Talents tab, a talent
+## point opens its hero's sheet on the Talents tab (spec 055), a
 ## microskill opens its hero's sheet on the Skills tab, a guardian opens the orders, and a depth
 ## shows the depth ladder (closing the shop, which hides it) with that depth's rung flashing. Each
 ## panel opens as its own button opens it. A finished goal, or no goal, does nothing.
@@ -226,9 +227,11 @@ func press(index: int) -> void:
 		Kind.TRAINING:
 			var trainee: Hero = _trainee()
 			if trainee != null:
-				_open_sheet(hud, trainee.id, HeroSheet.Page.TRAINING)
+				_open_sheet(hud, trainee.id, HeroSheet.Page.TALENTS)
 		Kind.MICROSKILL:
 			_open_sheet(hud, goal.hero_id, HeroSheet.Page.SKILLS)
+		Kind.TALENT:
+			_open_sheet(hud, goal.hero_id, HeroSheet.Page.TALENTS)
 		Kind.GUARDIAN:
 			hud.orders.open()
 		Kind.DEPTH:
@@ -251,11 +254,13 @@ func action(index: int) -> String:
 	match goal.kind:
 		Kind.TRAINING:
 			hero = _trainee()
-		Kind.MICROSKILL:
+		Kind.MICROSKILL, Kind.TALENT:
 			hero = _simulation.party.hero(goal.hero_id)
 	if hero == null:
 		return ""
-	var page: String = "training" if goal.kind == Kind.TRAINING else "skills"
+	var page: String = "skills"
+	if goal.kind == Kind.TRAINING or goal.kind == Kind.TALENT:
+		page = "talents"
 	return "Click to open the %s's %s." % [hero.def().display_name, page]
 
 
@@ -271,6 +276,9 @@ func applicable() -> Array[Goal]:
 	# Held back from a guardian (spec 035), the way on is the guardian's goal (spec 039 R3).
 	if not _simulation.expedition.is_holding():
 		found.append(_depth_goal())
+	var talent: Goal = _talent_goal()
+	if talent != null:
+		found.append(talent)
 	var skill: Goal = _microskill_goal()
 	if skill != null:
 		found.append(skill)
@@ -285,7 +293,7 @@ func applicable() -> Array[Goal]:
 				"Train a hero",
 				-1.0,
 				"%d point%s" % [points, "" if points == 1 else "s"],
-				"Click a hero's frame and spend its paragon points on its Training tab."
+				"Click a hero's frame and spend its paragon points on its Talents tab."
 			)
 		)
 	var upgrade: int = _cheapest_upgrade()
@@ -440,6 +448,28 @@ func _microskill_goal() -> Goal:
 	goal.hero_id = best.id
 	goal.done = "Goal: %s learned %s" % [who, best_skill.display_name]
 	return goal
+
+
+## Spending the talent points of the first hero in formation with any (spec 055 R8):
+## [code]Spend the Knight's talent point[/code]; null when no hero has one.
+func _talent_goal() -> Goal:
+	for hero: Hero in _simulation.party.heroes:
+		var points: int = hero.talent_points()
+		if points <= 0:
+			continue
+		var who: String = hero.def().display_name
+		var plural: String = "" if points == 1 else "s"
+		var goal := Goal.new(
+			"talent/%d" % hero.id,
+			Kind.TALENT,
+			"Spend the %s's talent point%s" % [who, plural],
+			-1.0,
+			"%d point%s" % [points, plural],
+			"Click the %s's frame and take a node on its Talents tab." % who
+		)
+		goal.hero_id = hero.id
+		return goal
+	return null
 
 
 ## The first hero in formation with a paragon point to spend (spec 051), or null.
@@ -677,10 +707,10 @@ class Row:
 			_bar = Rect2()
 		queue_redraw()
 
-	## True for a goal the player can act on now: training (with paragon points, spec 051) and
-	## upgrades (with gold).
+	## True for a goal the player can act on now: talent points (spec 055), training (with
+	## paragon points, spec 051) and upgrades (with gold).
 	static func is_gold(goal: Goal) -> bool:
-		return goal.kind == Goals.Kind.TRAINING or goal.kind == Goals.Kind.UPGRADE
+		return goal.kind in [Goals.Kind.TALENT, Goals.Kind.TRAINING, Goals.Kind.UPGRADE]
 
 	## True while the row is lit under the mouse: shown, not finished.
 	func is_highlighted() -> bool:

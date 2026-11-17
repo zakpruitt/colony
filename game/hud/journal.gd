@@ -6,7 +6,8 @@ extends Control
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
-## the microskill it needed) (spec 028), and an order changed (spec 035). The newest line shows
+## the microskill it needed) (spec 028), an order changed (spec 035), and a talent point gained
+## and a path chosen (spec 055, [code]The Knight is now a Berserker[/code]). The newest line shows
 ## in a one-line [member ticker] just above the party frames for [constant TICKER_SECONDS], then
 ## fades through the palette and goes;
 ## events too old to animate ([method World.is_recent]) are written but not shown there.
@@ -291,7 +292,28 @@ func _sentence(event: SimEvent) -> String:
 			sentence = _quest_sentence(event)
 		SimEvent.Kind.ORDER_CHANGED:
 			sentence = _order_sentence(event)
+		SimEvent.Kind.TALENT_POINT_GAINED, SimEvent.Kind.TALENT_TAKEN:
+			sentence = _talent_sentence(event)
 	return sentence
+
+
+## The sentence for a talent point gained ([code]The Knight has a talent point to spend[/code]) or
+## a path chosen ([code]The Knight is now a Berserker[/code]), read from the event alone; "" for
+## any other node taken.
+func _talent_sentence(event: SimEvent) -> String:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	if hero == null:
+		return ""
+	var who: String = hero.def().display_name
+	if event.kind == SimEvent.Kind.TALENT_POINT_GAINED:
+		return "The %s has a talent point to spend" % who
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var on: int = tree.path_of(event.ability_id) if tree != null else -1
+	if on < 0 or tree.path_nodes(on).find(event.ability_id) != 0:
+		return ""
+	var walked: String = tree.path_names[on]
+	var article: String = "an" if walked.left(1).to_lower() in ["a", "e", "i", "o", "u"] else "a"
+	return "The %s is now %s %s" % [who, article, walked]
 
 
 ## The sentence for an order changed (spec 035): "Ordered a Bold pace", "Ordered to hold at

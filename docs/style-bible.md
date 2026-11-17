@@ -298,10 +298,25 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   of the HUD's state word (`orange` fighting, `green` healing or resting, `red` down). The frame whose sheet
   is open has a `yellow` edge with an `amber` bevel. Since spec 034 the sheet is at most 240x150: the header
   (portrait, class, role, level, activity, health and XP with their bars) is always shown, then a row of tab
-  buttons (`Stats`, `Training`, `Skills`) standing on a `dusk` line, the open one lit as a toggle is, with the
+  buttons (`Stats`, `Talents`, `Skills`) standing on a `dusk` line, the open one lit as a toggle is, with the
   keys in `slate` at the row's right (`Q E tabs   Tab next hero`). Only the open tab's page is shown; the
-  panel keeps one size on every tab so it never jumps. A tab's marker sits beside it, against its right edge,
-  not over its name.
+  panel keeps one size on every tab so it never jumps, except Talents (below). A tab's marker sits beside it,
+  against its right edge, not over its name.
+- **The talent tree** (spec 055) is the sheet's Talents tab, and the one tab that makes the sheet taller
+  (240x278, still clear of the ticker's strip): the whole tree fits with nothing to scroll. The unspent points
+  in `yellow` (or when the next comes, in `steel`) over the tree, with `Reset <price>` at the right and, when it
+  is greyed, why in `slate` beside it. The trunk's three nodes in a row, then the two paths side by side under
+  their names, four nodes each in a column, joined by 1-pixel lines (`silver` between taken nodes, `slate`
+  otherwise, `dusk` into a closed path). A node is a 14x14 box holding a 12x12 picture of its kind, its
+  ability's name beside it: taken is a `pine` box with a `green` edge, a small `green` tick and the name in
+  `white`; one that can be taken now has a `yellow` edge stepping to `amber` once a second and its name in
+  `yellow`; a plain one has a `dusk` edge and a `steel` name; a closed one is an `ink` box with no picture and
+  a `slate` name, its path's name `slate` with a `silver` line through it, and the chosen path's name `white`.
+  Under the tree, past a `dusk` line, one fixed place tells the node under the mouse (or last clicked): its
+  name in `white` with its kind at the right in `steel` (`Action, every 8 s`, `Passive`), the description in
+  `silver` over two or three lines, and the reason in `red` (`green` `Taken`, `yellow` `Click to take it`);
+  a question replaces it in `yellow`, with its two buttons under it. The paragon points come last, past
+  another `dusk` line: a `+1` button, the stat's name in `white` and its bonus in `green` for each.
 - **Markers** that ask for attention are a small `amber` tag with an `ink` number, pulsing to `orange` and
   lifting a pixel on the beat, pinned to the top-right corner of the button they belong to.
 - **The boss bar** (spec 024) is a top-band panel of its own between the depth panel and the shop tab,
@@ -396,6 +411,11 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
 - **Icons** are 16x16 parts of `assets/sprites/ui/hud_icons.px` (category `ui`): a portrait per hero class,
   cropped from the hero's own head and body, a `skull` for a fallen hero and a `coin`. A new class needs a
   portrait part named for its id.
+- **Talent pictures** (spec 055) are 12x12 parts of `assets/sprites/ui/talent_icons.px`, one per kind of
+  ability, not one per ability: `strike` (a sword), `guard` (a shield), `heal` (a green cross), `fire` (a
+  flame), `frost` (an ice crystal), `shadow` (a crescent), `light` (a four-pointed spark) and `rally` (a red
+  banner), each with an `ink` edge. `TalentNode.KINDS` gives each ability its kind; a new ability needs a
+  line there (it shows `strike` until it has one). Placeholder art.
 
 ## Sound
 
