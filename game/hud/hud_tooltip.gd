@@ -96,6 +96,13 @@ func setup(hud: Hud) -> void:
 		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
 		_tip([frame], "Click for details")
+	if hud.tally != null:
+		# Spec 045 R6: the tally's tabs, its span switch and its button.
+		for i: int in hud.tally.tab_buttons.size():
+			_tip([hud.tally.tab_buttons[i]], TallyPanel.TAB_TIPS[i])
+		for i: int in hud.tally.span_buttons.size():
+			_tip([hud.tally.span_buttons[i]], TallyPanel.SPAN_TIPS[i])
+		_tip([hud.tally_button], "The party tally: who deals, heals and takes the damage (T).")
 	if hud.goals != null:
 		# Spec 037 R5: each goal line says how to get there; spec 042 R3: then what a click does.
 		for i: int in hud.goals.rows.size():

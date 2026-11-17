@@ -519,6 +519,7 @@ func _show() -> void:
 	if hud != null:
 		covered = hud.hero_sheet != null and hud.hero_sheet.is_open()
 		covered = covered or (hud.journal != null and hud.journal.is_open())
+		covered = covered or (hud.tally != null and hud.tally.is_open())  # spec 045
 	visible = _wanted and not covered
 	var width: float = MIN_WIDTH
 	var detail_column: float = 0.0

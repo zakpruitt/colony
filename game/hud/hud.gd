@@ -113,6 +113,10 @@ var orders: OrdersPanel
 var orders_button: HudButton
 ## What beat the party and what would help (spec 041), under the top band in the middle.
 var defeat_note: DefeatNote
+## The party tally (spec 045): who deals, heals and takes the damage, and its button beside the
+## party frames.
+var tally: TallyPanel
+var tally_button: HudButton
 
 var _simulation: Simulation
 var _world: World
@@ -127,6 +131,8 @@ var _depth_emphasis: float = 0.0
 ## A target asked for that the simulation has not applied yet (it applies on the next tick), or 0.
 var _asked_target: int = 0
 var _auto_on: bool = false
+## The small meter drawn on the tally button.
+var _tally_meter: Control
 
 
 func _ready() -> void:
@@ -177,13 +183,20 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				return
 		KEY_Q, KEY_E:
-			# The hero sheet's previous and next page, while it is open (spec 034).
-			if not hero_sheet.is_open():
-				return
-			if key.keycode == KEY_Q:
-				hero_sheet.previous_page()
+			# The hero sheet's previous and next page, while it is open (spec 034), or the tally's
+			# previous and next measure (spec 045); the two are never open together.
+			if tally.is_open():
+				if key.keycode == KEY_Q:
+					tally.previous_measure()
+				else:
+					tally.next_measure()
+			elif hero_sheet.is_open():
+				if key.keycode == KEY_Q:
+					hero_sheet.previous_page()
+				else:
+					hero_sheet.next_page()
 			else:
-				hero_sheet.next_page()
+				return
 		_:
 			return
 	get_viewport().set_input_as_handled()
@@ -211,6 +224,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	goals = Goals.new()  # spec 037: before help, so its lines get tooltips
 	add_child(goals)
 	goals.setup(simulation, world)
+	_build_tally()  # spec 045: before help, so its tabs get tooltips
 	_build_help()
 	_build_orders()
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
@@ -252,6 +266,8 @@ func advance(delta: float) -> void:
 	help_button.lit = help.is_open()
 	orders.advance(delta)
 	orders_button.lit = orders.is_open()
+	tally.advance(delta)
+	_light_tally_button()
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
 
@@ -498,6 +514,64 @@ func _build_help() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
+
+
+## The party tally (spec 045): its panel, and its button beside the party frames, left of the first,
+## as tall as a frame, with a small meter drawn on it.
+func _build_tally() -> void:
+	tally = TallyPanel.new()
+	add_child(tally)
+	tally.setup(_simulation, _world)
+	var first: float = frames[0].position.x if not frames.is_empty() else SCREEN.x / 2.0
+	var width: float = maxf(first - GAP - MARGIN, HudButton.HEIGHT)
+	tally_button = HudButton.new("")
+	tally_button.name = "TallyButton"
+	tally_button.custom_minimum_size = Vector2(width, HeroFrame.SIZE.y)
+	tally_button.size = tally_button.get_combined_minimum_size()
+	tally_button.position = Vector2(first - GAP - width, SCREEN.y - MARGIN - HeroFrame.SIZE.y)
+	tally_button.pressed.connect(
+		func() -> void:
+			tally.toggle()
+			_light_tally_button()
+	)
+	add_child(tally_button)
+	_tally_meter = Control.new()
+	_tally_meter.name = "Meter"
+	_tally_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tally_meter.size = tally_button.size
+	_tally_meter.draw.connect(_draw_tally_meter.bind(_tally_meter))
+	tally_button.add_child(_tally_meter)
+
+
+## Lights the tally button while the tally is open, and redraws its face (the key turns white).
+func _light_tally_button() -> void:
+	if tally_button.lit != tally.is_open():
+		tally_button.lit = tally.is_open()
+		_tally_meter.queue_redraw()
+
+
+## The tally button's face: three bars of falling length in the first three classes' bar colours,
+## each on an ink edge, and the key, T, under them.
+func _draw_tally_meter(meter: Control) -> void:
+	var colours: Array[StringName] = [&"red", &"blue", &"amber"]
+	var lengths: Array[float] = [1.0, 0.7, 0.45]
+	var inner: float = meter.size.x - 8.0
+	for i: int in colours.size():
+		var bar := Rect2(4.0, 6.0 + i * 6.0, roundf(inner * lengths[i]), 5.0)
+		meter.draw_rect(bar, Palette.color(&"ink"))
+		meter.draw_rect(bar.grow(-1.0), Palette.color(colours[i]))
+	var key: String = "T"
+	var x: float = floorf((meter.size.x - PixelText.width(key) + 1.0) / 2.0)
+	var ink: StringName = &"white" if tally.is_open() else &"silver"
+	meter.draw_string(
+		PixelText.font(),
+		Vector2(x, 30.0),
+		key,
+		HORIZONTAL_ALIGNMENT_LEFT,
+		-1,
+		PixelText.SIZE,
+		Palette.color(ink)
+	)
 
 
 ## Orders (spec 035): the Orders button at the left of the shop tab (the tab grows to hold it), the

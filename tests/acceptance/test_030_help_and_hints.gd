@@ -396,6 +396,11 @@ func _check_entry(main: Main, label: String) -> void:
 				_key(code)
 				assert_ne(hud.orders.is_open(), orders, "%s opens or closes the orders" % what)
 				hud.orders.close()
+			"T":
+				var tally: bool = hud.tally.is_open()
+				_key(code)
+				assert_ne(hud.tally.is_open(), tally, "%s opens or closes the tally" % what)
+				hud.tally.close()
 			"L":
 				var shown: bool = hud.ladder.is_shown()
 				_key(code)

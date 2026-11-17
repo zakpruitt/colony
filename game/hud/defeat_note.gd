@@ -392,6 +392,7 @@ func _covered() -> bool:
 		_hud.journal != null and _hud.journal.is_open(),
 		_hud.help != null and _hud.help.is_open(),
 		_hud.orders != null and _hud.orders.is_open(),
+		_hud.tally != null and _hud.tally.is_open(),  # spec 045
 	]:
 		if open:
 			return true
