@@ -14,8 +14,12 @@ extends Control
 ## brought old events ([method World.is_recent]: after a stall or time away) is replaced quietly.
 ##
 ## [kbd]G[/kbd] hides and shows it; it starts shown. It also hides while the hero sheet or the
-## journal, which drop into the same place, is open. Nothing here takes a click; each line has a
-## tooltip ([method hint]). It moves only in [method advance], so a test can step it exactly.
+## journal, which drop into the same place, is open. Each line has a tooltip ([method hint], then
+## what a click does, [method action]), and since spec 042 a click on a line takes the player where
+## the goal is managed ([method press]): the shop, a hero's sheet on a tab, the orders, or the
+## depth ladder with the goal's rung flashing. A click opens what the HUD's own buttons open and
+## changes nothing in the simulation. It moves only in [method advance], so a test can step it
+## exactly.
 
 ## A shown goal was achieved, in a recent frame: [param sentence] is its journal line.
 signal goal_finished(sentence: String)
@@ -97,6 +101,7 @@ func setup(simulation: Simulation, world: World) -> void:
 		var row := Row.new()
 		row.name = "Goal%d" % i
 		row.visible = false
+		row.clicked.connect(press.bind(i))
 		panel.add_child(row)
 		rows.append(row)
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
@@ -194,6 +199,57 @@ func flash(index: int) -> float:
 	if index < 0 or index >= _shown.size():
 		return 0.0
 	return _shown[index].flash
+
+
+## What clicking the line at [param index] does (spec 042 R1): an upgrade opens the shop, training
+## opens the sheet of the hero with the cheapest affordable training on its Training tab, a
+## microskill opens its hero's sheet on the Skills tab, a guardian opens the orders, and a depth
+## shows the depth ladder (closing the shop, which hides it) with that depth's rung flashing. Each
+## panel opens as its own button opens it. A finished goal, or no goal, does nothing.
+func press(index: int) -> void:
+	var hud: Hud = get_parent() as Hud
+	if hud == null or index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
+		return
+	var goal: Goal = _shown[index]
+	match goal.kind:
+		Kind.UPGRADE:
+			hud.shop.open()
+		Kind.TRAINING:
+			var trainee: Hero = _cheapest_trainee()
+			if trainee != null:
+				_open_sheet(hud, trainee.id, HeroSheet.Page.TRAINING)
+		Kind.MICROSKILL:
+			_open_sheet(hud, goal.hero_id, HeroSheet.Page.SKILLS)
+		Kind.GUARDIAN:
+			hud.orders.open()
+		Kind.DEPTH:
+			hud.shop.close()
+			hud.ladder.flash(goal.target)
+	advance(0.0)
+
+
+## What a click on the line at [param index] does, as the tooltip's second sentence
+## ([code]Click to open the shop.[/code]); "" for a finished goal or no goal.
+func action(index: int) -> String:
+	if index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
+		return ""
+	var goal: Goal = _shown[index]
+	var hero: Hero = null
+	match goal.kind:
+		Kind.UPGRADE:
+			return "Click to open the shop."
+		Kind.GUARDIAN:
+			return "Click to open the orders."
+		Kind.DEPTH:
+			return "Click to see it on the ladder."
+		Kind.TRAINING:
+			hero = _cheapest_trainee()
+		Kind.MICROSKILL:
+			hero = _simulation.party.hero(goal.hero_id)
+	if hero == null:
+		return ""
+	var page: String = "training" if goal.kind == Kind.TRAINING else "skills"
+	return "Click to open the %s's %s." % [hero.def().display_name, page]
 
 
 ## Every goal that applies now, in the tracker's order, read from the simulation.
@@ -382,6 +438,28 @@ func _cheapest_training() -> int:
 	return cheapest
 
 
+## The hero whose next training rank is the cheapest the party can pay for, the first in formation
+## on a tie; null when none is affordable.
+func _cheapest_trainee() -> Hero:
+	var gold: int = _simulation.party.gold
+	var best: Hero = null
+	var best_price: int = 0
+	for hero: Hero in _simulation.party.heroes:
+		for id: StringName in Content.training_ids():
+			var price: int = hero.training_cost(id)
+			if price > 0 and price <= gold and (best == null or price < best_price):
+				best = hero
+				best_price = price
+	return best
+
+
+## Opens [param hero_id]'s sheet on [param page], as a click on the hero's frame and then its tab
+## would.
+static func _open_sheet(hud: Hud, hero_id: int, page: HeroSheet.Page) -> void:
+	hud.hero_sheet.open(hero_id)
+	hud.hero_sheet.open_page(page)
+
+
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought.
 func _cheapest_upgrade() -> int:
 	var cheapest: int = 0
@@ -507,9 +585,15 @@ class Goal:
 
 
 ## One goal's row: a dot (a tick once achieved), the sentence, and under it a thin bar with the
-## count at its right; a goal with no bar shows its count (a price) at the sentence's right.
+## count at its right; a goal with no bar shows its count (a price) at the sentence's right, and a
+## gold goal a small [code]>[/code] at the row's right edge (spec 042 R2). The row is a button: lit
+## under the mouse as a [HudButton] is, and a left click emits [signal clicked]. A finished goal is
+## neither lit nor clicked.
 class Row:
 	extends Control
+
+	## A left click on the row while its goal is not finished.
+	signal clicked
 
 	## A line of text's height, and the bar's height under it.
 	const LINE: float = 10.0
@@ -528,15 +612,23 @@ class Row:
 	}
 	## A tick in 7x5 pixels, drawn in code: [code]#[/code] is green.
 	const TICK: Array[String] = ["......#", ".....#.", "#...#..", ".#.#...", "..#...."]
+	## The gold goals' [code]>[/code] in 3x5 pixels, drawn in code: [code]#[/code] is yellow.
+	const ARROW: Array[String] = ["#..", ".#.", "..#", ".#.", "#.."]
+	## Pixels the arrow takes at a gold goal's right, with the gap before it.
+	const ARROW_ROOM: float = 6.0
 
 	var sentence_label: Label
 	var detail_label: Label
 
 	var _goal: Goal
 	var _bar: Rect2 = Rect2()
+	var _arrow: Rect2 = Rect2()
+	## True while the mouse is over the row.
+	var _hovered: bool = false
 
 	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		sentence_label = PixelText.label("", &"white")
 		sentence_label.name = "Sentence"
 		sentence_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -552,6 +644,8 @@ class Row:
 		var text: float = TEXT_X + PixelText.width(goal.sentence)
 		if goal.progress < 0.0:
 			text += DETAIL_GAP + PixelText.width(goal.detail)
+			if Row.is_gold(goal):
+				text += ARROW_ROOM
 		else:
 			text = maxf(text, TEXT_X + MIN_BAR + DETAIL_GAP + PixelText.width(goal.detail))
 		return text + Goals.PADDING * 2.0 + 2.0
@@ -564,9 +658,13 @@ class Row:
 		# White over the flash's bright fill, then green with the tick.
 		var green: bool = finished and goal.flash <= Goals.FLASH_SECONDS / 2.0
 		_set_text(sentence_label, goal.sentence, &"green" if green else &"white")
-		var price: bool = goal.kind == Goals.Kind.TRAINING or goal.kind == Goals.Kind.UPGRADE
+		var price: bool = Row.is_gold(goal)
 		_set_text(detail_label, goal.detail, &"yellow" if price else &"steel")
 		var right: float = width - 2.0
+		_arrow = Rect2()
+		if price:
+			_arrow = Rect2(right - 3.0, 3.0, 3.0, 5.0)
+			right -= ARROW_ROOM
 		if goal.progress >= 0.0:
 			size = Vector2(width, LINE + BAR_HEIGHT + 5.0)
 			detail_label.position = Vector2(right - detail_label.size.x, LINE - 2.0)
@@ -580,9 +678,50 @@ class Row:
 			_bar = Rect2()
 		queue_redraw()
 
+	## True for a goal the player can act on with gold now: training and upgrades.
+	static func is_gold(goal: Goal) -> bool:
+		return goal.kind == Goals.Kind.TRAINING or goal.kind == Goals.Kind.UPGRADE
+
+	## True while the row is lit under the mouse: shown, not finished.
+	func is_highlighted() -> bool:
+		return _hovered and is_visible_in_tree() and _goal != null and _goal.celebrate <= 0.0
+
+	## Where the gold goals' [code]>[/code] is drawn, in the row's own pixels; empty for others.
+	func arrow_rect() -> Rect2:
+		return _arrow
+
+	func _gui_input(event: InputEvent) -> void:
+		var button: InputEventMouseButton = event as InputEventMouseButton
+		if button == null or button.button_index != MOUSE_BUTTON_LEFT or not button.pressed:
+			return
+		accept_event()
+		if _goal != null and _goal.celebrate <= 0.0:
+			clicked.emit()
+
+	func _notification(what: int) -> void:
+		if what == NOTIFICATION_MOUSE_ENTER or what == NOTIFICATION_MOUSE_EXIT:
+			_hovered = what == NOTIFICATION_MOUSE_ENTER
+			queue_redraw()
+		elif what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
+			_hovered = false
+
 	func _draw() -> void:
 		if _goal == null:
 			return
+		mouse_default_cursor_shape = (
+			Control.CURSOR_ARROW if _goal.celebrate > 0.0 else Control.CURSOR_POINTING_HAND
+		)
+		if is_highlighted():
+			# As a HudButton under the mouse: a slate fill with a steel bevel.
+			HudPanel.draw_panel(
+				self,
+				Rect2(Vector2(-1, -1), size + Vector2(1, -1)),
+				Palette.color(&"slate"),
+				Palette.color(&"steel"),
+				Palette.color(&"ink")
+			)
+		if _arrow.has_area():
+			_draw_pixels(ARROW, _arrow.position, Palette.color(&"yellow"))
 		if _goal.flash > 0.0:
 			var bright: bool = _goal.flash > Goals.FLASH_SECONDS / 2.0
 			var fill: Color = Palette.color(&"forest" if bright else &"dusk")
@@ -612,12 +751,16 @@ class Row:
 		)
 
 	func _draw_tick(at: Vector2) -> void:
-		var green: Color = Palette.color(&"green")
-		for y: int in TICK.size():
-			for x: int in TICK[y].length():
-				if TICK[y][x] == "#":
+		_draw_pixels(TICK, at, Palette.color(&"green"))
+
+	## Draws [param pixels] ([code]#[/code] in [param colour]) at [param at], with an ink shadow
+	## a pixel below.
+	func _draw_pixels(pixels: Array[String], at: Vector2, colour: Color) -> void:
+		for y: int in pixels.size():
+			for x: int in pixels[y].length():
+				if pixels[y][x] == "#":
 					draw_rect(Rect2(at + Vector2(x, y + 1), Vector2.ONE), Palette.color(&"ink"))
-					draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), green)
+					draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), colour)
 
 	func _set_text(label: Label, text: String, colour: StringName) -> void:
 		if label.text != text:

@@ -11,7 +11,8 @@ extends Control
 ## frame ([method marks]), so nothing can drift. Clicking a rung asks the simulation for that
 ## target depth ([method click_depth]); resting the mouse on one shows a line in words beside the
 ## ladder ([member hint]). [kbd]L[/kbd] hides and shows it, and it hides while the shop is open,
-## which drops into the same place. It moves only in [method advance], so a test can step it.
+## which drops into the same place. A goal's click (spec 042) shows the ladder and flashes a rung
+## ([method flash]). It moves only in [method advance], so a test can step it.
 
 ## A click asked for a new target (the HUD mirrors it on its own target number at once).
 signal target_asked(depth: int)
@@ -44,6 +45,9 @@ const SKULL_X: float = 45.0
 const BAR_HEIGHT: float = 3.0
 ## What [method hover_text] adds to a rung that can be clicked.
 const CLICK_HINT: String = "Click to send the party here"
+## Seconds a rung flashes after [method flash], and one blink of it (half lit, half not).
+const FLASH_SECONDS: float = 1.0
+const BLINK_SECONDS: float = 0.25
 ## A skull in 5x5 pixels, drawn in code: [code]#[/code] is bone.
 const SKULL: Array[String] = [".###.", "#####", "#.#.#", "#####", ".#.#."]
 
@@ -73,6 +77,9 @@ var _hovered: int = 0
 var _rested: float = 0.0
 ## A target asked for that the simulation has not applied yet (it applies on the next tick), or 0.
 var _asked_target: int = 0
+## The depth whose rung flashes, and seconds of its flash left.
+var _flash_depth: int = 0
+var _flash: float = 0.0
 
 
 func _init() -> void:
@@ -169,6 +176,7 @@ func advance(delta: float) -> void:
 	if _asked_target > 0 and e.target_depth == _asked_target:
 		_asked_target = 0
 	_time = fmod(_time + delta, BOB_SECONDS)
+	_flash = maxf(_flash - delta, 0.0)
 	_rested += delta
 	_party_at = _party_depth()
 	var goal: float = _top_for(_party_at)
@@ -245,6 +253,20 @@ func click_depth(depth: int) -> void:
 ## The target depth as shown: the one asked for until the simulation applies it, then its own.
 func shown_target() -> int:
 	return _asked_target if _asked_target > 0 else _simulation.expedition.target_depth
+
+
+## Shows the ladder if L hid it and flashes the rung of [param level_depth] for
+## [constant FLASH_SECONDS] (spec 042: a goal's click points at its depth).
+func flash(level_depth: int) -> void:
+	_wanted = true
+	_flash_depth = level_depth
+	_flash = FLASH_SECONDS
+	advance(0.0)
+
+
+## True while the rung of [param level_depth] flashes.
+func is_flashing(level_depth: int) -> bool:
+	return _flash > 0.0 and level_depth == _flash_depth
 
 
 ## The rectangle of the rung at [param depth] as drawn now, in the ladder's own coordinates.
@@ -438,6 +460,10 @@ func _draw_rung(canvas: Control, depth: int, row: float) -> void:
 	var middle: float = row + floorf(PITCH / 2.0)
 	if depth == _hovered:
 		_outline(canvas, Rect2(1.0, row + 1.0, WIDTH - 2.0, PITCH - 2.0), Palette.color(&"slate"))
+	if is_flashing(depth) and fmod(FLASH_SECONDS - _flash, BLINK_SECONDS) < BLINK_SECONDS / 2.0:
+		var lit := Rect2(1.0, row + 1.0, WIDTH - 2.0, PITCH - 2.0)
+		_outline(canvas, lit, Palette.color(&"yellow"))
+		_outline(canvas, lit.grow(-1.0), Palette.color(&"amber"))
 	var bar := Rect2(RAIL_LEFT, middle - 1.0, RAIL_RIGHT - RAIL_LEFT + 1.0, BAR_HEIGHT)
 	if shown.has(&"safe"):
 		canvas.draw_rect(bar, Palette.color(&"green"))

@@ -97,9 +97,9 @@ func setup(hud: Hud) -> void:
 	for frame: HeroFrame in hud.frames:
 		_tip([frame], "Click for details")
 	if hud.goals != null:
-		# Spec 037 R5: each goal line says how to get there.
+		# Spec 037 R5: each goal line says how to get there; spec 042 R3: then what a click does.
 		for i: int in hud.goals.rows.size():
-			tip([hud.goals.rows[i]], hud.goals.hint.bind(i))
+			tip([hud.goals.rows[i]], HudTooltip._goal_tip.bind(hud.goals, i))
 
 
 ## Moves the mouse to [param at], in screen pixels. A move onto another element starts its delay
@@ -140,6 +140,13 @@ func _follow() -> bool:
 ## is the element itself), and [param sentence] is a String or a Callable returning one.
 func tip(controls: Array, sentence: Variant) -> void:
 	_tip(controls, sentence)
+
+
+## The tooltip of goal line [param index]: how to get there, then what a click does (none for a
+## finished goal).
+static func _goal_tip(goals: Goals, index: int) -> String:
+	var click: String = goals.action(index)
+	return goals.hint(index) if click.is_empty() else goals.hint(index) + " " + click
 
 
 func _tip(controls: Array, sentence: Variant) -> void:
