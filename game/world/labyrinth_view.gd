@@ -51,6 +51,16 @@ func set_focus(world_tiles: Vector2) -> void:
 			level_built.emit(near)
 
 
+## Shows [param other] instead (spec 049: the party arrived in another area): every built level
+## is freed, and the next [method set_focus] builds the new labyrinth's.
+func show_labyrinth(other: Labyrinth) -> void:
+	for built: int in _levels.keys():
+		_levels[built].free()
+		_levels.erase(built)
+		level_freed.emit(built)
+	labyrinth = other
+
+
 ## Depths currently built, ascending.
 func built_depths() -> Array[int]:
 	var depths: Array[int] = []

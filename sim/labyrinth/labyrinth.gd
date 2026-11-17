@@ -40,12 +40,23 @@ const LEFT_SHAFT_MAX: int = 30
 const PLAIN_PERCENT: int = 60
 const DEN_PERCENT: int = 30
 
+## The seed it was made from. Read-only outside the class.
+var seed_value: int:
+	get:
+		return _seed
+
+var _seed: int
 var _root: SimRng
 var _levels: Dictionary[int, LabyrinthLevel] = {}
 
 
-func _init(seed_value: int) -> void:
-	_root = SimRng.new(seed_value)
+## The levels of [param seed_value]; with an [param area_label] (an area other than the first),
+## that area's own levels of the seed.
+func _init(seed_in: int, area_label: String = "") -> void:
+	_seed = seed_in
+	_root = SimRng.new(seed_in)
+	if area_label != "":
+		_root = _root.fork(area_label)
 
 
 ## The level at this depth (1 or more). Generated once, then cached.

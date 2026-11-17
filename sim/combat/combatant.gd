@@ -8,7 +8,7 @@ extends RefCounted
 enum Team { HEROES, MONSTERS }
 enum State { IDLE, MOVING, WINDUP, DEAD }
 
-## How much a monster's health and damage grow per depth below its min_depth (compounding).
+## How much a monster's health and damage grow per level above its base_level (compounding).
 const DEPTH_GROWTH: float = 1.12
 
 var id: int
@@ -85,7 +85,7 @@ static func from_hero(def: HeroClassDef, hero_level: int, combatant_id: int) -> 
 ## A monster [param def] met at [param depth].
 static func from_monster(def: MonsterDef, depth: int, combatant_id: int) -> Combatant:
 	var c := Combatant.new()
-	var scale: float = pow(DEPTH_GROWTH, maxi(depth - def.min_depth, 0))
+	var scale: float = pow(DEPTH_GROWTH, maxi(depth - def.base_level, 0))
 	c.id = combatant_id
 	c.team = Team.MONSTERS
 	c.def_id = def.id

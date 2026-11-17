@@ -8,7 +8,7 @@ extends Node
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
-## target depth, stable time and place, and [method Expedition.arrive_from_save] to cut to another
+## target depth, stable time and place, and [method Arrival.from_save] to cut to another
 ## depth. The
 ## pictures are the game's own. Everything moves in [method advance], so a test can drive a pass.
 ##
@@ -458,7 +458,7 @@ func _cut_to_depth(depth: int, target: int) -> void:
 	var sim: Simulation = main.simulation
 	var expedition: Expedition = sim.expedition
 	var deepest: int = maxi(expedition.deepest_depth, depth)
-	expedition.arrive_from_save(sim.tick, depth, deepest, target, false)
+	Arrival.from_save(expedition, sim.tick, depth, deepest, target, false)
 	for hero: Hero in sim.party.heroes:
 		hero.health = hero.max_health()
 	# More ticks at once than the world animates: it puts everything in place.

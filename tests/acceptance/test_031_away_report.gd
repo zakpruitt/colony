@@ -49,7 +49,7 @@ func _old_text(report: AwayReport, party: Party) -> String:
 		"While you were away",
 		"Away %s" % AwayPanel.duration(report.seconds),
 		"Gold +%s" % Hud.group_thousands(report.gold_gained),
-		"Depth %d to %d" % [report.depth_before, report.depth_after],
+		"Mossy Hollow %d to %d" % [report.depth_before, report.depth_after],
 		"Slain %s   Wipes %d" % [Hud.group_thousands(report.kills), report.wipes],
 	]
 	for hero: Hero in party.heroes:
@@ -64,6 +64,8 @@ func _plain_report(party: Party) -> AwayReport:
 	report.gold_gained = 1234
 	report.depth_before = 3
 	report.depth_after = 6
+	report.area_before = &"mossy_hollow"  # spec 049: the place is an area and a stage
+	report.area_after = &"mossy_hollow"
 	report.kills = 210
 	report.wipes = 1
 	for hero: Hero in party.heroes:

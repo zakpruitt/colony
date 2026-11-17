@@ -166,7 +166,7 @@ func test_r1_status_line() -> void:
 	var e: Expedition = _sim.expedition
 	_hud.advance(0.0)
 	assert_eq(e.state, Expedition.State.TRAVELLING)
-	assert_eq(_hud.status_text(), "Hunting on depth 1", "travelling at the target depth")
+	assert_eq(_hud.status_text(), "Hunting on stage 1", "travelling at the target depth")
 	assert_eq(_hud.state_label.text, _hud.status_text(), "the panel shows the line")
 
 	_raise(STRONG_LEVEL)
@@ -175,7 +175,7 @@ func test_r1_status_line() -> void:
 	_sim.step()
 	_hud.advance(0.0)
 	assert_eq(e.state, Expedition.State.TRAVELLING)
-	assert_eq(_hud.status_text(), "Heading down to depth 2", "travelling toward a deeper target")
+	assert_eq(_hud.status_text(), "Heading down to stage 2", "travelling toward a deeper target")
 
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a fight starts")
 	var count: int = _alive_monsters()
@@ -197,7 +197,7 @@ func test_r1_status_line() -> void:
 	_walk_away()
 	_sim.set_target_depth(1)
 	assert_true(_step_until(_at_depth(2)), "on its way up, out of any fight")
-	assert_eq(_hud.status_text(), "Heading up to depth 1", "toward a shallower target")
+	assert_eq(_hud.status_text(), "Heading up to stage 1", "toward a shallower target")
 	assert_true(_step_until(_in_state(Expedition.State.CLIMBING)), "the party climbs back")
 	assert_eq(_hud.status_text(), "Climbing up", "climbing up the shaft")
 	assert_true(_step_until(_at_depth(1)), "and arrives")
@@ -260,8 +260,15 @@ func test_r1_status_line_fits() -> void:
 			and (best == null or def.display_name.length() > best.display_name.length())
 		):
 			longest = id
-	var depth: int = Content.monster(longest).min_depth
-	assert_eq(_sim.expedition.guardian_of(depth), longest, "it guards its own depth")
+	# Spec 049: guardians stand in their areas; the party goes to this one's.
+	for area: StringName in Content.area_ids():
+		if Content.area(area).guardian == longest:
+			_sim.expedition.travel.open[area] = true
+			_sim.set_destination(area, 1)
+	assert_true(_step_until(_in_state(Expedition.State.JOURNEYING)), "the party leaves")
+	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING)), "and arrives")
+	var depth: int = Expedition.GUARDIAN_EVERY
+	assert_eq(_sim.expedition.guardian_of(depth), longest, "it guards its own area's stage 5")
 	_before_guardian(depth)
 	_raise(STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
@@ -272,12 +279,14 @@ func test_r1_status_line_fits() -> void:
 	_hud.advance(0.0)
 	var line: String = "Fighting the %s" % Content.monster(longest).display_name
 	assert_eq(_hud.status_text(), line)
-	assert_string_contains(_hud.stable_text(), "then depth %d" % (depth + 1))
+	assert_string_contains(_hud.stable_text(), "then stage %d" % (depth + 1))
 	_check_depth_panel("a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	var panel: Rect2 = _hud.depth_panel.get_global_rect()
 	assert_false(panel.intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
-	assert_gt(_hud.boss_bar.size.x, 150.0, "which is still wide")
+	# Spec 049 names the area over the stage ("The Claypits" where "Depth" was), so the panel is
+	# about 28 pixels wider and the bar, which fills the space left, that much narrower.
+	assert_gt(_hud.boss_bar.size.x, 130.0, "which is still wide")
 
 	# Every other line, with a deep target: the widest the travelling lines get.
 	var e: Expedition = _sim.expedition
@@ -312,7 +321,7 @@ func test_r2_road_to_stable() -> void:
 	_sim.set_auto_push(false)
 	_hud.advance(0.0)
 	# Spec 039 R2: at the target with auto-push off, the note says the party stays.
-	assert_eq(_hud.stable_text(), "Stable, staying on depth 1", "a stable depth reads Stable")
+	assert_eq(_hud.stable_text(), "Stable, staying on stage 1", "a stable depth reads Stable")
 	assert_false(_hud.stable_bar.visible, "with no bar")
 
 	assert_true(_down_to_two(), "the party reaches depth 2")
@@ -348,7 +357,7 @@ func test_r2_road_to_stable() -> void:
 	assert_eq(stable_at - started, predicted, "the count ends on the tick the depth turns stable")
 	_hud.advance(0.0)
 	assert_eq(e.seconds_to_stable(), 0.0, "0 at a stable depth")
-	assert_eq(_hud.stable_text(), "Stable, staying on depth 2", "Stable (spec 039 R2)")
+	assert_eq(_hud.stable_text(), "Stable, staying on stage 2", "Stable (spec 039 R2)")
 	assert_false(_hud.stable_bar.visible, "no bar")
 
 	# Auto-push: what happens next.
@@ -357,7 +366,7 @@ func test_r2_road_to_stable() -> void:
 	_sim.set_auto_push(true)
 	_hud.advance(0.0)
 	assert_string_starts_with(_hud.stable_text(), "Stable in ", "not stable again")
-	assert_string_ends_with(_hud.stable_text(), ", then depth 3", "auto-push says what is next")
+	assert_string_ends_with(_hud.stable_text(), ", then stage 3", "auto-push says what is next")
 	_sim.set_auto_push(false)
 	_hud.advance(0.0)
 	assert_eq(_hud.stable_text().find("then"), -1, "not with auto-push off")
@@ -381,12 +390,14 @@ func test_r3_journal() -> void:
 	var slain: MonsterDef = Content.monster(_sim.expedition.guardian_of(5))
 
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 2)
-	assert_eq(journal.lines()[0], "0:12  Reached depth 2, the deepest yet", "a new deepest depth")
+	assert_eq(
+		journal.lines()[0], "0:12  Reached Mossy Hollow 2, the deepest yet", "a new deepest depth"
+	)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 1)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, 2)
 	assert_eq(journal.lines().size(), 1, "only a new deepest depth is written")
 	_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 2)
-	assert_eq(journal.lines()[0], "0:12  Depth 2 is now stable", "a depth becoming stable")
+	assert_eq(journal.lines()[0], "0:12  Mossy Hollow 2 is now stable", "a depth becoming stable")
 	_emit(SimEvent.Kind.LEVEL_UP, -1, MAGE, 4)
 	assert_eq(journal.lines()[0], "0:12  Mage reached level 4", "a level up")
 	_sim.expedition.depth = 7
@@ -395,13 +406,19 @@ func test_r3_journal() -> void:
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
 	# Spec 041 R6, spec 046 R6: the defeat note's first line (with no fight lost, only where),
 	# then where the party falls back to.
-	assert_eq(journal.lines()[0], "0:12  Beaten on depth 7; falling back to depth 3", "a wipe")
+	assert_eq(
+		journal.lines()[0],
+		"0:12  Beaten on Mossy Hollow 7; falling back to Mossy Hollow 3",
+		"a wipe"
+	)
 	_sim.expedition.last_stable_depth = 7
 	_hud.advance(0.0)
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
-	assert_eq(journal.lines()[0], "0:12  Beaten on depth 7; regrouping there", "on a stable depth")
+	assert_eq(
+		journal.lines()[0], "0:12  Beaten on Mossy Hollow 7; regrouping there", "on a stable depth"
+	)
 	_emit(SimEvent.Kind.GUARDIAN_SLAIN, 777, -1, 5)
-	var guardian_line: String = "0:12  Slew the %s on depth 5" % slain.display_name
+	var guardian_line: String = "0:12  Slew the %s on Mossy Hollow 5" % slain.display_name
 	assert_eq(journal.lines()[0], guardian_line, "a guardian slain")
 	_emit(SimEvent.Kind.UPGRADE_BOUGHT, 1, -1, 2)
 	var bought: String = "0:12  Bought %s, rank 2" % upgrade.display_name

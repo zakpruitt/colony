@@ -12,6 +12,9 @@ var levels_gained: Dictionary[int, int] = {}
 ## The depth the party was at when the save loaded, and when the replay ended.
 var depth_before: int
 var depth_after: int
+## The area those depths are stages of, before and after (spec 049).
+var area_before: StringName
+var area_after: StringName
 ## Monsters slain: monster deaths, not gains of gold (spec 031).
 var kills: int
 ## Times the whole party fell.

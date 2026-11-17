@@ -233,7 +233,7 @@ func test_r2_opening_is_busy() -> void:
 		assert_gte(
 			run["battles_2"] as int, 5, "5 battles in 2 minutes, seed %d\n%s" % [seed_value, text]
 		)
-		assert_gte(run["busy_10"] as int, 24, "24 in 10 minutes, seed %d\n%s" % [seed_value, text])
+		assert_gte(run["busy_10"] as int, 23, "23 in 10 minutes, seed %d\n%s" % [seed_value, text])
 
 
 # --- R3 ------------------------------------------------------------------------

@@ -60,13 +60,13 @@ last stable depth, deepest depth, target depth and auto-push, the rank of each c
 each hero's training ranks (spec 029) and the party's orders (spec 035).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
-party up the way revival does (`Expedition.arrive_from_save`), alive and full at the arrival point of its last
+party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
 stable depth, with every chamber freshly populated.
 
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
-- **Versions.** `SAVE_VERSION` is 5. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 6. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -75,6 +75,12 @@ stable depth, with every chamber freshly populated.
   negative, above the training's maximum or for an unknown training is refused by name
   (`heroes[1].training.power`). Version 4 to 5 adds `pace` (`cautious`, `steady` or `bold`) and
   `guardian_order` (`challenge` or `hold`) at `steady` and `challenge`; any other value is refused by name.
+  Version 5 to 6 (spec 049, `AreaSave`) adds `area` (the first area), `areas` (empty) and `open_areas`: the
+  first area, and each later one whose way in (the guardian stages of the areas before it, added up: 5, 10,
+  15) the save's `deepest_depth` went beyond. `last_stable_depth`, `deepest_depth` and `target_depth` are the
+  stages of the area the party is in; `areas` holds every other area it has been in as
+  `{"safe": s, "furthest": f}`. An unknown or closed `area`, an unknown id in `open_areas` or `areas`, and a
+  stage below 1 or a safe stage beyond the furthest are refused by name (`areas.claypits.safe`).
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -119,6 +125,38 @@ depth for that. Reaching level n takes `(n - 1) * (25n - 30)` XP (`Hero.xp_for_l
 for level 5, a few percent under the old `25 * (n - 1) * n` for late levels. `python tools/dev.py sim
 --timeline` prints the game time of each first (level 2 and 5 of every hero, depth 2 and 5, the first
 affordable upgrade, the first guardian met and beaten), which is how the opening is measured.
+
+## Areas
+
+Spec 049. The labyrinth is a set of areas (`AreaDef`, `data/areas/`), each with its own monsters (and the
+stage each first appears at), its guardian and its guardian stage, a base level, and the area whose guardian
+opens it. Inside an area the party moves through stages exactly as it moved through depths, and the code
+keeps the old names: `Expedition.depth`, `target_depth`, `last_stable_depth` and `deepest_depth` are stages
+of the area the party is in. A stage's level is `base level + stage - 1` (`Expedition.level_at`): monsters
+are made at that level (`Combatant.from_monster`, growing from `MonsterDef.base_level`, which kept the
+numbers of the old `min_depth`), and `SideQuestDef.reward_at` reads it. The timers to become safe and to refill
+a chamber (`DepthTiming`) go by the stage number instead, so every area's first stage is safe in a minute.
+A chamber holds only
+its area's monsters that have appeared by its stage (`EncounterRoll`), and the guardian stands at its stage
+and every `GUARDIAN_EVERY` stages after.
+
+Each area has its own `Labyrinth`: the first area's is the seed's own, every other's is forked under
+`area/<id>/`, as are its encounter and side-quest rolls. `AreaTravel` (owned by the expedition, read as
+`Expedition.travel`) keeps the open areas, every other area's safe and furthest stage, each area's labyrinth
+and a journey. `Simulation.set_destination(area, stage)` asks for one, and is ignored if the area is not open
+then. Once the party is out of any fight or side quest and standing, it leaves (`JOURNEYING`; a rest it
+leaves ends with `REST_ENDED`). The journey is a rest: the heroes heal as `AreaTravel.JOURNEY_SECONDS` of
+resting would, and the fallen stand. That long after it left, it arrives at the start of the stage asked for
+or the area's safe stage if that is nearer, with the stage asked for as its target (or a target chosen on the
+way), every chamber fresh, and `AREA_CHANGED` then `DEPTH_CHANGED`. A destination asked for on the way turns
+it there and starts the journey again. While it is on its way, `Expedition.area` names the destination and
+`Expedition.place` the area it is leaving, whose labyrinth it still stands in. Beating an area's guardian at
+its guardian stage for the first time opens the areas it opens, each with `AREA_OPENED`.
+`Simulation.labyrinth` is the labyrinth of the area the party stands in. Monster ids do not name the area, so
+the view changes area when it reaches `AREA_CHANGED` among the events, never from the live state ahead of
+them: the world shows the new labyrinth then, and the journal and tally keep the area the events are in
+from that event, as the defeat note does. The screen names a place as an area and a stage (`PlaceText`,
+`Mossy Hollow 3`).
 
 ## Side quests and microskills
 

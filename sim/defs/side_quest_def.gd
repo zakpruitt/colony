@@ -31,18 +31,19 @@ func reward_at(level_depth: int) -> int:
 
 
 ## What one kill at [param level_depth] is worth on average, as Vector2(gold, XP): each monster
-## that can wait there (not a guardian) weighted as an encounter picks it, by its min_depth.
+## (not a guardian) whose [member MonsterDef.base_level] is at most that depth, weighted by that
+## level: the worth of a kill at that depth before spec 049's areas, so rewards stay as they were.
 static func kill_value(level_depth: int) -> Vector2:
 	var gold: float = 0.0
 	var xp: float = 0.0
 	var weight: int = 0
 	for monster_id: StringName in Content.monster_ids():
 		var def: MonsterDef = Content.monster(monster_id)
-		if def.guardian or def.min_depth > level_depth:
+		if def.guardian or def.base_level > level_depth:
 			continue
-		gold += def.min_depth * (def.gold_min + def.gold_max) / 2.0
-		xp += def.min_depth * def.xp
-		weight += def.min_depth
+		gold += def.base_level * (def.gold_min + def.gold_max) / 2.0
+		xp += def.base_level * def.xp
+		weight += def.base_level
 	if weight == 0:
 		return Vector2.ZERO
 	return Vector2(gold, xp) / weight

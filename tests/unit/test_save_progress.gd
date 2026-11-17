@@ -94,4 +94,8 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		# Spec 035: version 5 adds the orders at their defaults.
 		expected["pace"] = "steady"
 		expected["guardian_order"] = "challenge"
+		# Spec 049: version 6 puts the party in Mossy Hollow, with only it open at depth 3.
+		expected["area"] = "mossy_hollow"
+		expected["areas"] = {}
+		expected["open_areas"] = ["mossy_hollow"]
 		assert_eq(sim.to_save(), expected)

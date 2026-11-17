@@ -42,7 +42,7 @@ func _monster_def(overrides: Dictionary = {}) -> MonsterDef:
 	def.id = &"test_monster"
 	def.display_name = "Test monster"
 	def.size = MonsterDef.Size.SMALL
-	def.min_depth = 1
+	def.base_level = 1
 	def.max_health = 100
 	def.damage = 5
 	def.armor = 0
@@ -170,7 +170,7 @@ func test_r1_shipped_content_is_valid() -> void:
 			continue
 		assert_eq(def.id, id)
 		var depth: int = monster_depths[id]
-		assert_eq(def.min_depth, depth, "%s depth" % id)
+		assert_eq(def.base_level, depth, "%s depth" % id)
 		var size: MonsterDef.Size = (
 			MonsterDef.Size.LARGE if id == &"ogre" else MonsterDef.Size.SMALL
 		)
@@ -205,7 +205,7 @@ func test_r1_validate_reports_each_problem() -> void:
 		assert_eq(monster.size(), 1, "monster %s gives one problem: %s" % [bad, monster])
 	var monster_only: Array[Dictionary] = [
 		{"gold_min": 5, "gold_max": 4},
-		{"min_depth": 0},
+		{"base_level": 0},
 	]
 	for bad: Dictionary in monster_only:
 		var monster: PackedStringArray = _monster_def(bad).validate()
@@ -226,7 +226,7 @@ func test_r1_validate_reports_each_problem() -> void:
 		0,
 		"only a healer needs heal power"
 	)
-	var many: PackedStringArray = _monster_def({"id": &"", "damage": 0, "min_depth": 0}).validate()
+	var many: PackedStringArray = _monster_def({"id": &"", "damage": 0, "base_level": 0}).validate()
 	assert_eq(many.size(), 3, "each problem is its own line")
 
 
@@ -257,7 +257,7 @@ func test_r2_combatants_scale_with_level_and_depth() -> void:
 	assert_almost_eq(hero.health_fraction(), 1.0, 0.0001)
 
 	var monster_def := _monster_def(
-		{"id": &"brute", "min_depth": 2, "max_health": 100, "damage": 10}
+		{"id": &"brute", "base_level": 2, "max_health": 100, "damage": 10}
 	)
 	var monster := Combatant.from_monster(monster_def, 4, 9)
 	assert_eq(monster.id, 9)

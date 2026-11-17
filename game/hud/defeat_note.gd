@@ -92,6 +92,8 @@ var _hold_asked: int = -1
 ## The depth and the safe depth as the events have told them so far (spec 046 R1).
 var _depth_now: int = 0
 var _safe_now: int = 0
+## The area those depths are stages of (spec 049).
+var _area_now: StringName = &""
 ## The chamber of the fight just lost, as Vector2i(depth, index) (index -1 when none), the names
 ## of the monsters alive in it and its guardian (or &"").
 var _lost_at: Vector2i = Vector2i(0, -1)
@@ -102,6 +104,7 @@ var _lost_guardian: StringName = &""
 var _wipe: SimEvent = null
 var _wipe_line: String = ""
 var _wipe_depth: int = 0
+var _wipe_area: StringName = &""
 var _wipe_safe: int = 0
 var _wipe_guardian: StringName = &""
 ## Defeats in a row by one guardian: its depth (0 for none) and how many.
@@ -122,6 +125,7 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 	_simulation = simulation
 	_world = world
 	_hud = hud
+	_area_now = simulation.expedition.place
 	panel = HudPanel.new()
 	panel.name = "DefeatPanel"
 	add_child(panel)
@@ -154,6 +158,7 @@ func advance(delta: float) -> void:
 	# The world has told every event so far: the expedition's depths are those the events reached.
 	_depth_now = _simulation.expedition.depth
 	_safe_now = _simulation.expedition.last_stable_depth
+	_area_now = _simulation.expedition.place
 	_update(delta)
 
 
@@ -229,13 +234,17 @@ func press(index: int) -> void:
 	_update(0.0)
 
 
-## The first line for the wipe [param event] ([code]Beaten by the Slime King on depth 5[/code]),
+## The first line for the wipe [param event] ([code]Beaten by the Slime King on Mossy Hollow
+## 5[/code]),
 ## worked out once per wipe from the fight lost and the depths the events had reached.
 func wipe_line(event: SimEvent) -> String:
 	if event == _wipe:
 		return _wipe_line
 	_wipe = event
+	if _wipe_area != _area_now:
+		_streak_depth = 0
 	_wipe_depth = _depth_now
+	_wipe_area = _area_now
 	_wipe_safe = _safe_now
 	_wipe_guardian = &""
 	var names: Array[String] = []
@@ -249,26 +258,26 @@ func wipe_line(event: SimEvent) -> String:
 		_streak = _streak + 1 if _streak_depth == _wipe_depth else 1
 		_streak_depth = _wipe_depth
 		var who: String = Content.monster(_wipe_guardian).display_name
-		_wipe_line = "Beaten by the %s on depth %d" % [who, _wipe_depth]
+		_wipe_line = "Beaten by the %s on %s" % [who, _place(_wipe_depth)]
 		if _streak > 1:
 			_wipe_line += " (%d times)" % _streak
 	else:
 		_streak_depth = 0
 		_streak = 0
-		_wipe_line = "Beaten on depth %d" % _wipe_depth
+		_wipe_line = "Beaten on %s" % _place(_wipe_depth)
 		if not names.is_empty():
 			_wipe_line += " by " + crowd(names)
 	return _wipe_line
 
 
 ## The journal's line for the wipe [param event] (spec 041 R6, spec 046 R6): the first line and
-## where the party falls back to, [code]Beaten by the Slime King on depth 5; falling back to depth
-## 4[/code], or [code]; regrouping there[/code] when it fell on its safe depth.
+## where the party falls back to, [code]Beaten by the Slime King on Mossy Hollow 5; falling back
+## to Mossy Hollow 4[/code], or [code]; regrouping there[/code] when it fell on its safe stage.
 func journal_line(event: SimEvent) -> String:
 	var line: String = wipe_line(event)
 	if _wipe_safe == _wipe_depth:
 		return line + "; regrouping there"
-	return line + "; falling back to depth %d" % _wipe_safe
+	return line + "; falling back to %s" % _place(_wipe_safe)
 
 
 ## Monster names as a crowd, grouped by name in the order met, lower case:
@@ -299,6 +308,11 @@ func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
 		SimEvent.Kind.DEPTH_CHANGED:
 			_depth_now = event.amount
+		SimEvent.Kind.AREA_CHANGED:
+			var ids: Array[StringName] = Content.area_ids()
+			if event.amount >= 0 and event.amount < ids.size():
+				_area_now = ids[event.amount]
+				_safe_now = _simulation.area_progress(_area_now).x
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			_safe_now = event.amount
 		SimEvent.Kind.ENCOUNTER_STARTED:
@@ -353,11 +367,14 @@ func _tell() -> void:
 func _reason() -> String:
 	if _wipe_guardian != &"":
 		var lowest: int = _lowest_level()
-		var wanted: int = Goals.guardian_level(_wipe_depth)
+		var area: AreaDef = Content.area(_wipe_area)
+		var level: int = area.level_at(_wipe_depth) if area != null else _wipe_depth
+		var wanted: int = Goals.guardian_level(level)
 		if lowest < wanted:
 			return "Heroes are level %d; it is balanced for about %d" % [lowest, wanted]
 	if _wipe_depth - _wipe_safe >= TOO_DEEP:
-		return "Depth %d is %d below the safe depth" % [_wipe_depth, _wipe_depth - _wipe_safe]
+		var below: int = _wipe_depth - _wipe_safe
+		return "%s is %d below the safe stage" % [_place(_wipe_depth), below]
 	return ""
 
 
@@ -527,3 +544,8 @@ func _show() -> void:
 	var bottom: float = Hud.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP
 	panel.position = Vector2(floorf((Hud.SCREEN.x - full) / 2.0), floorf(bottom - panel.size.y))
 	panel.queue_redraw()
+
+
+## [param stage] of the area of the wipe, as the screen names it (spec 049).
+func _place(stage: int) -> String:
+	return PlaceText.of(_wipe_area, stage)

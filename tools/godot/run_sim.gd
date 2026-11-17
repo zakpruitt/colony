@@ -3,12 +3,18 @@ extends SceneTree
 ##
 ## Run: godot --headless --path . -s res://tools/godot/run_sim.gd -- --seed=1 --minutes=10
 ##      [--target-depth=3] [--stable-seconds=120] [--buy-upgrades=true] [--timeline=true]
+##      [--area=claypits]
 ## or, more simply: python tools/dev.py sim --seed=1 --minutes=10
 ##
 ## With --buy-upgrades the run buys the cheapest upgrade it can afford whenever it can.
 ## With --timeline the summary gains "timeline": the game time in seconds of each first (spec 036),
 ## or null for one that did not happen. "level_2" and "level_5" are when every hero had reached
 ## that level; "upgrade_affordable" is when the party first held the price of an upgrade.
+## With --area the party is sent to that area at the start (opened for the run if it is not open),
+## at the target depth's stage if one is given, else stage 1 (spec 049). The summary names the area
+## the party is in and its stage ("area", "stage"), each area's safe and furthest stage ("areas")
+## and the open areas ("open_areas"); a run that ends on the way to another area also names where
+## the party will arrive ("journeying_to").
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -32,6 +38,14 @@ func _init() -> void:
 		sim.expedition.stable_seconds = _option(options, "stable-seconds", "").to_float()
 	if options.has("target-depth"):
 		sim.set_target_depth(_option(options, "target-depth", "").to_int())
+	if options.has("area"):
+		var area := StringName(_option(options, "area", ""))
+		if Content.area(area) == null:
+			push_error("run_sim: unknown area '%s'" % area)
+			quit(1)
+			return
+		sim.expedition.travel.open[area] = true
+		sim.set_destination(area, maxi(_option(options, "target-depth", "1").to_int(), 1))
 	var buying: bool = options.has("buy-upgrades")
 	var firsts: Dictionary[String, float] = {}
 	var guardian_fight: bool = false
@@ -109,7 +123,16 @@ func _init() -> void:
 		"heroes": heroes,
 		"kills": sorted_kills,
 		"upgrades": upgrades,
+		# The area the party stands in and its stage; on its way elsewhere, the area it left.
+		"area": String(sim.expedition.place),
+		"stage": sim.expedition.depth,
+		"areas": _areas(sim),
+		"open_areas": _open_areas(sim),
 	}
+	var travel: AreaTravel = sim.expedition.travel
+	if sim.expedition.state == Expedition.State.JOURNEYING:
+		var stage: int = travel.journey_stage(sim.expedition)
+		summary["journeying_to"] = {"area": String(sim.expedition.area), "stage": stage}
 	if options.has("timeline"):
 		var timeline: Dictionary = {}
 		for key: String in TIMELINE_KEYS:
@@ -117,6 +140,24 @@ func _init() -> void:
 		summary["timeline"] = timeline
 	print("[sim] " + JSON.stringify(summary))
 	quit(0)
+
+
+## Each area's safe and furthest stage, by id (spec 049).
+func _areas(sim: Simulation) -> Dictionary:
+	var areas: Dictionary = {}
+	for id: StringName in Content.area_ids():
+		var kept: Vector2i = sim.area_progress(id)
+		areas[String(id)] = {"safe": kept.x, "furthest": kept.y}
+	return areas
+
+
+## The open areas' ids, in area order.
+func _open_areas(sim: Simulation) -> Array[String]:
+	var open: Array[String] = []
+	for id: StringName in Content.area_ids():
+		if sim.is_area_open(id):
+			open.append(String(id))
+	return open
 
 
 ## Records [param seconds] as the time of [param key] unless that first already happened.

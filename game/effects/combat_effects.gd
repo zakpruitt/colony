@@ -341,7 +341,9 @@ func _on_sim_event(event: SimEvent) -> void:
 				_revival_due = true
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			if recent:
-				var words: String = "DEPTH %d STABLE" % event.amount
+				var words: String = (
+					"%s STABLE" % PlaceText.here(_simulation, event.amount).to_upper()
+				)
 				_banner(words, &"yellow", 2, BANNER_LIFE_STABLE, Vector2(0, -STABLE_RAISE))
 
 
@@ -582,7 +584,9 @@ func _announce(guardian: Combatant) -> void:
 	title.screen_offset = Vector2(0, -ANNOUNCE_RAISE)
 	title.start(_screen_to_world(_view_size() * 0.5 + title.screen_offset))
 	var line: FxText = _text(&"announce")
-	line.text = "GUARDIAN OF DEPTH %d" % _simulation.expedition.depth
+	line.text = (
+		"GUARDIAN OF %s" % PlaceText.here(_simulation, _simulation.expedition.depth).to_upper()
+	)
 	line.color = Palette.color(&"red")
 	line.scale_factor = ANNOUNCE_LINE_SCALE
 	line.z_index = 3

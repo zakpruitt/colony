@@ -11,6 +11,7 @@ const UPGRADES_DIR: String = "res://data/upgrades"
 const TRAINING_DIR: String = "res://data/training"
 const MICROSKILLS_DIR: String = "res://data/microskills"
 const SIDE_QUESTS_DIR: String = "res://data/sidequests"
+const AREAS_DIR: String = "res://data/areas"
 const ABILITIES_DIR: String = "res://data/abilities"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
@@ -21,6 +22,8 @@ static var _training: Dictionary[StringName, TrainingDef] = {}
 static var _training_ids: Array[StringName] = []
 static var _microskills: Dictionary[StringName, MicroskillDef] = {}
 static var _side_quests: Dictionary[StringName, SideQuestDef] = {}
+static var _areas: Dictionary[StringName, AreaDef] = {}
+static var _area_ids: Array[StringName] = []
 static var _abilities: Dictionary[StringName, AbilityDef] = {}
 static var _loaded: bool = false
 
@@ -97,6 +100,18 @@ static func side_quest_ids() -> Array[StringName]:
 	return _sorted(_side_quests.keys())
 
 
+## The area with this id (spec 049), or null if there is none.
+static func area(id: StringName) -> AreaDef:
+	_load()
+	return _areas.get(id, null)
+
+
+## Every area id, by [member AreaDef.order], then id.
+static func area_ids() -> Array[StringName]:
+	_load()
+	return _area_ids.duplicate()
+
+
 ## The ability with this id (spec 050), or null if there is none.
 static func ability(id: StringName) -> AbilityDef:
 	_load()
@@ -153,6 +168,14 @@ static func _load() -> void:
 		_training[training_def.id] = training_def
 	_training_ids = _sorted(_training.keys())
 	_training_ids.sort_custom(_before_on_sheet)
+	for resource: Resource in _resources_in(AREAS_DIR):
+		var area_def: AreaDef = resource as AreaDef
+		if area_def == null:
+			push_error("Content: %s is not an AreaDef" % resource.resource_path)
+			continue
+		_areas[area_def.id] = area_def
+	_area_ids = _sorted(_areas.keys())
+	_area_ids.sort_custom(_before_in_order)
 	for resource: Resource in _resources_in(ABILITIES_DIR):
 		var ability_def: AbilityDef = resource as AbilityDef
 		if ability_def == null:
@@ -191,6 +214,14 @@ static func _before_in_shop(a: StringName, b: StringName) -> bool:
 static func _before_on_sheet(a: StringName, b: StringName) -> bool:
 	var first: TrainingDef = _training[a]
 	var second: TrainingDef = _training[b]
+	if first.order != second.order:
+		return first.order < second.order
+	return String(a) < String(b)
+
+
+static func _before_in_order(a: StringName, b: StringName) -> bool:
+	var first: AreaDef = _areas[a]
+	var second: AreaDef = _areas[b]
 	if first.order != second.order:
 		return first.order < second.order
 	return String(a) < String(b)

@@ -24,6 +24,10 @@ python tools/dev.py check --only=compile,tests
 - A comparison of a count with sums made in the test passes when both are 0. Spec 045's Healing check on the
   last fight passed with healing left out of it, because that fight had no healing; make the test wait for
   data that has something in it (spec 046 found this by breaking the code on purpose).
+- When you break code on purpose to see a test fail, keep it compiling: a mutant that leaves a parameter or
+  a local unused is a warning, so an error, and then every test that touches the class fails at once for
+  the wrong reason (`Invalid call ... in base 'Nil'` by the thousand). Use the parameter
+  (`return "" if id != &"zzz" else ...`) and run `check --only=compile` on the mutant first.
 
 ## Testing the sim
 

@@ -284,7 +284,9 @@ func test_r3_click_to_steer() -> void:
 			ladder.hover_text(depth).contains(CLICK_HINT), "depth %d: no click hint" % depth
 		)
 		_sim.step()
-		assert_eq(_sim.expedition.target_depth, 2, "a click on depth %d changes nothing" % depth)
+		assert_eq(
+			_sim.expedition.target_depth, 2, "a click on Mossy Hollow %d changes nothing" % depth
+		)
 		assert_ne(_sim.state_hash(), hash_before, "(the step ran)")
 	assert_eq(_hud.target_label.text, "2", "and the HUD's target is unchanged")
 
@@ -299,13 +301,13 @@ func test_r4_hover_says_it() -> void:
 		return
 	_situation(7, 3, 9, 8)
 	var lines: Dictionary[int, String] = {
-		2: "Depth 2: held",
-		3: "Depth 3: safe, the party falls back here",
-		5: "Depth 5: Slime King",
-		6: "Depth 6: visited",
-		7: "Depth 7: the party is here",
-		10: "Depth 10: Clay Colossus",
-		12: "Depth 12: not reached yet",
+		2: "Mossy Hollow 2: held",
+		3: "Mossy Hollow 3: safe, the party falls back here",
+		5: "Mossy Hollow 5: Slime King",
+		6: "Mossy Hollow 6: visited",
+		7: "Mossy Hollow 7: the party is here",
+		10: "Mossy Hollow 10: Slime King",  # spec 049: each area has its own guardian
+		12: "Mossy Hollow 12: not reached yet",
 	}
 	# Spec 043 adds a second line for how the depth looks; the first line is as it was.
 	for depth: int in lines:
@@ -313,7 +315,7 @@ func test_r4_hover_says_it() -> void:
 		assert_eq(text, "%s. %s" % [lines[depth], CLICK_HINT], "depth %d's line" % depth)
 	assert_eq(
 		ladder.hover_text(8).get_slice("\n", 0),
-		"Depth 8: visited, the party is heading here",
+		"Mossy Hollow 8: visited, the party is heading here",
 		"the target, no click"
 	)
 
@@ -329,7 +331,8 @@ func test_r4_hover_says_it() -> void:
 			break
 	assert_true(won, "the guardian is beaten")
 	assert_true(
-		ladder.hover_text(5).begins_with("Depth 5: Slime King (beaten)"), ladder.hover_text(5)
+		ladder.hover_text(5).begins_with("Mossy Hollow 5: Slime King (beaten)"),
+		ladder.hover_text(5)
 	)
 
 	# Resting the mouse on a rung shows the line beside the ladder.
@@ -455,7 +458,7 @@ func test_r7_follows_the_simulation() -> void:
 		fail_test("no ladder")
 		return
 	var e: Expedition = _sim.expedition
-	# A wipe: the party is on depth 7 with depth 3 safe.
+	# A wipe: the party is on Mossy Hollow 7 with depth 3 safe.
 	_situation(7, 3, 7, 7)
 	for hero: Hero in _sim.party.heroes:
 		hero.health = 0
@@ -467,7 +470,7 @@ func test_r7_follows_the_simulation() -> void:
 	assert_true(_has(3, &"party"), "back on the safe depth on the next frame")
 	assert_true(_has(3, &"safe"), "which is still safe")
 	assert_true(_has(3, &"target"), "and the target")
-	assert_false(_has(7, &"party"), "no longer on depth 7")
+	assert_false(_has(7, &"party"), "no longer on Mossy Hollow 7")
 	assert_eq(_state(7), &"visited", "depth 7 stays visited")
 
 	# A new stable depth.

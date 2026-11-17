@@ -29,6 +29,9 @@ enum Kind {
 	STATUS_ENDED,
 	MISSED,
 	REVIVED,
+	# Spec 049's: only a run that changes area or beats an area's guardian produces them.
+	AREA_CHANGED,
+	AREA_OPENED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -68,6 +71,7 @@ var target_id: int = -1
 ## ABILITY_STARTED: the wind-up in ticks; ABILITY_USED: 0; STATUS_BEGAN: how many ticks it lasts;
 ## STATUS_ENDED: 0; MISSED: the damage absorbed by a shield (0 for a miss);
 ## REVIVED: the health it stands up with.
+## For AREA_CHANGED and AREA_OPENED: the area's position in [method Content.area_ids].
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.

@@ -195,6 +195,9 @@ func test_r1_progress_is_plain_data() -> void:
 		"auto_buy": data.get("auto_buy"),  # spec 022: the switch, tested there
 		"pace": data.get("pace"),  # spec 035: the orders, tested there
 		"guardian_order": data.get("guardian_order"),
+		"area": data.get("area"),  # spec 049: the areas, tested there
+		"areas": data.get("areas"),
+		"open_areas": data.get("open_areas"),
 	}
 	assert_true(_same(data, expected), "the save holds\n%s\nnot\n%s" % [expected, data])
 	assert_gt(sim.party.gold, 0, "20 minutes of play earns gold")
@@ -339,11 +342,14 @@ func test_r4_bad_data_is_refused() -> void:
 
 
 func test_r5_upgrade_is_a_pass_through() -> void:
-	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4 and spec 035 to 5; their own
-	# tests cover those steps.
-	assert_eq(Simulation.SAVE_VERSION, 5)
+	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4, spec 035 to 5 and spec 049
+	# to 6; their own tests cover those steps.
+	assert_eq(Simulation.SAVE_VERSION, 6)
 	var data: Dictionary = _valid()
-	data["version"] = 5
+	data["version"] = 6
+	data["area"] = "mossy_hollow"
+	data["areas"] = {}
+	data["open_areas"] = ["mossy_hollow"]
 	data["upgrades"] = {}
 	data["auto_buy"] = false
 	data["pace"] = "steady"
@@ -355,7 +361,7 @@ func test_r5_upgrade_is_a_pass_through() -> void:
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 6]:
+	for version: int in [0, 7]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)

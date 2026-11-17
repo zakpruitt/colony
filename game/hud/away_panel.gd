@@ -17,6 +17,17 @@ var _left: float = SHOW_SECONDS
 var _lines: Array[Label] = []
 
 
+## Where the party was and is, as the panel says it (spec 049): "Mossy Hollow 3", "Mossy Hollow 3
+## to 5", or "Mossy Hollow 5 to The Claypits 1".
+static func where(report: AwayReport) -> String:
+	var after: String = PlaceText.of(report.area_after, report.depth_after)
+	if report.area_after != report.area_before:
+		return "%s to %s" % [PlaceText.of(report.area_before, report.depth_before), after]
+	if report.depth_after == report.depth_before:
+		return after
+	return "%s to %d" % [PlaceText.of(report.area_before, report.depth_before), report.depth_after]
+
+
 ## A panel telling of [param report]; [param party] names the heroes.
 func _init(report: AwayReport, party: Party) -> void:
 	super()
@@ -24,10 +35,7 @@ func _init(report: AwayReport, party: Party) -> void:
 	_add_line("While you were away", &"yellow")
 	_add_line("Away %s" % duration(report.seconds), &"white")
 	_add_line("Gold +%s" % Hud.group_thousands(report.gold_gained), &"yellow")
-	if report.depth_after == report.depth_before:
-		_add_line("Depth %d" % report.depth_after, &"silver")
-	else:
-		_add_line("Depth %d to %d" % [report.depth_before, report.depth_after], &"silver")
+	_add_line(where(report), &"silver")
 	_add_line("Slain %s   Wipes %d" % [Hud.group_thousands(report.kills), report.wipes], &"silver")
 	_add_quest_lines(report)
 	for hero: Hero in party.heroes:

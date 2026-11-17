@@ -58,7 +58,7 @@ func _monster_def(overrides: Dictionary) -> MonsterDef:
 	var def := MonsterDef.new()
 	def.id = &"test_monster"
 	def.display_name = "Test monster"
-	def.min_depth = 1
+	def.base_level = 1  # min_depth before spec 049
 	def.max_health = 100
 	def.damage = 5
 	def.attack_interval = 1.0

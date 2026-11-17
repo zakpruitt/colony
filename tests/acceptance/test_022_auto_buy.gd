@@ -10,25 +10,25 @@ extends GutTest
 const RECORDED_HASHES: Dictionary = {
 	5:
 	[
-		2116424635,
-		2345330524,
-		4081671612,
-		3960625133,
-		2794441276,
-		3246698699,
-		1403250376,
-		2791031753,
+		90617096,
+		1843544079,
+		3990530965,
+		179066290,
+		1074777023,
+		3005114552,
+		1156117692,
+		2672916873,
 	],
 	17:
 	[
-		2117581513,
-		3959706640,
-		3161554897,
-		2334876158,
-		453949610,
-		703506246,
-		804695567,
-		2470773072,
+		2556285521,
+		1862429911,
+		188183527,
+		159247602,
+		2511983039,
+		3981661745,
+		586360381,
+		2459882785,
 	],
 }
 const HOUR_TICKS: int = 36_000
@@ -239,7 +239,7 @@ func test_r4_saved() -> void:
 		assert_not_null(loaded, "loads: %s" % Simulation.save_problems(data))
 		if loaded != null:
 			assert_eq(loaded.auto_buy, enabled, "round trip of %s" % enabled)
-	assert_eq(Simulation.SAVE_VERSION, 5, "4 since spec 029, 5 since spec 035")
+	assert_eq(Simulation.SAVE_VERSION, 6, "4 since spec 029, 5 since spec 035, 6 since spec 049")
 
 	# A version 2 save loads with auto-buy off, through the upgrade step.
 	var current: Dictionary = _through_json(Simulation.new(SEED).to_save())
