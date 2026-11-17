@@ -231,6 +231,10 @@ func _sentence(event: SimEvent) -> String:
 			var who: String = hero.def().display_name if hero != null else "A hero"
 			sentence = "%s reached level %d" % [who, event.amount]
 		SimEvent.Kind.PARTY_WIPED:
+			# Spec 041 R6: the defeat note's first line, what beat the party and where.
+			var hud: Hud = get_parent() as Hud
+			if hud != null and hud.defeat_note != null:
+				return hud.defeat_note.wipe_line(event)
 			var back_to: int = _simulation.expedition.last_stable_depth
 			sentence = "Wiped on depth %d, falling back to depth %d" % [_depth, back_to]
 			if back_to == _depth:

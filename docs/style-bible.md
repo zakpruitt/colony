@@ -302,6 +302,12 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   `yellow`/`amber` for depth) ending at one column for every row, with its count in `steel` to its right; a
   gold goal has no bar and its price in `yellow` at the sentence's right. A finished row flashes `forest`
   with a `green` edge (text `white`), then its sentence and bar turn `green` for 3 s.
+- **The defeat note** (spec 041) is an overlay of its own after a wipe: a `HudPanel` centred across the
+  screen, its bottom 6 pixels above `WIPED` (popped size) and so below the goals tracker. What beat the party
+  in `white`, the reason under it in `silver`, both centred, then a centred row of up to three `HudButton`s 4
+  pixels apart; `Holding` is lit as a toggle is. 8 s after the heroes stand (not while the mouse is
+  on it) its text steps down `silver`, `steel`,
+  `slate` (0.2 s each), buttons too, and it goes; never by opacity. It hides while any panel is open.
 - **Frame markers** (spec 037) sit inside a hero frame's top-right corner, not above it (the ticker's strip
   stays clear); the level moves left of the marker.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,
