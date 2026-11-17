@@ -297,13 +297,14 @@ func guardian_of(level_depth: int) -> StringName:
 ## Seconds the party must still hold this depth before it becomes stable; 0.0 when it already is.
 ## Reading it changes nothing.
 func seconds_to_stable() -> float:
-	if depth <= last_stable_depth:
-		return 0.0
-	# A depth set from outside counts from the tick before the next step, as _count_time does.
-	var since: int = _depth_since if depth == _timer_depth else _tick
-	var needed: int = roundi(stable_seconds * Simulation.TICKS_PER_SECOND)
-	var left: int = maxi(needed - (_tick - since), 0)
-	return float(left) / Simulation.TICKS_PER_SECOND
+	return DepthTiming.stable_left(self, _tick, _depth_since, _timer_depth)
+
+
+## Seconds until auto-push raises the target depth (spec 039); 0.0 when it is off or the party is
+## not at its target. Reading it changes nothing.
+func seconds_to_push() -> float:
+	var timers: Array[int] = [_depth_since, _timer_depth, _target_since, _timer_target]
+	return DepthTiming.push_left(self, _tick, timers)
 
 
 ## The id of the side quest that chamber holds on its current visit, or &"". Like the monsters,
@@ -973,7 +974,6 @@ func arrive_from_save(tick: int, stable: int, deepest: int, target: int, push: b
 	deepest_depth = maxi(deepest, stable)
 	auto_push = push
 	depth = stable
-	_timer_depth = depth
 	_place(_arrival_x(depth))
 	_restart_depth_count(_tick)
 	target_depth = maxi(target, 1)

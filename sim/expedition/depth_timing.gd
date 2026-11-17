@@ -21,6 +21,28 @@ static func stable_seconds_at(level_depth: int) -> float:
 	return SURFACE_STABLE_SECONDS * pow(DEEP_STABLE_SECONDS / SURFACE_STABLE_SECONDS, step)
 
 
+## [method Expedition.seconds_to_stable] for [param run] at tick [param now]: its depth has been
+## held since tick [param since] if it is still [param timer_depth], and from [param now] if the
+## depth was set from outside, as the expedition's own count does on its next step.
+static func stable_left(run: Expedition, now: int, since: int, timer_depth: int) -> float:
+	if run.depth <= run.last_stable_depth:
+		return 0.0
+	return _left(run.stable_seconds, now, since if run.depth == timer_depth else now)
+
+
+## [method Expedition.seconds_to_push] for [param run] at tick [param now] (spec 039). The push
+## comes once the party has held its target for the stable time, counted from the later of its
+## arrival and the target being set. [param timers] is the expedition's two counts: the tick the
+## depth has been held since, that depth, the tick the target was set and that target. A depth or
+## target set from outside counts from [param now], as the expedition's next step does.
+static func push_left(run: Expedition, now: int, timers: Array[int]) -> float:
+	if not run.auto_push or run.depth != run.target_depth:
+		return 0.0
+	var held: int = timers[0] if run.depth == timers[1] else now
+	var set_at: int = timers[2] if run.target_depth == timers[3] else now
+	return _left(run.stable_seconds, now, maxi(held, set_at))
+
+
 ## Seconds a cleared chamber at [param level_depth] stays empty before monsters (or a side quest)
 ## come back: from SURFACE_RESPAWN_SECONDS at depth 1, rising evenly to
 ## [constant Expedition.RESPAWN_SECONDS] at DEEP_DEPTH and staying there.
@@ -35,3 +57,10 @@ static func refill_seconds(fill: ChamberState) -> float:
 	if fill.guardian:
 		return Expedition.GUARDIAN_RESPAWN_SECONDS
 	return respawn_seconds_at(fill.depth)
+
+
+## Seconds left at tick [param now] of [param seconds] counted from tick [param since], in whole
+## ticks as the expedition counts them; never below 0.
+static func _left(seconds: float, now: int, since: int) -> float:
+	var needed: int = roundi(seconds * Simulation.TICKS_PER_SECOND)
+	return float(maxi(needed - (now - since), 0)) / Simulation.TICKS_PER_SECOND
