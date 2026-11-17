@@ -22,7 +22,7 @@ const KEYS: Array[Array] = [
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
 	["1-3", "On a hero's Training tab: train that row"],
-	["Q E", "On a hero sheet: previous or next tab"],
+	["Q E", "On a hero sheet or the tally: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],

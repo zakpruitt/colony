@@ -352,8 +352,7 @@ func test_r3_offers_help() -> void:
 	_sim.set_guardian_order(Expedition.GuardianOrder.HOLD)
 	for fighter: Combatant in _sim.expedition.battle.heroes:
 		fighter.health = 0
-	var wiped: Callable = func() -> bool:
-		return _sim.expedition.state == Expedition.State.REVIVING
+	var wiped: Callable = func() -> bool: return _sim.expedition.state == Expedition.State.REVIVING
 	assert_true(_step_until(wiped), "the party loses to the guardian")
 	assert_eq(_sim.expedition.guardian_order, Expedition.GuardianOrder.HOLD, "holding already")
 	assert_eq(_note().suggestions(), [] as Array[String], "no Hold here")
@@ -535,16 +534,18 @@ func test_r5_nothing_after_time_away() -> void:
 
 
 func test_r6_journal() -> void:
+	# The note's first line, then where the party falls back to (spec 046 R6).
+	var back: String = "; falling back to depth %d" % SAFE
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
-	assert_eq(_journal_sentence(), _first_line(), "the journal's line is the note's first line")
+	assert_eq(_journal_sentence(), _first_line() + back, "the journal's line is the note's first")
 	assert_true(_until_standing(), "the heroes stand")
 	assert_true(_guardian_wipe(), "and again")
-	assert_eq(_journal_sentence(), _first_line(), "with the count")
-	assert_true(_journal_sentence().ends_with("(2 times)"), "counted")
+	assert_eq(_journal_sentence(), _first_line() + back, "with the count")
+	assert_true(_journal_sentence().ends_with("(2 times)" + back), "counted")
 	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(DEEP, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on depth 7")
-	assert_eq(_journal_sentence(), _first_line(), "an ordinary defeat's line too")
+	assert_eq(_journal_sentence(), _first_line() + back, "an ordinary defeat's line too")
 
 
 # --- R7 ------------------------------------------------------------------------

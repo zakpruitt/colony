@@ -335,8 +335,10 @@ func test_r6_journal_keeps_what_it_said() -> void:
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	assert_eq(
 		_journal_sentence(),
-		"Beaten by the %s on depth %d; falling back to depth %d"
-		% [_guardian_name(), GUARDIAN_DEPTH, SAFE],
+		(
+			"Beaten by the %s on depth %d; falling back to depth %d"
+			% [_guardian_name(), GUARDIAN_DEPTH, SAFE]
+		),
 		"the note's line and where the party falls back to"
 	)
 	assert_eq(_journal_sentence(), _first_line() + "; falling back to depth %d" % SAFE)
@@ -436,7 +438,8 @@ func test_r8_measures_say_what_they_count() -> void:
 		return
 	assert_gt(blow.amount, 1, "the blow is larger than the health left")
 	var dealt: int = (
-		tally.value(blow.source_id, Tally.Measure.DAMAGE, Tally.Span.SESSION) - before[blow.source_id]
+		tally.value(blow.source_id, Tally.Measure.DAMAGE, Tally.Span.SESSION)
+		- before[blow.source_id]
 	)
 	# The events carry the whole blow, not the health lost: the tally counts the blow, and the
 	# tooltips of Damage and Taken say that overkill is in it.

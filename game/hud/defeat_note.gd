@@ -4,19 +4,27 @@ extends Control
 ## what beat the party and where, the plainest true reason when there is one, and offers up to
 ## [constant MOST] things that would help, each a button one click away. It changes no rule.
 ##
-## It listens to [signal World.sim_event]. A lost fight's [code]ENCOUNTER_ENDED[/code] names the
-## chamber, whose survivors ([method Expedition.monsters_in], a read that changes nothing) are the
-## monsters alive when the last hero fell; [code]PARTY_WIPED[/code] then makes the note's lines
-## ([method wipe_line], which the journal uses for its own line). Only a recent wipe
-## ([method World.is_recent]) is told: one from a stall or the time away is not. The note stays
-## while the heroes are down and stand up again ([method FallenParty.is_telling]) and
-## [constant LINGER_SECONDS] after, never counting down while the mouse is over it
-## ([method point_at]) and whatever fight starts meanwhile; then its text steps down
-## [constant FADE_COLOURS] and it goes. Text never fades by opacity.
+## It listens to [signal World.sim_event]. Many ticks can arrive in one frame (a stall, or 4x), so
+## the depth and the safe depth of a defeat are never read from the expedition when its events
+## arrive, which may be after the revival: they are the expedition's at the end of the last frame
+## ([method advance]) moved on by each [code]DEPTH_CHANGED[/code] and
+## [code]STABLE_DEPTH_REACHED[/code] since (spec 046 R1). A lost fight's
+## [code]ENCOUNTER_ENDED[/code] names the chamber, whose survivors ([method Expedition.monsters_in],
+## a read that changes nothing, of the chamber's own record, which keeps them until the party wins
+## there) are the monsters alive when the last hero fell; [code]PARTY_WIPED[/code] then works out
+## the first line ([method wipe_line]; [method journal_line] is the journal's). Only a recent wipe
+## ([method World.is_recent]) is told: one from a stall or the time away is not, and leaves a note
+## already showing as it was (spec 046 R5). The note stays while the heroes are down and stand up
+## again ([method FallenParty.is_telling]) and [constant LINGER_SECONDS] after, never counting down
+## while the mouse is over it ([method point_at]) or a panel hides it (spec 046 R4), and whatever
+## fight starts meanwhile; then its text steps down [constant FADE_COLOURS] and it goes. Text never
+## fades by opacity.
 ##
-## The suggestions are read again at every [method advance], so they follow the gold. The note
-## hides while the shop, a hero sheet, the journal, help, orders or the away report is open. It
-## moves only in [method advance], so a test can step it exactly.
+## The suggestions are read again at every [method advance], so they follow the gold, except while
+## the mouse is over the note: a click acts on what its button showed (spec 046 R3). Hold reads
+## Holding only while the simulation's order is Hold, or has just been asked for (spec 046 R2). The
+## note hides while the shop, a hero sheet, the journal, help, orders, the tally or the away report
+## is open. It moves only in [method advance], so a test can step it exactly.
 
 ## What the note can suggest, in the order it prefers them.
 enum Help { TRAIN, UPGRADE, HOLD }
@@ -72,17 +80,30 @@ var _linger: float = -1.0
 var _fade: float = -1.0
 ## Where the mouse is, in screen pixels.
 var _mouse: Vector2 = HudTooltip.NOWHERE
-## The defeat being told: its depth, the safe depth then, and its guardian (or &"").
-var _depth: int = 0
-var _safe: int = 0
+## The suggestions the buttons show, as last laid out, and the hero Train showed then.
+var _shown: Array[Help] = []
+var _shown_trainee: int = -1
+## The guardian of the defeat being told (or &""): Hold is offered against it.
 var _guardian: StringName = &""
-## True once Hold here was pressed for this defeat: the button reads Holding.
+## True once Hold here was pressed for this defeat: the button stays, whatever the order.
 var _held: bool = false
-## The chamber of the fight just lost, as Vector2i(depth, index); index -1 when none.
+## The tick Hold was asked for at, or -1: until the simulation steps, it reads Holding.
+var _hold_asked: int = -1
+## The depth and the safe depth as the events have told them so far (spec 046 R1).
+var _depth_now: int = 0
+var _safe_now: int = 0
+## The chamber of the fight just lost, as Vector2i(depth, index) (index -1 when none), the names
+## of the monsters alive in it and its guardian (or &"").
 var _lost_at: Vector2i = Vector2i(0, -1)
-## The last wipe worked out, and its first line.
+var _lost_names: Array[String] = []
+var _lost_guardian: StringName = &""
+## The last wipe worked out: the event, its first line, its depth, the safe depth then and its
+## guardian (or &"").
 var _wipe: SimEvent = null
 var _wipe_line: String = ""
+var _wipe_depth: int = 0
+var _wipe_safe: int = 0
+var _wipe_guardian: StringName = &""
 ## Defeats in a row by one guardian: its depth (0 for none) and how many.
 var _streak_depth: int = 0
 var _streak: int = 0
@@ -125,13 +146,26 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 
 
 ## Follows the heroes standing up, runs the fade on by [param delta] seconds, reads the
-## suggestions again and lays the note out. Called every frame by the HUD; tests call it.
+## suggestions again and lays the note out. Called every frame by the HUD, after the world has
+## told every event of the frame; tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
+	# The world has told every event so far: the expedition's depths are those the events reached.
+	_depth_now = _simulation.expedition.depth
+	_safe_now = _simulation.expedition.last_stable_depth
+	_update(delta)
+
+
+## The work of [method advance], without reading the expedition's depths: also called while the
+## world is telling a frame's events.
+func _update(delta: float) -> void:
+	var covered: bool = _covered()
 	if _telling and _stood():
 		_telling = false
 		_linger = LINGER_SECONDS
+	elif covered:
+		pass  # a panel hides the note: its time waits for it
 	elif _hovered() and (_linger >= 0.0 or _fade >= 0.0):
 		_linger = maxf(_linger, 0.0)  # read while the mouse rests on it: it waits
 		_fade = -1.0
@@ -144,9 +178,9 @@ func advance(delta: float) -> void:
 		if _fade >= FADE_STEP * FADE_COLOURS.size():
 			_fade = -1.0
 	var told: bool = _telling or _linger >= 0.0 or _fade >= 0.0
-	if told:
-		_suggest()
-	visible = told and not _covered()
+	if told and not _hovered():
+		_suggest()  # under the mouse, the row stays as it is
+	visible = told and not covered
 	if visible:
 		_show()
 
@@ -174,60 +208,67 @@ func suggestions() -> Array[String]:
 	return texts
 
 
-## What clicking button [param index] does: opens the cheapest hero's Training tab, opens the
-## shop, or sets the guardian order to Hold.
+## What clicking button [param index] does, by the suggestion that button showed: opens the
+## Training tab of the hero it named, opens the shop, or sets the guardian order to Hold.
 func press(index: int) -> void:
-	if index < 0 or index >= _helps.size():
+	if index < 0 or index >= _shown.size():
 		return
-	match _helps[index]:
+	match _shown[index]:
 		Help.TRAIN:
 			if _hud != null and _hud.hero_sheet != null:
 				_hud.hero_sheet.open_page(HeroSheet.Page.TRAINING)
-				_hud.hero_sheet.open(_trainee)
+				_hud.hero_sheet.open(_shown_trainee)
 		Help.UPGRADE:
 			if _hud != null and _hud.shop != null:
 				_hud.shop.open()
 		Help.HOLD:
-			if not _held:
+			if not _holding():
 				_held = true
+				_hold_asked = _simulation.tick
 				_simulation.set_guardian_order(Expedition.GuardianOrder.HOLD)
-	advance(0.0)
+	_update(0.0)
 
 
 ## The first line for the wipe [param event] ([code]Beaten by the Slime King on depth 5[/code]),
-## worked out once per wipe; the journal writes it as its line for the wipe (spec 041 R6).
+## worked out once per wipe from the fight lost and the depths the events had reached.
 func wipe_line(event: SimEvent) -> String:
 	if event == _wipe:
 		return _wipe_line
 	_wipe = event
-	var e: Expedition = _simulation.expedition
-	_depth = e.depth
-	_safe = e.last_stable_depth
-	_guardian = &""
+	_wipe_depth = _depth_now
+	_wipe_safe = _safe_now
+	_wipe_guardian = &""
 	var names: Array[String] = []
-	if _lost_at.y >= 0 and _lost_at.x == _depth:
-		for monster: Combatant in e.monsters_in(_lost_at.x, _lost_at.y):
-			var def: MonsterDef = Content.monster(monster.def_id)
-			if def == null:
-				continue
-			if def.guardian:
-				_guardian = def.id
-			names.append(def.display_name)
+	if _lost_at.y >= 0 and _lost_at.x == _wipe_depth:
+		names = _lost_names
+		_wipe_guardian = _lost_guardian
 	_lost_at = Vector2i(0, -1)
-	if _guardian != &"":
-		_streak = _streak + 1 if _streak_depth == _depth else 1
-		_streak_depth = _depth
-		var who: String = Content.monster(_guardian).display_name
-		_wipe_line = "Beaten by the %s on depth %d" % [who, _depth]
+	_lost_names = []
+	_lost_guardian = &""
+	if _wipe_guardian != &"":
+		_streak = _streak + 1 if _streak_depth == _wipe_depth else 1
+		_streak_depth = _wipe_depth
+		var who: String = Content.monster(_wipe_guardian).display_name
+		_wipe_line = "Beaten by the %s on depth %d" % [who, _wipe_depth]
 		if _streak > 1:
 			_wipe_line += " (%d times)" % _streak
 	else:
 		_streak_depth = 0
 		_streak = 0
-		_wipe_line = "Beaten on depth %d" % _depth
+		_wipe_line = "Beaten on depth %d" % _wipe_depth
 		if not names.is_empty():
 			_wipe_line += " by " + crowd(names)
 	return _wipe_line
+
+
+## The journal's line for the wipe [param event] (spec 041 R6, spec 046 R6): the first line and
+## where the party falls back to, [code]Beaten by the Slime King on depth 5; falling back to depth
+## 4[/code], or [code]; regrouping there[/code] when it fell on its safe depth.
+func journal_line(event: SimEvent) -> String:
+	var line: String = wipe_line(event)
+	if _wipe_safe == _wipe_depth:
+		return line + "; regrouping there"
+	return line + "; falling back to depth %d" % _wipe_safe
 
 
 ## Monster names as a crowd, grouped by name in the order met, lower case:
@@ -256,12 +297,16 @@ static func crowd(names: Array[String]) -> String:
 
 func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
+		SimEvent.Kind.DEPTH_CHANGED:
+			_depth_now = event.amount
+		SimEvent.Kind.STABLE_DEPTH_REACHED:
+			_safe_now = event.amount
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_lost_at = Vector2i(0, -1)
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_lost_at = Vector2i(0, -1)
 			if not event.flag:
-				_lost_at = Vector2i(_simulation.expedition.depth, event.amount)
+				_lost(event.amount)
 		SimEvent.Kind.GUARDIAN_SLAIN:
 			if event.amount == _streak_depth:
 				_streak_depth = 0
@@ -272,30 +317,56 @@ func _on_sim_event(event: SimEvent) -> void:
 				_tell()
 
 
+## Remembers the fight just lost in chamber [param chamber_index] of the depth the events have
+## reached: where, and the monsters alive in it.
+func _lost(chamber_index: int) -> void:
+	_lost_at = Vector2i(_depth_now, chamber_index)
+	_lost_names = []
+	_lost_guardian = &""
+	for monster: Combatant in _simulation.expedition.monsters_in(_lost_at.x, _lost_at.y):
+		var def: MonsterDef = Content.monster(monster.def_id)
+		if def == null:
+			continue
+		if def.guardian:
+			_lost_guardian = def.id
+		_lost_names.append(def.display_name)
+
+
 ## Starts telling the wipe just worked out.
 func _tell() -> void:
+	_guardian = _wipe_guardian
 	_lines = [_wipe_line]
 	var reason: String = _reason()
 	if not reason.is_empty():
 		_lines.append(reason)
 	_held = false
+	_hold_asked = -1
 	_telling = true
 	_linger = -1.0
 	_fade = -1.0
-	advance(0.0)
+	_suggest()
+	_update(0.0)
 
 
-## The plainest true reason for the defeat, or "": a guardian above the heroes' level, then a
-## depth too far below the safe one.
+## The plainest true reason for the wipe just worked out, or "": a guardian above the heroes'
+## level, then a depth too far below the safe one.
 func _reason() -> String:
-	if _guardian != &"":
+	if _wipe_guardian != &"":
 		var lowest: int = _lowest_level()
-		var wanted: int = Goals.guardian_level(_depth)
+		var wanted: int = Goals.guardian_level(_wipe_depth)
 		if lowest < wanted:
 			return "Heroes are level %d; it is balanced for about %d" % [lowest, wanted]
-	if _depth - _safe >= TOO_DEEP:
-		return "Depth %d is %d below the safe depth" % [_depth, _depth - _safe]
+	if _wipe_depth - _wipe_safe >= TOO_DEEP:
+		return "Depth %d is %d below the safe depth" % [_wipe_depth, _wipe_depth - _wipe_safe]
 	return ""
+
+
+## True while the guardian order is Hold, or Hold was asked for and the simulation has not stepped
+## since.
+func _holding() -> bool:
+	if _hold_asked >= 0 and _hold_asked == _simulation.tick:
+		return true
+	return _simulation.expedition.guardian_order == Expedition.GuardianOrder.HOLD
 
 
 ## Reads which suggestions apply now, the first [constant MOST] in [enum Help] order.
@@ -320,15 +391,15 @@ func _text(help: Help) -> String:
 			return "Train %s" % (hero.def().display_name if hero != null else "a hero")
 		Help.UPGRADE:
 			return "Buy an upgrade"
-	return "Holding" if _held else "Hold here"
+	return "Holding" if _holding() else "Hold here"
 
 
 func _tip(index: int) -> String:
-	if index < 0 or index >= _helps.size():
+	if index < 0 or index >= _shown.size():
 		return ""
-	if _helps[index] == Help.HOLD and _held:
+	if _shown[index] == Help.HOLD and _holding():
 		return HOLDING_TIP
-	return TIPS[_helps[index]]
+	return TIPS[_shown[index]]
 
 
 ## The id of the hero with the cheapest training [param gold] affords (the first on a tie), or -1.
@@ -439,7 +510,7 @@ func _show() -> void:
 		var text: String = _text(_helps[i])
 		if button.text != text:
 			button.text = text
-		button.lit = _helps[i] == Help.HOLD and _held
+		button.lit = _helps[i] == Help.HOLD and _holding()
 		button.text_colour = colour
 		row += button.size.x + (BUTTON_GAP if row > 0.0 else 0.0)
 	width = maxf(width, row)
@@ -453,6 +524,8 @@ func _show() -> void:
 			buttons[i].position = Vector2(x, y)
 			x += buttons[i].size.x + BUTTON_GAP
 		y += HudButton.HEIGHT
+	_shown = _helps.duplicate()
+	_shown_trainee = _trainee
 	panel.size = Vector2(full, y + PADDING.y)
 	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (WIPED_SCALE + 1))
 	var bottom: float = Hud.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP

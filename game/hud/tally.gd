@@ -9,7 +9,10 @@ extends RefCounted
 ## (a sprung hazard's too, which has no source, in the session only: it is never part of a fight);
 ## [constant SimEvent.Kind.HEALED] from a hero to a hero is healing done by its source. A heal's
 ## amount is what the target gained, already stopped at full health by the battle, so healing
-## beyond full health is never counted. [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
+## beyond full health is never counted. A hit's amount is the whole blow, and the events do not say
+## how much health its target had left, so a killing blow's overkill is counted in damage dealt and
+## taken; the tally's tooltips say so (spec 046 R8).
+## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
 ## last fight; [constant SimEvent.Kind.SIDE_QUEST_DONE] counts one side quest for its worker.
 ## A hero is any id below [constant Expedition.FIRST_MONSTER_ID].
 
