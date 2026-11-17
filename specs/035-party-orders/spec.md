@@ -1,9 +1,9 @@
 # 035 — Party orders: tell the party how to play
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 005, 014, 020, 027, 030
-- **Pull request:** —
+- **Pull request:** [#36](https://github.com/zakpruitt/colony/pull/36)
 
 ## Intent
 
