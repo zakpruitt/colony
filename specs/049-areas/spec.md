@@ -1,9 +1,9 @@
 # 049 — Areas: several places to go instead of one descent
 
-- **Status:** provisional (direction and the four choices below agreed with Zak 2026-11-17; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction and the four choices below agreed with Zak 2026-11-17; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 005, 013, 014, 020, 035
-- **Pull request:** —
+- **Pull request:** [#51](https://github.com/zakpruitt/colony/pull/51)
 
 ## Intent
 

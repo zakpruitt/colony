@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 049 | [Areas](049-areas/spec.md) | M6 | landed on dev, [#51](https://github.com/zakpruitt/colony/pull/51), provisional | 005, 013, 014, 020, 035 |
 | 050 | [Abilities in combat](050-abilities-in-combat/spec.md) | M6 | landed on dev, [#50](https://github.com/zakpruitt/colony/pull/50), provisional | 004, 015 |
 | 048 | [A wipe told whole](048-a-wipe-told-whole/spec.md) | M5 | landed on dev, [#49](https://github.com/zakpruitt/colony/pull/49), provisional | 038 |
 | 047 | [A ladder that points true](047-a-ladder-that-points-true/spec.md) | M5 | landed on dev, [#48](https://github.com/zakpruitt/colony/pull/48), provisional | 043 |
@@ -67,7 +68,6 @@ screen, 055 the tree on the hero sheet. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [049 Areas](049-areas/spec.md) | in progress, provisional | 005, 013, 014, 020, 035 |
 | [051 Talent trees and paragon](051-talent-trees-and-paragon/spec.md) | written, waits for 049 and 050; provisional | 029, 049, 050 |
 | [053 The area map](053-the-area-map/spec.md) | written, waits for 049; provisional | 030, 037, 042, 049 |
 | [054 Zones on screen](054-zones-on-screen/spec.md) | written, waits for 049; provisional | 006, 008, 012, 018, 048, 049 |
