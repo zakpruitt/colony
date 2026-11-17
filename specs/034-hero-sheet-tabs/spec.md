@@ -18,6 +18,8 @@ sections (equipment, talents) have somewhere to go.
 Everything follows `docs/style-bible.md` and the existing sheet's look.
 
 - **R1. Compact.** The sheet is at most 240 wide and 150 tall, for every hero and every tab.
+  (Amended by the lead for spec 055: the Talents tab alone may be 278 tall, because a whole tree with
+  nothing to scroll does not fit in 150. For Zak to judge against a sheet that is always that tall.)
 - **R2. A header that never changes.** Portrait, class, role, level, the activity line, and the health and
   XP lines with their bars are always visible above the tabs, exactly as today.
 - **R3. Three tabs.** `Stats`, `Training` and `Skills`, as a row of small tab buttons under the header; the
