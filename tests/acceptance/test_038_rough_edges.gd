@@ -172,6 +172,21 @@ func _travelling_on_depth_two(speed: int = 1) -> void:
 	assert_eq(_sim.expedition.last_stable_depth, 1, "with depth 1 the last stable one")
 
 
+## The party travelling on stage 1, 24 tiles or more from where it revives (the start chamber),
+## with Auto off: a wipe now revives it on the same stage, part of the band away. The camera's
+## travel is told on one stage; spec 054 R8 makes a revival on another a crossing (test_054).
+func _away_on_stage_one(speed: int) -> void:
+	_show(Simulation.new(SEED), speed)
+	_sim.set_auto_push(false)
+	var home: float = _sim.expedition.revival_place().x
+	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		_play_frame()
+		var e: Expedition = _sim.expedition
+		if absf(e.x - home) >= 24.0 and e.state == Expedition.State.TRAVELLING:
+			break
+	assert_eq(_sim.expedition.depth, 1, "the party is on stage 1")
+
+
 func _raise(level: int) -> void:
 	for hero: Hero in _sim.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
@@ -346,10 +361,10 @@ func test_r1_wipe_leaves_the_party() -> void:
 # --- R2 ------------------------------------------------------------------------
 
 
-## Plays a wipe on depth 2 at [param speed] through to the heroes on their feet, checking the
+## Plays a wipe on stage 1 at [param speed] through to the heroes on their feet, checking the
 ## camera's story; returns nothing, asserts as it goes.
 func _camera_story(speed: int) -> void:
-	_travelling_on_depth_two(speed)
+	_away_on_stage_one(speed)
 	_wipe()
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	var fallen: FallenParty = _world.fallen_party
@@ -358,7 +373,7 @@ func _camera_story(speed: int) -> void:
 	# Where the camera rests there: kept inside the band, as it always is.
 	var half: float = _world.get_viewport_rect().size.x * 0.5
 	destination.x = clampf(destination.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half))
-	assert_eq(int(_sim.expedition.revival_place().y), 1, "on depth 1")
+	assert_eq(int(_sim.expedition.revival_place().y), 1, "on stage 1")
 	var start: Vector2 = _world.camera.position
 	var distance: float = start.distance_to(destination)
 	assert_gt(distance, 200.0, "the revival is well away from the fall")

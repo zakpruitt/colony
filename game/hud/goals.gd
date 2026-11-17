@@ -375,23 +375,23 @@ func _depth_goal() -> Goal:
 	var next: int = e.deepest_depth + 1
 	var fraction: float = clampf(float(e.depth) / float(next), 0.0, 1.0)
 	var detail_text: String = "stage %d of %d" % [e.depth, next]
-	var how: String = "The party works its way back down, a stable depth at a time."
+	var how: String = "The party works its way back on, a stable stage at a time."
 	# Spec 039 R3: at the deepest depth the bar follows the timer that decides what comes next.
 	if e.depth >= e.deepest_depth and e.target_depth > e.depth:
 		fraction = 1.0
 		detail_text = "on the way"
-		how = "The party is heading down to its target."
+		how = "The party is heading on to its target."
 	elif e.depth >= e.deepest_depth and e.auto_push and e.depth == e.target_depth:
 		var left: float = e.seconds_to_push()
 		if e.stable_seconds > 0.0:
 			fraction = clampf(1.0 - left / e.stable_seconds, 0.0, 1.0)
 		detail_text = "in " + Hud.clock(left)
-		how = "Hold this depth until it is stable, and the party moves on by itself."
+		how = "Hold this stage until it is stable, and the party moves on by itself."
 	elif e.depth >= e.deepest_depth and not e.auto_push:
 		fraction = 0.0
 		detail_text = "Auto is off"
 	if not e.auto_push and e.target_depth < next:
-		how = "Raise the target or turn Auto on, and the party heads down."
+		how = "Raise the target or turn Auto on, and the party heads on."
 	var place: String = PlaceText.here(_simulation, next)
 	var goal := Goal.new(
 		"depth/%s/%d" % [e.place, next], Kind.DEPTH, "Reach " + place, fraction, detail_text, how

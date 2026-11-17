@@ -158,6 +158,22 @@ them: the world shows the new labyrinth then, and the journal and tally keep the
 from that event, as the defeat note does. The screen names a place as an area and a stage (`PlaceText`,
 `Mossy Hollow 3`).
 
+## Zones on screen
+
+Spec 054. The simulation still stacks an area's stages as bands of one labyrinth and climbs a shaft between
+them; the view shows one stage at a time and never shows the climb. `LabyrinthView.zoned` (set by `World`)
+builds only the stage on screen, fills the shafts back with earth, draws a stone doorway where each shaft met
+the floor (the way on at `shaft_column(stage)`, the way back at `shaft_column(stage - 1)`) and looks after
+the area (`LabyrinthView.area`, `ZoneLook`: one of the four looks by the area's place in the list, each stage
+a little darker; the ambience reads it through `zone_look()`). `ZoneCrossing` (a child of `World`) turns the
+simulation's own clock into the crossing: the share of the climb done (`ClimbProgress`, a read-only helper
+in `sim/expedition/`, added by this spec because `Expedition` is at gdlint's public-method limit), the
+journey's `arrive_tick` and the revival tick. The screen is dark from a quarter of the climb to three
+quarters, and the world switches to the next stage under it at half (`ZoneCrossing.stage_shown`); the
+heroes fade into the doorway as they reach it and stand at the far doorway when the screen opens. Because it
+is read from the state, a crowded frame at any speed shows the right stage. The HUD's `CrossingVeil`, drawn
+under the rest of the HUD, paints the dark and the title.
+
 ## Side quests and microskills
 
 Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists

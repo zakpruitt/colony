@@ -153,7 +153,8 @@ func test_r1_main_scene_shows_the_world() -> void:
 	assert_eq(world.simulation, main.simulation, "the world shows the running simulation")
 	var depth: int = main.simulation.expedition.depth
 	assert_has(world.labyrinth_view.built_depths(), depth, "the party's level is built")
-	assert_has(world.labyrinth_view.built_depths(), depth + 1, "and the one below")
+	# Spec 054: the screen shows one stage at a time, so only the party's own is built.
+	assert_eq(world.labyrinth_view.built_depths(), [depth] as Array[int], "and only that one")
 	var party: Vector2 = _feet(main.simulation, KNIGHT)
 	assert_lt(world.camera.target.distance_to(party), 6.0 * TILE, "the camera is on the party")
 	assert_true(world.camera.is_current() or not world.camera.is_inside_tree(), "camera in use")
@@ -201,7 +202,8 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 	assert_eq(still, 0, "every hero sprite moves on every frame of travel")
 	assert_eq(far, 0, "no hero sprite is ever more than a tile from its position")
 
-	# Through a fight starting and ending, and a climb down: no jumps.
+	# Through a fight starting and ending, and a crossing to stage 2: no jumps (spec 054: but for
+	# the frame the world switches stage, under a dark screen).
 	sim.set_target_depth(2)
 	var seen: Dictionary[Expedition.State, bool] = {}
 	var ended: bool = false
@@ -211,10 +213,14 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 		for h: int in sprites.size():
 			last[h] = sprites[h].position
 		var before: int = _emitted.size()
+		var stage: int = world.shown_stage()
 		frame = _frame(sim, world, frame)
 		seen[_state(sim)] = true
 		ended = ended or _emitted_since(before, SimEvent.Kind.ENCOUNTER_ENDED)
 		if _emitted_since(before, SimEvent.Kind.PARTY_REVIVED):
+			continue
+		if world.shown_stage() != stage:
+			assert_eq(world.crossing.darkness(), 1.0, "the stage switches under a dark screen")
 			continue
 		for h: int in sprites.size():
 			biggest = maxf(biggest, sprites[h].position.distance_to(last[h]))
@@ -643,22 +649,28 @@ func test_r9_camera_and_focus_follow_the_party() -> void:
 	assert_eq(signi(roundi(lead)), sim.expedition.facing, "the camera looks ahead")
 	assert_lt(absf(lead), 8.0 * TILE, "but not far")
 
-	# Down a shaft, smoothly.
+	# On to stage 2 (spec 054): the camera never glides down; it switches once, under a dark screen.
 	sim.set_target_depth(2)
 	var biggest: float = 0.0
 	var climbed: bool = false
+	var switches: int = 0
 	while frame < LIMIT_TICKS * FRAMES_PER_TICK:
 		var before: Vector2 = world.camera.position
+		var stage: int = world.shown_stage()
 		frame = _frame(sim, world, frame)
-		if _state(sim) == Expedition.State.CLIMBING:
+		if world.shown_stage() != stage:
+			switches += 1
+			assert_eq(world.crossing.darkness(), 1.0, "it switches in the dark")
+		elif _state(sim) == Expedition.State.CLIMBING:
 			climbed = true
 			biggest = maxf(biggest, world.camera.position.distance_to(before))
 		if climbed and _state(sim) != Expedition.State.CLIMBING:
 			break
 	assert_true(climbed, "the party climbed down")
 	assert_eq(sim.expedition.depth, 2)
-	assert_lte(biggest, 6.0, "the camera glides down the shaft")
-	assert_eq(world.labyrinth_view.built_depths(), [1, 2, 3] as Array[int], "focus on depth 2")
+	assert_eq(switches, 1, "one switch of stage")
+	assert_lte(biggest, 6.0, "otherwise the camera only eases")
+	assert_eq(world.labyrinth_view.built_depths(), [2] as Array[int], "only stage 2 is built")
 
 	# Revival snaps.
 	_force_wipe(sim)

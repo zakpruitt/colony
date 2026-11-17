@@ -383,7 +383,7 @@ func test_r5_what_they_are_doing() -> void:
 	_sim.expedition.state = Expedition.State.RESTING
 	assert_eq(_activity(knight), "Resting")
 	_sim.expedition.state = Expedition.State.CLIMBING
-	assert_eq(_activity(knight), "Climbing")
+	assert_eq(_activity(knight), "Moving on")  # spec 054 R6: never "Climbing"
 	_sim.expedition.state = Expedition.State.TRAVELLING
 	knight.health = 0
 	assert_eq(_activity(knight), "Down", "a dead hero is down")

@@ -512,6 +512,18 @@ up wherever the wipe has got to if you come back to the game while the party is 
 for a moment (spec 048). If the game falls behind (a long freeze, say), it
 catches up at once to the simulation's
 true state instead of replaying old animations.</p>
+<p><span class="tag built">Built: spec 054</span> <strong>Zones, not depths.</strong> The screen shows one
+stage at a time. The way on and the way back are stone doorways in the back wall (no more shafts or ladders):
+the party walks into the doorway and is gone, the screen dims, a title names where it is going
+("Mossy Hollow 4"), and it opens on the party stepping out of a doorway on the next stage. The crossing lasts
+exactly as long as the simulation's stage change (about four seconds at 1x, shorter at 2x and 4x, always long
+enough to read the title). Going back a stage, or reviving on another stage after a wipe, uses the doorway the
+party came in by. A journey to another area holds the dark screen for its ten seconds with "Leaving Mossy
+Hollow" and then the arrival's name. A wipe on another stage holds on the fallen, dims, names the safe stage
+and opens on the heroes standing up there. Each area has its own look: Mossy Hollow brown loam, The Claypits
+red clay, The Old Crypt grey-blue stone, Ember Deep dark teal, each with its own torchlight, and every stage
+of an area a little darker than the one before. Nothing on screen says deeper, down, climb or depth any more:
+the party goes further or back, and the ladder on the right is headed by the area's name.</p>
 <p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each
 chamber has torches on its back wall that throw warm, flickering pools of light in a few hard-edged rings
 (pixel art, not a smooth blur), and the tunnels between are darker. Light stops at the walls: the lit
@@ -753,7 +765,7 @@ the next rank is its first price times a growth factor for every rank already bo
 files in <code>data/upgrades/</code>: <strong>Sharp Blades</strong> (+5% damage and healing per rank, up to 20),
 <strong>Stout Armor</strong> (+5% maximum health, up to 20; buying it also heals by the health gained),
 <strong>Field Medicine</strong> (+10% healing speed while resting, up to 10), <strong>Quick March</strong> (+4%
-travel and climb speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up to 20). Ranks add up:
+travel speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up to 20). Ranks add up:
 rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
 fight. Upgrades are saved. You buy them in the upgrade shop on the HUD (spec 017). In a one-hour headless run, a party that keeps buying the
 cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
@@ -882,7 +894,7 @@ the panel reads as before.</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten; <code>--area=claypits</code> to send the party to that area at the start, opening it for the run; the summary names the area and stage the party ends in, each area's safe and furthest stage and the open areas)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
-  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung and a microskill learned, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
+  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, going on a stage and back (the doorway crossing), a wipe and the revival, a stage becoming stable, a fight in The Claypits, The Old Crypt and Ember Deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung, a microskill learned and the four areas in turn, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
