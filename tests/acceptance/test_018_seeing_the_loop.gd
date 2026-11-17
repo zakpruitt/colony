@@ -5,8 +5,9 @@ extends GutTest
 const FRAME: float = 1.0 / 30.0
 const SEED: int = 1
 const KNIGHT: int = 1
-## The showcase's pass must end within this many seconds.
-const PASS_LIMIT: float = 90.0
+## The showcase's pass must end within this many seconds (90 at first; raised for spec 056's class
+## and status moments, which the lead allowed).
+const PASS_LIMIT: float = 150.0
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 
 # --- R1 ------------------------------------------------------------------------
@@ -85,7 +86,7 @@ func test_r2_showcase_plays_every_moment() -> void:
 	while not showcase.done and showcase.elapsed < 150.0:
 		showcase.advance(FRAME)
 	assert_true(showcase.done, "the pass finishes")
-	assert_lt(showcase.elapsed, PASS_LIMIT, "within 90 seconds")
+	assert_lt(showcase.elapsed, PASS_LIMIT, "within %d seconds" % PASS_LIMIT)
 	assert_eq(seen, Showcase.MOMENTS, "every moment, in order")
 	for moment: StringName in Showcase.MOMENTS:
 		var happened: bool = showcase.evidence.get(moment, false)
