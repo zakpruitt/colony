@@ -277,7 +277,22 @@ to three kills of that depth, or, from a rune stone, XP worth two kills for ever
 is cleared and fills again after the usual 90 seconds. If nobody can, the party walks past and the quest waits
 for a later pass, once someone has learned the skill; a tripwire instead springs and every hero loses a fifth of
 their health (never down to 0, so it cannot wipe the party). Early on the party walks past a lot; a stronger
-party unlocks more. Nothing is drawn for them yet besides the HUD word: that is a later spec.</p>
+party unlocks more.</p>
+<p><span class="tag built">Built: spec 028</span> <strong>Seeing side quests.</strong> A chamber holding a side
+quest shows its prop on the floor near its middle, as far off as monsters show: a chest, a door, a small figure
+sitting down, a standing stone with glowing runes, or a wire between two pegs (plain placeholder drawings). When
+the party works one, the hero with the microskill steps up to the prop and works at it with their attack, a soft
+click on every swing, while the others wait; the microskill's name (<em>Lockpicker</em>) and a small filling
+bar show over them. Done, the prop bursts into bits of its own colours and words say what happened in the
+reward's colour (gold yellow, XP cyan): <em>Chest opened</em>, <em>Door forced</em>, <em>Wanderer
+mended</em>, <em>Runes read</em>, <em>Trap disarmed</em>, then the usual coins or XP. A quest nobody can do
+shows a grey <em>Needs Lockpicker</em> rising from it, once per visit; a tripwire nobody spots shows a red
+<em>Sprung!</em>, shakes the screen and makes every hero flash and yelp. A hero who learns a microskill gets
+<em>Learned Lockpicker</em> over their head with the level-up sound. The journal writes each of these
+(<em>Chest opened: 34 gold</em>, <em>Runes read: 12 XP each</em>, <em>Passed a Stuck Door: needs
+Strongarm</em>, <em>Sprang a Tripwire: needs Trapspotter</em>, <em>Rogue learned Lockpicker</em>), and each
+hero sheet lists the class's microskills: the ones the hero has in white with what they do, the ones to come
+in grey with their level (<em>Trapspotter, level 6</em>).</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
 (about ten minutes to start). If the party wipes, it revives there and keeps farming. A wipe costs
@@ -352,7 +367,7 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   <li><strong>Gold</strong> (top right), with commas. It counts up as coins arrive; if it is still behind 3
   seconds after the last coin, it catches up at once.</li>
   <li><strong>Depth</strong> (top left): the current depth in big numbers (it lights up when it changes), the
-  last stable depth, the target depth, and a short line for what the party is doing and why (spec 027):
+  last stable depth (<em>Safe 3</em>: where the party falls back to after a wipe), the target depth, and a short line for what the party is doing and why (spec 027):
   <em>Heading down to depth 5</em>, <em>Hunting on depth 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting
   the Slime King</em>, <em>Resting, 64% health</em>, <em>Climbing down</em>, <em>Working: Locked Chest</em>, <em>Chased home!
   Regrouping</em>.</li>
@@ -362,7 +377,7 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   (<em>then depth 3</em>).</li>
   <li><strong>The journal</strong> (spec 027): the game remembers the last 50 notable happenings with the game
   time (a new deepest depth, a depth turning stable, a level up, a wipe and where the party fell back to, a
-  guardian slain, an upgrade bought). The newest shows for 4 seconds in a one-line ticker just above the party
+  guardian slain, an upgrade bought, a side quest done, passed or sprung, a microskill learned). The newest shows for 4 seconds in a one-line ticker just above the party
   frames, then fades. <code>J</code> opens a panel with the last 12, newest at the top, under the depth; the
   game keeps running, every other key still works, <code>Esc</code> closes it and so does opening the shop or a hero sheet.
   Things that happened while the game was catching up are written but not flashed in the ticker.</li>
@@ -583,7 +598,7 @@ the panel reads as before.</p>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
   <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
-  <tr><td>Watch the showcase (every moment of the loop in about 70 seconds, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
+  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep, a side quest done, one nobody can do, a tripwire sprung and a microskill learned, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
 </table>
 </div>
@@ -639,7 +654,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
   <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span> and on screen (spec 028) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; balance <span class="tag planned">Planned</span></td></tr>
 </table>
 </div>

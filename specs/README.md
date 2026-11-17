@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 028 | [Seeing side quests and microskills](028-seeing-side-quests/spec.md) | M4 | landed on dev, [#31](https://github.com/zakpruitt/colony/pull/31), provisional | 008, 010, 011, 021, 025, 026, 027 |
 | 031 | [The away report tells the whole story](031-away-report-knows-more/spec.md) | M5 | landed on dev, [#30](https://github.com/zakpruitt/colony/pull/30), provisional | 019, 020, 022, 025 |
 | 029 | [Hero training](029-hero-training/spec.md) | M4 | landed on dev, [#29](https://github.com/zakpruitt/colony/pull/29), provisional | 014, 016, 022, 026 |
 | 027 | [Reading the party](027-reading-the-party/spec.md) | M5 | landed on dev, [#28](https://github.com/zakpruitt/colony/pull/28), provisional | 008, 010, 011, 020 |
@@ -45,7 +46,7 @@ until Zak has played them.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [028 Seeing side quests](028-seeing-side-quests/spec.md): props, the worker at work, misses that say what was needed, microskills in the sheet and journal | provisional, waiting on 025 and 027 | 008, 010, 011, 021, 025, 026, 027 |
 | [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |
 | [032 Game speed](032-game-speed/spec.md): watch the loop at 1x, 2x or 4x | provisional, in progress | 001, 008, 010, 011, 021 |
-| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, waiting for a free lane | 011, 020, 027 |
+| [033 Depth ladder](033-depth-ladder/spec.md): the whole descent as one picture, and click a depth to send the party there | provisional, in progress | 011, 020, 027 |
+| [034 A hero sheet that fits](034-hero-sheet-tabs/spec.md): the sheet grew to a third of the screen; a fixed header and three tabs | provisional, waiting for a free lane | 026, 028, 029 |

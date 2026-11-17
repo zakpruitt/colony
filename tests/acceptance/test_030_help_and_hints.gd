@@ -253,8 +253,7 @@ func test_r2_help_panel() -> void:
 	_key(KEY_H)
 	assert_true(help.is_open(), "help opens")
 	assert_false(_hud.shop.is_open(), "and closes the shop")
-	_key(KEY_U)
-	_hud.advance(0.016)
+	_key(KEY_U)  # help closes in the same frame
 	assert_true(_hud.shop.is_open(), "the shop opens")
 	assert_false(help.is_open(), "and help closes")
 
@@ -263,8 +262,7 @@ func test_r2_help_panel() -> void:
 	_key(KEY_H)
 	assert_true(help.is_open(), "help opens")
 	assert_false(_hud.hero_sheet.is_open(), "and closes the hero sheet")
-	_key(KEY_TAB)
-	_hud.advance(0.016)
+	_key(KEY_TAB)  # help closes in the same frame
 	assert_true(_hud.hero_sheet.is_open(), "the sheet opens")
 	assert_false(help.is_open(), "and help closes")
 
@@ -273,8 +271,7 @@ func test_r2_help_panel() -> void:
 	_key(KEY_H)
 	assert_true(help.is_open(), "help opens")
 	assert_false(_hud.journal.is_open(), "and closes the journal")
-	_key(KEY_J)
-	_hud.advance(0.016)
+	_key(KEY_J)  # help closes in the same frame
 	assert_true(_hud.journal.is_open(), "the journal opens")
 	assert_false(help.is_open(), "and help closes")
 	_key(KEY_J)

@@ -1,9 +1,9 @@
 # 028 — Seeing side quests and microskills
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M4
 - **Depends on:** 008, 010, 011, 021, 025, 026, 027
-- **Pull request:** —
+- **Pull request:** [#31](https://github.com/zakpruitt/colony/pull/31)
 
 ## Intent
 

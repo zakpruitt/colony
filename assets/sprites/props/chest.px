@@ -1,0 +1,21 @@
+# A locked chest waiting in a chamber (a side quest): wood, steel bands, a big brass padlock.
+category = item
+size = 16x16
+
+[locked]
+................
+................
+................
+................
+................
+..pppppppppppp..
+.p333333333333p.
+.p34l444444l45p.
+.p55l5kkkk5l55p.
+.p34lk4444kl45p.
+.p34lbaaaa9l45p.
+.p34laapaa9l45p.
+.p34la9p999l45p.
+.p34l444444l45p.
+.p55m555555m55p.
+..pppppppppppp..

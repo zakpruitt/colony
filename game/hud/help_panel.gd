@@ -6,9 +6,10 @@ extends Control
 ## party frames, and never pauses the game.
 ##
 ## It never shares the screen with the shop, the hero sheet or the journal: opening it closes them,
-## and [method advance] closes it as soon as one of them is open. The keys list is the one table
-## [constant KEYS]; [method keycodes] turns each key label into the key codes it stands for, so the
-## list can be checked against what the input code handles. Drawn as a [HudPanel] is.
+## and each of them closes it when it opens ([method advance] also closes it should one be open).
+## The keys list is the one table [constant KEYS]; [method keycodes] turns each key label into
+## the key codes it stands for, so the list can be checked against what the input code handles.
+## Drawn as a [HudPanel] is.
 
 ## The keys the game responds to, in the order shown: each entry is [key label, what it does].
 ## A label is one or more keys split by spaces; [code]1-5[/code] is a run of number keys.
@@ -29,7 +30,7 @@ const KEYS: Array[Array] = [
 ]
 ## What the game is about, one short line each.
 const IDEA: Array[String] = [
-	"Your party explores on its own, fighting and doing side quests.",
+	"Your party explores on its own; heroes' skills unlock side quests.",
 	"When a depth turns stable (safe), it heads one deeper.",
 	"A wipe sends it back to the last safe depth.",
 	"Gold buys upgrades in the Shop, and training on hero sheets.",
