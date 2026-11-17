@@ -23,8 +23,11 @@ All statements are for a new game with default settings and no player input unle
   no more than 60 seconds. The curve is one function, stated in a doc comment, and `seconds_to_stable()`
   and the HUD's countdown follow it. A test or tool that sets `stable_seconds` itself still gets a flat
   time, as today.
-- **R2. The opening is busy.** In the first 2 minutes the party fights at least 6 battles; in the first 10
-  minutes at least 30 battles and side quests together.
+- **R2. The opening is busy.** In the first 2 minutes the party fights at least 5 battles; in the first 10
+  minutes at least 24 battles and side quests together. (Amended by the lead: the lane measured 24 to 31
+  as the most these rules give, because many levels have only two or three chambers that can hold
+  anything; reaching 30 needs a new rule near the surface, which is a later spec. Today's game gives 5
+  to 16.)
 - **R3. Little dead time.** Over the first 20 minutes, the party spends no more than 35% of its time
   travelling on a level where no chamber holds monsters or a side quest it can do. How that is achieved
   (faster respawn near the surface, moving on sooner, both) is the lane's choice.
@@ -84,6 +87,7 @@ under two minutes of test time.
 ## Paths
 
 - `sim/expedition/`, `sim/party/hero.gd` (the XP curve, only if R4 needs it)
+- Existing tests that hard-code the XP curve's values or wait `RESPAWN_SECONDS` at a shallow depth (say which)
 - `data/` (numbers only)
 - `tools/dev.py` and the Godot script it runs for `sim`, `tools/tests/`
 - `tests/acceptance/test_036_a_livelier_start.gd`
