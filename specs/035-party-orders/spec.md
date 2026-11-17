@@ -15,7 +15,9 @@ visible effect. They are the first of the knobs a player tunes while the game ru
 ## Requirements
 
 - **R1. Pace.** The party has a pace: `Cautious`, `Steady` or `Bold`. It sets the health below which the
-  party stops to rest after a fight: 80%, 60% or 40% of the party's total health. `Steady` is today's rule
+  party stops to rest after a fight: it rests when any hero is down or below 80%, 60% or 40% of their own
+  maximum health. (Amended by the lead after review: the first wording said "of the party's total health",
+  which contradicted "`Steady` is today's rule"; today's rule is per hero.) `Steady` is today's rule
   and the default.
 - **R2. Guardians.** The party has a guardian order: `Challenge` or `Hold`. Under `Challenge` (today's rule
   and the default) the party enters a guardian's chamber when its way down leads through it. Under `Hold`
@@ -32,7 +34,10 @@ visible effect. They are the first of the knobs a player tunes while the game ru
   same, tick for tick, as before this spec, and every existing test passes (apart from assertions about the
   save version or the exact saved dictionary, which may be updated).
 - **R6. They do what they say.** Over one hour with `stable_seconds` 120 on three seeds: a `Cautious` party
-  rests more often and wipes no more often than a `Bold` one; a party under `Hold` never fights a guardian,
+  rests more often and, summed over the three seeds, wipes no more often than a `Bold` one (amended by
+  the lead after review: seed by seed it does not hold, 12 wipes against 11 on one seed, and the totals are
+  33 against 34; pace barely changes how often the party wipes, which is a design finding for Zak, not
+  something this spec fixes); a party under `Hold` never fights a guardian,
   never passes depth 5, and is not stuck (it keeps fighting and earning on depth 5); and a party switched
   from `Hold` to `Challenge` at level 9 or above beats the first guardian within ten minutes on at least two
   of three seeds.
