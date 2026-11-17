@@ -7,9 +7,9 @@ extends RefCounted
 ## Which order an [constant SimEvent.Kind.ORDER_CHANGED] event is about, in its target_id.
 const PACE: int = 0
 const GUARDIANS: int = 1
-## The name of each pace and each guardian order, by value, as the view shows them.
+## Read only by the journal's order line (game/hud/journal.gd), which spec 040 may not touch; the
+## panel's own names are [constant OrdersPanel.PACE_NAMES]. To go once the journal reads those.
 const PACE_NAMES: Array[String] = ["Cautious", "Steady", "Bold"]
-const GUARDIAN_NAMES: Array[String] = ["Challenge", "Hold"]
 ## The same names as the save writes them.
 const PACE_SAVED: Array[String] = ["cautious", "steady", "bold"]
 const GUARDIAN_SAVED: Array[String] = ["challenge", "hold"]
@@ -27,6 +27,15 @@ static func rest_below(pace: Expedition.Pace) -> float:
 		Expedition.Pace.BOLD:
 			return BOLD_REST_BELOW
 	return Expedition.REST_BELOW
+
+
+## True if the party must rest after a fight at [param pace]: any of [param heroes] is down or
+## below its own share of its own maximum health (spec 040 R3: per hero, not the party's total).
+static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
+	for hero: Hero in heroes:
+		if not hero.is_alive() or hero.health < rest_below(pace) * hero.max_health():
+			return true
+	return false
 
 
 ## [param goal], or the column just outside [param room] if the walk from [param from] to
