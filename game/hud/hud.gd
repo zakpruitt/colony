@@ -95,6 +95,11 @@ var boss_bar: BossBar
 var journal: Journal
 ## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
 var hero_sheet: HeroSheet
+## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
+## tooltips on the HUD's elements.
+var help: HelpPanel
+var help_button: HudButton
+var tooltip: HudTooltip
 
 var _simulation: Simulation
 var _world: World
@@ -179,6 +184,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	journal = Journal.new()
 	add_child(journal)
 	journal.setup(simulation, world)
+	_build_help()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -193,10 +199,13 @@ func advance(delta: float) -> void:
 	if _simulation == null:
 		return
 	var reviving: bool = _simulation.expedition.state == Expedition.State.REVIVING
+	var battle: Battle = _simulation.expedition.battle
+	var fighting: bool = _simulation.expedition.state == Expedition.State.FIGHTING
 	for hero: Hero in _simulation.party.heroes:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.recovering = reviving
+			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
 	_advance_gold(delta)
 	_advance_depth(delta)
@@ -204,6 +213,9 @@ func advance(delta: float) -> void:
 	hero_sheet.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
+	help.advance(delta)
+	help_button.lit = help.is_open()
+	tooltip.advance(delta)
 
 
 ## What the party is doing and why, as the depth panel shows it: "Heading down to depth 5",
@@ -387,6 +399,27 @@ func _build_sheet() -> void:
 	hero_sheet.shown_changed.connect(_mark_frames)
 	for frame: HeroFrame in frames:
 		frame.clicked.connect(hero_sheet.toggle)
+
+
+## Help (spec 030): the ? button in the shop tab, left of Shop (the tab grows to hold it), the help
+## panel it opens, and the tooltips, made last so they are drawn over everything else.
+func _build_help() -> void:
+	help_button = HudButton.new("?")
+	help_button.name = "HelpButton"
+	help_button.custom_minimum_size = Vector2(HudButton.HEIGHT, HudButton.HEIGHT)
+	help_button.size = help_button.get_combined_minimum_size()
+	help_button.position = shop_button.position
+	shop_tab.add_child(help_button)
+	var room: float = help_button.size.x + 3.0
+	shop_button.position.x += room
+	shop_tab.size.x += room
+	help = HelpPanel.new()
+	add_child(help)
+	help.setup(_simulation, _world)
+	help_button.pressed.connect(help.toggle)
+	tooltip = HudTooltip.new()
+	add_child(tooltip)
+	tooltip.setup(self)
 
 
 func _mark_frames() -> void:
