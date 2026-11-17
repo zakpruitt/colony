@@ -11,6 +11,7 @@ const UPGRADES_DIR: String = "res://data/upgrades"
 const TRAINING_DIR: String = "res://data/training"
 const MICROSKILLS_DIR: String = "res://data/microskills"
 const SIDE_QUESTS_DIR: String = "res://data/sidequests"
+const ABILITIES_DIR: String = "res://data/abilities"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
@@ -20,6 +21,7 @@ static var _training: Dictionary[StringName, TrainingDef] = {}
 static var _training_ids: Array[StringName] = []
 static var _microskills: Dictionary[StringName, MicroskillDef] = {}
 static var _side_quests: Dictionary[StringName, SideQuestDef] = {}
+static var _abilities: Dictionary[StringName, AbilityDef] = {}
 static var _loaded: bool = false
 
 
@@ -95,6 +97,18 @@ static func side_quest_ids() -> Array[StringName]:
 	return _sorted(_side_quests.keys())
 
 
+## The ability with this id (spec 050), or null if there is none.
+static func ability(id: StringName) -> AbilityDef:
+	_load()
+	return _abilities.get(id, null)
+
+
+## Every ability id, sorted.
+static func ability_ids() -> Array[StringName]:
+	_load()
+	return _sorted(_abilities.keys())
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -139,6 +153,12 @@ static func _load() -> void:
 		_training[training_def.id] = training_def
 	_training_ids = _sorted(_training.keys())
 	_training_ids.sort_custom(_before_on_sheet)
+	for resource: Resource in _resources_in(ABILITIES_DIR):
+		var ability_def: AbilityDef = resource as AbilityDef
+		if ability_def == null:
+			push_error("Content: %s is not an AbilityDef" % resource.resource_path)
+			continue
+		_abilities[ability_def.id] = ability_def
 
 
 static func _resources_in(dir: String) -> Array[Resource]:

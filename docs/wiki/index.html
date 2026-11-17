@@ -314,7 +314,8 @@ too, and its heroes are brought up to the level their XP now earns.</p>
 </ul>
 <h3>Not built yet</h3>
 <p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
-equipment, talents, the warren-town at the surface, music, a settings screen.</p>
+equipment, talents (their rules for fights are in, spec 050, but no hero has any yet), the warren-town at
+the surface, music, a settings screen.</p>
 
 <nav>
   <ol start="0">
@@ -751,6 +752,29 @@ and heroes grow per level. The fight ends when one side is all dead (or, as a sa
 of game time, which counts as a loss). Everything that happens comes out as a list of events for the screen
 to animate; nothing is drawn yet. The numbers are checked by tests that play hundreds of fights: a fresh
 party always beats three slimes, needs its cleric against a pack of skeletons, and loses to six ogres.</p>
+
+<h3>Abilities in fights <span class="tag built">Built: spec 050, in the simulation</span></h3>
+<p>The rules the skill trees will be made of. An ability is a file under <code>data/abilities</code>. An
+<em>action</em> has a cooldown and a wind-up and replaces an ordinary strike when it is ready: it aims at the
+nearest, weakest or furthest enemy, the weakest ally or the fighter itself, can be kept for when an ally or
+the fighter is low, enough enemies are up, an enemy is right next to it (it never walks for that one) or the
+target is nearly dead, and the fighter walks into its reach first. A healer with a badly hurt ally heals before
+it uses an action on an enemy. A <em>passive</em>
+fires when something happens: the fight starts, the fighter lands a hit or a crit, kills, is hit, falls below
+some health, loses an ally, or makes its Nth strike; it can have a chance and be once a fight, and can land on the nearest enemy (an
+ambush). A passive on a strike can make that strike hit harder instead of adding a hit of its own (a reckless
+swing), and then it never fires on a miss. A passive with nobody to land on (its target already dead) does
+nothing and says nothing. Either does
+one or more things: damage (which can ignore armour, hit harder on the wounded, or heal the fighter for part
+of it), healing, a push, standing a fallen ally back up, or a status. The statuses are stunned, taunting,
+shielded, burning, bleeding, chilled, mending, hasted, slowed, mighty, weakened, marked, nimble and
+untouchable (no enemy's blow, spell or poison lands on it, and enemies pick someone else while they can); the
+same one again starts its time over and keeps the stronger without missing a tick of its damage, and every
+status ends with the fight. Nothing but a revive lands on the dead, and the dead die only once. Twelve sample
+abilities (Shield Bash, Taunt, Whirlwind, Last Stand, Backstab, Finisher, Fireball, Frost Nova, Chain
+spark, Prayer, Guardian Angel, Battle Hymn) are built in the tests. <strong>No hero or monster has one
+yet</strong>, so the game plays exactly as before; the talent trees (spec 051) hand them out and the hero
+sheet (spec 055) shows them.</p>
 <h3>Art <span class="tag built">Built</span></h3>
 <p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one pixel,
 using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool bakes each
