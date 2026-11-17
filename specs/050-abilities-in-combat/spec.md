@@ -86,6 +86,18 @@ func has_status(kind: <the lane's enum>) -> bool
 # or status id. ABILITY_STARTED, ABILITY_USED, STATUS_BEGAN, STATUS_ENDED, MISSED, REVIVED
 ```
 
+(Amended by the lead after the review of pull request 50, so that spec 051's trees can be said:
+an action's condition may also be **an enemy within N tiles of the fighter** (the fighter does not walk
+to make it true) or **the target below a share of health**; a passive that fires as the fight starts or
+on the fighter's own state may land on **the nearest enemy**; a damage effect on an every-Nth-strike or
+lands-a-hit passive may **multiply the strike itself** instead of adding a hit, and then never fires on a
+miss; a status **untouchable** (nothing hostile lands on it and enemies aim elsewhere when they can); a
+status **chilled** (damage each second, shown apart from burning and bleeding). Reapplying a status
+restarts how long it lasts, not its once-a-second clock. A healer with an ally below the healing
+threshold heals before it uses a damaging action. `Battle` gains a public `end()` that ends every status
+with its events; calling it from the expedition's own 90-second limit is spec 051's, since
+`sim/expedition/` belongs to another lane now.)
+
 `sim/combat/battle.gd` is 367 lines; put the new rules in new files under `sim/combat/` and keep
 `Battle` under gdlint's limits.
 

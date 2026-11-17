@@ -38,6 +38,9 @@ what abilities look like are spec 055.
   the talent and paragon points its level has earned, all unspent.
 - **R9. Saves carry it** (version 7): each hero's nodes, and its paragon points by stat. A node that
   breaks R3 or R4, an unknown node, or more points spent than earned is refused by name.
+- **R13. A fight the expedition ends, ends its statuses.** When the expedition ends a fight itself (the
+  90-second limit), it calls `Battle.end()` first, so every status ends with its event and no monster
+  goes back to its chamber carrying one. (`test_r13_limit_ends_statuses`.)
 - **R10. Auto-buy leaves heroes alone.** Auto-buy never spends talent or paragon points.
 - **R11. Worth having.** With `--spend-talents` (trunk in order, then the first path; paragon into Power)
   the headless run reaches the first Slime King win sooner and with fewer wipes than without, on seeds 1
