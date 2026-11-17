@@ -154,13 +154,23 @@ func _unhandled_input(event: InputEvent) -> void:
 				return
 			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop and the hero sheet are never open together (spec 029).
+			# The shop and the hero sheet are never open together (spec 029); the sheet trains
+			# only on its Training page (spec 034).
+			var training: bool = hero_sheet.page() == HeroSheet.Page.TRAINING
 			if shop.is_open():
 				shop.buy_row(key.keycode - KEY_1)
-			elif hero_sheet.is_open() and key.keycode <= KEY_3:
+			elif hero_sheet.is_open() and training and key.keycode <= KEY_3:
 				hero_sheet.train_row(key.keycode - KEY_1)
 			else:
 				return
+		KEY_Q, KEY_E:
+			# The hero sheet's previous and next page, while it is open (spec 034).
+			if not hero_sheet.is_open():
+				return
+			if key.keycode == KEY_Q:
+				hero_sheet.previous_page()
+			else:
+				hero_sheet.next_page()
 		_:
 			return
 	get_viewport().set_input_as_handled()
