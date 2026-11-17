@@ -145,7 +145,13 @@ by value, not with `assert_eq` against ints.
   a level-1 rogue can reach level 2 and learn Lockpicker on one walk. Pick a quest whose microskill comes
   late (a rune stone, Runereader at mage level 4) rather than the locked chest.
 - `dev.py test` shows a test's `print` output only when something fails. To read a trace while debugging,
-  end the test with a failing assertion, and delete the test (and its `.uid`) afterwards.
+  end the test with a failing assertion, and delete the test (and its `.uid`) afterwards. GUT prints each
+  failure twice (as it runs and again in the summary): when you capture a recording this way (an event list
+  to compare against later), cut it at the first copy, or you record everything twice.
+- A table of cases (`var cases: Array = [[...], ...]`) gives `Variant` elements, and passing `case[1]`
+  straight to a typed parameter, or even to `assert_eq`, is an `unsafe_call_argument` error. Copy each into
+  a typed local first (`var health: int = case[1]`). A file near gdlint's 1000 lines: write enum values by
+  name through a small setter (`_set_all(effect, {"lands": "TARGET"})`) rather than in full.
 - `[boot] FAIL`: the main scene printed an error while starting; the line is in the output.
 - **Passes locally, fails in CI:** CI is Linux, where paths are case-sensitive (`res://Sim/x.gd` is not
   `res://sim/x.gd`) and nothing untracked exists. `git status` for files you forgot to add, `.uid` files included.
