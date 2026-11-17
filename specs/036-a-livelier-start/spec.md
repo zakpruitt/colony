@@ -1,9 +1,9 @@
 # 036 — A livelier start: the first half hour
 
-- **Status:** provisional
+- **Status:** landed (provisional: not yet reviewed by Zak)
 - **Milestone:** M5
 - **Depends on:** 005, 016, 020, 025, 029
-- **Pull request:** —
+- **Pull request:** [#38](https://github.com/zakpruitt/colony/pull/38)
 
 ## Intent
 
