@@ -125,6 +125,10 @@ by value, not with `assert_eq` against ints.
   repeated `if x.size() == 1:` guards. `tests/acceptance/test_005_expedition_loop.gd` sits at exactly 1000:
   an update there must not add lines. The cap counts for `sim/` too: `sim/expedition/expedition.gd` is near
   it, so put a new rule's arithmetic on its def (spec 025's `SideQuestDef.reward_at`), not in the expedition.
+  When a spec's tests outgrow one file, move the shared helpers into a script with no tests of its own
+  (spec 050's `tests/unit/test_ability_kit.gd`, which `extends GutTest`) and have each test file
+  `extends "res://tests/unit/test_ability_kit.gd"`. If GUT then says `Ignoring script ... because it does
+  not extend GutTest`, the script (or its parent) failed to parse: `check --only=compile` names the line.
 - To prove a test can fail, break the code with a change that still compiles: `if false:` is dead code, a
   warning, so the script stops loading and everything fails (or a `SceneTree` script hangs) for the wrong
   reason. Prefer `if <condition> and <something never true>:`.
