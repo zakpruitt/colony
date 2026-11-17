@@ -607,10 +607,22 @@ func _put_on_statuses(battle: Battle) -> void:
 		_settle_now()
 		_cut_to_fight()
 		return
-	for fighter: Combatant in battle.heroes + battle.monsters:
+	# Spread out in their order and kept where they stand (each strikes from there, for 1), so
+	# every fighter's marks and label can be read.
+	var row: Array[Combatant] = battle.heroes + battle.monsters
+	row.sort_custom(func(a: Combatant, b: Combatant) -> bool: return a.x < b.x)
+	# Evenly between the outermost two, which the fight's bounds already hold.
+	var first: float = row[0].x
+	var step: float = (row[row.size() - 1].x - first) / maxf(row.size() - 1, 1)
+	for i: int in row.size():
+		var fighter: Combatant = row[i]
+		fighter.x = first + i * step
 		fighter.max_health *= 100
 		fighter.health = fighter.max_health
 		fighter.damage = 1
+		fighter.move_speed = 0.0
+		fighter.attack_range = 100.0
+		fighter.abilities = []
 	var left: Array = MONSTER_STATUSES.duplicate()
 	for i: int in battle.monsters.size():
 		var kinds: Array = []
@@ -648,12 +660,18 @@ func _put_on(battle: Battle, source: Combatant, receiver: Combatant, kind: int) 
 	BattleStatuses.apply(battle, source, receiver, effect, STATUS_FROM[kind])
 
 
+func _x_of(id: int) -> float:
+	var sprite: CharacterSprite = main.world.character(id)
+	return sprite.position.x if sprite != null else 0.0
+
+
 ## Spec 056: while the statuses' moment shows, a label under each fighter names its statuses.
 func _label_statuses() -> void:
 	var marks: StatusMarks = main.effects.ability_effects.marks
 	var ids: Array[int] = []
 	if moment() == &"statuses":
 		ids = marks.book.fighters()
+		ids.sort_custom(func(a: int, b: int) -> bool: return _x_of(a) < _x_of(b))
 	var camera: WorldCamera = main.world.camera
 	var view: Vector2 = camera.get_viewport_rect().size
 	var shown: int = 0
@@ -677,7 +695,9 @@ func _label_statuses() -> void:
 		var feet: Vector2 = (
 			(sprite.position - camera.position - camera.offset) * camera.zoom + view / 2.0
 		)
-		label.position = Vector2(roundf(feet.x - label.size.x / 2.0), roundf(feet.y + 3.0))
+		# Every other label a tier lower, so neighbours never run into each other.
+		var tier: float = (shown % 2) * 2.0 * (PixelText.SIZE + 1)
+		label.position = Vector2(roundf(feet.x - label.size.x / 2.0), roundf(feet.y + 3.0 + tier))
 		label.visible = true
 	for i: int in range(shown, _status_labels.size()):
 		_status_labels[i].visible = false
