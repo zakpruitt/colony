@@ -56,6 +56,7 @@ func _build_hud() -> void:
 
 func _level(hero: Hero, level: int) -> void:
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
+	_spend_talents(hero)
 	hero.health = hero.max_health()
 
 
@@ -187,11 +188,11 @@ func _open_panels() -> Array[String]:
 	return open
 
 
-## Opens [param hero]'s sheet on its Training tab as the player would: a click on its frame, then
+## Opens [param hero]'s sheet on its Talents tab as the player would: a click on its frame, then
 ## on the tab.
 func _open_training(hero: Hero) -> void:
 	_hud.hero_sheet.toggle(hero.id)
-	_hud.hero_sheet.open_page(HeroSheet.Page.TRAINING)
+	_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
 
 
 ## Clicks goal line [param index] by [param how] ("press" or "mouse").
@@ -232,13 +233,13 @@ func test_r1_click_a_goal() -> void:
 		_do(how, _line("Buy an upgrade"))
 		assert_true(_hud.shop.is_open(), "%s on Buy an upgrade opens the shop" % how)
 		assert_eq(_open_panels(), ["shop"] as Array[String], "%s: the shop only" % how)
-		# Train a hero: the trainee's sheet, on the Training tab.
+		# Train a hero: the trainee's sheet, on the Talents tab.
 		_close_all()
 		sheet.open_page(HeroSheet.Page.STATS)
 		_do(how, _line("Train a hero"))
 		assert_true(sheet.is_open(), "%s on Train a hero opens a hero sheet" % how)
 		assert_eq(sheet.shown_hero_id(), trainee.id, "%s: the first with a point's" % how)
-		assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "%s: on the Training tab" % how)
+		assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "%s: on the Talents tab" % how)
 
 	# A microskill: that hero's sheet, on the Skills tab.
 	_sim = Simulation.new(SEED)
@@ -251,7 +252,7 @@ func test_r1_click_a_goal() -> void:
 	assert_ne(skill, -1, "the microskill goal shows: %s" % [goals.lines()])
 	for how: String in ["press", "mouse"]:
 		_close_all()
-		sheet.open_page(HeroSheet.Page.TRAINING)
+		sheet.open_page(HeroSheet.Page.TALENTS)
 		_do(how, skill)
 		assert_eq(sheet.shown_hero_id(), learner.id, "%s on the microskill: its hero's sheet" % how)
 		assert_eq(sheet.page(), HeroSheet.Page.SKILLS, "%s: on the Skills tab" % how)
@@ -411,7 +412,7 @@ func test_r3_tooltip_says_so() -> void:
 	check.call()
 	var shop_action: String = seen.get("Buy", "")
 	assert_eq(shop_action, "Click to open the shop.", "the shop's")
-	assert_true(str(seen.get("Train", "")).contains("training"), "the training's: %s" % [seen])
+	assert_true(str(seen.get("Train", "")).contains("talents"), "the training's: %s" % [seen])
 	assert_true(str(seen.get("Reach", "")).contains("ladder"), "the depth's: %s" % [seen])
 
 	_sim = Simulation.new(SEED)
@@ -561,3 +562,12 @@ func test_r4_nothing_else_changes() -> void:
 		keys[found.get_string()] = true
 	var named: Array[String] = keys.keys()
 	assert_eq(named, ["KEY_G"] as Array[String], "the tracker's only key is G")
+
+
+## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
+## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
+func _spend_talents(hero: Hero) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var order: Array[StringName] = tree.trunk.duplicate()
+	order.append_array(tree.path_a)
+	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

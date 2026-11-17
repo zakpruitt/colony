@@ -367,10 +367,10 @@ func _check_entry(main: Main, label: String) -> void:
 			"1-3":
 				var hero: Hero = sim.party.heroes[0]
 				hud.hero_sheet.open(hero.id)
-				hud.hero_sheet.open_page(HeroSheet.Page.TRAINING)  # spec 034
+				hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)  # spec 034
 				# Spec 051: a row spends a paragon point, which levels past 14 bring.
 				hero.gain_xp(Hero.xp_for_level(40) - hero.xp)
-				var training: StringName = hud.hero_sheet.training_rows[code - KEY_1].id
+				var training: StringName = hud.hero_sheet.talents.paragon_cells[code - KEY_1].id
 				var stat: TrainingDef.Stat = Content.training(training).stat
 				var trained: int = hero.paragon_rank(stat)
 				_key(code)

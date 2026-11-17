@@ -9,7 +9,7 @@ const TOP_BAND: float = 28.0
 const TICKER_STRIP: float = 12.0
 const MOST: Vector2 = Vector2(240, 150)
 const PAGES: Array[HeroSheet.Page] = [
-	HeroSheet.Page.STATS, HeroSheet.Page.TRAINING, HeroSheet.Page.SKILLS
+	HeroSheet.Page.STATS, HeroSheet.Page.TALENTS, HeroSheet.Page.SKILLS
 ]
 const HEADER_KEYS: Array[StringName] = [&"class", &"role", &"level", &"activity", &"health", &"xp"]
 const STAT_KEYS: Array[StringName] = [
@@ -145,7 +145,11 @@ func test_r1_compact() -> void:
 			var rect: Rect2 = sheet.get_global_rect()
 			var what: String = "%s on %s: %s" % [hero.class_id, _page_name(page), rect.size]
 			assert_lte(rect.size.x, MOST.x, "%s at most 240 wide" % what)
-			assert_lte(rect.size.y, MOST.y, "%s at most 150 tall" % what)
+			# Spec 055: the Talents tab grows the sheet so the whole tree fits.
+			var tallest: float = MOST.y
+			if page == HeroSheet.Page.TALENTS:
+				tallest = HeroSheet.TALENTS_SIZE.y
+			assert_lte(rect.size.y, tallest, "%s at most %d tall" % [what, tallest])
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -200,7 +204,7 @@ func test_r3_three_tabs() -> void:
 	var names: Array[String] = []
 	for tab: HudButton in sheet.tab_buttons:
 		names.append(tab.text)
-	assert_eq(names, ["Stats", "Training", "Skills"] as Array[String], "named in order")
+	assert_eq(names, ["Stats", "Talents", "Skills"] as Array[String], "named in order")
 	var stat_text: String = sheet.line(&"stat_damage")
 	var skill_text: String = sheet.line(&"microskills").split("\n")[0]
 	assert_eq(skill_text, "Lockpicker: Opens locks", "the rogue's first microskill")
@@ -213,21 +217,18 @@ func test_r3_three_tabs() -> void:
 			assert_eq(sheet.tab_buttons[i].lit, i == page, "tab %d lit only when open %s" % [i, on])
 			assert_true(sheet.tab_buttons[i].is_visible_in_tree(), "every tab shows %s" % on)
 		var stats: bool = page == HeroSheet.Page.STATS
-		var training: bool = page == HeroSheet.Page.TRAINING
+		var talents: bool = page == HeroSheet.Page.TALENTS
 		var skills: bool = page == HeroSheet.Page.SKILLS
 		var damage: String = stat_text.get_slice(" ", 1)
 		assert_eq(_text_shown(sheet, "Damage"), stats, "the stat names only on Stats %s" % on)
 		assert_eq(_text_shown(sheet, damage), stats, "and their values %s" % on)
-		for row: HeroSheet.TrainingRow in sheet.training_rows:
-			assert_eq(
-				row.is_visible_in_tree(), training, "%s row only on Training %s" % [row.id, on]
-			)
+		assert_eq(sheet.talents.is_visible_in_tree(), talents, "the tree only on Talents %s" % on)
 		assert_eq(_text_shown(sheet, skill_text), skills, "microskills only on Skills %s" % on)
 
 	# A hidden tab's train button is not shown, so it takes no click, and a press does nothing.
 	_give_paragon(rogue, 5)
 	_hud.advance(0.016)
-	var power: HeroSheet.TrainingRow = sheet.training_row(&"training_power")
+	var power: TalentTab.ParagonCell = sheet.paragon_cell(&"training_power")
 	for page: HeroSheet.Page in [HeroSheet.Page.STATS, HeroSheet.Page.SKILLS]:
 		sheet.open_page(page)
 		_hud.advance(0.016)
@@ -235,13 +236,13 @@ func test_r3_three_tabs() -> void:
 		_click(power.buy_button)
 		_sim.step()
 		assert_eq(_rank(rogue, POWER), 0, "no training from %s" % _page_name(page))
-	# The same press on the Training tab trains.
-	sheet.open_page(HeroSheet.Page.TRAINING)
+	# The same press on the Talents tab trains.
+	sheet.open_page(HeroSheet.Page.TALENTS)
 	_hud.advance(0.016)
-	assert_true(power.buy_button.is_visible_in_tree(), "shown on Training")
+	assert_true(power.buy_button.is_visible_in_tree(), "shown on Talents")
 	_click(power.buy_button)
 	_sim.step()
-	assert_eq(_rank(rogue, POWER), 1, "the button trains on the Training tab")
+	assert_eq(_rank(rogue, POWER), 1, "the button trains on the Talents tab")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -255,7 +256,7 @@ func test_r4_easy_to_reach() -> void:
 	assert_eq(sheet.page(), HeroSheet.Page.STATS, "and opens on Stats")
 
 	# Clicking a tab opens it.
-	for page: HeroSheet.Page in [HeroSheet.Page.SKILLS, HeroSheet.Page.TRAINING]:
+	for page: HeroSheet.Page in [HeroSheet.Page.SKILLS, HeroSheet.Page.TALENTS]:
 		_click(sheet.tab_buttons[page])
 		assert_eq(sheet.page(), page, "clicking %s opens it" % _page_name(page))
 	_click(sheet.tab_buttons[HeroSheet.Page.STATS])
@@ -263,35 +264,35 @@ func test_r4_easy_to_reach() -> void:
 
 	# E is next and Q is previous, wrapping.
 	_key(KEY_E)
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "E: Stats to Training")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "E: Stats to Talents")
 	_key(KEY_E)
-	assert_eq(sheet.page(), HeroSheet.Page.SKILLS, "E: Training to Skills")
+	assert_eq(sheet.page(), HeroSheet.Page.SKILLS, "E: Talents to Skills")
 	_key(KEY_E)
 	assert_eq(sheet.page(), HeroSheet.Page.STATS, "E wraps: Skills to Stats")
 	_key(KEY_Q)
 	assert_eq(sheet.page(), HeroSheet.Page.SKILLS, "Q wraps: Stats to Skills")
 	_key(KEY_Q)
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "Q: Skills to Training")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "Q: Skills to Talents")
 	sheet.next_page()
 	sheet.previous_page()
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "next then previous comes back")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "next then previous comes back")
 
 	# The tab is kept across heroes, closing and reopening.
 	for i: int in _sim.party.heroes.size():
 		_key(KEY_TAB)
-		assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "kept on hero %d" % (i + 1))
+		assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "kept on hero %d" % (i + 1))
 	_key(KEY_ESCAPE)
 	assert_false(sheet.is_open(), "Esc closes the sheet")
 	_key(KEY_E)
 	_key(KEY_Q)
 	_key(KEY_Q)
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "Q and E do nothing while closed")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "Q and E do nothing while closed")
 	sheet.open(_hero(2).id)
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "reopened on Training")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "reopened on Talents")
 	sheet.close_button.pressed.emit()
 	_key(KEY_TAB)
 	assert_true(sheet.is_open(), "Tab reopens it")
-	assert_eq(sheet.page(), HeroSheet.Page.TRAINING, "still on Training")
+	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "still on Talents")
 
 	# A new session starts on Stats.
 	var fresh: Hud = _make_hud(Simulation.new(SEED))
@@ -302,12 +303,12 @@ func test_r4_easy_to_reach() -> void:
 # --- R5 ------------------------------------------------------------------------
 
 
-func test_r5_training_marker() -> void:
+func test_r5_talents_marker() -> void:
 	var sheet: HeroSheet = _sheet()
 	var knight: Hero = _hero(0)
 	var rogue: Hero = _hero(1)
-	assert_not_null(sheet.training_marker, "the Training tab has a marker")
-	if sheet.training_marker == null:
+	assert_not_null(sheet.talents_marker, "the Talents tab has a marker")
+	if sheet.talents_marker == null:
 		return
 	_sim.party.gold = 1_000_000
 	sheet.open(rogue.id)
@@ -315,34 +316,32 @@ func test_r5_training_marker() -> void:
 		sheet.open_page(page)
 		_hud.advance(0.016)
 		var on: String = "on %s" % _page_name(page)
-		assert_false(
-			sheet.page_marked(HeroSheet.Page.TRAINING), "no paragon point: no marker %s" % on
-		)
-		assert_false(sheet.training_marker.is_visible_in_tree(), "and none shown %s" % on)
+		assert_false(sheet.page_marked(HeroSheet.Page.TALENTS), "no point: no marker %s" % on)
+		assert_false(sheet.talents_marker.is_visible_in_tree(), "and none shown %s" % on)
 	_give_paragon(rogue, 1)
 	for page: HeroSheet.Page in PAGES:
 		sheet.open_page(page)
 		_hud.advance(0.016)
 		var on: String = "on %s" % _page_name(page)
-		assert_true(sheet.page_marked(HeroSheet.Page.TRAINING), "a point to spend: marked %s" % on)
-		assert_true(sheet.training_marker.is_visible_in_tree(), "and shown %s" % on)
+		assert_true(sheet.page_marked(HeroSheet.Page.TALENTS), "a point to spend: marked %s" % on)
+		assert_true(sheet.talents_marker.is_visible_in_tree(), "and shown %s" % on)
 		assert_false(sheet.page_marked(HeroSheet.Page.STATS), "Stats is never marked %s" % on)
-		var tab: Rect2 = sheet.tab_buttons[HeroSheet.Page.TRAINING].get_global_rect()
-		var mark: Rect2 = sheet.training_marker.get_global_rect()
-		assert_true(mark.intersects(tab), "pinned on the Training tab %s" % on)
+		var tab: Rect2 = sheet.tab_buttons[HeroSheet.Page.TALENTS].get_global_rect()
+		var mark: Rect2 = sheet.talents_marker.get_global_rect()
+		assert_true(mark.intersects(tab), "pinned on the Talents tab %s" % on)
 		assert_gt(mark.end.x, tab.end.x - 1.0, "at its right %s" % on)
 
 	# It is the shown hero's: a hero with no paragon point is not marked.
 	sheet.open(knight.id)
 	_hud.advance(0.016)
-	assert_false(sheet.page_marked(HeroSheet.Page.TRAINING), "the knight has no point")
-	assert_false(sheet.training_marker.is_visible_in_tree(), "no marker for the knight")
+	assert_false(sheet.page_marked(HeroSheet.Page.TALENTS), "the knight has no point")
+	assert_false(sheet.talents_marker.is_visible_in_tree(), "no marker for the knight")
 	sheet.open(rogue.id)
 	_hud.advance(0.016)
-	assert_true(sheet.page_marked(HeroSheet.Page.TRAINING), "back on the rogue: marked")
+	assert_true(sheet.page_marked(HeroSheet.Page.TALENTS), "back on the rogue: marked")
 	sheet.close()
 	_hud.advance(0.016)
-	assert_false(sheet.training_marker.is_visible_in_tree(), "nothing shows while closed")
+	assert_false(sheet.talents_marker.is_visible_in_tree(), "nothing shows while closed")
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -372,9 +371,9 @@ func test_r6_skills_marker() -> void:
 	assert_true(sheet.skills_marker.is_visible_in_tree(), "and shows it")
 	var tab: Rect2 = sheet.tab_buttons[HeroSheet.Page.SKILLS].get_global_rect()
 	assert_true(sheet.skills_marker.get_global_rect().intersects(tab), "pinned on the Skills tab")
-	sheet.open_page(HeroSheet.Page.TRAINING)
+	sheet.open_page(HeroSheet.Page.TALENTS)
 	_hud.advance(0.016)
-	assert_true(sheet.page_marked(HeroSheet.Page.SKILLS), "still marked from Training")
+	assert_true(sheet.page_marked(HeroSheet.Page.SKILLS), "still marked from Talents")
 	sheet.open(mage.id)
 	_hud.advance(0.016)
 	assert_false(sheet.page_marked(HeroSheet.Page.SKILLS), "the mage learned nothing")
@@ -424,14 +423,14 @@ func test_r7_number_keys() -> void:
 		_sim.step()
 		assert_false(rogue.has_grown(), "1 to 3 train nothing on %s" % _page_name(page))
 		assert_eq(rogue.paragon_points(), 5, "no point spent on %s" % _page_name(page))
-	sheet.open_page(HeroSheet.Page.TRAINING)
+	sheet.open_page(HeroSheet.Page.TALENTS)
 	_hud.advance(0.016)
 	var ids: Array[StringName] = Content.training_ids()
 	var codes: Array[Key] = [KEY_1, KEY_2, KEY_3]
 	for i: int in 3:
 		_key(codes[i])
 		_sim.step()
-		assert_eq(_rank(rogue, ids[i]), 1, "%d trains %s on Training" % [i + 1, ids[i]])
+		assert_eq(_rank(rogue, ids[i]), 1, "%d trains %s on Talents" % [i + 1, ids[i]])
 
 
 # --- R9 ------------------------------------------------------------------------
