@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 031 | [The away report tells the whole story](031-away-report-knows-more/spec.md) | M5 | landed on dev, [#30](https://github.com/zakpruitt/colony/pull/30), provisional | 019, 020, 022, 025 |
 | 029 | [Hero training](029-hero-training/spec.md) | M4 | landed on dev, [#29](https://github.com/zakpruitt/colony/pull/29), provisional | 014, 016, 022, 026 |
 | 027 | [Reading the party](027-reading-the-party/spec.md) | M5 | landed on dev, [#28](https://github.com/zakpruitt/colony/pull/28), provisional | 008, 010, 011, 020 |
 | 025 | [Microskills and side quests](025-microskills-and-side-quests/spec.md) | M4 | landed on dev, [#27](https://github.com/zakpruitt/colony/pull/27), provisional | 005, 020, 023 |
@@ -46,4 +47,3 @@ until Zak has played them.
 |---|---|---|
 | [028 Seeing side quests](028-seeing-side-quests/spec.md): props, the worker at work, misses that say what was needed, microskills in the sheet and journal | provisional, waiting on 025 and 027 | 008, 010, 011, 021, 025, 026, 027 |
 | [030 Help, tooltips and live health](030-help-and-hints/spec.md): a help panel, tooltips, a first-run welcome, frames that move during fights | provisional, waiting on 027 | 011, 017, 021, 026, 027 |
-| [031 The away report tells the whole story](031-away-report-knows-more/spec.md): kills counted right, plus guardians, side quests and microskills | provisional, in progress | 019, 020, 022, 025 |
