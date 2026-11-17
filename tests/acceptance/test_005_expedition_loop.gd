@@ -457,16 +457,16 @@ func test_r7_kills_pay_xp_and_gold() -> void:
 
 func test_r8_levels() -> void:
 	assert_eq(Hero.xp_for_level(1), 0)
-	assert_eq(Hero.xp_for_level(2), 50)
-	assert_eq(Hero.xp_for_level(3), 150)
-	assert_eq(Hero.xp_for_level(4), 300)
+	assert_eq(Hero.xp_for_level(2), 20)
+	assert_eq(Hero.xp_for_level(3), 90)
+	assert_eq(Hero.xp_for_level(4), 210)
 
 	var def: HeroClassDef = Content.hero_class(&"knight")
 	var hero := Hero.new(1, def)
-	assert_eq(hero.gain_xp(49), 0)
-	assert_eq(hero.level, 1, "49 XP is not enough")
+	assert_eq(hero.gain_xp(19), 0)
+	assert_eq(hero.level, 1, "19 XP is not enough")
 	assert_eq(hero.gain_xp(1), 1)
-	assert_eq(hero.level, 2, "50 XP is level 2")
+	assert_eq(hero.level, 2, "20 XP is level 2")
 	assert_eq(hero.max_health(), def.max_health + def.health_per_level)
 	assert_eq(hero.health, hero.max_health(), "healed by the health gained")
 
@@ -553,7 +553,7 @@ func test_r10_cleared_chamber_refills() -> void:
 	var cleared: int = sim.tick
 	assert_false(e.is_populated(1, index), "empty once cleared")
 	assert_eq(e.monsters_in(1, index).size(), 0)
-	var refill: int = cleared + _ticks(Expedition.RESPAWN_SECONDS)
+	var refill: int = cleared + _ticks(DepthTiming.respawn_seconds_at(1))
 	while sim.tick < refill - 1:
 		sim.step()
 		sim.drain_events()
@@ -562,7 +562,7 @@ func test_r10_cleared_chamber_refills() -> void:
 			return
 	sim.step()  # since spec 025 a plain chamber may refill with a side quest instead of monsters
 	var quest: bool = e.side_quest_in(1, index) != &""
-	assert_true(quest or e.monsters_in(1, index).size() > 0, "refilled after RESPAWN_SECONDS")
+	assert_true(quest or e.monsters_in(1, index).size() > 0, "refilled after its respawn time")
 
 
 # --- R11 -----------------------------------------------------------------------

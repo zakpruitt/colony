@@ -172,6 +172,20 @@ func close() -> void:
 	panel.visible = false
 
 
+## Writes [param sentence] as a line now, without showing it in the ticker: the goals tracker's
+## line for a finished goal (spec 037 R3), which the tracker itself celebrates.
+func write(sentence: String) -> void:
+	if _simulation == null or sentence.is_empty():
+		return
+	_times.push_front(clock(_simulation.tick))
+	_sentences.push_front(sentence)
+	if _sentences.size() > CAPACITY:
+		_times.resize(CAPACITY)
+		_sentences.resize(CAPACITY)
+	if is_open():
+		_fill_panel()
+
+
 ## Game time as m:ss, or h:mm:ss from an hour on.
 static func clock(tick: int) -> String:
 	var seconds: int = floori(float(tick) / Simulation.TICKS_PER_SECOND)

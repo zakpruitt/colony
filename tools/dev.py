@@ -9,7 +9,7 @@
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
                                          run the game in a window, save PNGs to .shots/
     python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
-                            [--buy-upgrades]
+                            [--buy-upgrades] [--timeline]
                                          run the simulation headless, print a JSON summary
 
 Standard library only. Godot is found through the GODOT environment
@@ -363,6 +363,8 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append(f"--stable-seconds={args.stable_seconds}")
     if args.buy_upgrades:
         options.append("--buy-upgrades=true")
+    if args.timeline:
+        options.append("--timeline=true")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
         import_project()
@@ -416,6 +418,11 @@ def main() -> int:
         "--buy-upgrades",
         action="store_true",
         help="buy the cheapest affordable camp upgrade whenever the party can",
+    )
+    sim.add_argument(
+        "--timeline",
+        action="store_true",
+        help="add the game time in seconds of each first (level 2, depth 5, first guardian ...)",
     )
     sim.set_defaults(handler=command_sim)
 

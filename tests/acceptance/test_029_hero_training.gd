@@ -11,28 +11,29 @@ const TRAININGS: Array = [
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes, recorded on dev
 ## before this spec changed any sim code: first on f2aab10, then again on 9a496cf (spec 025's
 ## side quests change the game) with this spec's sim code set aside.
+## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2138702493,
-		2516982573,
-		3852944666,
-		3745694668,
-		1494098986,
-		2869340306,
-		2310054196,
-		3299673341,
+		2084462142,
+		1561799888,
+		3430649855,
+		3211837043,
+		4285711305,
+		628014606,
+		3523731703,
+		1401816699,
 	],
 	29:
 	[
-		717491089,
-		123440885,
-		2058545794,
-		653061822,
-		2482246253,
-		2344692318,
-		1818886748,
-		2302445392,
+		2137347314,
+		1257746763,
+		1616045309,
+		257261949,
+		388501477,
+		1050815822,
+		1209199514,
+		2783104606,
 	],
 }
 const SEED: int = 29

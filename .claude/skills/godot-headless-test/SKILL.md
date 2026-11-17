@@ -36,6 +36,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `git checkout origin/dev -- sim`, run a throwaway recorder test that only uses `Simulation` (one that names
   a `game/` class will not load against the old `sim/`), then `git checkout HEAD -- sim` and delete the
   recorder.
+- A change to the default game (tuning, timing) breaks every recorded hash at once, and they are in several
+  files with different intervals (016, 022 and 029 every 1500 ticks, 035 every 600). `grep -rn
+  RECORDED_HASHES tests/` and re-run each test's own loop; a later merge can bring in a new one.
+- When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
+  line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
+  Windows writes CRLF; when editing files from a script, read and write bytes.
 
 ## Testing nodes (`game/`)
 
@@ -96,6 +102,12 @@ by value, not with `assert_eq` against ints.
   reason. Prefer `if <condition> and <something never true>:`.
 - `SCRIPT ERROR ... Could not find type "X"`: a new `class_name` the import cache has not seen. Run
   `python tools/dev.py import` (the full `check` does this for you).
+- `test_030 ... test_r3_every_key_is_listed` fails with `KEY_SOMETHING is a key`: the test reads every word
+  starting `KEY_` under `game/` as a key the game handles. A constant named `KEY_HINT` counts; name it
+  something else (`HIDE_HINT`).
+- A HUD test that jumps the simulation from one situation to the next can finish spec 037's goals on the way
+  (a deeper depth, a level that learns a microskill); the finished goal holds its row for 3 s. Advance the
+  HUD a frame, then past `Goals.CELEBRATE_SECONDS`, before reading `goals.lines()`.
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.
 - `dev.py test` shows a test's `print` output only when something fails. To read a trace while debugging,
   end the test with a failing assertion, and delete the test (and its `.uid`) afterwards.

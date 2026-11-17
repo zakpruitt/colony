@@ -94,6 +94,11 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void
 	# Each swing of a hero working a side quest clicks, softly (spec 028 R9).
 	if world.quest_props != null and not world.quest_props.worked.is_connected(_on_worked):
 		world.quest_props.worked.connect(_on_worked)
+	# A goal finished on the HUD's tracker (spec 037) plays the stable chime.
+	var main: Main = get_parent() as Main
+	if main != null and main.hud != null and main.hud.goals != null:
+		if not main.hud.goals.goal_finished.is_connected(_on_goal_finished):
+			main.hud.goals.goal_finished.connect(_on_goal_finished)
 	_apply_mute(settings != null and settings.muted())
 
 
@@ -235,6 +240,10 @@ func _on_sim_event(event: SimEvent) -> void:
 			play(&"depth_stable")
 		SimEvent.Kind.UPGRADE_BOUGHT, SimEvent.Kind.HERO_TRAINED:
 			play(&"ui_buy")
+
+
+func _on_goal_finished(_sentence: String) -> void:
+	play(&"depth_stable")
 
 
 func _on_worked(_hero_id: int) -> void:
