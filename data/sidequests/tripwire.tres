@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SideQuestDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/side_quest_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"tripwire"
+display_name = "Tripwire"
+description = "A wire across the floor, and a trap at the end of it"
+microskill = &"trapspotter"
+work_seconds = 3.0
+reward = 0
+reward_factor = 1.0
+miss_damage = 0.2

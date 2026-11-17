@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="MicroskillDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/microskill_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"trapspotter"
+display_name = "Trapspotter"
+description = "Sees a trap before it sees you"

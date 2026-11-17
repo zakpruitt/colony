@@ -8,11 +8,15 @@ extends RefCounted
 const HEROES_DIR: String = "res://data/heroes"
 const MONSTERS_DIR: String = "res://data/monsters"
 const UPGRADES_DIR: String = "res://data/upgrades"
+const MICROSKILLS_DIR: String = "res://data/microskills"
+const SIDE_QUESTS_DIR: String = "res://data/sidequests"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
 static var _upgrades: Dictionary[StringName, UpgradeDef] = {}
 static var _upgrade_ids: Array[StringName] = []
+static var _microskills: Dictionary[StringName, MicroskillDef] = {}
+static var _side_quests: Dictionary[StringName, SideQuestDef] = {}
 static var _loaded: bool = false
 
 
@@ -52,6 +56,30 @@ static func upgrade_ids() -> Array[StringName]:
 	return _upgrade_ids.duplicate()
 
 
+## The microskill with this id, or null if there is none.
+static func microskill(id: StringName) -> MicroskillDef:
+	_load()
+	return _microskills.get(id, null)
+
+
+## Every microskill id, sorted.
+static func microskill_ids() -> Array[StringName]:
+	_load()
+	return _sorted(_microskills.keys())
+
+
+## The side quest with this id, or null if there is none.
+static func side_quest(id: StringName) -> SideQuestDef:
+	_load()
+	return _side_quests.get(id, null)
+
+
+## Every side quest id, sorted.
+static func side_quest_ids() -> Array[StringName]:
+	_load()
+	return _sorted(_side_quests.keys())
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -75,6 +103,18 @@ static func _load() -> void:
 			continue
 		_upgrades[upgrade_def.id] = upgrade_def
 	_upgrade_ids = _sorted(_upgrades.keys())
+	for resource: Resource in _resources_in(MICROSKILLS_DIR):
+		var skill: MicroskillDef = resource as MicroskillDef
+		if skill == null:
+			push_error("Content: %s is not a MicroskillDef" % resource.resource_path)
+			continue
+		_microskills[skill.id] = skill
+	for resource: Resource in _resources_in(SIDE_QUESTS_DIR):
+		var quest: SideQuestDef = resource as SideQuestDef
+		if quest == null:
+			push_error("Content: %s is not a SideQuestDef" % resource.resource_path)
+			continue
+		_side_quests[quest.id] = quest
 	_upgrade_ids.sort_custom(_before_in_shop)
 
 
