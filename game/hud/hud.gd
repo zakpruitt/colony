@@ -111,6 +111,8 @@ var tooltip: HudTooltip
 ## The party's orders (spec 035): the panel, and the Orders button at the left of the shop tab.
 var orders: OrdersPanel
 var orders_button: HudButton
+## What beat the party and what would help (spec 041), under the top band in the middle.
+var defeat_note: DefeatNote
 
 var _simulation: Simulation
 var _world: World
@@ -211,6 +213,11 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	goals.setup(simulation, world)
 	_build_help()
 	_build_orders()
+	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
+	add_child(defeat_note)
+	defeat_note.setup(simulation, world, self)
+	defeat_note.target_asked.connect(_on_ladder_target)
+	move_child(tooltip, -1)  # drawn over the note
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -246,6 +253,7 @@ func advance(delta: float) -> void:
 	help_button.lit = help.is_open()
 	orders.advance(delta)
 	orders_button.lit = orders.is_open()
+	defeat_note.advance(delta)
 	tooltip.advance(delta)
 
 
