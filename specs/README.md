@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 037 | [Goals](037-goals/spec.md) | M5 | landed on dev, [#37](https://github.com/zakpruitt/colony/pull/37), provisional | 011, 020, 025, 027, 029, 030, 034 |
 | 035 | [Party orders](035-party-orders/spec.md) | M4 | landed on dev, [#36](https://github.com/zakpruitt/colony/pull/36), provisional | 005, 014, 020, 027, 030 |
 | 033 | [The depth ladder](033-depth-ladder/spec.md) | M5 | landed on dev, [#34](https://github.com/zakpruitt/colony/pull/34), provisional | 011, 020, 027 |
 | 034 | [A hero sheet that fits](034-hero-sheet-tabs/spec.md) | M4 | landed on dev, [#35](https://github.com/zakpruitt/colony/pull/35), provisional | 026, 028, 029 |
@@ -52,5 +53,4 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [036 A livelier start](036-a-livelier-start/spec.md): the first half hour is slow to the point of looking broken; stability scales with depth and the opening is retuned | provisional, in progress | 005, 016, 020, 025, 029 |
-| [037 Goals](037-goals/spec.md): the next few things within reach, with progress; hero frames that point at themselves | provisional, in progress | 011, 020, 025, 027, 029, 030, 034 |
 | [038 Rough edges on screen](038-rough-edges-on-screen/spec.md): the party stays visible through a wipe, heroes stand at a guardian and not in it, side quests glint in the dark | provisional, in progress | 008, 010, 012, 020, 028 |
