@@ -1,9 +1,9 @@
 # 056 — Abilities on screen
 
-- **Status:** provisional (direction agreed with Zak 2026-11-17; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction agreed with Zak 2026-11-17; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 010, 027, 045, 050, 051
-- **Pull request:** —
+- **Pull request:** [#57](https://github.com/zakpruitt/colony/pull/57)
 
 ## Intent
 

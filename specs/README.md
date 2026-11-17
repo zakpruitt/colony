@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 056 | [Abilities on screen](056-abilities-on-screen/spec.md) | M6 | landed on dev, [#57](https://github.com/zakpruitt/colony/pull/57), provisional | 010, 027, 045, 050, 051 |
 | 052 | [Resources](052-resources/spec.md) | M6 | landed on dev, [#55](https://github.com/zakpruitt/colony/pull/55), provisional | 016, 017, 022, 031, 049, 051, 053 |
 | 055 | [The tree on the hero sheet](055-the-tree-on-the-sheet/spec.md) | M6 | landed on dev, [#56](https://github.com/zakpruitt/colony/pull/56), provisional | 034, 037, 041, 042, 051 |
 | 051 | [Talent trees and paragon](051-talent-trees-and-paragon/spec.md) | M6 | landed on dev, [#54](https://github.com/zakpruitt/colony/pull/54), provisional | 029, 049, 050 |
@@ -72,4 +73,3 @@ abilities for every hero, with paragon points after it (`docs/design/world.md`, 
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [056 Abilities on screen](056-abilities-on-screen/spec.md) | in progress, provisional | 010, 027, 045, 050, 051 |
