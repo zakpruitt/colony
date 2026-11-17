@@ -6,6 +6,10 @@ extends RefCounted
 ## the guardian, no nearer than its body's edge, and each no nearer than [constant ROOM] to the
 ## hero in front of it on that side. Only the heroes' sprites move; the guardian, the monsters and
 ## everything aimed at the guardian stay where they were.
+##
+## The edge is where the guardian's pixels reach through its poses, its lunge included, and a
+## hero stands back by as far as its own reach through its poses, its swing included
+## ([method SpriteBounds.reach], spec 048 R7): so neither ever draws over the other.
 
 ## Pixels kept clear between a hero's body and the guardian's.
 const GAP: float = 2.0
@@ -39,8 +43,8 @@ func space(world: World, goals: Dictionary[int, Vector2]) -> void:
 	var body_sprite: CharacterSprite = world.character(guardian.id) if guardian != null else null
 	if body_sprite == null:
 		return
-	var body: Rect2 = SpriteBounds.body_rect(body_sprite)
-	var middle: float = body.get_center().x
+	var middle: float = body_sprite.position.x
+	var body: float = SpriteBounds.reach(body_sprite)
 	var behind: int = -world.simulation.expedition.facing
 	var sides: Dictionary[int, Array] = {-1: [], 1: []}
 	for hero: Hero in world.simulation.party.heroes:
@@ -56,10 +60,10 @@ func space(world: World, goals: Dictionary[int, Vector2]) -> void:
 			func(a: int, b: int) -> bool:
 				return absf(goals[a].x - middle) < absf(goals[b].x - middle)
 		)
-		var face: float = body.position.x - GAP if side < 0 else body.end.x + GAP
+		var face: float = middle + side * (body + GAP)
 		var front: float = INF
 		for id: int in ids:
-			var reach: float = SpriteBounds.half_width(world.character(id))
+			var reach: float = SpriteBounds.reach(world.character(id))
 			_edge[id] = face + side * reach
 			# Measured as distance out from the guardian on this side: larger is further away.
 			var out: float = (goals[id].x - middle) * side

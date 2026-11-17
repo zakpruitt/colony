@@ -383,7 +383,8 @@ in the dark, beyond the party's light, now shows a small white glint at the prop
 slowly (small, big, small, then a pause, every two seconds) above the darkness, so you can spot it from afar. The
 glint goes when the party's light reaches the prop, comes back once the party has passed a quest nobody can
 do, and is gone for good once the quest is done. In a guardian fight, the knight and the rogue stand at the
-guardian's edge instead of inside its body, the others keeping their room behind them.</p>
+guardian's edge instead of inside its body, the others keeping their room behind them: far enough that the
+guardian's lunge and their own swings never draw one over the other (spec 048).</p>
 <h3>Death and the last stable depth</h3>
 <p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
 (one minute on depth 1, longer each level down, ten minutes from depth 10 on). If the party wipes, it revives there and keeps farming. A wipe costs
@@ -420,9 +421,11 @@ than jumping. Monsters stand idle in every chamber that holds them on the levels
 party's side, and reappear when a chamber refills. In a fight every attack, hit, death and bolt comes from the
 simulation, so what you see is what happened. A hero who falls topples onto their back and lies there
 until the fight is won (spec 038). After a wipe the camera stays on the fallen party for about a second and
-a half, then glides to where the party will revive (it cuts there instead if that is more than three
-screens away) and arrives before the revival, so you see the heroes, still lying, sit up and stand under
-the light. At 2x and 4x the same story plays faster. If the game falls behind (a long freeze, say), it
+a half, then glides to where the party will revive and arrives before the revival, so you see the heroes,
+still lying, sit up and stand under the light. If that place is more than three screens away the camera stays
+on the fallen and cuts there just before they stand. At 2x and 4x the same story plays faster, and it picks
+up wherever the wipe has got to if you come back to the game while the party is down or the game freezes
+for a moment (spec 048). If the game falls behind (a long freeze, say), it
 catches up at once to the simulation's
 true state instead of replaying old animations.</p>
 <p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each

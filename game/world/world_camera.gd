@@ -67,18 +67,22 @@ func snap_to(world_pixels: Vector2) -> void:
 	_apply()
 
 
-## Carries the view from where it is to [param world_pixels] over [param seconds], eased in and
-## out, whatever [member target] says meanwhile; then it follows [member target] again. The end is
-## kept inside the band, so the travel ends where the view will rest.
-func travel(world_pixels: Vector2, seconds: float) -> void:
+## Carries the view from where it is (or from [param from]) to [param world_pixels] over
+## [param seconds], eased in and out, whatever [member target] says meanwhile; then it follows
+## [member target] again. [param into] seconds of the travel are already over, so the next
+## [method _process] goes on from there: a travel can be taken up part way. The end is kept inside
+## the band, so the travel ends where the view will rest.
+func travel(
+	world_pixels: Vector2, seconds: float, into: float = 0.0, from: Vector2 = Vector2.INF
+) -> void:
 	if seconds <= 0.0:
 		snap_to(world_pixels)
 		return
 	var half: float = _view_size().x * 0.5 / zoom.x
-	_travel_from = _followed
+	_travel_from = _followed if from == Vector2.INF else from
 	_travel_to = Vector2(_clamp_to_band(world_pixels.x, half), world_pixels.y)
 	_travel_time = seconds
-	_travel_age = 0.0
+	_travel_age = clampf(into, 0.0, seconds)
 	target = world_pixels
 
 

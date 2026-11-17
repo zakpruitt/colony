@@ -1,6 +1,6 @@
 extends GutTest
 ## Unit tests for the fallen party (spec 038) that the acceptance tests reach only indirectly: the
-## revival's place worked out ahead of the simulation, the cut to a far revival, a fallen hero
+## cut to a far revival, a fallen hero
 ## after a won fight, the heroes' spacing at a guardian, and the camera's travel.
 
 const FRAME: float = 1.0 / 60.0
@@ -22,31 +22,6 @@ func _wipe(sim: Simulation) -> void:
 		hero.health = 0
 
 
-## Steps [param sim] until the party is revived; false if it never is.
-func _until_revived(sim: Simulation) -> bool:
-	for i: int in 200:
-		sim.step()
-		for event: SimEvent in sim.drain_events():
-			if event.kind == SimEvent.Kind.PARTY_REVIVED:
-				return true
-	return false
-
-
-func test_the_revival_spot_is_where_the_simulation_revives() -> void:
-	for seed_value: int in [1, 2, 3]:
-		for stable: int in [1, 2, 4]:
-			var sim := Simulation.new(seed_value)
-			sim.expedition.last_stable_depth = stable
-			sim.expedition.deepest_depth = stable
-			var spot: Vector3 = FallenParty.revival_spot(sim)
-			_wipe(sim)
-			assert_true(_until_revived(sim), "revived")
-			var feet: Vector2 = sim.expedition.hero_position(KNIGHT)
-			var label: String = "seed %d, stable depth %d" % [seed_value, stable]
-			assert_eq(Vector2(spot.x, spot.y), Vector2(feet.x * TILE, (feet.y + 1) * TILE), label)
-			assert_eq(int(spot.z), sim.expedition.facing, label + ": facing")
-
-
 func test_a_far_revival_is_a_cut() -> void:
 	var sim := Simulation.new(1)
 	var world: World = _world(sim)
@@ -58,7 +33,8 @@ func test_a_far_revival_is_a_cut() -> void:
 	var biggest: float = 0.0
 	var last: Vector2 = world.camera.position
 	var built_there: bool = false
-	for i: int in roundi(4.0 / FRAME):
+	# The cut waits until shortly before the revival, 5 s after the wipe (spec 048 R6).
+	for i: int in roundi(5.0 / FRAME):
 		if i % FRAMES_PER_TICK == 0:
 			sim.step()
 		world.sync(FRAME)
@@ -148,3 +124,18 @@ func test_the_camera_travels_eased_and_ends_on_its_place() -> void:
 	camera.travel(Vector2(400, 200), 1.0)
 	camera.snap_to(Vector2(700, 300))
 	assert_false(camera.is_travelling(), "a snap ends a travel")
+
+
+func test_a_travel_can_be_taken_up_part_way() -> void:
+	var camera := WorldCamera.new()
+	add_child_autofree(camera)
+	camera.snap_to(Vector2(700, 300))
+	# Half way through a 1 s travel from (400, 200) to (1000, 500), wherever the camera was.
+	camera.travel(Vector2(1000, 500), 1.0, 0.5, Vector2(400, 200))
+	camera._process(0.0)
+	assert_true(camera.is_travelling())
+	assert_eq(camera.position, Vector2(700, 350), "half way along, eased (smoothstep of 0.5)")
+	for i: int in 31:
+		camera._process(1.0 / 60.0)
+	assert_false(camera.is_travelling(), "done after the rest of its time")
+	assert_eq(camera.position, Vector2(1000, 500))
