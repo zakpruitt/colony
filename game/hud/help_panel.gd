@@ -24,6 +24,7 @@ const KEYS: Array[Array] = [
 	["1-3", "On a hero sheet: train that row"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
+	["L", "Show or hide the depth ladder"],
 	["Z", "Zoom in or out"],
 	["F", "Game speed: 1x, 2x or 4x"],
 	["M", "Sound on or off"],
