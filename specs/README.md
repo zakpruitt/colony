@@ -62,3 +62,5 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [046 Notes that stay true](046-notes-that-stay-true/spec.md): fixes from the reviews of the defeat note and the tally: both can say something false | provisional, in progress | 041, 045 |
+| [047 A ladder that points true](047-a-ladder-that-points-true/spec.md): fixes from the review of 043: the hover can name the wrong rung after a scroll, the ladder can stop following, the target is harder to find | provisional, in progress | 043 |
+| [048 A wipe told whole](048-a-wipe-told-whole/spec.md): fixes from the review of 038: a wipe seen late gets a cut and no stand-up; the view copies the simulation's revival rule | provisional, in progress | 038 |

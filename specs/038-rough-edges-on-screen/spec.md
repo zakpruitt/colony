@@ -60,6 +60,12 @@ In `tests/acceptance/test_038_rough_edges.gd`.
 a side quest waiting two chambers away in the dark. Crop and enlarge. Does the wipe read as a defeat and a
 return, and can you see the quest from across the level? Describe the shots.
 
+## As built (noted by the lead after review)
+
+A hero who dies in an ordinary fight now lies on the field until the fight ends, where before it
+collapsed and vanished. R1 asked this only for a wipe and R5 said ordinary fights look as before, so this
+goes beyond the spec. It is left in place for Zak to judge.
+
 ## Out of scope
 
 - Any change under `sim/`; hero or monster art; new sounds.
