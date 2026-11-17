@@ -5,9 +5,10 @@ extends Control
 ##
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
-## bought, a microskill learned, and a side quest done (with its reward), passed by or sprung (with
-## the microskill it needed) (spec 028). The newest line shows in a one-line [member ticker] just
-## above the party frames for [constant TICKER_SECONDS], then fades through the palette and goes;
+## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
+## the microskill it needed) (spec 028), and an order changed (spec 035). The newest line shows
+## in a one-line [member ticker] just above the party frames for [constant TICKER_SECONDS], then
+## fades through the palette and goes;
 ## events too old to animate ([method World.is_recent]) are written but not shown there.
 ## [kbd]J[/kbd] opens and closes [member panel], the last [constant SHOWN_LINES] lines below the top
 ## band at the left; [kbd]Esc[/kbd] closes it (and lets the HUD close the shop or hero sheet too),
@@ -237,7 +238,24 @@ func _sentence(event: SimEvent) -> String:
 				sentence = "%s learned %s" % [learner.def().display_name, skill.display_name]
 		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
 			sentence = _quest_sentence(event)
+		SimEvent.Kind.ORDER_CHANGED:
+			sentence = _order_sentence(event)
 	return sentence
+
+
+## The sentence for an order changed (spec 035): "Ordered a Bold pace", "Ordered to hold at
+## guardians", or "".
+func _order_sentence(event: SimEvent) -> String:
+	if event.target_id == PartyOrders.PACE and event.amount in Expedition.Pace.values():
+		return "Ordered a %s pace" % PartyOrders.PACE_NAMES[event.amount]
+	if event.target_id != PartyOrders.GUARDIANS:
+		return ""
+	match event.amount:
+		Expedition.GuardianOrder.CHALLENGE:
+			return "Ordered to challenge guardians"
+		Expedition.GuardianOrder.HOLD:
+			return "Ordered to hold at guardians"
+	return ""
 
 
 ## The sentence for a side quest done, passed by or sprung, or "".

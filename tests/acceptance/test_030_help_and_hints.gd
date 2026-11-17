@@ -384,6 +384,11 @@ func _check_entry(main: Main, label: String) -> void:
 				_key(code)
 				assert_ne(hud.journal.is_open(), open, "%s opens or closes the journal" % what)
 				hud.journal.close()
+			"O":
+				var orders: bool = hud.orders.is_open()
+				_key(code)
+				assert_ne(hud.orders.is_open(), orders, "%s opens or closes the orders" % what)
+				hud.orders.close()
 			"Z":
 				var zoom: int = main.world.camera.zoom_level()
 				_key(code)
