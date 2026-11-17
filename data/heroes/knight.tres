@@ -18,3 +18,5 @@ crit_chance = 0.05
 heal_power = 0
 health_per_level = 18
 damage_per_level = 1
+microskills = Array[StringName]([&"strongarm"])
+microskill_levels = Array[int]([3])

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="SideQuestDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/side_quest_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rune_stone"
+display_name = "Rune Stone"
+description = "Old runes that teach whoever can read them"
+microskill = &"runereader"
+work_seconds = 5.0
+reward = 1
+reward_factor = 2.0
+miss_damage = 0.0

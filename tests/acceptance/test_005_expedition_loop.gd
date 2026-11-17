@@ -557,12 +557,12 @@ func test_r10_cleared_chamber_refills() -> void:
 	while sim.tick < refill - 1:
 		sim.step()
 		sim.drain_events()
-		if e.is_populated(1, index):
+		if e.is_populated(1, index) or e.side_quest_in(1, index) != &"":
 			fail_test("refilled early, at tick %d" % sim.tick)
 			return
-	sim.step()
-	assert_true(e.is_populated(1, index), "refilled RESPAWN_SECONDS after it was cleared")
-	assert_gt(e.monsters_in(1, index).size(), 0, "with new monsters")
+	sim.step()  # since spec 025 a plain chamber may refill with a side quest instead of monsters
+	var quest: bool = e.side_quest_in(1, index) != &""
+	assert_true(quest or e.monsters_in(1, index).size() > 0, "refilled after RESPAWN_SECONDS")
 
 
 # --- R11 -----------------------------------------------------------------------

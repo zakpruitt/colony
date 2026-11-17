@@ -18,3 +18,5 @@ crit_chance = 0.2
 heal_power = 0
 health_per_level = 8
 damage_per_level = 2
+microskills = Array[StringName]([&"lockpicker", &"trapspotter"])
+microskill_levels = Array[int]([2, 6])
