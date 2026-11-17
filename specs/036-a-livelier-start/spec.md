@@ -24,7 +24,8 @@ All statements are for a new game with default settings and no player input unle
   and the HUD's countdown follow it. A test or tool that sets `stable_seconds` itself still gets a flat
   time, as today.
 - **R2. The opening is busy.** In the first 2 minutes the party fights at least 5 battles; in the first 10
-  minutes at least 24 battles and side quests together. (Amended by the lead: the lane measured 24 to 31
+  minutes at least 23 battles and side quests together (24 before spec 049 gave Mossy Hollow its own
+  monsters from stage 2; seed 1 then measured 23). (Amended by the lead: the lane measured 24 to 31
   as the most these rules give, because many levels have only two or three chambers that can hold
   anything; reaching 30 needs a new rule near the surface, which is a later spec. Today's game gives 5
   to 16.)

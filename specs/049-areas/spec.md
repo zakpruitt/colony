@@ -32,7 +32,9 @@ skill trees".
 - **R2. A stage is what a depth was.** The party is in one area at one stage. Everything a depth did, a
   stage does within its area: the timer to become safe, pushing on by itself, the target, falling back to
   the safe stage after a wipe, orders. A monster at stage `s` of an area is as strong as one at depth
-  `base level + s - 1` was, and timers use that level too.
+  `base level + s - 1` was. (Amended by the lead: the timers to become safe and to refill chambers go by
+  the stage number, not the level, so stage 1 of every area becomes safe in a minute. By level, the Old
+  Crypt and Ember Deep took ten minutes a stage from their first.)
 - **R3. Only the area's monsters.** Chambers hold only monsters from the area's list that have appeared by
   that stage. The guardian stands at its stage and, stronger, every 5 stages after it. Stages have no end.
 - **R4. The party can be sent elsewhere.** A command names an area and a stage. If the area is open, the
