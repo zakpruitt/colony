@@ -68,7 +68,7 @@ const STATUS_COLORS: Dictionary[int, StringName] = {
 
 ## What each blow and heal was, and the statuses on every fighter.
 var credit: AbilityCredit = AbilityCredit.new()
-## The marks of the statuses (R3), on the effects layer.
+## The marks of the statuses (R3), beside the effects layer.
 var marks: StatusMarks
 
 var _world: World
@@ -108,9 +108,13 @@ func setup(world: World, simulation: Simulation) -> void:
 	if marks == null:
 		marks = StatusMarks.new()
 		marks.name = "StatusMarks"
-		_world.effects_layer.add_child(marks)
-		# Under every number, name and spark.
-		_world.effects_layer.move_child(marks, 0)
+		# Beside the effects layer, not in it (the layer holds only passing effects, and empties
+		# when nothing happens): at its height over the darkness, just before it so under every
+		# number, name and spark.
+		marks.z_index = World.EFFECTS_Z
+		marks.z_as_relative = false
+		_world.add_child(marks)
+		_world.move_child(marks, _world.effects_layer.get_index())
 	marks.setup(world, credit.statuses)
 
 
