@@ -20,6 +20,8 @@ extends Resource
 @export var guardian_stage: int
 ## The area whose guardian must be beaten to open this one; &"" for an area open from the start.
 @export var opened_by: StringName
+## The resource its monsters drop (spec 052), a [ResourceDef] id.
+@export var resource: StringName
 
 
 ## The level of [param stage] in this area.
@@ -65,4 +67,6 @@ func validate() -> PackedStringArray:
 		problems.append("guardian_stage %d is below 1" % guardian_stage)
 	if opened_by != &"" and (opened_by == id or Content.area(opened_by) == null):
 		problems.append("opened_by: unknown area '%s'" % opened_by)
+	if Content.resource_def(resource) == null:
+		problems.append("resource: unknown resource '%s'" % resource)
 	return problems

@@ -4,6 +4,9 @@ extends Control
 ## [code]On the way, 7 s[/code] after it, the level of its first stage, the party's safe and
 ## furthest stage there, and at the right the monsters that live there and, after a gap, its
 ## guardian (ticked once beaten). A closed area's row is dimmed and says which guardian opens it.
+## Spec 052: at the end of the text column, on the last line, the area's resource: its icon and
+## how many the party holds ([code]12 glowcaps[/code]), or for a closed area what opening it
+## gives ([code]Gives clay[/code]).
 ##
 ## The row is a button: an open area's row is lit under the mouse as a [HudButton] is, and a left
 ## click emits [signal clicked]; a closed area's row takes the click and does nothing. The chosen
@@ -22,6 +25,9 @@ const TEXT_Y: float = 3.0
 const THUMBS_GAP: float = 8.0
 ## Pixels between the monsters and the guardian.
 const GUARDIAN_GAP: float = 8.0
+## Pixels between the resource and the stages before it, and between its icon and its text.
+const RESOURCE_GAP: float = 8.0
+const RESOURCE_ICON_GAP: float = 2.0
 
 ## The area shown.
 var area_id: StringName
@@ -33,6 +39,9 @@ var stages_label: Label
 ## The monsters that live there, in the area's order, and its guardian.
 var thumbs: Array[MonsterThumb] = []
 var guardian_thumb: MonsterThumb
+## The area's resource (spec 052): its icon and the count held, or what opening the area gives.
+var resource_icon: TextureRect
+var resource_label: Label
 ## True while the area is open, and while it is the one chosen.
 var is_open: bool = false
 var chosen: bool = false:
@@ -42,6 +51,8 @@ var chosen: bool = false:
 			queue_redraw()
 
 var _hovered: bool = false
+## Where the text column ends: the resource ends there.
+var _text_end: float = 0.0
 
 
 func _init(id: StringName) -> void:
@@ -55,6 +66,11 @@ func _init(id: StringName) -> void:
 	stages_label = _add("", &"steel", Vector2(TEXT_X, TEXT_Y + (LINE + 1) * 2))
 	if def == null:
 		return
+	resource_icon = ResourceIcon.rect(def.resource)
+	resource_icon.name = "ResourceIcon"
+	add_child(resource_icon)
+	resource_label = _add("", &"white", Vector2.ZERO)
+	resource_label.name = "Resource"
 	for monster: StringName in def.monsters:
 		var thumb := MonsterThumb.new(monster)
 		add_child(thumb)
@@ -68,6 +84,22 @@ func text_width() -> float:
 	var widest: float = PixelText.width(name_label.text) + 4.0 + PixelText.width("On the way, 10 s")
 	for label: Label in [level_label, stages_label]:
 		widest = maxf(widest, PixelText.width(label.text))
+	if resource_icon != null:
+		# Room for the stages, then the resource: the longest count it is likely to show.
+		var plural: String = ResourceIcon.plural(Content.area(area_id).resource)
+		var resource: float = maxf(
+			PixelText.width("9,999 " + plural), PixelText.width("Gives " + plural)
+		)
+		widest = maxf(
+			widest,
+			(
+				PixelText.width("Safe 99, furthest 99")
+				+ RESOURCE_GAP
+				+ ResourceIcon.SIZE.x
+				+ RESOURCE_ICON_GAP
+				+ resource
+			)
+		)
 	return TEXT_X + widest
 
 
@@ -84,6 +116,8 @@ func thumbs_width() -> float:
 ## Lays the row out [param width] pixels wide, its thumbs starting at [param thumbs_x].
 func lay_out(width: float, thumbs_x: float) -> void:
 	size = Vector2(width, HEIGHT)
+	_text_end = thumbs_x - THUMBS_GAP
+	_place_resource()
 	var x: float = thumbs_x
 	for thumb: MonsterThumb in thumbs:
 		thumb.position = Vector2(x, HEIGHT - 1.0 - thumb.size.y)
@@ -115,6 +149,19 @@ func show_area(
 	if guardian_thumb != null:
 		guardian_thumb.dim = not open
 		guardian_thumb.beaten = beaten
+
+
+## Shows the area's resource (spec 052 R7): [param held] of it while the area is open, what
+## opening it gives while it is closed.
+func show_resource(held: int) -> void:
+	if resource_label == null:
+		return
+	var plural: String = ResourceIcon.plural(Content.area(area_id).resource)
+	var text: String = "%s %s" % [Hud.group_thousands(held), plural]
+	if not is_open:
+		text = "Gives " + plural
+	_show_text(resource_label, text, &"white" if is_open else &"steel")
+	_place_resource()
 
 
 ## True while the row is lit under the mouse: an open area's, shown.
@@ -165,6 +212,16 @@ func _draw() -> void:
 	if guardian_thumb != null and not thumbs.is_empty():
 		var x: float = guardian_thumb.position.x - GUARDIAN_GAP / 2.0
 		draw_rect(Rect2(x, 4.0, 1.0, HEIGHT - 8.0), Palette.color(&"dusk"))
+
+
+func _place_resource() -> void:
+	if resource_label == null:
+		return
+	var y: float = TEXT_Y + (LINE + 1) * 2
+	resource_label.position = Vector2(_text_end - resource_label.size.x, y)
+	resource_icon.position = Vector2(
+		resource_label.position.x - RESOURCE_ICON_GAP - ResourceIcon.SIZE.x, y
+	)
 
 
 func _add(text: String, colour: StringName, at: Vector2) -> Label:

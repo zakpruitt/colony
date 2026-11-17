@@ -35,6 +35,7 @@ func _init(report: AwayReport, party: Party) -> void:
 	_add_line("While you were away", &"yellow")
 	_add_line("Away %s" % duration(report.seconds), &"white")
 	_add_line("Gold +%s" % Hud.group_thousands(report.gold_gained), &"yellow")
+	_add_resource_line(report)
 	_add_line(where(report), &"silver")
 	_add_line("Slain %s   Wipes %d" % [Hud.group_thousands(report.kills), report.wipes], &"silver")
 	_add_quest_lines(report)
@@ -120,6 +121,22 @@ func _add_quest_lines(report: AwayReport) -> void:
 		if report.most_needed_microskill != &"":
 			var skill: String = Content.microskill(report.most_needed_microskill).display_name
 			_add_line("Most needed: %s" % skill, &"orange")
+
+
+## The resources gathered (spec 052), on one line: "Gathered 12 glowcaps, 3 clay"; none when
+## nothing was gathered.
+func _add_resource_line(report: AwayReport) -> void:
+	var parts: PackedStringArray = []
+	for id: StringName in Content.resource_ids():
+		var gained: int = report.resources_gained.get(id, 0)
+		if gained > 0:
+			parts.append("%s %s" % [Hud.group_thousands(gained), ResourceIcon.plural(id)])
+	if not parts.is_empty():
+		_add_line("Gathered " + ", ".join(parts), &"tan")
+	# The firsts the journal did not see (spec 052 R8), as it would have written them.
+	for id: StringName in report.resources_first:
+		var from: String = PlaceText.area_name(Content.area_of_resource(id))
+		_add_line("First %s, from %s" % [ResourceIcon.plural(id), from], &"tan")
 
 
 ## One line per microskill learned, at most [constant MAX_LEARNED_LINES], then "and N more".

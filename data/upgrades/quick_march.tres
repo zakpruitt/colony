@@ -13,3 +13,6 @@ per_rank = 0.04
 base_cost = 25
 cost_growth = 1.5
 max_rank = 10
+resource = &"glowcaps"
+resource_from_rank = 3
+resource_base = 5

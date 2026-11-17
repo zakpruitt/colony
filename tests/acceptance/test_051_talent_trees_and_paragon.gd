@@ -681,7 +681,11 @@ func test_r8_gold_training_is_gone() -> void:
 		assert_eq(hero.max_health(), health, "%s: no training in its numbers" % hero.class_id)
 	var saved: Dictionary = loaded.to_save()
 	var version: int = saved["version"]
-	assert_eq(version, 7, "saved again as version 7")
+	assert_eq(
+		version,
+		Simulation.SAVE_VERSION,
+		"saved again at the current version (7 when spec 051 landed)"
+	)
 	for saved_hero: Dictionary in saved["heroes"]:
 		assert_false(saved_hero.has("training"), "with no training")
 	# A version 6 training rank that cannot be read is refused by name, not refunded.
@@ -710,7 +714,7 @@ func test_r9_saves() -> void:
 	sim.step()
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
-	assert_eq(version, 7, "version 7")
+	assert_eq(version, Simulation.SAVE_VERSION, "the current version (7 when spec 051 landed)")
 	var saved_mage: Dictionary = data["heroes"][2]
 	var names: Array = []
 	for node: StringName in _full(&"mage", 1):

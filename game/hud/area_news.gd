@@ -57,20 +57,10 @@ func hear(event: SimEvent) -> void:
 				beaten[here] = true
 
 
-## True once area [param id]'s guardian has been beaten: heard so, or the party has been past its
-## stage, or an area it opens is open.
+## True once area [param id]'s guardian has been beaten: heard so, or the simulation (and so the
+## save) keeps it beaten (spec 052 R12).
 func is_beaten(id: StringName) -> bool:
-	if beaten.has(id):
-		return true
-	var def: AreaDef = Content.area(id)
-	if def == null or _simulation == null:
-		return false
-	if _simulation.area_progress(id).y > def.guardian_stage:
-		return true
-	for other: StringName in Content.area_ids():
-		if Content.area(other).opened_by == id and _simulation.is_area_open(other):
-			return true
-	return false
+	return beaten.has(id) or (_simulation != null and _simulation.is_guardian_beaten(id))
 
 
 ## The map has been looked at: the mark goes.

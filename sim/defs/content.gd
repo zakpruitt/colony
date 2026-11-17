@@ -14,6 +14,7 @@ const SIDE_QUESTS_DIR: String = "res://data/sidequests"
 const AREAS_DIR: String = "res://data/areas"
 const ABILITIES_DIR: String = "res://data/abilities"
 const TALENTS_DIR: String = "res://data/talents"
+const RESOURCES_DIR: String = "res://data/resources"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
@@ -27,6 +28,8 @@ static var _areas: Dictionary[StringName, AreaDef] = {}
 static var _area_ids: Array[StringName] = []
 static var _abilities: Dictionary[StringName, AbilityDef] = {}
 static var _talent_trees: Dictionary[StringName, TalentTreeDef] = {}
+static var _resources: Dictionary[StringName, ResourceDef] = {}
+static var _resource_ids: Array[StringName] = []
 static var _loaded: bool = false
 
 
@@ -132,6 +135,26 @@ static func talent_tree(class_id: StringName) -> TalentTreeDef:
 	return _talent_trees.get(class_id, null)
 
 
+## The resource with this id (spec 052), or null if there is none.
+static func resource_def(id: StringName) -> ResourceDef:
+	_load()
+	return _resources.get(id, null)
+
+
+## Every resource id, in the order of the areas that give them, then by id.
+static func resource_ids() -> Array[StringName]:
+	_load()
+	return _resource_ids.duplicate()
+
+
+## The first area, in area order, that gives resource [param id]; &"" when none does.
+static func area_of_resource(id: StringName) -> StringName:
+	for area_id: StringName in area_ids():
+		if _areas[area_id].resource == id:
+			return area_id
+	return &""
+
+
 static func _load() -> void:
 	if _loaded:
 		return
@@ -206,6 +229,14 @@ static func _load() -> void:
 			)
 			continue
 		_talent_trees[tree.class_id] = tree
+	for resource: Resource in _resources_in(RESOURCES_DIR):
+		var resource_made: ResourceDef = resource as ResourceDef
+		if resource_made == null:
+			push_error("Content: %s is not a ResourceDef" % resource.resource_path)
+			continue
+		_resources[resource_made.id] = resource_made
+	_resource_ids = _sorted(_resources.keys())
+	_resource_ids.sort_custom(_before_by_area)
 
 
 static func _resources_in(dir: String) -> Array[Resource]:
@@ -241,6 +272,23 @@ static func _before_on_sheet(a: StringName, b: StringName) -> bool:
 	if first.order != second.order:
 		return first.order < second.order
 	return String(a) < String(b)
+
+
+static func _before_by_area(a: StringName, b: StringName) -> bool:
+	var first: int = _area_order_of(a)
+	var second: int = _area_order_of(b)
+	if first != second:
+		return first < second
+	return String(a) < String(b)
+
+
+## The order of the first area giving resource [param id]; a large number when none does.
+static func _area_order_of(id: StringName) -> int:
+	var best: int = 1 << 30
+	for area_def: AreaDef in _areas.values():
+		if area_def.resource == id:
+			best = mini(best, area_def.order)
+	return best
 
 
 static func _before_in_order(a: StringName, b: StringName) -> bool:

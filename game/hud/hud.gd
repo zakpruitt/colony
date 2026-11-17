@@ -62,6 +62,8 @@ var frames: Array[HeroFrame] = []
 var gold_panel: HudPanel
 var gold_label: Label
 var coin_icon: TextureRect
+## The resources the party holds, after the gold in its panel (spec 052).
+var resource_purse: ResourcePurse
 var depth_panel: HudPanel
 ## The current depth, in the big font.
 var depth_label: Label
@@ -238,6 +240,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	add_child(area_map)
 	area_map.setup(simulation, world)
 	area_map.add_tips(tooltip)
+	resource_purse.setup(simulation, effects.resource_effects if effects != null else null)
+	resource_purse.add_tips(tooltip)  # spec 052
+	shop.add_tips(tooltip)
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
@@ -265,6 +270,7 @@ func advance(delta: float) -> void:
 			frame.gold = _simulation.party.gold  # for its marker (spec 037 R4)
 			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
+	resource_purse.advance(delta)
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
@@ -381,6 +387,26 @@ static func group_thousands(amount: int) -> String:
 	return ("-" if amount < 0 else "") + digits + grouped
 
 
+## [param amount] short enough for the top bar: as [method group_thousands] below 10,000, then
+## rounded down to three figures with k or M ("12.3k", "123k", "9.9M", "123M"), so a count never
+## shows more than it is.
+static func short_count(amount: int) -> String:
+	if absi(amount) < 10_000:
+		return group_thousands(amount)
+	var minus: String = "-" if amount < 0 else ""
+	var value: int = absi(amount)
+	var suffix: String = "k"
+	var unit: int = 1000
+	if value >= 1_000_000:
+		suffix = "M"
+		unit = 1_000_000
+	var whole: int = value / unit
+	if whole >= 100:
+		return "%s%s%s" % [minus, group_thousands(whole), suffix]
+	var tenths: int = (value * 10 / unit) % 10
+	return "%s%d.%d%s" % [minus, whole, tenths, suffix]
+
+
 # --- Building ------------------------------------------------------------------
 
 
@@ -452,6 +478,8 @@ func _build_gold() -> void:
 	gold_panel.add_child(coin_icon)
 	gold_label = _label(gold_panel, "Gold", "0", &"yellow", Vector2(23, 7))
 	_make_big(gold_label)
+	resource_purse = ResourcePurse.new()
+	gold_panel.add_child(resource_purse)
 
 
 ## The Shop button in its own small panel left of the gold, the marker on it, and the shop.
@@ -686,7 +714,7 @@ func _advance_gold(delta: float) -> void:
 
 
 func _show_gold() -> void:
-	var text: String = group_thousands(_shown_gold)
+	var text: String = short_count(_shown_gold)  # spec 052: short, so the purse fits beside it
 	if gold_label.text != text:
 		gold_label.text = text
 		gold_label.reset_size()
@@ -696,6 +724,9 @@ func _show_gold() -> void:
 	var colour: StringName = &"white" if _gold_bump > 0.0 else &"yellow"
 	gold_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	var width: float = 23.0 + gold_label.size.x + 3.0
+	resource_purse.position = Vector2(width + 3.0, 0)
+	if not resource_purse.shown_ids().is_empty():
+		width += 3.0 + resource_purse.size.x + 4.0
 	gold_panel.size = Vector2(width, TOP_HEIGHT)
 	gold_panel.position = Vector2(SCREEN.x - MARGIN - width, TOP_Y)
 	shop_tab.position = Vector2(gold_panel.position.x - GAP - shop_tab.size.x, TOP_Y)

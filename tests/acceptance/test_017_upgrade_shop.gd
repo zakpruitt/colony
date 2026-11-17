@@ -302,6 +302,7 @@ func test_r6_follows_the_simulation() -> void:
 	assert_eq(blades.rank_label.text, "Rank 0/20")
 	_sim.upgrades.set_rank(BLADES, 7)
 	_sim.party.gold = 5000
+	_sim.party.set_resource(&"old_bones", 1000)  # spec 052: rank 8 costs old bones too
 	_hud.advance(0.016)
 	assert_eq(blades.rank_label.text, "Rank 7/20", "a rank set directly shows at once")
 	assert_eq(blades.bonus_label.text, "+35%")

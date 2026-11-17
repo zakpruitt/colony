@@ -13,3 +13,6 @@ per_rank = 0.05
 base_cost = 30
 cost_growth = 1.45
 max_rank = 20
+resource = &"old_bones"
+resource_from_rank = 3
+resource_base = 4

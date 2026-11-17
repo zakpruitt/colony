@@ -92,9 +92,8 @@ func setup(simulation: Simulation, world: World) -> void:
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
-	var gold: int = _simulation.party.gold
 	for row: ShopRow in rows:
-		row.refresh(_simulation.upgrades, gold, delta)
+		row.refresh(_simulation.upgrades, _simulation.party, delta)
 	if _asked_auto_buy >= 0 and (_asked_auto_buy == 1) == _simulation.auto_buy:
 		_asked_auto_buy = -1
 	var on: bool = auto_buy_on()
@@ -149,16 +148,22 @@ func toggle_auto_buy() -> void:
 	advance(0.0)
 
 
-## How many upgrades the party's gold can pay for the next rank of.
+## How many upgrades the party can pay both prices of the next rank of (spec 052).
 func affordable_count() -> int:
 	if _simulation == null:
 		return 0
 	var count: int = 0
 	for id: StringName in Content.upgrade_ids():
-		var price: int = _simulation.upgrades.cost(id)
-		if price >= 0 and price <= _simulation.party.gold:
+		if _simulation.upgrades.can_pay(id, _simulation.party):
 			count += 1
 	return count
+
+
+## Gives each row its tooltip (spec 052 R5): both prices, and where the resource comes from. Call
+## once the HUD's tooltips exist.
+func add_tips(tooltip: HudTooltip) -> void:
+	for row: ShopRow in rows:
+		tooltip.tip([row], row.tip_text.bind(_simulation))
 
 
 ## Asks the simulation to buy the next rank of row [param index] (0-based), if the shop is open
@@ -167,7 +172,7 @@ func buy_row(index: int) -> void:
 	if not is_open() or index < 0 or index >= rows.size():
 		return
 	var row: ShopRow = rows[index]
-	row.refresh(_simulation.upgrades, _simulation.party.gold, 0.0)
+	row.refresh(_simulation.upgrades, _simulation.party, 0.0)
 	if row.affordable():
 		_simulation.buy_upgrade(row.id)
 

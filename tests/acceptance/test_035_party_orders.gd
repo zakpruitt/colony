@@ -9,52 +9,54 @@ extends GutTest
 ## State hashes of an untouched simulation every 600 ticks up to 20 minutes, recorded on dev at
 ## 3f48247, before this spec changed any sim code.
 ## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
+## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
+## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
-		2840655281,
-		2075673128,
-		1475654766,
-		2875557886,
-		2784050463,
-		3856899135,
-		2838792657,
-		1321820002,
-		2680065727,
-		363122329,
-		1518956812,
-		1963694730,
-		3242618005,
-		4032510544,
-		1473335814,
-		2555808367,
-		2104573394,
-		4011715026,
-		831463122,
-		2254641605,
+		2894827325,
+		1945528636,
+		1128693549,
+		1276362820,
+		2139888516,
+		1167871002,
+		1988223463,
+		625401331,
+		455972621,
+		3181058316,
+		3250183503,
+		3654349145,
+		2362510131,
+		2867722528,
+		875591383,
+		3383882258,
+		106338127,
+		1478657370,
+		2036488421,
+		846254518,
 	],
 	29:
 	[
-		611997602,
-		4245644670,
-		2143765798,
-		2671802714,
-		1395746236,
-		3338831802,
-		4129929813,
-		2159254304,
-		1759025754,
-		3469722866,
-		360968830,
-		3156032218,
-		2805583006,
-		4216963523,
-		1449751589,
-		1586222788,
-		1444904605,
-		1703910579,
-		370663900,
-		2733464942,
+		2277335467,
+		1896228529,
+		3155234870,
+		3035521006,
+		4069368556,
+		1154211823,
+		87851423,
+		1764416910,
+		3874211103,
+		1501580477,
+		1143823532,
+		2550890516,
+		2149764182,
+		3445431019,
+		1050765579,
+		3368418692,
+		3507826964,
+		2541894516,
+		1075333795,
+		2633392922,
 	],
 }
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
@@ -393,8 +395,8 @@ func test_r4_saved() -> void:
 	_run(sim, 20)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
-	assert_eq(version, 7, "the version rose by one (and since, for specs 049 and 051)")
-	assert_eq(Simulation.SAVE_VERSION, 7)
+	assert_eq(version, 8, "the version rose by one (and since, for specs 049, 051 and 052)")
+	assert_eq(Simulation.SAVE_VERSION, 8)
 	var saved_pace: String = str(data.get("pace"))
 	var saved_order: String = str(data.get("guardian_order"))
 	assert_eq(saved_pace, "cautious", "the pace by name")
