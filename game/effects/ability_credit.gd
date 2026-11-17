@@ -12,8 +12,14 @@ extends RefCounted
 ## [br]- an ordinary strike or heal: its fighter's wind-up on that target (ATTACK_STARTED) or
 ## shot at it (PROJECTILE_LAUNCHED) is due; a passive that multiplies the strike (it is used just
 ## before the strike lands) takes the credit then;
-## [br]- the ability its fighter used last in this tick;
+## [br]- the ability its fighter used latest in this tick that does that (deals damage for a
+## blow, heals for a heal): a passive that only puts on a status never takes an action's blows,
+## and one that lands on one fighter takes one blow only, so an action fired part-way through
+## (Meteor, then Ignite on its first receiver) keeps the rest;
 ## [br]- otherwise an ordinary strike or heal (one begun before the events were heard).
+##
+## A wind-up that is lost (an action begun instead, a stun, or a death on either side) is
+## forgotten, so it never takes a later blow.
 
 ## The names of ordinary blows and heals, as the tally shows them.
 const STRIKES: String = "Strikes"
@@ -32,8 +38,9 @@ var status: int = -1
 
 ## The tick the events now being read are on.
 var _tick: int = -1
-## Per fighter: the ability it used last in this tick.
-var _used: Dictionary[int, StringName] = {}
+## Per fighter: the abilities it used in this tick, oldest first, each [ability id, the blows or
+## heals it may still take (-1 for any number)].
+var _used: Dictionary[int, Array] = {}
 ## Per fighter: its wind-up, as Vector2i(target id, the tick it strikes on).
 var _windups: Dictionary[int, Vector2i] = {}
 ## Per fighter: its shots in flight, each Vector2i(target id, the tick it lands on).
@@ -53,21 +60,34 @@ func observe(event: SimEvent) -> void:
 	match event.kind:
 		SimEvent.Kind.ATTACK_STARTED:
 			_windups[event.source_id] = Vector2i(event.target_id, event.tick + event.amount)
+		SimEvent.Kind.ABILITY_STARTED:
+			_windups.erase(event.source_id)  # an action instead of the strike
+		SimEvent.Kind.STATUS_BEGAN:
+			if event.status == AbilityEffect.Status.STUNNED:
+				_windups.erase(event.target_id)  # a stunned fighter loses its wind-up
+		SimEvent.Kind.DIED:
+			_lose(event.source_id)
 		SimEvent.Kind.PROJECTILE_LAUNCHED:
 			_windups.erase(event.source_id)
 			var shots: Array = _shots.get(event.source_id, [])
 			shots.append(Vector2i(event.target_id, event.tick + event.amount))
 			_shots[event.source_id] = shots
 		SimEvent.Kind.ABILITY_USED:
-			_used[event.source_id] = event.ability_id
+			var ability: AbilityDef = Content.ability(event.ability_id)
+			if ability != null:
+				var mine: Array = _used.get(event.source_id, [])
+				mine.append([event.ability_id, -1 if ability.is_action() else _takes(ability)])
+				_used[event.source_id] = mine
 		SimEvent.Kind.HIT:
-			_credit(event, HURTING)
+			_credit(event, HURTING, false)
 		SimEvent.Kind.HEALED:
-			_credit(event, [AbilityEffect.Status.MENDING])
+			_credit(event, [AbilityEffect.Status.MENDING], true)
 		SimEvent.Kind.MISSED:
 			ability_id = &""
 			status = -1
-			if not event.flag:
+			if event.flag:
+				_credit(event, HURTING, false)  # a blow a shield absorbed: still that blow
+			else:
 				_take_strike(event.source_id, event.target_id)  # a strike that did not land
 		SimEvent.Kind.ENCOUNTER_STARTED, SimEvent.Kind.ENCOUNTER_ENDED:
 			_windups.clear()
@@ -100,20 +120,85 @@ static func name_of(credit_key: String, healing: bool) -> String:
 	return ability.display_name if ability != null else credit_key
 
 
-func _credit(event: SimEvent, working: Array) -> void:
+## True if [param ability] deals damage: one of its effects is a DAMAGE.
+static func damages(ability: AbilityDef) -> bool:
+	for effect: AbilityEffect in ability.effects:
+		if effect.does == AbilityEffect.Does.DAMAGE:
+			return true
+	return false
+
+
+## True if [param ability] heals: one of its effects is a HEAL, or damage that heals its fighter
+## for part of it (life steal).
+static func heals(ability: AbilityDef) -> bool:
+	for effect: AbilityEffect in ability.effects:
+		if effect.does == AbilityEffect.Does.HEAL:
+			return true
+		if effect.does == AbilityEffect.Does.DAMAGE and effect.life_steal > 0.0:
+			return true
+	return false
+
+
+## The blows or heals a passive [param ability] may take: one if what it does lands on one
+## fighter, any number (-1) if on many.
+static func _takes(ability: AbilityDef) -> int:
+	for effect: AbilityEffect in ability.effects:
+		var one: bool = (
+			effect.lands
+			in [
+				AbilityEffect.Lands.TARGET,
+				AbilityEffect.Lands.SELF,
+				AbilityEffect.Lands.NEAREST_ENEMY
+			]
+		)
+		if not one:
+			return -1
+	return 1
+
+
+func _credit(event: SimEvent, working: Array, healing: bool) -> void:
 	ability_id = &""
 	status = -1
 	var worked: int = _worked_status(event, working)
 	if worked >= 0:
 		status = worked
 		return
-	var used: StringName = _used.get(event.source_id, &"")
+	var mine: Array = _used.get(event.source_id, [])
 	if _take_strike(event.source_id, event.target_id):
-		var boost: AbilityDef = Content.ability(used) if used != &"" else null
+		# A passive that multiplies the strike was used just before it lands.
+		var last: Array = mine[mine.size() - 1] if not mine.is_empty() else [&"", 0]
+		var last_id: StringName = last[0]
+		var boost: AbilityDef = Content.ability(last_id) if last_id != &"" else null
 		if boost != null and boost.boosts_strike():
-			ability_id = used
+			ability_id = last_id
 		return
-	ability_id = used
+	for i: int in range(mine.size() - 1, -1, -1):
+		var used: Array = mine[i]
+		var used_id: StringName = used[0]
+		var takes: int = used[1]
+		var ability: AbilityDef = Content.ability(used_id)
+		var does: bool = heals(ability) if healing else damages(ability)
+		if not does or takes == 0:
+			continue
+		if takes > 0:
+			used[1] = takes - 1
+		ability_id = used_id
+		return
+
+
+## Forgets every wind-up and shot of fighter [param id], who fell, and those aimed at it.
+func _lose(id: int) -> void:
+	_windups.erase(id)
+	_shots.erase(id)
+	for source: int in _windups.keys():
+		if _windups[source].x == id:
+			_windups.erase(source)
+	for source: int in _shots:
+		var kept: Array = []
+		for shot: Vector2i in _shots[source]:
+			if shot.x != id:
+				kept.append(shot)
+		_shots[source] = kept
 
 
 ## The status of [param event]'s target, one of [param working], that works in this tick and has
