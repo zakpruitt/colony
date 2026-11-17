@@ -334,6 +334,10 @@ func test_r4_hover_says_it() -> void:
 
 	# Resting the mouse on a rung shows the line beside the ladder.
 	_situation(7, 3, 9, 8)
+	# Spec 047 R1: the hover is the rung under the mouse as the rungs move, so the ladder comes to
+	# rest on the new depth before the mouse is put on rung 6.
+	for i: int in 120:
+		_hud.advance(STEP)
 	assert_false(ladder.hint.visible, "no line before the mouse rests on a rung")
 	_hover_at(ladder.rung_rect(6).get_center())
 	_hud.advance(STEP)

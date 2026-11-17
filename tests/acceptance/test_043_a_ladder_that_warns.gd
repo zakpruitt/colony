@@ -99,7 +99,10 @@ func _click_at(at: Vector2) -> void:
 		_ladder()._gui_input(event)
 
 
+## The mouse moved onto the ladder at [param at]: the GUI tells it the mouse entered (spec 047
+## R2: only that makes the ladder count the mouse as over it), then sends the motion.
 func _hover_at(at: Vector2) -> void:
+	_ladder()._notification(Control.NOTIFICATION_MOUSE_ENTER)
 	var event := InputEventMouseMotion.new()
 	event.position = at
 	_ladder()._gui_input(event)
@@ -244,6 +247,25 @@ func test_r3_dangerous_click() -> void:
 		_sim.step()
 		_hud.advance(STEP)
 	assert_eq(_count(line), 1, "once")
+
+	# Spec 047 R7: a second click on the same dangerous target writes nothing...
+	var lines_before: int = _hud.journal.lines().size()
+	_click_at(ladder.rung_rect(6).get_center())
+	_sim.step()
+	_hud.advance(STEP)
+	assert_eq(_sim.expedition.target_depth, 6, "the second click keeps the target")
+	assert_eq(_hud.journal.lines().size(), lines_before, "the second click writes nothing")
+	assert_eq(_count(line), 1, "still once")
+	# ... and a change away and back writes it again.
+	_click_at(ladder.rung_rect(4).get_center())
+	_sim.step()
+	_hud.advance(STEP)
+	assert_eq(_sim.expedition.target_depth, 4, "changed away")
+	_click_at(ladder.rung_rect(6).get_center())
+	_sim.step()
+	_hud.advance(STEP)
+	assert_eq(_sim.expedition.target_depth, 6, "and back")
+	assert_eq(_count(line), 2, "the change back says it again")
 
 	# A safe or a reachable click: no line.
 	_hud.advance(Journal.TICKER_SECONDS + 1.0)

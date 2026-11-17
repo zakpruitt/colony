@@ -19,6 +19,11 @@ extends Control
 ## once in the journal's ticker. The mouse wheel scrolls the ladder ([method scroll_by]); while
 ## scrolled away an arrow points toward the party, and a click on it, or [constant RETURN_SECONDS]
 ## without the mouse over the ladder, brings it back to following the party.
+##
+## Spec 047: the outline and hint follow the rung under a still mouse as the rungs move; only the
+## mouse's enter and exit say whether it is over the ladder; a scrolled ladder stays put until the
+## arrow or the timer; a notch is at most a rung; the target's and the party's numbers are framed
+## in `yellow` and `white` ([method mark_rect]), and the arrow sits clear of the party's diamond.
 
 ## A click asked for a new target (the HUD mirrors it on its own target number at once).
 signal target_asked(depth: int)
@@ -75,9 +80,21 @@ const ARROW_SIZE: Vector2 = Vector2(15, 8)
 ## The hint's height for one line, and what a second line adds.
 const HINT_HEIGHT: float = 13.0
 const HINT_LINE: float = 9.0
+## Spec 047 R5: the frame round the number of the target's rung and of the party's, in palette
+## colours that are none of [constant RISK_COLOURS], so neither depends on the number's colour.
+const MARK_COLOURS: Dictionary[StringName, StringName] = {&"target": &"yellow", &"party": &"white"}
+## Each frame's box inside its rung's row (x from the row's left, y from its top): the target's
+## round the number column, its left edge where the target's arrow points, and the party's one
+## pixel inside it, so a party on its target shows both.
+const MARK_BOXES: Dictionary[StringName, Rect2] = {
+	&"target": Rect2(8, 3, 21, 14),
+	&"party": Rect2(9, 4, 19, 12),
+}
 
 ## The line beside the ladder while the mouse rests on a rung (R4).
 var hint: HudPanel
+## The depth whose rung is outlined as under the mouse, or 0. The ladder sets it; others read it.
+var hovered: int = 0
 
 var _simulation: Simulation
 ## The world the HUD shows; kept for symmetry with the other HUD parts, read by nothing yet.
@@ -95,8 +112,6 @@ var _scroll: float = 1.0
 ## The party's depth, fractional while it climbs.
 var _party_at: float = 1.0
 var _time: float = 0.0
-## The depth under the mouse, or 0.
-var _hovered: int = 0
 ## Seconds the mouse has rested on that rung: the line shows after HudTooltip.DELAY, as the
 ## HUD's tooltips do.
 var _rested: float = 0.0
@@ -110,9 +125,19 @@ var _hint_risk: Label
 var _following: bool = true
 ## The top rung while scrolled away.
 var _view_top: int = 1
-## True while the mouse is over the ladder, and seconds since it last was.
+## True while the mouse is over the ladder, from its enter and exit notifications only (spec 047
+## R2), and seconds since it last was.
 var _mouse_in: bool = false
 var _away: float = 0.0
+## Where the last mouse event over the ladder put the mouse (the ladder's own coordinates), and
+## whether it is still there: the rung under it is read again whenever the rungs move (R1).
+var _pointer: Vector2 = Vector2.ZERO
+var _has_pointer: bool = false
+## Drawn over the rungs and unclipped: the arrow back to the party, which sits in the caption's
+## row or on the panel's bottom edge.
+var _arrow_layer: Control
+## Drawn over that, clipped to the rungs: the party's diamond, so nothing covers it.
+var _marker_layer: Control
 
 
 func _init() -> void:
@@ -138,8 +163,10 @@ func _gui_input(event: InputEvent) -> void:
 	var mouse: InputEventMouse = event as InputEventMouse
 	if mouse == null:
 		return
-	_mouse_in = true
-	_away = 0.0
+	# Spec 047 R2: an event here says where the mouse is, not that it is over the ladder (a press
+	# dragged off it keeps sending them); only the enter and exit notifications say that.
+	_pointer = mouse.position
+	_has_pointer = true
 	var button: InputEventMouseButton = event as InputEventMouseButton
 	if button != null and button.pressed:
 		match button.button_index:
@@ -166,8 +193,9 @@ func _notification(what: int) -> void:
 		_away = 0.0
 	if what == NOTIFICATION_MOUSE_EXIT:
 		_mouse_in = false
+		_has_pointer = false
 		if hint != null:
-			_hovered = 0
+			hovered = 0
 			_show_hint()
 
 
@@ -205,6 +233,20 @@ func setup(simulation: Simulation, world: World) -> void:
 		number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_rungs.add_child(number)
 		_numbers.append(number)
+	_arrow_layer = Control.new()
+	_arrow_layer.name = "ArrowLayer"
+	_arrow_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_arrow_layer.size = size
+	_arrow_layer.draw.connect(_draw_arrow_layer)
+	add_child(_arrow_layer)
+	_marker_layer = Control.new()
+	_marker_layer.name = "MarkerLayer"
+	_marker_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_marker_layer.clip_contents = true
+	_marker_layer.position = _rungs.position
+	_marker_layer.size = _rungs.size
+	_marker_layer.draw.connect(_draw_marker_layer)
+	add_child(_marker_layer)
 	_build_hint()
 	_party_at = _party_depth()
 	_scroll = _top_for(_party_at)
@@ -218,7 +260,7 @@ func advance(delta: float) -> void:
 		return
 	visible = _wanted and not _shop_is_open()
 	if not visible:
-		_hovered = 0
+		hovered = 0
 	var e: Expedition = _simulation.expedition
 	if _asked_target > 0 and e.target_depth == _asked_target:
 		_asked_target = 0
@@ -230,10 +272,10 @@ func advance(delta: float) -> void:
 		_away += delta
 		if _away >= RETURN_SECONDS:
 			follow()
+	# Spec 047 R3: a scrolled ladder stays where it was put, even when the party's own view comes
+	# to the same rungs; only the arrow's click and the timer above bring it back.
 	if not _following:
 		_view_top = clampi(_view_top, 1, _max_top())
-		if _view_top == _follow_top():
-			_following = true
 	var goal: float = _top_for(_party_at) if _following else float(_view_top)
 	if absf(goal - _scroll) > RUNGS:
 		_scroll = goal
@@ -241,9 +283,15 @@ func advance(delta: float) -> void:
 		_scroll = lerpf(_scroll, goal, 1.0 - exp(-SCROLL_RATE * delta))
 		if absf(goal - _scroll) < 0.01:
 			_scroll = goal
+	# Spec 047 R1: the rungs may have moved under a still mouse; the outline and the hint go to the
+	# rung under it now, on the frame the rungs are drawn there.
+	if _has_pointer and visible:
+		hovered = _under(_pointer)
 	_place_numbers()
 	_show_hint()
 	_rungs.queue_redraw()
+	_arrow_layer.queue_redraw()
+	_marker_layer.queue_redraw()
 
 
 ## True while the ladder is on screen.
@@ -269,31 +317,43 @@ func first_depth() -> int:
 func risk(level_depth: int) -> Risk:
 	if _simulation == null or level_depth <= _simulation.expedition.last_stable_depth:
 		return Risk.SAFE
-	if level_depth <= lowest_level() + 1:
+	if level_depth <= PartyLevels.lowest(_simulation.party) + 1:
 		return Risk.REACHABLE
 	return Risk.DANGEROUS
 
 
-## The party's lowest hero level, the L of [method risk].
-func lowest_level() -> int:
-	var lowest: int = 0
-	for hero: Hero in _simulation.party.heroes:
-		if lowest == 0 or hero.level < lowest:
-			lowest = hero.level
-	return maxi(lowest, 1)
-
-
 ## Scrolls the ladder by [param rungs] (positive is deeper), from depth 1 at the top down to
 ## [constant BELOW_DEEPEST] rungs below the deepest depth ever reached, and stops it following the
-## party. Scrolling back onto the party's own view follows it again.
+## party. While following, the first rung is the next whole one from the ladder as drawn, so a
+## notch moves it at most one rung even while the party is between depths (spec 047 R4).
+## Scrolling back onto exactly the party's own view follows it again.
 func scroll_by(rungs: int) -> void:
 	if _simulation == null or rungs == 0:
 		return
-	var from: int = _view_top if not _following else _follow_top()
+	var from: int = _view_top
+	if _following:
+		from = floori(_scroll + 0.01) if rungs > 0 else ceili(_scroll - 0.01)
 	_view_top = clampi(from + rungs, 1, _max_top())
-	_following = _view_top == _follow_top()
+	_following = absf(_view_top - _top_for(_party_at)) < 0.01
 	_away = 0.0
 	advance(0.0)
+
+
+## Where [param mark] is drawn on the rung at [param depth] now, in the ladder's own coordinates,
+## or an empty rectangle when that rung does not carry it: &"target" and &"party" are the frames
+## round its number ([constant MARK_BOXES]), &"diamond" the box the party's diamond is drawn in at
+## either height of its bob (on the party's rung; while it climbs it is between two).
+func mark_rect(depth: int, mark: StringName) -> Rect2:
+	if _simulation == null or not marks(depth).has(&"party" if mark == &"diamond" else mark):
+		return Rect2()
+	if mark == &"diamond":
+		var at: Vector2 = _marker_at()
+		return Rect2(at.x - 5.0, RUNGS_TOP + at.y - 5.0, 11.0, 10.0)
+	if not MARK_BOXES.has(mark):
+		return Rect2()
+	var box: Rect2 = MARK_BOXES[mark]
+	var row: float = floorf(rung_rect(depth).position.y)
+	return Rect2(box.position + Vector2(0.0, row), box.size)
 
 
 ## True while the ladder keeps the party's rung in view, false while scrolled away.
@@ -307,16 +367,17 @@ func follow() -> void:
 	_away = 0.0
 
 
-## The arrow toward the party's rung while scrolled away, in the ladder's own coordinates: at
-## the top edge of the rungs when the party is above them, at the bottom when below. Empty while
-## following.
+## The arrow toward the party's rung while scrolled away, in the ladder's own coordinates, on the
+## rails: in the caption's row above the rungs when the party is above them, on the panel's bottom
+## edge when below, so it never covers the party's diamond in the top or bottom row (spec 047
+## R5). Empty while following.
 func arrow_rect() -> Rect2:
 	if _following or _simulation == null:
 		return Rect2()
 	var x: float = floorf((RAIL_LEFT + RAIL_RIGHT + 1.0 - ARROW_SIZE.x) / 2.0)
-	var y: float = RUNGS_TOP
+	var y: float = CAPTION_HEIGHT - ARROW_SIZE.y - 1.0
 	if not arrow_points_up():
-		y = RUNGS_TOP + RUNGS * PITCH - ARROW_SIZE.y
+		y = size.y - ARROW_SIZE.y
 	return Rect2(Vector2(x, y), ARROW_SIZE)
 
 
@@ -378,7 +439,10 @@ func click_depth(depth: int) -> void:
 	var journal: Journal = _journal()
 	if changed and journal != null and risk(depth) == Risk.DANGEROUS:
 		journal.announce(
-			"Target set to depth %d: dangerous for level %d heroes" % [depth, lowest_level()]
+			(
+				"Target set to depth %d: dangerous for level %d heroes"
+				% [depth, PartyLevels.lowest(_simulation.party)]
+			)
 		)
 
 
@@ -491,7 +555,7 @@ func _risk_line(depth: int) -> String:
 		Risk.REACHABLE:
 			return "Within reach"
 		Risk.DANGEROUS:
-			return "Dangerous: heroes are level %d" % lowest_level()
+			return "Dangerous: heroes are level %d" % PartyLevels.lowest(_simulation.party)
 	return ""
 
 
@@ -522,12 +586,19 @@ func _journal() -> Journal:
 
 
 ## The mouse at [param at] (the ladder's own coordinates): the rung under it, none over the arrow.
+## A move of the mouse restarts the hint's rest; rungs moving under a still mouse do not.
 func _hover(at: Vector2) -> void:
-	var under: int = 0 if arrow_rect().has_point(at) else depth_at(at)
-	if under != _hovered:
-		_hovered = under
+	var under: int = _under(at)
+	if under != hovered:
+		hovered = under
 		_rested = 0.0
 	_show_hint()
+
+
+## The rung at [param at] (the ladder's own coordinates) as drawn now, or 0 over the arrow or off
+## the rungs.
+func _under(at: Vector2) -> int:
+	return 0 if arrow_rect().has_point(at) else depth_at(at)
 
 
 ## The party's depth, fractional while it climbs: its leader's height between two floors.
@@ -580,11 +651,11 @@ func _build_hint() -> void:
 func _show_hint() -> void:
 	if hint == null:
 		return
-	var showing: bool = _hovered > 0 and is_shown() and _rested >= HudTooltip.DELAY
+	var showing: bool = hovered > 0 and is_shown() and _rested >= HudTooltip.DELAY
 	hint.visible = showing
 	if not showing:
 		return
-	var parts: PackedStringArray = _hover_parts(_hovered)
+	var parts: PackedStringArray = _hover_parts(hovered)
 	var clickable: bool = not parts[1].is_empty()
 	var text: String = parts[0] + ("." if clickable else "")
 	if _hint_text.text != text:
@@ -601,12 +672,12 @@ func _show_hint() -> void:
 		if _hint_risk.text != parts[2]:
 			_hint_risk.text = parts[2]
 			_hint_risk.reset_size()
-		var colour: StringName = RISK_COLOURS[risk(_hovered)]
+		var colour: StringName = RISK_COLOURS[risk(hovered)]
 		_hint_risk.add_theme_color_override(&"font_color", Palette.color(colour))
 		width = maxf(width, 5.0 + PixelText.width(parts[2]) + 5.0)
 		height += HINT_LINE
 	hint.size = Vector2(width, height)
-	var row: Rect2 = rung_rect(_hovered)
+	var row: Rect2 = rung_rect(hovered)
 	var y: float = clampf(row.get_center().y - 6.0, RUNGS_TOP, size.y - height - PADDING)
 	hint.position = Vector2(-width - 2.0, floorf(y))
 
@@ -633,7 +704,7 @@ func _number_colour(depth: int) -> StringName:
 	return RISK_COLOURS[risk(depth)]
 
 
-## Draws the rails and every rung on show, then the party's marker and the target's arrow.
+## Draws the rails and every rung on show; the arrow and the party's marker are on layers over it.
 func _draw_rungs() -> void:
 	var canvas: Control = _rungs
 	var rail: Color = Palette.color(&"slate")
@@ -644,12 +715,25 @@ func _draw_rungs() -> void:
 	for depth: int in range(top, top + RUNGS + 1):
 		var row: float = floorf(rung_rect(depth).position.y - RUNGS_TOP)
 		_draw_rung(canvas, depth, row)
-	var party_y: float = floorf((_party_at - _scroll) * PITCH + PITCH / 2.0)
-	var bob: float = 1.0 if _time < BOB_SECONDS / 2.0 else 0.0
-	_draw_marker(canvas, Vector2((RAIL_LEFT + RAIL_RIGHT + 1.0) / 2.0, party_y - bob))
+
+
+## The arrow back to the party, over the rungs and outside them (spec 047 R5).
+func _draw_arrow_layer() -> void:
 	var arrow: Rect2 = arrow_rect()
 	if arrow.has_area():
-		_draw_party_arrow(canvas, Rect2(arrow.position - Vector2(0, RUNGS_TOP), arrow.size))
+		_draw_party_arrow(_arrow_layer, arrow)
+
+
+## The party's diamond, over everything else on the rungs, the arrow too.
+func _draw_marker_layer() -> void:
+	var bob: float = 1.0 if _time < BOB_SECONDS / 2.0 else 0.0
+	_draw_marker(_marker_layer, _marker_at() - Vector2(0.0, bob))
+
+
+## The centre of the party's diamond before its bob, in the rungs' coordinates.
+func _marker_at() -> Vector2:
+	var party_y: float = floorf((_party_at - _scroll) * PITCH + PITCH / 2.0)
+	return Vector2((RAIL_LEFT + RAIL_RIGHT + 1.0) / 2.0, party_y)
 
 
 ## The arrow toward the party while scrolled away: a 7x4 `white` triangle on a `night` box with an
@@ -670,12 +754,21 @@ func _draw_party_arrow(canvas: Control, box: Rect2) -> void:
 func _draw_rung(canvas: Control, depth: int, row: float) -> void:
 	var shown: Array[StringName] = marks(depth)
 	var middle: float = row + floorf(PITCH / 2.0)
-	if depth == _hovered:
+	if depth == hovered:
 		_outline(canvas, Rect2(1.0, row + 1.0, WIDTH - 2.0, PITCH - 2.0), Palette.color(&"slate"))
 	if is_flashing(depth) and fmod(FLASH_SECONDS - _flash, BLINK_SECONDS) < BLINK_SECONDS / 2.0:
 		var lit := Rect2(1.0, row + 1.0, WIDTH - 2.0, PITCH - 2.0)
 		_outline(canvas, lit, Palette.color(&"yellow"))
 		_outline(canvas, lit.grow(-1.0), Palette.color(&"amber"))
+	# Spec 047 R5: frames round the target's and the party's numbers (drawn under the numbers).
+	for mark: StringName in MARK_BOXES:
+		if shown.has(mark):
+			var box: Rect2 = MARK_BOXES[mark]
+			_outline(
+				canvas,
+				Rect2(box.position + Vector2(0.0, row), box.size),
+				Palette.color(MARK_COLOURS[mark])
+			)
 	var bar := Rect2(RAIL_LEFT, middle - 1.0, RAIL_RIGHT - RAIL_LEFT + 1.0, BAR_HEIGHT)
 	if shown.has(&"safe"):
 		canvas.draw_rect(bar, Palette.color(&"green"))
