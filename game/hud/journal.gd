@@ -3,15 +3,16 @@ extends Control
 ## The party's journal (spec 027 R3): the last [constant CAPACITY] notable happenings as plain
 ## sentences stamped with the game time, newest first.
 ##
-## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth
-## turning stable, a level up, a wipe (and the depth the party falls back to), a guardian slain and
-## an upgrade bought. The newest line shows in a one-line [member ticker] just above the party
-## frames for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
-## animate ([method World.is_recent]) are written but not shown there. [kbd]J[/kbd] opens and closes
-## [member panel], the last [constant SHOWN_LINES] lines below the top band at the left;
-## [kbd]Esc[/kbd] closes it (and lets the HUD close the shop or hero sheet too), and so does the
-## shop or the hero sheet (spec 026) opening. The sheet drops into the same place, so opening the
-## journal closes the sheet. Nothing here pauses the game.
+## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
+## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
+## bought, a microskill learned, and a side quest done (with its reward), passed by or sprung (with
+## the microskill it needed) (spec 028). The newest line shows in a one-line [member ticker] just
+## above the party frames for [constant TICKER_SECONDS], then fades through the palette and goes;
+## events too old to animate ([method World.is_recent]) are written but not shown there.
+## [kbd]J[/kbd] opens and closes [member panel], the last [constant SHOWN_LINES] lines below the top
+## band at the left; [kbd]Esc[/kbd] closes it (and lets the HUD close the shop or hero sheet too),
+## and so does the shop or the hero sheet (spec 026) opening. The sheet drops into the same place,
+## so opening the journal closes the sheet. Nothing here pauses the game.
 ##
 ## The node itself has no size: its two children, each a [HudPanel], are what is seen. It moves
 ## only in [method advance], so a test can step it exactly.
@@ -227,7 +228,37 @@ func _sentence(event: SimEvent) -> String:
 			if event.source_id >= 0 and event.source_id < ids.size():
 				var upgrade: UpgradeDef = Content.upgrade(ids[event.source_id])
 				sentence = "Bought %s, rank %d" % [upgrade.display_name, event.amount]
+		SimEvent.Kind.MICROSKILL_LEARNED:
+			var learner: Hero = _simulation.party.hero(event.source_id)
+			var skill: MicroskillDef = _microskill(event.target_id)
+			if learner != null and skill != null:
+				sentence = "%s learned %s" % [learner.def().display_name, skill.display_name]
+		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
+			sentence = _quest_sentence(event)
 	return sentence
+
+
+## The sentence for a side quest done, passed by or sprung, or "".
+func _quest_sentence(event: SimEvent) -> String:
+	var ids: Array[StringName] = Content.side_quest_ids()
+	if event.target_id < 0 or event.target_id >= ids.size():
+		return ""
+	var quest: SideQuestDef = Content.side_quest(ids[event.target_id])
+	if event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+		var done: String = QuestProps.DONE_WORDS.get(quest.id, quest.display_name)
+		if quest.reward == SideQuestDef.Reward.XP:
+			return "%s: %d XP each" % [done, event.amount]
+		return "%s: %d gold" % [done, event.amount]
+	var skill: MicroskillDef = _microskill(event.amount)
+	var needs: String = skill.display_name if skill != null else "?"
+	if event.flag:
+		return "Sprang a %s: needs %s" % [quest.display_name, needs]
+	return "Passed a %s: needs %s" % [quest.display_name, needs]
+
+
+func _microskill(index: int) -> MicroskillDef:
+	var ids: Array[StringName] = Content.microskill_ids()
+	return Content.microskill(ids[index]) if index >= 0 and index < ids.size() else null
 
 
 # --- Showing -------------------------------------------------------------------

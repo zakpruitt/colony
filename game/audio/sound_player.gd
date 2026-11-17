@@ -41,6 +41,8 @@ const MAX_VOICES: int = 8
 const REPEAT_SECONDS: float = 0.05
 ## How far a start's pitch may stray from the sound's own, either way, as a share (under 6%).
 const PITCH_SPREAD: float = 0.05
+## How much quieter than its own the click of each swing at a side quest is, in dB (spec 028).
+const WORK_CLICK_DB: float = -10.0
 
 ## Where the mute choice is kept. Null means nowhere: tests, screenshots and headless runs. Set it
 ## before [method setup] to choose the file.
@@ -89,6 +91,9 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void
 	# of the gain itself) can be told apart from a coin that flew to the purse.
 	if not effects.coin_collected.is_connected(_on_coin_collected):
 		effects.coin_collected.connect(_on_coin_collected, CONNECT_DEFERRED)
+	# Each swing of a hero working a side quest clicks, softly (spec 028 R9).
+	if world.quest_props != null and not world.quest_props.worked.is_connected(_on_worked):
+		world.quest_props.worked.connect(_on_worked)
 	_apply_mute(settings != null and settings.muted())
 
 
@@ -106,8 +111,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Plays a sound by name, subject to the limits of R4. Returns whether it started.
-func play(sound: StringName) -> bool:
+## Plays a sound by name, subject to the limits of R4, [param volume_db] from its own volume.
+## Returns whether it started.
+func play(sound: StringName, volume_db: float = 0.0) -> bool:
 	if not _streams.has(sound):
 		return false
 	var last: float = _last_start.get(sound, -INF)
@@ -125,6 +131,7 @@ func play(sound: StringName) -> bool:
 	var pitch: float = 1.0 + _rng.randf_range(-PITCH_SPREAD, PITCH_SPREAD)
 	voice.stream = stream
 	voice.pitch_scale = pitch
+	voice.volume_db = volume_db
 	if voice.is_inside_tree():
 		voice.play()
 	_ends[free] = _now + stream.get_length() / pitch
@@ -213,8 +220,11 @@ func _on_sim_event(event: SimEvent) -> void:
 				play(&"monster_die")
 			else:
 				play(&"hero_die")
-		SimEvent.Kind.LEVEL_UP:
+		SimEvent.Kind.LEVEL_UP, SimEvent.Kind.MICROSKILL_LEARNED:
 			play(&"level_up")
+		SimEvent.Kind.SIDE_QUEST_MISSED:
+			if event.flag:
+				play(&"hero_hurt")  # a trap sprang
 		SimEvent.Kind.PROJECTILE_LAUNCHED:
 			play(&"bolt")
 		SimEvent.Kind.PARTY_WIPED:
@@ -225,6 +235,10 @@ func _on_sim_event(event: SimEvent) -> void:
 			play(&"depth_stable")
 		SimEvent.Kind.UPGRADE_BOUGHT, SimEvent.Kind.HERO_TRAINED:
 			play(&"ui_buy")
+
+
+func _on_worked(_hero_id: int) -> void:
+	play(&"ui_click", WORK_CLICK_DB)
 
 
 func _on_coin_collected(_amount: int) -> void:

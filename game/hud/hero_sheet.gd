@@ -12,12 +12,16 @@ extends Control
 ## passes to [method train_row], asks the simulation to train the shown hero; the row flashes on
 ## [constant SimEvent.Kind.HERO_TRAINED]. The section is laid out from [constant TRAINING_Y] down,
 ## [constant TRAINING_HEIGHT] tall, so another section can sit below it.
+##
+## Below it, the Microskills section (spec 028) lists each microskill the hero's class learns, in
+## the class's order: one the hero has in white with its one-line description, one to come in grey
+## with the level it comes at.
 
 ## Emitted when the sheet opens, closes or switches hero.
 signal shown_changed
 
 ## The panel's size in pixels.
-const SIZE: Vector2 = Vector2(232, 235)
+const SIZE: Vector2 = Vector2(232, 272)
 ## Space inside the border.
 const PADDING: float = 4.0
 ## Pixels between the panel and the top band above it.
@@ -44,6 +48,13 @@ const BONUS_GAP: float = 4.0
 const TRAINING_Y: float = STATS_Y + 4.0 * STAT_ROW + 4.0
 const TRAINING_TITLE: float = 15.0
 const TRAINING_HEIGHT: float = TRAINING_TITLE + 3.0 * TrainingRow.SIZE.y + 2.0
+## The Microskills section (spec 028): its top (its divider), the title's row height, a row's
+## height, the most rows any class needs, and its height down to the line under its last row.
+const MICROSKILLS_Y: float = TRAINING_Y + TRAINING_HEIGHT
+const MICROSKILLS_TITLE: float = 15.0
+const MICROSKILL_ROW: float = 10.0
+const MICROSKILL_ROWS: int = 2
+const MICROSKILLS_HEIGHT: float = MICROSKILLS_TITLE + MICROSKILL_ROWS * MICROSKILL_ROW + 2.0
 ## The role of each class, in one word.
 const ROLE_WORDS: Dictionary[HeroClassDef.Role, String] = {
 	HeroClassDef.Role.TANK: "Tank",
@@ -91,6 +102,8 @@ var training_rows: Array[TrainingRow] = []
 var portrait: TextureRect
 
 var _simulation: Simulation
+## The Microskills section's rows, top to bottom.
+var _microskill_rows: Array[Label] = []
 var _icons: PixelSheet
 var _hero_id: int = -1
 ## The labels of the sheet's lines, by the key [method line] takes.
@@ -119,7 +132,9 @@ func _draw() -> void:
 	var ink: Color = Palette.color(&"ink")
 	HudPanel.draw_panel(self, Rect2(Vector2.ZERO, size), night, dusk, ink)
 	HudPanel.draw_panel(self, PORTRAIT_BOX, ink, ink, dusk)
-	for y: float in [PORTRAIT_BOX.end.y + 4.0, STATS_Y - 4.0, TRAINING_Y, SIZE.y - 15.0]:
+	for y: float in [
+		PORTRAIT_BOX.end.y + 4.0, STATS_Y - 4.0, TRAINING_Y, MICROSKILLS_Y, SIZE.y - 15.0
+	]:
 		draw_rect(Rect2(BODY_LEFT, y, BODY_RIGHT - BODY_LEFT, 1), dusk)
 	var health_colour: StringName = &"red" if _down else _health_colour(_health.value)
 	HudPanel.draw_bar(
@@ -158,6 +173,7 @@ func setup(simulation: Simulation, world: World) -> void:
 	_build_stats(FIRST_COLUMN, BODY_LEFT)
 	_build_stats(SECOND_COLUMN, STATS_SECOND_X)
 	_build_training()
+	_build_microskills()
 	var hint: Label = _caption("Tab next hero   Esc close", Vector2(BODY_LEFT, SIZE.y - 12.0))
 	hint.add_theme_color_override(&"font_color", Palette.color(&"slate"))
 	close_button = HudButton.new("x")
@@ -209,6 +225,7 @@ func advance(delta: float) -> void:
 	_refresh_stats(hero)
 	for row: TrainingRow in training_rows:
 		row.refresh(hero, _simulation.party.gold, delta)
+	_refresh_microskills(hero)
 	var part: StringName = &"skull" if _down else hero.class_id
 	var texture: Texture2D = _icons.part(part) if _icons.has_part(part) else null
 	if portrait.texture != texture:
@@ -294,8 +311,15 @@ func train_row(index: int) -> void:
 ## &"activity", and one per stat: &"stat_health", &"stat_damage", &"stat_armor",
 ## &"stat_attack_speed", &"stat_crit", &"stat_range", &"stat_healing" ("" when the class does
 ## not heal); and one per training row: &"training_power", &"training_toughness",
-## &"training_quickness", as "<name> <rank>/<max> <bonus> <price or MAX>".
+## &"training_quickness", as "<name> <rank>/<max> <bonus> <price or MAX>"; and &"microskills", the
+## Microskills section's rows, one per line ("Lockpicker: Opens locks", "Trapspotter, level 6").
 func line(key: StringName) -> String:
+	if key == &"microskills":
+		var rows: PackedStringArray = []
+		for row: Label in _microskill_rows:
+			if row.visible:
+				rows.append(row.text)
+		return "\n".join(rows)
 	var row: TrainingRow = training_row(key)
 	if row != null:
 		return row.text()
@@ -473,6 +497,42 @@ func _build_training() -> void:
 		add_child(row)
 		training_rows.append(row)
 		y += TrainingRow.SIZE.y
+
+
+## The Microskills section: a divider, the title and a row per microskill the class can learn.
+func _build_microskills() -> void:
+	var title: Label = PixelText.label("Microskills", &"yellow")
+	title.name = "MicroskillsTitle"
+	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	title.position = Vector2(BODY_LEFT, MICROSKILLS_Y + 3.0)
+	add_child(title)
+	var y: float = MICROSKILLS_Y + MICROSKILLS_TITLE
+	for i: int in MICROSKILL_ROWS:
+		var row: Label = _caption("", Vector2(BODY_LEFT, y))
+		row.name = "Microskill%d" % i
+		_microskill_rows.append(row)
+		y += MICROSKILL_ROW
+
+
+## Fills the Microskills rows from [param hero]'s class and level.
+func _refresh_microskills(hero: Hero) -> void:
+	var def: HeroClassDef = hero.def()
+	var count: int = mini(def.microskills.size(), def.microskill_levels.size())
+	for i: int in _microskill_rows.size():
+		var row: Label = _microskill_rows[i]
+		var skill: MicroskillDef = Content.microskill(def.microskills[i]) if i < count else null
+		row.visible = skill != null
+		if skill == null:
+			continue
+		var level: int = def.microskill_levels[i]
+		var has: bool = hero.level >= level
+		var text: String = "%s: %s" % [skill.display_name, skill.description]
+		if not has:
+			text = "%s, level %d" % [skill.display_name, level]
+		if row.text != text:
+			row.text = text
+			row.reset_size()
+		_colour(row, &"white" if has else &"steel")
 
 
 func _add_line(key: StringName, text: String, colour: StringName, at: Vector2) -> Label:
