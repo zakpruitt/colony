@@ -59,3 +59,4 @@ until Zak has played them.
 | Spec | Status | Depends on |
 |---|---|---|
 | [043 A ladder that warns](043-a-ladder-that-warns/spec.md): rungs show how dangerous a depth looks for this party, and the ladder scrolls | provisional, in progress | 033, 036, 042 |
+| [044 Old saves level up](044-old-saves-level-up/spec.md): fixes from the review of 036: a save from before the cheaper XP curve loads with heroes owed a level and a negative XP line | provisional, in progress | 014, 029, 036 |

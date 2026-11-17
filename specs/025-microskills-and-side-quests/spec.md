@@ -66,7 +66,9 @@ the simulation only; a later spec puts it on screen.
 - **R7. The game is still the game.** A sprung tripwire can never wipe the party. In a one-hour run with
   `stable_seconds` 120 on five seeds: every run still becomes stable below depth 2, at least three of five
   beat the first guardian, every hero learns their first microskill, and every run completes at least five
-  side quests and misses at least one. Existing tests keep their statements; one that pins a state hash, or
+  side quests, and at least four of five miss at least one (amended by the lead after spec 036:
+  with faster early levels one seed learns every microskill before it meets a quest it cannot do; the
+  first wording said every run). Existing tests keep their statements; one that pins a state hash, or
   assumes every populated plain chamber holds monsters, may be updated (say which).
 
 ## Interfaces
