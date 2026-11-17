@@ -397,6 +397,18 @@ Slime King, level-9 heroes almost always do (levels 10 and 15 against the Clay C
 itself at it, wipes, falls back to farm, grows and comes back. Beating one pays at least ten ordinary kills'
 worth of XP and gold, and its chamber then stays empty for 30 minutes so the party can pass freely. Guardians
 are never met in ordinary fights.</p>
+<p><span class="tag built">Built: spec 049</span> <strong>Areas.</strong> The labyrinth is four areas, not one
+endless shaft: <em>Mossy Hollow</em> (slimes, cave bats, goblins and spiders; the Slime King), <em>The
+Claypits</em> (mud golems, clay hounds, ogres; the Clay Colossus), <em>The Old Crypt</em> (skeletons, ghouls,
+wraiths; the Bone Lord) and <em>Ember Deep</em> (fire imps, crystal beetles, deep horrors; the Deep Maw). Inside
+an area the party goes down through numbered <em>stages</em> exactly as it went down through depths; the screen
+names a place as an area and a stage (<em>Mossy Hollow 3</em>). Each area has a base level (1, 6, 11, 16): stage
+1 of the Claypits is as hard as old depth 6. Each area's guardian waits on its stage 5 and every fifth stage
+after; beating it the first time opens the next area (<em>The Claypits is open</em> in the journal). A new game
+has only Mossy Hollow open. Sending the party to another open area takes ten seconds on the road
+(<em>On the way to The Claypits 1</em>) and every area keeps its own safe and furthest stage, so it can go back.
+An old save opens the areas its deepest depth had already reached past. The labyrinth of each area is its
+own, and a monster appears in only its own area.</p>
 <p><span class="tag built">Built: spec 024</span> <strong>Guardian fights feel like boss fights.</strong> When the
 party meets a guardian, its name appears large in the upper middle of the screen (<code>SLIME KING</code>, with
 <code>GUARDIAN OF DEPTH 5</code> under it) for two seconds, the screen shakes once and a low horn sounds. For the
@@ -505,7 +517,7 @@ colours with a pale puff, its coins spill out, bounce on the floor, rest a momen
 top right (one coin per 5 gold, up to 12), and blue XP motes fly to each hero who earned them. A level up
 throws gold sparks and shows <code>LEVEL UP</code>. Bolts leave a short trail and flash where they land.
 Resting heroes give off a small <code>z</code> now and then; a wipe shows <code>WIPED</code> until the party
-stands up again in a column of light; a new last stable depth shows <code>DEPTH n STABLE</code>. Effects
+stands up again in a column of light; a new last stable stage shows <code>MOSSY HOLLOW n STABLE</code> (spec 049). Effects
 never fade: they shrink, blink or fly away. After a long freeze old events start no effects (their gold is
 counted at once), and there are never more than 40 numbers and 300 particles on screen.</p>
 <h3>The HUD <span class="tag built">Built: spec 011</span></h3>
@@ -520,33 +532,33 @@ sits on a small dark panel so it reads over the sky and the darkest rock alike.<
   level-up makes the level number pulse and the XP bar start again from empty.</li>
   <li><strong>Gold</strong> (top right), with commas. It counts up as coins arrive; if it is still behind 3
   seconds after the last coin, it catches up at once.</li>
-  <li><strong>Depth</strong> (top left): the current depth in big numbers (it lights up when it changes), the
-  last stable depth (<em>Safe 3</em>: where the party falls back to after a wipe), the target depth, and a short line for what the party is doing and why (spec 027):
-  <em>Heading down to depth 5</em>, <em>Hunting on depth 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting
+  <li><strong>Depth</strong> (top left): the area's name over the current stage in big numbers (it lights up
+  when it changes; spec 049), the last stable stage (<em>Safe 3</em>: where the party falls back to after a wipe), the target depth, and a short line for what the party is doing and why (spec 027):
+  <em>Heading down to stage 5</em>, <em>Hunting on stage 4</em>, <em>On the way to The Claypits 1</em>, <em>Fighting 3 monsters</em>, <em>Fighting
   the Slime King</em>, <em>Resting, 64% health</em>, <em>Climbing down</em>, <em>Working: Locked Chest</em>, <em>Chased home!
   Regrouping</em>.</li>
   <li><strong>The road to stable</strong> (right of the depth, spec 027): on a depth that is not yet stable,
   <em>Stable in 8:29</em> over a thin yellow bar that fills as the time passes; on a stable depth, a green
   <em>Stable</em>. With auto-push on and the party at its target, it also says what comes next
-  (<em>then depth 3</em>). Auto-push moves the party on once it has held its target for the stable time
+  (<em>then stage 3</em>). Auto-push moves the party on once it has held its target for the stable time
   (counted from when it arrived or the target was set, whichever was later), so on a depth that is already
   stable the note counts down to that instead: <em>Deeper in 0:42</em> over the bar (spec 039). With Auto
-  off it reads <em>Stable, staying on depth 3</em>, and while the Hold order keeps the party from a guardian,
+  off it reads <em>Stable, staying on stage 3</em>, and while the Hold order keeps the party from a guardian,
   <em>Holding, Orders (O) to go in</em>.</li>
   <li><strong>After a defeat</strong> (spec 041): when the party is wiped, a small note appears above
   <code>WIPED</code> in the middle of the screen and stays until 8 seconds after the heroes stand up
   again (longer while the mouse rests on it, and a new fight does not hide it). It says what beat
-  the party and where (<em>Beaten by the Slime King on depth 5</em>, or <em>Beaten on depth 7 by 3
+  the party and where (<em>Beaten by the Slime King on Mossy Hollow 5</em>, or <em>Beaten on Mossy Hollow 7 by 3
   ogres</em>), with <em>(2 times)</em> from the second defeat in a row by the same guardian; the plainest
-  reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Depth 7 is 3
-  below the safe depth</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the hero
+  reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Mossy Hollow 7 is 3
+  below the safe stage</em>); and up to three buttons that would help: <em>Train Knight</em> (opens the hero
   with the cheapest training you can afford on its Training tab), <em>Buy an upgrade</em> (opens the shop),
   or <em>Hold here</em> (sets the guardian order to Hold; it reads <em>Holding</em> only while the order is
   Hold). Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
   the button said. It hides while a panel is open, and its 8 seconds wait while it is hidden. It says
   nothing about wipes while you were away or seen only after a stall, and it describes the lost fight even
   when the defeat and the revival arrive in one frame (at 4x). The journal writes its first line and where
-  the party falls back to: <em>Beaten by the Slime King on depth 5; falling back to depth 4</em>.</li>
+  the party falls back to: <em>Beaten by the Slime King on Mossy Hollow 5; falling back to Mossy Hollow 4</em>.</li>
   <li><strong>The journal</strong> (spec 027): the game remembers the last 50 notable happenings with the game
   time (a new deepest depth, a depth turning stable, a level up, a wipe and what beat the party where, a
   guardian slain, an upgrade bought, a side quest done, passed or sprung, a microskill learned). The newest shows for 4 seconds in a one-line ticker just above the party
@@ -828,7 +840,7 @@ the panel reads as before.</p>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
   <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
-  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten)</td></tr>
+  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten; <code>--area=claypits</code> to send the party to that area at the start, opening it for the run; the summary names the area and stage the party ends in, each area's safe and furthest stage and the open areas)</td></tr>
   <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
   <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, a climb down and up, a wipe and the revival, a depth becoming stable, a fight in the clay, the stone and the deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung and a microskill learned, in about 90 seconds; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
