@@ -80,7 +80,8 @@ runs the main scene in a real window for a few seconds (headless Godot draws not
 for a sequence when motion matters, and `--scene=res://…` to run a scene other than the main one. Look before you call visual work done, and say what you saw in your report.
 A plain grey shot means the scene's script did not load (a typing warning is an error, and `shot` does not
 print it): run `python tools/dev.py check --only=compile` on it. A throwaway scene for a shot must not be
-committed.
+committed. To shoot one showcase moment without the minute before it, make that throwaway scene a script that
+`extends Showcase` and calls `skip_to(&"<moment>")` after `super._ready()`.
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.
