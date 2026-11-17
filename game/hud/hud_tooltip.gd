@@ -149,6 +149,15 @@ func tip(controls: Array, sentence: Variant) -> void:
 	_tip(controls, sentence)
 
 
+## As [method tip], but this element is found before every other under the mouse: for a control
+## lying over another element (spec 053: the area's name, a button over the depth's caption).
+func tip_first(controls: Array, sentence: Variant) -> void:
+	_tip(controls, sentence)
+	_targets.push_front(_targets.pop_back())
+	_sentences.push_front(_sentences.pop_back())
+	_hovered = -1
+
+
 ## The tooltip of goal line [param index]: how to get there, then what a click does (none for a
 ## finished goal).
 static func _goal_tip(goals: Goals, index: int) -> String:

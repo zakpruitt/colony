@@ -331,6 +331,19 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   every bar does. On the Session span each hero's side quests are a `green` line under the bars. Its button
   sits left of the party frames, as tall as one: three small bars in `red`, `blue` and `amber` on `ink`
   edges over a `T`, lit while the tally is open.
+- **The area map** (spec 053) is an overlay like the help panel: centred under the top band, left of the
+  depth ladder, ending above the ticker's strip, at most 34 pixels a row so six areas fit. `Areas` in
+  `yellow`, `W close` in `slate` and an `x` button over a `dusk` line; then a row per area on its own
+  `night` panel: the name in `white` with `Here` in `green` or `On the way, 7 s` in `tan` after it, the level
+  of the first stage in `silver` and the safe and furthest stage in `steel` under it, and at the right the
+  area's monsters standing at rest (at 1x up to 32 pixels tall; a guardian's 64-pixel sprite at half size),
+  then, after a `dusk` line, its guardian with the goals' 7x5 `green` tick once beaten. A closed area has no
+  panel of its own: its name is `slate`, its line says which guardian opens it, and its sprites are darkened,
+  never faded. A row under the mouse is lit as a `HudButton` is; the chosen row has a `yellow` outline with
+  an `amber` one inside. Under a `dusk` line the footer shows the chosen area, `-`, the stage in the ladder's
+  risk colour (`cyan`, `orange`, `red`), `+`, `Go`, and the risk in words in the same colour. The area's name
+  in the depth panel is the map's button: outlined `yellow` under the mouse and `green` while the map is
+  open, with the usual amber marker at its top-right while an area has opened since the map was last seen.
 - **Frame markers** (spec 037) sit inside a hero frame's top-right corner, not above it (the ticker's strip
   stays clear); the level moves left of the marker.
 - **The target arrow** over the party is the one HUD-like mark in the world: a 9x10 arrow drawn in code,

@@ -24,8 +24,9 @@ extends Control
 ## A shown goal was achieved, in a recent frame: [param sentence] is its journal line.
 signal goal_finished(sentence: String)
 
-## The kinds of goal, in the order the tracker prefers them.
-enum Kind { GUARDIAN, DEPTH, MICROSKILL, TRAINING, UPGRADE }
+## The kinds of goal, in the order the tracker prefers them, but a visit to a new area (spec 053)
+## comes first.
+enum Kind { GUARDIAN, DEPTH, MICROSKILL, TRAINING, UPGRADE, VISIT }
 
 ## The most goals shown at once.
 const MOST: int = 3
@@ -35,6 +36,13 @@ const GUARDIAN_WITHIN: int = 3
 ## plus this many levels, which matches the tests of spec 020 (a level-9 party beats the depth-5
 ## guardian).
 const GUARDIAN_LEVEL_OVER_DEPTH: int = 4
+## What a click on a goal of each kind does, for the kinds that open the same place every time.
+const CLICKS: Dictionary[Kind, String] = {
+	Kind.UPGRADE: "Click to open the shop.",
+	Kind.GUARDIAN: "Click to open the orders.",
+	Kind.DEPTH: "Click to see it on the ladder.",
+	Kind.VISIT: "Click to open the area map.",
+}
 ## Seconds a finished goal shows its tick before the next takes its place.
 const CELEBRATE_SECONDS: float = 3.0
 ## Seconds a finished goal's row flashes, bright half then dim half (as a shop row does).
@@ -225,6 +233,8 @@ func press(index: int) -> void:
 		Kind.DEPTH:
 			hud.shop.close()
 			hud.ladder.flash(goal.target)
+		Kind.VISIT:
+			hud.area_map.open()  # spec 053 R6
 	advance(0.0)
 
 
@@ -234,14 +244,10 @@ func action(index: int) -> String:
 	if index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
 		return ""
 	var goal: Goal = _shown[index]
+	if CLICKS.has(goal.kind):
+		return CLICKS[goal.kind]
 	var hero: Hero = null
 	match goal.kind:
-		Kind.UPGRADE:
-			return "Click to open the shop."
-		Kind.GUARDIAN:
-			return "Click to open the orders."
-		Kind.DEPTH:
-			return "Click to see it on the ladder."
 		Kind.TRAINING:
 			hero = _cheapest_trainee()
 		Kind.MICROSKILL:
@@ -255,6 +261,9 @@ func action(index: int) -> String:
 ## Every goal that applies now, in the tracker's order, read from the simulation.
 func applicable() -> Array[Goal]:
 	var found: Array[Goal] = []
+	var hud: Hud = get_parent() as Hud
+	if hud != null and hud.area_map != null and hud.area_map.news != null:
+		found.append_array(hud.area_map.news.visit_goals())  # spec 053 R6: a new area first
 	var guardian: Goal = _guardian_goal()
 	if guardian != null:
 		found.append(guardian)
@@ -488,6 +497,9 @@ func _achieved(goal: Goal) -> bool:
 		Kind.MICROSKILL:
 			var hero: Hero = _simulation.party.hero(goal.hero_id)
 			return hero != null and hero.level >= goal.target
+		Kind.VISIT:
+			var hud: Hud = get_parent() as Hud
+			return hud != null and hud.area_map.news.visited.has(goal.area)
 	return false
 
 
