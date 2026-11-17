@@ -41,6 +41,10 @@ skill trees".
   party finishes any fight it is in, leaves, spends 10 seconds on the way, and arrives alive (health as it
   was) at the start of that stage, or of the area's safe stage if the stage asked for is beyond it, with
   the stage asked for as its target. A command for an area that is not open does nothing.
+  (Amended by the lead after the review of pull request 51: the journey is a rest. Fallen heroes stand
+  up and everyone heals as ten seconds of resting would, so nobody arrives down. Whether the area is open
+  is judged when the command is given. A target chosen during the journey is the target on arrival. A
+  rest or side-quest work the party leaves ends with its usual event.)
 - **R5. Each area remembers.** Each area keeps its own safe stage and furthest stage. Coming back to an
   area starts from them, not from stage 1.
 - **R6. Guardians open areas.** The first time an area's stage-5 guardian is beaten, the area it opens
