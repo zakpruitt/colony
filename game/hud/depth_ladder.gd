@@ -376,7 +376,10 @@ func arrow_rect() -> Rect2:
 		return Rect2()
 	var x: float = floorf((RAIL_LEFT + RAIL_RIGHT + 1.0 - ARROW_SIZE.x) / 2.0)
 	var y: float = CAPTION_HEIGHT - ARROW_SIZE.y - 1.0
-	if not arrow_points_up():
+	if arrow_points_up():
+		# Beside the caption, not over its last letter.
+		x = maxf(x, _caption.position.x + PixelText.width(_caption.text) + 2.0)
+	else:
 		y = size.y - ARROW_SIZE.y
 	return Rect2(Vector2(x, y), ARROW_SIZE)
 
