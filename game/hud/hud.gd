@@ -1,18 +1,24 @@
 class_name Hud
 extends Control
-## The party frames, the purse, the depth and the target-depth control (spec 011).
+## The HUD (spec 011): the frame of the screen, and the old panels still drawn with the world.
 ##
 ## The HUD only reads the simulation, and listens to [signal World.sim_event] for hits and
 ## level-ups; the player's choices reach the simulation through [method Simulation.set_target_depth]
 ## and [method Simulation.set_auto_push]. It keeps to the top [constant TOP_BAND] and the bottom
-## [constant BOTTOM_BAND] pixels of the 640x360 screen, and every text and bar sits on a dark
-## [HudPanel]. Laid out in screen pixels from the top-left corner.
+## [constant BOTTOM_BAND] pixels of the 640x360 screen.
 ##
-## Spec 027 makes the party readable: the depth panel says what the party is doing and why
-## ([method status_text]) and how long until this depth is stable ([method stable_text]), and a
-## [Journal] keeps the last happenings, with a ticker over the frames (its list is the Journal
-## window on the UI layer, spec 058).
-## Spec 039 makes that note count down to auto-push's next push once the depth is stable.
+## Spec 027 makes the party readable: the place panel says what the party is doing and why ([method
+## status_text]) and how long until this stage is stable ([method stable_text]), and a [Journal]
+## keeps the last happenings, with a ticker over the frames (its list is the Journal window on the
+## UI layer, spec 058). Spec 039 makes that note count down to auto-push's next push once the depth
+## is stable.
+##
+## Spec 061 draws the frame of the screen on the sharp layer, in the UI font: the [PlacePanel] and
+## the [Countdown] at the top left, the [Purse] at the top right, the [BossBarView] between them in
+## a guardian fight, and a [HeroFrameView] per hero along the bottom, all inside the two bands. They
+## hang from [member screen_frame], which [UiRoot] takes onto its layer; a HUD on its own (a test)
+## keeps it, scaled so that its 960x540 UI pixels cover the 640x360 screen. The texts are made here
+## and only drawn there; their tooltips are [member frame_tip], spec 058's tooltip.
 
 ## The screen the HUD is laid out on, in pixels.
 const SCREEN: Vector2 = Vector2(640, 360)
@@ -25,8 +31,9 @@ const GAP: float = 4.0
 ## The top panels' top edge and height.
 const TOP_Y: float = 2.0
 const TOP_HEIGHT: float = 24.0
-## Pixels between the speed button and its panel's right edge, as on its left.
-const SHOP_TAB_RIGHT: float = 4.0
+## How far above the screen's margin the hero frames reach, in the world's pixels, for a HUD with
+## no UI layer; on the layer [method frames_line] gives their true top.
+const FRAMES_HEIGHT: float = 34.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
 ## Seconds after the last coin before a shown gold count that is still behind catches up.
@@ -35,8 +42,11 @@ const GOLD_CATCH_UP_SECONDS: float = 3.0
 const GOLD_BUMP_SECONDS: float = 0.15
 ## Seconds the depth number is emphasised after a change of depth.
 const DEPTH_EMPHASIS_SECONDS: float = 0.6
-## The road to stable (spec 027 R2): the bar's size in pixels.
-const STABLE_BAR: Vector2 = Vector2(40, 5)
+## The frame of the screen, in UI pixels: its top, the space from the room's sides and bottom,
+## and between two pieces.
+const FRAME_TOP: float = 1.0
+const FRAME_EDGE: float = 6.0
+const FRAME_GAP: float = 6.0
 ## The word for each expedition state, and its colour. A state with no line of its own in
 ## [method status_text] shows its word.
 const STATE_WORDS: Dictionary[Expedition.State, String] = {
@@ -57,48 +67,41 @@ const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.WORKING: &"amber",
 	Expedition.State.JOURNEYING: &"tan",
 }
+## Each piece's tooltip, as the old pieces had them (spec 030 R4).
+const STAGE_TIP: String = "The stage the party is on now."
+const STATUS_TIP: String = "What the party is doing right now, and why."
+const SAFE_TIP: String = "The last safe stage: a wipe sends the party back there."
+const TARGET_TIP: String = "The stage the party is heading for."
+const MINUS_TIP: String = "Set the target one stage back."
+const PLUS_TIP: String = "Set the target one stage further."
+const AUTO_TIP: String = (
+	"When on, the party goes a stage further each time it holds its target " + "long enough."
+)
+const SPEED_TIP: String = "How fast the game runs: click (or press F) for 1x, 2x or 4x."
+const GOLD_TIP: String = "Gold from fights, to spend in the Shop."
+const BOSS_TIP: String = "A guardian holds the way on: beat it to go further."
+const AREA_TIP: String = "The area the party is in: click (or press W) for the map of every area."
 
+## The frame of the screen (spec 061): the room-sized control its pieces hang from.
+var screen_frame: Control
+## Where the party is: the area, the stage, the safe stage, the target, Auto and the status line.
+var place_panel: PlacePanel
+## The road to stable, beside the place panel.
+var countdown: Countdown
+## The gold, the resources and the game-speed button. Main connects the button's click and tells
+## the HUD the speed through [method show_speed].
+var purse: Purse
 ## One frame per hero, in formation order, left to right.
-var frames: Array[HeroFrame] = []
-var gold_panel: HudPanel
-var gold_label: Label
-var coin_icon: TextureRect
-## The resources the party holds, after the gold in its panel (spec 052).
-var resource_purse: ResourcePurse
-var depth_panel: HudPanel
-## The current depth, in the big font.
-var depth_label: Label
-var depth_caption: Label
-## The line between the depth and the rest of the panel.
-var depth_divider: ColorRect
-## "Safe N": the last stable depth, the one the party falls back to (spec 028 R8).
-var stable_label: Label
-var target_caption: Label
-## The target depth's number, between the - and + buttons.
-var target_label: Label
-## What the party is doing and why, in a short sentence: [method status_text].
-var state_label: Label
-## The road to stable (spec 027 R2), right of the target: "Stable in m:ss" or "Further in m:ss"
-## over a thin bar and what happens next, or "Stable" (spec 039 R2).
-var stable_note: Label
-var stable_bar: Control
-var stable_next: Label
-var stable_divider: ColorRect
-var minus_button: HudButton
-var plus_button: HudButton
-var auto_button: HudButton
+var frames: Array[HeroFrameView] = []
+## The guardian's health during a guardian fight (spec 024).
+var boss_bar: BossBarView
+## The tooltips of the frame's pieces (spec 061 R7).
+var frame_tip: UiTip
 ## Main's tick readout, for developers: bottom right, dim, hidden until F3.
 var clock_label: Label
 ## The upgrade shop (spec 017): since spec 059 the content of the Shop window on the UI layer,
 ## made here so it hears the simulation from the start; [UiRoot] puts it in its window.
 var shop: ShopWindow
-## The game's speed (spec 032), left of the gold on its tab: "1x", "2x" or "4x", lit above 1x.
-## Main connects its click and tells it the speed through [method show_speed].
-var speed_button: HudButton
-## The small panel the speed button sits on (it held the Shop button until spec 059).
-var shop_tab: HudPanel
-## The guardian's health during a guardian fight (spec 024).
-var boss_bar: BossBar
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
 ## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
@@ -113,11 +116,15 @@ var hero_windows: HeroWindows:
 var ladder: DepthLadder
 ## The next few things within reach, under the depth panel (spec 037); G hides it.
 var goals: Goals
-## The tooltips on the HUD's elements (spec 030).
+## The tooltips on the HUD's old elements (spec 030).
 var tooltip: HudTooltip
 ## The windows on the UI layer (spec 058), which hold help, the journal's list and the orders;
 ## null when there is no UI layer (a HUD on its own in a test).
-var windows: UiWindows
+var windows: UiWindows:
+	set(value):
+		windows = value
+		if frame_tip != null and value != null:
+			frame_tip.covered = value.covers
 ## What beat the party and what would help (spec 041), under the top band in the middle.
 var defeat_note: DefeatNote
 ## The party tally (spec 045): who deals, heals and takes the damage; the content of the Party
@@ -130,8 +137,10 @@ var area_map: AreaMapWindow
 var _simulation: Simulation
 var _world: World
 var _effects: CombatEffects
+## The UI layer the frame of the screen is on, or null.
+var _ui: UiRoot
 var _icons: PixelSheet
-var _frames_by_id: Dictionary[int, HeroFrame] = {}
+var _frames_by_id: Dictionary[int, HeroFrameView] = {}
 var _shown_gold: int = 0
 var _since_coin: float = 0.0
 var _gold_bump: float = 0.0
@@ -140,6 +149,11 @@ var _depth_emphasis: float = 0.0
 ## A target asked for that the simulation has not applied yet (it applies on the next tick), or 0.
 var _asked_target: int = 0
 var _auto_on: bool = false
+## The room the frame of the screen is laid out in, in UI pixels.
+var _frame_room: Vector2 = Vector2(UiRoot.MIN_ROOM)
+## The simulation's tick at the last [method advance] (-1 before the first): more ticks than a
+## stall since then and the frame shows where things are, not how they got there (spec 061 R9).
+var _seen_tick: int = -1
 
 
 func _ready() -> void:
@@ -224,16 +238,9 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	var veil := CrossingVeil.new()  # spec 054: first, so the rest of the HUD is drawn over it
 	add_child(veil)
 	veil.setup(world)
-	_build_frames()
-	_build_depth()
-	_build_gold()
+	_build_screen_frame()
 	_build_shop()
-	for frame: HeroFrame in frames:  # spec 060: a click opens or closes the hero's window
-		frame.clicked.connect(_on_frame_clicked)
 	_adopt_clock()
-	boss_bar = BossBar.new()
-	add_child(boss_bar)
-	boss_bar.setup(simulation, world)
 	journal = Journal.new()
 	add_child(journal)
 	journal.setup(simulation, world)
@@ -247,12 +254,13 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	area_map = AreaMapWindow.new()
 	area_map.setup(simulation, world, self)
 	_build_tooltip()
-	resource_purse.setup(simulation, effects.resource_effects if effects != null else null)
-	resource_purse.add_tips(tooltip)  # spec 052
+	place_panel.area_button.pressed.connect(area_map.toggle)
+	purse.setup(simulation, effects.resource_effects if effects != null else null)
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
 	move_child(tooltip, -1)  # drawn over the note
+	_tip_frame()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
 	if world != null:
@@ -266,30 +274,93 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
+	var stalled: bool = _seen_tick >= 0 and _simulation.tick - _seen_tick > _stall_ticks()
+	_seen_tick = _simulation.tick
 	var reviving: bool = _simulation.expedition.state == Expedition.State.REVIVING
 	var battle: Battle = _simulation.expedition.battle
 	var fighting: bool = _simulation.expedition.state == Expedition.State.FIGHTING
 	for hero: Hero in _simulation.party.heroes:
-		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
+		var frame: HeroFrameView = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.recovering = reviving
 			frame.gold = _simulation.party.gold  # for its marker (spec 037 R4)
 			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
-	resource_purse.advance(delta)
+			if stalled:
+				frame.snap()
+	purse.advance(delta)
+	if stalled:
+		purse.catch_up()
+		_gold_bump = 0.0
+		_depth_emphasis = 0.0
+		_depth = _simulation.expedition.depth
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
 	if hero_windows != null:
 		hero_windows.advance(delta)
 	boss_bar.advance(delta)
+	if stalled:
+		boss_bar.snap()
 	journal.advance(delta)
 	ladder.advance(delta)
 	goals.advance(delta)
 	tally.advance(delta)
 	area_map.advance(delta)
+	_mark_area()
+	_lay_out_frame()
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
+	frame_tip.advance(delta)
+
+
+## Puts the frame of the screen on [param ui]'s layer (spec 061), under its windows, filling its
+## room; its tooltip treats a point under a window as nowhere. Called by [method UiRoot.setup].
+func adopt_frame(ui: UiRoot) -> void:
+	_ui = ui
+	screen_frame.reparent(ui.frame, false)
+	ui.frame.move_child(screen_frame, 0)
+	screen_frame.theme = null  # the layer's frame carries the theme
+	screen_frame.scale = Vector2.ONE
+	fit_frame(ui.room())
+
+
+## Gives the frame of the screen a room of [param room] UI pixels, and lays it out. A room smaller
+## than [constant UiRoot.MIN_ROOM] (a window under 960x540, as a headless test's is) has the frame
+## laid out at that size and scaled down to fit, so it still keeps to the two bands.
+func fit_frame(room: Vector2i) -> void:
+	var fit: float = _fit(room)
+	screen_frame.position = Vector2.ZERO
+	screen_frame.scale = Vector2.ONE * fit
+	_frame_room = Vector2(room) / fit
+	# Lifted onto the layer ([method lift_tip]), the tip keeps to the layer's own room.
+	frame_tip.room = _frame_room if frame_tip.get_parent() == screen_frame else Vector2(room)
+	_lay_out_frame()
+	if _ui != null:
+		journal.frames_top = _ui.frames_top()  # the ticker stands on the frames
+
+
+## The top of the hero frames on the UI layer in a room of [param room] UI pixels: where
+## [method _lay_out_frame] puts them, scaled as [method fit_frame] scales the frame.
+static func frames_line(room: Vector2i) -> float:
+	var fit: float = _fit(room)
+	return (float(room.y) / fit - FRAME_EDGE - HeroFrameView.SIZE.y) * fit
+
+
+## The fraction the frame is drawn at in a room of [param room] UI pixels: 1, or less in a room
+## smaller than [constant UiRoot.MIN_ROOM].
+static func _fit(room: Vector2i) -> float:
+	return minf(1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y))
+
+
+## Puts the frame's tooltip over everything else on [param ui]'s layer (the button bar and every
+## window), unscaled, in the layer's room. Called by [method UiRoot.setup] once all is on it.
+func lift_tip(ui: UiRoot) -> void:
+	frame_tip.reparent(ui.frame, false)
+	ui.frame.move_child(frame_tip, -1)
+	frame_tip.scale = Vector2.ONE
+	frame_tip.z_index = 2  # over the tags on the bar's buttons, which draw at 1
+	frame_tip.room = Vector2(ui.room())
 
 
 ## True while the window holding [param content] is the front window on the UI layer (spec 059).
@@ -298,9 +369,9 @@ func _in_front(content: Control) -> bool:
 	return top != null and top.content == content
 
 
-## What the party is doing and why, as the depth panel shows it: "Heading on to stage 5",
+## What the party is doing and why, as the place panel shows it: "Heading on to stage 5",
 ## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (spec
-## 027 R1, spec 049 R9: the panel's caption names the area the stages are in).
+## 027 R1, spec 049 R9: the area's name names the area the stages are in).
 func status_text() -> String:
 	var e: Expedition = _simulation.expedition
 	var line: String = STATE_WORDS.get(e.state, "")
@@ -415,103 +486,112 @@ static func short_count(amount: int) -> String:
 	return "%s%d.%d%s" % [minus, whole, tenths, suffix]
 
 
+## Where [param control] is, as a rectangle in the screen's 640x360 pixels (where input events
+## and the old HUD are), wherever it is drawn: through its canvas layer's transform, never a
+## camera's (a [Hud] built alone in a test sits on no layer, beside a world's camera).
+static func on_screen(control: Control) -> Rect2:
+	var xform: Transform2D = _screen_transform(control)
+	return Rect2(xform.origin, control.size * xform.get_scale())
+
+
+## From [param item]'s own pixels to the screen's: its canvas layer's transform, if any, times its
+## global transform.
+static func _screen_transform(item: CanvasItem) -> Transform2D:
+	var layer: CanvasLayer = item.get_canvas_layer_node()
+	var xform: Transform2D = item.get_global_transform()
+	return layer.get_final_transform() * xform if layer != null else xform
+
+
 # --- Building ------------------------------------------------------------------
 
 
-func _build_frames() -> void:
-	var count: int = _simulation.party.heroes.size()
-	var row: float = count * HeroFrame.SIZE.x + maxi(count - 1, 0) * GAP
-	var x: float = floorf((SCREEN.x - row) / 2.0)  # the row is centred
-	var y: float = SCREEN.y - MARGIN - HeroFrame.SIZE.y
+## The frame of the screen (spec 061): its pieces, on a room-sized control that [UiRoot] takes
+## onto its layer, or that stays on the HUD scaled to the screen when there is no UI layer.
+func _build_screen_frame() -> void:
+	screen_frame = Control.new()
+	screen_frame.name = "ScreenFrame"
+	screen_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	screen_frame.theme = UiTheme.theme()
+	# It draws nothing itself and takes no room: its pieces are laid out in [member _frame_room].
+	_frame_room = Vector2(UiRoot.MIN_ROOM)
+	screen_frame.scale = SCREEN / Vector2(UiRoot.MIN_ROOM)
+	add_child(screen_frame)
+	place_panel = PlacePanel.new()
+	screen_frame.add_child(place_panel)
+	place_panel.minus_button.pressed.connect(_step_target.bind(-1))
+	place_panel.plus_button.pressed.connect(_step_target.bind(1))
+	place_panel.auto_button.pressed.connect(_toggle_auto)
+	countdown = Countdown.new()
+	screen_frame.add_child(countdown)
+	boss_bar = BossBarView.new()
+	screen_frame.add_child(boss_bar)
+	boss_bar.setup(_simulation, _world)
+	purse = Purse.new(icon(&"coin"))
+	screen_frame.add_child(purse)
 	for hero: Hero in _simulation.party.heroes:
-		var frame := HeroFrame.new(hero, self)
-		frame.position = Vector2(x, y)
-		add_child(frame)
+		var frame := HeroFrameView.new(hero, self)
+		screen_frame.add_child(frame)
 		frames.append(frame)
 		_frames_by_id[hero.id] = frame
-		x += HeroFrame.SIZE.x + GAP
+		frame.clicked.connect(_on_frame_clicked)  # spec 060: a click opens or closes its window
+	frame_tip = UiTip.new()
+	frame_tip.name = "FrameTip"
+	frame_tip.follows_mouse = true
+	frame_tip.set_process(false)  # advanced with the HUD
+	frame_tip.room = _frame_room
+	screen_frame.add_child(frame_tip)
 
 
-func _build_depth() -> void:
-	depth_panel = HudPanel.new()
-	depth_panel.name = "DepthPanel"
-	depth_panel.position = Vector2(MARGIN, TOP_Y)
-	depth_panel.size = Vector2(200, TOP_HEIGHT)
-	add_child(depth_panel)
-	depth_divider = ColorRect.new()
-	depth_divider.name = "Divider"
-	depth_divider.color = Palette.color(&"dusk")
-	depth_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	depth_panel.add_child(depth_divider)
-	depth_caption = _label(depth_panel, "DepthCaption", "Stage", &"steel", Vector2(5, 3))
-	depth_label = _label(depth_panel, "StageNumber", "1", &"white", Vector2(5, 10))
-	_make_big(depth_label)
-	state_label = _label(depth_panel, "State", "", &"silver", Vector2(0, 3))
-	stable_label = _label(depth_panel, "Stable", "", &"silver", Vector2(0, 14))
-	stable_divider = ColorRect.new()
-	stable_divider.name = "StableDivider"
-	stable_divider.color = Palette.color(&"dusk")
-	stable_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	depth_panel.add_child(stable_divider)
-	stable_note = _label(depth_panel, "StableNote", "", &"silver", Vector2(0, 3))
-	stable_bar = Control.new()
-	stable_bar.name = "StableBar"
-	stable_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	stable_bar.size = STABLE_BAR
-	stable_bar.draw.connect(_draw_stable_bar)
-	depth_panel.add_child(stable_bar)
-	stable_next = _label(depth_panel, "StableNext", "", &"steel", Vector2(0, 14))
-	target_caption = _label(depth_panel, "TargetCaption", "Target", &"steel", Vector2(0, 14))
-	minus_button = _button("Minus", "-", HudButton.HEIGHT)
-	minus_button.pressed.connect(_step_target.bind(-1))
-	target_label = _label(depth_panel, "Target", "", &"yellow", Vector2(0, 14))
-	plus_button = _button("Plus", "+", HudButton.HEIGHT)
-	plus_button.pressed.connect(_step_target.bind(1))
-	auto_button = _button("Auto", "Auto off", 0.0)
-	auto_button.pressed.connect(_toggle_auto)
+## Gives each piece of the frame its tooltip (spec 061 R7): the old pieces' sentences, under a
+## bold title where there is one. The first control under the mouse wins, so the small ones come
+## before the panels that hold them.
+func _tip_frame() -> void:
+	frame_tip.attach(place_panel.area_button, AREA_TIP, place_panel.area_button.get_text)
+	frame_tip.attach(place_panel.stage_label, STAGE_TIP)
+	frame_tip.attach(place_panel.status_label, STATUS_TIP)
+	frame_tip.attach(place_panel.safe_label, SAFE_TIP)
+	frame_tip.attach(place_panel.target_label, TARGET_TIP)
+	frame_tip.attach(place_panel.target_caption, TARGET_TIP)
+	frame_tip.attach(place_panel.minus_button, MINUS_TIP)
+	frame_tip.attach(place_panel.plus_button, PLUS_TIP)
+	frame_tip.attach(place_panel.auto_button, AUTO_TIP)
+	frame_tip.attach(countdown, _countdown_tip)
+	for id: StringName in Content.resource_ids():
+		frame_tip.attach(purse.icons[id], purse.tip_text.bind(id))
+		frame_tip.attach(purse.labels[id], purse.tip_text.bind(id))
+	frame_tip.attach(purse.speed_button, SPEED_TIP)
+	frame_tip.attach(purse, GOLD_TIP, "Gold")
+	frame_tip.attach(boss_bar, BOSS_TIP, boss_bar.shown_name)
+	for frame: HeroFrameView in frames:
+		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
+		frame_tip.attach(frame, frame.tip, frame.tip_title)
 
 
-func _build_gold() -> void:
-	gold_panel = HudPanel.new()
-	gold_panel.name = "GoldPanel"
-	gold_panel.size = Vector2(60, TOP_HEIGHT)
-	add_child(gold_panel)
-	coin_icon = TextureRect.new()
-	coin_icon.name = "Coin"
-	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP
-	coin_icon.texture = icon(&"coin")
-	coin_icon.size = Vector2(16, 16)
-	coin_icon.position = Vector2(4, 7)
-	gold_panel.add_child(coin_icon)
-	gold_label = _label(gold_panel, "Gold", "0", &"yellow", Vector2(23, 7))
-	_make_big(gold_label)
-	resource_purse = ResourcePurse.new()
-	gold_panel.add_child(resource_purse)
+## The countdown's tooltip (spec 039 R2): what decides what happens next.
+func _countdown_tip() -> String:
+	var note: String = countdown.note_label.text
+	if note.begins_with("Further in"):
+		return "Time left until Auto takes the party a stage further."
+	if note == "Holding":
+		return "The Hold order keeps the party from the guardian: Orders (O) sends it in."
+	if countdown.bar.visible:
+		return "Time left until this stage is safe."
+	if countdown.next_label.text.begins_with("staying"):
+		return "Safe, and Auto is off: the party stays until Auto is on or the target is further."
+	return "This stage is safe: a wipe comes back here."
 
 
-## The speed button in its own small panel left of the gold, and the shop: the content of the Shop
-## window since spec 059, which [UiRoot] puts in its window (the Shop button is on the bar).
+## The shop: the content of the Shop window since spec 059, which [UiRoot] puts in its window (the
+## Shop button is on the bar).
 func _build_shop() -> void:
-	shop_tab = HudPanel.new()
-	shop_tab.name = "SpeedTab"
-	add_child(shop_tab)
-	speed_button = HudButton.new("4x")  # the widest label, kept for every speed
-	speed_button.name = "SpeedButton"
-	speed_button.custom_minimum_size = speed_button.size
-	speed_button.text = "1x"
-	speed_button.position = Vector2(4, 7)
-	shop_tab.add_child(speed_button)
-	var tab_width: float = speed_button.position.x + speed_button.size.x + SHOP_TAB_RIGHT
-	shop_tab.size = Vector2(tab_width, TOP_HEIGHT)
 	shop = ShopWindow.new()
 	shop.setup(_simulation, _world, self)
 
 
-## Shows the game's speed (spec 032) on [member speed_button]: its label, lit above 1x.
+## Shows the game's speed (spec 032) on the purse's speed button: its label, lit above 1x.
 func show_speed(value: int) -> void:
-	speed_button.text = "%dx" % value
-	speed_button.lit = value > 1
+	purse.speed_button.text = "%dx" % value
+	purse.speed_button.lit = value > 1
 
 
 ## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).
@@ -544,7 +624,7 @@ func _build_tooltip() -> void:
 
 func _mark_frames() -> void:
 	for hero: Hero in _simulation.party.heroes:
-		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
+		var frame: HeroFrameView = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.marked = hero_windows != null and hero_windows.is_open(hero.id)
 			frame.refresh(hero, 0.0)
@@ -567,32 +647,6 @@ func _adopt_clock() -> void:
 	clock_label.visible = false
 
 
-func _label(
-	parent: Control, label_name: String, text: String, colour: StringName, at: Vector2
-) -> Label:
-	var made: Label = PixelText.label(text, colour)
-	made.name = label_name
-	made.position = at
-	made.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	parent.add_child(made)
-	return made
-
-
-func _make_big(label: Label) -> void:
-	label.add_theme_font_size_override(&"font_size", PixelText.SIZE * 2)
-	label.add_theme_constant_override(&"shadow_offset_x", PixelText.SHADOW_OFFSET * 2)
-	label.add_theme_constant_override(&"shadow_offset_y", PixelText.SHADOW_OFFSET * 2)
-
-
-func _button(button_name: String, text: String, min_width: float) -> HudButton:
-	var made := HudButton.new(text)
-	made.name = button_name
-	made.custom_minimum_size = Vector2(min_width, HudButton.HEIGHT)
-	made.size = made.get_combined_minimum_size()
-	depth_panel.add_child(made)
-	return made
-
-
 # --- Updating ------------------------------------------------------------------
 
 
@@ -611,24 +665,10 @@ func _advance_gold(delta: float) -> void:
 
 
 func _show_gold() -> void:
-	var text: String = short_count(_shown_gold)  # spec 052: short, so the purse fits beside it
-	if gold_label.text != text:
-		gold_label.text = text
-		gold_label.reset_size()
 	var lift: float = 1.0 if _gold_bump > GOLD_BUMP_SECONDS / 2.0 else 0.0
-	gold_label.position = Vector2(23, 7 - lift)
-	coin_icon.position = Vector2(4, 7 - lift)
 	var colour: StringName = &"white" if _gold_bump > 0.0 else &"yellow"
-	gold_label.add_theme_color_override(&"font_color", Palette.color(colour))
-	var width: float = 23.0 + gold_label.size.x + 3.0
-	resource_purse.position = Vector2(width + 3.0, 0)
-	if not resource_purse.shown_ids().is_empty():
-		width += 3.0 + resource_purse.size.x + 4.0
-	gold_panel.size = Vector2(width, TOP_HEIGHT)
-	gold_panel.position = Vector2(SCREEN.x - MARGIN - width, TOP_Y)
-	shop_tab.position = Vector2(gold_panel.position.x - GAP - shop_tab.size.x, TOP_Y)
-	if _effects != null:
-		_effects.gold_screen_target = gold_panel.position + coin_icon.position + Vector2(8, 8)
+	# Spec 052: short, so the resources fit beside it.
+	purse.show_gold(short_count(_shown_gold), colour, lift, PlacePanel.HEIGHT)
 
 
 func _advance_depth(delta: float) -> void:
@@ -641,84 +681,77 @@ func _advance_depth(delta: float) -> void:
 		_asked_target = 0
 	var target: int = _asked_target if _asked_target > 0 else expedition.target_depth
 	_auto_on = expedition.auto_push
-	var changed: bool = false
-	changed = _set_text(depth_caption, PlaceText.area_name(expedition.place)) or changed
-	changed = _set_text(depth_label, str(_depth)) or changed
-	changed = _set_text(stable_label, "Safe %d" % expedition.last_stable_depth) or changed
-	changed = _set_text(target_label, str(target)) or changed
-	changed = _set_text(state_label, status_text()) or changed
-	var road: PackedStringArray = _stable_parts()
-	changed = _set_text(stable_note, road[0]) or changed
-	changed = _set_text(stable_next, road[1]) or changed
-	var counting: bool = road[0].contains(" in ")
-	if stable_bar.visible != counting:
-		stable_bar.visible = counting
-		changed = true
-	stable_note.add_theme_color_override(
-		&"font_color", Palette.color(&"green" if road[0] == "Stable" else &"silver")
-	)
-	stable_bar.queue_redraw()
-	var auto_text: String = "Auto on" if _auto_on else "Auto off"
-	if auto_button.text != auto_text:
-		auto_button.text = auto_text
-		changed = true
-	auto_button.lit = _auto_on
-	if changed:
-		_layout_depth()
-	var state_colour: StringName = STATE_COLOURS.get(expedition.state, &"silver")
-	state_label.add_theme_color_override(&"font_color", Palette.color(state_colour))
 	var emphasis: bool = _depth_emphasis > 0.0
 	var lift: float = 1.0 if _depth_emphasis > DEPTH_EMPHASIS_SECONDS - 0.15 else 0.0
-	depth_label.position.y = 10.0 - lift
-	depth_label.add_theme_color_override(
-		&"font_color", Palette.color(&"yellow" if emphasis else &"white")
+	var state_colour: StringName = STATE_COLOURS.get(expedition.state, &"silver")
+	place_panel.show_place(
+		PlaceText.area_name(expedition.place),
+		_depth,
+		&"yellow" if emphasis else &"white",
+		lift,
+		expedition.last_stable_depth,
+		target,
+		_auto_on,
+		status_text(),
+		state_colour
 	)
+	var road: PackedStringArray = _stable_parts()
+	countdown.show_road(road[0], road[1], stable_progress(), PlacePanel.HEIGHT)
 
 
-func _set_text(label: Label, text: String) -> bool:
-	if label.text == text:
-		return false
-	label.text = text
-	label.reset_size()
-	return true
+## The area's name marks each area opened since the map was last opened (spec 053 R6).
+func _mark_area() -> void:
+	var mark: UiBadge = place_panel.area_mark
+	mark.count = area_map.news.unseen if area_map.news != null else 0
+	var shown: bool = area_map.has_mark()
+	if mark.visible != shown:
+		mark.visible = shown
+		place_panel.lay_out()
+	place_panel.area_button.lit = area_map.is_open()
 
 
-## Lays out the depth panel from left to right: the depth, a divider, the state over the
-## stable and target row, then sizes the panel to fit.
-func _layout_depth() -> void:
-	var column: float = maxf(depth_caption.size.x, depth_label.size.x) + 5.0 + 6.0
-	state_label.position.x = column
-	var x: float = column
-	for control: Control in [stable_label, target_caption, minus_button, target_label]:
-		var spacing: float = 8.0 if control == target_caption else 3.0
-		if control == stable_label:
-			spacing = 0.0
-		x += spacing
-		control.position.x = x
-		x += control.size.x
-	x += 3.0
-	plus_button.position = Vector2(x, 12)
-	x += plus_button.size.x + 6.0
-	auto_button.position = Vector2(x, 12)
-	minus_button.position.y = 12
-	x += auto_button.size.x
-	# The road to stable, in a column of its own after a second divider.
-	var road: float = maxf(x, column + state_label.size.x) + 11.0
-	stable_divider.position = Vector2(road - 5.0, 4.0)
-	stable_divider.size = Vector2(1.0, TOP_HEIGHT - 8.0)
-	# On the way to another area (spec 049) the road has nothing to say, and no divider.
-	stable_divider.visible = stable_note.text != "" or stable_next.text != ""
-	stable_note.position.x = road
-	var next_x: float = road
-	if stable_bar.visible:
-		stable_bar.position = Vector2(road, 15.0)
-		next_x += STABLE_BAR.x + 4.0
-	stable_next.position.x = next_x
-	var right: float = maxf(road + stable_note.size.x, next_x + stable_next.size.x)
-	depth_panel.size = Vector2(right + 5.0, TOP_HEIGHT)
-	depth_divider.position = Vector2(column - 5.0, 4.0)
-	depth_divider.size = Vector2(1.0, TOP_HEIGHT - 8.0)
-	depth_panel.queue_redraw()
+## Lays the frame of the screen out in its room (spec 061 R10): the place panel and the countdown at
+## the top left, the purse at the top right, the boss bar centred between them, and the hero frames
+## in a row along the bottom. Everything stays in the two bands; the effects are told where the
+## counters and frames are.
+func _lay_out_frame() -> void:
+	var room: Vector2 = _frame_room
+	place_panel.position = Vector2(FRAME_EDGE, FRAME_TOP)
+	countdown.position = Vector2(place_panel.position.x + place_panel.size.x + FRAME_GAP, FRAME_TOP)
+	purse.position = Vector2(room.x - FRAME_EDGE - purse.size.x, FRAME_TOP)
+	var row: float = frames.size() * HeroFrameView.SIZE.x + maxi(frames.size() - 1, 0) * FRAME_GAP
+	var x: float = floorf((room.x - row) / 2.0)
+	for frame: HeroFrameView in frames:
+		frame.position = Vector2(x, room.y - FRAME_EDGE - HeroFrameView.SIZE.y)
+		x += HeroFrameView.SIZE.x + FRAME_GAP
+	# The boss bar: centred on the room when it can be, between the countdown and the purse.
+	var left: float = place_panel.position.x + place_panel.size.x + FRAME_GAP
+	if countdown.visible:
+		left = countdown.position.x + countdown.size.x + FRAME_GAP
+	var right: float = purse.position.x - FRAME_GAP
+	var widest: float = minf(BossBarView.MAX_WIDTH, room.x * BossBarView.ROOM_SHARE)
+	var width_bar: float = floorf(minf(widest, right - left))
+	var bar_x: float = clampf(floorf((room.x - width_bar) / 2.0), left, right - width_bar)
+	boss_bar.place(Vector2(bar_x, FRAME_TOP), width_bar, PlacePanel.HEIGHT)
+	_aim_effects()
+
+
+## Tells the effects where the frame's counters and frames are on the screen: coins fly to the
+## coin, a resource's icons to its counter and XP motes to their hero's frame (spec 061 R4).
+func _aim_effects() -> void:
+	if _effects == null:
+		return
+	_effects.gold_screen_target = on_screen(purse.coin_icon).get_center()
+	var ids: Array[StringName] = Content.resource_ids()
+	for i: int in ids.size() if _effects.resource_effects != null else 0:
+		_effects.resource_effects.targets[i] = on_screen(purse.icons[ids[i]]).get_center()
+	for frame: HeroFrameView in frames:
+		_effects.frame_screen_targets[frame.hero_id] = on_screen(frame).get_center()
+
+
+## More ticks than this between two advances is a stall: as the world's own (spec 057 R7).
+func _stall_ticks() -> int:
+	return World.STALL_TICKS * maxi(_world.speed if _world != null else 1, 1)
 
 
 ## The road to stable's two parts (spec 039 R2): the note ("Stable in m:ss" while this depth is
@@ -752,17 +785,6 @@ func _pushing() -> bool:
 		and e.depth == e.target_depth
 		and e.depth <= e.last_stable_depth
 		and e.state != Expedition.State.REVIVING
-	)
-
-
-func _draw_stable_bar() -> void:
-	HudPanel.draw_bar(
-		stable_bar,
-		Rect2(Vector2.ZERO, STABLE_BAR),
-		stable_progress(),
-		Palette.color(&"yellow"),
-		Palette.color(&"amber"),
-		Palette.color(&"ink")
 	)
 
 
@@ -807,7 +829,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		return
 	if _world != null and not _world.is_recent(event):
 		return
-	var frame: HeroFrame = _frames_by_id.get(event.target_id, null)
+	var frame: HeroFrameView = _frames_by_id.get(event.target_id, null)
 	if frame == null:
 		return
 	match event.kind:

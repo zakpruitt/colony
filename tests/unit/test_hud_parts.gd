@@ -53,7 +53,7 @@ func test_hero_window_eases_its_bars_but_not_its_numbers() -> void:
 	shown.advance(0.05)
 	assert_eq(shown.line(&"health"), "%d / %d" % [hero.health, hero.max_health()], "numbers jump")
 	assert_gt(shown.bar_fraction(&"health"), 0.5, "the bar eases")
-	shown.advance(HeroFrame.EASE_SECONDS)
+	shown.advance(HeroFrameView.EASE_SECONDS)
 	var half: float = float(hero.health) / hero.max_health()
 	assert_almost_eq(shown.bar_fraction(&"health"), half, 0.001, "and arrives")
 	shown.close()

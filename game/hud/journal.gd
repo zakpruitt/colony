@@ -34,6 +34,9 @@ const TICKER_GAP: float = 3.0
 
 ## The newest line, for a few seconds after it is written.
 var ticker: HudPanel
+## The top of the hero frames in the world's pixels, which the ticker stands on; the HUD keeps it
+## true to the frame of the screen (spec 061).
+var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
 
 var _simulation: Simulation
 var _world: World
@@ -316,7 +319,6 @@ func _show_ticker() -> void:
 	_ticker_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	var width: float = PixelText.width(_ticker_label.text) + 10.0
 	ticker.size = Vector2(width, TICKER_HEIGHT)
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
 	ticker.position = Vector2(
 		floorf((Hud.SCREEN.x - width) / 2.0), frames_top - TICKER_GAP - TICKER_HEIGHT
 	)

@@ -113,6 +113,17 @@ func _click(control: Control) -> void:
 	_click_at(_ui.ui_to_world(control.get_global_rect().get_center()))
 
 
+## The tooltip shown after resting the mouse on [param control], a piece of the frame of the
+## screen (spec 061: its own tooltip).
+func _frame_tip(control: Control) -> String:
+	_hud.frame_tip.point_at(control.get_global_rect().get_center())
+	_hud.frame_tip.advance(UiTip.DELAY + 0.01)
+	var text: String = _hud.frame_tip.shown_text()
+	_hud.frame_tip.point_at(UiTip.NOWHERE)
+	_hud.frame_tip.advance(0.0)
+	return text
+
+
 ## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
 ## the map's window (spec 059), the HUD's otherwise.
 func _tip(control: Control) -> String:
@@ -298,7 +309,7 @@ func test_r3_sending_the_party() -> void:
 	_map().step_stage(1)
 	_map().go()
 	_hud.advance(STEP)
-	assert_eq(_hud.target_label.text, "4", "the HUD's target shows it at once")
+	assert_eq(_hud.place_panel.target_label.text, "4", "the HUD's target shows it at once")
 	_sim.step()
 	assert_eq(_sim.expedition.target_depth, 4, "the simulation's target")
 	assert_ne(_sim.expedition.state, Expedition.State.JOURNEYING, "and no journey")
@@ -616,7 +627,7 @@ func test_r8_found_and_explained() -> void:
 	_key(KEY_W)
 	_key(KEY_ESCAPE)
 	assert_false(_map().is_open(), "Esc closes it")
-	await _click(_map().name_button)
+	await _click(_hud.place_panel.area_button)
 	assert_true(_map().is_open(), "a click on the area's name opens it")
 	_hud.advance(STEP)
 
@@ -637,7 +648,9 @@ func test_r8_found_and_explained() -> void:
 		assert_ne(_tip(control), "", "%s has a tooltip" % control.name)
 	_map().close()
 	_hud.advance(STEP)
-	assert_string_contains(_tip(_map().name_button), "map", "the area's name says it opens the map")
+	assert_string_contains(
+		_frame_tip(_hud.place_panel.area_button), "map", "the area's name says it opens the map"
+	)
 
 	# Spec 059: a window on the UI layer, with a close button of its own (spec 058's test); where
 	# it stands, clear of the top band and the hero frames at both rooms, is spec 059 R8's test.

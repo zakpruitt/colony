@@ -122,9 +122,9 @@ func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
 ## Opens [param hero]'s sheet on its Talents tab as the player would: a click on its frame, then
 ## on the tab.
 func _open_talents(hero: Hero) -> void:
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		if frame.hero_id == hero.id:
-			_click_at(frame.get_global_rect().get_center())
+			_click_at(Hud.on_screen(frame).get_center())
 	_hud.advance(STEP)
 	_click_at(_at(_sheet().tab_buttons[HeroWindow.Page.TALENTS]))
 	_hud.advance(STEP)
@@ -658,7 +658,7 @@ func test_r7_paragon() -> void:
 
 func test_r8_the_game_points_at_it() -> void:
 	var knight: Hero = _hero(&"knight")
-	var frame: HeroFrame = _hud.frames[0]
+	var frame: HeroFrameView = _hud.frames[0]
 	_hud.advance(STEP)
 	assert_false(frame.marker.visible, "no point: no mark")
 	# A level-up in play: the mark, the goal and the journal.
@@ -733,7 +733,7 @@ func test_r8_the_game_points_at_it() -> void:
 
 func test_r9_the_path_is_part_of_who_it_is() -> void:
 	var knight: Hero = _hero(&"knight")
-	var frame: HeroFrame = _hud.frames[0]
+	var frame: HeroFrameView = _hud.frames[0]
 	_level(knight, 8)
 	knight.set_talents(_tree(&"knight").trunk)
 	_open_talents(knight)
@@ -747,17 +747,19 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	)
 	_sheet().close()
 	_hud.advance(STEP)
-	_mouse(frame.get_global_rect().get_center())
+	_mouse(Hud.on_screen(frame).get_center())
 	_hud.advance(0.2)
 	_hud.advance(0.3)
 	assert_eq(
-		_hud.tooltip.shown_text(), "Knight, Berserker: click for details", "on the frame's tooltip"
+		_hud.frame_tip.shown_text(),
+		"Knight, Berserker: click for details",
+		"on the frame's tooltip"
 	)
 	_mouse(AWAY)
 	_hud.advance(STEP)
-	_mouse(_hud.frames[1].get_global_rect().get_center())
+	_mouse(Hud.on_screen(_hud.frames[1]).get_center())
 	_hud.advance(0.5)
-	assert_eq(_hud.tooltip.shown_text(), "Click for details", "a hero with no path")
+	assert_eq(_hud.frame_tip.shown_text(), "Click for details", "a hero with no path")
 
 
 # --- R10 -----------------------------------------------------------------------
@@ -832,7 +834,7 @@ func test_r11_it_fits_and_is_explained() -> void:
 	# no more (test_060's R7 and R10 check every class, both rooms and the longest data).
 	var screen := Rect2(Vector2.ZERO, Vector2(_ui.room()))
 	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)
 		_level(hero, 17)

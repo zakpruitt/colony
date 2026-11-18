@@ -737,7 +737,7 @@ func test_r8_status_and_journal() -> void:
 	assert_eq(wanted, "Holding at the Slime King", "the first guardian")
 	_hud.advance(0.0)
 	assert_eq(_hud.status_text(), wanted, "walking toward its chamber under Hold")
-	assert_eq(_hud.state_label.text, wanted, "shown in the status line")
+	assert_eq(_hud.place_panel.status_label.text, wanted, "shown in the status line")
 	var turned: bool = false
 	var hunting_seen: bool = false
 	var facing: int = _sim.expedition.facing
@@ -796,7 +796,7 @@ func _collect_labels(node: Node, into: Array[Label]) -> void:
 
 func _frames_top() -> float:
 	var top: float = SCREEN.y
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		top = minf(top, frame.get_global_rect().position.y)
 	return top
 
@@ -819,7 +819,7 @@ func test_r9_explains_itself() -> void:
 	seen[button_text] = "the Orders button"
 	var tips: UiTip = null
 	for child: Node in _main.ui.frame.get_children():
-		if child is UiTip and child != bar.tip:
+		if child is UiTip and child != bar.tip and child != _main.hud.frame_tip:
 			tips = child as UiTip
 	assert_not_null(tips, "the orders have a tooltip")
 	for order: int in _orders.choice_buttons.size():

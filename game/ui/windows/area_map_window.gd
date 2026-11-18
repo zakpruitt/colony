@@ -3,24 +3,25 @@ extends WindowContent
 ## The area map (spec 053) as a window on the UI layer (spec 059 R3): where the party can go. One
 ## [AreaMapRow] card per area in order: its name, its monsters and guardian as sprites (named on
 ## hover, the guardian ticked once beaten), the level of its first stage, the party's safe and
-## furthest stage there, its resource with the count held, and [code]Here[/code] or
-## [code]On the way, 7 s[/code]. A closed area's card is dimmed and says which guardian opens it
-## and what it gives.
+## furthest stage there, its resource with the count held, and [code]Here[/code] or [code]On the
+## way, 7 s[/code]. A closed area's card is dimmed and says which guardian opens it and what it
+## gives.
 ##
 ## Choosing an open card ([method choose], or a click on it) shows the stage chooser under the
-## cards: the stage, starting at that area's safe stage, between [code]-[/code] and
-## [code]+[/code] (1 to one past its furthest), coloured by the ladder's rule (spec 043) judged by
-## that area's levels with that word beside it, and a [code]Go[/code] button whose text says what
-## it will do ([code]Travel to The Claypits 3[/code], [code]Set target: stage 4[/code]). Go
-## ([method go]) asks for the journey ([method Simulation.set_destination]) or, for the area the
-## party is in, sets the target as the ladder does; a dangerous Go writes the ladder's warning in
-## the journal; then the map closes.
+## cards: the stage, starting at that area's safe stage, between [code]-[/code] and [code]+[/code]
+## (1 to one past its furthest), coloured by the ladder's rule (spec 043) judged by that area's
+## levels with that word beside it, and a [code]Go[/code] button whose text says what it will do
+## ([code]Travel to The Claypits 3[/code], [code]Set target: stage 4[/code]). Go ([method go]) asks
+## for the journey ([method Simulation.set_destination]) or, for the area the party is in, sets the
+## target as the ladder does; a dangerous Go writes the ladder's warning in the journal; then the
+## map closes.
 ##
-## [kbd]W[/kbd], the bar's Map button or a click on the area's name in the depth panel
-## ([member name_button]) opens and closes it. When an area opens, the bar's Map button carries a
-## mark until the map has been opened (spec 053 R6, spec 059 R6), and the goals tracker shows a goal
-## to visit it ([member news]). Everything that depends on the order of events is kept by
-## [AreaNews] (spec 053 R7). It moves only in [method advance], so a test can step it.
+## [kbd]W[/kbd], the bar's Map button or a click on the area's name in the place panel ([member
+## PlacePanel.area_button], spec 061, which the [Hud] connects) opens and closes it. When an area
+## opens, the bar's Map button carries a mark until the map has been opened (spec 053 R6, spec 059
+## R6), and the goals tracker shows a goal to visit it ([member news]). Everything that depends on
+## the order of events is kept by [AreaNews] (spec 053 R7). It moves only in [method advance], so a
+## test can step it.
 
 ## The window's id, title and key.
 const ID: StringName = &"map"
@@ -44,8 +45,6 @@ var plus_button: UiButton
 var risk_label: Label
 var go_button: UiButton
 var choose_label: Label
-## The area's name in the depth panel, made a button that opens the map.
-var name_button: NameButton
 ## What the map and its goal know, in the order of the events.
 var news: AreaNews
 ## The tooltips of the cards and the foot, given by [method add_tips]; null until then.
@@ -81,32 +80,23 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 		rows.append(made)
 		_show_row(made)
 	_build_foot()
-	if hud != null and hud.depth_panel != null:
-		name_button = NameButton.new()
-		name_button.pressed.connect(toggle)
-		hud.depth_panel.add_child(name_button)
 	advance(0.0)
 
 
-## Gives every control its tooltip (spec 053 R8): the cards, the sprites, the foot, and the area's
-## name in the depth panel. Call once, after the map is in its window.
+## Gives every control its tooltip (spec 053 R8): the cards, the sprites and the foot (the area's
+## name has its own, on the frame of the screen). Call once, after the map is in its window.
 func add_tips(tips: UiTip) -> void:
 	tip = tips
-	if name_button != null and _hud != null and _hud.tooltip != null:
-		_hud.tooltip.tip_first(
-			[name_button], "The area the party is in: click (or press W) for the map of every area."
-		)
 	tip.attach(minus_button, "One stage back.")
 	tip.attach(plus_button, "One stage further.")
 	_tip_now()
 
 
-## Brings the cards, the foot, the name button and the bar's mark up to date. Called every frame
-## by the HUD; tests call it.
-func advance(delta: float) -> void:
+## Brings the cards, the foot and the bar's mark up to date. Called every frame by the HUD;
+## tests call it.
+func advance(_delta: float) -> void:
 	if _simulation == null:
 		return
-	_place_name_button(delta)
 	var holder: UiWindow = window()
 	if holder != null:
 		holder.badge = news.unseen if has_mark() else 0
@@ -386,16 +376,6 @@ func _set_text(label: Label, text: String) -> void:
 		label.text = text
 
 
-## Keeps the name button over the area's name in the depth panel, outlined while the map is open.
-func _place_name_button(_delta: float) -> void:
-	if name_button == null or _hud == null or _hud.depth_caption == null:
-		return
-	var caption: Label = _hud.depth_caption
-	name_button.position = caption.position - Vector2(1, 1)
-	name_button.size = Vector2(PixelText.width(caption.text) + 2.0, PixelText.SIZE + 2.0)
-	name_button.lit = is_open()
-
-
 # --- Tooltips ------------------------------------------------------------------
 
 
@@ -448,44 +428,3 @@ func _go_tip() -> String:
 	if _chosen == _simulation.expedition.area:
 		return "Set the party's target to %s." % place
 	return "Send the party to %s: %d seconds on the way." % [place, AreaTravel.JOURNEY_SECONDS]
-
-
-## The area's name in the depth panel as a button (spec 053 R1): a click opens or closes the map.
-## It draws nothing at rest; under the mouse, or while the map is open, it is outlined. (Since
-## spec 059 the mark for a new area is on the bar's Map button.)
-class NameButton:
-	extends Control
-
-	## A left click.
-	signal pressed
-
-	## True while the map is open.
-	var lit: bool = false:
-		set(value):
-			if lit != value:
-				lit = value
-				queue_redraw()
-
-	var _hovered: bool = false
-
-	func _init() -> void:
-		name = "AreaNameButton"
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-
-	func _gui_input(event: InputEvent) -> void:
-		var button: InputEventMouseButton = event as InputEventMouseButton
-		if button == null or button.button_index != MOUSE_BUTTON_LEFT or not button.pressed:
-			return
-		accept_event()
-		pressed.emit()
-
-	func _notification(what: int) -> void:
-		if what == NOTIFICATION_MOUSE_ENTER or what == NOTIFICATION_MOUSE_EXIT:
-			_hovered = what == NOTIFICATION_MOUSE_ENTER
-			queue_redraw()
-
-	func _draw() -> void:
-		if _hovered or lit:
-			var colour: StringName = &"yellow" if _hovered else &"green"
-			draw_rect(Rect2(Vector2.ZERO, size).grow(-0.5), Palette.color(colour), false, 1.0)

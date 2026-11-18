@@ -443,8 +443,8 @@ func test_r5_the_frames_show_it() -> void:
 	for kind: int in lasting:
 		BattleStatuses.apply(battle, knight, knight, _status(kind, lasting[kind]), &"bulwark")
 	_deliver(battle)
-	var frame: HeroFrame = null
-	for each: HeroFrame in _hud.frames:
+	var frame: HeroFrameView = null
+	for each: HeroFrameView in _hud.frames:
 		if each.hero_id == KNIGHT:
 			frame = each
 	assert_eq(
@@ -462,10 +462,10 @@ func test_r5_the_frames_show_it() -> void:
 	assert_true(frame.status_icons.is_visible_in_tree(), "shown on the frame")
 	var line: String = "Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
 	assert_eq(frame.tip(), line, "the tooltip names each with the seconds left")
-	_mouse(frame.get_global_rect().get_center())
-	_hud.tooltip.point_at(frame.get_global_rect().get_center())
-	_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-	assert_eq(_hud.tooltip.shown_text(), line, "as the HUD's tooltip")
+	_mouse(Hud.on_screen(frame).get_center())
+	_hud.frame_tip.point_at(frame.get_global_rect().get_center())
+	_hud.frame_tip.advance(UiTip.DELAY + 0.1)
+	assert_eq(_hud.frame_tip.shown_text(), line, "as the HUD's tooltip")
 	# With a path chosen (spec 055), the class and its path come first, then the statuses.
 	var hero: Hero = _sim.party.hero(KNIGHT)
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
@@ -477,18 +477,18 @@ func test_r5_the_frames_show_it() -> void:
 	assert_true(titled.begins_with("Knight, "), "the knight has a path")
 	var both: String = "%s: Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
 	_mouse(Vector2(-1000, -1000))
-	_hud.tooltip.point_at(Vector2(-1000, -1000))
-	_hud.tooltip.point_at(frame.get_global_rect().get_center())
-	_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-	assert_eq(_hud.tooltip.shown_text(), both % titled, "path and statuses, in one tooltip")
+	_hud.frame_tip.point_at(UiTip.NOWHERE)
+	_hud.frame_tip.point_at(frame.get_global_rect().get_center())
+	_hud.frame_tip.advance(UiTip.DELAY + 0.1)
+	assert_eq(_hud.frame_tip.shown_text(), both % titled, "path and statuses, in one tooltip")
 	hero.set_talents([])
-	var other: HeroFrame = _hud.frames[1] if _hud.frames[0] == frame else _hud.frames[0]
+	var other: HeroFrameView = _hud.frames[1] if _hud.frames[0] == frame else _hud.frames[0]
 	assert_eq(other.status_icons.kinds, [] as Array[int], "a hero with none shows none")
 	for kind: int in lasting:
 		BattleStatuses.end(battle, knight, kind)
 	_deliver(battle)
 	assert_eq(frame.status_icons.kinds, [] as Array[int], "gone when they end")
-	assert_eq(frame.tip(), HeroFrame.CLICK_TIP, "and from the tooltip")
+	assert_eq(frame.tip(), HeroFrameView.CLICK_TIP, "and from the tooltip")
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -771,12 +771,8 @@ func test_r8_still_readable() -> void:
 		_frame()
 		frames += 1
 		var bars: Array[Rect2] = []
-		for frame: HeroFrame in _hud.frames:
-			bars.append(
-				Rect2(
-					frame.global_position + HeroFrame.HEALTH_BAR.position, HeroFrame.HEALTH_BAR.size
-				)
-			)
+		for frame: HeroFrameView in _hud.frames:
+			bars.append(frame.get_global_transform() * HeroFrameView.HEALTH_BAR)
 		if _hud.boss_bar.is_visible_in_tree():
 			bars.append(_hud.boss_bar.get_global_rect())
 		var texts: Array[FxText] = _abilities().texts()
@@ -818,15 +814,9 @@ func test_r8_kept_off_the_bars() -> void:
 	_build(Simulation.new(SEED), true)
 	_world.speed = 4
 	var monster: int = _monster()
-	var frame: HeroFrame = _hud.frames[0]
-	var health := Rect2(
-		frame.global_position + HeroFrame.HEALTH_BAR.position, HeroFrame.HEALTH_BAR.size
-	)
-	var view: Vector2 = _world.camera.get_viewport_rect().size
-	var boss := Rect2(
-		Vector2((view.x - BossBar.MAX_WIDTH) / 2.0, Hud.TOP_Y),
-		Vector2(BossBar.MAX_WIDTH, BossBar.HEIGHT)
-	)
+	var frame: HeroFrameView = _hud.frames[0]
+	var health := frame.get_global_transform() * HeroFrameView.HEALTH_BAR
+	var boss := Hud.on_screen(_hud.boss_bar)
 	var places: Array[Array] = []
 	for dy: int in range(-8, 40, 6):
 		places.append([KNIGHT, health.get_center() + Vector2(0, dy), health])

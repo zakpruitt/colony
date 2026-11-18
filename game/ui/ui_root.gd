@@ -45,6 +45,8 @@ var bar: UiButtonBar
 ## A window per hero (spec 060), made by [method setup] when there is a HUD.
 var hero_windows: HeroWindows
 
+## The HUD whose frame of the screen (spec 061) is on this layer, or null.
+var _hud: Hud
 var _world_scale: int = 1
 var _ui_scale: int = 1
 var _room: Vector2i = WORLD_SIZE
@@ -102,6 +104,9 @@ static func _restore_mode() -> void:
 func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	windows = UiWindows.new()
 	windows.setup(self, settings)
+	if hud != null:  # spec 061: the frame of the screen, under everything else on the layer
+		_hud = hud
+		hud.adopt_frame(self)
 	bar = UiButtonBar.new()
 	frame.add_child(bar)
 	frame.add_child(windows)  # over the bar
@@ -134,6 +139,8 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	if hero_windows != null:
 		hero_windows.place_defaults()  # again, now the bar has its size: they keep clear of it
 	frame.add_child(tip)
+	if hud != null:
+		hud.lift_tip(self)  # over the bar, the windows and their own tip
 	windows.restore()
 	if hud != null:
 		hud.windows = windows
@@ -200,9 +207,9 @@ func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: floa
 	map.default_place = Vector2(clampf(middle, left, maxf(right - map.size.x, left)), top)
 
 
-## The top of the hero frames' line, in the world's 640x360 screen pixels.
-static func frames_top() -> float:
-	return Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
+## The top of the hero frames' line in this layer's room, in the world's 640x360 screen pixels.
+func frames_top() -> float:
+	return ui_to_world(Vector2(0, Hud.frames_line(_room))).y
 
 
 ## How many screen pixels one UI pixel is.
@@ -244,6 +251,14 @@ func set_room_for_test(ui_room: Vector2i) -> void:
 			break
 	_fit(window)
 	_room = ui_room
+	_apply()
+
+
+## Lays the layer out as a window of [param window] screen pixels would (for tests and
+## screenshots). The window's own size is ignored from then on.
+func set_window_for_test(window: Vector2i) -> void:
+	_for_test = true
+	_fit(window)
 	_apply()
 
 
@@ -289,3 +304,5 @@ func _apply() -> void:
 		windows.fit_room(_room)
 	if bar != null:
 		bar.fit_room(_room)
+	if _hud != null:
+		_hud.fit_frame(_room)

@@ -167,7 +167,7 @@ func test_r1_status_line() -> void:
 	_hud.advance(0.0)
 	assert_eq(e.state, Expedition.State.TRAVELLING)
 	assert_eq(_hud.status_text(), "Hunting on stage 1", "travelling at the target depth")
-	assert_eq(_hud.state_label.text, _hud.status_text(), "the panel shows the line")
+	assert_eq(_hud.place_panel.status_label.text, _hud.status_text(), "the panel shows the line")
 
 	_raise(STRONG_LEVEL)
 	_sim.set_auto_push(false)
@@ -245,7 +245,7 @@ func test_r1_status_line_working() -> void:
 	assert_true(_step_until(_in_state(Expedition.State.WORKING), 50), "the party stops to work")
 	var quest: SideQuestDef = Content.side_quest(e.working_quest())
 	assert_eq(_hud.status_text(), "Working: %s" % quest.display_name, "working on a side quest")
-	assert_eq(_hud.state_label.text, _hud.status_text(), "the panel shows the line")
+	assert_eq(_hud.place_panel.status_label.text, _hud.status_text(), "the panel shows the line")
 
 
 func test_r1_status_line_fits() -> void:
@@ -282,11 +282,11 @@ func test_r1_status_line_fits() -> void:
 	assert_string_contains(_hud.stable_text(), "then stage %d" % (depth + 1))
 	_check_depth_panel("a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	var panel: Rect2 = _hud.depth_panel.get_global_rect()
+	var panel: Rect2 = _hud.place_panel.get_global_rect()
 	assert_false(panel.intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
 	# Spec 049 names the area over the stage ("The Claypits" where "Depth" was), so the panel is
 	# about 28 pixels wider and the bar, which fills the space left, that much narrower.
-	assert_gt(_hud.boss_bar.size.x, 130.0, "which is still wide")
+	assert_gt(_hud.boss_bar.get_global_rect().size.x, 130.0, "which is still wide")
 
 	# Every other line, with a deep target: the widest the travelling lines get.
 	var e: Expedition = _sim.expedition
@@ -300,14 +300,20 @@ func test_r1_status_line_fits() -> void:
 
 
 func _check_depth_panel(what: String) -> void:
-	var panel: Rect2 = _hud.depth_panel.get_global_rect()
-	assert_true(panel.encloses(_hud.state_label.get_global_rect()), "%s: the line fits" % what)
-	for label: Control in [_hud.stable_note, _hud.stable_next, _hud.stable_bar]:
+	var panel: Rect2 = _hud.place_panel.get_global_rect()
+	assert_true(
+		panel.encloses(_hud.place_panel.status_label.get_global_rect()), "%s: the line fits" % what
+	)
+	for label: Control in [
+		_hud.countdown.note_label, _hud.countdown.next_label, _hud.countdown.bar
+	]:
 		if label.visible:
-			assert_true(panel.encloses(label.get_global_rect()), "%s: %s fits" % [what, label.name])
+			assert_true(
+				_hud.countdown.get_global_rect().encloses(label.get_global_rect()),
+				"%s: %s fits" % [what, label.name]
+			)
 	assert_lte(panel.end.y, Hud.TOP_BAND, "in the top band")
-	assert_false(panel.intersects(_hud.shop_tab.get_global_rect()), "%s: clear of the shop" % what)
-	assert_false(panel.intersects(_hud.gold_panel.get_global_rect()), "%s: clear of gold" % what)
+	assert_false(panel.intersects(_hud.purse.get_global_rect()), "%s: clear of gold" % what)
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -322,14 +328,14 @@ func test_r2_road_to_stable() -> void:
 	_hud.advance(0.0)
 	# Spec 039 R2: at the target with auto-push off, the note says the party stays.
 	assert_eq(_hud.stable_text(), "Stable, staying on stage 1", "a stable depth reads Stable")
-	assert_false(_hud.stable_bar.visible, "with no bar")
+	assert_false(_hud.countdown.bar.visible, "with no bar")
 
 	assert_true(_down_to_two(), "the party reaches depth 2")
 	var arrived: int = _sim.tick
 	_hud.advance(0.0)
 	assert_almost_eq(e.seconds_to_stable(), 30.0, 0.001, "the whole time is still to hold")
 	assert_eq(_hud.stable_text(), "Stable in 0:30", "counting from the arrival")
-	assert_true(_hud.stable_bar.visible, "with its bar")
+	assert_true(_hud.countdown.bar.visible, "with its bar")
 	_step_until(func() -> bool: return _sim.tick >= arrived + 15)
 	assert_almost_eq(e.seconds_to_stable(), 28.5, 0.001, "1.5 s later")
 	assert_eq(_hud.stable_text(), "Stable in 0:29", "the text counts down")
@@ -358,7 +364,7 @@ func test_r2_road_to_stable() -> void:
 	_hud.advance(0.0)
 	assert_eq(e.seconds_to_stable(), 0.0, "0 at a stable depth")
 	assert_eq(_hud.stable_text(), "Stable, staying on stage 2", "Stable (spec 039 R2)")
-	assert_false(_hud.stable_bar.visible, "no bar")
+	assert_false(_hud.countdown.bar.visible, "no bar")
 
 	# Auto-push: what happens next.
 	e.last_stable_depth = 1
@@ -460,7 +466,7 @@ func test_r3_journal() -> void:
 
 
 func test_r4_frames_show_who_is_down() -> void:
-	var frames: Array[HeroFrame] = _hud.frames
+	var frames: Array[HeroFrameView] = _hud.frames
 	assert_eq(frames.size(), 4)
 	_raise(5)
 	_hud.advance(0.0)
@@ -476,11 +482,11 @@ func test_r4_frames_show_who_is_down() -> void:
 	for hero: Hero in _sim.party.heroes:
 		hero.health = 0
 	assert_true(_step_until(_in_state(Expedition.State.REVIVING), 5), "a wipe")
-	for frame: HeroFrame in frames:
+	for frame: HeroFrameView in frames:
 		assert_eq(frame.level_label.text, "Recovering", "all four recover")
 		assert_true(frame.is_dimmed())
 	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING), 100), "the revival")
-	for frame: HeroFrame in frames:
+	for frame: HeroFrameView in frames:
 		assert_eq(frame.level_label.text, "Lv 5", "back to the level afterwards")
 		assert_false(frame.is_dimmed())
 
@@ -538,7 +544,7 @@ func test_r6_it_fits() -> void:
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a guardian fight")
 	_hud.advance(0.0)
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	assert_true(_hud.stable_bar.visible, "depth 5 is not stable: the bar shows")
+	assert_true(_hud.countdown.bar.visible, "depth 5 is not stable: the bar shows")
 	_emit(SimEvent.Kind.UPGRADE_BOUGHT, 4, -1, 12)
 	for level: int in 20:
 		_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, level + 2)
@@ -547,24 +553,25 @@ func test_r6_it_fits() -> void:
 	assert_true(journal.ticker.visible, "the ticker shows")
 
 	var frames: Dictionary = {}
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		frames[frame.name] = frame.get_global_rect()
 	var top: Dictionary = {
-		"gold": _hud.gold_panel.get_global_rect(),
-		"shop tab": _hud.shop_tab.get_global_rect(),
+		"gold": _hud.purse.get_global_rect(),
 		"boss bar": _hud.boss_bar.get_global_rect(),
 	}
-	var depth: Rect2 = _hud.depth_panel.get_global_rect()
+	var depth: Rect2 = _hud.place_panel.get_global_rect()
 	var shop: Rect2 = _hud.shop.get_global_rect()
 	var ticker: Rect2 = journal.ticker.get_global_rect()
-	var bar: Rect2 = _hud.stable_bar.get_global_rect()
+	var bar: Rect2 = _hud.countdown.bar.get_global_rect()
 	_clear_of(ticker, frames, "ticker")
 	_clear_of(ticker, top, "ticker")
 	_clear_of(ticker, {"depth panel": depth, "shop": shop}, "ticker")
 	_clear_of(bar, frames, "stable bar")
 	_clear_of(bar, top, "stable bar")
 	_clear_of(bar, {"shop": shop}, "stable bar")
-	assert_true(depth.encloses(bar), "the stable bar is in the depth panel")
+	assert_true(
+		_hud.countdown.get_global_rect().encloses(bar), "the stable bar is in the depth panel"
+	)
 	for rect: Rect2 in [ticker, bar]:
 		assert_true(Rect2(Vector2.ZERO, Hud.SCREEN).encloses(rect), "on the screen")
 	# (Spec 058: the journal is a window on the UI layer now, which floats over the HUD and the

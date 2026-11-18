@@ -101,8 +101,8 @@ var _icons: PixelSheet
 ## How many microskills the hero had when its Skills tab was last open (or the window was made).
 var _skills_seen: int = 0
 var _values: Dictionary[StringName, Label] = {}
-var _health: EasedValue = EasedValue.new(HeroFrame.EASE_SECONDS)
-var _xp: EasedValue = EasedValue.new(HeroFrame.EASE_SECONDS)
+var _health: EasedValue = EasedValue.new(HeroFrameView.EASE_SECONDS)
+var _xp: EasedValue = EasedValue.new(HeroFrameView.EASE_SECONDS)
 var _down: bool = false
 var _health_goal: float = 0.0
 var _xp_goal: float = 0.0
@@ -207,7 +207,7 @@ func advance(delta: float) -> void:
 	var max_health: int = fighter.max_health if fighter != null else hero.max_health()
 	_down = health <= 0 or (fighter != null and not fighter.is_alive())
 	_health_goal = clampf(float(health) / float(maxi(max_health, 1)), 0.0, 1.0)
-	_xp_goal = HeroFrame.xp_progress(hero)
+	_xp_goal = HeroFrameView.xp_progress(hero)
 	_health.advance(_health_goal, delta)
 	_xp.advance(_xp_goal, delta)
 	WindowText.set_text(class_label, HeroTalentsTab.title(hero))
@@ -520,9 +520,9 @@ func _draw_body() -> void:
 	_body.draw_rect(Rect2(0, TAB_LINE_Y, WIDTH, 1), dusk)
 	var health_bar := Rect2(TEXT_X, BARS_Y, _half() - GAP - TEXT_X, HEALTH_BAR_HEIGHT)
 	var health_colour: StringName = &"red"
-	if not _down and _health.value > HeroFrame.GREEN_ABOVE:
+	if not _down and _health.value > HeroFrameView.GREEN_ABOVE:
 		health_colour = &"green"
-	elif not _down and _health.value >= HeroFrame.RED_BELOW:
+	elif not _down and _health.value >= HeroFrameView.RED_BELOW:
 		health_colour = &"yellow"
 	_bar(health_bar, _health.value, Palette.color(health_colour))
 	var xp_bar := Rect2(_half(), BARS_Y, WIDTH - _half(), XP_BAR_HEIGHT)

@@ -123,6 +123,13 @@ func _mouse(at: Vector2) -> void:
 ## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
 ## a window (spec 059), the HUD's otherwise.
 func _tip(control: Control) -> String:
+	if _hud.screen_frame.is_ancestor_of(control):  # spec 061: the frame of the screen's own tip
+		_hud.frame_tip.point_at(control.get_global_rect().get_center())
+		_hud.frame_tip.advance(UiTip.DELAY + 0.01)
+		var shown: String = _hud.frame_tip.shown_text()
+		_hud.frame_tip.point_at(UiTip.NOWHERE)
+		_hud.frame_tip.advance(0.0)
+		return shown
 	if _ui != null and _ui.frame.is_ancestor_of(control):
 		return _hud.shop.tip.text_for(control)
 	_hud.tooltip.point_at(control.get_global_rect().get_center())

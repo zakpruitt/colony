@@ -2,7 +2,7 @@ extends GutTest
 ## Acceptance tests for specs/024-guardian-fights/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation, with the CombatEffects, the Hud (and its
-## BossBar) and a SoundPlayer on it, every _process turned off. It puts a party beside the Slime
+## BossBarView) and a SoundPlayer on it, every _process turned off. It puts a party beside the Slime
 ## King's chamber on depth 5 (as the 020 tests do) and plays frames by hand: the simulation steps
 ## once every FRAMES_PER_TICK frames of STEP seconds, and the world, effects, HUD and sound player
 ## each move on by STEP. Events are recorded as the world passes them on.
@@ -182,7 +182,7 @@ func test_r1_guardian_is_announced() -> void:
 
 
 func test_r2_boss_bar() -> void:
-	var bar: BossBar = _hud.boss_bar
+	var bar: BossBarView = _hud.boss_bar
 	assert_not_null(bar, "the HUD has a boss bar")
 	assert_false(bar.is_showing(), "no bar before any fight")
 	assert_true(_start_guardian_fight(), "the guardian's fight starts")
@@ -191,16 +191,17 @@ func test_r2_boss_bar() -> void:
 	assert_almost_eq(bar.shown_fraction(), 1.0, 0.01, "full at the start")
 
 	# Inside the top band, between the panels, clear of the shop too.
-	var rect: Rect2 = bar.get_rect()
+	var rect: Rect2 = bar.get_global_rect()
 	assert_gte(rect.position.y, 0.0, "inside the top band")
 	assert_lte(rect.end.y, Hud.TOP_BAND, "inside the top band")
-	assert_gte(rect.position.x, _hud.depth_panel.get_rect().end.x, "right of the depth panel")
-	assert_lte(rect.end.x, _hud.shop_tab.position.x, "left of the shop button")
-	assert_lte(rect.end.x, _hud.gold_panel.position.x, "left of the gold")
+	assert_gte(
+		rect.position.x, _hud.place_panel.get_global_rect().end.x, "right of the depth panel"
+	)
+	assert_lte(rect.end.x, _hud.purse.get_global_rect().position.x, "left of the gold")
 	assert_gt(rect.size.x, 150.0, "wide")
 	_hud.shop.open()
 	_hud.advance(0.0)
-	assert_false(rect.intersects(_hud.shop.get_rect()), "clear of the open shop")
+	assert_false(rect.intersects(_hud.shop.get_global_rect()), "clear of the open shop")
 	_hud.shop.close()
 
 	# It follows the guardian's health, eased.

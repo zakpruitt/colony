@@ -429,7 +429,7 @@ func test_r6_journal_and_status() -> void:
 	_show(sim)
 	assert_true(_until(_working, 30), "working")
 	assert_eq(_hud.status_text(), "Working: Locked Chest", "the status line")
-	assert_eq(_hud.state_label.text, "Working: Locked Chest", "as the panel shows it")
+	assert_eq(_hud.place_panel.status_label.text, "Working: Locked Chest", "as the panel shows it")
 	var gold: int = sim.party.gold
 	assert_true(_until(_not_working), "done")
 	var reward: int = sim.party.gold - gold
@@ -508,7 +508,7 @@ func test_r7_sheet_lists_microskills() -> void:
 
 	# It still fits, for every hero, at every level (spec 060: on the UI layer, in its pixels).
 	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	for level: int in [1, 6]:
 		for hero: Hero in sim.party.heroes:
 			_set_level(hero, level)
@@ -562,10 +562,10 @@ func _collect_labels(node: Node, into: Array[Label]) -> void:
 func test_r8_safe_depth() -> void:
 	var sim := Simulation.new(28)
 	_show(sim)
-	assert_eq(_hud.stable_label.text, "Safe 1", "the depth the party falls back to")
+	assert_eq(_hud.place_panel.safe_label.text, "Safe 1", "the depth the party falls back to")
 	sim.expedition.last_stable_depth = 3
 	_hud.advance(0.0)
-	assert_eq(_hud.stable_label.text, "Safe 3")
+	assert_eq(_hud.place_panel.safe_label.text, "Safe 3")
 
 
 # --- R9 ------------------------------------------------------------------------

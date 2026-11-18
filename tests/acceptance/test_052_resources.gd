@@ -183,19 +183,19 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 func test_r3_the_party_keeps_a_count() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	var purse: ResourcePurse = _hud.resource_purse
+	var purse: Purse = _hud.purse
 	assert_eq(purse.shown_ids(), [] as Array[StringName], "nothing shown with none held")
-	var gold_only: float = _hud.gold_panel.size.x
+	var gold_only: float = _hud.purse.size.x
 	_sim.party.set_resource(GLOWCAPS, 12)
 	_sim.party.set_resource(CLAY, 3)
-	_hud.advance(ResourcePurse.CATCH_UP_SECONDS + 0.1)
+	_hud.advance(Purse.CATCH_UP_SECONDS + 0.1)
 	_hud.advance(0.0)
 	assert_eq(purse.shown_ids(), [GLOWCAPS, CLAY] as Array[StringName], "the two held, in order")
 	assert_eq(purse.labels[GLOWCAPS].text, "12", "the glowcaps' count")
 	assert_eq(purse.labels[CLAY].text, "3", "the clay's count")
-	assert_gt(_hud.gold_panel.size.x, gold_only, "the gold's panel widens to hold them")
-	var panel: Rect2 = _hud.gold_panel.get_global_rect()
-	var gold: Rect2 = _hud.gold_label.get_global_rect()
+	assert_gt(_hud.purse.size.x, gold_only, "the gold's panel widens to hold them")
+	var panel: Rect2 = _hud.purse.get_global_rect()
+	var gold: Rect2 = _hud.purse.gold_label.get_global_rect()
 	for id: StringName in [GLOWCAPS, CLAY]:
 		var icon: Rect2 = purse.icons[id].get_global_rect()
 		assert_true(panel.encloses(icon), "%s's icon is beside the gold, in its panel" % id)
@@ -222,28 +222,28 @@ func test_r3_the_party_keeps_a_count() -> void:
 			break
 	assert_false(_heard_of(SimEvent.Kind.RESOURCE_GAINED).is_empty(), "(a drop happened)")
 	assert_lt(
-		_hud.resource_purse.shown(GLOWCAPS),
+		_hud.purse.shown(GLOWCAPS),
 		_sim.party.resource(GLOWCAPS),
 		"the count waits for the drop's icons"
 	)
 	assert_eq(
-		_hud.resource_purse.labels[GLOWCAPS].text,
-		str(_hud.resource_purse.shown(GLOWCAPS)),
+		_hud.purse.labels[GLOWCAPS].text,
+		str(_hud.purse.shown(GLOWCAPS)),
 		"and shows what it has counted"
 	)
 	for i: int in 400:
 		_frame(1, STEP)
-	_hud.advance(ResourcePurse.CATCH_UP_SECONDS + 0.1)
+	_hud.advance(Purse.CATCH_UP_SECONDS + 0.1)
 	assert_gt(_sim.party.resource(GLOWCAPS), 0, "(glowcaps held)")
-	assert_eq(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "one a frame")
+	assert_eq(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "one a frame")
 	# Many ticks to a frame: the count is right at once.
 	_sim = Simulation.new(SEED)
 	_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	_frame(3000)
 	assert_gt(_sim.party.resource(GLOWCAPS), 0, "(glowcaps held)")
-	assert_eq(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "many a frame")
-	assert_eq(_hud.resource_purse.labels[GLOWCAPS].text, str(_sim.party.resource(GLOWCAPS)))
+	assert_eq(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "many a frame")
+	assert_eq(_hud.purse.labels[GLOWCAPS].text, str(_sim.party.resource(GLOWCAPS)))
 	assert_eq(_fx.resource_effects.live_icons().size(), 0, "with no icon for old drops")
 
 
@@ -262,13 +262,13 @@ func test_r3_large_counts_fit_the_top_bar() -> void:
 	_build_hud()
 	for i: int in 2:
 		_hud.advance(10.0)  # past every catch-up
-	assert_eq(_hud.gold_label.text, "9.9M", "the gold, shortened")
-	var parts: Array[Control] = [_hud.coin_icon, _hud.gold_label]
+	assert_eq(_hud.purse.gold_label.text, "9.9M", "the gold, shortened")
+	var parts: Array[Control] = [_hud.purse.coin_icon, _hud.purse.gold_label]
 	for id: StringName in Content.resource_ids():
-		assert_eq(_hud.resource_purse.labels[id].text, "99.9k", "%s, shortened" % id)
-		parts.append(_hud.resource_purse.icons[id])
-		parts.append(_hud.resource_purse.labels[id])
-	var panel: Rect2 = _hud.gold_panel.get_global_rect()
+		assert_eq(_hud.purse.labels[id].text, "99.9k", "%s, shortened" % id)
+		parts.append(_hud.purse.icons[id])
+		parts.append(_hud.purse.labels[id])
+	var panel: Rect2 = _hud.purse.get_global_rect()
 	var screen := Rect2(Vector2.ZERO, Hud.SCREEN)
 	assert_true(screen.encloses(panel), "the gold's panel is on the screen: %s" % panel)
 	for i: int in parts.size():
@@ -279,11 +279,8 @@ func test_r3_large_counts_fit_the_top_bar() -> void:
 			assert_false(
 				rect.intersects(other), "%s and %s do not overlap" % [parts[i].name, parts[j].name]
 			)
-	var tab: Rect2 = _hud.shop_tab.get_global_rect()
-	assert_false(tab.intersects(panel), "the Shop tab is clear of the gold")
-	var depth: Rect2 = _hud.depth_panel.get_global_rect()
-	assert_false(tab.intersects(depth), "and of the stage panel on the left")
-	assert_lte(depth.end.x, tab.position.x, "the stage panel ends before the Shop tab")
+	var depth: Rect2 = _hud.place_panel.get_global_rect()
+	assert_lte(depth.end.x, panel.position.x, "the stage panel ends before the gold")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -541,7 +538,7 @@ func test_r8_told_like_gold() -> void:
 	assert_ne(feet, Vector2.ZERO, "(the monster fell on screen)")
 	for icon: FxResource in icons:
 		assert_lt(icon.start_position.distance_to(feet), 24.0, "from where the monster fell")
-	assert_lt(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "not counted yet")
+	assert_lt(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "not counted yet")
 	var first: FxResource = icons[0]
 	var start: Vector2 = first.position
 	_fx.resource_effects.advance(0.2)
@@ -553,7 +550,7 @@ func test_r8_told_like_gold() -> void:
 			rose_on_screen = true
 			break
 	assert_true(rose_on_screen, "and lands within five seconds")
-	assert_eq(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "then counted")
+	assert_eq(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "then counted")
 	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 1, "the journal notes it")
 	for i: int in 3000:
 		_frame()
@@ -567,7 +564,7 @@ func test_r8_told_like_gold() -> void:
 	_frame(6000)
 	assert_gt(_heard_of(SimEvent.Kind.RESOURCE_GAINED).size(), 1, "(drops in the frame)")
 	assert_eq(_fx.resource_effects.live_icons().size(), 0, "none rise from an old drop")
-	assert_eq(_hud.resource_purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "counted")
+	assert_eq(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "counted")
 	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 1, "noted once")
 	# A game that already holds glowcaps notes no first.
 	_heard.clear()

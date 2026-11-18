@@ -154,7 +154,7 @@ func test_r1_three_speeds() -> void:
 func test_r2_button_and_key() -> void:
 	var main := _main()
 	var hud: Hud = main.hud
-	var button: HudButton = hud.speed_button
+	var button: UiButton = hud.purse.speed_button
 	assert_not_null(button, "the HUD has a speed button")
 	if button == null:
 		return
@@ -198,20 +198,20 @@ func test_r2_button_and_key() -> void:
 
 
 func _check_placement(hud: Hud, what: String) -> void:
-	var rect: Rect2 = hud.speed_button.get_global_rect()
-	assert_true(hud.speed_button.is_visible_in_tree(), "%s: the button shows" % what)
+	var rect: Rect2 = Hud.on_screen(hud.purse.speed_button)
+	assert_true(hud.purse.speed_button.is_visible_in_tree(), "%s: the button shows" % what)
 	assert_gte(rect.position.y, 0.0, "%s: in the top band" % what)
 	assert_lte(rect.end.y, Hud.TOP_BAND, "%s: in the top band" % what)
 	assert_gte(rect.position.x, 0.0, "%s: on screen" % what)
 	assert_lte(rect.end.x, Hud.SCREEN.x, "%s: on screen" % what)
 	var others: Dictionary[String, Control] = {
-		"depth panel": hud.depth_panel,
-		"gold": hud.gold_panel,
+		"depth panel": hud.place_panel,
+		"gold": hud.purse.gold_label,
 	}  # spec 059: the Shop button moved to the UI layer's bar
 	if hud.boss_bar.is_showing():
 		others["boss bar"] = hud.boss_bar
 	for part: String in others:
-		var other: Rect2 = others[part].get_global_rect()
+		var other: Rect2 = Hud.on_screen(others[part])
 		assert_false(rect.intersects(other), "%s: clear of the %s" % [what, part])
 
 

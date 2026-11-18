@@ -241,7 +241,7 @@ func test_r3_dangerous_click() -> void:
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 6, "a dangerous click still sets the target")
-	assert_eq(_hud.target_label.text, "6", "and the HUD shows it")
+	assert_eq(_hud.place_panel.target_label.text, "6", "and the HUD shows it")
 	assert_eq(_hud.journal.ticker_text(), line, "the ticker says so")
 	for i: int in 30:
 		_sim.step()

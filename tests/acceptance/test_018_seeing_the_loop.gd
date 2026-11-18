@@ -59,7 +59,7 @@ func test_r1_zoom() -> void:
 
 	# A coin's target, carried into world space, still lands on the HUD's coin icon.
 	main.hud.advance(0.0)
-	var icon: TextureRect = main.hud.coin_icon
+	var icon: TextureRect = main.hud.purse.coin_icon
 	var icon_centre: Vector2 = icon.get_global_rect().get_center()
 	var target: Vector2 = main.effects.gold_screen_target
 	assert_lt(target.distance_to(icon_centre), 3.0, "the coin target is the coin icon")

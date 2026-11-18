@@ -215,7 +215,7 @@ func test_r2_stable_note() -> void:
 	_situation(2, 2, 1, 2, true)
 	var stable_in: String = "Stable in %s" % _clock(e.seconds_to_stable())
 	assert_eq(_hud.stable_text(), stable_in + ", then stage 3", "not yet stable")
-	assert_true(_hud.stable_bar.visible, "with its bar")
+	assert_true(_hud.countdown.bar.visible, "with its bar")
 	assert_almost_eq(
 		_hud.stable_progress(), 1.0 - e.seconds_to_stable() / e.stable_seconds, 0.001, "to stable"
 	)
@@ -232,10 +232,10 @@ func test_r2_stable_note() -> void:
 	assert_eq(e.seconds_to_stable(), 0.0, "which is stable")
 	assert_gt(e.seconds_to_push(), 0.0, "and the push still to come")
 	var deeper: String = "Further in %s" % _clock(e.seconds_to_push())
-	assert_eq(_hud.stable_note.text, deeper, "the note counts to the push")
-	assert_eq(_hud.stable_next.text, "then stage 2", "and says what comes")
+	assert_eq(_hud.countdown.note_label.text, deeper, "the note counts to the push")
+	assert_eq(_hud.countdown.next_label.text, "then stage 2", "and says what comes")
 	assert_eq(_hud.stable_text(), deeper + ", then stage 2", "the whole note")
-	assert_true(_hud.stable_bar.visible, "with its bar")
+	assert_true(_hud.countdown.bar.visible, "with its bar")
 	assert_almost_eq(
 		_hud.stable_progress(),
 		1.0 - e.seconds_to_push() / e.stable_seconds,
@@ -247,9 +247,9 @@ func test_r2_stable_note() -> void:
 	# Stable here, auto-push off, at the target.
 	_sim.set_auto_push(false)
 	_tick()
-	assert_eq(_hud.stable_note.text, "Stable", "stable")
-	assert_eq(_hud.stable_next.text, "staying on stage 1", "and staying")
-	assert_false(_hud.stable_bar.visible, "no bar")
+	assert_eq(_hud.countdown.note_label.text, "Stable", "stable")
+	assert_eq(_hud.countdown.next_label.text, "staying on stage 1", "and staying")
+	assert_false(_hud.countdown.bar.visible, "no bar")
 
 	# Heading to another depth: the note is this depth's, with no then line.
 	_sim.set_auto_push(true)
@@ -257,17 +257,17 @@ func test_r2_stable_note() -> void:
 	_tick()
 	assert_ne(e.depth, e.target_depth, "heading down")
 	assert_eq(_hud.stable_text(), "Stable", "a stable depth, no then line")
-	assert_false(_hud.stable_bar.visible, "no bar")
+	assert_false(_hud.countdown.bar.visible, "no bar")
 	_situation(2, 2, 1, 4, true)
 	assert_eq(_hud.stable_text(), "Stable in %s" % _clock(e.seconds_to_stable()), "not yet stable")
-	assert_true(_hud.stable_bar.visible, "with its bar")
+	assert_true(_hud.countdown.bar.visible, "with its bar")
 
 	# Holding at a guardian.
 	_holding()
 	assert_true(e.is_holding(), "the party holds at the guardian")
-	assert_eq(_hud.stable_note.text, "Holding", "holding")
-	assert_eq(_hud.stable_next.text, "Orders (O) to go in", "and how to go in")
-	assert_false(_hud.stable_bar.visible, "no bar")
+	assert_eq(_hud.countdown.note_label.text, "Holding", "holding")
+	assert_eq(_hud.countdown.next_label.text, "Orders (O) to go in", "and how to go in")
+	assert_false(_hud.countdown.bar.visible, "no bar")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -319,7 +319,7 @@ func test_r4_new_game() -> void:
 	_hud.advance(STEP)
 	for i: int in Simulation.TICKS_PER_SECOND:
 		_tick()
-		var note: String = _hud.stable_note.text
+		var note: String = _hud.countdown.note_label.text
 		assert_true(note.begins_with("Further in "), "tick %d: %s" % [_sim.tick, note])
 		assert_lte(e.seconds_to_push(), DepthTiming.stable_seconds_at(1), "within the stable time")
 		var line: int = _line("Reach Mossy Hollow 2")
@@ -330,7 +330,7 @@ func test_r4_new_game() -> void:
 	var last_progress: float = -1.0
 	var last_target: int = e.target_depth
 	for i: int in LIMIT_TICKS:
-		last_note = _hud.stable_note.text
+		last_note = _hud.countdown.note_label.text
 		last_progress = goals.progress(_line("Reach Mossy Hollow 2"))
 		last_target = e.target_depth
 		_tick()
@@ -339,7 +339,9 @@ func test_r4_new_game() -> void:
 	assert_eq(e.target_depth, 2, "the target becomes 2")
 	assert_eq(last_note, "Further in 0:01", "the tick before, the last second")
 	assert_lt(last_progress, 1.0, "and the bar short of full")
-	assert_false(_hud.stable_note.text.begins_with("Further"), "on the tick: no more countdown")
+	assert_false(
+		_hud.countdown.note_label.text.begins_with("Further"), "on the tick: no more countdown"
+	)
 	assert_eq(e.seconds_to_push(), 0.0, "the push has come")
 	assert_eq(goals.progress(_line("Reach Mossy Hollow 2")), 1.0, "and the goal's bar is full")
 

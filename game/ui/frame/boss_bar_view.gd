@@ -1,28 +1,37 @@
-class_name BossBar
-extends Control
-## The guardian's health for the whole of a guardian fight (spec 024 R2): its name over a wide bar
-## on a dark panel at the top centre of the screen, between the depth panel and the shop tab.
+class_name BossBarView
+extends Panel
+## The guardian's health for the whole of a guardian fight (spec 024 R2, spec 061 R6), on the sharp
+## layer at the top centre: its name in bold capitals over a wide bar with its health as a number
+## on it ([code]1,234 / 2,000[/code]).
 ##
 ## It reads the fight from [member Expedition.battle]: it shows while the battle has a guardian
 ## in it and hides as soon as there is none (won, wiped, or anything else). The bar eases toward
-## the guardian's health and flashes white for a moment on each hit. It moves only in
-## [method advance], so a test can step it exactly.
+## the guardian's health, a trail of lost health drains after it, and it flashes white for a moment
+## on each recent hit. It moves only in [method advance], so a test can step it exactly; the
+## [Hud] places it.
 
-## The panel's height (the HUD's top panels' height) and its widest width, in pixels.
-const HEIGHT: float = 24.0
-const MAX_WIDTH: float = 240.0
-## The bar's height inside the panel, and its inset from the panel's sides.
-const BAR_HEIGHT: float = 7.0
-const INSET: float = 5.0
+## The widest the panel grows, in UI pixels, and as a share of the room's width (so that, beside
+## the place panel and the countdown, it can still sit near the centre at 960x540).
+const MAX_WIDTH: float = 360.0
+const ROOM_SHARE: float = 0.28
+## UI pixels inside the panel's edge; the name's top; the bar's top and height (a line of text
+## and its edge).
+const PAD: float = 6.0
+const NAME_Y: float = 3.0
+const BAR_Y: float = 18.0
+const BAR_HEIGHT: float = UiText.LINE_HEIGHT + 4.0
 ## Seconds the bar takes to ease to a new health, and the trail of lost health behind it.
 const EASE_SECONDS: float = 0.25
 const TRAIL_SECONDS: float = 0.7
 ## Seconds the bar flashes white after a hit.
 const FLASH_SECONDS: float = 0.08
 
+var name_label: Label
+## The guardian's health as a number, on the bar.
+var health_label: Label
+
 var _simulation: Simulation
 var _world: World
-var _name_label: Label
 var _guardian_id: int = -1
 var _shown := EasedValue.new(EASE_SECONDS)
 var _trail := EasedValue.new(TRAIL_SECONDS)
@@ -31,13 +40,16 @@ var _flash: float = 0.0
 
 func _init() -> void:
 	name = "BossBar"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	theme_type_variation = UiTheme.FRAME
+	mouse_filter = Control.MOUSE_FILTER_STOP  # a click here goes no further (to the world)
 	visible = false
-	size = Vector2(MAX_WIDTH, HEIGHT)
-	_name_label = PixelText.label("", &"white")
-	_name_label.name = "Name"
-	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_name_label)
+	size = Vector2(MAX_WIDTH, 40)
+	name_label = UiText.label("", &"white", true)
+	name_label.name = "Name"
+	add_child(name_label)
+	health_label = UiText.label("", &"white", true)
+	health_label.name = "Health"
+	add_child(health_label)
 
 
 ## Call once, before the first advance.
@@ -62,14 +74,49 @@ func advance(delta: float) -> void:
 		_trail.snap(fraction)
 		_flash = 0.0
 		var def: MonsterDef = Content.monster(guardian.def_id)
-		_name_label.text = def.display_name.to_upper() if def != null else ""
-		_name_label.reset_size()
+		name_label.text = def.display_name.to_upper() if def != null else ""
+		name_label.reset_size()
 	_shown.advance(fraction, delta)
 	_trail.advance(fraction, delta)
 	_flash = maxf(_flash - delta, 0.0)
+	var number: String = (
+		"%s / %s"
+		% [Hud.group_thousands(maxi(guardian.health, 0)), Hud.group_thousands(guardian.max_health)]
+	)
+	if health_label.text != number:
+		health_label.text = number
+		health_label.reset_size()
 	visible = true
-	_place()
 	queue_redraw()
+
+
+## The bar and its trail show the guardian's health at once, and a flash ends (after a stall).
+func snap() -> void:
+	var guardian: Combatant = _guardian()
+	if guardian == null:
+		return
+	var fraction: float = clampf(float(guardian.health) / maxf(guardian.max_health, 1.0), 0.0, 1.0)
+	_shown.snap(fraction)
+	_trail.snap(fraction)
+	_flash = 0.0
+	queue_redraw()
+
+
+## Puts the panel at [param at], [param width] wide and [param height] tall, its name and number
+## centred.
+func place(at: Vector2, width: float, height: float) -> void:
+	position = at
+	size = Vector2(width, height)
+	name_label.position = Vector2(floorf((width - _ink(name_label)) / 2.0), NAME_Y)
+	var bar: Rect2 = bar_rect()
+	health_label.position = Vector2(
+		floorf(bar.get_center().x - _ink(health_label) / 2.0), bar.position.y + 2.0
+	)
+
+
+## Where the bar is drawn, in the panel.
+func bar_rect() -> Rect2:
+	return Rect2(PAD, BAR_Y, size.x - PAD * 2.0, BAR_HEIGHT)
 
 
 ## True while the bar is on screen.
@@ -84,7 +131,7 @@ func shown_fraction() -> float:
 
 ## The guardian's name as shown.
 func shown_name() -> String:
-	return _name_label.text
+	return name_label.text
 
 
 ## True while the bar flashes from a hit.
@@ -103,34 +150,8 @@ func _guardian() -> Combatant:
 	return null
 
 
-## Fits the panel in the gap between the HUD's depth panel and its shop tab, centred on the
-## screen when it can be, never wider than MAX_WIDTH.
-func _place() -> void:
-	var left: float = Hud.MARGIN
-	var right: float = Hud.SCREEN.x - Hud.MARGIN
-	var hud: Hud = get_parent() as Hud
-	if hud != null:
-		if hud.depth_panel != null:
-			left = hud.depth_panel.position.x + hud.depth_panel.size.x + Hud.GAP
-		if hud.shop_tab != null:
-			right = hud.shop_tab.position.x - Hud.GAP
-	var width: float = floorf(minf(MAX_WIDTH, right - left))
-	var x: float = floorf((Hud.SCREEN.x - width) / 2.0)
-	x = clampf(x, left, right - width)
-	position = Vector2(floorf(x), Hud.TOP_Y)
-	size = Vector2(width, HEIGHT)
-	_name_label.position = Vector2(floorf((width - _name_label.size.x) / 2.0), 2.0)
-
-
 func _draw() -> void:
-	HudPanel.draw_panel(
-		self,
-		Rect2(Vector2.ZERO, size),
-		Palette.color(&"night"),
-		Palette.color(&"dusk"),
-		Palette.color(&"ink")
-	)
-	var bar := Rect2(INSET, HEIGHT - INSET - BAR_HEIGHT + 1.0, size.x - INSET * 2.0, BAR_HEIGHT)
+	var bar: Rect2 = bar_rect()
 	# Lost health first, in amber, draining after the bar; then the health itself.
 	HudPanel.draw_bar(
 		self,
@@ -158,3 +179,7 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _world != null and not _world.is_recent(event):
 		return
 	_flash = FLASH_SECONDS
+
+
+static func _ink(label: Label) -> float:
+	return maxf(UiText.width(label.text, true) - UiText.SPACING, 0.0)

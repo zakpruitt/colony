@@ -135,7 +135,7 @@ func _collect_labels(node: Node, into: Array[Label]) -> void:
 
 func _frames_top(hud: Hud) -> float:
 	var top: float = SCREEN.y
-	for frame: HeroFrame in hud.frames:
+	for frame: HeroFrameView in hud.frames:
 		top = minf(top, frame.get_global_rect().position.y)
 	return top
 
@@ -144,7 +144,7 @@ func _frames_top(hud: Hud) -> float:
 
 
 func test_r1_frames_show_live_health() -> void:
-	var frame: HeroFrame = _hud.frames[0]
+	var frame: HeroFrameView = _hud.frames[0]
 	var hero: Hero = _sim.party.heroes[0]
 	assert_true(_step_until(_fighting), "the party meets a fight")
 	var fighter: Combatant = _sim.expedition.battle.combatant(hero.id)
@@ -320,9 +320,9 @@ func _check_entry(main: Main, label: String) -> void:
 				sim.set_target_depth(4)
 				sim.step()
 				hud.advance(0.0)
-				var target: String = hud.target_label.text
+				var target: String = hud.place_panel.target_label.text
 				_key(code)
-				assert_ne(hud.target_label.text, target, "%s changes the target" % what)
+				assert_ne(hud.place_panel.target_label.text, target, "%s changes the target" % what)
 			"A":
 				var auto: bool = sim.expedition.auto_push
 				_key(code)
@@ -471,33 +471,38 @@ func test_r3_every_key_is_listed() -> void:
 ## mouse rests) and the sentence's required text ("" for any one plain sentence).
 func _tipped(hud: Hud) -> Array[Array]:
 	var tipped: Array[Array] = [
-		["the depth number", hud.depth_label, ""],
-		["the status line", hud.state_label, ""],
-		["the stable countdown", hud.stable_note, ""],
-		["the target -", hud.minus_button, ""],
-		["the target +", hud.plus_button, ""],
-		["the Auto button", hud.auto_button, ""],
+		["the depth number", hud.place_panel.stage_label, ""],
+		["the status line", hud.place_panel.status_label, ""],
+		["the stable countdown", hud.countdown.note_label, ""],
+		["the target -", hud.place_panel.minus_button, ""],
+		["the target +", hud.place_panel.plus_button, ""],
+		["the Auto button", hud.place_panel.auto_button, ""],
 		# Spec 059: the Shop button is on the UI layer's bar, with the bar's tooltips.
-		["the gold", hud.gold_label, ""],
-		["the speed button", hud.speed_button, ""],
+		["the gold", hud.purse.gold_label, ""],
+		["the speed button", hud.purse.speed_button, ""],
 	]
-	for frame: HeroFrame in hud.frames:
+	for frame: HeroFrameView in hud.frames:
 		tipped.append(["frame %d" % frame.hero_id, frame, "Click for details"])
 	return tipped
 
 
 func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> String:
-	var tooltip: HudTooltip = hud.tooltip
+	# Spec 061: the frame of the screen has its own tooltip, on the UI layer.
+	var tip_box: Control = hud.tooltip.box
+	var shown: Callable = hud.tooltip.shown_text
+	if hud.screen_frame.is_ancestor_of(control):
+		tip_box = hud.frame_tip
+		shown = hud.frame_tip.shown_text
 	var rect: Rect2 = control.get_global_rect()
 	_mouse(SCREEN / 2.0)
 	hud.advance(1.0)
-	assert_eq(tooltip.shown_text(), "", "%s: nothing before resting on it" % what)
+	assert_eq(str(shown.call()), "", "%s: nothing before resting on it" % what)
 	_mouse(rect.get_center())
 	hud.advance(0.2)
 	hud.advance(0.15)
-	assert_eq(tooltip.shown_text(), "", "%s: nothing before 0.4 s" % what)
+	assert_eq(str(shown.call()), "", "%s: nothing before 0.4 s" % what)
 	hud.advance(0.06)
-	var text: String = tooltip.shown_text()
+	var text: String = str(shown.call())
 	assert_ne(text, "", "%s: a sentence after 0.4 s" % what)
 	if not wanted.is_empty():
 		assert_eq(text, wanted, what)
@@ -505,18 +510,18 @@ func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> Str
 		assert_true(text.ends_with("."), "%s: one sentence: %s" % [what, text])
 		var inside: String = text.trim_suffix(".")
 		assert_false(inside.contains(". "), "%s: only one: %s" % [what, text])
-	var box: Rect2 = tooltip.box.get_global_rect()
-	assert_true(tooltip.box.is_visible_in_tree(), "%s: the box shows" % what)
+	var box: Rect2 = tip_box.get_global_rect()
+	assert_true(tip_box.is_visible_in_tree(), "%s: the box shows" % what)
 	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(box), "%s: on the screen %s" % [what, box])
 	assert_false(box.intersects(rect), "%s: clear of the element %s %s" % [what, box, rect])
 	var labels: Array[Label] = []
-	_collect_labels(tooltip, labels)
+	_collect_labels(tip_box, labels)
 	for label: Label in labels:
 		if label.is_visible_in_tree():
 			assert_true(box.encloses(label.get_global_rect()), "%s: the text is in the box" % what)
 	_mouse(SCREEN / 2.0)
 	hud.advance(0.016)
-	assert_eq(tooltip.shown_text(), "", "%s: hidden on leaving" % what)
+	assert_eq(str(shown.call()), "", "%s: hidden on leaving" % what)
 	return text
 
 

@@ -479,7 +479,7 @@ func _build_hero(hero: Hero, icons: PixelSheet) -> void:
 	var bar: UiBar = class_bar(hero.class_id, BAR_HEIGHT)
 	column.add_child(bar)
 	bars.append(bar)
-	_eased.append(EasedValue.new(HeroFrame.EASE_SECONDS))
+	_eased.append(EasedValue.new(HeroFrameView.EASE_SECONDS))
 	_goals.append(0.0)
 	var indent := MarginContainer.new()
 	indent.mouse_filter = Control.MOUSE_FILTER_IGNORE

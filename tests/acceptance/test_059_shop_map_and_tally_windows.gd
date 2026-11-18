@@ -150,7 +150,7 @@ func test_r1_three_windows() -> void:
 	# The area's name still opens the map.
 	ui.windows.close_window(&"map")
 	await _frames()
-	_click_world(hud.area_map.name_button.get_global_rect().get_center())
+	_click_world(Hud.on_screen(hud.place_panel.area_button).get_center())
 	assert_true(ui.windows.is_open(&"map"), "a click on the area's name opens the map")
 
 
@@ -656,7 +656,7 @@ func test_r8_fits_both_rooms() -> void:
 			ui.windows.open_window(id)
 		main.hud.advance(STEP)
 		await _frames()
-		var frames_top: float = floorf(ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y)
+		var frames_top: float = floorf(ui.world_to_ui(Vector2(0, ui.frames_top())).y)
 		var space := Rect2(Vector2.ZERO, Vector2(room.x, frames_top))
 		var rects: Dictionary[StringName, Rect2] = {}
 		for id: StringName in IDS:
@@ -733,7 +733,7 @@ func test_r8_beside_the_hero_windows() -> void:
 			main.hud.hero_windows.open(hero.id)
 		main.hud.advance(STEP)
 		await _frames()
-		var frames_top: float = floorf(ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y)
+		var frames_top: float = floorf(ui.world_to_ui(Vector2(0, ui.frames_top())).y)
 		var bar_top: float = ui.bar.get_global_rect().position.y - UiRoot.PLACE_GAP / 2.0
 		var shown: Array[UiWindow] = []
 		for id: StringName in IDS:

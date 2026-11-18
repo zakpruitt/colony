@@ -74,7 +74,7 @@ func _key(keycode: Key) -> void:
 
 
 ## A left click on [param frame], delivered as the GUI delivers one.
-func _click(frame: HeroFrame) -> void:
+func _click(frame: HeroFrameView) -> void:
 	for pressed: bool in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_LEFT
@@ -108,7 +108,7 @@ func _step_until(wanted: Expedition.State, limit: int = 20000) -> bool:
 
 func _marked_ids() -> Array[int]:
 	var marked: Array[int] = []
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		if frame.marked:
 			marked.append(frame.hero_id)
 	return marked
@@ -132,8 +132,8 @@ func test_r1_opening_and_closing() -> void:
 	assert_false(windows.is_open(), "closed at first")
 	assert_eq(_marked_ids(), [] as Array[int], "no frame is marked")
 
-	var first: HeroFrame = _hud.frames[0]
-	var second: HeroFrame = _hud.frames[1]
+	var first: HeroFrameView = _hud.frames[0]
+	var second: HeroFrameView = _hud.frames[1]
 	var first_window: HeroWindow = windows.window_of(first.hero_id)
 	var second_window: HeroWindow = windows.window_of(second.hero_id)
 	assert_false(first_window.is_visible_in_tree(), "not shown")
@@ -141,8 +141,12 @@ func test_r1_opening_and_closing() -> void:
 	assert_true(first_window.is_open(), "clicking a frame opens its hero's window")
 	assert_true(first_window.is_visible_in_tree(), "and it shows")
 	assert_eq(_marked_ids(), [first.hero_id] as Array[int], "that frame is marked")
-	var plain: HeroFrame = _hud.frames[2]
-	assert_ne(first.border, plain.border, "visibly: its edge differs from an unmarked frame's")
+	var plain: HeroFrameView = _hud.frames[2]
+	assert_ne(
+		first.edge_colour(),
+		plain.edge_colour(),
+		"visibly: its edge differs from an unmarked frame's"
+	)
 	_click(first)
 	assert_false(first_window.is_open(), "clicking the same frame closes it")
 	assert_eq(_marked_ids(), [] as Array[int], "and unmarks it")
@@ -492,7 +496,7 @@ func test_r7_it_fits() -> void:
 		hero.gain_xp(Hero.xp_for_level(99))
 	# Spec 060: the windows are on the UI layer, measured in its pixels.
 	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	var room := Vector2(_ui.room())
 	for hero: Hero in _sim.party.heroes:
 		var sheet: HeroWindow = _open(hero.id)
@@ -536,9 +540,9 @@ func test_r8_keys() -> void:
 
 	var target: int = main.simulation.expedition.target_depth
 	_key(KEY_EQUAL)
-	assert_eq(hud.target_label.text, str(target + 1), "= raises the target")
+	assert_eq(hud.place_panel.target_label.text, str(target + 1), "= raises the target")
 	_key(KEY_MINUS)
-	assert_eq(hud.target_label.text, str(target), "- lowers it")
+	assert_eq(hud.place_panel.target_label.text, str(target), "- lowers it")
 	assert_true(sheet.is_open(), "the window stays open")
 
 	var auto: bool = main.simulation.expedition.auto_push

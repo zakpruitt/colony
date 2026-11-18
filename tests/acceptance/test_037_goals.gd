@@ -179,8 +179,8 @@ func _rect() -> Rect2:
 	return _goals().panel.get_global_rect()
 
 
-func _frame(hero: Hero) -> HeroFrame:
-	for frame: HeroFrame in _hud.frames:
+func _frame(hero: Hero) -> HeroFrameView:
+	for frame: HeroFrameView in _hud.frames:
 		if frame.hero_id == hero.id:
 			return frame
 	return null
@@ -219,7 +219,7 @@ func test_r1_tracker() -> void:
 
 	# The panel: under the depth panel, on the left.
 	var rect: Rect2 = _rect()
-	var depth: Rect2 = _hud.depth_panel.get_global_rect()
+	var depth: Rect2 = Hud.on_screen(_hud.place_panel)
 	assert_gte(rect.position.y, depth.end.y, "under the depth panel")
 	assert_lte(rect.position.y, depth.end.y + 6.0, "just under it")
 	assert_eq(rect.position.x, depth.position.x, "lined up with it on the left")
@@ -475,7 +475,7 @@ func test_r3_finished_goal() -> void:
 
 func test_r4_frames_point_at_themselves() -> void:
 	var windows: HeroWindows = _hud.hero_windows
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		assert_not_null(frame.marker, "frame %d has a marker" % frame.hero_id)
 		if frame.marker == null:
 			return
@@ -486,7 +486,7 @@ func test_r4_frames_point_at_themselves() -> void:
 	var hero: Hero = _sim.party.heroes[3]
 	if hero == _learner()[0]:
 		hero = _sim.party.heroes[2]
-	var frame: HeroFrame = _frame(hero)
+	var frame: HeroFrameView = _frame(hero)
 	_level(hero, Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1, true)
 	# The microskills learned on the way are seen first, so the marker is the point alone.
 	var sheet: HeroWindow = windows.window_of(hero.id)
@@ -532,7 +532,7 @@ func test_r4_frames_point_at_themselves() -> void:
 	sheet.close()
 	_hud.advance(STEP)
 	assert_false(frame.marker.visible, "it stays cleared")
-	for other: HeroFrame in _hud.frames:
+	for other: HeroFrameView in _hud.frames:
 		assert_false(other.marker.visible, "frame %d: nothing to do" % other.hero_id)
 
 
@@ -627,13 +627,11 @@ func test_r6_out_of_the_way() -> void:
 	var rect: Rect2 = _rect()
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
 	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(rect), "on the screen")
-	var others: Array[Control] = [
-		_hud.depth_panel, _hud.gold_panel, _hud.shop_tab, _hud.ladder, _hud.boss_bar
-	]
-	for frame: HeroFrame in _hud.frames:
+	var others: Array[Control] = [_hud.place_panel, _hud.purse, _hud.ladder, _hud.boss_bar]
+	for frame: HeroFrameView in _hud.frames:
 		others.append(frame)
 	for control: Control in others:
-		var each: Rect2 = control.get_global_rect()
+		var each: Rect2 = Hud.on_screen(control)
 		assert_false(rect.intersects(each), "clear of %s %s" % [control.name, each])
 
 	# The journal's ticker, with a long line.

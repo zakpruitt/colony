@@ -144,7 +144,7 @@ func _key(keycode: Key) -> void:
 
 func _frames_top() -> float:
 	var top: float = SCREEN.y
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		top = minf(top, frame.get_global_rect().position.y)
 	return top
 
@@ -261,15 +261,17 @@ func test_r3_click_to_steer() -> void:
 		return
 	_situation(3, 3, 3, 3)
 	ladder.click_depth(6)
-	assert_eq(_hud.target_label.text, "6", "the HUD's target shows the asked depth at once")
+	assert_eq(
+		_hud.place_panel.target_label.text, "6", "the HUD's target shows the asked depth at once"
+	)
 	assert_true(_has(6, &"target"), "and so does the ladder's arrow")
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 6, "the target after the next step")
-	assert_eq(_hud.target_label.text, "6", "the HUD agrees")
+	assert_eq(_hud.place_panel.target_label.text, "6", "the HUD agrees")
 
 	# The - button then steps from there, as if the + button had been pressed three times.
-	_hud.minus_button.pressed.emit()
+	_hud.place_panel.minus_button.pressed.emit()
 	_sim.step()
 	assert_eq(_sim.expedition.target_depth, 5, "- steps on from the clicked target")
 
@@ -293,7 +295,7 @@ func test_r3_click_to_steer() -> void:
 			_sim.expedition.target_depth, 2, "a click on Mossy Hollow %d changes nothing" % depth
 		)
 		assert_ne(_sim.state_hash(), hash_before, "(the step ran)")
-	assert_eq(_hud.target_label.text, "2", "and the HUD's target is unchanged")
+	assert_eq(_hud.place_panel.target_label.text, "2", "and the HUD's target is unchanged")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -407,9 +409,9 @@ func test_r6_stays_out_of_the_way() -> void:
 	_situation(120, 119, 120, 123)
 	var rect: Rect2 = ladder.get_global_rect()
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
-	for control: Control in [_hud.depth_panel, _hud.gold_panel, _hud.shop_tab]:
+	for control: Control in [_hud.place_panel, _hud.purse]:
 		assert_false(rect.intersects(control.get_global_rect()), "clear of %s" % control.name)
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)
 
 	# The journal's ticker, with the longest kind of line it writes.

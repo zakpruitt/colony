@@ -146,7 +146,7 @@ func test_r5_nothing_closes_the_windows_but_the_player() -> void:
 	for id: StringName in _bar_ids(windows):
 		places[id] = windows.window(id).position
 	var written: Array[String] = hud.journal.lines()
-	_click_world(hud.frames[0].get_global_rect().get_center())
+	_click_world(Hud.on_screen(hud.frames[0]).get_center())
 	hud.advance(0.016)
 	assert_true(hud.hero_windows.is_open(), "a click on a frame opens a hero window")
 	for keycode: Key in [KEY_U, KEY_T, KEY_W]:  # each closes its window, then opens it again
