@@ -74,3 +74,18 @@ simple" skill tree.
 - **Points come from levels.** One talent point a level until the tree is full.
 - **Paragon after that.** Once the tree is full, each level gives a paragon point to put in Power,
   Quickness or Toughness. Plain stat gains live only there. Gold training (spec 029) is removed.
+
+## The UI and how fights move (decided with Zak on 2026-11-18)
+
+Zak asked for two things after reading what the trees do.
+
+- **Livelier fights.** "More animations and more movement from the characters during their moves ...
+  jumping around (when appropriate), or when casting spells having animations for them. Nothing too in
+  depth, but we want to strike a charming but interesting art style." Spec 057: a move for every
+  ability, made in code, and a visual for every kind of spell.
+- **A UI overhaul.** "The font is hard to read, although thematic ... and I want the UI to be sort of
+  like WoW where you can have multiple screens open individually at once and compare or put side by side
+  or layer ... getting the UI to be friendly and nice will be paramount." He chose three things: the UI
+  is drawn on a layer sharper than the 640x360 world; the font is a clean pixel font made for reading,
+  not a smooth one; windows can be moved, layered and remember their places, without resizing or locking
+  in the first version. Specs 058 to 061.
