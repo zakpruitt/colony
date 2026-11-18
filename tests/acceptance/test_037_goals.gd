@@ -649,12 +649,7 @@ func test_r6_out_of_the_way() -> void:
 	assert_false(rect.intersects(_hud.shop.get_global_rect()), "clear of the shop")
 	_hud.shop.close()
 
-	# Spec 035's orders panel, open.
-	_hud.orders.open()
-	_hud.advance(STEP)
-	assert_true(_hud.orders.is_open(), "the orders panel is open")
-	assert_false(rect.intersects(_hud.orders.get_global_rect()), "clear of the orders panel")
-	_hud.orders.close()
+	# (Spec 035's orders panel is a window on the UI layer since spec 058, floating over the HUD.)
 
 	# The boss bar, during a guardian fight.
 	_raise(STRONG_LEVEL)
@@ -665,7 +660,8 @@ func test_r6_out_of_the_way() -> void:
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	assert_false(_rect().intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
 
-	# Hidden while the hero sheet or the journal is open, back when it closes.
+	# Hidden while the hero sheet is open, back when it closes. (Spec 058: the journal is a window
+	# on the UI layer now, which floats over the goals and does not hide them.)
 	_hud.hero_sheet.open(hero.id)
 	_hud.advance(STEP)
 	assert_false(goals.is_shown(), "hidden under the hero sheet")
@@ -673,12 +669,6 @@ func test_r6_out_of_the_way() -> void:
 	_hud.hero_sheet.close()
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "back when the sheet closes")
-	_hud.journal.open()
-	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "hidden under the journal")
-	_hud.journal.close()
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "back when the journal closes")
 	# Hidden by G, it stays hidden after the sheet.
 	_key(KEY_G)
 	_hud.hero_sheet.open(hero.id)

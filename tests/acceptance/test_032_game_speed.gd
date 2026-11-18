@@ -208,7 +208,6 @@ func _check_placement(hud: Hud, what: String) -> void:
 		"depth panel": hud.depth_panel,
 		"gold": hud.gold_panel,
 		"shop button": hud.shop_button,
-		"help button": hud.help_button,
 	}
 	if hud.boss_bar.is_showing():
 		others["boss bar"] = hud.boss_bar
@@ -424,18 +423,19 @@ func test_r7_keys() -> void:
 	var sim: Simulation = main.simulation
 	sim.set_auto_push(false)
 	sim.step()
+	var windows: UiWindows = main.ui.windows
 	var panels: Array[String] = ["nothing", "shop", "hero sheet", "journal"]
 	for panel: String in panels:
 		hud.shop.close()
 		hud.hero_sheet.close()
-		hud.journal.close()
+		windows.close_window(UiRoot.JOURNAL)
 		match panel:
 			"shop":
 				hud.shop.open()
 			"hero sheet":
 				hud.hero_sheet.open_next()
 			"journal":
-				hud.journal.open()
+				windows.open_window(UiRoot.JOURNAL)
 		hud.advance(0.0)
 		var speed: int = main.speed
 		var target: int = sim.expedition.target_depth
@@ -443,7 +443,7 @@ func test_r7_keys() -> void:
 		var zoom: int = main.world.camera.zoom_level()
 		var shop_open: bool = hud.shop.is_open()
 		var sheet_open: bool = hud.hero_sheet.is_open()
-		var journal_open: bool = hud.journal.is_open()
+		var journal_open: bool = windows.is_open(UiRoot.JOURNAL)
 		_key(KEY_F)
 		sim.step()
 		assert_ne(main.speed, speed, "F works with %s open" % panel)
@@ -452,7 +452,7 @@ func test_r7_keys() -> void:
 		assert_eq(main.world.camera.zoom_level(), zoom, "and the zoom (%s)" % panel)
 		assert_eq(hud.shop.is_open(), shop_open, "and the shop (%s)" % panel)
 		assert_eq(hud.hero_sheet.is_open(), sheet_open, "and the hero sheet (%s)" % panel)
-		assert_eq(hud.journal.is_open(), journal_open, "and the journal (%s)" % panel)
+		assert_eq(windows.is_open(UiRoot.JOURNAL), journal_open, "and the journal (%s)" % panel)
 
 		# The other keys do what they did, and leave the speed alone.
 		speed = main.speed
@@ -472,13 +472,13 @@ func test_r7_keys() -> void:
 
 	hud.shop.close()
 	hud.hero_sheet.close()
-	hud.journal.close()
+	windows.close_window(UiRoot.JOURNAL)
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
 	_key(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc still closes it")
 	_key(KEY_J)
-	assert_true(hud.journal.is_open(), "J still opens the journal")
+	assert_true(windows.is_open(UiRoot.JOURNAL), "J still opens the journal")
 	_key(KEY_J)
 	_key(KEY_TAB)
 	assert_true(hud.hero_sheet.is_open(), "Tab still opens a hero sheet")

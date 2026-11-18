@@ -306,15 +306,13 @@ func test_r1_tally_panel() -> void:
 		)
 	tally.close()
 
-	# Never with the sheet, the journal, the shop, the orders or help, either way round.
+	# Never with the sheet or the shop, either way round. (Spec 058 made the journal, the orders
+	# and help windows on the UI layer, which float over the tally and leave it open.)
 	var hero: int = heroes[0].id
 	_check_exclusion("hero sheet", _hud.hero_sheet.open.bind(hero), _hud.hero_sheet.is_open)
-	_check_exclusion("journal", _hud.journal.open, _hud.journal.is_open)
 	_check_exclusion("shop", _hud.shop.open, _hud.shop.is_open)
-	_check_exclusion("orders", _hud.orders.open, _hud.orders.is_open)
-	_check_exclusion("help", _hud.help.open, _hud.help.is_open)
-	# The keys of the others open them over the tally too.
-	for pair: Array in [[KEY_J, _hud.journal.is_open], [KEY_U, _hud.shop.is_open]]:
+	# The key of the other opens it over the tally too.
+	for pair: Array in [[KEY_U, _hud.shop.is_open]]:
 		var code: Key = pair[0]
 		var other: Callable = pair[1]
 		tally.open()
@@ -325,7 +323,6 @@ func test_r1_tally_panel() -> void:
 		assert_false(tally.is_open(), "key %d closes the tally" % code)
 		_key(KEY_ESCAPE)
 		_hud.shop.close()
-		_hud.journal.close()
 
 
 # --- R2 ------------------------------------------------------------------------

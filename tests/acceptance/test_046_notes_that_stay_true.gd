@@ -236,9 +236,12 @@ func test_r2_holding_is_true() -> void:
 	assert_true(hold.lit, "lit while holding")
 	assert_eq(_tip_of(hold), DefeatNote.HOLDING_TIP, "the Holding tooltip")
 
-	# The order goes back to Challenge through the orders panel while the note shows.
-	_hud.orders.choose(PartyOrders.GUARDIANS, Expedition.GuardianOrder.CHALLENGE)
-	_hud.orders.close()
+	# The order goes back to Challenge through the orders panel while the note shows. (Spec 058
+	# moved the panel into a window on the UI layer; one made on its own sends the same command.)
+	var orders := OrdersPanel.new()
+	add_child_autofree(orders)
+	orders.setup(_sim, null)
+	orders.choose(PartyOrders.GUARDIANS, Expedition.GuardianOrder.CHALLENGE)
 	_frame()
 	assert_eq(
 		_sim.expedition.guardian_order, Expedition.GuardianOrder.CHALLENGE, "challenging again"
