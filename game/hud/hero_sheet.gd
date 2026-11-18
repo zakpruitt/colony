@@ -284,8 +284,6 @@ func open(hero_id: int) -> void:
 	var hud: Hud = get_parent() as Hud
 	if hud != null and hud.shop != null:
 		hud.shop.close()
-	if hud != null and hud.help != null:
-		hud.help.close()  # spec 030: never with the help panel
 	var switched: bool = hero_id != _hero_id or not visible
 	_hero_id = hero_id
 	visible = true

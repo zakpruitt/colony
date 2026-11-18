@@ -114,8 +114,6 @@ func open() -> void:
 	var hud: Node = get_parent()
 	if hud is Hud and (hud as Hud).hero_sheet != null:
 		(hud as Hud).hero_sheet.close()
-	if hud is Hud and (hud as Hud).help != null:
-		(hud as Hud).help.close()  # spec 030: never with the help panel
 	var layer: Node = hud.get_parent() if hud != null else null
 	if layer != null:
 		for child: Node in layer.get_children():

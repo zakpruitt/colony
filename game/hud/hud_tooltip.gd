@@ -92,8 +92,6 @@ func setup(hud: Hud) -> void:
 	_tip([hud.speed_button], "How fast the game runs: click (or press F) for 1x, 2x or 4x.")
 	_tip([hud.gold_panel], "Gold from fights, to spend in the Shop.")
 	_tip([hud.boss_bar], "A guardian holds the way on: beat it to go further.")
-	if hud.help_button != null:
-		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
 		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
 		_tip([frame], frame.tip)

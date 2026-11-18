@@ -10,7 +10,8 @@ extends Control
 ##
 ## Spec 027 makes the party readable: the depth panel says what the party is doing and why
 ## ([method status_text]) and how long until this depth is stable ([method stable_text]), and a
-## [Journal] keeps the last happenings, with a ticker over the frames and a panel on [kbd]J[/kbd].
+## [Journal] keeps the last happenings, with a ticker over the frames (its list is the Journal
+## window on the UI layer, spec 058).
 ## Spec 039 makes that note count down to auto-push's next push once the depth is stable.
 
 ## The screen the HUD is laid out on, in pixels.
@@ -107,14 +108,11 @@ var hero_sheet: HeroSheet
 var ladder: DepthLadder
 ## The next few things within reach, under the depth panel (spec 037); G hides it.
 var goals: Goals
-## Help (spec 030): the panel, the ? button that opens it (in the shop tab, left of Shop), and the
-## tooltips on the HUD's elements.
-var help: HelpPanel
-var help_button: HudButton
+## The tooltips on the HUD's elements (spec 030).
 var tooltip: HudTooltip
-## The party's orders (spec 035): the panel, and the Orders button at the left of the shop tab.
-var orders: OrdersPanel
-var orders_button: HudButton
+## The windows on the UI layer (spec 058), which hold help, the journal's list and the orders;
+## null when there is no UI layer (a HUD on its own in a test).
+var windows: UiWindows
 ## What beat the party and what would help (spec 041), under the top band in the middle.
 var defeat_note: DefeatNote
 ## The party tally (spec 045): who deals, heals and takes the damage, and its button beside the
@@ -230,12 +228,11 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	add_child(journal)
 	journal.setup(simulation, world)
 	_build_ladder()
-	goals = Goals.new()  # spec 037: before help, so its lines get tooltips
+	goals = Goals.new()  # spec 037: before the tooltips, so its lines get them
 	add_child(goals)
 	goals.setup(simulation, world)
-	_build_tally()  # spec 045: before help, so its tabs get tooltips
-	_build_help()
-	_build_orders()
+	_build_tally()  # spec 045: before the tooltips, so its tabs get them
+	_build_tooltip()
 	area_map = AreaMap.new()  # spec 053: after the tooltips, which it gives its controls
 	add_child(area_map)
 	area_map.setup(simulation, world)
@@ -279,10 +276,6 @@ func advance(delta: float) -> void:
 	journal.advance(delta)
 	ladder.advance(delta)
 	goals.advance(delta)
-	help.advance(delta)
-	help_button.lit = help.is_open()
-	orders.advance(delta)
-	orders_button.lit = orders.is_open()
 	tally.advance(delta)
 	_light_tally_button()
 	area_map.advance(delta)
@@ -539,22 +532,9 @@ func _on_ladder_target(depth: int) -> void:
 	_advance_depth(0.0)
 
 
-## Help (spec 030): the ? button in the shop tab, left of Shop (the tab grows to hold it), the help
-## panel it opens, and the tooltips, made last so they are drawn over everything else.
-func _build_help() -> void:
-	help_button = HudButton.new("?")
-	help_button.name = "HelpButton"
-	help_button.custom_minimum_size = Vector2(HudButton.HEIGHT, HudButton.HEIGHT)
-	help_button.size = help_button.get_combined_minimum_size()
-	help_button.position = shop_button.position
-	shop_tab.add_child(help_button)
-	var room: float = help_button.size.x + 3.0
-	shop_button.position.x += room
-	shop_tab.size.x += room
-	help = HelpPanel.new()
-	add_child(help)
-	help.setup(_simulation, _world)
-	help_button.pressed.connect(help.toggle)
+## The tooltips (spec 030), made late so they are drawn over everything else. Help and the
+## orders moved onto the UI layer (spec 058), with their buttons.
+func _build_tooltip() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
@@ -617,32 +597,6 @@ func _draw_tally_meter(meter: Control) -> void:
 		PixelText.SIZE,
 		Palette.color(ink)
 	)
-
-
-## Orders (spec 035): the Orders button at the left of the shop tab (the tab grows to hold it), the
-## panel it opens, and their tooltips.
-func _build_orders() -> void:
-	orders_button = HudButton.new("Orders")
-	orders_button.name = "OrdersButton"
-	orders_button.position = speed_button.position
-	shop_tab.add_child(orders_button)
-	var room: float = orders_button.size.x + 3.0
-	for button: HudButton in [speed_button, help_button, shop_button]:
-		button.position.x += room
-	shop_tab.size.x += room
-	orders = OrdersPanel.new()
-	add_child(orders)
-	orders.setup(_simulation, _world)
-	orders_button.pressed.connect(
-		func() -> void:
-			orders.toggle()
-			orders_button.lit = orders.is_open()
-	)
-	tooltip.tip([orders_button], "Orders: how the party rests and whether it fights guardians.")
-	for order: int in orders.choice_buttons.size():
-		for value: int in orders.choice_buttons[order].size():
-			tooltip.tip([orders.choice_buttons[order][value]], OrdersPanel.tip(order, value))
-	move_child(tooltip, -1)  # drawn over the panel
 
 
 func _mark_frames() -> void:

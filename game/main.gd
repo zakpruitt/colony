@@ -2,6 +2,11 @@ class_name Main
 extends Node
 ## The main scene: one simulation, the driver that runs it, the world that shows it, and the HUD
 ## layer above, which holds a small clock readout.
+##
+## Spec 058 gives it two layers. The world, its effects and the old HUD are drawn into
+## [member world_viewport], 640x360 pixels scaled up by a whole number with hard edges; the HUD
+## layer stays where it was in the tree (so its controls hear input as before) but draws into that
+## viewport. Over it, [member ui] is the sharp UI layer with the windows and the button bar.
 
 ## Emitted when the replay of the time away has ended, before the world is made: the
 ## simulation is then exactly where the replay left it.
@@ -33,8 +38,14 @@ var world: World
 ## Where progress is kept. Null means this run does not load or save: tests, screenshots and
 ## headless runs. Set it before the scene enters the tree to choose the file.
 var save_store: SaveStore
-## Screen-space layer for the HUD, above the world.
+## Screen-space layer for the HUD, above the world, drawn into [member world_viewport].
 var hud_layer: CanvasLayer
+## The 640x360 viewport the world, its effects and the HUD are drawn into, and the control that
+## shows it scaled up.
+var world_viewport: SubViewport
+var world_view: SubViewportContainer
+## The sharp UI layer over everything (spec 058): the windows and the button bar.
+var ui: UiRoot
 ## Numbers, sparks, coins and the other effects of what happens in [member world].
 var effects: CombatEffects
 ## The party frames, the purse and the depth readout, on [member hud_layer].
@@ -75,6 +86,10 @@ var _loaded_save: bool = false
 
 func _ready() -> void:
 	hud_layer = $HUD
+	world_view = $WorldView
+	world_viewport = $WorldView/WorldViewport
+	ui = UiRoot.new()
+	add_child(ui)
 	if save_store == null and _is_played():
 		save_store = SaveStore.new()
 	if settings == null and _is_played():
@@ -108,6 +123,10 @@ func _unhandled_input(event: InputEvent) -> void:
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_EXIT_TREE:
 		save_now()
+	elif what == NOTIFICATION_SCENE_INSTANTIATED:
+		# The old HUD draws into the world's viewport, with the world. Set before either is in the
+		# tree: set later, freeing Main makes the engine undo a connection that is already gone.
+		($HUD as CanvasLayer).custom_viewport = $WorldView/WorldViewport
 
 
 ## Runs the game at [param value] times real time; a value not in [constant SPEEDS] is ignored.
@@ -162,10 +181,10 @@ func _start_play() -> void:
 	world = World.new()
 	world.name = "World"
 	world.simulation = simulation
-	add_child(world)
+	world_viewport.add_child(world)
 	effects = CombatEffects.new()
 	effects.name = "CombatEffects"
-	add_child(effects)
+	world_viewport.add_child(effects)
 	effects.setup(world, simulation)
 	hud = Hud.new()
 	hud.name = "Hud"
@@ -182,16 +201,17 @@ func _start_play() -> void:
 	_apply_speed()
 	_show_clock()
 	_save_in = SAVE_SECONDS
+	ui.setup(simulation, hud, settings)
 	_welcome()
 
 
-## Opens the help panel by itself the first time a new game is played (spec 030 R5), and notes in
+## Opens the help window by itself the first time a new game is played (spec 030 R5), and notes in
 ## [member settings] that it has, so it never does again. Not over a loaded save, and never
 ## without settings (tests and screenshot runs).
 func _welcome() -> void:
 	if settings == null or _loaded_save or settings.help_seen():
 		return
-	hud.help.open()
+	ui.windows.open_window(UiRoot.HELP)
 	settings.set_help_seen(true)
 
 

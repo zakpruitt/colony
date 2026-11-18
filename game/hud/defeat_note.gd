@@ -23,8 +23,9 @@ extends Control
 ## The suggestions are read again at every [method advance], so they follow the gold, except while
 ## the mouse is over the note: a click acts on what its button showed (spec 046 R3). Hold reads
 ## Holding only while the simulation's order is Hold, or has just been asked for (spec 046 R2). The
-## note hides while the shop, a hero sheet, the journal, help, orders, the tally or the away report
-## is open. It moves only in [method advance], so a test can step it exactly.
+## note hides while the shop, a hero sheet, the tally, the area map or the away report is open
+## (the windows of the UI layer, spec 058, float over it and do not hide it). It moves only in
+## [method advance], so a test can step it exactly.
 
 ## What the note can suggest, in the order it prefers them.
 enum Help { TALENTS, TRAIN, UPGRADE, HOLD }
@@ -491,9 +492,6 @@ func _covered() -> bool:
 	for open: bool in [
 		_hud.shop != null and _hud.shop.is_open(),
 		_hud.hero_sheet != null and _hud.hero_sheet.is_open(),
-		_hud.journal != null and _hud.journal.is_open(),
-		_hud.help != null and _hud.help.is_open(),
-		_hud.orders != null and _hud.orders.is_open(),
 		_hud.tally != null and _hud.tally.is_open(),  # spec 045
 		_hud.area_map != null and _hud.area_map.is_open(),  # spec 053
 	]:
