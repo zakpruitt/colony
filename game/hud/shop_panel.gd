@@ -109,11 +109,9 @@ func is_open() -> bool:
 	return visible
 
 
-## Shows the shop, closing the away panel if it is still up, and the hero sheet (spec 026).
+## Shows the shop, closing the away panel if it is still up.
 func open() -> void:
 	var hud: Node = get_parent()
-	if hud is Hud and (hud as Hud).hero_sheet != null:
-		(hud as Hud).hero_sheet.close()
 	var layer: Node = hud.get_parent() if hud != null else null
 	if layer != null:
 		for child: Node in layer.get_children():

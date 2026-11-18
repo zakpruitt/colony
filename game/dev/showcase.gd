@@ -443,8 +443,7 @@ func _begin(current: StringName) -> void:
 			var knight: Hero = sim.party.heroes[0]
 			_set_level(knight, TREE_LEVEL)
 			knight.set_talents([Content.talent_tree(knight.class_id).trunk[0]] as Array[StringName])
-			main.hud.hero_sheet.open(knight.id)
-			main.hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
+			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)  # spec 060
 			_tree_clicks = 0
 
 
@@ -472,7 +471,7 @@ func _end_moment() -> void:
 			for hero: Hero in sim.party.heroes:
 				hero.set_talents([])  # the class moments' trees are for those moments only
 		&"talent_tree":
-			main.hud.hero_sheet.close()
+			main.hud.hero_windows.close_all()
 
 
 ## Changes made every frame while a moment waits for its event: in a fight, once per fight.
@@ -884,7 +883,8 @@ func _cut_to_area(id: StringName) -> void:
 ## The tree's moment: at once and then every TREE_STEP seconds, the next click on the knight's
 ## Talents tab: the two trunk nodes left, then the first Berserker node, which asks, then Choose.
 func _click_through_tree() -> void:
-	var tab: TalentTab = main.hud.hero_sheet.talents
+	var knight_id: int = main.simulation.party.heroes[0].id
+	var tab: HeroTalentsTab = main.hud.hero_windows.window_of(knight_id).talents
 	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
 	var clicks: Array[StringName] = [tree.trunk[1], tree.trunk[2], tree.path_b[0], &"choose"]
 	var due: int = mini(floori(_moment_time / TREE_STEP) + 1, clicks.size())

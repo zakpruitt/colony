@@ -182,3 +182,10 @@ by value, not with `assert_eq` against ints.
 - `[boot] FAIL`: the main scene printed an error while starting; the line is in the output.
 - **Passes locally, fails in CI:** CI is Linux, where paths are case-sensitive (`res://Sim/x.gd` is not
   `res://sim/x.gd`) and nothing untracked exists. `git status` for files you forgot to add, `.uid` files included.
+- **One Godot run at a time per machine, from you.** Other lanes run theirs too, and a test that errors
+  every frame or recurses without end (a helper that calls itself where it meant to call another object's
+  method) prints a stack trace per call: two or three such runs at once exhausted the machine's memory
+  (spec 060). Never run tests from several forks or background jobs in one worktree at once. To find
+  which file floods, run Godot directly with the output capped on disk:
+  `timeout -k 5 300 godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit -gselect=<file> 2>&1 | head -c 2000000 > out.txt`
+  and read its tail; stop a stray run by its process id (`Stop-Process -Id`), never by name.

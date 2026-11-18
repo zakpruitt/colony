@@ -12,15 +12,16 @@ extends VBoxContainer
 ## A label is one or more keys split by spaces; [code]1-5[/code] is a run of number keys.
 const KEYS: Array[Array] = [
 	["H", "Show or hide this help"],
-	["Esc", "Close the front window or any open panel"],
-	["- +", "Set the target a stage back or further"],
+	["Esc", "Close the front window, or a panel"],
+	["- +", "Target a stage back or further"],
 	["A", "Auto on or off: go on when it is safe"],
 	["U", "Open or close the Shop"],
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
-	["1-3", "Talents tab: a paragon point to that stat"],
-	["Q E", "Hero sheet or tally: previous or next tab"],
-	["Tab", "Show the next hero's sheet"],
+	["1-3", "Talents tab: a paragon point to a stat"],
+	["Q E", "Hero window or tally: change tab"],
+	["Tab", "Open the next hero's window"],
+	["Shift+Tab", "Close the front hero window"],
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],
 	["T", "Open or close the party tally"],
@@ -46,13 +47,14 @@ const FOOTER: String = "Click a hero for details. Point at anything for a hint."
 ## also the [kbd]=[/kbd] key it shares, and both have a twin on the keypad.
 const ALIASES: Dictionary[String, Array] = {
 	"Esc": [KEY_ESCAPE],
+	"Shift+Tab": [KEY_TAB],
 	"-": [KEY_MINUS, KEY_KP_SUBTRACT],
 	"+": [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD],
 }
 ## The width of a key's column and of what it does, in UI pixels; the gap between the two halves.
 ## Every text in [constant KEYS] fits [constant DOES_WIDTH] on one line (a test checks it).
-const SHORTCUT_WIDTH: int = 30
-const DOES_WIDTH: int = 216
+const SHORTCUT_WIDTH: int = 50
+const DOES_WIDTH: int = 196
 const HALVES_GAP: int = 16
 
 ## Every line shown, top to bottom, as [method lines] gives them.
@@ -102,7 +104,8 @@ func lines() -> Array[String]:
 
 ## The key codes a key label from [constant KEYS] stands for: [code]"- +"[/code] is minus and plus
 ## (and their keypad twins and [kbd]=[/kbd]), [code]"1-5"[/code] the number keys 1 to 5,
-## [code]"Tab"[/code] the Tab key. Empty for a label that names no key.
+## [code]"Tab"[/code] the Tab key, [code]"Shift+Tab"[/code] the Tab key too (held with Shift). Empty
+## for a label that names no key.
 static func keycodes(label: String) -> Array[int]:
 	var codes: Array[int] = []
 	for part: String in label.split(" ", false):

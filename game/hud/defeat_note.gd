@@ -227,13 +227,11 @@ func press(index: int) -> void:
 		return
 	match _shown[index]:
 		Help.TALENTS:
-			if _hud != null and _hud.hero_sheet != null:
-				_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
-				_hud.hero_sheet.open(_shown_spender)
+			if _hud != null and _hud.hero_windows != null:
+				_hud.hero_windows.open(_shown_spender, HeroWindow.Page.TALENTS)
 		Help.TRAIN:
-			if _hud != null and _hud.hero_sheet != null:
-				_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
-				_hud.hero_sheet.open(_shown_trainee)
+			if _hud != null and _hud.hero_windows != null:
+				_hud.hero_windows.open(_shown_trainee, HeroWindow.Page.TALENTS)
 		Help.UPGRADE:
 			if _hud != null and _hud.shop != null:
 				_hud.shop.open()
@@ -495,7 +493,6 @@ func _covered() -> bool:
 		return false
 	for open: bool in [
 		_hud.shop != null and _hud.shop.is_open(),
-		_hud.hero_sheet != null and _hud.hero_sheet.is_open(),
 		_hud.tally != null and _hud.tally.is_open(),  # spec 045
 		_hud.area_map != null and _hud.area_map.is_open(),  # spec 053
 	]:

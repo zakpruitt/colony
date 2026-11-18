@@ -142,7 +142,7 @@ func is_open() -> bool:
 func open() -> void:
 	var hud: Hud = get_parent() as Hud
 	if hud != null:
-		for panel: Control in [hud.shop, hud.hero_sheet, hud.tally]:
+		for panel: Control in [hud.shop, hud.tally]:
 			if panel != null:
 				panel.call(&"close")
 		var layer: Node = hud.get_parent()
@@ -505,7 +505,7 @@ func _another_is_open() -> bool:
 	var hud: Hud = get_parent() as Hud
 	if hud == null:
 		return false
-	for panel: Control in [hud.shop, hud.hero_sheet, hud.tally]:
+	for panel: Control in [hud.shop, hud.tally]:
 		if panel != null and panel.call(&"is_open"):
 			return true
 	return false

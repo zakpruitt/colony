@@ -198,6 +198,9 @@ showcase's leftovers, not the game.</p>
   brace, a shout, a cast, a channel, a prayer or a flourish. Spells are seen: fireballs and ice shards fly,
   meteors fall, frost spreads, light stands on the healed. Ordinary blows bounce more, a kill or a crit
   hops, and the party cheers a won fight.</td></tr>
+  <tr><td>060 Hero windows</td><td>Each hero's sheet is its own window: open two or all four at once and
+  compare them side by side. Every talent's picture, name and description shows in the tree without
+  pointing; stats say what raises them.</td></tr>
 </table>
 </div>
 
@@ -216,7 +219,8 @@ showcase's leftovers, not the game.</p>
   one seed had no wipe at all, and the Slime King usually falls at the first try.</li>
   <li><strong>Is the screen too full?</strong> The top bar now holds resources too, and a fight has names,
   numbers, marks and drops over it.</li>
-  <li><strong>The sheet's size.</strong> It grows from 150 to 278 pixels tall on the Talents tab only.</li>
+  <li><strong>Can you compare two heroes?</strong> Open two hero windows side by side: can you read a whole
+  tree without touching the mouse? At a 1920x1080 window they cascade instead.</li>
   <li><strong>The sounds.</strong> Still nobody has heard them. Abilities reuse existing sounds.</li>
 </ul>
 
@@ -559,8 +563,8 @@ the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number
 <p><strong>Two layers.</strong> Over the world sits a sharper <em>UI layer</em>, drawn in finer pixels
 (at least 960 by 540 of them, up to about 1280 by 720), with its own readable font: taller letters, real
 descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The old
-HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel, and
-help, the journal and the orders are the first panels moved onto the new layer, as windows.</p>
+HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel. Help,
+the journal, the orders and the hero sheets have moved onto the new layer, as windows.</p>
 
 <h3>Around the edges</h3>
 <div class="table-wrap">
@@ -570,7 +574,7 @@ help, the journal and the orders are the first panels moved onto the new layer, 
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
   <tr><td>Top right</td><td>Speed, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
-  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders), lit while its window is open; rest the mouse on one for its name and key. The last button puts every window back in its place.</td></tr>
+  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for its name and key. The last button puts every window back in its place.</td></tr>
   <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
   <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
@@ -588,11 +592,12 @@ help, the journal and the orders are the first panels moved onto the new layer, 
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
   <tr><td><kbd>W</kbd></td><td>Open or close the area map (a click on the area's name does the same)</td></tr>
   <tr><td><kbd>U</kbd></td><td>Open or close the shop</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open</td></tr>
-  <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the hero sheet (Stats, Talents, Skills) or of the tally (Damage, Healing, Taken)</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, on a hero's Talents tab</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open and no window is open over it</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open and no window is open over it</td></tr>
+  <tr><td><kbd>Tab</kbd></td><td>Open the next hero's window and bring it to the front; the others stay open</td></tr>
+  <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Close the front window, when it is a hero window</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window, when it is a hero window (Stats, Talents, Skills); with no window open, of the tally (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, when the front window is a hero window on its Talents tab</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal</td></tr>
@@ -607,8 +612,8 @@ help, the journal and the orders are the first panels moved onto the new layer, 
 <p>Rest the mouse on any part of the HUD for 0.4 seconds and a small box explains it in one sentence.</p>
 
 <h3>Windows</h3>
-<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>) and the party's orders (<kbd>O</kbd>) are windows on the
-UI layer. Each has a title bar with its name and a close button. Drag a window by its title bar to put it
+<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>), the party's orders (<kbd>O</kbd>) and each hero's
+window (click its frame) are windows on the UI layer. Each has a title bar with its name and a close button. Drag a window by its title bar to put it
 anywhere; it can hang off an edge, but its title bar always stays on screen, and if the game's window
 shrinks a window is moved wholly back on screen. Click anywhere on a window to bring it to the front.
 Any number can be open at once, and the game keeps running behind them; a click on a window never
@@ -618,8 +623,8 @@ one you dragged is, in the settings file beside the sound setting (not in the sa
 moved sits in its usual place for the size the game's window has. Windows left open open again once the
 "While you were away" report has gone, and the last button on the button bar puts them all back where a
 new game has them.</p>
-<p>Until the other panels move onto the UI layer, the hero sheet, the shop, the tally, the area map and the
-away report still open on the old layer, under the windows. So when one of them opens, any window over it
+<p>Until the other panels move onto the UI layer, the shop, the tally, the area map and the away report
+still open on the old layer, under the windows. So when one of them opens, any window over it
 closes (it keeps its place; open it again with its key or button).</p>
 
 <h3>The area map (<kbd>W</kbd>)</h3>
@@ -651,29 +656,48 @@ an upgrade</em> (when the party can pay its gold and its resource). Each line is
 place where it is done: the shop, a hero's tab, the orders, the map or the ladder. A goal done flashes
 green with a tick and the journal gets a line. Goals give no reward: they are a signpost.</p>
 
-<h3>The hero sheet (click a frame, or <kbd>Tab</kbd>)</h3>
-<p>A compact panel at the top left. Its top part is always there: the hero's portrait, class and path
-(<code>Knight, Berserker</code>), role, level, what they are doing (<code>Fighting Goblin</code>,
-<code>Healing Knight</code>, <code>Resting</code>, <code>Down</code>), and health and XP as bars and
-numbers. Under it are three tabs:</p>
+<h3>Hero windows (click a frame, or <kbd>Tab</kbd>)</h3>
+<p>Each hero has a window of its own. Click a hero's frame to open its window and again to close it;
+<kbd>Tab</kbd> opens the next hero's window and brings it to the front, leaving the others open, and
+<kbd>Shift</kbd>+<kbd>Tab</kbd> closes the front one. Up to four can be open at once, and the frame of
+every hero whose window is open has a yellow edge. Like every window, a hero window can be dragged by its
+title bar, and one you dragged is remembered where you left it. The keys of a hero window (<kbd>Q</kbd>,
+<kbd>E</kbd>, <kbd>1</kbd> to <kbd>3</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd>) work only while it is the
+front window; click anywhere on one to bring it to the front. Until the shop is a window too, a hero
+window and the shop are never open together: opening one closes the other.</p>
+<p><strong>Comparing.</strong> A hero window you never dragged takes its place as it opens, by what is
+already open rather than by which hero it is. With 1280 by 720 of UI room the first goes in the left
+column under the top bar and the next in the right column, side by side, clear of the hero frames and the
+button bar; any two heroes compare that way, and a third or fourth cascades from the left. With 960 by 540
+(a 1920x1080 window) they cascade from the top left instead, under the top bar and clear of the hero
+frames and the button bar, each set to the right of the one before so every title shows; there a window
+is too short for a whole tree, so its tabs scroll with the mouse wheel, while the Talents tab's points,
+reset and questions stay in view above what scrolls. Every hero window is the same size, so the same line
+sits at the same height in each.</p>
+<p>The top of a hero window is always there: the hero's portrait at twice its size, class and path in bold
+(<code>Knight, Berserker</code>), level, role, what they are doing (<code>Fighting Goblin</code>,
+<code>Healing Knight</code>, <code>Resting</code>, <code>Down</code>), and health and XP as bars with their
+numbers. Under it are three tabs; <kbd>Q</kbd> and <kbd>E</kbd> change the front window's tab, and each
+window keeps its own:</p>
 <ul>
   <li><strong>Stats:</strong> Health, Damage, Armor, Attack speed, Crit chance, Range and, for the Cleric,
-  Healing, with upgrades and paragon points counted in and shown in green (<code>Damage 14 (+21%)</code>).</li>
-  <li><strong>Talents:</strong> the whole tree. At the top, the unspent points (<code>2 talent
-  points</code>) or the level that brings the next (<code>Next point at level 6</code>), and
+  Healing, each on its own line, with what raises it beside it in green, in words
+  (<code>Damage 14   +15% Sharp Blades, +6% Power</code>).</li>
+  <li><strong>Talents:</strong> the whole tree, readable without pointing. At the top, the unspent points
+  (<code>2 talent points</code>) or the level that brings the next (<code>Next point at level 6</code>), and
   <code>Reset</code> with its price. Then the three trunk nodes in a row and the two paths side by side under
-  their names. A taken node is bright with a green tick; one that can be taken now is framed in yellow and
-  pulses; the nodes of a closed path go dark with the path's name struck through. Point at a node and the
-  place under the tree says what it does, whether it is an action (with its cooldown) or a passive, and why
-  it cannot be taken (<code>Take Taunt first</code>, <code>The Guardian path is closed</code>, <code>No
-  talent point</code>). Click a glowing node to take it; the first node of a path asks first (<code>Choose
-  Berserker? This closes Guardian.</code>). Under the tree are the paragon stats with a <code>+1</code>
-  each, or <code>Paragon points come after level 14</code>. The sheet is taller on this tab so the whole
-  tree fits.</li>
-  <li><strong>Skills:</strong> the class's microskills, learned ones in white with what they do, the ones to
-  come in grey with their level.</li>
+  their names. Every node shows its picture, its name, whether it is an action (with its cooldown) or a
+  passive, and its whole description beside it. A taken node is bright with a green tick; one that can be
+  taken now is framed in yellow and pulses; the nodes of a closed path go dark with the path's name struck
+  through, their words dimmed but still readable. Rest the mouse on a node to hear why it cannot be taken
+  yet (<code>Take Taunt first</code>). Click a glowing node to take it; the first node of a path asks first
+  (<code>Choose Berserker? This closes Guardian.</code>), and a reset asks at its price. Under the tree are
+  the paragon stats with a <code>+1</code> each (or <kbd>1</kbd> to <kbd>3</kbd>), or
+  <code>Paragon points come after level 14</code>.</li>
+  <li><strong>Skills:</strong> the class's microskills as cards: learned ones in white with what they do
+  and the side quests they answer, the ones to come dimmed with their level.</li>
 </ul>
-<p>A small pulsing tag on a tab, and on the hero's frame, counts what is waiting there.</p>
+<p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
 <h3>The shop (<kbd>U</kbd>)</h3>
 <p>A panel under the gold; the game keeps running behind it. Each row shows an upgrade's name, what it
@@ -969,7 +993,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
-  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal and the orders so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal, the orders and the hero windows so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on

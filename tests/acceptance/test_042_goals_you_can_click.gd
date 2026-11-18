@@ -169,8 +169,7 @@ func _click(index: int) -> void:
 ## Closes every panel the HUD has, and shows the ladder if L hid it.
 func _close_all() -> void:
 	_hud.shop.close()
-	_hud.hero_sheet.close()
-	for id: StringName in _ui.windows.ids():
+	for id: StringName in _ui.windows.ids():  # the hero windows too (spec 060)
 		_ui.windows.close_window(id)
 	if not _hud.ladder.is_shown():
 		_key(KEY_L)
@@ -182,8 +181,8 @@ func _open_panels() -> Array[String]:
 	var open: Array[String] = []
 	if _hud.shop.is_open():
 		open.append("shop")
-	if _hud.hero_sheet.is_open():
-		open.append("sheet %d" % _hud.hero_sheet.shown_hero_id())
+	for hero_id: int in _hud.hero_windows.open_ids():  # spec 060: a window per hero
+		open.append("sheet %d" % hero_id)
 	if _ui.windows.is_open(UiRoot.ORDERS):
 		open.append("orders")
 	if _ui.windows.is_open(UiRoot.HELP):
@@ -193,11 +192,12 @@ func _open_panels() -> Array[String]:
 	return open
 
 
-## Opens [param hero]'s sheet on its Talents tab as the player would: a click on its frame, then
-## on the tab.
+## Opens [param hero]'s window on its Talents tab as the player would: a click on its frame
+## (unless its window is open already: a click would close it), then on the tab.
 func _open_training(hero: Hero) -> void:
-	_hud.hero_sheet.toggle(hero.id)
-	_hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)
+	if not _hud.hero_windows.is_open(hero.id):
+		_hud.hero_windows.toggle(hero.id)
+	_hud.hero_windows.window_of(hero.id).open_page(HeroWindow.Page.TALENTS)
 
 
 ## Clicks goal line [param index] by [param how] ("press" or "mouse").
@@ -214,7 +214,7 @@ func _do(how: String, index: int) -> void:
 
 func test_r1_click_a_goal() -> void:
 	var goals: Goals = _hud.goals
-	var sheet: HeroSheet = _hud.hero_sheet
+	var sheet: HeroWindows = _hud.hero_windows
 
 	# The gold goals. Two heroes have spent their paragon points (spec 051), so another is next.
 	_gold_situation()
@@ -240,27 +240,27 @@ func test_r1_click_a_goal() -> void:
 		assert_eq(_open_panels(), ["shop"] as Array[String], "%s: the shop only" % how)
 		# Train a hero: the trainee's sheet, on the Talents tab.
 		_close_all()
-		sheet.open_page(HeroSheet.Page.STATS)
+		sheet.window_of(trainee.id).open_page(HeroWindow.Page.STATS)
 		_do(how, _line("Train a hero"))
-		assert_true(sheet.is_open(), "%s on Train a hero opens a hero sheet" % how)
-		assert_eq(sheet.shown_hero_id(), trainee.id, "%s: the first with a point's" % how)
-		assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "%s: on the Talents tab" % how)
+		assert_true(sheet.is_open(), "%s on Train a hero opens a hero window" % how)
+		assert_eq(sheet.front().hero_id, trainee.id, "%s: the first with a point's" % how)
+		assert_eq(sheet.front().page(), HeroWindow.Page.TALENTS, "%s: on the Talents tab" % how)
 
 	# A microskill: that hero's sheet, on the Skills tab.
 	_sim = Simulation.new(SEED)
 	_build_hud()
 	goals = _hud.goals
-	sheet = _hud.hero_sheet
+	sheet = _hud.hero_windows
 	var learner: Hero = _microskill_situation()
 	_situation(1, 1, 1)
 	var skill: int = _line_starting(learner.def().display_name + " learns")
 	assert_ne(skill, -1, "the microskill goal shows: %s" % [goals.lines()])
 	for how: String in ["press", "mouse"]:
 		_close_all()
-		sheet.open_page(HeroSheet.Page.TALENTS)
+		sheet.window_of(learner.id).open_page(HeroWindow.Page.TALENTS)
 		_do(how, skill)
-		assert_eq(sheet.shown_hero_id(), learner.id, "%s on the microskill: its hero's sheet" % how)
-		assert_eq(sheet.page(), HeroSheet.Page.SKILLS, "%s: on the Skills tab" % how)
+		assert_eq(sheet.front().hero_id, learner.id, "%s on the microskill: its window" % how)
+		assert_eq(sheet.front().page(), HeroWindow.Page.SKILLS, "%s: on the Skills tab" % how)
 
 	# Beat the guardian: the orders panel.
 	_situation(2, 2, 2)
@@ -451,7 +451,7 @@ func test_r3_tooltip_says_so() -> void:
 
 func test_r4_nothing_else_changes() -> void:
 	var goals: Goals = _hud.goals
-	var sheet: HeroSheet = _hud.hero_sheet
+	var sheet: HeroWindows = _hud.hero_windows
 	_gold_situation()
 	var trainee: Hero = _trainee()
 	var upgrade: int = _line("Buy an upgrade")
@@ -485,7 +485,7 @@ func test_r4_nothing_else_changes() -> void:
 			_close_all()
 			(openers[before] as Callable).call()
 			_hud.advance(STEP)
-			# The sheet hides the tracker; the goal is clicked with its line on show.
+			# The goal is clicked with its line on show.
 			if _hud.goals.is_shown():
 				goals.press(by_goal[what])
 				_hud.advance(STEP)
@@ -497,7 +497,7 @@ func test_r4_nothing_else_changes() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
 	goals = _hud.goals
-	sheet = _hud.hero_sheet
+	sheet = _hud.hero_windows
 	_situation(2, 2, 2)
 	for before: String in ["help", "journal", "shop", "nothing"]:
 		_close_all()
@@ -532,7 +532,8 @@ func test_r4_nothing_else_changes() -> void:
 				_ui.bar.buttons[UiRoot.ORDERS].lit, lit, "orders over %s: its button lit" % before
 			)
 
-	# The tracker hides behind a left-side panel, as before, and comes back.
+	# A hero window floats over the tracker (spec 060: the sheet is windows now); the tracker
+	# hides behind the tally, a left-side panel, as before, and comes back.
 	_close_all()
 	var learner: int = -1
 	for i: int in goals.lines().size():
@@ -541,9 +542,13 @@ func test_r4_nothing_else_changes() -> void:
 	assert_ne(learner, -1, "a microskill goal: %s" % [goals.lines()])
 	goals.press(learner)
 	_hud.advance(STEP)
-	assert_true(sheet.is_open(), "the sheet is open")
-	assert_false(goals.is_shown(), "the tracker hides under the hero sheet")
-	sheet.close()
+	assert_true(sheet.is_open(), "the hero window is open")
+	assert_true(goals.is_shown(), "the tracker stays, under the window")
+	sheet.close_all()
+	_hud.tally.open()
+	_hud.advance(STEP)
+	assert_false(goals.is_shown(), "the tracker hides under the tally")
+	_hud.tally.close()
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "and comes back")
 

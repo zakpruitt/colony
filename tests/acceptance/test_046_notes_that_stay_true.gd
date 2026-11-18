@@ -517,8 +517,9 @@ func test_r9_help_row() -> void:
 	for entry: Array in HelpPanel.KEYS:
 		if str(entry[0]) == "Q E":
 			text = str(entry[1])
-	# Spec 058 shortened the row to fit the help window's column on one line; it still names both.
-	assert_eq(text, "Hero sheet or tally: previous or next tab", "the Q E row")
+	# Spec 058 shortened the row to fit the help window's column on one line, and spec 060 again
+	# (the sheet became hero windows, and Shift+Tab widened the key column); it still names both.
+	assert_eq(text, "Hero window or tally: change tab", "the Q E row")
 
 
 ## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),

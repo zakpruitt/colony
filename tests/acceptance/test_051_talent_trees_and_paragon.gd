@@ -508,7 +508,8 @@ func test_r6_paragon() -> void:
 	assert_lt(fighter.attack_interval_ticks, interval, "Quickness: faster now")
 
 
-## A HUD over [param sim], as spec 034's tests build it, for the Talents tab.
+## A HUD over [param sim], as spec 034's tests build it, with the UI layer over it for the hero
+## windows (spec 060), for the Talents tab.
 func _hud_over(sim: Simulation) -> Hud:
 	var world := World.new()
 	world.simulation = sim
@@ -522,6 +523,9 @@ func _hud_over(sim: Simulation) -> Hud:
 	add_child_autofree(hud)
 	hud.set_process(false)
 	hud.setup(sim, world, effects)
+	var ui := UiRoot.new()
+	add_child_autofree(ui)
+	ui.setup(sim, hud, null)
 	hud.advance(0.0)
 	return hud
 
@@ -535,17 +539,16 @@ func after_each() -> void:
 func test_r6_the_sheet_shows_the_points() -> void:
 	var sim := Simulation.new(SEED)
 	var hud: Hud = _hud_over(sim)
-	var sheet: HeroSheet = hud.hero_sheet
 	var rogue: Hero = sim.party.heroes[1]
 	_level(rogue, 17)
 	rogue.set_talents([&"backstab", &"smoke_step"] as Array[StringName])
-	sheet.open(rogue.id)
-	sheet.open_page(HeroSheet.Page.TALENTS)
+	hud.hero_windows.open(rogue.id, HeroWindow.Page.TALENTS)
+	var sheet: HeroWindow = hud.hero_windows.window_of(rogue.id)
 	hud.advance(0.1)
 	assert_eq(sheet.line(&"talent_points"), "5 talent points", "level 17 earns 7, two are spent")
 	assert_eq(sheet.line(&"paragon_points"), "3 paragon points", "and three paragon points")
 	assert_eq(sheet.line(&"training_power"), "Power 0 +0%", "nothing in Power yet")
-	assert_true(sheet.page_marked(HeroSheet.Page.TALENTS), "the tab asks for a look")
+	assert_true(sheet.page_marked(HeroWindow.Page.TALENTS), "the tab asks for a look")
 	# A row's button (or its key) spends a point there, and the lines follow.
 	sheet.train_row(0)
 	sim.step()
@@ -562,8 +565,9 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	# Spec 055: the tab's marker counts talent points too; with the tree full, nothing is left.
 	rogue.set_talents(_full(&"rogue", 0))
 	hud.advance(0.1)
-	assert_false(sheet.page_marked(HeroSheet.Page.TALENTS), "nothing more to spend")
-	var row: TalentTab.ParagonCell = sheet.paragon_cell(&"training_power")
+	assert_false(sheet.page_marked(HeroWindow.Page.TALENTS), "nothing more to spend")
+	var row: ParagonCell = sheet.talents.paragon_cells[0]
+	assert_eq(row.id, &"power", "the first cell is Power")
 	assert_true(row.buy_button.disabled, "the button is dim with no point")
 	sheet.train_row(0)
 	sim.step()

@@ -56,9 +56,9 @@ func setup(ui: UiRoot, windows: UiWindows) -> void:
 ## Makes a button for each window there is, then lays the bar out.
 func rebuild() -> void:
 	for id: StringName in _windows.ids():
-		if buttons.has(id):
-			continue
 		var shown: UiWindow = _windows.window(id)
+		if buttons.has(id) or not shown.on_bar:
+			continue
 		var button := UiButton.new()
 		button.name = "Button_%s" % id
 		button.icon = shown.icon
@@ -86,9 +86,17 @@ func fit_room(room: Vector2i) -> void:
 		return
 	reset_size()
 	size = get_combined_minimum_size()
+	position = rect_in(room).position
+
+
+## Where the bar stands in a room of [param room] UI pixels: at the right, just above the hero
+## frames' line (the hero windows keep clear of it).
+func rect_in(room: Vector2i) -> Rect2:
+	if _ui == null:
+		return Rect2()
 	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
 	var line: float = floorf(_ui.world_to_ui(Vector2(0, frames_top)).y)
-	position = Vector2(room.x - MARGIN - size.x, line - ABOVE_FRAMES - size.y).round()
+	return Rect2(Vector2(room.x - MARGIN - size.x, line - ABOVE_FRAMES - size.y).round(), size)
 
 
 func _icon(part: StringName) -> Texture2D:

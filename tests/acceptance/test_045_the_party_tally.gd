@@ -77,6 +77,9 @@ func _build(simulation: Simulation) -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
 	_world.sim_event.connect(_on_event)
 	_hud.advance(0.0)
 
@@ -306,10 +309,21 @@ func test_r1_tally_panel() -> void:
 		)
 	tally.close()
 
-	# Never with the sheet or the shop, either way round. (Spec 058 made the journal, the orders
-	# and help windows on the UI layer, which float over the tally and leave it open.)
+	# Never with the shop, either way round. (Spec 058 made the journal, the orders and help
+	# windows on the UI layer, and spec 060 the hero sheet, which float over the tally and leave
+	# it open; the tally opening closes a window over it, as spec 058 has it until spec 059.)
 	var hero: int = heroes[0].id
-	_check_exclusion("hero sheet", _hud.hero_sheet.open.bind(hero), _hud.hero_sheet.is_open)
+	tally.open()
+	_hud.hero_windows.open(hero)
+	_hud.advance(STEP)
+	assert_true(_hud.hero_windows.is_open(hero), "a hero window opens over the tally")
+	assert_true(tally.is_open(), "and leaves it open")
+	tally.close()
+	_hud.advance(STEP)
+	tally.open()
+	_hud.advance(STEP)
+	assert_false(_hud.hero_windows.is_open(hero), "the tally closes a hero window over it")
+	tally.close()
 	_check_exclusion("shop", _hud.shop.open, _hud.shop.is_open)
 	# The key of the other opens it over the tally too.
 	for pair: Array in [[KEY_U, _hud.shop.is_open]]:
@@ -367,7 +381,7 @@ func test_r2_three_measures() -> void:
 	_key(KEY_Q)
 	_key(KEY_Q)
 	assert_eq(tally.measure(), TAKEN, "Q: the previous tab, wrapping")
-	assert_false(_hud.hero_sheet.is_open(), "Q and E leave the hero sheet alone")
+	assert_false(_hud.hero_windows.is_open(), "Q and E leave the hero windows alone")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -678,7 +692,8 @@ func test_r7_fits_and_changes_nothing() -> void:
 	tally.open()
 	_hud.advance(STEP)
 	var rect: Rect2 = tally.get_global_rect()
-	assert_true(rect.size.x <= HeroSheet.SIZE.x and rect.size.y <= HeroSheet.SIZE.y, "%s" % rect)
+	# The size the old hero sheet had (spec 045 R7: no bigger than it), before spec 060.
+	assert_true(rect.size.x <= 240.0 and rect.size.y <= 150.0, "%s" % rect)
 	assert_true(rect.position.y >= TOP_BAND, "below the top band: %s" % rect)
 	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(rect), "on the screen")
 	for frame: HeroFrame in _hud.frames:

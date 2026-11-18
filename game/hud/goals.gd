@@ -227,11 +227,11 @@ func press(index: int) -> void:
 		Kind.TRAINING:
 			var trainee: Hero = _trainee()
 			if trainee != null:
-				_open_sheet(hud, trainee.id, HeroSheet.Page.TALENTS)
+				_open_sheet(hud, trainee.id, HeroWindow.Page.TALENTS)
 		Kind.MICROSKILL:
-			_open_sheet(hud, goal.hero_id, HeroSheet.Page.SKILLS)
+			_open_sheet(hud, goal.hero_id, HeroWindow.Page.SKILLS)
 		Kind.TALENT:
-			_open_sheet(hud, goal.hero_id, HeroSheet.Page.TALENTS)
+			_open_sheet(hud, goal.hero_id, HeroWindow.Page.TALENTS)
 		Kind.GUARDIAN:
 			if hud.windows != null:  # spec 058: the orders are a window on the UI layer
 				hud.windows.open_window(UiRoot.ORDERS)
@@ -481,11 +481,11 @@ func _trainee() -> Hero:
 	return null
 
 
-## Opens [param hero_id]'s sheet on [param page], as a click on the hero's frame and then its tab
-## would.
-static func _open_sheet(hud: Hud, hero_id: int, page: HeroSheet.Page) -> void:
-	hud.hero_sheet.open(hero_id)
-	hud.hero_sheet.open_page(page)
+## Opens [param hero_id]'s window on [param page] (spec 060), as a click on the hero's frame and
+## then its tab would.
+static func _open_sheet(hud: Hud, hero_id: int, page: HeroWindow.Page) -> void:
+	if hud.hero_windows != null:
+		hud.hero_windows.open(hero_id, page)
 
 
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought. One whose
@@ -547,8 +547,7 @@ func _show() -> void:
 	var hud: Hud = get_parent() as Hud
 	var covered: bool = false
 	if hud != null:
-		covered = hud.hero_sheet != null and hud.hero_sheet.is_open()
-		covered = covered or (hud.tally != null and hud.tally.is_open())  # spec 045
+		covered = hud.tally != null and hud.tally.is_open()  # spec 045
 	visible = _wanted and not covered
 	var width: float = MIN_WIDTH
 	var detail_column: float = 0.0

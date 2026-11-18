@@ -42,6 +42,8 @@ var frame: Control
 var windows: UiWindows
 ## The row of buttons that open and close the windows (spec 058 R7), made by [method setup].
 var bar: UiButtonBar
+## A window per hero (spec 060), made by [method setup] when there is a HUD.
+var hero_windows: HeroWindows
 
 var _world_scale: int = 1
 var _ui_scale: int = 1
@@ -118,10 +120,17 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	panel.setup(simulation, tip)
 	for made: UiWindow in [help, journal, orders]:
 		windows.register(made)
+	if hud != null:  # spec 060: the hero windows, each opened from its hero's frame
+		hero_windows = HeroWindows.new()
+		frame.add_child(hero_windows)
+		hero_windows.setup(simulation, self, tip)
+		hud.hero_windows = hero_windows
 	place_defaults()
 	for made: UiWindow in [help, journal, orders]:
 		made.place_at(made.default_place, Vector2(_room))
 	bar.setup(self, windows)
+	if hero_windows != null:
+		hero_windows.place_defaults()  # again, now the bar has its size: they keep clear of it
 	frame.add_child(tip)
 	windows.restore()
 	if hud != null:
@@ -155,6 +164,8 @@ func place_defaults() -> void:
 		orders.default_place = Vector2(PLACE_GAP, under)
 	if help != null:
 		help.default_place = Vector2(_room.x - PLACE_GAP - help.size.x, top)
+	if hero_windows != null:
+		hero_windows.place_defaults()
 
 
 ## The top of the hero frames' line, in the world's 640x360 screen pixels.

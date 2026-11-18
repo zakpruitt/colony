@@ -34,6 +34,8 @@ var key_hint: String = ""
 var keycode: Key
 ## Its picture on the button bar.
 var icon: Texture2D
+## False for a window with no button on the bar (spec 060: a hero's window opens from its frame).
+var on_bar: bool = true
 
 var title_bar: PanelContainer
 var title_label: Label

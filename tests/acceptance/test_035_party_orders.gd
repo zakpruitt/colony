@@ -700,7 +700,7 @@ func test_r7_orders_panel() -> void:
 	# The orders stay open beside the other panels and windows.
 	var others: Dictionary = {
 		"the shop": [KEY_U, _hud.shop.is_open],
-		"the hero sheet": [KEY_TAB, _hud.hero_sheet.is_open],
+		"a hero window": [KEY_TAB, _hud.hero_windows.is_open],
 		"the journal": [KEY_J, windows.is_open.bind(UiRoot.JOURNAL)],
 		"help": [KEY_H, windows.is_open.bind(UiRoot.HELP)],
 	}
@@ -712,7 +712,7 @@ func test_r7_orders_panel() -> void:
 		var was_open: bool = other_open.call()
 		assert_true(was_open, "%s opens" % what)
 		assert_true(windows.is_open(UiRoot.ORDERS), "beside the orders: %s" % what)
-	_hud.hero_sheet.close()
+	_hud.hero_windows.close_all()
 	_hud.shop.close()
 
 	# The game goes on behind it.
