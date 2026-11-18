@@ -501,7 +501,7 @@ func _build() -> void:
 		_names.append(_label(hero.def().display_name, &"white", Vector2(TEXT_X, top)))
 		_values.append(_label("0", &"white", Vector2(0, top)))
 		_shares.append(_label("0%", &"steel", Vector2(0, top)))
-		_bars.append(EasedValue.new(HeroFrame.EASE_SECONDS))
+		_bars.append(EasedValue.new(HeroFrameView.EASE_SECONDS))
 		_goals.append(0.0)
 	var quests_top: float = ROWS_Y + heroes.size() * ROW_HEIGHT + 1.0
 	for i: int in heroes.size():

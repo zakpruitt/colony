@@ -59,14 +59,14 @@ func _steps(count: int) -> void:
 
 
 func test_r1_party_frames() -> void:
-	var frames: Array[HeroFrame] = _hud.frames
+	var frames: Array[HeroFrameView] = _hud.frames
 	assert_eq(frames.size(), 4, "one frame per hero")
 	if frames.size() != 4:
 		return
 	var names: Array[String] = ["Knight", "Rogue", "Mage", "Cleric"]
 	for i: int in 4:
 		var hero: Hero = _sim.party.heroes[i]
-		var slot: HeroFrame = frames[i]
+		var slot: HeroFrameView = frames[i]
 		assert_eq(slot.hero_id, hero.id, "frame %d is the hero in formation slot %d" % [i, i])
 		assert_eq(slot.icon_part(), hero.class_id, "class icon")
 		assert_not_null(slot.icon.texture, "the icon is drawn")
@@ -80,7 +80,7 @@ func test_r1_party_frames() -> void:
 	assert_almost_eq(left, right, 1.0, "the row of frames is centred")
 
 	var knight: Hero = _sim.party.hero(KNIGHT)
-	var frame: HeroFrame = frames[0]
+	var frame: HeroFrameView = frames[0]
 	assert_almost_eq(frame.shown_health(), 1.0, 0.001, "full health")
 	assert_eq(frame.health_color(), Palette.color(&"green"), "green at 100%")
 
@@ -110,12 +110,12 @@ func test_r1_party_frames() -> void:
 
 
 func test_r2_frames_react() -> void:
-	var frames: Array[HeroFrame] = _hud.frames
+	var frames: Array[HeroFrameView] = _hud.frames
 	if frames.size() != 4:
 		fail_test("no frames")
 		return
-	var knight_frame: HeroFrame = frames[0]
-	var rogue_frame: HeroFrame = frames[1]
+	var knight_frame: HeroFrameView = frames[0]
+	var rogue_frame: HeroFrameView = frames[1]
 	assert_eq(knight_frame.flash(), 0.0, "no flash at rest")
 	_emit(SimEvent.Kind.HIT, KNIGHT, 5)
 	_hud.advance(0.016)
@@ -137,7 +137,7 @@ func test_r2_frames_react() -> void:
 	assert_eq(knight_frame.icon_part(), &"knight", "with its class icon back")
 
 	var mage: Hero = _sim.party.hero(MAGE)
-	var mage_frame: HeroFrame = frames[2]
+	var mage_frame: HeroFrameView = frames[2]
 	mage.xp = Hero.xp_for_level(2) - 1
 	_hud.advance(1.0)
 	assert_gt(mage_frame.shown_xp(), 0.9, "nearly a level of XP")
@@ -177,17 +177,17 @@ func test_r3_gold_follows_the_coins() -> void:
 	assert_eq(_hud.shown_gold(), 1_234_567, "then catches up at once")
 	# Spec 052: from 10,000 the top bar shortens the count so the resources fit beside it; below
 	# that it keeps its thousands separators.
-	assert_eq(_hud.gold_label.text, "1.2M", "shortened")
+	assert_eq(_hud.purse.gold_label.text, "1.2M", "shortened")
 	_sim.party.gold = 9_876
 	_hud.advance(0.016)
-	assert_eq(_hud.gold_label.text, "9,876", "with thousands separators")
+	assert_eq(_hud.purse.gold_label.text, "9,876", "with thousands separators")
 
 	_sim.party.gold = 50
 	_hud.advance(0.016)
 	assert_eq(_hud.shown_gold(), 50, "never shows more than the party has")
-	assert_eq(_hud.gold_label.text, "50")
+	assert_eq(_hud.purse.gold_label.text, "50")
 
-	var icon_centre: Vector2 = _hud.coin_icon.get_global_rect().get_center()
+	var icon_centre: Vector2 = _hud.purse.coin_icon.get_global_rect().get_center()
 	assert_eq(_effects.gold_screen_target, icon_centre, "coins fly to the coin icon")
 	assert_gt(icon_centre.x, SCREEN.x / 2.0, "top right")
 	assert_lt(icon_centre.y, TOP_BAND, "top right")
@@ -197,23 +197,33 @@ func test_r3_gold_follows_the_coins() -> void:
 
 
 func test_r4_depth_readout() -> void:
-	assert_eq(_hud.depth_label.text, "1", "current depth")
-	assert_string_contains(_hud.stable_label.text, "1", "last stable depth")
-	assert_eq(_hud.target_label.text, "1", "target depth")
+	assert_eq(_hud.place_panel.stage_label.text, "1", "current depth")
+	assert_string_contains(_hud.place_panel.safe_label.text, "1", "last stable depth")
+	assert_eq(_hud.place_panel.target_label.text, "1", "target depth")
 	assert_eq(_hud.depth_emphasis(), 0.0, "no emphasis at rest")
-	var big: int = _hud.depth_label.get_theme_font_size(&"font_size")
-	assert_gt(big, _hud.stable_label.get_theme_font_size(&"font_size"), "current is the biggest")
-	assert_gt(big, _hud.target_label.get_theme_font_size(&"font_size"), "current is the biggest")
-	for label: Label in [_hud.depth_caption, _hud.stable_label, _hud.target_caption]:
-		assert_ne(label.text.strip_edges(), "", "each is labelled")
+	var big: int = _hud.place_panel.stage_label.get_theme_font_size(&"font_size")
+	assert_gt(
+		big, _hud.place_panel.safe_label.get_theme_font_size(&"font_size"), "current is the biggest"
+	)
+	assert_gt(
+		big,
+		_hud.place_panel.target_label.get_theme_font_size(&"font_size"),
+		"current is the biggest"
+	)
+	for text: String in [
+		_hud.place_panel.area_button.text,
+		_hud.place_panel.safe_label.text,
+		_hud.place_panel.target_caption.text
+	]:
+		assert_ne(text.strip_edges(), "", "each is labelled")
 
 	_sim.expedition.depth = 4
 	_sim.expedition.last_stable_depth = 3
 	_sim.expedition.target_depth = 6
 	_hud.advance(0.016)
-	assert_eq(_hud.depth_label.text, "4", "current depth updates")
-	assert_string_contains(_hud.stable_label.text, "3", "stable depth updates")
-	assert_eq(_hud.target_label.text, "6", "target depth updates")
+	assert_eq(_hud.place_panel.stage_label.text, "4", "current depth updates")
+	assert_string_contains(_hud.place_panel.safe_label.text, "3", "stable depth updates")
+	assert_eq(_hud.place_panel.target_label.text, "6", "target depth updates")
 	assert_gt(_hud.depth_emphasis(), 0.0, "a change of depth is emphasised")
 	_hud.advance(2.0)
 	assert_eq(_hud.depth_emphasis(), 0.0, "briefly")
@@ -235,11 +245,17 @@ func test_r5_state_word() -> void:
 	for state: Expedition.State in states:
 		_sim.expedition.state = state
 		_hud.advance(0.016)
-		assert_eq(_hud.state_label.text, _hud.status_text(), "the line for state %d" % state)
-		assert_ne(_hud.state_label.text, "", "something is shown")
-		shown[_hud.state_label.text] = true
+		assert_eq(
+			_hud.place_panel.status_label.text, _hud.status_text(), "the line for state %d" % state
+		)
+		assert_ne(_hud.place_panel.status_label.text, "", "something is shown")
+		shown[_hud.place_panel.status_label.text] = true
 	assert_eq(shown.size(), states.size(), "each state reads differently")
-	assert_lt(_hud.state_label.get_global_rect().position.x, SCREEN.x / 2.0, "next to the depth")
+	assert_lt(
+		_hud.place_panel.status_label.get_global_rect().position.x,
+		SCREEN.x / 2.0,
+		"next to the depth"
+	)
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -251,23 +267,23 @@ func test_r6_target_depth_control() -> void:
 	_steps(1)
 	assert_eq(expedition.target_depth, 1)
 
-	_hud.plus_button.pressed.emit()
-	_hud.plus_button.pressed.emit()
+	_hud.place_panel.plus_button.pressed.emit()
+	_hud.place_panel.plus_button.pressed.emit()
 	_hud.advance(0.016)
-	assert_eq(_hud.target_label.text, "3", "two presses before a tick count twice")
+	assert_eq(_hud.place_panel.target_label.text, "3", "two presses before a tick count twice")
 	_steps(1)
 	_hud.advance(0.016)
 	assert_eq(expedition.target_depth, 3, "+ raises the simulation's target")
-	_hud.minus_button.pressed.emit()
+	_hud.place_panel.minus_button.pressed.emit()
 	_steps(1)
 	_hud.advance(0.016)
 	assert_eq(expedition.target_depth, 2, "- lowers it")
 	for i: int in 3:
-		_hud.minus_button.pressed.emit()
+		_hud.place_panel.minus_button.pressed.emit()
 		_steps(1)
 		_hud.advance(0.016)
 	assert_eq(expedition.target_depth, 1, "never below 1")
-	assert_eq(_hud.target_label.text, "1")
+	assert_eq(_hud.place_panel.target_label.text, "1")
 
 	_key(KEY_EQUAL)
 	_steps(1)
@@ -280,20 +296,20 @@ func test_r6_target_depth_control() -> void:
 
 	assert_false(expedition.auto_push)
 	assert_false(_hud.auto_on(), "shown off")
-	_hud.auto_button.pressed.emit()
+	_hud.place_panel.auto_button.pressed.emit()
 	_hud.advance(0.016)
 	assert_true(expedition.auto_push, "Auto turns auto-push on")
 	assert_true(_hud.auto_on(), "shown on")
-	var on_text: String = _hud.auto_button.text
+	var on_text: String = _hud.place_panel.auto_button.text
 	_key(KEY_A)
 	_hud.advance(0.016)
 	assert_false(expedition.auto_push, "A turns it off")
 	assert_false(_hud.auto_on(), "shown off")
-	assert_ne(_hud.auto_button.text, on_text, "on and off look different")
+	assert_ne(_hud.place_panel.auto_button.text, on_text, "on and off look different")
 
 	expedition.target_depth = 7
 	_hud.advance(0.016)
-	assert_eq(_hud.target_label.text, "7", "the display follows the simulation")
+	assert_eq(_hud.place_panel.target_label.text, "7", "the display follows the simulation")
 	expedition.auto_push = true
 	_hud.advance(0.016)
 	assert_true(_hud.auto_on(), "and its auto-push")
@@ -350,8 +366,12 @@ func test_r8_stays_in_its_bands() -> void:
 			labels += 1
 			assert_true(_backed(control as Label), "%s sits on a dark backing panel" % what)
 	assert_gt(labels, 10, "every label was checked")
-	for frame: HeroFrame in _hud.frames:
-		assert_true(frame is HudPanel, "the bars are drawn on their frame's dark panel")
+	for frame: HeroFrameView in _hud.frames:
+		assert_eq(
+			frame.fill_colour(),
+			Palette.color(&"night"),
+			"the bars are drawn on their frame's dark panel"
+		)
 
 
 func _collect(node: Node, into: Array[Control]) -> void:
@@ -377,7 +397,8 @@ func _backed(label: Label) -> bool:
 	var rect: Rect2 = label.get_global_rect()
 	var node: Node = label.get_parent()
 	while node != null:
-		if node is HudPanel and (node as HudPanel).get_global_rect().encloses(rect):
+		var backing: bool = node is HudPanel or node is Panel or node is HeroFrameView
+		if backing and (node as Control).get_global_rect().encloses(rect):
 			return true
 		node = node.get_parent()
 	return false

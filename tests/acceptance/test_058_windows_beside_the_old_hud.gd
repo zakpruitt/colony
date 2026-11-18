@@ -152,7 +152,7 @@ func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
 	var ui: UiRoot = main.ui
 	var hud: Hud = main.hud
 	var windows: UiWindows = ui.windows
-	var frame_at: Vector2 = hud.frames[0].get_global_rect().get_center()
+	var frame_at: Vector2 = Hud.on_screen(hud.frames[0]).get_center()
 	# Spec 060: the hero sheet is windows now, so a hero window opening closes none of the others.
 	for keycode: Key in [KEY_H, KEY_J, KEY_O]:
 		_key(keycode)

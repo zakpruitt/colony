@@ -164,7 +164,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	var hud: Hud = main.hud
 	# Its old buttons, at their old places, still act on a real click.
 	var target: int = main.simulation.expedition.target_depth
-	_click_world(hud.plus_button.get_global_rect().get_center())
+	_click_world(Hud.on_screen(hud.place_panel.plus_button).get_center())
 	main.simulation.step()
 	assert_eq(
 		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
@@ -173,7 +173,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
 	_key(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc still closes it when no window is open")
-	_click_world(hud.frames[0].get_global_rect().get_center())
+	_click_world(Hud.on_screen(hud.frames[0]).get_center())
 	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
@@ -455,8 +455,8 @@ func test_r5_windows() -> void:
 	assert_eq(main.simulation.expedition.pace, pace, "the hidden Bold was not pressed")
 
 	# Nor the world or the old HUD: the target stage and the hero sheet are unchanged.
-	var plus: Vector2 = main.hud.plus_button.get_global_rect().get_center()
-	var frame: Vector2 = main.hud.frames[1].get_global_rect().get_center()
+	var plus: Vector2 = main.hud.place_panel.plus_button.get_global_rect().get_center()
+	var frame: Vector2 = Hud.on_screen(main.hud.frames[1]).get_center()
 	var target: int = main.simulation.expedition.target_depth
 	for under: Vector2 in [plus, frame]:
 		journal.place_at(ui.world_to_ui(under) - Vector2(60, 60), Vector2(ui.room()))
@@ -578,7 +578,7 @@ func test_r7_a_button_bar() -> void:
 	assert_eq(bar.buttons.keys(), _bar_ids(ui.windows), "one button per window, in order")
 	# At the bottom right, above the hero frames' line.
 	var rect: Rect2 = bar.get_global_rect()
-	var frames_top: float = ui.world_to_ui(main.hud.frames[0].get_global_rect().position).y
+	var frames_top: float = main.hud.frames[0].get_global_rect().position.y
 	assert_lte(rect.end.y, frames_top, "above the frames' line")
 	assert_gt(rect.end.y, frames_top - 16.0, "just above")
 	assert_lte(rect.end.x, float(ui.room().x), "on screen")

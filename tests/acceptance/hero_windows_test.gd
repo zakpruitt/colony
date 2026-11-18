@@ -33,8 +33,8 @@ func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
 	return nodes
 
 
-func _frame_of(main: Main, hero: Hero) -> HeroFrame:
-	for frame: HeroFrame in main.hud.frames:
+func _frame_of(main: Main, hero: Hero) -> HeroFrameView:
+	for frame: HeroFrameView in main.hud.frames:
 		if frame.hero_id == hero.id:
 			return frame
 	return null
@@ -42,7 +42,7 @@ func _frame_of(main: Main, hero: Hero) -> HeroFrame:
 
 ## A real click on [param hero]'s frame, then a frame of the HUD.
 func _click_frame(main: Main, hero: Hero) -> void:
-	_click_world(_frame_of(main, hero).get_global_rect().get_center())
+	_click_world(Hud.on_screen(_frame_of(main, hero)).get_center())
 	main.hud.advance(STEP)
 
 

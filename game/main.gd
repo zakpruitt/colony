@@ -195,7 +195,7 @@ func _start_play() -> void:
 	sound.settings = settings
 	add_child(sound)
 	sound.setup(world, effects, simulation)
-	hud.speed_button.pressed.connect(cycle_speed)
+	hud.purse.speed_button.pressed.connect(cycle_speed)
 	speed_changed.connect(hud.show_speed)
 	hud.show_speed(_speed)
 	_apply_speed()

@@ -811,8 +811,8 @@ func test_r8_still_readable() -> void:
 		_frame()
 		frames += 1
 		var bars: Array[Rect2] = []
-		for frame: HeroFrame in _hud.frames:
-			bars.append(Rect2(frame.global_position, HeroFrame.SIZE))
+		for frame: HeroFrameView in _hud.frames:
+			bars.append(frame.get_global_rect())
 		if _hud.boss_bar.is_visible_in_tree():
 			bars.append(_hud.boss_bar.get_global_rect())
 		var boxes: Dictionary[Object, Rect2] = {}

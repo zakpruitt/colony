@@ -678,7 +678,7 @@ func test_r9_screen_names_the_area() -> void:
 
 	# In Mossy Hollow.
 	var mossy: Labyrinth = sim.labyrinth
-	assert_eq(hud.depth_caption.text, "Mossy Hollow", "the depth panel names the area")
+	assert_eq(hud.place_panel.area_button.text, "Mossy Hollow", "the depth panel names the area")
 	assert_eq(hud.ladder.hover_text(2).get_slice("\n", 0).get_slice(":", 0), "Mossy Hollow 2")
 	assert_eq(world.labyrinth_view.labyrinth, mossy, "the world shows Mossy Hollow")
 	assert_false(hud.status_text().contains("depth"), "no depths: %s" % hud.status_text())
@@ -705,7 +705,7 @@ func test_r9_screen_names_the_area() -> void:
 	assert_eq(sim.expedition.place, &"claypits", "arrived")
 	assert_ne(sim.labyrinth, mossy, "another labyrinth")
 	assert_eq(world.labyrinth_view.labyrinth, sim.labyrinth, "the world redrew the Claypits")
-	assert_eq(hud.depth_caption.text, "The Claypits")
+	assert_eq(hud.place_panel.area_button.text, "The Claypits")
 	assert_eq(hud.ladder.hover_text(1).get_slice("\n", 0).get_slice(":", 0), "The Claypits 1")
 	# Scrolled away from the party, the ladder's arrow points back up to it, and the heading still
 	# names the area: the arrow finds another place than over it.

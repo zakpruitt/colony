@@ -478,10 +478,10 @@ func test_r5_out_of_the_way() -> void:
 func _assert_out_of_the_way(when: String) -> void:
 	var area: Rect2 = _rect(_note().panel)
 	var parts: Dictionary[String, Rect2] = {
-		"depth panel": _rect(_hud.depth_panel),
+		"depth panel": _rect(_hud.place_panel),
 		"goals": _rect(_hud.goals.panel),
 		"shop tab": _rect(_hud.shop_tab),
-		"gold": _rect(_hud.gold_panel),
+		"gold": _rect(_hud.purse),
 		"ladder": _rect(_hud.ladder),
 		"boss bar": _rect(_hud.boss_bar),
 	}

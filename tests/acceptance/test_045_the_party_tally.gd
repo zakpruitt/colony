@@ -696,7 +696,7 @@ func test_r7_fits_and_changes_nothing() -> void:
 	assert_true(rect.size.x <= 240.0 and rect.size.y <= 150.0, "%s" % rect)
 	assert_true(rect.position.y >= TOP_BAND, "below the top band: %s" % rect)
 	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(rect), "on the screen")
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)
 		assert_false(
 			_hud.tally_button.get_global_rect().intersects(frame.get_global_rect()),

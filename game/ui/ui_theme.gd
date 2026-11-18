@@ -17,6 +17,9 @@ const WINDOW: StringName = &"UiWindow"
 const TITLE_BAR: StringName = &"UiTitleBar"
 const TITLE: StringName = &"UiTitle"
 const TIP: StringName = &"UiTip"
+## The panel every piece of the frame of the screen sits on (spec 061): the window's dark
+## [code]night[/code] with a [code]slate[/code] edge, a step quieter than a window's.
+const FRAME: StringName = &"UiFrame"
 ## Padding between a button's edge and its text, in UI pixels (the edge itself is one more), the
 ## same in every state: at least 4 all round (R4).
 const BUTTON_PAD_X: int = 6
@@ -95,6 +98,8 @@ static func _windows(made: Theme) -> void:
 	made.set_font(&"font", TITLE, UiText.font(true))
 	made.set_color(&"font_color", TITLE, Palette.color(&"yellow"))
 	made.set_stylebox(&"panel", &"PanelContainer", StyleBoxEmpty.new())
+	made.set_type_variation(FRAME, &"Panel")
+	made.set_stylebox(&"panel", FRAME, box(&"night", &"slate"))
 
 
 static func _tooltips(made: Theme) -> void:

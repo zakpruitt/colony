@@ -137,8 +137,8 @@ func test_r2_sheet_is_right_at_once() -> void:
 	var into: int = OLD_XP - Hero.xp_for_level(5)
 	var span: int = Hero.xp_for_level(6) - Hero.xp_for_level(5)
 	var fraction: float = float(into) / float(span)
-	var frame: HeroFrame = null
-	for each: HeroFrame in hud.frames:
+	var frame: HeroFrameView = null
+	for each: HeroFrameView in hud.frames:
 		if each.hero_id == knight.id:
 			frame = each
 	assert_not_null(frame, "the knight has a frame")

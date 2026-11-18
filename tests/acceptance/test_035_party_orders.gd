@@ -737,7 +737,7 @@ func test_r8_status_and_journal() -> void:
 	assert_eq(wanted, "Holding at the Slime King", "the first guardian")
 	_hud.advance(0.0)
 	assert_eq(_hud.status_text(), wanted, "walking toward its chamber under Hold")
-	assert_eq(_hud.state_label.text, wanted, "shown in the status line")
+	assert_eq(_hud.place_panel.status_label.text, wanted, "shown in the status line")
 	var turned: bool = false
 	var hunting_seen: bool = false
 	var facing: int = _sim.expedition.facing
@@ -796,7 +796,7 @@ func _collect_labels(node: Node, into: Array[Label]) -> void:
 
 func _frames_top() -> float:
 	var top: float = SCREEN.y
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		top = minf(top, frame.get_global_rect().position.y)
 	return top
 

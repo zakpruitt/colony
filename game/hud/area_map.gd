@@ -8,17 +8,18 @@ extends HudPanel
 ## guardian opens it.
 ##
 ## Choosing an open area ([method choose], or a click on its row) shows a stage under the rows,
-## starting at that area's safe stage, with [code]-[/code] and [code]+[/code] between 1 and one
-## past its furthest stage, coloured by the ladder's rule (spec 043) judged by that area's levels,
-## and a [code]Go[/code] button ([method go]) that sends the party there
-## ([method Simulation.set_destination]) or, for the area it is in, sets the target as the ladder
-## does; a dangerous Go writes the ladder's warning in the journal.
+## starting at that area's safe stage, with [code]-[/code] and [code]+[/code] between 1 and one past
+## its furthest stage, coloured by the ladder's rule (spec 043) judged by that area's levels, and a
+## [code]Go[/code] button ([method go]) that sends the party there ([method
+## Simulation.set_destination]) or, for the area it is in, sets the target as the ladder does; a
+## dangerous Go writes the ladder's warning in the journal.
 ##
-## [kbd]W[/kbd] or a click on the area's name in the depth panel ([member name_button]) opens and
-## closes it; [kbd]Esc[/kbd] closes it. It never shares the screen with the other panels. When an
-## area opens (R6), the name button shows a marker until the map has been opened, and the goals
-## tracker shows a goal to visit it ([member news]). Everything that depends on the order of
-## events is kept by [AreaNews] (R7). It moves only in [method advance], so a test can step it.
+## [kbd]W[/kbd] or a click on the area's name in the place panel ([member PlacePanel.area_button],
+## spec 061) opens and closes it; [kbd]Esc[/kbd] closes it. It never shares the screen with the
+## other panels. When an area opens (R6), the area's name shows a mark until the map has been opened
+## ([method has_mark]), and the goals tracker shows a goal to visit it ([member news]). Everything
+## that depends on the order of events is kept by [AreaNews] (R7). It moves only in [method
+## advance], so a test can step it.
 
 ## The title and the key hint.
 const TITLE: String = "Areas"
@@ -49,8 +50,6 @@ var plus_button: HudButton
 var go_button: HudButton
 var risk_label: Label
 var choose_label: Label
-## The area's name in the depth panel, made a button that opens the map, with its marker.
-var name_button: NameButton
 ## What the map and its goal know, in the order of the events.
 var news: AreaNews
 
@@ -90,20 +89,12 @@ func setup(simulation: Simulation, world: World) -> void:
 	if world != null and not world.sim_event.is_connected(news.hear):
 		world.sim_event.connect(news.hear)
 	_build()
-	var hud: Hud = get_parent() as Hud
-	if hud != null and hud.depth_panel != null:
-		name_button = NameButton.new()
-		name_button.pressed.connect(toggle)
-		hud.depth_panel.add_child(name_button)
 	advance(0.0)
 
 
-## Gives every control its tooltip (R8). Call once the HUD's tooltips exist.
+## Gives every control its tooltip (R8). Call once the HUD's tooltips exist. (The area's name has
+## its own, on the frame of the screen: spec 061.)
 func add_tips(tooltip: HudTooltip) -> void:
-	if name_button != null:
-		tooltip.tip_first(
-			[name_button], "The area the party is in: click (or press W) for the map of every area."
-		)
 	tooltip.tip([close_button], "Close the map (W or Esc).")
 	for each_row: AreaMapRow in rows:
 		for thumb: MonsterThumb in each_row.thumbs:
@@ -118,14 +109,13 @@ func add_tips(tooltip: HudTooltip) -> void:
 	tooltip.tip([go_button], _go_tip)
 
 
-## Brings the rows, the footer and the name button up to date, and closes the map if another
+## Brings the rows and the footer up to date, and closes the map if another
 ## panel has opened. Called every frame by the HUD; tests call it.
-func advance(delta: float) -> void:
+func advance(_delta: float) -> void:
 	if _simulation == null:
 		return
 	if is_open() and _another_is_open():
 		close()
-	_place_name_button(delta)
 	if not is_open():
 		return
 	for each_row: AreaMapRow in rows:
@@ -272,9 +262,9 @@ func row(area_id: StringName) -> AreaMapRow:
 	return null
 
 
-## True while the name button shows its marker: an area has opened since the map was opened.
+## True while the area's name shows its mark: an area has opened since the map was opened.
 func has_mark() -> bool:
-	return name_button != null and name_button.marker.visible
+	return news != null and news.unseen > 0 and not is_open()
 
 
 ## The panel's height holding [param count] areas.
@@ -455,22 +445,6 @@ func _set_text(label: Label, text: String) -> void:
 		label.reset_size()
 
 
-## Keeps the name button over the area's name in the depth panel, with its marker while an area
-## has opened since the map was last opened.
-func _place_name_button(delta: float) -> void:
-	var hud: Hud = get_parent() as Hud
-	if name_button == null or hud == null or hud.depth_caption == null:
-		return
-	var caption: Label = hud.depth_caption
-	name_button.position = caption.position - Vector2(1, 1)
-	name_button.size = Vector2(PixelText.width(caption.text) + 2.0, PixelText.SIZE + 2.0)
-	name_button.lit = is_open()
-	name_button.marker.count = news.unseen
-	name_button.marker.visible = news.unseen > 0 and not is_open()
-	name_button.marker.position = Vector2(name_button.size.x - 3.0, -4.0)
-	name_button.marker.advance(delta)
-
-
 # --- Tooltips ------------------------------------------------------------------
 
 
@@ -509,50 +483,3 @@ func _another_is_open() -> bool:
 		if panel != null and panel.call(&"is_open"):
 			return true
 	return false
-
-
-## The area's name in the depth panel as a button (spec 053 R1): a click opens or closes the map.
-## It draws nothing at rest; under the mouse, or while the map is open, it is outlined. It carries
-## the marker shown while an area has opened since the map was last opened (R6).
-class NameButton:
-	extends Control
-
-	## A left click.
-	signal pressed
-
-	## The marker: the number of areas opened since the map was last opened.
-	var marker: ShopMarker
-	## True while the map is open.
-	var lit: bool = false:
-		set(value):
-			if lit != value:
-				lit = value
-				queue_redraw()
-
-	var _hovered: bool = false
-
-	func _init() -> void:
-		name = "AreaNameButton"
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		marker = ShopMarker.new()
-		marker.name = "AreaMarker"
-		marker.visible = false
-		add_child(marker)
-
-	func _gui_input(event: InputEvent) -> void:
-		var button: InputEventMouseButton = event as InputEventMouseButton
-		if button == null or button.button_index != MOUSE_BUTTON_LEFT or not button.pressed:
-			return
-		accept_event()
-		pressed.emit()
-
-	func _notification(what: int) -> void:
-		if what == NOTIFICATION_MOUSE_ENTER or what == NOTIFICATION_MOUSE_EXIT:
-			_hovered = what == NOTIFICATION_MOUSE_ENTER
-			queue_redraw()
-
-	func _draw() -> void:
-		if _hovered or lit:
-			var colour: StringName = &"yellow" if _hovered else &"green"
-			draw_rect(Rect2(Vector2.ZERO, size).grow(-0.5), Palette.color(colour), false, 1.0)

@@ -94,8 +94,7 @@ func fit_room(room: Vector2i) -> void:
 func rect_in(room: Vector2i) -> Rect2:
 	if _ui == null:
 		return Rect2()
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
-	var line: float = floorf(_ui.world_to_ui(Vector2(0, frames_top)).y)
+	var line: float = floorf(_ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y)
 	return Rect2(Vector2(room.x - MARGIN - size.x, line - ABOVE_FRAMES - size.y).round(), size)
 
 

@@ -218,7 +218,7 @@ func test_r5_it_still_fits() -> void:
 	var panel := AwayPanel.new(_full_report(party), party)
 	add_child_autofree(panel)
 	var rect := Rect2(panel.position, panel.size)
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
+	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
 	assert_gte(rect.position.x, 0.0, "inside the screen on the left")
 	assert_lte(rect.end.x, Hud.SCREEN.x, "and on the right")
 	assert_gte(rect.position.y, Hud.TOP_BAND, "below the top band")

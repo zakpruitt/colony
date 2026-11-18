@@ -165,6 +165,9 @@ const SLAIN_LIFE: float = 2.5
 
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
+## Where each hero's XP motes fly to, in screen pixels, by hero id: its frame (spec 061 R4). The
+## HUD sets it; a hero with none has its motes fly to its chest (spec 010 R7).
+var frame_screen_targets: Dictionary[int, Vector2] = {}
 ## The effects of side quests and microskills (spec 028), advanced with these.
 var quest_effects: QuestEffects
 ## Abilities and statuses on screen (spec 056), advanced with these.
@@ -281,7 +284,7 @@ func advance(delta: float) -> void:
 			_motes.erase(mote)
 			mote.queue_free()
 			continue
-		if mote.advance(delta, _chest(mote.hero_id)):
+		if mote.advance(delta, _mote_target(mote.hero_id)):
 			_flash(mote.position, Palette.color(&"cyan"), 5)
 			_motes.erase(mote)
 			mote.queue_free()
@@ -899,6 +902,14 @@ func _height(sprite: CharacterSprite) -> float:
 		if texture != null:
 			return float(texture.get_height())
 	return 24.0
+
+
+## Where hero [param hero_id]'s XP motes fly to: its frame on the screen when the HUD has said where
+## that is (spec 061 R4), else its chest.
+func _mote_target(hero_id: int) -> Vector2:
+	if frame_screen_targets.has(hero_id):
+		return _screen_to_world(frame_screen_targets[hero_id])
+	return _chest(hero_id)
 
 
 ## A point on a hero's chest, where motes fly to.

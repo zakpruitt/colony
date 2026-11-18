@@ -71,7 +71,7 @@ func test_r1_button_and_keys_open_and_close() -> void:
 		return
 	assert_eq(_hud.shop_button.text, "Shop")
 	var button: Rect2 = _hud.shop_button.get_global_rect()
-	var gold: Rect2 = _hud.gold_panel.get_global_rect()
+	var gold: Rect2 = _hud.purse.get_global_rect()
 	assert_lte(button.end.y, TOP_BAND, "in the top band")
 	assert_lte(button.end.x, gold.position.x, "left of the gold")
 	assert_lt(gold.position.x - button.end.x, 16.0, "beside it")
@@ -174,7 +174,7 @@ func test_r3_lists_every_upgrade() -> void:
 	var rect: Rect2 = shop.get_global_rect()
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
 	assert_lte(rect.end.y, SCREEN.y - BOTTOM_BAND, "above the party frames")
-	for frame: HeroFrame in _hud.frames:
+	for frame: HeroFrameView in _hud.frames:
 		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)
 	assert_gte(rect.position.x, 0.0)
 	assert_lte(rect.end.x, SCREEN.x)

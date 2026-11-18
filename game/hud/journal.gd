@@ -316,7 +316,7 @@ func _show_ticker() -> void:
 	_ticker_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	var width: float = PixelText.width(_ticker_label.text) + 10.0
 	ticker.size = Vector2(width, TICKER_HEIGHT)
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
+	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
 	ticker.position = Vector2(
 		floorf((Hud.SCREEN.x - width) / 2.0), frames_top - TICKER_GAP - TICKER_HEIGHT
 	)
