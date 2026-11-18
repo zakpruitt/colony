@@ -755,13 +755,13 @@ func test_r9_screen_names_the_area() -> void:
 	report.depth_before = 3
 	report.area_after = &"mossy_hollow"
 	report.depth_after = 5
-	assert_eq(AwayPanel.where(report), "Mossy Hollow 3 to 5")
+	assert_eq(AwayStory.where(report), "Mossy Hollow 3 to 5")
 	report.area_after = &"claypits"
 	report.depth_after = 1
-	assert_eq(AwayPanel.where(report), "Mossy Hollow 3 to The Claypits 1")
+	assert_eq(AwayStory.where(report), "Mossy Hollow 3 to The Claypits 1")
 	report.area_before = &"claypits"
 	report.depth_before = 1
-	assert_eq(AwayPanel.where(report), "The Claypits 1")
+	assert_eq(AwayStory.where(report), "The Claypits 1")
 
 
 ## A world, its effects and the HUD on [param sim], every _process off: index 0 the World, 1 the

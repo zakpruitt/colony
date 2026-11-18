@@ -93,8 +93,9 @@ func test_r1_button_and_keys_open_and_close() -> void:
 	_key(KEY_ESCAPE)
 	assert_false(shop.is_open(), "and does not open it")
 
-	var away := AwayPanel.new(AwayReport.new(), _sim.party)
-	_hud.get_parent().add_child(away)
+	var away := AwayWindow.new(AwayReport.new(), _sim.party)
+	_ui.windows.add_child(away)  # spec 062: the report is a window
+	away.open()
 	shop.open()
 	assert_true(away.is_queued_for_deletion(), "opening the shop closes the away panel")
 	if is_instance_valid(away) and not away.is_queued_for_deletion():
@@ -128,7 +129,9 @@ func test_r2_marker_when_affordable() -> void:
 	var first: float = marker.pulse()
 	_advance(0.3)
 	assert_ne(marker.pulse(), first, "and it is animated")
-	assert_eq(marker.get_parent(), _ui.bar.buttons[ShopWindow.ID], "on the Shop button")
+	# Spec 062 R12: on a layer of its own over the bar, at the Shop button's corner.
+	var shop_button: Rect2 = _ui.bar.buttons[ShopWindow.ID].get_global_rect()
+	assert_true(marker.get_global_rect().intersects(shop_button), "on the Shop button")
 
 	_sim.party.gold = 10_000
 	_advance(0.016)

@@ -19,6 +19,9 @@ var buttons: Dictionary[StringName, UiButton] = {}
 ## Spec 059 R6: each button's amber tag, shown while its window's [member UiWindow.badge] is
 ## above 0.
 var badges: Dictionary[StringName, UiBadge] = {}
+## The tags' own layer, just after the bar on the UI layer (spec 062 R12): drawn over every button,
+## and under every window, which come later.
+var tag_layer: Control
 ## Puts every window back where a new game has it.
 var reset_button: UiButton
 ## The tooltip the buttons share.
@@ -52,6 +55,11 @@ func setup(ui: UiRoot, windows: UiWindows) -> void:
 	_windows = windows
 	tip = UiTip.new()
 	ui.frame.add_child(tip)
+	tag_layer = Control.new()
+	tag_layer.name = "Tags"
+	tag_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ui.frame.add_child(tag_layer)
+	ui.frame.move_child(tag_layer, get_index() + 1)
 	windows.changed.connect(refresh)
 	reset_button = UiButton.new()
 	reset_button.name = "Reset"
@@ -82,7 +90,8 @@ func rebuild() -> void:
 		buttons[id] = button
 		tip.attach(button, "%s (%s)" % [shown.title, shown.key_hint])
 		var tag := UiBadge.new()
-		button.add_child(tag)
+		tag.name = "Badge_%s" % id
+		tag_layer.add_child(tag)
 		badges[id] = tag
 	refresh()
 	fit_room(_ui.room())
@@ -97,7 +106,10 @@ func refresh() -> void:
 			continue
 		tag.count = _windows.window(id).badge
 		tag.visible = tag.count > 0
-		tag.position = Vector2(buttons[id].size.x - tag.size.x + 4.0, -6.0)
+		var button: UiButton = buttons[id]
+		tag.position = (
+			position + button.position + Vector2(button.size.x - tag.size.x + 4.0, -6.0)
+		)
 
 
 ## Puts the bar at the bottom right of a room of [param room] UI pixels, above the frames' line.

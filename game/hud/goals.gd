@@ -1,8 +1,9 @@
 class_name Goals
-extends Control
-## The goals tracker (spec 037): a small panel under the depth panel on the left showing the next
-## few things within reach, each a one-line sentence with a thin progress bar or a count. It is a
-## signpost only: it gives no rewards and changes no rules.
+extends Node
+## The goals tracker (spec 037): the next few things within reach, each a one-line sentence with a
+## thin progress bar or a count. It is a signpost only: it gives no rewards and changes no rules.
+## Since spec 062 this node only decides what the goals say; [GoalsView] draws them on the sharp
+## layer, under the place panel.
 ##
 ## At each [method advance] it reads the simulation and lists the first [constant MOST] goals that
 ## apply, in this order: beating the next guardian (when its depth is within
@@ -14,8 +15,8 @@ extends Control
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
 ## brought old events ([method World.is_recent]: after a stall or time away) is replaced quietly.
 ##
-## [kbd]G[/kbd] hides and shows it; it starts shown. It also hides while the hero sheet, which
-## drops into the same place, or the tally is open. Each line has a tooltip ([method hint], then
+## [kbd]G[/kbd] hides and shows it; it starts shown. Windows are drawn over it (spec 062 R2), and
+## none hides it. Each line has a tooltip ([method hint], then
 ## what a click does, [method action]), and since spec 042 a click on a line takes the player where
 ## the goal is managed ([method press]): the shop, a hero's sheet on a tab, the orders, or the
 ## depth ladder with the goal's rung flashing. A click opens what the HUD's own buttons open and
@@ -24,6 +25,8 @@ extends Control
 
 ## A shown goal was achieved, in a recent frame: [param sentence] is its journal line.
 signal goal_finished(sentence: String)
+## The goals were read again (every [method advance]): the view lays itself out (spec 062).
+signal refreshed
 
 ## The kinds of goal, in the order the tracker prefers them, but a visit to a new area (spec 053)
 ## comes first and a talent point to spend (spec 055) comes after the depth.
@@ -48,37 +51,24 @@ const CLICKS: Dictionary[Kind, String] = {
 const CELEBRATE_SECONDS: float = 3.0
 ## Seconds a finished goal's row flashes, bright half then dim half (as a shop row does).
 const FLASH_SECONDS: float = 0.5
-## Pixels between the panel and the depth panel above it (the top band's bottom edge).
-const DROP: float = 2.0
-## Space inside the border; the title row's height.
-const PADDING: float = 4.0
-const TITLE_HEIGHT: float = 12.0
-## The panel's least width; it grows to hold its longest line.
-const MIN_WIDTH: float = 150.0
-## The title and the key hint.
+## The title and the key hint the view shows.
 const TITLE: String = "Goals"
 const HIDE_HINT: String = "G hide"
-
-## The tracker's panel; its rows are children of it.
-var panel: HudPanel
-## One row per goal shown, top to bottom; a row with no goal is hidden.
-var rows: Array[Row] = []
 
 var _simulation: Simulation
 var _world: World
 ## The goals showing, top first (some may be celebrating).
 var _shown: Array[Goal] = []
-## Whether the player wants the tracker ([kbd]G[/kbd]); the sheet or the tally can still hide it.
+## Whether the player wants the tracker ([kbd]G[/kbd]).
 var _wanted: bool = true
 ## True once an old event arrives, until the next advance: nothing achieved then is celebrated.
 var _stale: bool = false
+## True while the tracker is shown (see [method is_shown]).
+var _on_screen: bool = true
 
 
 func _init() -> void:
 	name = "Goals"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Vector2.ZERO
-	position = Vector2(Hud.MARGIN, Hud.TOP_BAND + DROP)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -94,32 +84,13 @@ func _unhandled_input(event: InputEvent) -> void:
 func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
 	_world = world
-	panel = HudPanel.new()
-	panel.name = "GoalsPanel"
-	add_child(panel)
-	var title: Label = PixelText.label(TITLE, &"steel")
-	title.name = "Title"
-	title.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	title.position = Vector2(PADDING + 2.0, PADDING - 1.0)
-	panel.add_child(title)
-	var hint_label: Label = PixelText.label(HIDE_HINT, &"slate")
-	hint_label.name = "Hint"
-	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	panel.add_child(hint_label)
-	for i: int in MOST:
-		var row := Row.new()
-		row.name = "Goal%d" % i
-		row.visible = false
-		row.clicked.connect(press.bind(i))
-		panel.add_child(row)
-		rows.append(row)
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
 
 
 ## Reads the goals from the simulation, celebrates a shown goal just achieved, runs the
-## celebrations on by [param delta] seconds and lays the panel out. Called every frame by the HUD;
+## celebrations on by [param delta] seconds. Called every frame by the HUD;
 ## tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
@@ -161,10 +132,19 @@ func advance(delta: float) -> void:
 	_show()
 
 
-## True while the tracker is on screen: wanted ([kbd]G[/kbd]) and not under the hero sheet or the
-## journal.
+## True while the tracker is on screen: while it is wanted ([kbd]G[/kbd]).
 func is_shown() -> bool:
-	return visible
+	return _on_screen
+
+
+## How many goals are showing.
+func count() -> int:
+	return _shown.size()
+
+
+## The goal showing at [param index], top first, or null.
+func goal_at(index: int) -> Goal:
+	return _shown[index] if index >= 0 and index < _shown.size() else null
 
 
 ## The goal sentences showing, top first.
@@ -542,34 +522,11 @@ func _finish(goal: Goal) -> void:
 	goal_finished.emit(goal.done)
 
 
-## Shows the rows for the goals showing and sizes the panel to hold them.
+## Works out whether the tracker shows: whenever it is wanted. Windows, the tally's too, are drawn
+## over it (spec 062 R2).
 func _show() -> void:
-	var hud: Hud = get_parent() as Hud
-	var covered: bool = false
-	if hud != null:
-		covered = hud.tally != null and hud.tally.is_open()  # spec 045
-	visible = _wanted and not covered
-	var width: float = MIN_WIDTH
-	var detail_column: float = 0.0
-	for goal: Goal in _shown:
-		width = maxf(width, Row.needed_width(goal))
-		if goal.progress >= 0.0:
-			detail_column = maxf(detail_column, PixelText.width(goal.detail))
-	var y: float = PADDING + TITLE_HEIGHT
-	for i: int in rows.size():
-		var row: Row = rows[i]
-		row.visible = i < _shown.size()
-		if not row.visible:
-			continue
-		row.position = Vector2(PADDING, y)
-		row.show_goal(_shown[i], width - PADDING * 2.0, detail_column)
-		y += row.size.y
-	if _shown.is_empty():
-		y += Row.LINE
-	panel.size = Vector2(width, y + PADDING - 1.0)
-	var hint_label: Label = panel.get_node("Hint") as Label
-	hint_label.position = Vector2(width - PADDING - 2.0 - PixelText.width(HIDE_HINT), PADDING - 1.0)
-	panel.queue_redraw()
+	_on_screen = _wanted
+	refreshed.emit()
 
 
 ## One goal as the tracker shows it: what it says, how far along it is, and how to get there.
@@ -613,189 +570,3 @@ class Goal:
 		progress = progress_in
 		detail = detail_in
 		hint = hint_in
-
-
-## One goal's row: a dot (a tick once achieved), the sentence, and under it a thin bar with the
-## count at its right; a goal with no bar shows its count (a price) at the sentence's right, and a
-## gold goal a small [code]>[/code] at the row's right edge (spec 042 R2). The row is a button: lit
-## under the mouse as a [HudButton] is, and a left click emits [signal clicked]. A finished goal is
-## neither lit nor clicked.
-class Row:
-	extends Control
-
-	## A left click on the row while its goal is not finished.
-	signal clicked
-
-	## A line of text's height, and the bar's height under it.
-	const LINE: float = 10.0
-	const BAR_HEIGHT: float = 4.0
-	## Where the sentence and the bar start, after the dot.
-	const TEXT_X: float = 11.0
-	## Pixels between the bar and the count after it, and between the sentence and a price.
-	const DETAIL_GAP: float = 4.0
-	## The bar's least width.
-	const MIN_BAR: float = 60.0
-	## The bar's colours for each kind of goal: XP and levels in cyan, depth in yellow.
-	const BAR_COLOURS: Dictionary[Goals.Kind, Array] = {
-		Goals.Kind.GUARDIAN: [&"cyan", &"blue"],
-		Goals.Kind.DEPTH: [&"yellow", &"amber"],
-		Goals.Kind.MICROSKILL: [&"cyan", &"blue"],
-	}
-	## A tick in 7x5 pixels, drawn in code: [code]#[/code] is green.
-	const TICK: Array[String] = ["......#", ".....#.", "#...#..", ".#.#...", "..#...."]
-	## The gold goals' [code]>[/code] in 3x5 pixels, drawn in code: [code]#[/code] is yellow.
-	const ARROW: Array[String] = ["#..", ".#.", "..#", ".#.", "#.."]
-	## Pixels the arrow takes at a gold goal's right, with the gap before it.
-	const ARROW_ROOM: float = 6.0
-
-	var sentence_label: Label
-	var detail_label: Label
-
-	var _goal: Goal
-	var _bar: Rect2 = Rect2()
-	var _arrow: Rect2 = Rect2()
-	## True while the mouse is over the row.
-	var _hovered: bool = false
-
-	func _init() -> void:
-		mouse_filter = Control.MOUSE_FILTER_STOP
-		mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-		sentence_label = PixelText.label("", &"white")
-		sentence_label.name = "Sentence"
-		sentence_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		sentence_label.position = Vector2(TEXT_X, 0)
-		add_child(sentence_label)
-		detail_label = PixelText.label("", &"steel")
-		detail_label.name = "Detail"
-		detail_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		add_child(detail_label)
-
-	## The panel width [param goal] needs to show on one line.
-	static func needed_width(goal: Goal) -> float:
-		var text: float = TEXT_X + PixelText.width(goal.sentence)
-		if goal.progress < 0.0:
-			text += DETAIL_GAP + PixelText.width(goal.detail)
-			if Row.is_gold(goal):
-				text += ARROW_ROOM
-		else:
-			text = maxf(text, TEXT_X + MIN_BAR + DETAIL_GAP + PixelText.width(goal.detail))
-		return text + Goals.PADDING * 2.0 + 2.0
-
-	## Shows [param goal] across [param width] pixels, a bar ending [param detail_column] pixels
-	## (and a gap) before the right edge, so every bar in the panel ends in the same place.
-	func show_goal(goal: Goal, width: float, detail_column: float) -> void:
-		_goal = goal
-		var finished: bool = goal.celebrate > 0.0
-		# White over the flash's bright fill, then green with the tick.
-		var green: bool = finished and goal.flash <= Goals.FLASH_SECONDS / 2.0
-		_set_text(sentence_label, goal.sentence, &"green" if green else &"white")
-		var price: bool = Row.is_gold(goal)
-		_set_text(detail_label, goal.detail, &"yellow" if price else &"steel")
-		var right: float = width - 2.0
-		_arrow = Rect2()
-		if price:
-			_arrow = Rect2(right - 3.0, 1.0, 3.0, 5.0)
-			right -= ARROW_ROOM
-		if goal.progress >= 0.0:
-			size = Vector2(width, LINE + BAR_HEIGHT + 5.0)
-			detail_label.position = Vector2(right - detail_label.size.x, LINE - 2.0)
-			var bar_right: float = right
-			if detail_column > 0.0:
-				bar_right -= detail_column + DETAIL_GAP
-			_bar = Rect2(TEXT_X, LINE + 1.0, maxf(bar_right - TEXT_X, MIN_BAR), BAR_HEIGHT)
-		else:
-			size = Vector2(width, LINE + 2.0)
-			detail_label.position = Vector2(right - detail_label.size.x, 0)
-			_bar = Rect2()
-		queue_redraw()
-
-	## True for a goal the player can act on now: talent points (spec 055), training (with
-	## paragon points, spec 051) and upgrades (with gold).
-	static func is_gold(goal: Goal) -> bool:
-		return goal.kind in [Goals.Kind.TALENT, Goals.Kind.TRAINING, Goals.Kind.UPGRADE]
-
-	## True while the row is lit under the mouse: shown, not finished.
-	func is_highlighted() -> bool:
-		return _hovered and is_visible_in_tree() and _goal != null and _goal.celebrate <= 0.0
-
-	## Where the gold goals' [code]>[/code] is drawn, in the row's own pixels; empty for others.
-	func arrow_rect() -> Rect2:
-		return _arrow
-
-	func _gui_input(event: InputEvent) -> void:
-		var button: InputEventMouseButton = event as InputEventMouseButton
-		if button == null or button.button_index != MOUSE_BUTTON_LEFT or not button.pressed:
-			return
-		accept_event()
-		if _goal != null and _goal.celebrate <= 0.0:
-			clicked.emit()
-
-	func _notification(what: int) -> void:
-		if what == NOTIFICATION_MOUSE_ENTER or what == NOTIFICATION_MOUSE_EXIT:
-			_hovered = what == NOTIFICATION_MOUSE_ENTER
-			queue_redraw()
-		elif what == NOTIFICATION_VISIBILITY_CHANGED and not visible:
-			_hovered = false
-
-	func _draw() -> void:
-		if _goal == null:
-			return
-		mouse_default_cursor_shape = (
-			Control.CURSOR_ARROW if _goal.celebrate > 0.0 else Control.CURSOR_POINTING_HAND
-		)
-		if is_highlighted():
-			# As a HudButton under the mouse: a slate fill with a steel bevel.
-			HudPanel.draw_panel(
-				self,
-				Rect2(Vector2(-1, -1), size + Vector2(1, -1)),
-				Palette.color(&"slate"),
-				Palette.color(&"steel"),
-				Palette.color(&"ink")
-			)
-		if _arrow.has_area():
-			_draw_pixels(ARROW, _arrow.position, Palette.color(&"yellow"))
-		if _goal.flash > 0.0:
-			var bright: bool = _goal.flash > Goals.FLASH_SECONDS / 2.0
-			var fill: Color = Palette.color(&"forest" if bright else &"dusk")
-			var edge: Color = Palette.color(&"green" if bright else &"slate")
-			HudPanel.draw_panel(
-				self, Rect2(Vector2(-1, -1), size + Vector2(1, -1)), fill, edge, edge
-			)
-		if _goal.celebrate > 0.0:
-			_draw_tick(Vector2(1, 2))
-		else:
-			draw_rect(Rect2(3, 3, 3, 3), Palette.color(&"steel"))
-			draw_rect(Rect2(3, 3, 3, 1), Palette.color(&"silver"))
-		if _bar.size.x <= 0.0:
-			return
-		var colours: Array = BAR_COLOURS.get(_goal.kind, [&"yellow", &"amber"])
-		if _goal.celebrate > 0.0:
-			colours = [&"green", &"forest"]
-		var colour: StringName = colours[0]
-		var shade: StringName = colours[1]
-		HudPanel.draw_bar(
-			self,
-			_bar,
-			_goal.progress,
-			Palette.color(colour),
-			Palette.color(shade),
-			Palette.color(&"ink")
-		)
-
-	func _draw_tick(at: Vector2) -> void:
-		_draw_pixels(TICK, at, Palette.color(&"green"))
-
-	## Draws [param pixels] ([code]#[/code] in [param colour]) at [param at], with an ink shadow
-	## a pixel below.
-	func _draw_pixels(pixels: Array[String], at: Vector2, colour: Color) -> void:
-		for y: int in pixels.size():
-			for x: int in pixels[y].length():
-				if pixels[y][x] == "#":
-					draw_rect(Rect2(at + Vector2(x, y + 1), Vector2.ONE), Palette.color(&"ink"))
-					draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), colour)
-
-	func _set_text(label: Label, text: String, colour: StringName) -> void:
-		if label.text != text:
-			label.text = text
-			label.reset_size()
-		label.add_theme_color_override(&"font_color", Palette.color(colour))

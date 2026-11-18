@@ -435,11 +435,14 @@ resource it lacks, and keeps buying while the game is closed.</p>
 <h3>Time away</h3>
 <p>Each save remembers the real time it was written. When the game starts it works out how long it was
 closed (at most 8 hours; under a minute counts as nothing) and plays that time through the same rules as
-fast as it can, behind a <code>Catching up...</code> bar; eight hours takes a few seconds. Then a panel
-says how long the party was away, the gold it earned, the resources it gathered (<em>Gathered 40 glowcaps,
+fast as it can, behind a <code>Catching up...</code> bar; eight hours takes a few seconds. Then the
+"While you were away" window opens by itself in the middle of the screen, in front of every other window
+(the windows you left open come back under it), and says as a short list, the numbers lined up on the
+right, how long the party was away, the gold it earned, the resources it gathered (<em>Gathered 40 glowcaps,
 12 clay</em>), the levels each hero gained, where it was and where it is now, monsters slain, wipes,
 guardians slain, side quests done and missed (with the microskill the misses needed most), microskills
-learned and, with auto-buy on, upgrades bought. A click or any key closes it.</p>
+learned and, with auto-buy on, upgrades bought. Its <em>Back to the game</em> button or <kbd>Esc</kbd>
+closes it; left alone it goes after 12 seconds, but never while the mouse is on it.</p>
 
 <h2 id="heroes">4. Heroes, talents and paragon</h2>
 <p>Four heroes: the <strong>Knight</strong> (tank, in front), the <strong>Rogue</strong> (striker), the
@@ -565,9 +568,12 @@ the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number
 descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The
 <em>frame of the screen</em> is on it: the place panel, the countdown, the purse, the boss bar and the
 hero frames, with their tooltips (a bold title, then a sentence or two, after the mouse rests 0.4 s).
-Help, the journal, the orders, the shop, the area map, the party tally and the hero windows are on it
-too, as windows. What is left of the old HUD (the ladder, the goals, the ticker, the away report) still
-sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel.</p>
+Help, the journal, the orders, the shop, the area map, the party tally, the hero windows and the "While
+you were away" report are on it too, as windows, and so are the goals, the stage list, the ticker, the
+note after a defeat and the <code>Catching up...</code> bar. The world's own coarse font is left only for
+what belongs to the world: names and numbers over the fighters, banners like <code>WIPED</code>, and the
+titles of a crossing. Windows are drawn over the goals and the stage list, as over the world; the note
+after a defeat is drawn over every window.</p>
 
 <h3>Around the edges</h3>
 <div class="table-wrap">
@@ -575,12 +581,12 @@ sits in the world's coarse pixels for now: the UI overhaul is under way, panel b
   <tr><th>Where</th><th>What</th><th>Says</th></tr>
   <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) beside the stage in big numbers; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and under them a line for what the party is doing, with <em>Safe 3</em> (the stage a wipe sends the party back to) at its right: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off; <em>Holding</em> at a guardian the party is told to wait for.</td></tr>
-  <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
+  <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each a button with a bar or a price (and a small <code>&gt;</code> when it can be done now); click one to go where it is done.</td></tr>
   <tr><td>Top right</td><td>The purse, with the speed</td><td>The speed button (<em>1x</em>, <em>2x</em>, <em>4x</em>; lit when faster than 1x, <kbd>F</kbd>), then the gold with its coin, counting up as coins arrive. Each resource the party holds has an icon and a count, on a second row when there are many. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
   <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders, the shop, the area map, the tally; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for its name and key. The Shop button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button puts every window back in its place.</td></tr>
-  <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
+  <tr><td>Right edge, under the purse</td><td>The stage list (<kbd>L</kbd>)</td><td>Twelve stages of this area, headed by the area's name, each guardian's name beside its stage.</td></tr>
   <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. Click a frame to open its window.</td></tr>
-  <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
+  <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds; click it to open the journal.</td></tr>
   <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name in bold over a wide bar with its health as a number (<em>1,234 / 2,000</em>), draining smoothly and flashing on a hit.</td></tr>
 </table>
 </div>
@@ -604,7 +610,7 @@ sits in the world's coarse pixels for now: the UI overhaul is under way, panel b
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal</td></tr>
-  <tr><td><kbd>L</kbd></td><td>Hide or show the stage ladder</td></tr>
+  <tr><td><kbd>L</kbd></td><td>Hide or show the stage list</td></tr>
   <tr><td><kbd>G</kbd></td><td>Hide or show the goals</td></tr>
   <tr><td><kbd>F</kbd></td><td>Game speed: 1x, 2x, 4x, then back to 1x</td></tr>
   <tr><td><kbd>Z</kbd></td><td>Zoom in to twice the size, or back out</td></tr>
@@ -624,8 +630,8 @@ Any number can be open at once, and the game keeps running behind them; a click 
 reaches the world or a window under it, and pointing at a window shows no hint for what is under it.
 <kbd>Esc</kbd> closes only the front window. The game remembers which windows are open and where each
 one you dragged is, in the settings file beside the sound setting (not in the save); a window you never
-moved sits in its usual place for the size the game's window has. Windows left open open again once the
-"While you were away" report has gone, and the last button on the button bar puts them all back where a
+moved sits in its usual place for the size the game's window has. Windows left open open again as the
+game starts, under the "While you were away" report, and the last button on the button bar puts them all back where a
 new game has them.</p>
 <p>The tally stands at the top left, the shop at the top right and the map between them, so the three can
 be open together without covering each other or the hero frames. Any window can stay open beside any
@@ -649,13 +655,15 @@ A dangerous choice is warned of in the journal. When a guardian opens a new area
 goal <em>Visit The Claypits</em> appears and the Map button on the button bar carries a mark until you
 open the map. A click on the area's name at the top left opens it too.</p>
 
-<h3>The stage ladder (<kbd>L</kbd>)</h3>
-<p>A narrow list of twelve stages down the right edge. A white diamond marks the party's stage; the safe
-stage is green; stages reached are outlined and stages never reached are dim; a yellow arrow and frame
-mark the target; a small skull marks each guardian, crossed out once beaten. Each stage's number is
+<h3>The stage list (<kbd>L</kbd>)</h3>
+<p>A list of twelve stages down the right edge, under the purse, headed by the area's name. A white
+diamond marks the party's stage; the safe stage is green; stages reached are outlined and stages never
+reached are dim; a yellow arrow and frame mark the target; a small skull and the guardian's name mark
+each guardian's stage, the name struck through once beaten. Each stage's number is
 coloured for this party, from its lowest hero's level: blue is safe, orange within reach, red dangerous
 (a rough guide, not a promise). Click a stage to make it the target; rest the mouse on one for a line in
-words. The mouse wheel scrolls it; a small arrow brings it back to the party.</p>
+words (for a stage within reach or dangerous it says so; a safe stage needs no warning). The mouse wheel
+scrolls it; a small arrow brings it back to the party. It hides while the shop is open.</p>
 
 <h3>Goals (<kbd>G</kbd>)</h3>
 <p>Up to three things to look forward to, the first that apply of: <em>Beat the Slime King</em> (with the
@@ -663,7 +671,7 @@ party's lowest level against the level it is balanced for), <em>Reach Mossy Holl
 Auto's next move), <em>Visit The Claypits</em> (a newly opened area), <em>Spend the Knight's talent
 points</em>, <em>Rogue learns Trapspotter at level 6</em>, a hero's paragon points to spend, and <em>Buy
 an upgrade</em> (when the party can pay its gold and its resource). Each line is a button that opens the
-place where it is done: the shop, a hero's tab, the orders, the map or the ladder. A goal done flashes
+place where it is done: the shop, a hero's tab, the orders, the map or the stage list. A goal done flashes
 green with a tick and the journal gets a line. Goals give no reward: they are a signpost.</p>
 
 <h3>Hero windows (click a frame, or <kbd>Tab</kbd>)</h3>
@@ -736,8 +744,8 @@ while you watch, is never saved, and changes nothing about the game.</p>
 <p>The game remembers the last 50 notable happenings with the game time: a new furthest stage, a stage
 turning safe, a level up, a talent point gained, a path chosen, a wipe and what beat the party where, a
 guardian slain, an area opened, the first of each resource, an upgrade bought, a side quest done, passed
-or sprung, a microskill learned. The newest shows for 4 seconds in the ticker above the hero frames;
-<kbd>J</kbd> opens the journal window: at least 20 lines in view, and the mouse wheel scrolls back
+or sprung, a microskill learned. The newest shows for 4 seconds in the ticker above the hero frames (a
+click on it opens the journal); <kbd>J</kbd> opens the journal window: at least 20 lines in view, and the mouse wheel scrolls back
 through all 50.</p>
 
 <h3>After a defeat</h3>
@@ -745,7 +753,8 @@ through all 50.</p>
 Slime King on Mossy Hollow 5</em>, with <em>(2 times)</em> from the second defeat in a row), the plainest
 reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>), and up to three buttons
 that would help: <em>Spend talent points</em>, a hero's paragon points, <em>Buy an upgrade</em> (only when
-the party can pay) or <em>Hold here</em>. It stays until 8 seconds after the heroes stand up.</p>
+the party can pay) or <em>Hold here</em>. It stays until 8 seconds after the heroes stand up (longer while
+the mouse is on it), and it is drawn over every window, so a window you open from it never hides it.</p>
 
 <h3>The world on screen</h3>
 <ul>
@@ -1008,9 +1017,9 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M2</td><td>Heroes and monsters that move and fight on their own</td><td><span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, the fallback after a wipe, saving, camp upgrades, guardians, auto-buy</td><td><span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
   <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the stage list, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
-  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font; windows you can drag, stack and close (help, the journal, the orders, the shop, the area map, the tally and the hero windows so far); and the frame of the screen (place panel, countdown, purse, boss bar, hero frames)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the rest of the old HUD (ladder, goals, ticker, away report) <span class="tag planned">Planned</span>, moving over next</td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font; windows you can drag, stack and close (help, the journal, the orders, the shop, the area map, the tally, the hero windows and the away report); the frame of the screen (place panel, countdown, purse, boss bar, hero frames); and the goals, the stage list, the ticker, the note after a defeat and the catching-up bar</td><td><span class="tag built">Built</span>, on <code>dev</code></td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on

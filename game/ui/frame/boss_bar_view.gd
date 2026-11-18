@@ -153,7 +153,7 @@ func _guardian() -> Combatant:
 func _draw() -> void:
 	var bar: Rect2 = bar_rect()
 	# Lost health first, in amber, draining after the bar; then the health itself.
-	HudPanel.draw_bar(
+	UiBar.draw_bar(
 		self,
 		bar,
 		_trail.value,

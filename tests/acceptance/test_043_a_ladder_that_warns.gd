@@ -37,7 +37,7 @@ func before_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ladder() -> DepthLadder:
+func _ladder() -> StageList:
 	return _hud.ladder
 
 
@@ -125,8 +125,8 @@ func _mouse_leaves() -> void:
 ## True when the rung of [param depth] lies wholly inside the rungs on show.
 func _on_show(depth: int) -> bool:
 	var row: Rect2 = _ladder().rung_rect(depth)
-	var top: float = DepthLadder.RUNGS_TOP
-	var bottom: float = top + DepthLadder.RUNGS * DepthLadder.PITCH
+	var top: float = StageList.RUNGS_TOP
+	var bottom: float = top + StageList.RUNGS * StageList.PITCH
 	return row.position.y >= top - 0.01 and row.end.y <= bottom + 0.01
 
 
@@ -151,7 +151,7 @@ func _count(sentence: String) -> int:
 
 
 func test_r1_rungs_show_risk() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	var colours: Array[Color] = []
 	for risk: DepthLadder.Risk in [
 		DepthLadder.Risk.SAFE, DepthLadder.Risk.REACHABLE, DepthLadder.Risk.DANGEROUS
@@ -202,7 +202,7 @@ func test_r1_rungs_show_risk() -> void:
 
 
 func test_r2_hover_says_it() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_levels(3)
 	_situation(2, 2, 2, 2)
 	var lines: Dictionary[int, String] = {
@@ -218,11 +218,11 @@ func test_r2_hover_says_it() -> void:
 	# Resting the mouse on each kind of rung shows that hint beside the ladder.
 	for depth: int in [1, 4, 6]:
 		_hover_at(ladder.rung_rect(depth).get_center())
-		_hud.advance(HudTooltip.DELAY + STEP)
+		_hud.advance(UiTip.DELAY + STEP)
 		assert_true(ladder.hint.is_visible_in_tree(), "depth %d: a hint shows" % depth)
 		assert_eq(ladder.hint_text(), lines[depth], "depth %d: the hint as shown" % depth)
 		var hint: Rect2 = ladder.hint.get_global_rect()
-		assert_lte(hint.end.x, ladder.get_global_rect().position.x, "left of the ladder")
+		assert_lte(hint.end.x, Hud.on_screen(ladder).position.x, "left of the ladder")
 		var rows: int = 2 if lines[depth].contains("\n") else 1
 		assert_gte(hint.size.y, 4.0 + rows * 9.0, "depth %d: room for %d lines" % [depth, rows])
 		_mouse_leaves()
@@ -233,7 +233,7 @@ func test_r2_hover_says_it() -> void:
 
 
 func test_r3_dangerous_click() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_levels(3)
 	_situation(2, 2, 2, 2)
 	var line: String = "Target set to Mossy Hollow 6: dangerous for level 3 heroes"
@@ -286,7 +286,7 @@ func test_r3_dangerous_click() -> void:
 
 
 func test_r4_scrolls() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(3, 3, 20, 3)
 	var middle: Vector2 = ladder.rung_rect(5).get_center()
 	assert_true(ladder.is_following(), "it follows the party at first")
@@ -298,10 +298,10 @@ func test_r4_scrolls() -> void:
 	_wheel(true, middle)
 	_hud.advance(STEP)
 	assert_false(ladder.is_following(), "scrolled away")
-	assert_lt(before - ladder.rung_rect(10).position.y, DepthLadder.PITCH, "not in one jump")
+	assert_lt(before - ladder.rung_rect(10).position.y, StageList.PITCH, "not in one jump")
 	_settle()
 	assert_eq(ladder.first_depth(), first + 1, "one rung deeper")
-	assert_almost_eq(before - ladder.rung_rect(10).position.y, DepthLadder.PITCH, 0.5, "a rung")
+	assert_almost_eq(before - ladder.rung_rect(10).position.y, StageList.PITCH, 0.5, "a rung")
 	# A notch up comes back.
 	_wheel(false, middle)
 	_settle()
@@ -326,9 +326,9 @@ func test_r4_scrolls() -> void:
 	assert_true(arrow.has_area(), "an arrow shows")
 	var panel := Rect2(Vector2.ZERO, ladder.size)
 	assert_true(panel.encloses(arrow), "on the ladder")
-	assert_lte(arrow.size.x, 16.0, "small")
-	assert_lte(arrow.size.y, 10.0, "small")
-	assert_lte(arrow.position.y, DepthLadder.RUNGS_TOP + 2.0, "at the top edge, toward the party")
+	assert_lte(arrow.size.x, 20.0, "small")  # spec 062: in UI pixels
+	assert_lte(arrow.size.y, 12.0, "small")
+	assert_lte(arrow.position.y, StageList.RUNGS_TOP + 2.0, "at the top edge, toward the party")
 	assert_true(ladder.arrow_points_up(), "pointing up")
 	var hash_before: int = _sim.state_hash()
 	_click_at(arrow.get_center())
@@ -348,7 +348,7 @@ func test_r4_scrolls() -> void:
 	assert_false(ladder.arrow_points_up(), "pointing down")
 	assert_gte(
 		arrow.end.y,
-		DepthLadder.RUNGS_TOP + DepthLadder.RUNGS * DepthLadder.PITCH - 2.0,
+		StageList.RUNGS_TOP + StageList.RUNGS * StageList.PITCH - 2.0,
 		"at the bottom edge"
 	)
 
@@ -369,7 +369,7 @@ func test_r4_scrolls() -> void:
 
 
 func test_r5_flash_is_seen() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(3, 3, 30, 3)
 	assert_false(_on_show(20), "setup: rung 20 is off the ladder")
 	ladder.flash(20)
@@ -402,22 +402,20 @@ func test_r5_flash_is_seen() -> void:
 
 
 func test_r6_nothing_else_changes() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(3, 3, 20, 3)
-	var rect: Rect2 = ladder.get_global_rect()
-	# Spec 049 widened it by 8 pixels, from 52, to hold an area's name in its heading.
-	assert_eq(rect.size, Vector2(60, 258), "the ladder's size as before")
-	assert_eq(
-		rect.position,
-		Vector2(Hud.SCREEN.x - Hud.MARGIN - 60, Hud.TOP_BAND + DepthLadder.DROP),
-		"place"
-	)
+	# Spec 062: on the sharp layer, at the frame's right edge under the purse, in UI pixels.
+	var rect: Rect2 = ladder.get_rect()
+	var room := Vector2(UiRoot.MIN_ROOM)  # a HUD alone lays its frame out at the least room
+	var top: float = Hud.FRAME_TOP + PlacePanel.HEIGHT + Hud.FRAME_GAP
+	assert_eq(rect.size, Vector2(150, 312), "the list's size: 12 rows of 24 under its heading")
+	assert_eq(rect.position, Vector2(room.x - Hud.FRAME_EDGE - StageList.WIDTH, top), "place")
 	var hash_before: int = _sim.state_hash()
 	var target: int = _sim.expedition.target_depth
 	for i: int in 4:
 		_wheel(true, ladder.rung_rect(5).get_center())
 		_hover_at(ladder.rung_rect(6 + i).get_center())
-		_hud.advance(HudTooltip.DELAY + STEP)
+		_hud.advance(UiTip.DELAY + STEP)
 	ladder.scroll_by(3)
 	ladder.scroll_by(-2)
 	_settle()
@@ -425,7 +423,7 @@ func test_r6_nothing_else_changes() -> void:
 	_hud.advance(RETURN_SECONDS + 1.0)
 	assert_eq(_sim.state_hash(), hash_before, "scrolling and hovering change nothing in the game")
 	assert_eq(_sim.expedition.target_depth, target, "the target is as it was")
-	assert_eq(ladder.get_global_rect(), rect, "the ladder's rectangle is as it was")
+	assert_eq(ladder.get_rect(), rect, "the ladder's rectangle is as it was")
 
 	# Marks are as before.
 	_situation(7, 3, 9, 8)
@@ -434,8 +432,8 @@ func test_r6_nothing_else_changes() -> void:
 	assert_true(ladder.marks(8).has(&"target"), "the target's mark")
 	assert_true(ladder.marks(5).has(&"guardian"), "the guardian's mark")
 
-	# No new key: the ladder still answers only L.
-	var source: String = FileAccess.get_file_as_string("res://game/hud/depth_ladder.gd")
+	# No new key: the ladder (the stage list since spec 062) still answers only L.
+	var source: String = FileAccess.get_file_as_string("res://game/ui/frame/stage_list.gd")
 	var regex := RegEx.create_from_string("KEY_[A-Z0-9_]+")
 	var keys: Dictionary[String, bool] = {}
 	for found: RegExMatch in regex.search_all(source):

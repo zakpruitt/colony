@@ -3,7 +3,8 @@ extends Control
 ## The amber tag on a button of the bar (spec 059 R6), as the old HUD's Shop button had one (spec
 ## 017 R2): a number in [code]ink[/code] on a small [code]amber[/code] tag that pulses to
 ## [code]orange[/code] and back, lifting a pixel on the beat. [UiButtonBar] shows it at its
-## button's top-right corner while its window's [member UiWindow.badge] is above 0.
+## button's top-right corner while its window's [member UiWindow.badge] is above 0, on a layer of
+## its own over the bar's buttons and under the windows (spec 062 R12).
 
 ## Seconds of one pulse, bright half then dim half.
 const PULSE_SECONDS: float = 0.8
@@ -25,7 +26,6 @@ var _time: float = 0.0
 func _init() -> void:
 	name = "Badge"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	z_index = 1  # over the next button on the bar
 	visible = false
 	_fit()
 

@@ -222,7 +222,7 @@ func test_r3_works_while_away() -> void:
 	assert_eq(replay.report.upgrades_bought, purchases, "the report counts every purchase")
 	assert_eq(replay.simulation.state_hash(), reference.state_hash(), "the replay is the game")
 
-	var panel := AwayPanel.new(replay.report, replay.simulation.party)
+	var panel := AwayWindow.new(replay.report, replay.simulation.party)
 	add_child_autofree(panel)
 	assert_string_contains(panel.text(), "Upgrades bought %d" % purchases, "the panel says so")
 	assert_push_error_count(0)

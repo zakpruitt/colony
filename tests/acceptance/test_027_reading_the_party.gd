@@ -435,12 +435,12 @@ func test_r3_journal() -> void:
 
 	# The ticker shows the newest for 4 seconds, then fades.
 	assert_eq(journal.ticker_text(), "Bought %s, rank 2" % upgrade.display_name, "the newest")
-	assert_true(journal.ticker.visible, "on screen")
+	assert_true(_hud.ticker.visible, "on screen")
 	journal.advance(3.9)
 	assert_ne(journal.ticker_text(), "", "still showing at 3.9 s")
 	journal.advance(1.0)
 	assert_eq(journal.ticker_text(), "", "gone after 4 s and its fade")
-	assert_false(journal.ticker.visible, "off screen")
+	assert_false(_hud.ticker.visible, "off screen")
 
 	# Old events go in the journal, not the ticker.
 	_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, 9, World.ANIMATE_TICKS + 1)
@@ -538,7 +538,6 @@ func test_r5_marker() -> void:
 
 
 func test_r6_it_fits() -> void:
-	var journal: Journal = _hud.journal
 	_before_guardian(5)
 	_raise(STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a guardian fight")
@@ -550,7 +549,7 @@ func test_r6_it_fits() -> void:
 		_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, level + 2)
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
 	_hud.advance(0.0)
-	assert_true(journal.ticker.visible, "the ticker shows")
+	assert_true(_hud.ticker.visible, "the ticker shows")
 
 	var frames: Dictionary = {}
 	for frame: HeroFrameView in _hud.frames:
@@ -561,7 +560,7 @@ func test_r6_it_fits() -> void:
 	}
 	var depth: Rect2 = _hud.place_panel.get_global_rect()
 	var shop: Rect2 = _hud.shop.get_global_rect()
-	var ticker: Rect2 = journal.ticker.get_global_rect()
+	var ticker: Rect2 = _hud.ticker.get_global_rect()
 	var bar: Rect2 = _hud.countdown.bar.get_global_rect()
 	_clear_of(ticker, frames, "ticker")
 	_clear_of(ticker, top, "ticker")

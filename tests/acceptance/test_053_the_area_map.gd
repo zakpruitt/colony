@@ -127,13 +127,13 @@ func _frame_tip(control: Control) -> String:
 ## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
 ## the map's window (spec 059), the HUD's otherwise.
 func _tip(control: Control) -> String:
-	if _ui.frame.is_ancestor_of(control):
+	if _ui.frame.is_ancestor_of(control) and not _hud.screen_frame.is_ancestor_of(control):
 		return _map().tip.text_for(control)
-	_hud.tooltip.point_at(control.get_global_rect().get_center())
-	_hud.tooltip.advance(HudTooltip.DELAY + 0.01)
-	var text: String = _hud.tooltip.shown_text()
-	_hud.tooltip.point_at(HudTooltip.NOWHERE)
-	_hud.tooltip.advance(0.0)
+	_hud.frame_tip.point_at(control.get_global_rect().get_center())
+	_hud.frame_tip.advance(UiTip.DELAY + 0.01)
+	var text: String = _hud.frame_tip.shown_text()
+	_hud.frame_tip.point_at(UiTip.NOWHERE)
+	_hud.frame_tip.advance(0.0)
 	return text
 
 
@@ -496,7 +496,7 @@ func test_r6_somewhere_new() -> void:
 
 
 func _tip_goal(index: int) -> String:
-	return _tip(_hud.goals.rows[index])
+	return _tip(_hud.goals_view.rows[index])
 
 
 func test_r6_opened_before_this_session() -> void:

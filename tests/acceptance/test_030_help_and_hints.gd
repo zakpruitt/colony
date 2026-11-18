@@ -487,12 +487,10 @@ func _tipped(hud: Hud) -> Array[Array]:
 
 
 func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> String:
-	# Spec 061: the frame of the screen has its own tooltip, on the UI layer.
-	var tip_box: Control = hud.tooltip.box
-	var shown: Callable = hud.tooltip.shown_text
-	if hud.screen_frame.is_ancestor_of(control):
-		tip_box = hud.frame_tip
-		shown = hud.frame_tip.shown_text
+	# Spec 061: the frame of the screen has its own tooltip, on the UI layer (spec 062: the only
+	# tooltip the HUD has).
+	var tip_box: Control = hud.frame_tip
+	var shown: Callable = hud.frame_tip.shown_text
 	var rect: Rect2 = control.get_global_rect()
 	_mouse(SCREEN / 2.0)
 	hud.advance(1.0)
@@ -526,7 +524,7 @@ func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> Str
 
 
 func test_r4_tooltips() -> void:
-	var tooltip: HudTooltip = _hud.tooltip
+	var tooltip: UiTip = _hud.frame_tip
 	assert_not_null(tooltip, "the HUD has a tooltip")
 	if tooltip == null:
 		return

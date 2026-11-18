@@ -1,6 +1,8 @@
 class_name Hud
 extends Control
-## The HUD (spec 011): the frame of the screen, and the old panels still drawn with the world.
+## The HUD (spec 011): what the screen tells of the party, around the world. Since spec 062 it draws
+## nothing in the world's pixels but the dark of a crossing ([CrossingVeil], with the world's own
+## title): everything else is on the sharp layer.
 ##
 ## The HUD only reads the simulation, and listens to [signal World.sim_event] for hits and
 ## level-ups; the player's choices reach the simulation through [method Simulation.set_target_depth]
@@ -19,6 +21,11 @@ extends Control
 ## hang from [member screen_frame], which [UiRoot] takes onto its layer; a HUD on its own (a test)
 ## keeps it, scaled so that its 960x540 UI pixels cover the 640x360 screen. The texts are made here
 ## and only drawn there; their tooltips are [member frame_tip], spec 058's tooltip.
+##
+## Spec 062 moves the rest there too: the goals ([GoalsView]) under the place panel, the stage list
+## ([StageList]) at the right edge, the [Ticker] over the hero frames, and the note after a defeat
+## ([DefeatNoteView]), which [UiRoot] lifts over every window. [Goals], [Journal] and [DefeatNote]
+## still decide what they say; they draw nothing.
 
 ## The screen the HUD is laid out on, in pixels.
 const SCREEN: Vector2 = Vector2(640, 360)
@@ -104,6 +111,11 @@ var clock_label: Label
 var shop: ShopWindow
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
+## The journal's newest line over the hero frames (spec 062 R3); a click opens the Journal.
+var ticker: Ticker
+## The dark of a crossing and its title (spec 054): the world's own, all the HUD still draws in the
+## world's pixels (spec 062 R7).
+var veil: CrossingVeil
 ## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
 ## when there is no UI layer (a HUD on its own in a test). Set by [method UiRoot.setup].
 var hero_windows: HeroWindows:
@@ -112,20 +124,21 @@ var hero_windows: HeroWindows:
 		if value != null:
 			value.changed.connect(_mark_frames)
 			_mark_frames()
-## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
-var ladder: DepthLadder
-## The next few things within reach, under the depth panel (spec 037); G hides it.
+## The stages of this area down the right edge (spec 033, spec 062 R2); L hides it.
+var ladder: StageList
+## The next few things within reach (spec 037); G hides them. [member goals_view] draws them under
+## the place panel (spec 062 R1).
 var goals: Goals
-## The tooltips on the HUD's old elements (spec 030).
-var tooltip: HudTooltip
+var goals_view: GoalsView
 ## The windows on the UI layer (spec 058), which hold help, the journal's list and the orders;
 ## null when there is no UI layer (a HUD on its own in a test).
 var windows: UiWindows:
 	set(value):
 		windows = value
 		if frame_tip != null and value != null:
-			frame_tip.covered = value.covers
-## What beat the party and what would help (spec 041), under the top band in the middle.
+			frame_tip.covered = _covered
+## What beat the party and what would help (spec 041); its [member DefeatNote.panel] is drawn over
+## every window (spec 062 R4).
 var defeat_note: DefeatNote
 ## The party tally (spec 045): who deals, heals and takes the damage; the content of the Party
 ## tally window since spec 059, made here so it counts from the start.
@@ -235,7 +248,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_world = world
 	_effects = effects
 	_icons = PixelSheet.load_sheet(ICONS_PATH)
-	var veil := CrossingVeil.new()  # spec 054: first, so the rest of the HUD is drawn over it
+	veil = CrossingVeil.new()  # spec 054
 	add_child(veil)
 	veil.setup(world)
 	_build_screen_frame()
@@ -245,7 +258,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	add_child(journal)
 	journal.setup(simulation, world)
 	_build_ladder()
-	goals = Goals.new()  # spec 037: before the tooltips, so its lines get them
+	goals = Goals.new()
 	add_child(goals)
 	goals.setup(simulation, world)
 	# Spec 059: the tally and the area map are windows on the UI layer, which [UiRoot] makes.
@@ -253,13 +266,14 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	tally.setup(simulation, world, self)
 	area_map = AreaMapWindow.new()
 	area_map.setup(simulation, world, self)
-	_build_tooltip()
+	_build_news()
 	place_panel.area_button.pressed.connect(area_map.toggle)
 	purse.setup(simulation, effects.resource_effects if effects != null else null)
-	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
+	defeat_note = DefeatNote.new()  # spec 041
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
-	move_child(tooltip, -1)  # drawn over the note
+	screen_frame.add_child(defeat_note.panel)
+	screen_frame.move_child(frame_tip, -1)  # the tooltips over everything else
 	_tip_frame()
 	_shown_gold = simulation.party.gold
 	_depth = simulation.expedition.depth
@@ -310,7 +324,6 @@ func advance(delta: float) -> void:
 	_mark_area()
 	_lay_out_frame()
 	defeat_note.advance(delta)
-	tooltip.advance(delta)
 	frame_tip.advance(delta)
 
 
@@ -336,8 +349,6 @@ func fit_frame(room: Vector2i) -> void:
 	# Lifted onto the layer ([method lift_tip]), the tip keeps to the layer's own room.
 	frame_tip.room = _frame_room if frame_tip.get_parent() == screen_frame else Vector2(room)
 	_lay_out_frame()
-	if _ui != null:
-		journal.frames_top = _ui.frames_top()  # the ticker stands on the frames
 
 
 ## The top of the hero frames on the UI layer in a room of [param room] UI pixels: where
@@ -353,13 +364,19 @@ static func _fit(room: Vector2i) -> float:
 	return minf(1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y))
 
 
-## Puts the frame's tooltip over everything else on [param ui]'s layer (the button bar and every
-## window), unscaled, in the layer's room. Called by [method UiRoot.setup] once all is on it.
+## Puts the note after a defeat over every window on [param ui]'s layer (spec 062 R4), and the
+## frame's tooltip over everything else (the button bar, every window and the note), unscaled, in
+## the layer's room. Called by [method UiRoot.setup] once all is on it.
 func lift_tip(ui: UiRoot) -> void:
+	var note: DefeatNoteView = defeat_note.panel
+	note.reparent(ui.frame, false)
+	ui.frame.move_child(note, -1)
+	note.scale = Vector2.ONE
+	note.z_index = 1  # with the stage list's line, which it comes after: drawn over it
 	frame_tip.reparent(ui.frame, false)
 	ui.frame.move_child(frame_tip, -1)
 	frame_tip.scale = Vector2.ONE
-	frame_tip.z_index = 2  # over the tags on the bar's buttons, which draw at 1
+	frame_tip.z_index = 2  # over the stage list's line, which draws at 1
 	frame_tip.room = Vector2(ui.room())
 
 
@@ -487,7 +504,7 @@ static func short_count(amount: int) -> String:
 
 
 ## Where [param control] is, as a rectangle in the screen's 640x360 pixels (where input events
-## and the old HUD are), wherever it is drawn: through its canvas layer's transform, never a
+## and the world are), wherever it is drawn: through its canvas layer's transform, never a
 ## camera's (a [Hud] built alone in a test sits on no layer, beside a world's camera).
 static func on_screen(control: Control) -> Rect2:
 	var xform: Transform2D = _screen_transform(control)
@@ -562,6 +579,9 @@ func _tip_frame() -> void:
 	frame_tip.attach(purse.speed_button, SPEED_TIP)
 	frame_tip.attach(purse, GOLD_TIP, "Gold")
 	frame_tip.attach(boss_bar, BOSS_TIP, boss_bar.shown_name)
+	# Spec 037 R5: each goal says how to get there; spec 042 R3: then what a click does.
+	for i: int in goals_view.rows.size():
+		frame_tip.attach(goals_view.rows[i], goals_view.tip.bind(i))
 	for frame: HeroFrameView in frames:
 		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
 		frame_tip.attach(frame, frame.tip, frame.tip_title)
@@ -600,12 +620,12 @@ func _on_frame_clicked(hero_id: int) -> void:
 		hero_windows.toggle(hero_id)
 
 
-## The depth ladder (spec 033): it hides itself on L and while the shop is open; a click on a
-## rung asks for a target, which the target number shows at once, as the - and + buttons do.
+## The stage list (spec 033, spec 062 R2): it hides itself on L and while the shop is open; a click
+## on a row asks for a target, which the target number shows at once, as the - and + buttons do.
 func _build_ladder() -> void:
-	ladder = DepthLadder.new()
-	add_child(ladder)
-	ladder.setup(_simulation, _world)
+	ladder = StageList.new()
+	screen_frame.add_child(ladder)
+	ladder.setup(_simulation, journal)
 	ladder.target_asked.connect(_on_ladder_target)
 
 
@@ -614,12 +634,58 @@ func _on_ladder_target(depth: int) -> void:
 	_advance_depth(0.0)
 
 
-## The tooltips (spec 030), made late so they are drawn over everything else. Help and the
-## orders moved onto the UI layer (spec 058), with their buttons.
-func _build_tooltip() -> void:
-	tooltip = HudTooltip.new()
-	add_child(tooltip)
-	tooltip.setup(self)
+## The goals and the ticker on the frame of the screen (spec 062 R1, R3).
+func _build_news() -> void:
+	goals_view = GoalsView.new()
+	screen_frame.add_child(goals_view)
+	goals_view.setup(goals)
+	ticker = Ticker.new()
+	screen_frame.add_child(ticker)
+	ticker.clicked.connect(_on_ticker_clicked)
+	journal.ticker_changed.connect(_show_ticker)
+
+
+## Shows the journal's newest line in the ticker, just above the hero frames, clear of the button
+## bar beside it (spec 062 R3, R10). Called as the frame is laid out and whenever the line changes.
+func _show_ticker() -> void:
+	var room: Vector2 = _frame_room
+	var frames_y: float = room.y - FRAME_EDGE - HeroFrameView.SIZE.y
+	var bar_left: float = room.x
+	if _ui != null and _ui.bar != null:
+		var bar_at: Vector2 = _ui.bar.rect_in(Vector2i(_ui.room())).position
+		bar_left = (screen_frame.get_transform().affine_inverse() * bar_at).x
+	ticker.show_line(journal.ticker_text(), journal.ticker_colour(), room.x, frames_y, bar_left)
+
+
+## True when [param at] (the viewport's coordinates) lies on a window or the button bar and not on
+## the note after a defeat, which is drawn over them (spec 062 R4): the frame's tip treats such a
+## point as nowhere.
+func _covered(at: Vector2) -> bool:
+	if windows == null or not windows.covers(at):
+		return false
+	return not (defeat_note.is_shown() and Hud.on_screen(defeat_note.panel).has_point(at))
+
+
+## A click on the ticker opens the Journal window (spec 062 R3).
+func _on_ticker_clicked() -> void:
+	if windows != null:
+		windows.open_window(UiRoot.JOURNAL)
+
+
+## The room the note after a defeat is laid out in, in its own UI pixels: the layer's room once it
+## is lifted over the windows, else the frame of the screen's.
+func note_room() -> Vector2:
+	if _ui != null and defeat_note.panel.get_parent() == _ui.frame:
+		return Vector2(_ui.room())
+	return _frame_room
+
+
+## [param world_px], a point in the screen's 640x360 pixels, in the note's own UI pixels.
+func world_to_note(world_px: Vector2) -> Vector2:
+	if _ui != null and defeat_note.panel.get_parent() == _ui.frame:
+		return _ui.world_to_ui(world_px)
+	var layer_px: Vector2 = world_px if _ui == null else _ui.world_to_ui(world_px)
+	return screen_frame.get_transform().affine_inverse() * layer_px
 
 
 func _mark_frames() -> void:
@@ -733,6 +799,12 @@ func _lay_out_frame() -> void:
 	var width_bar: float = floorf(minf(widest, right - left))
 	var bar_x: float = clampf(floorf((room.x - width_bar) / 2.0), left, right - width_bar)
 	boss_bar.place(Vector2(bar_x, FRAME_TOP), width_bar, PlacePanel.HEIGHT)
+	# Spec 062: the goals under the place panel, the stage list at the right edge under the purse,
+	# and the ticker just above the hero frames.
+	var under: float = FRAME_TOP + PlacePanel.HEIGHT + FRAME_GAP
+	goals_view.position = Vector2(FRAME_EDGE, under)
+	ladder.position = Vector2(room.x - FRAME_EDGE - StageList.WIDTH, under)
+	_show_ticker()
 	_aim_effects()
 
 

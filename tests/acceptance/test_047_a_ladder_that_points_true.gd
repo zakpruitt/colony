@@ -40,7 +40,7 @@ func before_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ladder() -> DepthLadder:
+func _ladder() -> StageList:
 	return _hud.ladder
 
 
@@ -66,7 +66,7 @@ func _settle() -> void:
 
 ## The top of the ladder as drawn, a depth (fractional while it scrolls), read from a rung's place.
 func _scroll() -> float:
-	return (DepthLadder.RUNGS_TOP - _ladder().rung_rect(0).position.y) / DepthLadder.PITCH
+	return (StageList.RUNGS_TOP - _ladder().rung_rect(0).position.y) / StageList.PITCH
 
 
 func _enters() -> void:
@@ -105,7 +105,7 @@ func _wheel(down: bool, at: Vector2) -> void:
 ## Checks that the outline and, while it shows, the hint are those of the rung under the mouse at
 ## [param at] now; returns false (once) when they are not.
 func _points_true(at: Vector2, what: String) -> bool:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	var under: int = ladder.depth_at(at)
 	if ladder.hovered != under:
 		assert_eq(ladder.hovered, under, "%s: the outline is on the rung under it" % what)
@@ -129,12 +129,12 @@ func _watch(at: Vector2, frames: int, what: String) -> void:
 
 
 func test_r1_hover_follows_the_rungs() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(8, 3, 20, 8)
 	var at: Vector2 = ladder.rung_rect(9).get_center()
 	_enters()
 	_move_to(at)
-	_hud.advance(HudTooltip.DELAY + STEP)
+	_hud.advance(UiTip.DELAY + STEP)
 	assert_eq(ladder.hovered, 9, "setup: the mouse rests on rung 9")
 	assert_true(ladder.hint.visible, "setup: its hint shows")
 	assert_true(ladder.hint_text().begins_with("Mossy Hollow 9:"), "setup: " + ladder.hint_text())
@@ -144,7 +144,7 @@ func test_r1_hover_follows_the_rungs() -> void:
 	assert_true(_points_true(at, "the notch's own frame"), "on the notch's own frame")
 	_watch(at, 120, "a notch down")
 	assert_eq(ladder.hovered, 10, "the rung now under the mouse is outlined")
-	_hud.advance(HudTooltip.DELAY)
+	_hud.advance(UiTip.DELAY)
 	assert_true(ladder.hint.visible, "a hint shows")
 	assert_eq(ladder.hint_text(), ladder.hover_text(10), "the hint is rung 10's")
 
@@ -180,7 +180,7 @@ func test_r1_hover_follows_the_rungs() -> void:
 
 
 func test_r2_goes_back_to_following() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(8, 3, 20, 8)
 	var inside: Vector2 = ladder.rung_rect(9).get_center()
 	_enters()
@@ -234,7 +234,7 @@ func test_r2_goes_back_to_following() -> void:
 
 
 func test_r3_stays_where_put() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(8, 8, 20, 8)
 	var top: int = ladder.first_depth()
 	var at: Vector2 = ladder.rung_rect(10).get_center()
@@ -306,7 +306,7 @@ func _part_way() -> bool:
 
 
 ## Scrolls the ladder a rung away and has it follow the party again, stopping part way back.
-func _easing_back(ladder: DepthLadder) -> bool:
+func _easing_back(ladder: StageList) -> bool:
 	ladder.scroll_by(1)
 	_settle()
 	ladder.follow()
@@ -319,7 +319,7 @@ func _easing_back(ladder: DepthLadder) -> bool:
 
 
 func test_r4_a_notch_is_a_rung() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	# Spec 054: the party never stands part way between stages, so the ladder is caught part way
 	# through easing to the next one, afresh for each way.
 	for down: bool in [true, false]:
@@ -349,9 +349,9 @@ func test_r4_a_notch_is_a_rung() -> void:
 
 
 func test_r5_target_is_easy_to_find() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	_situation(7, 3, 9, 10)
-	var colours: Dictionary[StringName, StringName] = DepthLadder.MARK_COLOURS
+	var colours: Dictionary[StringName, StringName] = StageList.MARK_COLOURS
 	assert_eq(colours[&"target"], &"yellow", "the target's mark is yellow")
 	assert_eq(colours[&"party"], &"white", "the party's mark is white")
 	for risk: DepthLadder.Risk in DepthLadder.RISK_COLOURS:
@@ -367,9 +367,9 @@ func test_r5_target_is_easy_to_find() -> void:
 		assert_true(frame.has_area(), "the %s's rung has its mark" % mark)
 		assert_true(row.encloses(frame), "inside its row: %s in %s" % [frame, row])
 		# Round the number: from left of its widest (three digits) to right of its last column.
-		assert_lte(frame.position.x, DepthLadder.NUMBER_RIGHT - PixelText.width("999") - 1.0)
-		assert_gte(frame.end.x, DepthLadder.NUMBER_RIGHT + 1.0, "right of the number")
-		assert_lte(frame.end.x, DepthLadder.RAIL_LEFT, "clear of the rails")
+		assert_lte(frame.position.x, StageList.NUMBER_RIGHT - PixelText.width("999") - 1.0)
+		assert_gte(frame.end.x, StageList.NUMBER_RIGHT + 1.0, "right of the number")
+		assert_lte(frame.end.x, StageList.RAIL_LEFT, "clear of the rails")
 		assert_gte(frame.size.y, 10.0, "tall enough to frame the number")
 		assert_lte(frame.position.y, row.position.y + 5.0, "above the number")
 		assert_gte(frame.end.y, row.position.y + 15.0, "below it")
@@ -403,7 +403,7 @@ func test_r5_target_is_easy_to_find() -> void:
 	_situation(14, 14, 20, 14)
 	ladder.scroll_by(-7)
 	_settle()
-	assert_eq(ladder.first_depth() + DepthLadder.RUNGS - 1, 14, "setup: the party's at the bottom")
+	assert_eq(ladder.first_depth() + StageList.RUNGS - 1, 14, "setup: the party's at the bottom")
 	assert_false(ladder.arrow_points_up(), "setup: the arrow points down")
 	diamond = ladder.mark_rect(14, &"diamond")
 	assert_false(

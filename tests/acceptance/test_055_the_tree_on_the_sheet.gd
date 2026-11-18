@@ -672,7 +672,7 @@ func test_r8_the_game_points_at_it() -> void:
 	var row: int = _hud.goals.lines().find(sentence)
 	assert_gte(row, 0, "a goal: %s" % [_hud.goals.lines()])
 	if row >= 0:
-		_click(_hud.goals.rows[row])
+		_click(_hud.goals_view.rows[row])
 		assert_true(_hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
 		assert_eq(_sheet().hero_id, knight.id, "in front")
 		assert_eq(_sheet().page(), HeroWindow.Page.TALENTS, "on its Talents tab")

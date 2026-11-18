@@ -57,6 +57,7 @@ func _build_hud() -> void:
 	_hud.setup(_sim, _world, _fx)
 	_ui = UiRoot.new()
 	add_child_autofree(_ui)
+	_ui.layer = 130  # spec 062: the goals are on this layer, which must be over GUT's too
 	_ui.setup(_sim, _hud, null)
 
 
@@ -163,7 +164,7 @@ func _click_at(at: Vector2) -> void:
 
 ## Clicks the middle of goal line [param index].
 func _click(index: int) -> void:
-	_click_at(_hud.goals.rows[index].get_global_rect().get_center())
+	_click_at(Hud.on_screen(_hud.goals_view.rows[index]).get_center())
 
 
 ## Closes every panel the HUD has, and shows the ladder if L hid it.
@@ -273,7 +274,7 @@ func test_r1_click_a_goal() -> void:
 		assert_eq(_open_panels(), ["orders"] as Array[String], "%s: the orders only" % how)
 
 	# Reach depth N: the ladder shows if hidden, and rung N flashes for about a second.
-	var ladder: DepthLadder = _hud.ladder
+	var ladder: StageList = _hud.ladder
 	var depth: int = _line("Reach Mossy Hollow 3")
 	assert_ne(depth, -1, "the depth goal shows: %s" % [goals.lines()])
 	for how: String in ["press", "mouse"]:
@@ -293,11 +294,11 @@ func test_r1_click_a_goal() -> void:
 		_hud.advance(0.6)
 		assert_false(ladder.is_flashing(3), "%s: done after about a second" % how)
 		assert_eq(_open_panels(), [] as Array[String], "%s: no panel" % how)
-	# With the shop open (it hides the ladder), the ladder still shows.
+	# With the shop open (which no longer hides the ladder, spec 062 R2), the ladder shows.
 	_close_all()
 	_hud.shop.open()
 	_hud.advance(STEP)
-	assert_false(ladder.is_shown(), "the shop hides the ladder")
+	assert_true(ladder.is_shown(), "the shop leaves the ladder")
 	goals.press(depth)
 	_hud.advance(STEP)
 	assert_true(ladder.is_shown(), "shown from under the shop")
@@ -334,20 +335,22 @@ func test_r2_looks_clickable() -> void:
 
 	# The highlight under the mouse, on that line only.
 	for i: int in lines.size():
-		_mouse(goals.rows[i].get_global_rect().get_center())
+		_mouse(Hud.on_screen(_hud.goals_view.rows[i]).get_center())
 		_hud.advance(STEP)
 		for j: int in lines.size():
 			assert_eq(
-				goals.rows[j].is_highlighted(), i == j, "mouse on %s: %s lit" % [lines[i], lines[j]]
+				_hud.goals_view.rows[j].is_highlighted(),
+				i == j,
+				"mouse on %s: %s lit" % [lines[i], lines[j]]
 			)
 	_mouse(AWAY)
 	_hud.advance(STEP)
 	for j: int in lines.size():
-		assert_false(goals.rows[j].is_highlighted(), "mouse away: %s not lit" % lines[j])
+		assert_false(_hud.goals_view.rows[j].is_highlighted(), "mouse away: %s not lit" % lines[j])
 
 	# The > on the gold goals, at their right edge, at all times.
 	for i: int in lines.size():
-		var row: Goals.Row = goals.rows[i]
+		var row: GoalRow = _hud.goals_view.rows[i]
 		var arrow: Rect2 = row.arrow_rect()
 		var gold: bool = lines[i] in ["Train a hero", "Buy an upgrade"]
 		assert_eq(arrow.has_area(), gold, "%s: a > only on a gold goal" % lines[i])
@@ -355,7 +358,8 @@ func test_r2_looks_clickable() -> void:
 			continue
 		var whole := Rect2(Vector2.ZERO, row.size)
 		assert_true(whole.encloses(arrow), "%s: on its line" % lines[i])
-		assert_gte(arrow.position.x, row.size.x - 8.0, "%s: at the right edge" % lines[i])
+		var edge: float = row.size.x - GoalRow.ARROW_ROOM  # spec 062: in UI pixels
+		assert_gte(arrow.position.x, edge, "%s: at the right edge" % lines[i])
 		var price: Rect2 = Rect2(row.detail_label.position, row.detail_label.size)
 		assert_lte(price.end.x, arrow.position.x, "%s: after the price" % lines[i])
 	# The other kinds have none.
@@ -366,7 +370,7 @@ func test_r2_looks_clickable() -> void:
 	_situation(2, 2, 2)
 	assert_eq(goals.lines().size(), 3, "guardian, depth, microskill: %s" % [goals.lines()])
 	for i: int in goals.lines().size():
-		assert_false(goals.rows[i].arrow_rect().has_area(), "%s: no >" % goals.lines()[i])
+		assert_false(_hud.goals_view.rows[i].arrow_rect().has_area(), "%s: no >" % goals.lines()[i])
 
 	# A finished goal is not lit: it does nothing.
 	_sim.expedition.depth = 3
@@ -374,9 +378,9 @@ func test_r2_looks_clickable() -> void:
 	_hud.advance(STEP)
 	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
-	_mouse(goals.rows[done].get_global_rect().get_center())
+	_mouse(Hud.on_screen(_hud.goals_view.rows[done]).get_center())
 	_hud.advance(STEP)
-	assert_false(goals.rows[done].is_highlighted(), "a finished goal is not lit")
+	assert_false(_hud.goals_view.rows[done].is_highlighted(), "a finished goal is not lit")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -384,18 +388,18 @@ func test_r2_looks_clickable() -> void:
 
 func test_r3_tooltip_says_so() -> void:
 	var goals: Goals = _hud.goals
-	var tooltip: HudTooltip = _hud.tooltip
+	var tooltip: UiTip = _hud.frame_tip
 	var seen: Dictionary[String, String] = {}
 	# The lambda reads the HUD of the moment: a local would keep the first one.
 	var check: Callable = func() -> void:
 		var goals_now: Goals = _hud.goals
-		var tip: HudTooltip = _hud.tooltip
+		var tip: UiTip = _hud.frame_tip
 		for i: int in goals_now.lines().size():
 			var line: String = goals_now.lines()[i]
-			tip.point_at(AWAY)
+			tip.point_at(UiTip.NOWHERE)
 			_hud.advance(1.0)
-			tip.point_at(goals_now.rows[i].get_global_rect().get_center())
-			_hud.advance(HudTooltip.DELAY + 0.01)
+			tip.point_at(_hud.goals_view.rows[i].get_global_rect().get_center())
+			_hud.advance(UiTip.DELAY + 0.01)
 			var text: String = tip.shown_text()
 			var action: String = goals_now.action(i)
 			assert_true(
@@ -406,11 +410,11 @@ func test_r3_tooltip_says_so() -> void:
 			assert_lt(action.length(), 40, "%s: short: %s" % [line, action])
 			assert_eq(text, goals_now.hint(i) + " " + action, "%s: the hint, then the click" % line)
 			assert_true(
-				Rect2(Vector2.ZERO, Hud.SCREEN).encloses(tip.box.get_global_rect()),
+				Rect2(Vector2.ZERO, Hud.SCREEN).encloses(Hud.on_screen(tip)),
 				"%s: the tooltip fits on the screen" % line
 			)
 			seen[line.get_slice(" ", 0)] = action
-		tip.point_at(AWAY)
+		tip.point_at(UiTip.NOWHERE)
 		_hud.advance(STEP)
 
 	_gold_situation()
@@ -423,7 +427,7 @@ func test_r3_tooltip_says_so() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
 	goals = _hud.goals
-	tooltip = _hud.tooltip
+	tooltip = _hud.frame_tip
 	var hero: Hero = _microskill_situation()
 	_situation(2, 2, 2)
 	check.call()
@@ -440,10 +444,10 @@ func test_r3_tooltip_says_so() -> void:
 	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
 	assert_eq(goals.action(done), "", "no click sentence")
-	tooltip.point_at(goals.rows[done].get_global_rect().get_center())
-	_hud.advance(HudTooltip.DELAY + 0.01)
+	tooltip.point_at(_hud.goals_view.rows[done].get_global_rect().get_center())
+	_hud.advance(UiTip.DELAY + 0.01)
 	assert_eq(tooltip.shown_text(), goals.hint(done), "its tooltip is the hint alone")
-	tooltip.point_at(AWAY)
+	tooltip.point_at(UiTip.NOWHERE)
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -547,10 +551,10 @@ func test_r4_nothing_else_changes() -> void:
 	sheet.close_all()
 	_hud.tally.open()
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "the tracker hides under the tally")
+	assert_true(goals.is_shown(), "the tracker stays under the tally too (spec 062 R2)")
 	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "and comes back")
+	assert_true(goals.is_shown(), "and after")
 
 	# Clicks that only open panels leave the simulation as it was: the state hash, the target.
 	_close_all()

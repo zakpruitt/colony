@@ -31,7 +31,7 @@ func before_each() -> void:
 
 func after_each() -> void:
 	if _hud != null and is_instance_valid(_hud) and _hud.defeat_note != null:
-		_hud.defeat_note.point_at(HudTooltip.NOWHERE)
+		_hud.defeat_note.point_at(UiTip.NOWHERE)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -170,13 +170,13 @@ func _linger(seconds: float) -> void:
 
 ## The sentence the tooltip shows after the mouse rests on [param control].
 func _tip_of(control: Control) -> String:
-	_hud.tooltip.point_at(HudTooltip.NOWHERE)
-	_hud.tooltip.advance(1.0)
-	_hud.tooltip.point_at(control.get_global_rect().get_center())
-	_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-	var text: String = _hud.tooltip.shown_text()
-	_hud.tooltip.point_at(HudTooltip.NOWHERE)
-	_hud.tooltip.advance(STEP)
+	_hud.frame_tip.point_at(UiTip.NOWHERE)
+	_hud.frame_tip.advance(1.0)
+	_hud.frame_tip.point_at(control.get_global_rect().get_center())
+	_hud.frame_tip.advance(UiTip.DELAY + 0.1)
+	var text: String = _hud.frame_tip.shown_text()
+	_hud.frame_tip.point_at(UiTip.NOWHERE)
+	_hud.frame_tip.advance(STEP)
 	return text
 
 
@@ -229,7 +229,7 @@ func test_r2_holding_is_true() -> void:
 	_sim.party.gold = 0
 	assert_true(_guardian_wipe(), "the party loses to the guardian")
 	assert_eq(_note().suggestions(), ["Hold here"] as Array[String], "only Hold, with no gold")
-	var hold: HudButton = _note().buttons[0]
+	var hold: UiButton = _note().buttons[0]
 	assert_eq(_tip_of(hold), DefeatNote.TIPS[DefeatNote.Help.HOLD], "the Hold tooltip")
 	_note().press(0)
 	assert_eq(_note().suggestions(), ["Holding"] as Array[String], "Holding once pressed")
@@ -283,7 +283,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 	_note().press(1)
 	assert_true(_hud.shop.is_open(), "the click opens the shop, as the button said")
 	_hud.shop.close()
-	_note().point_at(HudTooltip.NOWHERE)
+	_note().point_at(UiTip.NOWHERE)
 	_hud.advance(STEP)
 	assert_eq(
 		_note().suggestions(),
@@ -303,14 +303,14 @@ func test_r4_panel_does_not_use_time() -> void:
 	assert_true(_note().is_shown(), "the note lingers")
 	_note().press(_note().suggestions().find("Buy an upgrade"))
 	assert_true(_hud.shop.is_open(), "Buy an upgrade opens the shop")
-	_linger(DefeatNote.LINGER_SECONDS + 2.0)
-	assert_false(_note().is_shown(), "hidden while the shop is open")
-	_hud.shop.close()
+	# Spec 062 R4: drawn over every window, the note no longer hides while the shop is open; it
+	# keeps its time there as anywhere.
 	_hud.advance(STEP)
-	assert_true(_note().is_shown(), "still there when the shop closes")
-	_linger(DefeatNote.LINGER_SECONDS - 1.5)
+	assert_true(_note().is_shown(), "shown while the shop is open")
+	_linger(DefeatNote.LINGER_SECONDS - 2.5)
 	assert_true(_note().is_shown(), "with the rest of its time")
-	_linger(2.0)
+	_hud.shop.close()
+	_linger(DefeatNote.LINGER_SECONDS + 2.0)
 	assert_false(_note().is_shown(), "which then runs out")
 
 
@@ -334,7 +334,7 @@ func test_r5_old_defeat_leaves_the_note() -> void:
 	for i: int in 30:
 		_sim.step()
 	assert_true(_reviving(), "wiped during the stall")
-	_note().point_at(HudTooltip.NOWHERE)
+	_note().point_at(UiTip.NOWHERE)
 	_world.sync(STEP)
 	_hud.advance(STEP)
 	assert_true(_note().is_shown(), "the note still shows")

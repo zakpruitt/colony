@@ -376,10 +376,10 @@ func test_r8_stays_in_its_bands() -> void:
 
 func _collect(node: Node, into: Array[Control]) -> void:
 	for child: Node in node.get_children():
-		if child is DepthLadder:
+		if child is StageList:
 			continue  # spec 033's ladder sits below the top band; test_033 R6 places it
-		if child is Goals:
-			continue  # spec 037's goals sit under the depth panel; test_037 R6 places them
+		if child is GoalsView:
+			continue  # spec 037's goals (drawn by GoalsView since 062) sit under the place panel
 		if child is Control:
 			into.append(child)
 		_collect(child, into)
@@ -397,7 +397,7 @@ func _backed(label: Label) -> bool:
 	var rect: Rect2 = label.get_global_rect()
 	var node: Node = label.get_parent()
 	while node != null:
-		var backing: bool = node is HudPanel or node is Panel or node is HeroFrameView
+		var backing: bool = node is Panel or node is HeroFrameView
 		if backing and (node as Control).get_global_rect().encloses(rect):
 			var fill: Color = _fill_of(node as Control)
 			return fill.a >= 0.95 and fill.get_luminance() < 0.25
@@ -405,11 +405,9 @@ func _backed(label: Label) -> bool:
 	return false
 
 
-## The colour [param backing] actually fills itself with: a HUD panel's fill, a hero frame's, or
-## the flat stylebox a panel's theme gives it (clear when it has none).
+## The colour [param backing] actually fills itself with: a hero frame's, or the flat stylebox a
+## panel's theme gives it (clear when it has none). Spec 062 removed the old HUD's own panels.
 func _fill_of(backing: Control) -> Color:
-	if backing is HudPanel:
-		return (backing as HudPanel).fill
 	if backing is HeroFrameView:
 		return (backing as HeroFrameView).fill_colour()
 	var flat: StyleBoxFlat = backing.get_theme_stylebox(&"panel") as StyleBoxFlat

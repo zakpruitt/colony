@@ -176,7 +176,7 @@ func _sentences(goals: Array[Goals.Goal]) -> Array[String]:
 
 
 func _rect() -> Rect2:
-	return _goals().panel.get_global_rect()
+	return Hud.on_screen(_hud.goals_view)
 
 
 func _frame(hero: Hero) -> HeroFrameView:
@@ -195,7 +195,7 @@ func test_r1_tracker() -> void:
 	if goals == null:
 		return
 	assert_true(goals.is_shown(), "shown at start")
-	assert_true(goals.is_visible_in_tree(), "and drawn")
+	assert_true(_hud.goals_view.is_visible_in_tree(), "and drawn")
 	assert_between(goals.lines().size(), 1, 3, "a new game has goals: %s" % [goals.lines()])
 
 	# Three goals at most, each a line with a bar or a count.
@@ -204,7 +204,7 @@ func test_r1_tracker() -> void:
 	assert_eq(goals.lines().size(), 3, "three lines: %s" % [goals.lines()])
 	var bars: int = 0
 	for i: int in goals.lines().size():
-		var row: Goals.Row = goals.rows[i]
+		var row: GoalRow = _hud.goals_view.rows[i]
 		assert_true(row.is_visible_in_tree(), "row %d shows" % i)
 		assert_eq(row.sentence_label.text, goals.lines()[i], "row %d says its sentence" % i)
 		var fraction: float = goals.progress(i)
@@ -215,7 +215,7 @@ func test_r1_tracker() -> void:
 			assert_eq(fraction, -1.0, "no bar is -1")
 			assert_ne(goals.detail(i), "", "a goal with no bar shows a count")
 	assert_gt(bars, 0, "goals with bars")
-	assert_false(goals.rows.size() > 3, "never more than three rows")
+	assert_false(_hud.goals_view.rows.size() > 3, "never more than three rows")
 
 	# The panel: under the depth panel, on the left.
 	var rect: Rect2 = _rect()
@@ -225,17 +225,19 @@ func test_r1_tracker() -> void:
 	assert_eq(rect.position.x, depth.position.x, "lined up with it on the left")
 	assert_lt(rect.end.x, SCREEN.x / 2.0, "on the left")
 	for i: int in goals.lines().size():
-		assert_true(rect.encloses(goals.rows[i].get_global_rect()), "row %d is on the panel" % i)
+		assert_true(
+			rect.encloses(Hud.on_screen(_hud.goals_view.rows[i])), "row %d is on the panel" % i
+		)
 
 	# G hides and shows it.
 	_key(KEY_G)
 	_hud.advance(STEP)
 	assert_false(goals.is_shown(), "G hides it")
-	assert_false(goals.is_visible_in_tree(), "not drawn")
+	assert_false(_hud.goals_view.is_visible_in_tree(), "not drawn")
 	_key(KEY_G)
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "G shows it again")
-	assert_true(goals.is_visible_in_tree(), "drawn")
+	assert_true(_hud.goals_view.is_visible_in_tree(), "drawn")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -544,7 +546,7 @@ func test_r5_explains_itself() -> void:
 	if goals == null:
 		fail_test("no goals tracker")
 		return
-	var tooltip: HudTooltip = _hud.tooltip
+	var tooltip: UiTip = _hud.frame_tip
 	var learner: Array = _learner()
 	var hero: Hero = learner[0]
 	for other: Hero in _sim.party.heroes:
@@ -559,10 +561,10 @@ func test_r5_explains_itself() -> void:
 			_settle()
 		for i: int in goals.lines().size():
 			var line: String = goals.lines()[i]
-			tooltip.point_at(SCREEN / 2.0)
+			tooltip.point_at(UiTip.NOWHERE)
 			_hud.advance(1.0)
-			tooltip.point_at(goals.rows[i].get_global_rect().get_center())
-			_hud.advance(HudTooltip.DELAY + 0.01)
+			tooltip.point_at(_hud.goals_view.rows[i].get_global_rect().get_center())
+			_hud.advance(UiTip.DELAY + 0.01)
 			var text: String = tooltip.shown_text()
 			var how: String = goals.hint(i)
 			# Spec 042 R3: the tooltip is the hint, then what a click does.
@@ -570,11 +572,11 @@ func test_r5_explains_itself() -> void:
 			assert_true(how.ends_with("."), "%s: one sentence: %s" % [line, how])
 			assert_false(how.trim_suffix(".").contains(". "), "%s: only one: %s" % [line, how])
 			assert_false(
-				tooltip.box.get_global_rect().intersects(goals.rows[i].get_global_rect()),
+				tooltip.get_global_rect().intersects(_hud.goals_view.rows[i].get_global_rect()),
 				"%s: clear of its line" % line
 			)
 			seen[line.get_slice(" ", 0)] = text
-	tooltip.point_at(SCREEN / 2.0)
+	tooltip.point_at(UiTip.NOWHERE)
 	for kind: String in ["Beat", "Reach", hero.def().display_name, "Train", "Buy"]:
 		assert_true(seen.has(kind), "a tooltip for the %s goal: %s" % [kind, seen.keys()])
 	_situation(1, 1, 0)
@@ -638,9 +640,8 @@ func test_r6_out_of_the_way() -> void:
 	_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, 123_456)
 	_hud.advance(STEP)
 	assert_ne(_hud.journal.ticker_text(), "", "the ticker shows")
-	var strip := Rect2(
-		0, _hud.journal.ticker.get_global_rect().position.y, SCREEN.x, Journal.TICKER_HEIGHT
-	)
+	var ticker_box: Rect2 = Hud.on_screen(_hud.ticker)
+	var strip := Rect2(0, ticker_box.position.y, SCREEN.x, ticker_box.size.y)
 	assert_false(rect.intersects(strip), "clear of the ticker's whole strip")
 
 	# The shop, open.
@@ -668,13 +669,14 @@ func test_r6_out_of_the_way() -> void:
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "a hero window floats over the goals")
 	_hud.hero_windows.close_all()
+	# Spec 062 R2: the goals stay under the tally too, which is drawn over them.
 	_hud.tally.open()
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "hidden under the tally")
-	assert_false(goals.is_visible_in_tree(), "not drawn")
+	assert_true(goals.is_shown(), "shown with the tally open")
+	assert_true(_hud.goals_view.is_visible_in_tree(), "and drawn")
 	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "back when the tally closes")
+	assert_true(goals.is_shown(), "and when the tally closes")
 	# Hidden by G, it stays hidden after the tally.
 	_key(KEY_G)
 	_hud.tally.open()

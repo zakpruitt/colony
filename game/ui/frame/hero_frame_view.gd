@@ -325,11 +325,11 @@ func _draw() -> void:
 	draw_rect(ICON_BOX.grow(-1.0), Palette.color(&"ink"))
 	var empty: Color = Palette.color(&"ink")
 	if _dead:
-		HudPanel.draw_bar(self, HEALTH_BAR, 0.0, empty, empty, Palette.color(&"night"))
-		HudPanel.draw_bar(self, XP_BAR, 0.0, empty, empty, Palette.color(&"night"))
+		UiBar.draw_bar(self, HEALTH_BAR, 0.0, empty, empty, Palette.color(&"night"))
+		UiBar.draw_bar(self, XP_BAR, 0.0, empty, empty, Palette.color(&"night"))
 		return
 	var colour: StringName = _health_colour_name(_health.value)
-	HudPanel.draw_bar(
+	UiBar.draw_bar(
 		self,
 		HEALTH_BAR,
 		_health.value,
@@ -337,9 +337,7 @@ func _draw() -> void:
 		Palette.color(SHADES[colour]),
 		Palette.color(&"dark_brown")
 	)
-	HudPanel.draw_bar(
-		self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), empty
-	)
+	UiBar.draw_bar(self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), empty)
 
 
 static func _health_colour_name(fraction: float) -> StringName:

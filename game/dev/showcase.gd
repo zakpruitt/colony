@@ -54,6 +54,7 @@ const MOMENTS: Array[StringName] = [
 	&"journey",
 	&"four_areas",
 	&"talent_tree",
+	&"away_report",
 ]
 ## What the label says during each moment.
 const CAPTIONS: Dictionary[StringName, String] = {
@@ -86,6 +87,7 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"journey": "A JOURNEY TO THE CLAYPITS",
 	&"four_areas": "THE FOUR AREAS",
 	&"talent_tree": "THE KNIGHT CHOOSES A PATH",
+	&"away_report": "THE AWAY REPORT",
 }
 ## Seconds a moment goes on showing once what it is about has happened.
 const LINGER: Dictionary[StringName, float] = {
@@ -118,6 +120,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"journey": 1.2,
 	&"four_areas": 0.2,
 	&"talent_tree": 0.6,
+	&"away_report": 2.0,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
@@ -456,6 +459,10 @@ func _begin(current: StringName) -> void:
 			knight.set_talents([Content.talent_tree(knight.class_id).trunk[0]] as Array[StringName])
 			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)  # spec 060
 			_tree_clicks = 0
+		&"away_report":
+			# Spec 062: the report after time away, as a window over the game.
+			_settle_now()
+			main.away_window = main.ui.show_away(_away_report(), sim.party)
 
 
 func _end_moment() -> void:
@@ -485,6 +492,9 @@ func _end_moment() -> void:
 				hero.set_talents([])  # the class moments' trees are for those moments only
 		&"talent_tree":
 			main.hud.hero_windows.close_all()
+		&"away_report":
+			if is_instance_valid(main.away_window):
+				main.away_window.close()
 
 
 ## Changes made every frame while a moment waits for its event: in a fight, once per fight.
@@ -580,6 +590,9 @@ func _look() -> void:
 				_see()
 		&"talent_tree":
 			_click_through_tree()
+		&"away_report":
+			if is_instance_valid(main.away_window) and main.away_window.is_open():
+				_see()
 
 
 func _on_sim_event(event: SimEvent) -> void:
@@ -911,6 +924,26 @@ func _click_through_tree() -> void:
 		else:
 			tab.press_node(click)
 		_tree_clicks += 1
+
+
+## An evening's time away to tell of (spec 031): gold, levels, a guardian, a quest, a microskill.
+func _away_report() -> AwayReport:
+	var report := AwayReport.new()
+	var e: Expedition = main.simulation.expedition
+	report.seconds = 3.0 * 3600.0 + 25.0 * 60.0
+	report.gold_gained = 12_480
+	report.area_before = e.place
+	report.area_after = e.place
+	report.depth_before = maxi(e.depth - 2, 1)
+	report.depth_after = e.depth
+	report.kills = 1_342
+	report.wipes = 2
+	report.guardians_slain = 1
+	report.deepest_guardian = e.guardian_of(Expedition.GUARDIAN_EVERY)
+	report.side_quests_done = 3
+	for hero: Hero in main.simulation.party.heroes:
+		report.levels_gained[hero.id] = 2
+	return report
 
 
 func _set_level(hero: Hero, level: int) -> void:

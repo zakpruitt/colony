@@ -49,7 +49,7 @@ func _build_hud() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ladder() -> DepthLadder:
+func _ladder() -> StageList:
 	return _hud.ladder
 
 
@@ -153,20 +153,18 @@ func _frames_top() -> float:
 
 
 func test_r1_ladder_of_depths() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	assert_not_null(ladder, "the HUD has a depth ladder")
 	if ladder == null:
 		return
-	assert_eq(DepthLadder.RUNGS, 12, "twelve rungs")
+	assert_eq(StageList.RUNGS, 12, "twelve rungs")
 	for depth: int in [1, 5, 13, 40]:
 		_situation(depth, 1, depth, depth)
 		var first: int = ladder.first_depth()
 		var what: String = "at depth %d (rungs %d to %d)" % [depth, first, first + 11]
 		assert_gte(first, 1, "%s: the top rung is a real depth" % what)
-		assert_between(
-			depth, first, first + DepthLadder.RUNGS - 1, "%s: the party is on one" % what
-		)
-		for rung: int in range(first, first + DepthLadder.RUNGS):
+		assert_between(depth, first, first + StageList.RUNGS - 1, "%s: the party is on one" % what)
+		for rung: int in range(first, first + StageList.RUNGS):
 			assert_false(
 				ladder.marks(rung).is_empty(), "%s: rung %d shows something" % [what, rung]
 			)
@@ -176,18 +174,17 @@ func test_r1_ladder_of_depths() -> void:
 	_situation(1, 1, 1, 1)
 	assert_eq(ladder.first_depth(), 1, "a new game starts at the top")
 
-	var rect: Rect2 = ladder.get_global_rect()
+	var rect: Rect2 = Hud.on_screen(ladder)
 	assert_true(ladder.is_shown(), "it is on screen")
 	assert_lte(rect.end.x, SCREEN.x, "on the screen's right edge %s" % rect)
 	assert_gte(rect.end.x, SCREEN.x - Hud.MARGIN - 2.0, "against the right edge %s" % rect)
-	assert_lte(rect.size.x, 64.0, "narrow %s" % rect)
+	# Spec 062: 150 UI pixels, a sixth of the screen at most.
+	assert_lte(rect.size.x, SCREEN.x / 6.0, "narrow %s" % rect)
 	assert_gte(rect.position.y, TOP_BAND, "below the top band %s" % rect)
 	assert_lte(rect.end.y, _frames_top(), "above the party frames %s" % rect)
-	for rung: int in range(ladder.first_depth(), ladder.first_depth() + DepthLadder.RUNGS):
-		var row: Rect2 = Rect2(
-			rect.position + ladder.rung_rect(rung).position, ladder.rung_rect(rung).size
-		)
-		assert_true(rect.encloses(row), "rung %d lies inside the panel" % rung)
+	for rung: int in range(ladder.first_depth(), ladder.first_depth() + StageList.RUNGS):
+		var inside := Rect2(Vector2.ZERO, ladder.size)  # in the list's own pixels (spec 062)
+		assert_true(inside.encloses(ladder.rung_rect(rung)), "rung %d lies inside the panel" % rung)
 
 	# Climbing a depth deeper scrolls the ladder a rung over a few frames, not in one jump.
 	_situation(12, 1, 12, 12)
@@ -196,11 +193,11 @@ func test_r1_ladder_of_depths() -> void:
 	var before: float = ladder.rung_rect(13).position.y
 	_situation(13, 1, 13, 13)
 	var moved: float = before - ladder.rung_rect(13).position.y
-	assert_lt(moved, DepthLadder.PITCH, "the ladder does not jump a whole rung in one frame")
+	assert_lt(moved, StageList.PITCH, "the ladder does not jump a whole rung in one frame")
 	for i: int in 120:
 		_hud.advance(STEP)
 	assert_almost_eq(
-		before - ladder.rung_rect(13).position.y, DepthLadder.PITCH, 0.5, "it settles a rung on"
+		before - ladder.rung_rect(13).position.y, StageList.PITCH, 0.5, "it settles a rung on"
 	)
 
 
@@ -208,7 +205,7 @@ func test_r1_ladder_of_depths() -> void:
 
 
 func test_r2_rungs_say_what_they_are() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
@@ -255,7 +252,7 @@ func test_r2_rungs_say_what_they_are() -> void:
 
 
 func test_r3_click_to_steer() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
@@ -302,7 +299,7 @@ func test_r3_click_to_steer() -> void:
 
 
 func test_r4_hover_says_it() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
@@ -352,18 +349,17 @@ func test_r4_hover_says_it() -> void:
 	_hover_at(ladder.rung_rect(6).get_center())
 	_hud.advance(STEP)
 	assert_false(ladder.hint.visible, "not at once: the mouse must rest, as for a HUD tooltip")
-	_hud.advance(HudTooltip.DELAY)
+	_hud.advance(UiTip.DELAY)
 	assert_true(ladder.hint.is_visible_in_tree(), "a line shows")
 	assert_eq(ladder.hint_text(), ladder.hover_text(6), "the rung's line")
+	# Spec 062: the list and its line are on the UI layer, compared in its pixels.
 	var hint: Rect2 = ladder.hint.get_global_rect()
 	var rect: Rect2 = ladder.get_global_rect()
+	var rung: Rect2 = ladder.get_global_transform() * ladder.rung_rect(6)
 	assert_lte(hint.end.x, rect.position.x, "beside the ladder, to its left")
 	assert_gte(hint.position.x, 0.0, "on screen")
 	assert_between(
-		hint.get_center().y,
-		rect.position.y + ladder.rung_rect(6).position.y - 8.0,
-		rect.position.y + ladder.rung_rect(6).end.y + 8.0,
-		"level with the rung"
+		hint.get_center().y, rung.position.y - 8.0, rung.end.y + 8.0, "level with the rung"
 	)
 	ladder._notification(Control.NOTIFICATION_MOUSE_EXIT)
 	_hud.advance(STEP)
@@ -374,7 +370,7 @@ func test_r4_hover_says_it() -> void:
 
 
 func test_r5_it_can_be_hidden() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
@@ -401,13 +397,13 @@ func test_r5_it_can_be_hidden() -> void:
 
 
 func test_r6_stays_out_of_the_way() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
 	_sim.party.gold = 9_876_543
 	_situation(120, 119, 120, 123)
-	var rect: Rect2 = ladder.get_global_rect()
+	var rect: Rect2 = Hud.on_screen(ladder)
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
 	for control: Control in [_hud.place_panel, _hud.purse]:
 		assert_false(rect.intersects(control.get_global_rect()), "clear of %s" % control.name)
@@ -422,9 +418,8 @@ func test_r6_stays_out_of_the_way() -> void:
 	_world.sim_event.emit(event)
 	_hud.advance(STEP)
 	assert_ne(_hud.journal.ticker_text(), "", "the ticker shows")
-	var strip := Rect2(
-		0, _hud.journal.ticker.get_global_rect().position.y, SCREEN.x, Journal.TICKER_HEIGHT
-	)
+	var ticker_box: Rect2 = Hud.on_screen(_hud.ticker)
+	var strip := Rect2(0, ticker_box.position.y, SCREEN.x, ticker_box.size.y)
 	assert_false(rect.intersects(strip), "clear of the ticker's whole strip")
 
 	# The boss bar, during a guardian fight.
@@ -433,20 +428,15 @@ func test_r6_stays_out_of_the_way() -> void:
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	assert_false(
-		ladder.get_global_rect().intersects(_hud.boss_bar.get_global_rect()), "clear of it"
-	)
+	assert_false(Hud.on_screen(ladder).intersects(_hud.boss_bar.get_global_rect()), "clear of it")
 
-	# The shop: the ladder hides while it is open.
+	# The shop: since spec 062 R2 the ladder stays while it is open (the window is drawn over it).
 	_hud.shop.open()
 	_hud.advance(STEP)
-	assert_false(ladder.is_shown(), "hidden while the shop is open")
-	ladder.click_depth(9)
-	_sim.step()
-	assert_ne(_sim.expedition.target_depth, 9, "and takes no clicks")
+	assert_true(ladder.is_shown(), "shown while the shop is open")
 	_hud.shop.close()
 	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "back when it closes")
+	assert_true(ladder.is_shown(), "and when it closes")
 	# Hidden by L, it stays hidden after the shop.
 	_key(KEY_L)
 	_hud.shop.open()
@@ -460,7 +450,7 @@ func test_r6_stays_out_of_the_way() -> void:
 
 
 func test_r7_follows_the_simulation() -> void:
-	var ladder: DepthLadder = _ladder()
+	var ladder: StageList = _ladder()
 	if ladder == null:
 		fail_test("no ladder")
 		return
@@ -505,4 +495,4 @@ func test_r7_follows_the_simulation() -> void:
 	assert_true(_has(10, &"target"), "the loaded target")
 	assert_eq(_state(11), &"visited", "the deepest depth, visited")
 	assert_eq(_state(12), &"unreached", "below it, not reached")
-	assert_between(9, ladder.first_depth(), ladder.first_depth() + DepthLadder.RUNGS - 1)
+	assert_between(9, ladder.first_depth(), ladder.first_depth() + StageList.RUNGS - 1)

@@ -603,7 +603,7 @@ func test_r6_nothing_says_down() -> void:
 			_play_frame()
 			main.hud.advance(FRAME)
 			if i % 10 == 0:
-				for label: Node in main.hud.find_children("*", "Label", true, false):
+				for label: Node in main.ui.find_children("*", "Label", true, false):
 					shown[(label as Label).text] = true
 	for text: String in shown:
 		assert_null(down.search(text), "the HUD showed: " + text)
@@ -623,7 +623,7 @@ func test_r6_the_marker_and_the_ladder() -> void:
 	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
 	_stand_on(_sim, 2)
 	var marker: TargetMarker = _world.target_marker
-	var ladder: DepthLadder = main.hud.ladder
+	var ladder: StageList = main.hud.ladder
 	for way: int in [1, -1]:
 		_sim.set_target_depth(2 + way)
 		# On, it walks two seconds from the doorway back it stood at; then back, at once.

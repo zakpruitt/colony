@@ -1,5 +1,5 @@
 extends GutTest
-## AwayReplay steps the real simulation for the time away and counts what happened; AwayPanel
+## AwayReplay steps the real simulation for the time away and counts what happened; AwayStory
 ## words its report.
 
 
@@ -39,9 +39,9 @@ func test_no_time_is_done_at_once() -> void:
 
 
 func test_durations_read_as_hours_and_minutes() -> void:
-	assert_eq(AwayPanel.duration(30.0 * 60.0), "30m")
-	assert_eq(AwayPanel.duration(65.0 * 60.0), "1h 5m")
-	assert_eq(AwayPanel.duration(8.0 * 3600.0), "8h 0m")
+	assert_eq(AwayStory.duration(30.0 * 60.0), "30m")
+	assert_eq(AwayStory.duration(65.0 * 60.0), "1h 5m")
+	assert_eq(AwayStory.duration(8.0 * 3600.0), "8h 0m")
 
 
 func test_the_most_needed_microskill_was_missed_most_ties_to_the_first() -> void:

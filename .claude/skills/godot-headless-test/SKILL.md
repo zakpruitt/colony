@@ -77,6 +77,13 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - Since spec 059 the shop, the area map and the tally are window contents made by the HUD: without a
   `UiRoot` their `open()` does nothing. A HUD-only test that opens one adds `UiRoot.new()` (layer 130 if the
   HUD is on 129) and calls `ui.setup(sim, hud, null)`.
+- Since spec 062 everything the HUD shows is on the UI layer, so a HUD-only test that clicks or hovers a
+  piece (a goal row, the stage list, the ticker) must raise its `UiRoot` above GUT's window too
+  (`ui.layer = 130`), not only the HUD's layer. Left at 20, the pushed events never reach the piece, and the
+  failure can show up in a later script instead (spec 060's Tab tests failed only in the full run).
+- `python tools/dev.py test` prints only the last 150 lines. For a long failing run, call Godot with GUT
+  yourself (`godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit -gselect=<part>`) and write
+  the whole output to a file to read the failures.
 - A `CanvasLayer` that draws into another viewport (`custom_viewport`) must be given it before it enters the
   tree (`Main` does it on `NOTIFICATION_SCENE_INSTANTIATED`). Set in `_ready`, freeing the scene prints
   `Attempt to disconnect a nonexistent connection ... canvas_parent_mark_dirty`, which fails every test that
@@ -99,11 +106,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   (`test_038_rough_edges.gd`, `_drawn`).
 - A test that calls a Control's `_gui_input` directly must also send what the GUI sends around it: call
   `_notification(Control.NOTIFICATION_MOUSE_ENTER)` before the first motion and `NOTIFICATION_MOUSE_EXIT` when
-  the mouse leaves. Since spec 047 the depth ladder counts the mouse as over it only from those (a press
-  dragged off it keeps sending `_gui_input` from outside), so a test that only sends motion has no mouse over it.
+  the mouse leaves. Since spec 047 the stage list (`StageList`, the depth ladder before spec 062) counts the
+  mouse as over it only from those (a press dragged off it keeps sending `_gui_input` from outside), so a test
+  that only sends motion has no mouse over it.
 - A hover test must let a scrolling panel settle before putting the mouse on a row: a hover follows the row
   under a still mouse as rows move (spec 047), so a mouse placed mid-scroll ends on a different row.
-- gdlint caps a script at 20 public methods (`max-public-methods`), and `DepthLadder` is at the cap. A read
+- gdlint caps a script at 20 public methods (`max-public-methods`), and `StageList` is at the cap. A read
   added for a test there has to replace one, or be a public variable, which does not count.
 - A hidden button still runs its handler when a test emits `pressed`, so a page's handler must check that the
   page is shown. Check the page (`is_visible_in_tree()` on the page), not the button: a control whose

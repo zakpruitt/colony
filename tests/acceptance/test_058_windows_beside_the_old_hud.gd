@@ -5,11 +5,6 @@ extends "res://tests/acceptance/ui_layer_test.gd"
 
 
 ## [param world_rect], in the world's 640x360 screen pixels, in UI pixels on [param ui].
-func _in_ui(ui: UiRoot, world_rect: Rect2) -> Rect2:
-	var at: Vector2 = ui.world_to_ui(world_rect.position)
-	return Rect2(at, ui.world_to_ui(world_rect.end) - at)
-
-
 ## A window's rectangle at its default place, in UI pixels.
 func _default_rect(window: UiWindow) -> Rect2:
 	return Rect2(window.default_place, window.size)
@@ -20,10 +15,9 @@ func _default_rect(window: UiWindow) -> Rect2:
 ## hero sheet.)
 func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	var hud: Hud = main.hud
-	var ui: UiRoot = main.ui
 	var found: Dictionary[String, Rect2] = {}
 	hud.advance(0.016)
-	found["goals"] = _in_ui(ui, hud.goals.panel.get_global_rect())
+	found["goals"] = hud.goals_view.get_global_rect()  # spec 062: on the UI layer itself
 	return found
 
 
@@ -71,24 +65,24 @@ func test_r5_the_mouse_on_a_window_is_not_on_the_hud() -> void:
 	var ui: UiRoot = main.ui
 	var hud: Hud = main.hud
 	hud.advance(0.016)
-	assert_false(hud.goals.rows.is_empty(), "the goals show")
-	var on_goal: Vector2 = hud.goals.rows[0].get_global_rect().get_center()
+	assert_true(hud.goals_view.rows[0].visible, "the goals show")
+	var on_goal: Vector2 = Hud.on_screen(hud.goals_view.rows[0]).get_center()
 	var journal: UiWindow = ui.windows.window(UiRoot.JOURNAL)
 	_key(KEY_J)
 	await _frames()
 	assert_true(journal.get_rect().has_point(ui.world_to_ui(on_goal)), "the journal over the goals")
 	_move(on_goal)
-	hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-	assert_eq(hud.tooltip.shown_text(), "", "no HUD tooltip through the journal")
+	hud.frame_tip.advance(UiTip.DELAY + 0.1)
+	assert_eq(hud.frame_tip.shown_text(), "", "no HUD tooltip through the journal")
 	var note_mouse: Vector2 = hud.defeat_note.get(&"_mouse")
-	assert_eq(note_mouse, HudTooltip.NOWHERE, "nor the defeat note's hover")
+	assert_eq(note_mouse, UiTip.NOWHERE, "nor the defeat note's hover")
 	_move(ui.ui_to_world(ui.bar.get_global_rect().get_center()))
 	note_mouse = hud.defeat_note.get(&"_mouse")
-	assert_eq(note_mouse, HudTooltip.NOWHERE, "the button bar too")
+	assert_eq(note_mouse, UiTip.NOWHERE, "the button bar too")
 	_key(KEY_J)
 	_move(on_goal + Vector2(1, 0))
-	hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-	assert_ne(hud.tooltip.shown_text(), "", "with the journal closed, the goal's tooltip shows")
+	hud.frame_tip.advance(UiTip.DELAY + 0.1)
+	assert_ne(hud.frame_tip.shown_text(), "", "with the journal closed, the goal's tooltip shows")
 
 
 ## Review 3a: the default places beside what the old HUD still shows, at both rooms: the orders
@@ -184,12 +178,16 @@ func test_r6_windows_left_open_wait_for_the_away_report() -> void:
 	await wait_until(func() -> bool: return not main.is_catching_up(), 60.0, "replay ends")
 	main.hud_layer.layer = 129
 	main.ui.layer = 130
-	assert_not_null(main.away_panel, "the away report shows")
-	assert_false(main.ui.windows.is_open(UiRoot.JOURNAL), "the journal waits behind it")
-	_click_world(Vector2(320, 200))  # a click anywhere puts the report away
+	assert_not_null(main.away_window, "the away report shows")
+	# Spec 062 R5: the windows left open open at once, under the report, which Esc puts away.
+	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "the journal opens as it was left")
+	var order: Array[UiWindow] = main.ui.windows.order()
+	var journal: UiWindow = main.ui.windows.window(UiRoot.JOURNAL)
+	assert_lt(order.find(journal), order.find(main.away_window), "under the report")
+	_key(KEY_ESCAPE)
 	await _frames()
-	assert_false(is_instance_valid(main.away_panel), "the report went")
-	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "then the journal opens as it was left")
+	assert_false(is_instance_valid(main.away_window), "the report went")
+	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "and the journal stays")
 
 
 ## The windows of spec 058, each with a button on the bar: every window but the hero windows of

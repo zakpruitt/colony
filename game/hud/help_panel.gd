@@ -25,7 +25,7 @@ const KEYS: Array[Array] = [
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],
 	["T", "Open or close the party tally"],
-	["L", "Show or hide the stage ladder"],
+	["L", "Show or hide the stage list"],
 	["W", "Open or close the area map"],
 	["G", "Show or hide the goals"],
 	["Z", "Zoom in or out"],

@@ -73,7 +73,7 @@ func progress() -> float:
 
 
 func _draw_bar() -> void:
-	HudPanel.draw_bar(
+	UiBar.draw_bar(
 		bar,
 		Rect2(Vector2.ZERO, BAR),
 		_progress,
