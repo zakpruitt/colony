@@ -1,0 +1,14 @@
+[remap]
+
+importer="image"
+type="Image"
+uid="uid://bgqdcjvykslov"
+path="res://.godot/imported/ui_bold.png-a38dfcab286291740b14490e8f1cfb01.image"
+
+[deps]
+
+source_file="res://assets/fonts/ui_bold.png"
+dest_files=["res://.godot/imported/ui_bold.png-a38dfcab286291740b14490e8f1cfb01.image"]
+
+[params]
+
