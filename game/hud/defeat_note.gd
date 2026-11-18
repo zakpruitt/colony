@@ -16,15 +16,15 @@ extends Node
 ## ([method World.is_recent]) is told: one from a stall or the time away is not, and leaves a note
 ## already showing as it was (spec 046 R5). The note stays while the heroes are down and stand up
 ## again ([method FallenParty.is_telling]) and [constant LINGER_SECONDS] after, never counting down
-## while the mouse is over it ([method point_at]), and whatever fight starts meanwhile; then its text steps down [constant FADE_COLOURS] and it goes. Text never
-## fades by opacity.
+## while the mouse is over it ([method point_at]), and whatever fight starts meanwhile; then its
+## text steps down [constant FADE_COLOURS] and it goes. Text never fades by opacity.
 ##
 ## The suggestions are read again at every [method advance], so they follow the gold, except while
 ## the mouse is over the note: a click acts on what its button showed (spec 046 R3). Hold reads
-## Holding only while the simulation's order is Hold, or has just been asked for (spec 046 R2). The
-## note hides while the shop, a hero sheet, the tally, the area map or the away report is open
-## (the windows of the UI layer, spec 058, float over it and do not hide it). It moves only in
-## [method advance], so a test can step it exactly.
+## Holding only while the simulation's order is Hold, or has just been asked for (spec 046 R2).
+## Since spec 062 this node decides and [member panel], a [DefeatNoteView] on the sharp layer over
+## every window, draws: nothing hides the note any more. It moves only in [method advance], so a
+## test can step it exactly.
 
 ## What the note can suggest, in the order it prefers them.
 enum Help { TALENTS, TRAIN, UPGRADE, HOLD }
@@ -451,7 +451,12 @@ func _hovered() -> bool:
 func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
-		point_at(motion.position)  # the note lies over every window (spec 062 R4)
+		# Under a window or the button bar is nowhere for the note, unless on the note itself,
+		# which lies over every window (spec 062 R4).
+		var at: Vector2 = motion.position
+		var on_note: bool = _on_screen and Hud.on_screen(panel).has_point(at)
+		var covered: bool = _hud != null and _hud.windows != null and _hud.windows.covers(at)
+		point_at(UiTip.NOWHERE if covered and not on_note else at)
 
 
 ## True once the party is up and the heroes have stood (spec 038), or the world tells nothing.

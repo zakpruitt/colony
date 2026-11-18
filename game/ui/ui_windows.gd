@@ -225,7 +225,7 @@ func is_waiting() -> bool:
 
 
 ## True when [param at], in the viewport's coordinates (where input events are), is on an open
-## window or the button bar: the old HUD under it must not answer the mouse there.
+## window or the button bar: what lies under it must not answer the mouse there.
 func covers(at: Vector2) -> bool:
 	if window_at(at) != null:
 		return true

@@ -113,6 +113,9 @@ var shop: ShopWindow
 var journal: Journal
 ## The journal's newest line over the hero frames (spec 062 R3); a click opens the Journal.
 var ticker: Ticker
+## The dark of a crossing and its title (spec 054): the world's own, all the HUD still draws in the
+## world's pixels (spec 062 R7).
+var veil: CrossingVeil
 ## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
 ## when there is no UI layer (a HUD on its own in a test). Set by [method UiRoot.setup].
 var hero_windows: HeroWindows:
@@ -245,7 +248,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_world = world
 	_effects = effects
 	_icons = PixelSheet.load_sheet(ICONS_PATH)
-	var veil := CrossingVeil.new()  # spec 054: first, so the rest of the HUD is drawn over it
+	veil = CrossingVeil.new()  # spec 054
 	add_child(veil)
 	veil.setup(world)
 	_build_screen_frame()
@@ -369,11 +372,10 @@ func lift_tip(ui: UiRoot) -> void:
 	note.reparent(ui.frame, false)
 	ui.frame.move_child(note, -1)
 	note.scale = Vector2.ONE
-	note.z_index = 1  # as the tags on the bar's buttons, so a tag never draws over it
 	frame_tip.reparent(ui.frame, false)
 	ui.frame.move_child(frame_tip, -1)
 	frame_tip.scale = Vector2.ONE
-	frame_tip.z_index = 2  # over the tags on the bar's buttons, which draw at 1
+	frame_tip.z_index = 2  # over the stage list's line, which draws at 1
 	frame_tip.room = Vector2(ui.room())
 
 
@@ -501,7 +503,7 @@ static func short_count(amount: int) -> String:
 
 
 ## Where [param control] is, as a rectangle in the screen's 640x360 pixels (where input events
-## and the old HUD are), wherever it is drawn: through its canvas layer's transform, never a
+## and the world are), wherever it is drawn: through its canvas layer's transform, never a
 ## camera's (a [Hud] built alone in a test sits on no layer, beside a world's camera).
 static func on_screen(control: Control) -> Rect2:
 	var xform: Transform2D = _screen_transform(control)
@@ -639,6 +641,19 @@ func _build_news() -> void:
 	ticker = Ticker.new()
 	screen_frame.add_child(ticker)
 	ticker.clicked.connect(_on_ticker_clicked)
+	journal.ticker_changed.connect(_show_ticker)
+
+
+## Shows the journal's newest line in the ticker, just above the hero frames, clear of the button
+## bar beside it (spec 062 R3, R10). Called as the frame is laid out and whenever the line changes.
+func _show_ticker() -> void:
+	var room: Vector2 = _frame_room
+	var frames_y: float = room.y - FRAME_EDGE - HeroFrameView.SIZE.y
+	var bar_left: float = room.x
+	if _ui != null and _ui.bar != null:
+		var bar_at: Vector2 = _ui.bar.rect_in(Vector2i(_ui.room())).position
+		bar_left = (screen_frame.get_transform().affine_inverse() * bar_at).x
+	ticker.show_line(journal.ticker_text(), journal.ticker_colour(), room.x, frames_y, bar_left)
 
 
 ## A click on the ticker opens the Journal window (spec 062 R3).
@@ -779,8 +794,7 @@ func _lay_out_frame() -> void:
 	var under: float = FRAME_TOP + PlacePanel.HEIGHT + FRAME_GAP
 	goals_view.position = Vector2(FRAME_EDGE, under)
 	ladder.position = Vector2(room.x - FRAME_EDGE - StageList.WIDTH, under)
-	var frames_y: float = room.y - FRAME_EDGE - HeroFrameView.SIZE.y
-	ticker.show_line(journal.ticker_text(), journal.ticker_colour(), room.x, frames_y)
+	_show_ticker()
 	_aim_effects()
 
 

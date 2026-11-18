@@ -4,7 +4,8 @@ extends PanelContainer
 ## [member content]. It is dragged by the title bar and kept so the bar never leaves the room;
 ## [UiWindows] keeps the windows' order (a click anywhere brings one to the front), closes the
 ## front one on [kbd]Esc[/kbd] and remembers where each was. A window stops every click on it, so
-## nothing under it (the world, the old HUD, another window) hears one. It never pauses the game.
+## nothing under it (the world, the frame of the screen, another window) hears one. It never
+## pauses the game.
 
 ## Emitted when the window opens or closes.
 signal open_changed(window: UiWindow)

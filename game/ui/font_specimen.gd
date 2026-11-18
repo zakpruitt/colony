@@ -3,11 +3,15 @@ extends Control
 ## Shows the fonts so a person can judge them: the whole character set, the characters that are
 ## easy to confuse side by side, and sample lines. On the left, in the world's 640x360 pixels, the
 ## old pixel font (docs/style-bible.md, "Text") over a dark and a light background in four palette
-## colours; on the right, on the sharp UI layer (spec 058), the UI font and its bold.
+## colours; on the right, on the sharp UI layer (spec 058), the UI font and its bold. Since spec
+## 062 the old font is the world's font only (names, damage numbers, banners and titles in the
+## world); everything the player reads on the screen's frame and windows is in the UI font.
 ## Run: python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font
 
 ## The line spec 009 asks to be comfortably readable at 640x360.
 const SAMPLE: String = "Stage 12  Gold 3,450  Lv 7"
+## The old font's heading: what it is for now (spec 062 R7).
+const WORLD_FONT: String = "The world's font: names, numbers and titles in the world"
 ## Every character the old font draws, grouped.
 const CHARACTER_SET: PackedStringArray = [
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZ",
@@ -55,6 +59,7 @@ func _ready() -> void:
 	rows.add_theme_constant_override("separation", GAP)
 	margin.add_child(rows)
 
+	rows.add_child(PixelText.label(WORLD_FONT, &"yellow"))
 	# Plain labels: what any Label gets from the project theme.
 	for line: String in CHARACTER_SET:
 		rows.add_child(_plain(line))

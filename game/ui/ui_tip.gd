@@ -74,7 +74,7 @@ func _input(event: InputEvent) -> void:
 	if covered.is_valid() and covered.call(motion.position):
 		point_at(NOWHERE)
 		return
-	# Through the layer's transform, never a camera's (as the old HUD's tooltip reads the mouse).
+	# Through the layer's transform, never a camera's.
 	var layer: CanvasLayer = get_canvas_layer_node()
 	var to_canvas: Transform2D = (
 		layer.get_final_transform() if layer != null else Transform2D.IDENTITY

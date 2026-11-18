@@ -54,9 +54,9 @@ incomplete, stop and report the question.
   (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
 - **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
   in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
-- **Two layers on screen** (`docs/architecture.md`, spec 058). The world and the old HUD draw at 640x360 in
-  `Main.world_viewport`; windows and new UI go on `UiRoot` (`Main.ui`) in UI pixels, themed by `UiTheme`, text
-  by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
+- **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
+  `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
+  `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
 - **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
   few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
   `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.

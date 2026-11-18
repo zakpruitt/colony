@@ -19,6 +19,8 @@ extends Node
 
 ## Emitted after a line is written.
 signal written
+## Emitted when the ticker's line or its colour may have changed: a line shown, or time passed.
+signal ticker_changed
 
 ## Lines kept, newest first.
 const CAPACITY: int = 50
@@ -73,6 +75,7 @@ func advance(delta: float) -> void:
 		return
 	_depth = _simulation.expedition.depth
 	_ticker_age += delta
+	ticker_changed.emit()
 
 
 ## Every line kept, newest first, each the game time then the sentence: [code]12:04  Mage
@@ -93,9 +96,9 @@ func ticker_text() -> String:
 ## The ticker's text colour now: white while fresh, then each of [constant FADE_COLOURS].
 func ticker_colour() -> StringName:
 	var fade: float = _ticker_age - TICKER_SECONDS
-	if fade < 0.0:
+	if fade < 0.0 or ticker_text().is_empty():
 		return &"white"
-	return FADE_COLOURS[mini(floori(fade / FADE_STEP), FADE_COLOURS.size() - 1)]
+	return FADE_COLOURS[clampi(floori(fade / FADE_STEP), 0, FADE_COLOURS.size() - 1)]
 
 
 ## Writes [param sentence] as a line now, without showing it in the ticker: the goals tracker's
@@ -119,6 +122,7 @@ func announce(sentence: String) -> void:
 	write(sentence)
 	_ticker_line = sentence
 	_ticker_age = 0.0
+	ticker_changed.emit()
 
 
 ## Game time as m:ss, or h:mm:ss from an hour on.
@@ -144,6 +148,7 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _world == null or _world.is_recent(event):
 		_ticker_line = sentence
 		_ticker_age = 0.0
+		ticker_changed.emit()
 	written.emit()
 
 

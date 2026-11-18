@@ -7,8 +7,8 @@ extends RefCounted
 ## Every mark is read from the simulation each time it is asked for ([method marks]): the party's
 ## stage, the safe stage, held (at or above the safe stage), visited (reached since), never reached,
 ## the target and a guardian's stage (crossed out while its guardian is beaten), so nothing can
-## drift. [method ask] sets a new target, as the HUD's [code]-[/code] and [code]+[/code] do, and says
-## once in the journal's ticker when it is dangerous.
+## drift. [method ask] sets a new target, as the HUD's [code]-[/code] and [code]+[/code] do, and
+## says once in the journal's ticker when it is dangerous.
 
 ## How a stage looks for this party: see [method risk].
 enum Risk { SAFE, REACHABLE, DANGEROUS }
@@ -42,10 +42,10 @@ func advance() -> void:
 
 
 ## How the stage at [param level_depth] looks for this party, from its lowest hero level L: safe
-## at or above the safe stage, within reach down to stage L + 1, dangerous below that. A rough
-## guide, not a promise: it loosely follows the guardians' balance (a party of level stage + 4 beats
-## the guardian of that stage), and ordinary stages are easier than their guardians. It changes no
-## rule: any stage can still be chosen.
+## at or above the safe stage, within reach down to stage L + 1, dangerous below that.
+## A rough guide, not a promise: it loosely follows the guardians' balance (a party of level
+## stage + 4 beats the guardian of that stage), and ordinary stages are easier than their
+## guardians. It changes no rule: any stage can still be chosen.
 func risk(level_depth: int) -> Risk:
 	var e: Expedition = _simulation.expedition
 	var lowest: int = PartyLevels.lowest(_simulation.party)

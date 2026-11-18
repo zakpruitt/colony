@@ -12,10 +12,10 @@ extends Panel
 ## guardian's name beside it, struck through while it is beaten). A click on a row asks for that
 ## target ([method click_depth]); resting the mouse on one shows a line in words beside the list
 ## ([member hint]). The wheel scrolls it ([method scroll_by]); while scrolled away an arrow points
-## toward the party, and a click on it, or [constant RETURN_SECONDS] without the mouse over the list,
-## brings it back to following the party. [kbd]L[/kbd] hides and shows it, and it hides while the
-## shop is open. A goal's click (spec 042) shows it and flashes a row ([method flash]). It moves
-## only in [method advance], so a test can step it.
+## toward the party, and a click on it, or [constant RETURN_SECONDS] without the mouse over the
+## list, brings it back to following the party. [kbd]L[/kbd] hides and shows it, and it hides
+## while the shop is open. A goal's click (spec 042) shows it and flashes a row ([method flash]).
+## It moves only in [method advance], so a test can step it.
 
 ## A click asked for a new target (the HUD mirrors it on its own target number at once).
 signal target_asked(depth: int)
@@ -181,9 +181,7 @@ func _notification(what: int) -> void:
 
 
 func _draw() -> void:
-	draw_rect(
-		Rect2(PADDING, CAPTION_HEIGHT, WIDTH - PADDING * 2.0, 1.0), Palette.color(&"dusk")
-	)
+	draw_rect(Rect2(PADDING, CAPTION_HEIGHT, WIDTH - PADDING * 2.0, 1.0), Palette.color(&"dusk"))
 
 
 ## Call once, before the first advance. [param journal] hears a dangerous click (may be null);
@@ -339,11 +337,7 @@ func mark_rect(depth: int, mark: StringName) -> Rect2:
 		return Rect2()
 	var shown: Array[StringName] = marks(depth)
 	if mark == &"name":
-		if not shown.has(&"guardian"):
-			return Rect2()
-		var row: float = floorf(rung_rect(depth).position.y)
-		var width: float = UiText.width(ladder.guardian_name(depth)) - UiText.SPACING
-		return Rect2(NAME_X, row + _text_y(), width, UiText.LINE_HEIGHT)
+		return _name_rect(depth) if shown.has(&"guardian") else Rect2()
 	if not shown.has(&"party" if mark == &"diamond" else mark):
 		return Rect2()
 	if mark == &"diamond":
@@ -354,6 +348,13 @@ func mark_rect(depth: int, mark: StringName) -> Rect2:
 	var box: Rect2 = MARK_BOXES[mark]
 	var top: float = floorf(rung_rect(depth).position.y)
 	return Rect2(box.position + Vector2(0.0, top), box.size)
+
+
+## Where the guardian's name on the row at [param depth] is drawn, in the list's coordinates.
+func _name_rect(depth: int) -> Rect2:
+	var row: float = floorf(rung_rect(depth).position.y)
+	var width: float = UiText.width(ladder.guardian_name(depth)) - UiText.SPACING
+	return Rect2(NAME_X, row + _text_y(), width, UiText.LINE_HEIGHT)
 
 
 ## True while the list keeps the party's row in view, false while scrolled away.
@@ -443,14 +444,6 @@ func hint_text() -> String:
 	if _hint_risk.visible:
 		text = "%s\n%s" % [text, _hint_risk.text]
 	return text
-
-
-## The guardian's name as drawn on the row at [param depth], or null (for tests).
-func name_label(depth: int) -> Label:
-	var index: int = depth - floori(_scroll)
-	if index < 0 or index >= _names.size() or not _names[index].visible:
-		return null
-	return _names[index]
 
 
 # --- Reading -------------------------------------------------------------------
@@ -580,9 +573,12 @@ func _place_labels() -> void:
 		var row: float = floorf(rung_rect(depth).position.y - RUNGS_TOP)
 		var ink: float = UiText.width(text, true) - UiText.SPACING
 		number.position = Vector2(NUMBER_RIGHT - ink, row + _text_y())
+		# The row below the last is drawn only while it scrolls into view.
+		var on_show: bool = row < RUNGS * PITCH
+		number.visible = on_show
 		var guardian: Label = _names[i]
 		var named: String = ladder.guardian_name(depth)
-		guardian.visible = not named.is_empty()
+		guardian.visible = on_show and not named.is_empty()
 		if guardian.text != named:
 			guardian.text = named
 			guardian.reset_size()

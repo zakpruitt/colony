@@ -397,9 +397,9 @@ func test_r5_the_bar_and_the_ticker_sit_on_the_frames() -> void:
 		assert_gt(bar.end.y, line - 8.0, "%s: just above them" % what)
 		main.hud.journal.announce("Something happened.")
 		main.hud.advance(STEP)
-		var ticker: Rect2 = Hud.on_screen(main.hud.journal.ticker)
+		var ticker: Rect2 = Hud.on_screen(main.hud.ticker)
 		var on_ui := Rect2(ui.world_to_ui(ticker.position), ui.world_to_ui(ticker.size))
-		assert_true(main.hud.journal.ticker.is_visible_in_tree(), "%s: the ticker shows" % what)
+		assert_true(main.hud.ticker.is_visible_in_tree(), "%s: the ticker shows" % what)
 		assert_lte(on_ui.end.y, line, "%s: the ticker above the frames" % what)
 		assert_gt(on_ui.end.y, line - 12.0, "%s: just above them" % what)
 		main.free()
@@ -614,7 +614,7 @@ func test_r8_nothing_drawn_twice_nothing_lost() -> void:
 	_controls(hud, old)
 	for control: Control in old:
 		var old_panel: bool = String(control.name) in ["DepthPanel", "GoldPanel", "SpeedTab"]
-		assert_false(control is HudPanel and old_panel, "%s is gone" % control.name)
+		assert_false(control is Panel and old_panel, "%s is gone" % control.name)
 		var label: Label = control as Label
 		if label != null and label.is_visible_in_tree():
 			for gone: String in ["Safe 1", "Target", hud.status_text()]:

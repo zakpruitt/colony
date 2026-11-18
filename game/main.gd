@@ -125,7 +125,7 @@ func _notification(what: int) -> void:
 	if what == NOTIFICATION_WM_CLOSE_REQUEST or what == NOTIFICATION_EXIT_TREE:
 		save_now()
 	elif what == NOTIFICATION_SCENE_INSTANTIATED:
-		# The old HUD draws into the world's viewport, with the world. Set before either is in the
+		# The HUD's layer draws into the world's viewport, with the world. Set before either is in the
 		# tree: set later, freeing Main makes the engine undo a connection that is already gone.
 		($HUD as CanvasLayer).custom_viewport = $WorldView/WorldViewport
 

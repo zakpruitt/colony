@@ -162,7 +162,7 @@ func test_r4_same_as_playing() -> void:
 func test_r5_report() -> void:
 	var saved: Dictionary = _write_save()
 	var main: Main = _main(1800.0)
-	assert_null(main.away_panel, "no panel during the replay")
+	assert_null(main.away_window, "no panel during the replay")
 	await _wait_for_replay(main)
 	var reference: Dictionary = _reference(saved, 18000)
 	var played: Simulation = reference["sim"]
@@ -184,7 +184,7 @@ func test_r5_report() -> void:
 	assert_eq(report.kills, kills, "kills")
 	assert_gt(report.kills, 0)
 	assert_eq(report.wipes, wipes, "wipes")
-	var panel: AwayPanel = main.away_panel
+	var panel: AwayWindow = main.away_window
 	assert_not_null(panel, "the panel shows")
 	assert_true(panel.visible)
 	assert_not_null(main.world, "the game runs behind it")
@@ -192,35 +192,39 @@ func test_r5_report() -> void:
 	assert_string_contains(text, "30m")
 	assert_string_contains(text, Hud.group_thousands(report.gold_gained))
 	assert_string_contains(text, "%d" % report.kills)
-	var centre: Vector2 = panel.position + panel.size / 2.0
-	assert_almost_eq(centre.x, Hud.SCREEN.x / 2.0, 1.0, "centred across")
-	assert_almost_eq(centre.y, Hud.SCREEN.y / 2.0, 1.0, "and down")
-	# Any key closes it.
+	# Spec 062: a window on the UI layer, in the middle of its room.
+	var centre: Vector2 = panel.get_global_rect().get_center()
+	var room: Vector2 = Vector2(main.ui.room())
+	assert_almost_eq(centre.x, room.x / 2.0, 1.0, "centred across")
+	assert_almost_eq(centre.y, room.y / 2.0, 1.0, "and down")
+	# Spec 062 R5: a key other than Esc leaves it; Esc closes it.
 	var key := InputEventKey.new()
 	key.keycode = KEY_SPACE
 	key.pressed = true
-	panel._input(key)
-	assert_true(panel.is_queued_for_deletion() or not panel.visible, "closed by a key")
+	get_viewport().push_input(key)
+	assert_true(panel.is_open(), "not closed by any key")
+	key.keycode = KEY_ESCAPE
+	get_viewport().push_input(key)
+	assert_true(panel.is_queued_for_deletion() or not panel.visible, "closed by Esc")
 	# A fresh panel closes by itself after 12 s.
-	var timed := AwayPanel.new(report, before.party)
+	var timed := AwayWindow.new(report, before.party)
 	add_child_autofree(timed)
-	timed.advance(AwayPanel.SHOW_SECONDS - 0.5)
+	timed.open()
+	timed.advance(AwayWindow.SHOW_SECONDS - 0.5)
 	assert_true(timed.visible and not timed.is_queued_for_deletion(), "still up before 12 s")
 	timed.advance(1.0)
 	assert_true(timed.is_queued_for_deletion() or not timed.visible, "gone after 12 s")
-	# A click closes it too.
-	var clicked := AwayPanel.new(report, before.party)
+	# Spec 062 R5: its button closes it (a click elsewhere no longer does).
+	var clicked := AwayWindow.new(report, before.party)
 	add_child_autofree(clicked)
-	var click := InputEventMouseButton.new()
-	click.button_index = MOUSE_BUTTON_LEFT
-	click.pressed = true
-	clicked._input(click)
-	assert_true(clicked.is_queued_for_deletion() or not clicked.visible, "closed by a click")
+	clicked.open()
+	clicked.close_button_bottom.pressed.emit()
+	assert_true(clicked.is_queued_for_deletion() or not clicked.visible, "closed by its button")
 	# No replay, no panel.
 	_write_save()
 	var quick: Main = _main(10.0)
 	await wait_process_frames(2)
-	assert_null(quick.away_panel, "no panel without a replay")
+	assert_null(quick.away_window, "no panel without a replay")
 	assert_null(quick.away_report)
 
 
@@ -249,4 +253,4 @@ func test_r7_no_store_no_replay() -> void:
 	assert_eq(main.simulation.tick, 0, "a new game, not the save")
 	assert_not_null(main.world)
 	await wait_process_frames(2)
-	assert_null(main.away_panel)
+	assert_null(main.away_window)

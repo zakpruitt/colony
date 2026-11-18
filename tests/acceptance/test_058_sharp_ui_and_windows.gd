@@ -192,7 +192,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	assert_eq(main.ui.frame.find_children("*", "HelpPanel", true, false).size(), 1, "one help")
 	assert_eq(main.ui.frame.find_children("*", "OrdersPanel", true, false).size(), 1, "one orders")
 	assert_eq(main.ui.frame.find_children("*", "JournalView", true, false).size(), 1, "one journal")
-	assert_not_null(hud.journal.ticker, "the old ticker stays")
+	assert_not_null(hud.ticker, "the ticker stays")
 
 
 # --- R3 ------------------------------------------------------------------------

@@ -72,9 +72,7 @@ func refresh() -> void:
 	if _goals.count() == 0:
 		y += UiText.LINE_HEIGHT
 	size = Vector2(width, y - ROW_GAP + PAD)
-	hint_label.position = Vector2(
-		width - PAD - 2.0 - GoalRow.ink(Goals.HIDE_HINT), PAD - 1.0
-	)
+	hint_label.position = Vector2(width - PAD - 2.0 - GoalRow.ink(Goals.HIDE_HINT), PAD - 1.0)
 
 
 ## The tooltip of row [param index]: how to get there, then what a click does (none for a

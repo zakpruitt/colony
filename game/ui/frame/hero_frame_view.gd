@@ -337,9 +337,7 @@ func _draw() -> void:
 		Palette.color(SHADES[colour]),
 		Palette.color(&"dark_brown")
 	)
-	UiBar.draw_bar(
-		self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), empty
-	)
+	UiBar.draw_bar(self, XP_BAR, _xp.value, Palette.color(&"cyan"), Palette.color(&"blue"), empty)
 
 
 static func _health_colour_name(fraction: float) -> StringName:

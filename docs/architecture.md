@@ -26,33 +26,34 @@ nothing in `sim/` knows it is being drawn.
 
 The picture is drawn in two layers, each in its own pixels.
 
-- **The world** (the labyrinth, the party, the effects) and, for now, **the old HUD** are drawn at 640x360
+- **The world** (the labyrinth, the party, the effects) is drawn at 640x360
   into `Main.world_viewport`, a `SubViewport` inside `Main.world_view` (a stretching
   `SubViewportContainer`, nearest filtering, snapped to pixels). The window shows it scaled by the largest
   whole number that fits (`UiRoot.world_scale()`). The HUD's `CanvasLayer` stays at `Main/HUD` but draws
-  into that viewport (`custom_viewport`, set on `NOTIFICATION_SCENE_INSTANTIATED`: set any later, freeing
+  into that viewport (since spec 062 it draws nothing of its own: every piece it makes is on the UI layer) (`custom_viewport`, set on `NOTIFICATION_SCENE_INSTANTIATED`: set any later, freeing
   `Main` makes the engine undo a connection that is already gone).
 - **The UI layer** (`UiRoot`, `game/ui/ui_root.gd`, canvas layer 20) is drawn in *UI pixels*: the largest
   whole UI scale that still leaves at least 960x540 of room (`ui_scale()`, `room()`). 1280x720 gives a scale
   of 1 and 1280x720 of room, 1920x1080 a scale of 2 and 960x540. Everything on it hangs from `UiRoot.frame`,
   which carries the one theme (`UiTheme`); text there is `UiText`, the UI font.
 - **Coordinates.** While a `UiRoot` is in the tree the window is in `CONTENT_SCALE_MODE_CANVAS_ITEMS` with
-  a content size of 640x360: the root viewport still *thinks* in world pixels, so every input event, the
-  world and the old HUD keep their 640x360 coordinates (tests push mouse events there), while drawing is at
+  a content size of 640x360: the root viewport still *thinks* in world pixels, so every input event and
+  the world keep their 640x360 coordinates (tests push mouse events there), while drawing is at
   the window's size. The UI layer's transform is `ui_scale / world_scale`; `UiRoot.world_to_ui()` and
   `ui_to_world()` convert. Other scenes (the gallery, the showcase) keep the project's viewport mode.
 - **Windows** (`UiWindow`, `UiWindows`): a title bar to drag by and a close button, any number open, a
-  click raises one, `Esc` closes the front one (before any old HUD panel sees it), the title bar never leaves
+  click raises one, `Esc` closes the front one, the title bar never leaves
   the room. Which are open, and the places of those the player dragged (`placed`), live in the settings
   file under `windows`, beside the sound setting, never in the save; an undragged window takes its default
   place for the current room, and a dragged one is moved wholly back in when the room shrinks. Windows
-  saved open wait until the away report has gone (`UiWindows.open_waiting`). `UiButtonBar` holds a button
+  saved open open as the game starts, under the away report if there is one (`UiWindows.open_waiting`). `UiButtonBar` holds a button
   per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
   upgrades, the map's newly opened areas); a window with `on_bar` false (a hero window) has no button.
   A window refits when its content's minimum size changes. Help, the journal, the orders, the shop, the
-  area map, the tally and the hero windows are windows; no old panel opens over them any more (the away
-  report, the goals and the rest of the old HUD move over in specs 061 and 062). `HudTooltip` and
-  `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
+  area map, the tally, the hero windows and the away report (`AwayWindow`, spec 062: not on the bar,
+  centred, closed only by its button, `Esc` or its own 12 seconds) are windows. `UiTip` and `DefeatNote`
+  treat a point on a window or the bar as nowhere (`UiWindows.covers`). A bar button's marker
+  (`UiBadge`) is on the bar's own `Tags` layer, just above the bar and under every window (spec 062 R12).
 - **Keys and the front window** (specs 059, 060): a window's keys act only while it is the front window
   of all (`UiWindows.front()`): 1 to 5 and B the shop's, 1 to 3 a hero window's on its Talents tab, Q and
   E a hero window's or the tally's tabs. Tab opens the next hero's window in front whatever is in front,
@@ -71,8 +72,13 @@ The picture is drawn in two layers, each in its own pixels.
   and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A window under 1280x720 (whose UI room is
   under 960x540, as a headless test's 640x360 is) has the frame laid out at 960x540 and drawn scaled down
   by that fraction. `Hud.frames_line(room)` is the hero frames' true top in a room, and
-  `UiRoot.frames_top()` the same in world pixels: the button bar, the hero windows and the journal's ticker
-  stand on it. A `Hud` built alone in a test keeps the frame as its own child at a scale of 640/960, so its
+  `UiRoot.frames_top()` the same in world pixels: the button bar, the hero windows and the ticker
+  stand on it. Spec 062 adds the rest of what the HUD shows: `GoalsView` (rows of `GoalRow`) under the
+  place panel, drawing what the `Goals` node decides; `StageList` at the right edge under the purse,
+  drawing what `DepthLadder` (a plain `RefCounted` of risks, marks and the asked target) works out; the
+  `Ticker` above the hero frames, clear of the button bar, showing `Journal.ticker_text()`; the
+  `DefeatNoteView`, which `DefeatNote` fills and `Hud.lift_tip` puts over every window; and
+  `CatchUpBar` on `UiRoot.frame`. Windows draw over the goals and the stage list as over the world. A `Hud` built alone in a test keeps the frame as its own child at a scale of 640/960, so its
   pieces' global rects stay in world pixels. Their tooltips are one `UiTip` (`Hud.frame_tip`) that follows
   the mouse itself (`follows_mouse`) and treats a point on a window as nowhere; `UiRoot.setup` lifts it to
   the last child of `frame` (`Hud.lift_tip`), so it draws over the button bar and every window. Each
@@ -187,8 +193,8 @@ stable depth, with every chamber freshly populated.
   fields when it writes; the simulation ignores it. On starting with a stamped save, `Main.time_away` gives
   the real time since, clamped to 0 to 8 hours; from 60 s up, an `AwayReplay` (`game/save/`) steps the loaded
   simulation for that game time in 10 ms slices per frame, draining and counting events into an `AwayReport`,
-  while a `CatchUpBar` shows. The driver, world, effects and HUD are made only when it ends (`caught_up`), so
-  nothing from the time away is drawn, and an `AwayPanel` reports it. No save is written during a replay, so
+  while a `CatchUpBar` (on the UI layer) shows. The driver, world, effects and HUD are made only when it ends (`caught_up`), so
+  nothing from the time away is drawn, and an `AwayWindow` reports it (`AwayStory` words the rows). No save is written during a replay, so
   quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
   Watching changes nothing (spec 023): the expedition's reads (`monsters_in`, `is_populated`,
   `side_quest_in`, `working_quest`, `worker_id`, `work_progress`, `hero_position`, `chamber`,

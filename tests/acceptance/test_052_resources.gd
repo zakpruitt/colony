@@ -405,7 +405,7 @@ func test_r5_nothing_offers_an_upgrade_the_party_cannot_pay() -> void:
 	assert_false(marker.visible, "and is not shown")
 	assert_false(_offers_upgrade_goal(), "no goal to buy an upgrade")
 	assert_true(_lose_a_fight(), "(the party loses a fight)")
-	assert_true(_hud.defeat_note.visible, "(the defeat note is up)")
+	assert_true(_hud.defeat_note.is_shown(), "(the defeat note is up)")
 	assert_false(_hud.defeat_note.suggestions().has("Buy an upgrade"), "and it suggests no upgrade")
 	# Clay for Stout Armor: that one can be paid now.
 	_sim.party.set_resource(CLAY, 1000)
@@ -586,10 +586,10 @@ func test_r8_told_like_gold() -> void:
 	assert_gt(gathered, 0, "(glowcaps gathered away)")
 	var counted: int = replay.report.resources_gained.get(GLOWCAPS, 0)
 	assert_eq(counted, gathered, "all counted")
-	var panel := AwayPanel.new(replay.report, away.party)
+	var panel := AwayWindow.new(replay.report, away.party)
 	add_child_autofree(panel)
 	assert_string_contains(panel.text(), "Gathered %d glowcaps" % gathered, "and listed")
-	var quiet := AwayPanel.new(AwayReport.new(), away.party)
+	var quiet := AwayWindow.new(AwayReport.new(), away.party)
 	add_child_autofree(quiet)
 	assert_false(quiet.text().contains("Gathered"), "no line when nothing was gathered")
 	# The tally of a fight is unchanged by drops.
@@ -652,7 +652,7 @@ func test_r8_firsts_are_remembered() -> void:
 	while not replay.is_done():
 		replay.run(1_000_000)
 	assert_eq(replay.report.resources_first, [GLOWCAPS] as Array[StringName], "the first, once")
-	var panel := AwayPanel.new(replay.report, away.party)
+	var panel := AwayWindow.new(replay.report, away.party)
 	add_child_autofree(panel)
 	assert_string_contains(panel.text(), "First glowcaps, from Mossy Hollow", "in the report")
 	_build_hud_on(away)

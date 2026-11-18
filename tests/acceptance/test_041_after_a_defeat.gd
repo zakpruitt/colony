@@ -197,7 +197,7 @@ func test_r1_defeat_note() -> void:
 	_note().point_at(_rect(_note().panel).get_center())
 	_linger(20.0)
 	assert_true(_note().is_shown(), "it waits while the mouse is over it")
-	_note().point_at(HudTooltip.NOWHERE)
+	_note().point_at(UiTip.NOWHERE)
 	_linger(0.4)
 	assert_true(_note().is_shown(), "a moment after the mouse leaves it is still there")
 	_linger(1.0)
@@ -378,7 +378,7 @@ func test_r3_offers_help() -> void:
 	assert_true(_lose_next_fight(), "the party loses on its safe depth")
 	assert_eq(_note().suggestions(), [] as Array[String], "nothing to suggest")
 	assert_true(_note().is_shown(), "the note shows only its lines")
-	for button: HudButton in _note().buttons:
+	for button: UiButton in _note().buttons:
 		assert_false(button.is_visible_in_tree(), "and no button")
 
 
@@ -421,24 +421,23 @@ func test_r5_out_of_the_way() -> void:
 
 	# Tooltips: one sentence each.
 	for i: int in note.suggestions().size():
-		var button: HudButton = note.buttons[i]
-		_hud.tooltip.point_at(_rect(button).get_center())
-		_hud.tooltip.advance(HudTooltip.DELAY + 0.1)
-		var text: String = _hud.tooltip.shown_text()
+		var button: UiButton = note.buttons[i]
+		_hud.frame_tip.point_at(_rect(button).get_center())
+		_hud.frame_tip.advance(UiTip.DELAY + 0.1)
+		var text: String = _hud.frame_tip.shown_text()
 		assert_ne(text, "", "button %d has a tooltip" % i)
 		assert_true(text.ends_with("."), "a sentence: %s" % text)
 		assert_eq(text.count(". "), 0, "one sentence: %s" % text)
-		_hud.tooltip.point_at(HudTooltip.NOWHERE)
-		_hud.tooltip.advance(STEP)
+		_hud.frame_tip.point_at(UiTip.NOWHERE)
+		_hud.frame_tip.advance(STEP)
 
 	_assert_out_of_the_way("after the wipe")
 
-	# Hidden while each panel is open. (Help, the journal and the orders are windows on the UI
-	# layer since spec 058, and the hero sheet since spec 060: they float over the note and do not
-	# hide it.)
+	# Spec 062 R4: drawn over every window, so no window hides it: a hero window, the shop, the
+	# tally and the away report each leave it showing.
 	_hud.hero_windows.open(_sim.party.heroes[0].id)
 	_hud.advance(STEP)
-	assert_true(note.is_shown(), "a hero window floats over the note")
+	assert_true(note.is_shown(), "a hero window leaves the note showing")
 	_hud.hero_windows.close_all()
 	_hud.advance(STEP)
 	var panels: Dictionary[String, Callable] = {
@@ -452,17 +451,18 @@ func test_r5_out_of_the_way() -> void:
 	for panel: String in panels:
 		panels[panel].call()
 		_hud.advance(STEP)
-		assert_false(note.is_shown(), "hidden while the %s is open" % panel)
+		assert_true(note.is_shown(), "shown while the %s is open" % panel)
 		closes[panel].call()
 		_hud.advance(STEP)
-		assert_true(note.is_shown(), "back when the %s closes" % panel)
-	var away := AwayPanel.new(AwayReport.new(), _sim.party)
-	_hud.get_parent().add_child(away)
+		assert_true(note.is_shown(), "still when the %s closes" % panel)
+	var away := AwayWindow.new(AwayReport.new(), _sim.party)
+	_hud.windows.add_child(away)
+	away.open()
 	_hud.advance(STEP)
-	assert_false(note.is_shown(), "hidden while the away report is up")
+	assert_true(note.is_shown(), "shown while the away report is up")
 	away.free()
 	_hud.advance(STEP)
-	assert_true(note.is_shown(), "back when it goes")
+	assert_true(note.is_shown(), "and when it goes")
 
 	# The heroes stand and walk straight into the guardian again while the note lingers: a new
 	# fight does not hide it, and it keeps off the boss bar too.
@@ -481,7 +481,7 @@ func _assert_out_of_the_way(when: String) -> void:
 	var area: Rect2 = _rect(_note().panel)
 	var parts: Dictionary[String, Rect2] = {
 		"depth panel": _rect(_hud.place_panel),
-		"goals": _rect(_hud.goals.panel),
+		"goals": _rect(_hud.goals_view),
 		"gold": _rect(_hud.purse),
 		"ladder": _rect(_hud.ladder),
 		"boss bar": _rect(_hud.boss_bar),

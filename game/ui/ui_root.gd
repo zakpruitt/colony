@@ -5,10 +5,10 @@ extends CanvasLayer
 ##
 ## While a UiRoot is in the tree the game window draws in
 ## [constant Window.CONTENT_SCALE_MODE_CANVAS_ITEMS] mode: the window still thinks in the world's
-## 640x360 pixels (the world, the old HUD and every input event keep their coordinates), but renders
+## 640x360 pixels (the world and every input event keep their coordinates), but renders
 ## at the window's own size. (In a [SubViewport] that stretches 640x360 the same way, as the
 ## screenshot tool's does, the layer leaves the viewport as it is and fits its size.) [Main] draws
-## the world and the old HUD into a 640x360 [SubViewport] that is scaled up by a whole number with
+## the world into a 640x360 [SubViewport] that is scaled up by a whole number with
 ## hard edges; this layer is scaled by [code]ui_scale / world_scale[/code] on top, so one UI pixel
 ## is [method ui_scale] screen pixels. The UI scale is the largest whole number that still leaves
 ## [constant MIN_ROOM] of room, so the room is between 960x540 and about 1280x720.
@@ -21,7 +21,7 @@ extends CanvasLayer
 const WORLD_SIZE: Vector2i = Vector2i(640, 360)
 ## The least room the UI is given, in UI pixels, when the window is big enough for it.
 const MIN_ROOM: Vector2i = Vector2i(960, 540)
-## The canvas layer the UI is drawn on: above the old HUD (10) and the effects.
+## The canvas layer the UI is drawn on: above the HUD's layer (10) and the effects.
 const LAYER: int = 20
 ## The windows spec 058 made, by id.
 const HELP: StringName = &"help"
@@ -242,7 +242,7 @@ func room() -> Vector2i:
 	return _room
 
 
-## [param world_px], a point in the world's 640x360 screen pixels (where the old HUD and input
+## [param world_px], a point in the world's 640x360 screen pixels (where the world and input
 ## events are), in UI pixels.
 func world_to_ui(world_px: Vector2) -> Vector2:
 	return world_px * float(_world_scale) / float(_ui_scale)

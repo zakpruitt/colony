@@ -194,8 +194,9 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
 
 ## Text
 
-Two fonts: the pixel font below, for the world and the old HUD in the world's 640x360 pixels, and the UI
-font (spec 058) for everything on the sharp UI layer.
+Two fonts: the pixel font below, for the world in its 640x360 pixels (names, numbers and titles that rise
+over the heroes and monsters), and the UI font (spec 058) for everything on the sharp UI layer, which since
+spec 062 is every panel, window and tooltip.
 
 ### The UI font
 
@@ -327,8 +328,9 @@ have four looks: `dusk` with a `slate` edge, `slate` with a `silver` edge under 
 padding round the text and 20 or more tall; a key hint (`Shop  U`) in `steel` after the text. Tooltips are
 one sentence, `white` on `ink` with a `steel` edge. The button bar sits at the bottom right just above the
 hero frames: a 28x28 button per window with a 16x16 icon (`assets/sprites/ui/window_icons.px`), then one
-that puts the windows back. A button's marker (`UiBadge`) is the old HUD's marker on the UI layer: an `amber`
-tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner.
+that puts the windows back. A button's marker (`UiBadge`) is an `amber`
+tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner, on the bar's own
+layer: over the bar, under every window (spec 062).
 
 **The management windows (spec 059).** The shop, the area map and the tally are windows. Their numbers and
 ranks are `white`, captions and sentences `silver`, hints `steel` or `slate`, a bonus `green`, and what is
@@ -336,24 +338,35 @@ missing `orange`. A thin bar (`UiBar`) has a `dusk` edge, an `ink` track and a f
 the bottom row (`green`/`forest` for ranks; the hero's class colours in the tally). A row or card that can be
 clicked is a `night` box that lights to `dusk` with a `steel` edge under the mouse; the chosen one has a
 `yellow` edge; a closed area's card is sunk (`night` edge) with its text in `slate` and its sprites dimmed.
-Numbers in a column are right-aligned; the font's digits are all one width, so they line up. The rules below
-are the old HUD's, in the world's pixels, until each panel moves over.
+Numbers in a column are right-aligned; the font's digits are all one width, so they line up.
 
-- **Edges only.** The HUD keeps to the top 28 and bottom 40 pixels of the 640x360 screen; the middle belongs to
-  the world.
-- **Always on a dark panel.** Every text and bar sits on a `HudPanel`: a 1-pixel `ink` border around a `night`
-  fill, with a `dusk` bevel along the top and left inside the border (light from the top-left). Square
-  corners, whole pixels, no gradients. Panels are opaque, so text reads the same over sky and deep rock.
-- **Buttons** (`HudButton`) are 11 pixels tall: `ink` border, `dusk` fill with a `slate` bevel, `silver`
-  text; `slate` with `yellow` text under the mouse; `night` and one pixel lower when pressed. A toggle that is
-  on is `forest` with a `green` bevel and `white` text, and says so in words (`Auto on`). No Godot default
-  styles, no focus rings.
-- **Disabled buttons** sink to a `night` fill with no bevel and do nothing. A button may colour its text
-  (`text_colour`): a price is `yellow` when affordable and `brick` (dim red) when not.
-- **Overlays** (the upgrade shop, until spec 059 made it a window) are the one exception to "edges only": a `HudPanel` that
-  drops from under the top band at the right, never covering the top band or the party frames, opened and
-  closed by the player. Rows inside it are separated by space, not lines; a row that just changed flashes
-  `forest` with a `green` edge, then `dusk`, for half a second.
+**Goals, stages and news (spec 062).** The last of the HUD is on the sharp layer, in UI pixels, on the
+theme's panels (`night` with a `slate` edge), and windows draw over it as over the world.
+
+- **The goals** sit under the place panel at the left: `Goals` in bold `steel` and `G hide` in `slate`
+  over up to three rows. A row is a small `steel` square (a `green` tick once done), the sentence in `white`,
+  and under it a 6-pixel bar (`cyan`/`blue` for levels and XP, `yellow`/`amber` for depth) with its count
+  in `steel` to its right; a gold goal has no bar and its price in `yellow`, then a `yellow` `>`. A row
+  under the mouse is lit `dusk` with a `slate` edge; a finished one flashes `forest` with a `green` edge,
+  then its sentence and bar turn `green` for 3 s.
+- **The stage list** stands at the right edge under the purse, 150 pixels wide: the area's name in bold
+  `steel` over a `dusk` line, then 12 rows of 24 pixels with the same rails, rungs, diamond, arrow and
+  skull as the old ladder (rules below), each stage's number in bold in its risk colour and, beside a
+  guardian's stage, the guardian's name (`white`, `steel` once beaten, crossed in `red`). Its hover line is
+  the theme's tooltip box, left of the list.
+- **The ticker** is one line of `white` on a small panel just above the hero frames, centred unless that
+  would put it under the button bar; it steps down `silver`, `steel`, `slate` as before, and a click on it
+  opens the journal.
+- **The defeat note** is a panel in the upper middle with its first line in bold `white`, the reason in
+  `silver` and up to three theme buttons; it lies over every window and nothing hides it.
+- **The away report** is a window in the middle of the room: a two-column list (labels in `silver` or the
+  row's colour, values bold and right-aligned) and a `Back to the game` button.
+- **The catching-up bar** is a panel with a `steel` edge in the middle of an `ink` room: `Catching up...`
+  in bold `white` over a `yellow`/`orange` bar on `dusk`.
+
+The rules below were the old HUD's, in the world's pixels; the panels they describe are windows or the
+pieces above now, and they stay for their colours and marks.
+
 - **The hero sheet** (spec 026) is the shop's twin on the left: a `HudPanel` dropping from under the top
   band below the depth panel, ending well above the party frames (a 12-pixel strip stays clear above them).
   The portrait is the frame's icon at 2x in an `ink` box with a `dusk` edge, the class name is the font at

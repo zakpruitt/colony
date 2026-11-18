@@ -47,14 +47,16 @@ func _party() -> Party:
 func _old_text(report: AwayReport, party: Party) -> String:
 	var rows: PackedStringArray = [
 		"While you were away",
-		"Away %s" % AwayPanel.duration(report.seconds),
+		"Away %s" % AwayStory.duration(report.seconds),
 		"Gold +%s" % Hud.group_thousands(report.gold_gained),
 		"Mossy Hollow %d to %d" % [report.depth_before, report.depth_after],
-		"Slain %s   Wipes %d" % [Hud.group_thousands(report.kills), report.wipes],
+		# Spec 062 R5: a short list, a row each.
+		"Slain %s" % Hud.group_thousands(report.kills),
+		"Wipes %d" % report.wipes,
 	]
 	for hero: Hero in party.heroes:
 		rows.append("%s +2 levels" % hero.def().display_name)
-	rows.append("Click or press any key")
+	rows.append(AwayWindow.CLOSE_TEXT)  # spec 062 R5: its button closes it
 	return "\n".join(rows)
 
 
@@ -159,15 +161,16 @@ func test_r2_it_counts_the_rest() -> void:
 func test_r3_the_panel_says_it() -> void:
 	var party: Party = _party()
 	var plain: AwayReport = _plain_report(party)
-	var before := AwayPanel.new(plain, party)
+	var before := AwayWindow.new(plain, party)
 	add_child_autofree(before)
 	assert_eq(before.text(), _old_text(plain, party), "with none of them, the text is unchanged")
 
 	var report: AwayReport = _full_report(party)
-	var panel := AwayPanel.new(report, party)
+	var panel := AwayWindow.new(report, party)
 	add_child_autofree(panel)
 	var rows: PackedStringArray = panel.text().split("\n")
-	assert_has(rows, "Guardians slain 2 (furthest: Clay Colossus)")
+	assert_has(rows, "Guardians slain 2")  # spec 062 R5: a row each
+	assert_has(rows, "Furthest guardian Clay Colossus")
 	assert_has(rows, "Side quests done 14")
 	assert_has(rows, "Side quests missed 3")
 	assert_has(rows, "Upgrades bought 3")
@@ -182,17 +185,17 @@ func test_r3_the_panel_says_it() -> void:
 		var skill: String = Content.microskill(ids[i % ids.size()]).display_name
 		assert_eq(learned[i], "%s learned %s" % [hero.def().display_name, skill], "in order")
 	assert_has(rows, "and 2 more", "the rest are counted")
-	assert_eq(rows[rows.size() - 1], "Click or press any key", "the prompt stays last")
+	assert_eq(rows[rows.size() - 1], AwayWindow.CLOSE_TEXT, "the button stays last")
 
 	# A count of zero shows no line; one learned microskill shows no "and N more".
 	var some: AwayReport = _plain_report(party)
 	some.guardians_slain = 1
 	some.deepest_guardian = &"slime_king"
 	some.microskills_learned = [Vector2i(party.heroes[1].id, _skill(&"lockpicker"))]
-	var few := AwayPanel.new(some, party)
+	var few := AwayWindow.new(some, party)
 	add_child_autofree(few)
 	var text: String = few.text()
-	assert_string_contains(text, "Guardians slain 1 (furthest: Slime King)")
+	assert_string_contains(text, "Guardians slain 1\nFurthest guardian Slime King")
 	assert_string_contains(text, "%s learned Lockpicker" % party.heroes[1].def().display_name)
 	assert_false(text.contains("Side quests"), "no side quest lines at zero")
 	assert_false(text.contains("more"), "no 'and N more' under the cap")
@@ -200,14 +203,14 @@ func test_r3_the_panel_says_it() -> void:
 
 func test_r4_misses_teach() -> void:
 	var party: Party = _party()
-	var panel := AwayPanel.new(_full_report(party), party)
+	var panel := AwayWindow.new(_full_report(party), party)
 	add_child_autofree(panel)
 	assert_has(panel.text().split("\n"), "Most needed: Trapspotter")
 
 	var clean: AwayReport = _full_report(party)
 	clean.side_quests_missed = 0
 	clean.most_needed_microskill = &""
-	var none := AwayPanel.new(clean, party)
+	var none := AwayWindow.new(clean, party)
 	add_child_autofree(none)
 	assert_false(none.text().contains("Most needed"), "no misses, no most-needed line")
 	assert_false(none.text().contains("missed"), "nor a missed line")
@@ -215,29 +218,36 @@ func test_r4_misses_teach() -> void:
 
 func test_r5_it_still_fits() -> void:
 	var party: Party = _party()
-	var panel := AwayPanel.new(_full_report(party), party)
+	var panel := AwayWindow.new(_full_report(party), party)
 	add_child_autofree(panel)
+	# Spec 062: a window in the middle of the UI layer's smallest room, between the place panel
+	# and the hero frames' line.
+	var room := Vector2(UiRoot.MIN_ROOM)
+	panel.open()
+	await wait_process_frames(2)  # laid out (a hidden container is not)
+	panel.centre_in(room)
 	var rect := Rect2(panel.position, panel.size)
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
+	var frames_top: float = Hud.frames_line(UiRoot.MIN_ROOM)
 	assert_gte(rect.position.x, 0.0, "inside the screen on the left")
-	assert_lte(rect.end.x, Hud.SCREEN.x, "and on the right")
-	assert_gte(rect.position.y, Hud.TOP_BAND, "below the top band")
+	assert_lte(rect.end.x, room.x, "and on the right")
+	assert_gte(rect.position.y, Hud.FRAME_TOP + PlacePanel.HEIGHT, "below the top band")
 	assert_lte(rect.end.y, frames_top, "above the party frames")
 	var rows: int = panel.text().split("\n").size()
 	assert_gte(rows, 16, "every line is showing")
-	var labels: Array[Label] = []
-	for child: Node in panel.get_children():
-		if child is Label:
-			labels.append(child)
-	assert_eq(labels.size(), rows)
+	var labels: Array[Label] = panel.labels
+	assert_eq(labels.size() + 2, rows, "a row per line, under the title and over the button")
+	var body := Rect2(Vector2.ZERO, panel.size)
 	for i: int in labels.size():
 		var label: Label = labels[i]
-		var line := Rect2(label.position, Vector2(PixelText.width(label.text), PixelText.SIZE))
-		assert_true(Rect2(Vector2.ZERO, panel.size).encloses(line), "line %d inside the panel" % i)
+		var at: Vector2 = label.get_global_rect().position - panel.get_global_rect().position
+		var line := Rect2(
+			at, Vector2(UiText.width(label.text) - UiText.SPACING, UiText.LINE_HEIGHT)
+		)
+		assert_true(body.encloses(line), "line %d inside the panel" % i)
 		if i > 0:
 			assert_gte(
-				label.position.y - labels[i - 1].position.y,
-				float(PixelText.SIZE + PixelText.SHADOW_OFFSET),
+				label.get_global_rect().position.y - labels[i - 1].get_global_rect().position.y,
+				float(UiText.LINE_HEIGHT),
 				"line %d clear of the one above" % i
 			)
 
