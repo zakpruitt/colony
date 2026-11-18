@@ -40,7 +40,7 @@ var _lift: float = 0.0
 func _init(coin: Texture2D = null) -> void:
 	name = "Purse"
 	theme_type_variation = UiTheme.FRAME
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # a click here goes no further (to the world)
 	speed_button = UiButton.new("1x")  # every speed is as wide: the digits are
 	speed_button.name = "SpeedButton"
 	add_child(speed_button)

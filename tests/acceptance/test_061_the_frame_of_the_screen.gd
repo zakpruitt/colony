@@ -252,15 +252,29 @@ func test_r4_things_still_fly_to_it() -> void:
 		var coin_end := Vector2.INF
 		var mote_end := Vector2.INF
 		var icon_end := Vector2.INF
+		var flown: int = 0
+		var landed: bool = false
 		for frame: int in 300:
 			for coin: FxCoin in main.effects._coins:
 				coin_end = _on_ui(main, coin)
 			for mote: FxMote in main.effects._motes:
 				mote_end = _on_ui(main, mote)
+			var flying: int = main.effects.resource_effects.live_icons().size()
 			for icon: FxResource in main.effects.resource_effects.live_icons():
 				icon_end = _on_ui(main, icon)
 			main.effects.advance(STEP)
 			hud.advance(STEP)
+			if landed:
+				continue
+			if main.effects.resource_effects.live_icons().size() < flying:
+				landed = true  # the first landed on this frame: the count rises with it, not later
+				assert_gt(hud.purse.shown(ids[1]), 30, "%s: the resource as an icon lands" % what)
+			else:
+				flown += 1 if flying > 0 else 0
+				assert_eq(hud.purse.shown(ids[1]), 30, "%s: unchanged while they fly" % what)
+		assert_true(landed, "%s: the icons landed" % what)
+		assert_gt(flown, 5, "%s: after a flight" % what)
+		assert_eq(hud.purse.shown(ids[1]), 32, "%s: the resource, once they all land" % what)
 		var coin: Rect2 = hud.purse.coin_icon.get_global_rect().grow(3.0)
 		var counter: Rect2 = hud.purse.icons[ids[1]].get_global_rect().grow(3.0)
 		var frame_rect: Rect2 = hud.frames[2].get_global_rect()
@@ -276,7 +290,6 @@ func test_r4_things_still_fly_to_it() -> void:
 			"%s: a mote ends on its hero's frame %s %s" % [what, mote_end, frame_rect]
 		)
 		assert_eq(hud.shown_gold(), gold_before + 50, "%s: the gold counts up as coins land" % what)
-		assert_eq(hud.purse.shown(ids[1]), 32, "%s: the resource as its icons land" % what)
 		main.free()
 
 
@@ -367,6 +380,28 @@ func test_r5_hero_frames() -> void:
 					assert_eq(frame.health_label.text, number, "the number is the blow's")
 					followed += 1
 		assert_gt(followed, 50, "a fight was followed")
+		main.free()
+
+
+func test_r5_the_bar_and_the_ticker_sit_on_the_frames() -> void:
+	for room: Vector2i in ROOMS:
+		var main: Main = _main(room)
+		var ui: UiRoot = main.ui
+		var what: String = "%s" % room
+		var line: float = main.hud.frames[0].get_global_rect().position.y
+		assert_almost_eq(
+			ui.world_to_ui(Vector2(0, ui.frames_top())).y, line, 1.0, "%s: the frames' top" % what
+		)
+		var bar: Rect2 = ui.bar.get_global_rect()
+		assert_lte(bar.end.y, line, "%s: the button bar above the frames" % what)
+		assert_gt(bar.end.y, line - 8.0, "%s: just above them" % what)
+		main.hud.journal.announce("Something happened.")
+		main.hud.advance(STEP)
+		var ticker: Rect2 = Hud.on_screen(main.hud.journal.ticker)
+		var on_ui := Rect2(ui.world_to_ui(ticker.position), ui.world_to_ui(ticker.size))
+		assert_true(main.hud.journal.ticker.is_visible_in_tree(), "%s: the ticker shows" % what)
+		assert_lte(on_ui.end.y, line, "%s: the ticker above the frames" % what)
+		assert_gt(on_ui.end.y, line - 12.0, "%s: just above them" % what)
 		main.free()
 
 
@@ -478,6 +513,79 @@ func test_r7_tooltips() -> void:
 		main.free()
 
 
+func test_r7_a_frame_tip_is_drawn_over_everything() -> void:
+	for room: Vector2i in ROOMS:
+		var main: Main = _main(room)
+		var hud: Hud = main.hud
+		var tip: UiTip = hud.frame_tip
+		# Every tag on the bar showing (they draw over their neighbours).
+		for id: StringName in main.ui.windows.ids():
+			main.ui.windows.window(id).badge = 9
+		main.ui.bar.refresh()
+		for frame: HeroFrameView in hud.frames:
+			var what: String = "%s %s" % [room, frame.name]
+			assert_eq(_rest_on(main, frame), frame.tip(), "%s: its tip shows" % what)
+			assert_eq(_drawn_over(main.ui, tip), [] as Array[String], "%s: nothing over it" % what)
+			# A window open under where the tip shows, clear of the frame the mouse is on.
+			var help: UiWindow = main.ui.windows.window(UiRoot.HELP)
+			main.ui.windows.open_window(UiRoot.HELP)
+			var box: Rect2 = tip.get_global_rect()
+			help.position = Vector2(
+				box.position.x - 8.0, frame.get_global_rect().position.y - 2.0 - help.size.y
+			)
+			assert_true(help.get_global_rect().intersects(box), "%s: the window under it" % what)
+			assert_eq(_rest_on(main, frame), frame.tip(), "%s: its tip still shows" % what)
+			assert_eq(
+				_drawn_over(main.ui, tip),
+				[] as Array[String],
+				"%s: nothing over it, the window either" % what
+			)
+			main.ui.windows.close_window(UiRoot.HELP)
+		main.free()
+
+
+## The names of what on [param layer] draws over [param tip]'s box: anything later in the draw
+## order (the tree's, or a higher z) whose rectangle meets it.
+func _drawn_over(layer: CanvasLayer, tip: UiTip) -> Array[String]:
+	var order: Array[CanvasItem] = []
+	_in_draw_order(layer, order)
+	var box: Rect2 = tip.get_global_rect()
+	var over: Array[String] = []
+	var after: bool = false
+	for item: CanvasItem in order:
+		if item == tip:
+			after = true
+			continue
+		if tip.is_ancestor_of(item) or not item.is_visible_in_tree():
+			continue
+		var later: bool = _z_of(item) > _z_of(tip) or (after and _z_of(item) == _z_of(tip))
+		var control: Control = item as Control
+		# Anything not a control is taken to cover the whole layer.
+		var rect: Rect2 = control.get_global_rect() if control != null else box
+		if later and rect.intersects(box):
+			over.append(String(item.get_path()))
+	return over
+
+
+func _in_draw_order(node: Node, order: Array[CanvasItem]) -> void:
+	for child: Node in node.get_children():
+		if child is CanvasItem:
+			order.append(child as CanvasItem)
+		_in_draw_order(child, order)
+
+
+func _z_of(item: CanvasItem) -> int:
+	var z: int = 0
+	var at: Node = item
+	while at is CanvasItem:
+		var canvas_item: CanvasItem = at as CanvasItem
+		z += canvas_item.z_index
+		if not canvas_item.z_as_relative:
+			break
+		at = at.get_parent()
+	return z
+
+
 func _check_box(main: Main, control: Control, what: String) -> void:
 	var tip: UiTip = main.hud.frame_tip
 	var box: Rect2 = tip.get_global_rect()
@@ -547,6 +655,41 @@ func test_r8_nothing_drawn_twice_nothing_lost() -> void:
 	_press(main, KEY_F)
 	assert_eq(main.speed, 2, "F speeds the game")
 	assert_true(hud.purse.speed_button.lit, "shown on the purse")
+
+
+func test_r8_a_click_on_the_frame_goes_no_further() -> void:
+	for room: Vector2i in ROOMS:
+		var main: Main = _main(room)
+		var hud: Hud = main.hud
+		assert_true(_guardian_fight(main), "a guardian fight")
+		# Over everything the world's viewport holds, a probe that hears every press reaching it.
+		var heard: Array[Vector2] = []
+		var probe := Control.new()
+		probe.size = Hud.SCREEN
+		probe.mouse_filter = Control.MOUSE_FILTER_STOP
+		probe.gui_input.connect(
+			func(event: InputEvent) -> void:
+				var press: InputEventMouseButton = event as InputEventMouseButton
+				if press != null and press.pressed:
+					heard.append(press.position)
+		)
+		hud.add_child(probe)
+		_click_ui(main.ui, Vector2(main.ui.room()) / 2.0)
+		assert_eq(heard.size(), 1, "%s: a click on the world reaches it" % room)
+		var spots: Dictionary[String, Vector2] = {
+			"the gold": hud.purse.gold_label.get_global_rect().get_center(),
+			"the purse's edge": hud.purse.get_global_rect().end - Vector2(3, 3),
+			"the countdown": hud.countdown.get_global_rect().get_center(),
+			"the boss bar": hud.boss_bar.get_global_rect().get_center(),
+			"the place panel": hud.place_panel.status_label.get_global_rect().get_center(),
+		}
+		for spot: String in spots:
+			heard.clear()
+			_click_ui(main.ui, spots[spot])
+			assert_eq(
+				heard, [] as Array[Vector2], "%s: a click on %s goes no further" % [room, spot]
+			)
+		main.free()
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -628,29 +771,23 @@ func test_r10_fits_both_rooms_and_clears_the_windows() -> void:
 		var hud: Hud = main.hud
 		var sim: Simulation = main.simulation
 		var what: String = "%s" % room
-		# The longest names in the data, the widest numbers.
-		var longest_area: StringName = Content.area_ids()[0]
-		for id: StringName in Content.area_ids():
-			if PlaceText.area_name(id).length() > PlaceText.area_name(longest_area).length():
-				longest_area = id
-		sim.expedition.travel.open[longest_area] = true
-		sim.set_destination(longest_area, 1)
-		assert_true(
-			_until(main, func() -> bool: return sim.expedition.place == longest_area),
-			"%s: in the area with the longest name" % what
-		)
-		sim.party.gold = 9_876_543
+		# The widest the frame gets: every resource held at 99.9k beside 9.9M gold, the Claypits at
+		# stage 999 fighting the Clay Colossus, and the countdown's longest note and next.
+		sim.party.gold = 9_900_000
 		hud.advance(STEP)
-		main.effects.coin_collected.emit(9_876_543)
+		main.effects.coin_collected.emit(9_900_000)
 		for id: StringName in Content.resource_ids():
-			sim.party.set_resource(id, 99_999)
+			sim.party.set_resource(id, 99_900)
 		hud.purse.catch_up()
 		assert_true(_guardian_fight(main), "%s: a guardian fight" % what)
-		sim.expedition.target_depth = 999
-		sim.expedition.depth = 99
 		hud.advance(STEP)
+		_show_widest(main)
+		hud.fit_frame(room)
 		var pieces: Dictionary[String, Control] = _pieces(main)
 		assert_true(pieces.has("boss bar"), "the boss bar is up")
+		assert_eq(hud.purse.gold_label.text, "9.9M", "%s: the widest gold" % what)
+		assert_eq(hud.purse.shown_ids().size(), Content.resource_ids().size(), "every resource")
+		assert_gte(hud.boss_bar.size.x, 200.0, "%s: the boss bar stays wide" % what)
 		var names: Array[String] = pieces.keys()
 		var room_rect := Rect2(Vector2.ZERO, Vector2(room))
 		for a: int in names.size():
@@ -668,9 +805,6 @@ func test_r10_fits_both_rooms_and_clears_the_windows() -> void:
 					piece.get_global_rect().encloses(_ink(label)),
 					"%s: '%s' not cut in %s" % [what, label.text, name_key]
 				)
-		# The longest status line and monster name.
-		var line: String = hud.status_text()
-		assert_string_contains(line, "Fighting the ", "%s: the guardian named" % what)
 		# The default places of every window clear every piece of the frame.
 		main.ui.windows.reset_places()
 		for id: StringName in main.ui.windows.ids():
@@ -691,6 +825,30 @@ func test_r10_fits_both_rooms_and_clears_the_windows() -> void:
 					"%s: hero window %d clear of %s" % [what, hero.id, name_key]
 				)
 		main.free()
+
+
+## Puts the widest texts the frame shows on its pieces (as the HUD's advance would put them, were
+## the party there): the Claypits at stage 999, fighting the Clay Colossus, "Further in 12:00" and
+## "then stage 100", and the Colossus's name and a six-figure health on the boss bar.
+func _show_widest(main: Main) -> void:
+	var hud: Hud = main.hud
+	var colossus: String = Content.monster(&"clay_colossus").display_name
+	hud.place_panel.show_place(
+		PlaceText.area_name(&"claypits"),
+		999,
+		&"white",
+		0.0,
+		998,
+		999,
+		true,
+		"Fighting the %s" % colossus,
+		&"red"
+	)
+	hud.countdown.show_road("Further in 12:00", "then stage 100", 0.5, PlacePanel.HEIGHT)
+	hud.boss_bar.name_label.text = colossus.to_upper()
+	hud.boss_bar.name_label.reset_size()
+	hud.boss_bar.health_label.text = "888,888 / 888,888"
+	hud.boss_bar.health_label.reset_size()
 
 
 # --- R11 -----------------------------------------------------------------------

@@ -496,7 +496,7 @@ func test_r7_it_fits() -> void:
 		hero.gain_xp(Hero.xp_for_level(99))
 	# Spec 060: the windows are on the UI layer, measured in its pixels.
 	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	var room := Vector2(_ui.room())
 	for hero: Hero in _sim.party.heroes:
 		var sheet: HeroWindow = _open(hero.id)

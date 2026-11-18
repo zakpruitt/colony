@@ -31,7 +31,8 @@ const GAP: float = 4.0
 ## The top panels' top edge and height.
 const TOP_Y: float = 2.0
 const TOP_HEIGHT: float = 24.0
-## The line of the hero frames, in the screen's pixels: the frames stay under it.
+## How far above the screen's margin the hero frames reach, in the world's pixels, for a HUD with
+## no UI layer; on the layer [method frames_line] gives their true top.
 const FRAMES_HEIGHT: float = 34.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
@@ -136,6 +137,8 @@ var area_map: AreaMapWindow
 var _simulation: Simulation
 var _world: World
 var _effects: CombatEffects
+## The UI layer the frame of the screen is on, or null.
+var _ui: UiRoot
 var _icons: PixelSheet
 var _frames_by_id: Dictionary[int, HeroFrameView] = {}
 var _shown_gold: int = 0
@@ -314,6 +317,7 @@ func advance(delta: float) -> void:
 ## Puts the frame of the screen on [param ui]'s layer (spec 061), under its windows, filling its
 ## room; its tooltip treats a point under a window as nowhere. Called by [method UiRoot.setup].
 func adopt_frame(ui: UiRoot) -> void:
+	_ui = ui
 	screen_frame.reparent(ui.frame, false)
 	ui.frame.move_child(screen_frame, 0)
 	screen_frame.theme = null  # the layer's frame carries the theme
@@ -325,14 +329,38 @@ func adopt_frame(ui: UiRoot) -> void:
 ## than [constant UiRoot.MIN_ROOM] (a window under 960x540, as a headless test's is) has the frame
 ## laid out at that size and scaled down to fit, so it still keeps to the two bands.
 func fit_frame(room: Vector2i) -> void:
-	var fit: float = minf(
-		1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y)
-	)
+	var fit: float = _fit(room)
 	screen_frame.position = Vector2.ZERO
 	screen_frame.scale = Vector2.ONE * fit
 	_frame_room = Vector2(room) / fit
-	frame_tip.room = _frame_room
+	# Lifted onto the layer ([method lift_tip]), the tip keeps to the layer's own room.
+	frame_tip.room = _frame_room if frame_tip.get_parent() == screen_frame else Vector2(room)
 	_lay_out_frame()
+	if _ui != null:
+		journal.frames_top = _ui.frames_top()  # the ticker stands on the frames
+
+
+## The top of the hero frames on the UI layer in a room of [param room] UI pixels: where
+## [method _lay_out_frame] puts them, scaled as [method fit_frame] scales the frame.
+static func frames_line(room: Vector2i) -> float:
+	var fit: float = _fit(room)
+	return (float(room.y) / fit - FRAME_EDGE - HeroFrameView.SIZE.y) * fit
+
+
+## The fraction the frame is drawn at in a room of [param room] UI pixels: 1, or less in a room
+## smaller than [constant UiRoot.MIN_ROOM].
+static func _fit(room: Vector2i) -> float:
+	return minf(1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y))
+
+
+## Puts the frame's tooltip over everything else on [param ui]'s layer (the button bar and every
+## window), unscaled, in the layer's room. Called by [method UiRoot.setup] once all is on it.
+func lift_tip(ui: UiRoot) -> void:
+	frame_tip.reparent(ui.frame, false)
+	ui.frame.move_child(frame_tip, -1)
+	frame_tip.scale = Vector2.ONE
+	frame_tip.z_index = 2  # over the tags on the bar's buttons, which draw at 1
+	frame_tip.room = Vector2(ui.room())
 
 
 ## True while the window holding [param content] is the front window on the UI layer (spec 059).

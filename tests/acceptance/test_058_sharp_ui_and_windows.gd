@@ -460,7 +460,7 @@ func test_r5_windows() -> void:
 	assert_eq(main.simulation.expedition.pace, pace, "the hidden Bold was not pressed")
 
 	# Nor the world or the old HUD: the target stage and the hero sheet are unchanged.
-	var plus: Vector2 = main.hud.place_panel.plus_button.get_global_rect().get_center()
+	var plus: Vector2 = Hud.on_screen(main.hud.place_panel.plus_button).get_center()
 	var frame: Vector2 = Hud.on_screen(main.hud.frames[1]).get_center()
 	var target: int = main.simulation.expedition.target_depth
 	for under: Vector2 in [plus, frame]:

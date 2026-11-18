@@ -834,7 +834,7 @@ func test_r11_it_fits_and_is_explained() -> void:
 	# no more (test_060's R7 and R10 check every class, both rooms and the longest data).
 	var screen := Rect2(Vector2.ZERO, Vector2(_ui.room()))
 	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)
 		_level(hero, 17)

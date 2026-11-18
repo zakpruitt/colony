@@ -68,10 +68,15 @@ The picture is drawn in two layers, each in its own pixels.
   `HeroFrameView` per hero along the bottom. The `Hud` builds them under `Hud.screen_frame`, keeps making
   their texts (`status_text`, `_stable_parts`, `PlaceText`) and lays them out each frame; `UiRoot.setup`
   moves `screen_frame` onto the layer (`Hud.adopt_frame`, first child of `frame`, so windows draw over it)
-  and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A `Hud` built alone in a test keeps it as its
-  own child at a scale of 640/960, so its pieces' global rects stay in world pixels. Their tooltips are
-  one `UiTip` (`Hud.frame_tip`) that follows the mouse itself (`follows_mouse`: the labels take no mouse)
-  and treats a point on a window as nowhere. Effects aim at the pieces' places on the screen
+  and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A window under 1280x720 (whose UI room is
+  under 960x540, as a headless test's 640x360 is) has the frame laid out at 960x540 and drawn scaled down
+  by that fraction. `Hud.frames_line(room)` is the hero frames' true top in a room, and
+  `UiRoot.frames_top()` the same in world pixels: the button bar, the hero windows and the journal's ticker
+  stand on it. A `Hud` built alone in a test keeps the frame as its own child at a scale of 640/960, so its
+  pieces' global rects stay in world pixels. Their tooltips are one `UiTip` (`Hud.frame_tip`) that follows
+  the mouse itself (`follows_mouse`) and treats a point on a window as nowhere; `UiRoot.setup` lifts it to
+  the last child of `frame` (`Hud.lift_tip`), so it draws over the button bar and every window. Each
+  piece stops a click on it, so none reaches the world under it. Effects aim at the pieces' places on the screen
   (`Hud.on_screen`, through the canvas layer's transform, never a camera's): coins at the purse's coin, resource
   icons at their counts, and XP motes at their hero's frame (`CombatEffects.frame_screen_targets`; with no
   HUD, at the hero's chest as before). After a stall (`World.STALL_TICKS` at the game's speed) every

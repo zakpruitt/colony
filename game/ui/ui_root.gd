@@ -139,6 +139,8 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	if hero_windows != null:
 		hero_windows.place_defaults()  # again, now the bar has its size: they keep clear of it
 	frame.add_child(tip)
+	if hud != null:
+		hud.lift_tip(self)  # over the bar, the windows and their own tip
 	windows.restore()
 	if hud != null:
 		hud.windows = windows
@@ -205,9 +207,9 @@ func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: floa
 	map.default_place = Vector2(clampf(middle, left, maxf(right - map.size.x, left)), top)
 
 
-## The top of the hero frames' line, in the world's 640x360 screen pixels.
-static func frames_top() -> float:
-	return Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
+## The top of the hero frames' line in this layer's room, in the world's 640x360 screen pixels.
+func frames_top() -> float:
+	return ui_to_world(Vector2(0, Hud.frames_line(_room))).y
 
 
 ## How many screen pixels one UI pixel is.

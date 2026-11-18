@@ -819,7 +819,7 @@ func test_r9_explains_itself() -> void:
 	seen[button_text] = "the Orders button"
 	var tips: UiTip = null
 	for child: Node in _main.ui.frame.get_children():
-		if child is UiTip and child != bar.tip:
+		if child is UiTip and child != bar.tip and child != _main.hud.frame_tip:
 			tips = child as UiTip
 	assert_not_null(tips, "the orders have a tooltip")
 	for order: int in _orders.choice_buttons.size():

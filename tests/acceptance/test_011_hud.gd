@@ -399,6 +399,18 @@ func _backed(label: Label) -> bool:
 	while node != null:
 		var backing: bool = node is HudPanel or node is Panel or node is HeroFrameView
 		if backing and (node as Control).get_global_rect().encloses(rect):
-			return true
+			var fill: Color = _fill_of(node as Control)
+			return fill.a >= 0.95 and fill.get_luminance() < 0.25
 		node = node.get_parent()
 	return false
+
+
+## The colour [param backing] actually fills itself with: a HUD panel's fill, a hero frame's, or
+## the flat stylebox a panel's theme gives it (clear when it has none).
+func _fill_of(backing: Control) -> Color:
+	if backing is HudPanel:
+		return (backing as HudPanel).fill
+	if backing is HeroFrameView:
+		return (backing as HeroFrameView).fill_colour()
+	var flat: StyleBoxFlat = backing.get_theme_stylebox(&"panel") as StyleBoxFlat
+	return flat.bg_color if flat != null else Color(0, 0, 0, 0)

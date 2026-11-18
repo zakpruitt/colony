@@ -26,7 +26,7 @@ var _progress: float = 0.0
 func _init() -> void:
 	name = "Countdown"
 	theme_type_variation = UiTheme.FRAME
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # a click here goes no further (to the world)
 	note_label = UiText.label("", &"silver", true)
 	note_label.name = "Note"
 	add_child(note_label)

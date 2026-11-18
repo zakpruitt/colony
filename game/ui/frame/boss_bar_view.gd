@@ -41,7 +41,7 @@ var _flash: float = 0.0
 func _init() -> void:
 	name = "BossBar"
 	theme_type_variation = UiTheme.FRAME
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mouse_filter = Control.MOUSE_FILTER_STOP  # a click here goes no further (to the world)
 	visible = false
 	size = Vector2(MAX_WIDTH, 40)
 	name_label = UiText.label("", &"white", true)

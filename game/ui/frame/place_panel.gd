@@ -2,11 +2,11 @@ class_name PlacePanel
 extends Panel
 ## Where the party is, at the top left (spec 061 R1), on the sharp layer. Its top row: the area's
 ## name as a button (a click opens the area map, spec 053; [member area_mark] counts the areas
-## opened since the map was last opened), the stage in large digits, the safe stage
-## ([code]Safe 3[/code]), the target with its [code]-[/code] and [code]+[/code] buttons, and the
-## Auto switch. Under it, the line saying what the party is doing and why ([method Hud.status_text],
-## in the state's colour). The texts are the HUD's; this only draws them, and the HUD connects the
-## buttons.
+## opened since the map was last opened), the stage in large digits, the target with its
+## [code]-[/code] and [code]+[/code] buttons, and the Auto switch. Under it, the line saying what
+## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
+## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
+## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
 const HEIGHT: float = 41.0
@@ -124,9 +124,7 @@ func lay_out() -> void:
 	stage_label.position = Vector2(
 		x, BUTTON_Y + floorf((UiTheme.BUTTON_HEIGHT - caps) / 2.0) - air - _lift
 	)
-	x += _ink(stage_label, true) * STAGE_SCALE + GAP
-	safe_label.position = Vector2(x, text_y)
-	x += _ink(safe_label, false) + GAP * 2.0
+	x += _ink(stage_label, true) * STAGE_SCALE + GAP * 2.0
 	target_caption.position = Vector2(x, text_y)
 	x += _ink(target_caption, false) + GAP
 	minus_button.position = Vector2(x, BUTTON_Y)
@@ -138,7 +136,11 @@ func lay_out() -> void:
 	auto_button.position = Vector2(x, BUTTON_Y)
 	x += auto_button.size.x
 	status_label.position = Vector2(PAD + 2.0, LINE_Y)
-	x = maxf(x, status_label.position.x + _ink(status_label, false))
+	# The safe stage at the right of the line under the buttons, clear of the status.
+	var status_end: float = status_label.position.x + _ink(status_label, false)
+	var safe_x: float = maxf(x - _ink(safe_label, false), status_end + GAP * 2.0)
+	safe_label.position = Vector2(safe_x, LINE_Y)
+	x = maxf(x, safe_x + _ink(safe_label, false))
 	size = Vector2(ceilf(x + PAD), HEIGHT)
 
 

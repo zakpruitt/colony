@@ -88,7 +88,7 @@ func place_defaults() -> void:
 		return
 	var room := Vector2(_ui.room())
 	var band: float = ceilf(_ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + GAP / 2.0
-	var frames: float = floorf(_ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y) - GAP / 2.0
+	var frames: float = floorf(_ui.world_to_ui(Vector2(0, _ui.frames_top())).y) - GAP / 2.0
 	var bar: Rect2 = _ui.bar.rect_in(_ui.room()).grow(GAP / 2.0) if _ui.bar != null else Rect2()
 	_set_heights(_tallest)
 	var window_size: Vector2 = _windows[_ids[0]].size
