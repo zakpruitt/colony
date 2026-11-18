@@ -129,6 +129,8 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	for made: UiWindow in [help, journal, orders]:
 		made.place_at(made.default_place, Vector2(_room))
 	bar.setup(self, windows)
+	if hero_windows != null:
+		hero_windows.place_defaults()  # again, now the bar has its size: they keep clear of it
 	frame.add_child(tip)
 	windows.restore()
 	if hud != null:

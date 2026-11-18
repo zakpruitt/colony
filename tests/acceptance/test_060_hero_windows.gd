@@ -1,180 +1,10 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/hero_windows_test.gd"
 ## Acceptance tests for specs/060-hero-windows/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## and drives the hero windows with real clicks and keys pushed into the viewport (the helpers are
-## in ui_layer_test.gd); the simulation is stepped after each command and checked.
-
-const STEP: float = 1.0 / 60.0
-const RICH: int = 1_000_000
-const LIMIT_TICKS: int = 30_000
-const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
-const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
-const WIKI: String = "res://docs/wiki/index.html"
-const OLD_SHEET: String = "res://game/hud/hero_sheet.gd"
-
-# --- Helpers -------------------------------------------------------------------
-
-
-func _hero(main: Main, class_id: StringName) -> Hero:
-	for hero: Hero in main.simulation.party.heroes:
-		if hero.class_id == class_id:
-			return hero
-	return null
-
-
-func _level(hero: Hero, level: int) -> void:
-	hero.level = level
-	hero.xp = Hero.xp_for_level(level)
-
-
-## The trunk and the first [param steps] nodes of path [param path] of [param class_id]'s tree.
-func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
-	var tree: TalentTreeDef = Content.talent_tree(class_id)
-	var nodes: Array[StringName] = tree.trunk.duplicate()
-	nodes.append_array(tree.path_nodes(path).slice(0, steps))
-	return nodes
-
-
-func _frame_of(main: Main, hero: Hero) -> HeroFrame:
-	for frame: HeroFrame in main.hud.frames:
-		if frame.hero_id == hero.id:
-			return frame
-	return null
-
-
-## A real click on [param hero]'s frame, then a frame of the HUD.
-func _click_frame(main: Main, hero: Hero) -> void:
-	_click_world(_frame_of(main, hero).get_global_rect().get_center())
-	main.hud.advance(STEP)
-
-
-## A real click on [param control], a control on the UI layer, then a frame of the HUD.
-func _click(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
-	main.hud.advance(STEP)
-
-
-func _press(main: Main, keycode: Key, shift: bool = false) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.shift_pressed = shift
-		event.pressed = pressed
-		get_viewport().push_input(event)
-	main.hud.advance(STEP)
-
-
-## One frame of one tick: the simulation, the world, the HUD.
-func _tick(main: Main) -> void:
-	main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
-
-
-func _window(main: Main, hero: Hero) -> HeroWindow:
-	return main.hud.hero_windows.window_of(hero.id)
-
-
-## Opens [param hero]'s window with a click on its frame and its [param page] with a click on the
-## tab.
-func _open(main: Main, hero: Hero, page: HeroWindow.Page) -> HeroWindow:
-	if not main.hud.hero_windows.is_open(hero.id):
-		_click_frame(main, hero)
-	var shown: HeroWindow = _window(main, hero)
-	if shown.page() != page:
-		_click(main, shown.tab_buttons[page])
-	return shown
-
-
-## The rectangle [param label]'s text inks, in UI pixels: as wide as its widest line in its font,
-## a line tall per line.
-func _text_rect(label: Label) -> Rect2:
-	var bold: bool = label.get_theme_font(&"font") == UiText.font(true)
-	var widest: int = 0
-	var lines: PackedStringArray = label.text.split("\n")
-	for line: String in lines:
-		widest = maxi(widest, UiText.width(line, bold) - UiText.SPACING)
-	var at: Vector2 = label.get_global_rect().position
-	return Rect2(at, Vector2(widest, lines.size() * UiText.LINE_HEIGHT))
-
-
-## Every label of [param node]'s branch that shows text.
-func _shown_labels(node: Node) -> Array[Label]:
-	var all: Array[Control] = []
-	_controls(node, all)
-	var labels: Array[Label] = []
-	for control: Control in all:
-		var label: Label = control as Label
-		if label != null and label.is_visible_in_tree() and not label.text.strip_edges().is_empty():
-			labels.append(label)
-	return labels
-
-
-## Checks that every text shown on [param shown]'s open tab and header is inside the window and the
-## room, inside its own label, and clear of every other text.
-func _check_fits(main: Main, shown: HeroWindow, what: String) -> void:
-	var window: Rect2 = shown.get_global_rect()
-	var room := Rect2(Vector2.ZERO, Vector2(main.ui.room()))
-	assert_lte(window.size.y, room.size.y, "%s: never taller than the room" % what)
-	var labels: Array[Label] = _shown_labels(shown)
-	var rects: Array[Rect2] = []
-	# What scrolls is judged against the whole scrolled content, every line of it reachable.
-	var view: Rect2 = shown.scroll.get_global_rect()
-	assert_true(window.encloses(view), "%s: the scrolled view inside the window" % what)
-	assert_true(room.encloses(view), "%s: the scrolled view inside the room" % what)
-	var content: Rect2 = view
-	content.position.y -= shown.scroll.scroll_vertical
-	content.size.y = maxf(view.size.y, shown.scroll.get_v_scroll_bar().max_value)
-	for label: Label in labels:
-		var inked: Rect2 = _text_rect(label)
-		rects.append(inked)
-		var named: String = "%s: '%s'" % [what, label.text.replace("\n", " / ")]
-		var scrolled: bool = shown.scroll.is_ancestor_of(label)
-		assert_true((content if scrolled else window).encloses(inked), "%s inside" % named)
-		if not scrolled:
-			assert_true(room.encloses(inked), "%s inside the room" % named)
-		assert_lte(inked.size.x, label.size.x + 1.0, "%s not cut at its right" % named)
-		assert_eq(label.clip_text, false, "%s not clipped" % named)
-		assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "%s whole" % named)
-		assert_lte(label.max_lines_visible, 0, "%s every line" % named)
-	for a: int in labels.size():
-		for b: int in range(a + 1, labels.size()):
-			if rects[a].intersects(rects[b]):
-				fail_test(
-					(
-						"%s: '%s' overlaps '%s'"
-						% [what, labels[a].text.left(30), labels[b].text.left(30)]
-					)
-				)
-
-
-## A point, in UI pixels, where [param shown] is the front-most window, under its title bar (so
-## not on its close button).
-func _visible_point(main: Main, shown: UiWindow) -> Vector2:
-	var rect: Rect2 = shown.get_global_rect()
-	var below: int = int(shown.title_bar.get_global_rect().end.y) + 4
-	for y: int in range(below, int(rect.end.y), 8):
-		for x: int in range(int(rect.position.x) + 2, int(rect.end.x), 8):
-			var at := Vector2(x, y)
-			if main.ui.windows.window_at(main.ui.ui_to_world(at)) == shown:
-				return at
-	return rect.get_center()
-
-
-## Steps until a fight is under way, and returns it (null if none came).
-func _fight(main: Main) -> Battle:
-	var ticks: int = 0
-	while main.simulation.expedition.battle == null and ticks < LIMIT_TICKS:
-		_tick(main)
-		ticks += 1
-	return main.simulation.expedition.battle
-
-
-func _state_name(state: TalentNode.State) -> String:
-	return TalentNode.State.keys()[state]
-
+## in hero_windows_test.gd and ui_layer_test.gd); the simulation is stepped after each command and
+## checked.
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -343,6 +173,84 @@ func test_r3_tabs() -> void:
 	assert_eq(second.page(), HeroWindow.Page.SKILLS, "the mage's on Skills")
 	assert_true(first.talents.is_visible_in_tree(), "showing it")
 	assert_false(first.stats.is_visible_in_tree(), "and only it")
+
+
+func test_r3_keys_reach_only_the_front_window() -> void:
+	var main: Main = _main(ROOM_LARGE)
+	var sim: Simulation = main.simulation
+	var windows: UiWindows = main.ui.windows
+	sim.party.gold = RICH
+	var knight: Hero = _hero(main, &"knight")
+	_level(knight, 20)
+	knight.set_talents(_walked(&"knight", 0, 4))
+	main.hud.advance(STEP)
+	var blades: int = sim.party.upgrades.rank(&"sharp_blades")
+	var power: int = knight.paragon_rank(TrainingDef.Stat.POWER)
+	# The shop and a hero window are never open together (spec 026's rule, for the shop only).
+	_press(main, KEY_U)
+	_tick(main)
+	assert_true(main.hud.shop.is_open(), "U opens the shop")
+	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
+	assert_false(main.hud.shop.is_open(), "a hero window opening closes the shop")
+	var gold: int = sim.party.gold
+	_press(main, KEY_1)
+	_tick(main)  # a command lands on the next tick
+	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades, "1 buys no Sharp Blades")
+	assert_eq(sim.party.gold, gold, "and spends no gold")
+	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "1: a point into Power")
+	_press(main, KEY_U)
+	_tick(main)
+	assert_true(main.hud.shop.is_open(), "the shop opens again")
+	assert_false(shown.is_open(), "and closes the hero window")
+	_press(main, KEY_1)
+	_tick(main)  # a command lands on the next tick
+	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades + 1, "no window open: 1 buys")
+	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "and spends no point")
+	# A window in front of the shop: its keys wait.
+	windows.open_window(&"journal")
+	gold = sim.party.gold
+	_press(main, KEY_1)
+	_tick(main)  # a command lands on the next tick
+	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades + 1, "the journal in front: no buy")
+	assert_eq(sim.party.gold, gold, "and no gold spent")
+	windows.window(&"journal").close()
+	_press(main, KEY_U)
+	_tick(main)
+	# The tally under a hero window.
+	_press(main, KEY_T)
+	assert_true(main.hud.tally.is_open(), "T opens the tally")
+	var measure: Tally.Measure = main.hud.tally.measure()
+	shown = _open(main, knight, HeroWindow.Page.STATS)
+	assert_true(main.hud.tally.is_open(), "a hero window opens over the tally")
+	_press(main, KEY_E)
+	assert_eq(main.hud.tally.measure(), measure, "E leaves the tally under it")
+	assert_eq(shown.page(), HeroWindow.Page.TALENTS, "E: the front hero window's next tab")
+	shown.close()
+	main.hud.advance(STEP)
+	_press(main, KEY_E)
+	assert_ne(main.hud.tally.measure(), measure, "no window open: E is the tally's")
+	_press(main, KEY_T)
+	# The journal in front of a hero window.
+	shown = _open(main, knight, HeroWindow.Page.TALENTS)
+	windows.open_window(&"journal")
+	main.hud.advance(STEP)
+	assert_eq(windows.front(), windows.window(&"journal"), "the journal in front")
+	power = knight.paragon_rank(TrainingDef.Stat.POWER)
+	_press(main, KEY_1)
+	_tick(main)  # a command lands on the next tick
+	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power, "1 spends no point behind it")
+	_press(main, KEY_E)
+	assert_eq(shown.page(), HeroWindow.Page.TALENTS, "E changes no tab behind it")
+	_press(main, KEY_TAB, true)
+	assert_true(shown.is_open(), "Shift+Tab closes no hero window behind it")
+	_click_ui(main.ui, _visible_point(main, shown))
+	main.hud.advance(STEP)
+	assert_eq(windows.front(), shown, "a click makes the hero window the front one")
+	_press(main, KEY_1)
+	_tick(main)  # a command lands on the next tick
+	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "then 1 spends its point")
+	_press(main, KEY_TAB, true)
+	assert_false(shown.is_open(), "and Shift+Tab closes it")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -542,6 +450,47 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	assert_eq(main.simulation.party.gold, RICH - 1700, "for its price")
 
 
+func test_r5_a_question_seen_without_scrolling() -> void:
+	var main: Main = _main(ROOM_SMALL)
+	var mage: Hero = _hero(main, &"mage")
+	var tree: TalentTreeDef = Content.talent_tree(&"mage")
+	_level(mage, 8)
+	mage.set_talents(tree.trunk)
+	var shown: HeroWindow = _open(main, mage, HeroWindow.Page.TALENTS)
+	await _frames()
+	assert_true(shown.scrolls(), "the tab scrolls at 960x540")
+	# Scrolled to the bottom, or as near it as leaves the path's first node in view.
+	var first: TalentNode = shown.talents.node(tree.path_nodes(1)[0])
+	var bar: VScrollBar = shown.scroll.get_v_scroll_bar()
+	shown.scroll.scroll_vertical = int(bar.max_value)
+	await _frames()
+	var view: Rect2 = shown.scroll.get_global_rect()
+	var over: float = view.position.y - first.get_global_rect().position.y
+	if over > 0.0:
+		shown.scroll.scroll_vertical -= ceili(over)
+		await _frames()
+	var scrolled: int = shown.scroll.scroll_vertical
+	assert_gt(scrolled, 0, "scrolled down")
+	assert_true(view.encloses(first.get_global_rect()), "the path's first node in view")
+	_click(main, first)
+	await _frames()
+	assert_eq(shown.talents.asking(), HeroTalentsTab.Asking.PATH, "the question")
+	var window: Rect2 = shown.get_global_rect()
+	for control: Control in [
+		shown.talents.ask_label, shown.talents.choose_button, shown.talents.not_yet_button
+	]:
+		assert_true(control.is_visible_in_tree(), "%s shows" % control.name)
+		assert_true(
+			window.encloses(control.get_global_rect()), "%s inside the window" % control.name
+		)
+		assert_false(shown.scroll.is_ancestor_of(control), "%s outside what scrolls" % control.name)
+	assert_eq(shown.scroll.scroll_vertical, scrolled, "the view stays where it was")
+	assert_true(view.encloses(first.get_global_rect()), "the node clicked still in view")
+	_click(main, shown.talents.choose_button)
+	_tick(main)
+	assert_eq(mage.path(), 1, "Choose sends it")
+
+
 # --- R6 ------------------------------------------------------------------------
 
 
@@ -598,66 +547,54 @@ func test_r6_skills() -> void:
 
 
 func test_r7_compare() -> void:
-	var main: Main = _main(ROOM_LARGE)
-	var heroes: Array[Hero] = main.simulation.party.heroes
-	var places: Dictionary[Vector2, bool] = {}
-	for hero: Hero in heroes:
-		places[_window(main, hero).default_place] = true
-	assert_eq(places.size(), heroes.size(), "each hero's window has its own place")
-	var frames_top: float = main.ui.world_to_ui(main.hud.frames[0].get_global_rect().position).y
-	var room := Rect2(Vector2.ZERO, Vector2(ROOM_LARGE))
-	for pair: Array in [[0, 1], [2, 3], [0, 3], [1, 2]]:
-		var a: Hero = heroes[pair[0]]
-		var b: Hero = heroes[pair[1]]
-		_open(main, a, HeroWindow.Page.TALENTS)
-		_open(main, b, HeroWindow.Page.TALENTS)
+	for room: Vector2i in [ROOM_LARGE, ROOM_SMALL]:
+		var main: Main = _main(room)
+		var heroes: Array[Hero] = main.simulation.party.heroes
+		var named_room: String = "%dx%d" % [room.x, room.y]
+		# Alone, and with all four open: inside the room, under the top band, clear of the button
+		# bar and of the frames' line (spec 058's own check leaves hero windows out).
+		for hero: Hero in heroes:
+			var alone: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
+			await _frames()
+			_check_clear(main, alone, "%s %s alone" % [named_room, hero.class_id])
+			_click_frame(main, hero)
+		for hero: Hero in heroes:
+			_open(main, hero, HeroWindow.Page.TALENTS)
 		await _frames()
-		var first: Rect2 = _window(main, a).get_global_rect()
-		var second: Rect2 = _window(main, b).get_global_rect()
-		var named: String = "heroes %d and %d at 1280x720" % pair
-		assert_false(first.intersects(second), "%s: side by side" % named)
-		if pair[0] / 2 == pair[1] / 2:
-			assert_eq(first.position.y, second.position.y, "%s: level" % named)
-		for rect: Rect2 in [first, second]:
-			assert_true(room.encloses(rect), "%s: in the room" % named)
-			assert_lte(rect.end.y, frames_top, "%s: clear of the frames' line" % named)
-		assert_false(_window(main, a).scrolls(), "%s: the whole tree shows" % named)
-		_click_frame(main, a)
-		_click_frame(main, b)
-	main.free()
+		for hero: Hero in heroes:
+			_check_clear(main, _window(main, hero), "%s %s of four" % [named_room, hero.class_id])
+		main.hud.hero_windows.close_all()
+		# Any two heroes compare: side by side at 1280x720, cascaded with both titles at 960x540.
+		for i: int in heroes.size():
+			for j: int in range(i + 1, heroes.size()):
+				var back: HeroWindow = _open(main, heroes[i], HeroWindow.Page.TALENTS)
+				var over: HeroWindow = _open(main, heroes[j], HeroWindow.Page.TALENTS)
+				await _frames()
+				var named: String = "%s heroes %d and %d" % [named_room, i, j]
+				var first: Rect2 = back.get_global_rect()
+				var second: Rect2 = over.get_global_rect()
+				if room == ROOM_LARGE:
+					assert_false(first.intersects(second), "%s: side by side" % named)
+					assert_eq(first.position.y, second.position.y, "%s: level" % named)
+					assert_false(back.scrolls(), "%s: the whole tree shows" % named)
+				else:
+					assert_ne(first.position, second.position, "%s: offset" % named)
+					var title: Rect2 = back.title_label.get_global_rect()
+					title.size.x = UiText.width(back.title, true)
+					assert_false(second.intersects(title), "%s: the back title shows" % named)
+				for shown: HeroWindow in [back, over]:
+					_check_clear(main, shown, named)
+				main.hud.hero_windows.close_all()
+		main.free()
+	# Too short at 960x540 for the whole tree: the Talents tab scrolls inside the window.
 	var small: Main = _main(ROOM_SMALL)
-	var small_room := Rect2(Vector2.ZERO, Vector2(ROOM_SMALL))
-	var opened: Array[HeroWindow] = []
-	for hero: Hero in small.simulation.party.heroes:
-		opened.append(_open(small, hero, HeroWindow.Page.TALENTS))
+	var front: HeroWindow = _open(small, small.simulation.party.heroes[3], HeroWindow.Page.TALENTS)
 	await _frames()
-	# Under the top band and clear of the frames' line, each of them, so any two are too.
-	var band: float = small.ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
-	var frame_rect: Rect2 = small.hud.frames[0].get_global_rect()
-	var small_frames: float = small.ui.world_to_ui(frame_rect.position).y
-	for i: int in opened.size():
-		var rect: Rect2 = opened[i].get_global_rect()
-		assert_true(small_room.encloses(rect), "960x540: %d in the room" % i)
-		assert_gte(rect.position.y, band, "960x540: %d under the top band" % i)
-		assert_lte(rect.end.y, small_frames, "960x540: %d clear of the frames' line" % i)
-		for j: int in range(i + 1, opened.size()):
-			var back: HeroWindow = opened[i]
-			var over: HeroWindow = opened[j]
-			assert_ne(back.position, over.position, "960x540: %d and %d offset" % [i, j])
-			var title: Rect2 = back.title_label.get_global_rect()
-			title.size.x = UiText.width(back.title, true)
-			assert_false(
-				over.get_global_rect().intersects(title),
-				"960x540: %d's title shows past %d" % [i, j]
-			)
-	# Too short there for the whole tree: the Talents tab scrolls inside the window, with the wheel.
-	var front: HeroWindow = opened[opened.size() - 1]
 	assert_true(front.scrolls(), "960x540: the Talents tab scrolls")
 	var view: Rect2 = front.scroll.get_global_rect()
-	assert_true(small_room.encloses(view), "960x540: the scrolled view shows")
+	assert_true(Rect2(Vector2.ZERO, Vector2(ROOM_SMALL)).encloses(view), "the scrolled view shows")
 	var bar: VScrollBar = front.scroll.get_v_scroll_bar()
 	assert_true(bar.is_visible_in_tree(), "960x540: with its scroll bar")
-	assert_gte(bar.max_value, front.talents.size.y, "960x540: it reaches the tree's end")
 	var lowest: TalentNode = front.talents.tree_view().path_nodes[0][3]
 	var at: Vector2 = small.ui.ui_to_world(view.get_center())
 	_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
@@ -666,8 +603,11 @@ func test_r7_compare() -> void:
 	front.scroll.scroll_vertical = int(bar.max_value)
 	await _frames()
 	assert_true(
-		front.scroll.get_global_rect().encloses(_text_rect(lowest.description_label)),
+		view.encloses(_text_rect(lowest.description_label)),
 		"960x540: scrolled down, the last node reads whole"
+	)
+	assert_true(
+		view.encloses(front.talents.paragon_label.get_global_rect()), "and the paragon row too"
 	)
 	front.open_page(HeroWindow.Page.STATS)
 	assert_eq(front.scroll.scroll_vertical, 0, "another tab starts at its top")

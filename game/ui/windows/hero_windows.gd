@@ -7,27 +7,30 @@ extends Node
 ##
 ## A click on a hero's frame opens or closes its window ([method toggle]); [kbd]Tab[/kbd] opens the
 ## next hero's window and brings it to the front ([method open_next]); [kbd]Shift+Tab[/kbd] closes
-## the front one ([method close_front]). The [Hud] passes on those keys, and [kbd]Q[/kbd],
-## [kbd]E[/kbd] and [kbd]1[/kbd] to [kbd]3[/kbd] to the front hero window ([method front]).
+## the front one ([method close_front]). Those keys, and [kbd]Q[/kbd], [kbd]E[/kbd] and [kbd]1[/kbd]
+## to [kbd]3[/kbd], act on a hero window only while it is the front window of all ([method top]);
+## the [Hud] passes them on.
 ##
-## Each hero's window has its own default place. When the room is wide enough for two windows
-## side by side (1280x720), they stand in two columns under the HUD's top band, clear of the hero
-## frames' line: the first and third hero's on the left, the second and fourth's on the right, the
-## third and fourth set in a little and lower so their title bars show. In a narrower room
-## (960x540) they cascade from the top left under the top band, each set right of the one before
-## and every other one down, so every title shows; there the windows are made short enough that
-## two of them stay clear of the frames' line, and their tabs' content scrolls.
+## Places go by what is open, not by which hero: a window never dragged takes, as it opens, the
+## first free place of a short list ([member _places]), free meaning no other undragged open hero
+## window holds it. When the room is wide enough for two windows side by side (1280x720), the list
+## is the left column, the right column, then a cascade from the left; so any two heroes compare
+## side by side. In a narrower room (960x540) it is a cascade from the top left, each set right of
+## the one before and every other one down, so every title shows; there the windows are made short
+## enough that two of them stay clear of the frames' line, their tabs' content scrolls, and the
+## cascade keeps clear of the button bar.
 
 ## Emitted when a hero window opens or closes, or another comes to the front.
 signal changed
+## Emitted when hero [param hero_id]'s window opens.
+signal opened(hero_id: int)
 
 ## The start of every hero window's id.
 const PREFIX: String = "hero_"
 ## UI pixels between windows, and between them and the room's edges.
 const GAP: float = 8.0
-## How far the third and fourth hero's windows are set in and down from the first two, side by
-## side; and how far each window of a cascade is set from the one before.
-const SECOND_ROW: Vector2 = Vector2(16, 28)
+## How far each window of a cascade is set from the one before (less sideways when the room is
+## too narrow for that and the button bar).
 const CASCADE: Vector2 = Vector2(64, 28)
 
 var _ui: UiRoot
@@ -37,6 +40,10 @@ var _windows: Dictionary[int, HeroWindow] = {}
 var _ids: Array[int] = []
 ## The content height every window needs to show its tallest tab whole.
 var _tallest: float = 0.0
+## The places an undragged hero window can take, in the order they are taken, for this room.
+var _places: Array[Vector2] = []
+## The place each open, undragged hero window holds, by hero id (an index into [member _places]).
+var _place_of: Dictionary[int, int] = {}
 
 
 func _init() -> void:
@@ -66,41 +73,55 @@ func setup(simulation: Simulation, ui: UiRoot, tip: UiTip) -> void:
 		made.set_body_height(tallest)  # every hero's window the same size, to compare
 		ui.windows.register(made)
 		made.settle()
-		made.open_changed.connect(_on_changed)
+		made.open_changed.connect(_on_open_changed.bind(hero_id))
+		made.moved.connect(_on_moved.bind(hero_id))
 	place_defaults()
 	for hero_id: int in _ids:
 		_windows[hero_id].place_at(_windows[hero_id].default_place, Vector2(ui.room()))
-	ui.windows.changed.connect(_on_changed.bind(null))
+	ui.windows.changed.connect(_on_windows_changed)
 
 
-## Works out each hero window's default place for the room the layer has now (see the class
-## description).
+## Works out the places hero windows take for the room the layer has now, and each window's
+## height (see the class description); an open window keeps the place it holds.
 func place_defaults() -> void:
 	if _ui == null or _ids.is_empty():
 		return
 	var room := Vector2(_ui.room())
-	var top: float = ceilf(_ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + GAP / 2.0
+	var band: float = ceilf(_ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + GAP / 2.0
 	var frames: float = floorf(_ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y) - GAP / 2.0
+	var bar: Rect2 = _ui.bar.rect_in(_ui.room()).grow(GAP / 2.0) if _ui.bar != null else Rect2()
 	_set_heights(_tallest)
 	var window_size: Vector2 = _windows[_ids[0]].size
-	var rows: float = top + SECOND_ROW.y + window_size.y
-	var side_by_side: bool = room.x >= 2.0 * window_size.x + 3.0 * GAP and rows <= frames
-	if not side_by_side:
+	var left := Rect2(Vector2(GAP, band), window_size)
+	var right := Rect2(Vector2(room.x - GAP - window_size.x, band), window_size)
+	var side_by_side: bool = (
+		room.x >= 2.0 * window_size.x + 3.0 * GAP
+		and _clear(left, frames, bar)
+		and _clear(right, frames, bar)
+	)
+	_places.clear()
+	if side_by_side:
+		_places.append(left.position)
+		_places.append(right.position)
+		for k: int in range(1, _ids.size() - 1):
+			_places.append(left.position + CASCADE * k)
+	else:
 		# Two cascaded windows, one set down from the other, clear of the frames' line.
 		var chrome: float = _windows[_ids[0]].chrome_height()
-		_set_heights(minf(_tallest, frames - top - CASCADE.y - chrome))
+		_set_heights(minf(_tallest, frames - band - CASCADE.y - chrome))
 		window_size = _windows[_ids[0]].size
-	for i: int in _ids.size():
-		var place: Vector2
-		if side_by_side:
-			var column: int = i % 2
-			var row: int = (i / 2) % 2
-			var x: float = GAP if column == 0 else room.x - GAP - window_size.x
-			var inward: float = SECOND_ROW.x * row * (1.0 if column == 0 else -1.0)
-			place = Vector2(x + inward, top + SECOND_ROW.y * row)
-		else:
-			place = Vector2(GAP + CASCADE.x * i, top + CASCADE.y * (i % 2))
-		_windows[_ids[i]].default_place = place.round()
+		# The last of the cascade ends left of the button bar.
+		var limit: float = (bar.position.x if bar.has_area() else room.x - GAP) - window_size.x
+		var step: float = minf(CASCADE.x, floorf((limit - GAP) / maxf(_ids.size() - 1, 1)))
+		for k: int in _ids.size():
+			_places.append(Vector2(GAP + maxf(step, 0.0) * k, band + CASCADE.y * (k % 2)))
+	for hero_id: int in _ids:
+		_windows[hero_id].default_place = _places[_place_of.get(hero_id, 0)].round()
+
+
+## True when [param rect] is clear of the frames' line at [param frames] and of [param bar].
+static func _clear(rect: Rect2, frames: float, bar: Rect2) -> bool:
+	return rect.end.y <= frames and not (bar.has_area() and rect.intersects(bar))
 
 
 ## Makes every hero window's content [param height] UI pixels tall.
@@ -143,19 +164,19 @@ func toggle(hero_id: int) -> void:
 		open(hero_id)
 
 
-## Opens the window of the hero after the front hero window's (the first hero's when none is
-## open), wrapping, and brings it to the front; the others stay as they are.
+## Opens the window of the hero after the front window's, when that is a hero window (else the
+## first hero's), wrapping, and brings it to the front; the others stay as they are.
 func open_next() -> void:
 	if _ids.is_empty():
 		return
-	var shown: HeroWindow = front()
+	var shown: HeroWindow = top()
 	var index: int = _ids.find(shown.hero_id) if shown != null else -1
 	open(_ids[(index + 1) % _ids.size()])
 
 
-## Closes the front hero window, if one is open.
+## Closes the front window, if it is a hero window.
 func close_front() -> void:
-	var shown: HeroWindow = front()
+	var shown: HeroWindow = top()
 	if shown != null:
 		shown.close()
 
@@ -164,6 +185,12 @@ func close_front() -> void:
 func close_all() -> void:
 	for hero_id: int in _ids:
 		_windows[hero_id].close()
+
+
+## The front window of all (any open window, not only hero windows) when it is a hero window,
+## else null: the keys reach a hero window only then.
+func top() -> HeroWindow:
+	return (_ui.windows.front() if _ui != null else null) as HeroWindow
 
 
 ## The open hero window in front of every other hero window, or null when none is open.
@@ -213,5 +240,45 @@ static func frame_tip(hero: Hero, statuses: String = "") -> String:
 	return "%s. Click for details" % said
 
 
-func _on_changed(_window: UiWindow) -> void:
+## A hero window opened or closed: one never dragged takes the first free place as it opens.
+func _on_open_changed(_window: UiWindow, hero_id: int) -> void:
+	var shown: HeroWindow = _windows[hero_id]
+	if shown.is_open():
+		if not shown.placed:
+			_take_place(hero_id)
+		opened.emit(hero_id)
+	else:
+		_place_of.erase(hero_id)
 	changed.emit()
+
+
+## A hero window was dragged: it holds no place of the list any more.
+func _on_moved(_window: UiWindow, hero_id: int) -> void:
+	_place_of.erase(hero_id)
+
+
+## The windows changed (one came to the front, or every place was reset): an open window never
+## dragged that holds no place takes one.
+func _on_windows_changed() -> void:
+	for hero_id: int in _ids:
+		var shown: HeroWindow = _windows[hero_id]
+		if shown.is_open() and not shown.placed and not _place_of.has(hero_id):
+			_take_place(hero_id)
+	changed.emit()
+
+
+## Puts hero [param hero_id]'s window at the first place no other open, undragged hero window holds.
+func _take_place(hero_id: int) -> void:
+	if _places.is_empty():
+		return
+	var held: Array[int] = []
+	for other: int in _place_of:
+		if other != hero_id and _windows[other].is_open():
+			held.append(_place_of[other])
+	var index: int = 0
+	while held.has(index) and index < _places.size() - 1:
+		index += 1
+	_place_of[hero_id] = index
+	var shown: HeroWindow = _windows[hero_id]
+	shown.default_place = _places[index].round()
+	shown.place_at(shown.default_place, Vector2(_ui.room()))

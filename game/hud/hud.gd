@@ -109,6 +109,7 @@ var hero_windows: HeroWindows:
 		hero_windows = value
 		if value != null:
 			value.changed.connect(_mark_frames)
+			value.opened.connect(_on_hero_window_opened)
 			_mark_frames()
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
@@ -162,6 +163,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo or _simulation == null:
 		return
 	var handled: bool = true
+	# Spec 060: the keys reach a hero window only while it is the front window of all, and the old
+	# shop and tally panels only while no window is open in front of them.
+	var top: UiWindow = windows.front() if windows != null else null
+	var hero_top: HeroWindow = top as HeroWindow
 	match key.keycode:
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_step_target(-1)
@@ -178,42 +183,40 @@ func _unhandled_input(event: InputEvent) -> void:
 			handled = shop.is_open()
 			shop.close()
 		KEY_TAB:
-			# Spec 060: the next hero's window to the front, or Shift+Tab closes the front one.
-			if hero_windows == null:
+			# The next hero's window to the front, or Shift+Tab closes the front one.
+			if hero_windows == null or (key.shift_pressed and hero_top == null):
 				handled = false
 			elif key.shift_pressed:
-				hero_windows.close_front()
+				hero_top.close()
 			else:
 				hero_windows.open_next()
 		KEY_B:
-			handled = shop.is_open()
+			handled = shop.is_open() and top == null
 			if handled:
 				shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop first; else the front hero window spends paragon points, on its Talents tab
-			# only (spec 034, spec 055, spec 060).
-			var front: HeroWindow = hero_windows.front() if hero_windows != null else null
-			var training: bool = front != null and front.page() == HeroWindow.Page.TALENTS
-			if shop.is_open():
+			# The shop's rows; or paragon points, on the front hero window's Talents tab only
+			# (spec 034, spec 055, spec 060).
+			var training: bool = hero_top != null and hero_top.page() == HeroWindow.Page.TALENTS
+			if shop.is_open() and top == null:
 				shop.buy_row(key.keycode - KEY_1)
 			elif training and key.keycode <= KEY_3:
-				front.train_row(key.keycode - KEY_1)
+				hero_top.train_row(key.keycode - KEY_1)
 			else:
 				handled = false
 		KEY_Q, KEY_E:
-			# The tally's previous and next measure while it is open (spec 045), else the front
-			# hero window's previous and next tab (spec 034, spec 060).
-			var shown: HeroWindow = hero_windows.front() if hero_windows != null else null
-			if tally.is_open():
+			# The front hero window's previous and next tab (spec 034, spec 060), or the tally's
+			# previous and next measure while it is open with no window in front (spec 045).
+			if hero_top != null:
+				if key.keycode == KEY_Q:
+					hero_top.previous_page()
+				else:
+					hero_top.next_page()
+			elif tally.is_open() and top == null:
 				if key.keycode == KEY_Q:
 					tally.previous_measure()
 				else:
 					tally.next_measure()
-			elif shown != null:
-				if key.keycode == KEY_Q:
-					shown.previous_page()
-				else:
-					shown.next_page()
 			else:
 				handled = false
 		_:
@@ -320,6 +323,8 @@ func _make_room_for_panels() -> void:
 		shown.append(panel)
 		if windows != null and not _panels_shown.has(panel):
 			windows.close_over(panel.get_global_rect())
+			if panel == shop and hero_windows != null:
+				hero_windows.close_all()  # spec 026's rule, back for the shop (spec 060)
 	_panels_shown = shown
 
 
@@ -545,6 +550,13 @@ func _build_shop() -> void:
 func show_speed(value: int) -> void:
 	speed_button.text = "%dx" % value
 	speed_button.lit = value > 1
+
+
+## A hero window opened: the old shop panel closes (spec 026's rule, kept for the shop until it
+## is a window too).
+func _on_hero_window_opened(_hero_id: int) -> void:
+	if shop.is_open():
+		shop.close()
 
 
 ## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).

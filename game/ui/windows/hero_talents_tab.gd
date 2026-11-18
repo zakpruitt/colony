@@ -8,7 +8,9 @@ extends Control
 ## the next ([code]Next point at level 6[/code]), with the [code]Reset[/code] button at the right
 ## (its price on it, and why it cannot be used beside it when it cannot); while a question is asked
 ## (before a path is chosen, before a reset) it takes the place of the button, with its two answers.
-## Then the tree, and under it the paragon points: the caption and a [ParagonCell] per stat.
+## Then the tree, and under it the paragon points: the caption and a [ParagonCell] per stat. The
+## top row is its own control ([member top_row]): a hero window stands it above the part that
+## scrolls, so the question and its answers show however far the tree is scrolled.
 ##
 ## A click on a node that can be taken takes it ([method Simulation.take_talent]); the first node
 ## of a path asks first, and only [code]Choose[/code] sends the command. A reset asks first, at its
@@ -26,9 +28,14 @@ const PARAGON_GAP: float = 9.0
 ## UI pixels between two things on a row.
 const ROW_GAP: float = 8.0
 const PARAGON_CELL_GAP: float = 12.0
+## How far down the tree starts: the top row and the gap under it.
+const ROW_HEIGHT: float = UiTheme.BUTTON_HEIGHT + TREE_GAP
 
 ## The tree shown: the hero's class's.
 var tree: TalentTreeView
+## The top row (the points and the reset, or the question and its answers), at the tab's top until
+## a hero window moves it above what scrolls.
+var top_row: Control
 ## The line of unspent talent points, or the level of the next.
 var points_label: Label
 ## The fresh start's button, its price on it, and why it cannot be used.
@@ -64,22 +71,27 @@ func _init(simulation: Simulation, hero_id: int, width: float, tip: UiTip) -> vo
 	_hero_id = hero_id
 	_width = width
 	_middle = floorf((UiTheme.BUTTON_HEIGHT - UiText.LINE_HEIGHT) / 2.0)
-	points_label = _label("Points", &"yellow", Vector2(0, _middle))
+	top_row = Control.new()
+	top_row.name = "TopRow"
+	top_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	top_row.size = Vector2(width, UiTheme.BUTTON_HEIGHT)
+	add_child(top_row)
+	points_label = _label("Points", &"yellow", Vector2(0, _middle), top_row)
 	points_label.mouse_filter = Control.MOUSE_FILTER_PASS
 	reset_button = WindowText.button("Reset", "Reset")
 	reset_button.pressed.connect(press_reset)
-	add_child(reset_button)
-	reset_reason_label = _label("ResetReason", &"slate", Vector2(0, _middle))
-	ask_label = _label("Ask", &"yellow", Vector2(0, _middle))
+	top_row.add_child(reset_button)
+	reset_reason_label = _label("ResetReason", &"slate", Vector2(0, _middle), top_row)
+	ask_label = _label("Ask", &"yellow", Vector2(0, _middle), top_row)
 	choose_button = WindowText.button("Choose", "Choose")
 	choose_button.pressed.connect(confirm)
-	add_child(choose_button)
+	top_row.add_child(choose_button)
 	not_yet_button = WindowText.button("NotYet", "Not yet")
 	not_yet_button.pressed.connect(cancel)
-	add_child(not_yet_button)
+	top_row.add_child(not_yet_button)
 	var hero: Hero = _hero()
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
-	var top: float = UiTheme.BUTTON_HEIGHT + TREE_GAP
+	var top: float = ROW_HEIGHT
 	if tree_def != null:
 		tree = TalentTreeView.new(tree_def, width)
 		tree.position = Vector2(0, top)
@@ -390,10 +402,10 @@ func _refresh_paragon(hero: Hero, delta: float) -> void:
 			break
 
 
-func _label(label_name: String, colour: StringName, at: Vector2) -> Label:
+func _label(label_name: String, colour: StringName, at: Vector2, parent: Control = null) -> Label:
 	var made: Label = WindowText.label(label_name, "", colour)
 	made.position = at
-	add_child(made)
+	(parent if parent != null else self).add_child(made)
 	return made
 
 

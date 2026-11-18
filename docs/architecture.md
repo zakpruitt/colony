@@ -53,12 +53,15 @@ The picture is drawn in two layers, each in its own pixels.
   (`UiWindows.covers`). A window with `on_bar` false (a hero window) has no button on the bar.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
-  party. All four are as tall as the tallest needs, so lines line up across them; their default places
-  stand side by side in two columns at 1280x720 and cascade at 960x540 (`place_defaults`), where they
-  are made short enough that two stay clear of the frames' line and the tabs' content scrolls
-  (`HeroWindow.scroll`, a `ScrollContainer`; talent nodes pass the wheel on to it). The `Hud`
-  routes keys to the front one (`HeroWindows.front()`): Tab, Shift+Tab, Q and E (after the tally) and 1 to 3
-  on its Talents tab (after the shop). A window lays itself out by hand in 13-pixel lines (`WindowText`),
+  party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is
+  open: an undragged window takes, as it opens, the first free one of `HeroWindows._places` (left
+  column, right column, then a cascade at 1280x720; a cascade at 960x540, where the windows are made
+  short enough that two clear the frames' line, the cascade clears the bar (`UiButtonBar.rect_in`) and
+  the tabs' content scrolls in `HeroWindow.scroll`, the Talents tab's `top_row` standing above it).
+  The `Hud` routes Tab, Shift+Tab, Q, E and 1 to 3 to a hero window only while it is the front window
+  of all (`UiWindows.front()`, `HeroWindows.top()`), and the old shop's and tally's keys only while no
+  window is open; until the shop is a window, a hero window opening closes it and it opening closes the
+  hero windows (spec 026's rule). A window lays itself out by hand in 13-pixel lines (`WindowText`),
   sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
   its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
   `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A

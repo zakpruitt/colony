@@ -592,12 +592,12 @@ the journal, the orders and the hero sheets have moved onto the new layer, as wi
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
   <tr><td><kbd>W</kbd></td><td>Open or close the area map (a click on the area's name does the same)</td></tr>
   <tr><td><kbd>U</kbd></td><td>Open or close the shop</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open and no window is open over it</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open and no window is open over it</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the next hero's window and bring it to the front; the others stay open</td></tr>
-  <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Close the front hero window</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the tally (Damage, Healing, Taken) while it is open, else of the front hero window (Stats, Talents, Skills)</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, on the front hero window's Talents tab</td></tr>
+  <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Close the front window, when it is a hero window</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window, when it is a hero window (Stats, Talents, Skills); with no window open, of the tally (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, when the front window is a hero window on its Talents tab</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
   <tr><td><kbd>J</kbd></td><td>Open or close the journal</td></tr>
@@ -661,13 +661,19 @@ green with a tick and the journal gets a line. Goals give no reward: they are a 
 <kbd>Tab</kbd> opens the next hero's window and brings it to the front, leaving the others open, and
 <kbd>Shift</kbd>+<kbd>Tab</kbd> closes the front one. Up to four can be open at once, and the frame of
 every hero whose window is open has a yellow edge. Like every window, a hero window can be dragged by its
-title bar and is remembered, each hero's in its own place.</p>
-<p><strong>Comparing.</strong> With 1280 by 720 of UI room, two hero windows sit side by side under the top
-bar, clear of the hero frames: the first hero's at the left and the second's at the right, the third's and
-fourth's a little lower and further in. With 960 by 540 (a 1920x1080 window) they cascade from the top
-left instead, under the top bar and clear of the hero frames, each set to the right of the one before so
-every title shows; there a window is too short for a whole tree, so its tabs scroll with the mouse
-wheel. Every hero window is the same size, so the same line sits at the same height in each.</p>
+title bar, and one you dragged is remembered where you left it. The keys of a hero window (<kbd>Q</kbd>,
+<kbd>E</kbd>, <kbd>1</kbd> to <kbd>3</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd>) work only while it is the
+front window; click anywhere on one to bring it to the front. Until the shop is a window too, a hero
+window and the shop are never open together: opening one closes the other.</p>
+<p><strong>Comparing.</strong> A hero window you never dragged takes its place as it opens, by what is
+already open rather than by which hero it is. With 1280 by 720 of UI room the first goes in the left
+column under the top bar and the next in the right column, side by side, clear of the hero frames and the
+button bar; any two heroes compare that way, and a third or fourth cascades from the left. With 960 by 540
+(a 1920x1080 window) they cascade from the top left instead, under the top bar and clear of the hero
+frames and the button bar, each set to the right of the one before so every title shows; there a window
+is too short for a whole tree, so its tabs scroll with the mouse wheel, while the Talents tab's points,
+reset and questions stay in view above what scrolls. Every hero window is the same size, so the same line
+sits at the same height in each.</p>
 <p>The top of a hero window is always there: the hero's portrait at twice its size, class and path in bold
 (<code>Knight, Berserker</code>), level, role, what they are doing (<code>Fighting Goblin</code>,
 <code>Healing Knight</code>, <code>Resting</code>, <code>Down</code>), and health and XP as bars with their
