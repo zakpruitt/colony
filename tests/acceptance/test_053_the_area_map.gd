@@ -19,6 +19,8 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## Spec 059: the map is a window on the UI layer, over the HUD's layer.
+var _ui: UiRoot
 
 
 func after_each() -> void:
@@ -44,6 +46,10 @@ func _build_hud() -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	_ui = UiRoot.new()
+	_ui.layer = 130
+	add_child_autofree(_ui)
+	_ui.setup(_sim, _hud, null)
 
 
 func _level(level: int) -> void:
@@ -60,7 +66,7 @@ func _mossy(safe: int, furthest: int) -> void:
 	_sim.expedition.deepest_depth = furthest
 
 
-func _map() -> AreaMap:
+func _map() -> AreaMapWindow:
 	return _hud.area_map
 
 
@@ -96,12 +102,22 @@ func _click_at(at: Vector2) -> void:
 	_mouse(AWAY)
 
 
+## Clicks [param control]; one on the UI layer (spec 059) once its window has laid out, through
+## the UI's scale.
 func _click(control: Control) -> void:
-	_click_at(control.get_global_rect().get_center())
+	if not _ui.frame.is_ancestor_of(control):
+		_click_at(control.get_global_rect().get_center())
+		return
+	await get_tree().process_frame  # the window refits to what it shows, then lays out
+	await get_tree().process_frame
+	_click_at(_ui.ui_to_world(control.get_global_rect().get_center()))
 
 
-## The tooltip shown after resting the mouse on [param control].
+## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
+## the map's window (spec 059), the HUD's otherwise.
 func _tip(control: Control) -> String:
+	if _ui.frame.is_ancestor_of(control):
+		return _map().tip.text_for(control)
 	_hud.tooltip.point_at(control.get_global_rect().get_center())
 	_hud.tooltip.advance(HudTooltip.DELAY + 0.01)
 	var text: String = _hud.tooltip.shown_text()
@@ -225,7 +241,7 @@ func test_r2_closed_areas() -> void:
 	for thumb: MonsterThumb in mossy.thumbs:
 		assert_false(thumb.dim, "an open area's monsters are not")
 
-	_click(clay)
+	await _click(clay)
 	_hud.advance(STEP)
 	assert_eq(_map().chosen(), &"", "a click on a closed area chooses nothing")
 	assert_eq(_map().stage_shown(), 0, "and shows no stage")
@@ -234,7 +250,7 @@ func test_r2_closed_areas() -> void:
 	assert_eq(_map().chosen(), &"", "nor does choose()")
 	assert_true(clay.mouse_default_cursor_shape == Control.CURSOR_ARROW, "no hand over it")
 
-	_click(mossy)
+	await _click(mossy)
 	_hud.advance(STEP)
 	assert_eq(_map().chosen(), MOSSY, "a click on an open area chooses it")
 
@@ -253,17 +269,19 @@ func test_r3_sending_the_party() -> void:
 	_hud.advance(STEP)
 	assert_eq(_map().stage_shown(), 2, "starts at the area's safe stage")
 	assert_true(_map().go_button.visible, "with Go")
-	_click(_map().minus_button)
-	_click(_map().minus_button)
-	_click(_map().minus_button)
+	# Spec 059: the window is taller than this test's 640x360 room, so its foot's buttons are
+	# pressed by their signals here; spec 059 R3's test clicks them in a real room.
+	_map().minus_button.pressed.emit()
+	_map().minus_button.pressed.emit()
+	_map().minus_button.pressed.emit()
 	assert_eq(_map().stage_shown(), 1, "- goes no higher than stage 1")
 	for i: int in 8:
-		_click(_map().plus_button)
+		_map().plus_button.pressed.emit()
 	assert_eq(_map().stage_shown(), 5, "+ goes no deeper than one past the furthest")
 	_map().step_stage(-2)
 	assert_eq(_map().stage_shown(), 3, "set to 3")
 
-	_click(_map().go_button)
+	_map().go_button.pressed.emit()
 	assert_false(_map().is_open(), "Go closes the map")
 	_sim.step()
 	var e: Expedition = _sim.expedition
@@ -308,7 +326,9 @@ func test_r4_the_warning_travels() -> void:
 	assert_eq(_colour(_map().stage_label), colours[DepthLadder.Risk.REACHABLE], "within reach")
 	_map().step_stage(1)
 	assert_eq(_colour(_map().stage_label), colours[DepthLadder.Risk.DANGEROUS], "7: dangerous")
-	assert_eq(_map().risk_label.text, "Dangerous: heroes are level 5", "in words too")
+	# Spec 059 R3: the word beside the stage, and the heroes' level in its tooltip.
+	assert_eq(_map().risk_label.text, "Dangerous", "in words too")
+	assert_string_contains(_tip(_map().risk_label), "the heroes are level 5", "and why")
 
 	# Judged by the other area's levels: the Claypits start at level 6.
 	_map().choose(CLAYPITS)
@@ -596,14 +616,13 @@ func test_r8_found_and_explained() -> void:
 	_key(KEY_W)
 	_key(KEY_ESCAPE)
 	assert_false(_map().is_open(), "Esc closes it")
-	_click(_map().name_button)
+	await _click(_map().name_button)
 	assert_true(_map().is_open(), "a click on the area's name opens it")
 	_hud.advance(STEP)
 
 	_map().choose(CLAYPITS)
 	_hud.advance(STEP)
 	var controls: Array[Control] = [
-		_map().close_button,
 		_map().minus_button,
 		_map().plus_button,
 		_map().go_button,
@@ -620,15 +639,6 @@ func test_r8_found_and_explained() -> void:
 	_hud.advance(STEP)
 	assert_string_contains(_tip(_map().name_button), "map", "the area's name says it opens the map")
 
-	# The panel fits the screen: under the top band, left of the ladder, above the ticker's strip.
-	var frames_top: float = _hud.frames[0].position.y
-	var bottom: float = frames_top - Journal.TICKER_GAP - Journal.TICKER_HEIGHT
-	var right: float = Hud.SCREEN.x - Hud.MARGIN - DepthLadder.WIDTH
-	var rect: Rect2 = _map().get_global_rect()
-	assert_eq(_map().rows.size(), 4, "setup: four areas")
-	assert_gte(rect.position.x, 0.0, "on the screen")
-	assert_lte(rect.end.x, right, "clear of the ladder")
-	assert_gte(rect.position.y, Hud.TOP_BAND, "under the top band")
-	assert_lte(rect.end.y, bottom, "above the ticker with four areas")
-	assert_eq(rect.size.y, AreaMap.height_for(4), "its height is the rule's")
-	assert_lte(rect.position.y + AreaMap.height_for(6), bottom, "and with six")
+	# Spec 059: a window on the UI layer, with a close button of its own (spec 058's test); where
+	# it stands, clear of the top band and the hero frames at both rooms, is spec 059 R8's test.
+	assert_not_null(_map().window().close_button, "the map's window can be closed")

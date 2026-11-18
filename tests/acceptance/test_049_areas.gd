@@ -779,6 +779,11 @@ func _view(sim: Simulation) -> Array[Node]:
 	add_child_autofree(hud)
 	hud.set_process(false)
 	hud.setup(sim, world, fx)
+	# Spec 059: the tally is a window on the UI layer, so the HUD needs one for it to open.
+	var ui := UiRoot.new()
+	add_child_autofree(ui)
+	ui.setup(sim, hud, null)
+	ui.bar.set_process(false)
 	return [world, fx, hud]
 
 

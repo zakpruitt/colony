@@ -207,8 +207,7 @@ func _check_placement(hud: Hud, what: String) -> void:
 	var others: Dictionary[String, Control] = {
 		"depth panel": hud.depth_panel,
 		"gold": hud.gold_panel,
-		"shop button": hud.shop_button,
-	}
+	}  # spec 059: the Shop button moved to the UI layer's bar
 	if hud.boss_bar.is_showing():
 		others["boss bar"] = hud.boss_bar
 	for part: String in others:

@@ -39,6 +39,11 @@ func _build_hud() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	# Spec 059: the shop is a window on the UI layer, so the HUD needs one for it to open.
+	var ui := UiRoot.new()
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
+	ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------

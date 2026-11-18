@@ -530,7 +530,7 @@ func _fighter_color(id: int) -> Color:
 	if id < Expedition.FIRST_MONSTER_ID:
 		var hero: Hero = _simulation.party.hero(id)
 		if hero != null:
-			var colours: Array = TallyPanel.CLASS_BARS.get(hero.class_id, TallyPanel.OTHER_BAR)
+			var colours: Array = TallyWindow.CLASS_BARS.get(hero.class_id, TallyWindow.OTHER_BAR)
 			var first: StringName = colours[0]
 			return Palette.color(first)
 		return Palette.color(&"white")

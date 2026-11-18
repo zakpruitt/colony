@@ -327,8 +327,17 @@ have four looks: `dusk` with a `slate` edge, `slate` with a `silver` edge under 
 padding round the text and 20 or more tall; a key hint (`Shop  U`) in `steel` after the text. Tooltips are
 one sentence, `white` on `ink` with a `steel` edge. The button bar sits at the bottom right just above the
 hero frames: a 28x28 button per window with a 16x16 icon (`assets/sprites/ui/window_icons.px`), then one
-that puts the windows back. The rules below are the old HUD's, in the world's pixels, until each panel
-moves over.
+that puts the windows back. A button's marker (`UiBadge`) is the old HUD's marker on the UI layer: an `amber`
+tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner.
+
+**The management windows (spec 059).** The shop, the area map and the tally are windows. Their numbers and
+ranks are `white`, captions and sentences `silver`, hints `steel` or `slate`, a bonus `green`, and what is
+missing `orange`. A thin bar (`UiBar`) has a `dusk` edge, an `ink` track and a fill with its darker shade on
+the bottom row (`green`/`forest` for ranks; the hero's class colours in the tally). A row or card that can be
+clicked is a `night` box that lights to `dusk` with a `steel` edge under the mouse; the chosen one has a
+`yellow` edge; a closed area's card is sunk (`night` edge) with its text in `slate` and its sprites dimmed.
+Numbers in a column are right-aligned; the font's digits are all one width, so they line up. The rules below
+are the old HUD's, in the world's pixels, until each panel moves over.
 
 - **Edges only.** The HUD keeps to the top 28 and bottom 40 pixels of the 640x360 screen; the middle belongs to
   the world.
@@ -340,8 +349,8 @@ moves over.
   on is `forest` with a `green` bevel and `white` text, and says so in words (`Auto on`). No Godot default
   styles, no focus rings.
 - **Disabled buttons** sink to a `night` fill with no bevel and do nothing. A button may colour its text
-  (`text_colour`): the shop's prices are `yellow` when affordable and `brick` (dim red) when not.
-- **Overlays** such as the upgrade shop (spec 017) are the one exception to "edges only": a `HudPanel` that
+  (`text_colour`): a price is `yellow` when affordable and `brick` (dim red) when not.
+- **Overlays** (the upgrade shop, until spec 059 made it a window) are the one exception to "edges only": a `HudPanel` that
   drops from under the top band at the right, never covering the top band or the party frames, opened and
   closed by the player. Rows inside it are separated by space, not lines; a row that just changed flashes
   `forest` with a `green` edge, then `dusk`, for half a second.

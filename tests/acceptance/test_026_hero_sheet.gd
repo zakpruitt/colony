@@ -178,8 +178,15 @@ func test_r1_opening_and_closing() -> void:
 	_key(KEY_TAB)
 	assert_eq(windows.front(), windows.window_of(_hero(0).id), "after the last hero, the first")
 
+	# Specs 059 and 060: the shop is a window too, and opens beside the hero windows; Tab, with the
+	# shop in front, brings the next hero's window in front and leaves the shop open.
 	_key(KEY_U)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
+	assert_true(windows.is_open(_hero(0).id), "beside the hero windows")
+	assert_eq(_hud.windows.front().content, _hud.shop, "in front")
+	_key(KEY_TAB)
+	assert_eq(windows.front(), windows.window_of(_hero(1).id), "Tab: the next hero in front")
+	assert_true(_hud.shop.is_open(), "the shop stays open")
 
 	var main: Main = MAIN_SCENE.instantiate()
 	add_child_autofree(main)
@@ -555,3 +562,4 @@ func test_r8_keys() -> void:
 
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U opens the shop")
+	assert_true(sheet.is_open(), "and the hero's window stays open beside it")

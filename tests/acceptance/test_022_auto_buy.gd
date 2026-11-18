@@ -80,6 +80,9 @@ func _make_hud(sim: Simulation) -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _effects)
+	var ui := UiRoot.new()  # spec 059: the shop is a window on the UI layer
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
 	_hud.advance(0.0)
 
 
@@ -289,8 +292,8 @@ func test_r5_off_changes_nothing() -> void:
 
 func test_r6_toggle_in_the_shop() -> void:
 	_make_hud(Simulation.new(SEED))
-	var shop: ShopPanel = _hud.shop
-	var toggle: HudButton = shop.auto_buy_button
+	var shop: ShopWindow = _hud.shop
+	var toggle: UiButton = shop.auto_buy_button
 	assert_not_null(toggle, "the shop has an auto-buy toggle")
 	if toggle == null:
 		return
@@ -304,10 +307,11 @@ func test_r6_toggle_in_the_shop() -> void:
 	_frame()
 	assert_false(_sim.auto_buy, "B with the shop closed does nothing")
 
-	_hud._toggle_shop()
+	_hud.shop.open()
 	assert_true(shop.is_open())
 	assert_true(shop.is_ancestor_of(toggle), "the toggle is in the shop")
-	var rect: Rect2 = shop.get_global_rect()
+	await wait_physics_frames(2)  # the window lays out
+	var rect: Rect2 = shop.window().get_global_rect()
 	assert_true(rect.encloses(toggle.get_global_rect()), "inside the panel")
 
 	_key(KEY_B)
@@ -332,15 +336,15 @@ func test_r6_toggle_in_the_shop() -> void:
 	var data: Dictionary = _through_json(_sim.to_save())
 	var loaded: Simulation = Simulation.from_save(data)
 	_make_hud(loaded)
-	_hud._toggle_shop()
+	_hud.shop.open()
 	assert_eq(_hud.shop.auto_buy_button.text, "Auto-buy on", "a loaded save shows it on")
 	assert_true(_hud.shop.auto_buy_button.lit)
 
 
 func test_r7_auto_buys_are_visible() -> void:
 	_make_hud(Simulation.new(SEED))
-	_hud._toggle_shop()
-	var shop: ShopPanel = _hud.shop
+	_hud.shop.open()
+	var shop: ShopWindow = _hud.shop
 	_sim.party.gold = 500
 	_hud.advance(4.0)
 	assert_eq(_hud.shown_gold(), 500, "the count shows the gold")

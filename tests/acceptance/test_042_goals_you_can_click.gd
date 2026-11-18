@@ -463,12 +463,12 @@ func test_r4_nothing_else_changes() -> void:
 		"help": func() -> void: _ui.windows.open_window(UiRoot.HELP),
 		"journal": func() -> void: _ui.windows.open_window(UiRoot.JOURNAL),
 		"orders": func() -> void: _ui.bar.buttons[UiRoot.ORDERS].pressed.emit(),
-		"shop": func() -> void: _hud.shop_button.pressed.emit(),
+		"shop": func() -> void: _ui.bar.buttons[ShopWindow.ID].pressed.emit(),
 		"sheet": func() -> void: sheet.toggle(_sim.party.heroes[0].id),
 		"nothing": func() -> void: pass,
 	}
 	var by_button: Dictionary[String, Callable] = {
-		"shop": func() -> void: _hud.shop_button.pressed.emit(),
+		"shop": func() -> void: _ui.bar.buttons[ShopWindow.ID].pressed.emit(),
 		"training": func() -> void: _open_training(trainee),
 	}
 	var by_goal: Dictionary[String, int] = {"shop": upgrade, "training": train}

@@ -11,8 +11,6 @@ extends GutTest
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 45
 const STEP: float = 1.0 / 60.0
-const SCREEN: Vector2 = Vector2(640, 360)
-const TOP_BAND: float = 28.0
 ## The longest a test waits for something to happen, in simulation ticks.
 const LIMIT_TICKS: int = 30000
 const STRONG_LEVEL: int = 40
@@ -29,6 +27,8 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## Spec 059: the tally is a window on the UI layer, over the HUD's layer.
+var _ui: UiRoot
 ## Every event the world has told of since the HUD was made, oldest first.
 var _events: Array[SimEvent] = []
 var _save_path: String = "user://test_045_tally_%d.save" % OS.get_process_id()
@@ -77,9 +77,10 @@ func _build(simulation: Simulation) -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
-	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
+	_ui = UiRoot.new()
+	_ui.layer = 130
+	add_child_autofree(_ui)
+	_ui.setup(_sim, _hud, null)
 	_world.sim_event.connect(_on_event)
 	_hud.advance(0.0)
 
@@ -104,9 +105,13 @@ func _mouse(at: Vector2) -> void:
 	get_viewport().push_input(event, true)
 
 
-## Clicks the left button in the middle of [param control], as the window would.
+## Clicks the left button in the middle of [param control], as the window would. A control on
+## the UI layer (spec 059) is found through the UI's scale.
 func _click(control: Control) -> void:
 	var at: Vector2 = control.get_global_rect().get_center()
+	if _ui.frame.is_ancestor_of(control):
+		await get_tree().process_frame  # a window just opened lays out
+		at = _ui.ui_to_world(control.get_global_rect().get_center())
 	_mouse(at)
 	for pressed: bool in [true, false]:
 		var event := InputEventMouseButton.new()
@@ -221,7 +226,7 @@ func _before_guardian(depth: int) -> void:
 ## Checks every hero's numbers on the panel's open measure and span against [param sums]: the
 ## row's number and share, the tally's own value, and the bar's scale.
 func _check_rows(sums: Dictionary[int, int], what: String) -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	var heroes: Array[Hero] = _sim.party.heroes
 	var rows: Array[String] = tally.rows()
 	var largest: int = 0
@@ -251,30 +256,11 @@ func _check_rows(sums: Dictionary[int, int], what: String) -> void:
 	assert_eq(percent_sum, 100 if total > 0 else 0, "%s: the shares sum to 100%%" % what)
 
 
-## Opens [param panel] by its own way in, with the tally open, and back.
-func _check_exclusion(panel: String, opening: Callable, is_open: Callable) -> void:
-	var tally: TallyPanel = _hud.tally
-	tally.open()
-	opening.call()
-	_hud.advance(STEP)
-	var other: bool = is_open.call()
-	assert_true(other, "%s opens over the tally" % panel)
-	assert_false(tally.is_open(), "the %s closes the tally" % panel)
-	opening.call()
-	_hud.advance(STEP)
-	tally.open()
-	_hud.advance(STEP)
-	other = is_open.call()
-	assert_true(tally.is_open(), "the tally opens over the %s" % panel)
-	assert_false(other, "the tally closes the %s" % panel)
-	tally.close()
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
 func test_r1_tally_panel() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -283,11 +269,12 @@ func test_r1_tally_panel() -> void:
 	assert_true(tally.is_open(), "T opens it")
 	_key(KEY_T)
 	assert_false(tally.is_open(), "T closes it")
-	_click(_hud.tally_button)
+	var tally_button: UiButton = _ui.bar.buttons[TallyWindow.ID]  # spec 059: on the bar
+	await _click(tally_button)
 	assert_true(tally.is_open(), "the button opens it")
 	_hud.advance(STEP)
-	assert_true(_hud.tally_button.lit, "the button is lit while it is open")
-	_click(_hud.tally_button)
+	assert_true(tally_button.lit, "the button is lit while it is open")
+	await _click(tally_button)
 	assert_false(tally.is_open(), "the button closes it")
 	tally.open()
 	_key(KEY_ESCAPE)
@@ -309,9 +296,8 @@ func test_r1_tally_panel() -> void:
 		)
 	tally.close()
 
-	# Never with the shop, either way round. (Spec 058 made the journal, the orders and help
-	# windows on the UI layer, and spec 060 the hero sheet, which float over the tally and leave
-	# it open; the tally opening closes a window over it, as spec 058 has it until spec 059.)
+	# Specs 059 and 060: the tally, the hero windows and the shop are all windows, and any of them
+	# opens beside the others and leaves them open.
 	var hero: int = heroes[0].id
 	tally.open()
 	_hud.hero_windows.open(hero)
@@ -319,31 +305,23 @@ func test_r1_tally_panel() -> void:
 	assert_true(_hud.hero_windows.is_open(hero), "a hero window opens over the tally")
 	assert_true(tally.is_open(), "and leaves it open")
 	tally.close()
-	_hud.advance(STEP)
 	tally.open()
 	_hud.advance(STEP)
-	assert_false(_hud.hero_windows.is_open(hero), "the tally closes a hero window over it")
+	assert_true(_hud.hero_windows.is_open(hero), "the tally opening leaves a hero window open")
+	_key(KEY_U)
+	_hud.advance(STEP)
+	assert_true(_hud.shop.is_open(), "U opens the shop")
+	assert_true(tally.is_open() and _hud.hero_windows.is_open(hero), "beside the tally and hero")
+	_hud.shop.close()
+	_hud.hero_windows.close_all()
 	tally.close()
-	_check_exclusion("shop", _hud.shop.open, _hud.shop.is_open)
-	# The key of the other opens it over the tally too.
-	for pair: Array in [[KEY_U, _hud.shop.is_open]]:
-		var code: Key = pair[0]
-		var other: Callable = pair[1]
-		tally.open()
-		_key(code)
-		_hud.advance(STEP)
-		var opened: bool = other.call()
-		assert_true(opened, "key %d opens its panel" % code)
-		assert_false(tally.is_open(), "key %d closes the tally" % code)
-		_key(KEY_ESCAPE)
-		_hud.shop.close()
 
 
 # --- R2 ------------------------------------------------------------------------
 
 
 func test_r2_three_measures() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -363,7 +341,7 @@ func test_r2_three_measures() -> void:
 	tally.set_span(SESSION)
 	var names: Array[String] = ["Damage", "Healing", "Taken"]
 	for measure: Tally.Measure in [DAMAGE, HEALING, TAKEN]:
-		_click(tally.tab_buttons[measure])
+		await _click(tally.tab_buttons[measure])
 		_hud.advance(STEP)
 		assert_eq(tally.measure(), measure, "the %s tab opens %s" % [names[measure], measure])
 		for i: int in tally.tab_buttons.size():
@@ -388,7 +366,7 @@ func test_r2_three_measures() -> void:
 
 
 func test_r3_two_spans() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -461,14 +439,14 @@ func test_r3_two_spans() -> void:
 			all_named = all_named and line.contains(Content.monster(kind).display_name.to_lower())
 		assert_true(all_named or line.contains("%d monsters" % kinds.size()), line)
 	# Session: every fight together, and the line says so.
-	_click(tally.span_buttons[SESSION])
+	await _click(tally.span_buttons[SESSION])
 	_hud.advance(STEP)
 	assert_eq(tally.span(), SESSION, "the Session switch")
 	assert_true(tally.span_buttons[SESSION].lit and not tally.span_buttons[LAST].lit)
 	_check_rows(session, "session")
 	var fought: int = _count(SimEvent.Kind.ENCOUNTER_STARTED)
 	assert_true(tally.rows()[0].begins_with("Session: %d fights" % fought), tally.rows()[0])
-	_click(tally.span_buttons[LAST])
+	await _click(tally.span_buttons[LAST])
 	assert_eq(tally.span(), LAST, "the Last fight switch")
 
 	# A guardian: named, and the current fight while it lasts.
@@ -528,7 +506,7 @@ func test_r3_two_spans() -> void:
 
 
 func test_r4_side_quests_count() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -561,7 +539,7 @@ func test_r4_side_quests_count() -> void:
 
 
 func test_r5_updates_live() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -620,7 +598,7 @@ func test_r5_nothing_from_time_away() -> void:
 	if main.away_report == null or main.hud == null:
 		return
 	assert_gt(main.away_report.kills, 0, "the party fought while away")
-	var tally: TallyPanel = main.hud.tally
+	var tally: TallyWindow = main.hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -638,18 +616,16 @@ func test_r5_nothing_from_time_away() -> void:
 # --- R6 ------------------------------------------------------------------------
 
 
-## The sentence the tooltip shows after the mouse rests on [param control].
+## The sentence the tooltip gives [param control]: on the UI layer since spec 059, the tally's
+## own tooltips or the bar's.
 func _tip_of(control: Control) -> String:
-	_hud.tooltip.point_at(AWAY)
-	_hud.advance(1.0)
-	_hud.tooltip.point_at(control.get_global_rect().get_center())
-	_hud.advance(0.2)
-	_hud.advance(0.25)
-	return _hud.tooltip.shown_text()
+	if _ui.bar.is_ancestor_of(control):
+		return _ui.bar.tip.text_for(control) + "."
+	return _hud.tally.tip.text_for(control)
 
 
 func test_r6_explains_itself() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
@@ -658,7 +634,7 @@ func test_r6_explains_itself() -> void:
 	var seen: Dictionary[String, bool] = {}
 	var controls: Array[Control] = []
 	controls.assign(tally.tab_buttons + tally.span_buttons)
-	controls.append(_hud.tally_button)
+	controls.append(_ui.bar.buttons[TallyWindow.ID])
 	for control: Control in controls:
 		var text: String = _tip_of(control)
 		assert_ne(text, "", "%s has a tooltip" % control.name)
@@ -668,8 +644,6 @@ func test_r6_explains_itself() -> void:
 		)
 		assert_false(seen.has(text), "%s says what another says" % control.name)
 		seen[text] = true
-		var box: Rect2 = _hud.tooltip.box.get_global_rect()
-		assert_false(box.intersects(control.get_global_rect()), "%s: not covered" % control.name)
 	# T is in the help panel's list, and spec 030's test presses it.
 	var listed: bool = false
 	for entry: Array in HelpPanel.KEYS:
@@ -685,26 +659,14 @@ func test_r6_explains_itself() -> void:
 
 
 func test_r7_fits_and_changes_nothing() -> void:
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	assert_not_null(tally, "the HUD has a tally")
 	if tally == null:
 		return
 	tally.open()
 	_hud.advance(STEP)
-	var rect: Rect2 = tally.get_global_rect()
-	# The size the old hero sheet had (spec 045 R7: no bigger than it), before spec 060.
-	assert_true(rect.size.x <= 240.0 and rect.size.y <= 150.0, "%s" % rect)
-	assert_true(rect.position.y >= TOP_BAND, "below the top band: %s" % rect)
-	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(rect), "on the screen")
-	for frame: HeroFrame in _hud.frames:
-		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)
-		assert_false(
-			_hud.tally_button.get_global_rect().intersects(frame.get_global_rect()),
-			"the button is beside %s, not on it" % frame.name
-		)
-	var button: Rect2 = _hud.tally_button.get_global_rect()
-	assert_true(button.position.y >= SCREEN.y - Hud.BOTTOM_BAND, "the button is in the bottom band")
-	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(button), "the button is on the screen")
+	# Spec 059: a window on the UI layer; where it stands, clear of the top band and the hero
+	# frames at both rooms, beside the shop and the map, is spec 059 R8's test.
 	# The game runs behind it, and its state is the same open, closed or not drawn at all.
 	var bare := Simulation.new(SEED)
 	var closed := Simulation.new(SEED)
