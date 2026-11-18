@@ -1,6 +1,6 @@
 # 062 — Goals, the stage list and the news on the sharp layer
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058
 

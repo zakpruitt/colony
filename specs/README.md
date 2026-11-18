@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 062 | [Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | M7 | landed on dev, [#63](https://github.com/zakpruitt/colony/pull/63), provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
 | 061 | [The frame of the screen on the sharp layer](061-the-frame-of-the-screen/spec.md) | M7 | landed on dev, [#62](https://github.com/zakpruitt/colony/pull/62), provisional | 011, 024, 027, 030, 032, 039, 049, 052, 056, 058 |
 | 059 | [The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | M7 | landed on dev, [#61](https://github.com/zakpruitt/colony/pull/61), provisional | 017, 022, 045, 052, 053, 056, 058 |
 | 060 | [Hero sheets as windows, several at once](060-hero-windows/spec.md) | M7 | landed on dev, [#60](https://github.com/zakpruitt/colony/pull/60), provisional | 026, 028, 034, 051, 055, 058 |
@@ -78,4 +79,3 @@ New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [062 Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | in review, [#63](https://github.com/zakpruitt/colony/pull/63), provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
