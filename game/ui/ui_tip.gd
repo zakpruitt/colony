@@ -174,18 +174,28 @@ func _show() -> void:
 	var width: float = minf(widest + 1.0, WIDTH)
 	label.custom_minimum_size.x = width
 	# A wrapping label's height is its lines at its width now: give it that width before asking,
-	# or it wraps at whatever width it had and the box comes out too tall.
-	label.size = Vector2(width, 0.0)
-	# The containers' minimum sizes catch up only on the next frame, so the box is sized by hand:
+	# or it wraps at whatever width it had. The cached minimum sizes (which clamp every size set
+	# here) catch up only on the next frame, so they are cleared, and the box is sized by hand:
 	# the title, the wrapped lines and the panel's padding.
+	label.size = Vector2(width, label.size.y)
+	for control: Control in [label, title_label, _box, self]:
+		control.update_minimum_size()
 	var inner := Vector2(width, label.get_minimum_size().y)
+	label.size = inner
+	var text_y: float = 0.0
 	if title_label.visible:
 		var title_size: Vector2 = title_label.get_combined_minimum_size()
 		inner.x = maxf(inner.x, title_size.x)
-		inner.y += title_size.y + float(_box.get_theme_constant(&"separation"))
-	var pad: Vector2 = get_theme_stylebox(&"panel").get_minimum_size()
+		text_y = title_size.y + float(_box.get_theme_constant(&"separation"))
+		inner.y += text_y
+		title_label.position = Vector2.ZERO
+		title_label.size = title_size
+	label.position = Vector2(0.0, text_y)
+	var panel: StyleBox = get_theme_stylebox(&"panel")
 	reset_size()
-	size = (inner + pad).ceil()
+	size = (inner + panel.get_minimum_size()).ceil()
+	_box.position = Vector2(panel.get_margin(SIDE_LEFT), panel.get_margin(SIDE_TOP))
+	_box.size = inner
 	_place()
 	visible = true
 
