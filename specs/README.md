@@ -65,12 +65,11 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### In progress (2026-11-17, after Zak played the demo)
+### In progress (2026-11-18)
 
-Nothing is in progress: specs 049 to 056 (areas, abilities, talent trees and paragon, resources, the area
-map, zones on screen, the tree on the hero sheet, abilities on screen) have all landed and are in the board
-above, provisional until Zak has played them. Their direction is `docs/design/world.md`, "Areas and skill
-trees". New rows go in this table.
+Zak asked for more movement in fights: heroes that leap, spin and cast, and spells you can see. New rows
+go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| [057 Lively moves](057-lively-moves/spec.md) | in progress, provisional | 007, 008, 010, 048, 050, 051, 056 |
