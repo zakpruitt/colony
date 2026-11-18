@@ -78,4 +78,4 @@ New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [062 Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | in progress, provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
+| [062 Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | in review, [#63](https://github.com/zakpruitt/colony/pull/63), provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
