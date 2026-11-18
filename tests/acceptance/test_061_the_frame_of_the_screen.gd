@@ -489,6 +489,10 @@ func _check_box(main: Main, control: Control, what: String) -> void:
 		box.intersects(control.get_global_rect()), "%s: never over what it explains" % what
 	)
 	assert_eq(tip.label.get_theme_font(&"font"), UiText.font(), "%s: in the UI font" % what)
+	var lines: int = tip.label.get_line_count() + (1 if tip.title_label.visible else 0)
+	assert_lte(
+		box.size.y, lines * (UiText.LINE_HEIGHT + 4) + 12.0, "%s: as tall as its lines" % what
+	)
 
 
 # --- R8 ------------------------------------------------------------------------

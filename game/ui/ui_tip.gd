@@ -171,9 +171,21 @@ func _show() -> void:
 	for line: String in text.split("\n"):
 		widest = maxf(widest, UiText.width(line) - UiText.SPACING)
 	label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	label.custom_minimum_size.x = minf(widest + 1.0, WIDTH)
+	var width: float = minf(widest + 1.0, WIDTH)
+	label.custom_minimum_size.x = width
+	# A wrapping label's height is its lines at its width now: give it that width before asking,
+	# or it wraps at whatever width it had and the box comes out too tall.
+	label.size = Vector2(width, 0.0)
+	# The containers' minimum sizes catch up only on the next frame, so the box is sized by hand:
+	# the title, the wrapped lines and the panel's padding.
+	var inner := Vector2(width, label.get_minimum_size().y)
+	if title_label.visible:
+		var title_size: Vector2 = title_label.get_combined_minimum_size()
+		inner.x = maxf(inner.x, title_size.x)
+		inner.y += title_size.y + float(_box.get_theme_constant(&"separation"))
+	var pad: Vector2 = get_theme_stylebox(&"panel").get_minimum_size()
 	reset_size()
-	size = get_combined_minimum_size()
+	size = (inner + pad).ceil()
 	_place()
 	visible = true
 
