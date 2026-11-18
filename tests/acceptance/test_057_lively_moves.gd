@@ -1,4 +1,4 @@
-extends "res://tests/unit/abilities_on_screen_rig.gd"
+extends "res://tests/unit/lively_moves_rig.gd"
 ## Acceptance tests for specs/057-lively-moves/spec.md, one per requirement.
 ##
 ## They use spec 056's rig: a World on a seeded simulation with the CombatEffects that listen to
@@ -20,6 +20,7 @@ const LEAD: float = 0.5
 const RECOVERY: float = 0.4
 ## How close (in frames) a move's blow falls to the event that says it lands: within one tick.
 const SAME_TICK_FRAMES: int = 60 / TPS
+const TICK_SECONDS: float = 1.0 / TPS
 ## R4: one real ability for each kind of spell visual, and the hero that uses it.
 const SPELLS: Array[Array] = [
 	[&"fireball", MAGE],
@@ -38,38 +39,6 @@ const SPELLS: Array[Array] = [
 const FAMILY_COLOR: Dictionary[StringName, StringName] = {
 	&"fire": &"orange", &"frost": &"cyan", &"holy": &"yellow", &"shadow": &"orchid"
 }
-
-var _part_pixels: Dictionary[String, Array] = {}
-
-
-func _rig(sprite: CharacterSprite) -> Node2D:
-	return sprite.get_node("Mirror/Rig") as Node2D
-
-
-func _hero_sprite(class_id: StringName) -> CharacterSprite:
-	var sprite: CharacterSprite = CharacterSprite.for_hero(class_id)
-	add_child_autofree(sprite)
-	sprite.set_process(false)
-	sprite.position = Vector2(200, 200)
-	return sprite
-
-
-## The biggest turn of any part of [param sprite] from its rest, in radians.
-func _part_turn(sprite: CharacterSprite) -> float:
-	var most: float = 0.0
-	for node: Node in _rig(sprite).get_children():
-		most = maxf(most, absf((node as Node2D).rotation))
-	return most
-
-
-## The move's own share of [param sprite]'s pose is nothing.
-func _move_at_rest(sprite: CharacterSprite) -> bool:
-	return sprite.moves.at_rest()
-
-
-func _spells() -> SpellEffects:
-	return _fx.spell_effects
-
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -279,6 +248,16 @@ func _guardian_fight(path: int) -> void:
 					if started.get(event.source_id, &"") == event.ability_id:
 						used_frames[event.source_id].append(frames)
 						started.erase(event.source_id)
+						# The move got to its blow by its own timing: the landing brought it forward
+						# a tick at most (a wrong lead would leave it far short of its blow).
+						var mover: CharacterSprite = _world.character(event.source_id)
+						if mover.moves.brought_forward > TICK_SECONDS + 0.001:
+							problems.append(
+								(
+									"frame %d: hero %d's %s short of its blow"
+									% [frames, event.source_id, event.ability_id]
+								)
+							)
 		# A blow's number shows in the frame its tick is heard (one frame old then), never later.
 		# (Spec 018 leaves out a number with nowhere clear to go: a few blows show none.)
 		var fresh: int = 0
@@ -330,15 +309,8 @@ func _guardian_fight(path: int) -> void:
 				if box.end.y > floor_y + 1.0:
 					problems.append(
 						(
-							"frame %d: hero %d below the floor (%s %s, %s) by %.1f"
-							% [
-								frames,
-								id,
-								sprite.moves.playing(),
-								str(sprite.moves._over.move if sprite.moves._over != null else &""),
-								_rig(sprite).transform,
-								box.end.y - floor_y
-							]
+							"frame %d: hero %d below the floor (%s) by %.1f"
+							% [frames, id, sprite.moves.names(), box.end.y - floor_y]
 						)
 					)
 			if moving[id] and not now:
@@ -383,64 +355,6 @@ func _guardian_fight(path: int) -> void:
 
 
 ## The opaque pixels of a baked part, within its texture's region (as spec 038's tests read them).
-func _opaque_pixels(atlas: AtlasTexture) -> Array:
-	var key: String = "%s %s" % [atlas.atlas.resource_path, atlas.region]
-	if _part_pixels.has(key):
-		return _part_pixels[key]
-	var image: Image = atlas.atlas.get_image()
-	if image == null or image.is_empty():
-		image = Image.load_from_file(ProjectSettings.globalize_path(atlas.atlas.resource_path))
-	if image.is_compressed():
-		image.decompress()
-	var region := Rect2i(atlas.region)
-	var found: Array = []
-	for y: int in region.size.y:
-		for x: int in region.size.x:
-			if image.get_pixel(region.position.x + x, region.position.y + y).a >= 0.5:
-				found.append(Vector2(x, y))
-	_part_pixels[key] = found
-	return found
-
-
-## The world pixels [param sprite] covers as drawn now; its weapon left out if [param body_only].
-func _drawn(sprite: CharacterSprite, body_only: bool) -> Dictionary[Vector2i, bool]:
-	var covered: Dictionary[Vector2i, bool] = {}
-	if not sprite.visible:
-		return covered
-	var to_world: Transform2D = _world.global_transform.affine_inverse()
-	for node: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var part: Sprite2D = node as Sprite2D
-		var atlas: AtlasTexture = part.texture as AtlasTexture
-		if not part.is_visible_in_tree() or atlas == null or atlas.atlas == null:
-			continue
-		if body_only and part.name == "weapon":
-			continue
-		var drawn: Transform2D = to_world * part.global_transform
-		for pixel: Vector2 in _opaque_pixels(atlas):
-			var at: Vector2 = drawn * (part.offset + pixel + Vector2(0.5, 0.5))
-			covered[Vector2i(floori(at.x), floori(at.y))] = true
-	return covered
-
-
-func _shares(a: Dictionary[Vector2i, bool], b: Dictionary[Vector2i, bool]) -> bool:
-	for pixel: Vector2i in a:
-		if b.has(pixel):
-			return true
-	return false
-
-
-## The box around [param sprite]'s pixels as drawn now, in world pixels.
-func _drawn_rect(sprite: CharacterSprite) -> Rect2:
-	var pixels: Dictionary[Vector2i, bool] = _drawn(sprite, false)
-	if pixels.is_empty():
-		return Rect2()
-	var low := Vector2i(1 << 30, 1 << 30)
-	var high := Vector2i(-(1 << 30), -(1 << 30))
-	for pixel: Vector2i in pixels:
-		low = Vector2i(mini(low.x, pixel.x), mini(low.y, pixel.y))
-		high = Vector2i(maxi(high.x, pixel.x), maxi(high.y, pixel.y))
-	return Rect2(Vector2(low), Vector2(high - low + Vector2i.ONE))
-
 
 # --- R4 ------------------------------------------------------------------------
 
@@ -529,6 +443,44 @@ func _keep_going(battle: Battle, ability_id: StringName) -> void:
 		knight.health = knight.max_health / 2
 
 
+## A spell that shows on whom it lands shows only on the fighters the simulation says it reached
+## (as a radius that leaves one enemy out would): its HIT, HEALED or STATUS_BEGAN events.
+func test_r4_a_spell_shows_only_on_whom_it_reached() -> void:
+	_build(Simulation.new(SEED))
+	_at = 0
+	var monsters: Array[int] = []
+	for id: int in _world._monsters:
+		if _world.character(id) != null:
+			monsters.append(id)
+	assert_gte(monsters.size(), 2, "enemies to leave one out of")
+	var reached: int = monsters[0]
+	var burning := _event(SimEvent.Kind.STATUS_BEGAN, MAGE, reached, 50, &"inferno")
+	burning.status = AbilityEffect.Status.BURNING
+	_tell([_event(SimEvent.Kind.ABILITY_USED, MAGE, reached, 0, &"inferno"), burning])
+	_only_on(&"flames", reached, [] as Array[int] + monsters.slice(1), "Inferno")
+	_wait(1.2)
+	var blessed := _event(SimEvent.Kind.STATUS_BEGAN, CLERIC, KNIGHT, 30, &"blessing")
+	blessed.status = AbilityEffect.Status.MIGHTY
+	_tell([_event(SimEvent.Kind.ABILITY_USED, CLERIC, KNIGHT, 0, &"blessing"), blessed])
+	_only_on(&"light_column", KNIGHT, [ROGUE, MAGE, CLERIC] as Array[int], "Blessing")
+	# A beam from above starts under the HUD's top band: it never covers the boss bar (R8).
+	_wait(1.2)
+	_tell(
+		[
+			_event(SimEvent.Kind.ABILITY_USED, CLERIC, reached, 0, &"smite"),
+			_event(SimEvent.Kind.HIT, CLERIC, reached, 40),
+		]
+	)
+	_only_on(&"holy_beam", reached, [] as Array[int] + monsters.slice(1), "Smite")
+	for particle: FxParticle in _spells().particles(&"holy_beam"):
+		var box: Rect2 = _on_screen(particle.rect())
+		assert_gt(box.position.y, Hud.TOP_BAND, "the beam starts under the boss bar")
+		if particle.shape == FxParticle.Shape.COLUMN:
+			assert_gt(box.size.y, 40.0, "and falls from high above its target")
+
+
+## Every particle of [param kind] is over fighter [param on], none over any of [param others].
+
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -609,50 +561,6 @@ func test_r5_ordinary_fighting_has_more_bounce() -> void:
 
 
 ## Plays an ordinary attack of [param sprite]: how far back it drew (x) and in it stepped (y).
-func _swing(sprite: CharacterSprite, ranged: bool) -> Vector2:
-	sprite.play_attack(0.3, ranged)
-	var span := Vector2.ZERO
-	for i: int in 60:
-		sprite.advance(FRAME)
-		var x: float = _rig(sprite).position.x
-		span = Vector2(minf(span.x, x), maxf(span.y, x))
-	return span
-
-
-## How high hero [param id] hops in the next half second, from its moves' share of the pose.
-func _hop(id: int) -> float:
-	var sprite: CharacterSprite = _world.character(id)
-	var rise: float = -sprite.moves.shift.y
-	for i: int in 30:
-		_frame()
-		rise = maxf(rise, -sprite.moves.shift.y)
-	return rise
-
-
-func _full_trees_of(simulation: Simulation) -> void:
-	for hero: Hero in simulation.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
-		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-		var nodes: Array[StringName] = tree.trunk.duplicate()
-		nodes.append_array(tree.path_nodes(PATHS[hero.class_id]))
-		hero.set_talents(nodes)
-		hero.health = hero.max_health()
-
-
-## Steps [param simulation] (with a frame after each tick if [param watched]) to the end of its
-## first fight from now: the tick it ended on, or -1.
-func _first_fight_end(simulation: Simulation, watched: bool) -> int:
-	var fought: bool = false
-	for i: int in LIMIT_TICKS:
-		simulation.step()
-		if watched:
-			for f: int in 6:
-				_frame()
-		fought = fought or simulation.expedition.state == Expedition.State.FIGHTING
-		if fought and simulation.expedition.state != Expedition.State.FIGHTING:
-			return simulation.tick
-	return -1
-
 
 # --- R6 ------------------------------------------------------------------------
 
@@ -671,7 +579,6 @@ func test_r6_interrupted_cleanly() -> void:
 		)
 		_wait(0.3)
 		var knight: CharacterSprite = _world.character(KNIGHT)
-		var mage: CharacterSprite = _world.character(MAGE)
 		assert_lt(knight.moves.shift.y, -2.0, "%s: the knight is in the air" % ender)
 		assert_gt(_spells().live(), 0, "%s: the fireball is on its way" % ender)
 		_at += 1
@@ -694,14 +601,70 @@ func test_r6_interrupted_cleanly() -> void:
 			"area":
 				told.append(_event(SimEvent.Kind.AREA_CHANGED, -1, -1))
 		_tell(told)
-		for sprite: CharacterSprite in [knight, mage]:
+		for id: int in [KNIGHT, MAGE]:
+			var sprite: CharacterSprite = _world.character(id)
 			assert_true(_move_at_rest(sprite), "%s: the move ends at once" % ender)
-			assert_false(sprite.moves.is_moving() and ender != "fight end", "%s: over" % ender)
+			assert_false(sprite.moves.is_moving(), "%s: over" % ender)
+			# In its place: where the world has it, its body over that place and on the floor.
+			assert_almost_eq(
+				sprite.position.distance_to(_world._goals[id]), 0.0, 0.5, "%s: in place" % ender
+			)
 			if not sprite.is_dead():
+				assert_almost_eq(_rig(sprite).position.x, 0.0, 0.5, "%s: over it" % ender)
 				assert_gte(_rig(sprite).position.y, -CharacterSprite.STEP_HOP, "%s: down" % ender)
 		assert_eq(_spells().live(), 0, "%s: no spell visual left" % ender)
 		_wait(1.0)
 		assert_eq(_spells().live(), 0, "%s: nor later" % ender)
+
+
+func test_r6_a_held_hero_starts_no_move() -> void:
+	_build(Simulation.new(SEED))
+	_at = 0
+	var monster: int = _monster()
+	var knight: CharacterSprite = _world.character(KNIGHT)
+	knight.held = true  # stunned: spec 056's marks hold it still
+	var passive := _event(SimEvent.Kind.ABILITY_USED, KNIGHT, monster, 0, &"bloodthirst")
+	_tell([passive])
+	assert_false(knight.moves.is_moving(), "a passive that fires on a stunned hero moves nothing")
+	knight.held = false
+	_wait(0.5)
+	assert_false(knight.moves.is_moving(), "nor once the stun is over")
+	assert_eq(knight.moves.impacts, 0, "nothing played late")
+
+
+## A move that ends during a hit-stop lets go of its pose at once, not when the stop is over.
+func test_r6_a_move_ended_in_a_hit_stop_is_at_rest() -> void:
+	_build(Simulation.new(SEED))
+	var knight: CharacterSprite = _world.character(KNIGHT)
+	knight.play_move(&"heavy_swing", 0.1)
+	var frames: int = 0
+	while (knight.moves.impacts == 0 or absf(knight.moves.turn) < 0.05) and frames < 60:
+		_frame()
+		frames += 1
+	assert_gt(absf(knight.moves.turn), 0.05, "the swing's recovery leans the body")
+	_world._frozen = 2.0
+	frames = 0
+	while knight.moves.is_moving() and frames < 60:
+		_frame()
+		frames += 1
+	assert_false(knight.moves.is_moving(), "the move ends inside the hit-stop")
+	# Its body is already as the sprite poses it now, with nothing of the swing.
+	var shown: Transform2D = _rig(knight).transform
+	knight.advance(0.0)
+	assert_eq(shown, _rig(knight).transform, "and the body lets go of the swing at once")
+
+
+## An action whose start was too old to move for (heard only as it lands) plays no move after.
+func test_r3_an_action_heard_only_as_it_lands_moves_nothing() -> void:
+	_build(Simulation.new(SEED))
+	_at = 0
+	var monster: int = _monster()
+	var knight: CharacterSprite = _world.character(KNIGHT)
+	_tell([_event(SimEvent.Kind.ABILITY_USED, KNIGHT, monster, 0, &"shield_bash")])
+	assert_false(knight.moves.is_moving(), "no leap after its blow")
+	var passive := _event(SimEvent.Kind.ABILITY_USED, KNIGHT, monster, 0, &"bloodthirst")
+	_tell([passive])
+	assert_true(knight.moves.is_moving(), "while a passive firing still shows its move")
 
 
 # --- R7 ------------------------------------------------------------------------
@@ -749,6 +712,63 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	assert_eq(_spells().live(), 0, "no spell visual")
 
 	# At 4x a move is shortened to fit, and still shows.
+	_shortened_at_4x()
+
+
+## A stall that ends a tick or two after a hero's action began, a crit, a kill or a won fight
+## starts nothing for them, and leaves nothing of what was under way before it.
+func test_r7_a_stall_starts_nothing_and_leaves_nothing() -> void:
+	for won: bool in [false, true]:
+		var label: String = "a stall ending on a won fight" if won else "a stall in a fight"
+		_build(Simulation.new(SEED))
+		_at = 0
+		var monster: int = _monster()
+		_tell(
+			[
+				_event(SimEvent.Kind.ABILITY_STARTED, KNIGHT, monster, 5, &"shield_bash"),
+				_event(SimEvent.Kind.ABILITY_STARTED, MAGE, monster, 6, &"fireball"),
+			]
+		)
+		_wait(0.3)
+		assert_true(_world.character(KNIGHT).moves.is_moving(), "%s: a move under way" % label)
+		assert_gt(_spells().live(), 0, "%s: a spell under way" % label)
+		var before: Array[FxParticle] = _spells().all_particles()
+		# Ticks go by with no frame; the frame after them hears events a tick old.
+		_sim._tick += World.STALL_TICKS + 4
+		_at = -1
+		var crit := _event(SimEvent.Kind.HIT, ROGUE, monster, 30)
+		crit.flag = true
+		var late: Array[SimEvent] = [
+			_event(SimEvent.Kind.ABILITY_STARTED, ROGUE, monster, 5, &"backstab"),
+			_event(SimEvent.Kind.ABILITY_STARTED, MAGE, monster, 6, &"ice_lance"),
+			_event(SimEvent.Kind.ABILITY_USED, MAGE, monster, 0, &"frost_nova"),
+			_event(SimEvent.Kind.ABILITY_USED, CLERIC, monster, 0, &"smite"),
+			_event(SimEvent.Kind.HIT, CLERIC, monster, 20),
+			crit,
+		]
+		if won:
+			late.append(_event(SimEvent.Kind.DIED, monster, -1))
+			var end := _event(SimEvent.Kind.ENCOUNTER_ENDED, -1, -1)
+			end.flag = true
+			late.append(end)
+		_sim._events.append_array(late)
+		_world.sync(FRAME)
+		# Before the effects move on: nothing was started for the events past.
+		var started: int = 0
+		for particle: FxParticle in _spells().all_particles():
+			started += 0 if particle in before else 1
+		for flight: SpellEffects.Flight in _spells()._flights:
+			started += 1 if flight.ability == &"ice_lance" else 0
+		assert_eq(started, 0, "%s: no spell starts for them" % label)
+		_fx.advance(FRAME)
+		for id: int in _world._sprites:
+			var sprite: CharacterSprite = _world.character(id)
+			assert_eq(sprite.moves.names(), [] as Array[StringName], "%s: %d still" % [label, id])
+			assert_true(_move_at_rest(sprite), "%s: %d at rest" % [label, id])
+		assert_eq(_spells().live(), 0, "%s: no spell visual left" % label)
+
+
+func _shortened_at_4x() -> void:
 	_build(Simulation.new(SEED))
 	_world.speed = 4
 	var monster: int = _monster()
@@ -803,7 +823,7 @@ func test_r8_still_readable() -> void:
 				boxes[sprite] = _on_screen(_drawn_rect(sprite))
 		for particle: FxParticle in _spells().all_particles():
 			spells += 1
-			boxes[particle] = _on_screen(Rect2(particle.position - Vector2(2, 2), Vector2(4, 4)))
+			boxes[particle] = _on_screen(particle.rect())
 		for shown: Object in boxes:
 			var over: bool = false
 			for bar: Rect2 in bars:
@@ -845,7 +865,7 @@ func test_r9_in_the_showcase_and_the_cast_demo() -> void:
 	assert_eq(listed, all, "the demo's list holds every move")
 	var played: Dictionary[StringName, bool] = {}
 	var labelled: Dictionary[StringName, bool] = {}
-	for i: int in roundi(CharacterDemo.MOVES_CYCLE / FRAME) + 2:
+	for i: int in roundi(CharacterDemo.moves_cycle() / FRAME) + 2:
 		demo.advance(FRAME)
 		var playing: StringName = demo.mover().moves.playing()
 		if playing != &"":

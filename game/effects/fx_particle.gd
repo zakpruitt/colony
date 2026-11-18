@@ -66,6 +66,18 @@ func advance(delta: float) -> bool:
 	return true
 
 
+## The rectangle it covers now, in its parent's pixels, as [method _draw] draws it.
+func rect() -> Rect2:
+	var s: int = current_size()
+	var half: int = floori(s / 2.0)
+	if shape == Shape.COLUMN:
+		return Rect2(position + Vector2(-half, -height), Vector2(s, height))
+	if shape == Shape.SQUARE and texture != null and age < life * SPRITE_SHARE:
+		var box: Vector2 = texture.get_size()
+		return Rect2(position - (box / 2.0).floor(), box)
+	return Rect2(position - Vector2(half, half), Vector2(s, s))
+
+
 ## Its size now, in whole pixels: full, then shrinking toward 1 over the rest of its life.
 func current_size() -> int:
 	var t: float = age / life

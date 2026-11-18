@@ -60,11 +60,10 @@ const FONT_SIZE: int = 8
 const SCREEN: Vector2 = Vector2(640, 360)
 
 ## Spec 057: the moves the mover plays, in turn; seconds each has (its blow falls MOVE_LEAD into
-## it), and the whole loop; the mover's class, where it stands and its size.
+## it); the mover's class, where it stands and its size.
 const MOVES: Array[StringName] = AbilityDef.MOVES
 const MOVE_SECONDS: float = 1.3
 const MOVE_LEAD: float = 0.5
-const MOVES_CYCLE: float = MOVE_SECONDS * 11  # one slot for each of the eleven moves
 const MOVER: StringName = &"knight"
 const MOVER_SPOT: Vector2 = Vector2(60, 84)
 
@@ -77,6 +76,11 @@ var _phase_label: Label
 var _mover: CharacterSprite
 var _move_label: Label
 var _move_clock: float = -1.0
+
+
+## Seconds the whole loop of moves takes: one slot for each move of the set.
+static func moves_cycle() -> float:
+	return MOVE_SECONDS * MOVES.size()
 
 
 func _ready() -> void:
@@ -140,7 +144,7 @@ func move_label() -> Label:
 ## Starts the next move of the mover's loop when its time comes. The mover animates itself.
 func _advance_moves(delta: float) -> void:
 	var before: int = floori(_move_clock / MOVE_SECONDS) if _move_clock >= 0.0 else -1
-	_move_clock = fposmod(maxf(_move_clock, 0.0) + delta, MOVES_CYCLE)
+	_move_clock = fposmod(maxf(_move_clock, 0.0) + delta, moves_cycle())
 	var now: int = floori(_move_clock / MOVE_SECONDS)
 	if now == before:
 		return

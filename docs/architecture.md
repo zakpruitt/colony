@@ -297,14 +297,18 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   a kill or crit, a cheer) plays in an overlay slot over it without interrupting it.
 - **`FightMoves`** (`game/world/fight_moves.gd`), held by the `World`, reads the events `_show` draws:
   `ABILITY_STARTED` starts the move (only for a fresh event, never while catching up), `ABILITY_USED`
-  brings its blow forward to that frame (`CharacterMoves.land`) so it falls on the simulation's tick, and
+  brings its blow forward to that frame (`CharacterMoves.land`, by a tick at most:
+  `brought_forward` says how far) so it falls on the simulation's tick, and
   stuns, deaths, the end of a fight, a wipe and a change of stage or area end moves at once. `room` keeps a
   leap or dash in front of its target (the gap less both sprites' reach). A stall (`World.catching_up`)
-  ends every move.
+  ends every move. An action heard only as it lands moves nothing, and a sprite held by a stun starts
+  no move (it would play late).
 - **`SpellEffects`** (`game/effects/spell_effects.gd`), made and advanced by `CombatEffects`, maps an
   ability to a kind of spell (`KINDS`) drawn from palette particles in one colour family each: a flight
   (fireball, meteor, ice shard) leaves on `ABILITY_STARTED` and arrives as the wind-up ends; the rest
-  burst on `ABILITY_USED`. It keeps its own particle cap, as `AbilityEffects` does, and clears everything
+  burst on `ABILITY_USED`. Flakes, flames, light, beams, shadow and a spark's jumps show only on the
+  fighters the same tick's `HIT`, `HEALED`, `REVIVED` and `STATUS_BEGAN` events credit to the spell,
+  read through `AbilityEffects`' `AbilityCredit`. It keeps its own particle cap, as `AbilityEffects` does, and clears everything
   on an interrupt or while the world catches up.
 - An ordinary strike's draw back and step are stronger (`BODY_WINDUP_SHIFT`, `BODY_STRIKE_SHIFT`) and a
   ranged shot recoils; none of it changes a tick.

@@ -90,7 +90,8 @@ func _used(world: World, event: SimEvent, fresh: bool) -> void:
 		if sprite != null:
 			sprite.moves.land()
 		return
-	if fresh:
+	# An action whose start was too old to move for: its blow has fallen, its move would come after.
+	if fresh and not ability.is_action():
 		_play(world, event.source_id, ability.move, 0.0)
 
 

@@ -17,6 +17,11 @@ extends Node
 ## the end of a fight takes every spell in flight; a wipe or a change of stage or area takes every
 ## visual. Nothing starts in a frame catching up on a stall ([method World.catching_up]) or for an
 ## event too old ([method World.is_recent]). [CombatEffects] makes and advances it.
+##
+## A visual that shows on whom a spell lands (flakes, flames, light, a beam, shadow, a spark's
+## jumps) shows only on the fighters the simulation says it reached: those its fighter's HIT,
+## HEALED, REVIVED and STATUS_BEGAN events of the same tick credit to it, read as [AbilityEffects]
+## reads them ([AbilityCredit]).
 
 ## The most particles these visuals make at once.
 const MAX_PARTICLES: int = 120
@@ -47,6 +52,10 @@ const KINDS: Dictionary[StringName, StringName] = {
 	&"smoke_step": &"shadow",
 }
 const FLIES: Array[StringName] = [&"fireball", &"meteor", &"ice_shard"]
+## The kinds that show on each fighter the spell reaches, as the events say it does.
+const REACHING: Array[StringName] = [
+	&"blizzard", &"chain_spark", &"flames", &"light_column", &"holy_beam", &"shadow"
+]
 const FAMILY_OF: Dictionary[StringName, StringName] = {
 	&"fireball": &"fire",
 	&"meteor": &"fire",
@@ -82,6 +91,11 @@ const LATE: float = 0.4
 
 var _world: World
 var _simulation: Simulation
+var _credit: AbilityCredit
+## The spells landing in the tick being heard that show on whom they reach: per
+## "source:ability", the fighters shown on so far, in order.
+var _reaching: Dictionary[String, Array] = {}
+var _reaching_tick: int = -1
 var _rng := RandomNumberGenerator.new()
 var _particles: Array[FxParticle] = []
 var _flights: Array[Flight] = []
@@ -104,10 +118,12 @@ class Flight:
 	var bits: Array[FxParticle] = []
 
 
-## Call once, before the first advance.
-func setup(world: World, simulation: Simulation) -> void:
+## Call once, before the first advance. [param credit] is [AbilityEffects]'s, which hears each
+## event before this does and says which ability a blow or heal was.
+func setup(world: World, simulation: Simulation, credit: AbilityCredit) -> void:
 	_world = world
 	_simulation = simulation
+	_credit = credit
 	_rng.seed = 57
 	if not _world.sim_event.is_connected(_on_sim_event):
 		_world.sim_event.connect(_on_sim_event)
@@ -151,6 +167,9 @@ func live() -> int:
 
 func _on_sim_event(event: SimEvent) -> void:
 	var fresh: bool = _world.is_recent(event) and not _world.catching_up()
+	if event.tick != _reaching_tick:
+		_reaching.clear()
+		_reaching_tick = event.tick
 	match event.kind:
 		SimEvent.Kind.ABILITY_STARTED:
 			if fresh:
@@ -160,8 +179,21 @@ func _on_sim_event(event: SimEvent) -> void:
 			if flight != null:
 				_end_flight(flight, false)  # it lands: its trail fades on its own
 			if fresh and KINDS.has(event.ability_id):
-				_land(event, KINDS[event.ability_id])
+				if KINDS[event.ability_id] in REACHING:
+					_reaching[_key(event.source_id, event.ability_id)] = []
+				else:
+					_land(event, KINDS[event.ability_id])
+		SimEvent.Kind.HIT, SimEvent.Kind.HEALED:
+			if fresh and _credit != null:
+				_reach(event.source_id, _credit.ability_id, event.target_id)
+		SimEvent.Kind.REVIVED:
+			if fresh:
+				for key: String in _reaching:
+					if key.begins_with("%d:" % event.source_id):
+						_reach(event.source_id, StringName(key.get_slice(":", 1)), event.target_id)
 		SimEvent.Kind.STATUS_BEGAN:
+			if fresh:
+				_reach(event.source_id, event.ability_id, event.target_id)
 			if event.status == AbilityEffect.Status.STUNNED:
 				_ground(event.target_id, false)
 		SimEvent.Kind.DIED:
@@ -171,6 +203,42 @@ func _on_sim_event(event: SimEvent) -> void:
 				_end_flight(flight, true)
 		SimEvent.Kind.PARTY_WIPED, SimEvent.Kind.AREA_CHANGED, SimEvent.Kind.DEPTH_CHANGED:
 			_clear()
+
+
+func _key(source: int, ability: StringName) -> String:
+	return "%d:%s" % [source, ability]
+
+
+## [param ability] of [param source], landing in this tick, has reached fighter [param id]: its
+## visual shows there, once.
+func _reach(source: int, ability: StringName, id: int) -> void:
+	var key: String = _key(source, ability)
+	if not _reaching.has(key) or id < 0 or id in _reaching[key]:
+		return
+	var sprite: CharacterSprite = _world.character(id)
+	if sprite == null or not sprite.visible:
+		return
+	var shown: Array = _reaching[key]
+	match KINDS[ability]:
+		&"blizzard":
+			_flakes(id)
+		&"flames":
+			_flames(id)
+		&"light_column":
+			_column(id)
+		&"holy_beam":
+			_beam(id)
+		&"shadow":
+			_shadow(id)
+		&"chain_spark":
+			var at: Vector2 = sprite.position + Vector2(0, -AIM_HEIGHT)
+			if not shown.is_empty():
+				var last_id: int = shown.back()
+				var last: CharacterSprite = _world.character(last_id)
+				if last != null:
+					_bolt_line(last.position + Vector2(0, -AIM_HEIGHT), at)
+			_flash(&"chain_spark", at, &"white" if shown.is_empty() else &"yellow", 5)
+	shown.append(id)
 
 
 ## A flying spell's wind-up begins: it leaves in time to arrive as the wind-up ends.
@@ -325,61 +393,8 @@ func _land(event: SimEvent, kind: StringName) -> void:
 			_shatter(event.target_id)
 		&"frost_burst":
 			_frost_burst(event.target_id)
-		&"blizzard":
-			for id: int in _receivers(event, ability):
-				_flakes(id)
-		&"chain_spark":
-			_chain(event.target_id)
-		&"flames":
-			for id: int in _receivers(event, ability):
-				_flames(id)
-		&"light_column":
-			for id: int in _receivers(event, ability):
-				_column(id)
-		&"holy_beam":
-			for id: int in _receivers(event, ability):
-				_beam(id)
 		&"knives":
 			_knives(event.source_id)
-		&"shadow":
-			for id: int in _receivers(event, ability):
-				_shadow(id)
-
-
-## Whom [param ability]'s first effect lands on, as the view can tell: its target (or, for an
-## effect round it, the target), every living enemy or ally of the caster, or the caster.
-func _receivers(event: SimEvent, ability: AbilityDef) -> Array[int]:
-	var found: Array[int] = []
-	var lands: AbilityEffect.Lands = AbilityEffect.Lands.TARGET
-	if not ability.effects.is_empty() and ability.effects[0] != null:
-		lands = ability.effects[0].lands
-	var hero_side: bool = event.source_id < Expedition.FIRST_MONSTER_ID
-	match lands:
-		AbilityEffect.Lands.SELF:
-			found.append(event.source_id)
-		AbilityEffect.Lands.ENEMIES, AbilityEffect.Lands.ALLIES:
-			var heroes: bool = hero_side == (lands == AbilityEffect.Lands.ALLIES)
-			found = _side(heroes)
-		_:
-			found.append(event.target_id)
-	var shown: Array[int] = []
-	for id: int in found:
-		if id >= 0 and _world.character(id) != null and _world.character(id).visible:
-			shown.append(id)
-	return shown
-
-
-## The fighters of the battle on the heroes' side (or the monsters'), alive.
-func _side(heroes: bool) -> Array[int]:
-	var found: Array[int] = []
-	var battle: Battle = _simulation.expedition.battle
-	if battle == null:
-		return found
-	var fighters: Array[Combatant] = battle.heroes if heroes else battle.monsters
-	for fighter: Combatant in fighters:
-		if fighter.is_alive():
-			found.append(fighter.id)
-	return found
 
 
 ## A burst of [param count] fire squares from the target's chest and a flash of [param flash].
@@ -475,30 +490,6 @@ func _flakes(id: int) -> void:
 		bit.start(target.position + over.round())
 
 
-## A jagged spark from the target to every other living enemy, nearest first.
-func _chain(id: int) -> void:
-	var first: CharacterSprite = _world.character(id)
-	if first == null:
-		return
-	var hero_side: bool = id < Expedition.FIRST_MONSTER_ID
-	var others: Array[CharacterSprite] = []
-	for other: int in _side(hero_side):
-		var sprite: CharacterSprite = _world.character(other)
-		if other != id and sprite != null and sprite.visible:
-			others.append(sprite)
-	others.sort_custom(
-		func(a: CharacterSprite, b: CharacterSprite) -> bool:
-			return absf(a.position.x - first.position.x) < absf(b.position.x - first.position.x)
-	)
-	var from: Vector2 = first.position + Vector2(0, -AIM_HEIGHT)
-	_flash(&"chain_spark", from, &"white", 5)
-	for sprite: CharacterSprite in others:
-		var to: Vector2 = sprite.position + Vector2(0, -AIM_HEIGHT)
-		_bolt_line(from, to)
-		_flash(&"chain_spark", to, &"yellow", 5)
-		from = to
-
-
 ## A jagged line of spark squares from [param from] to [param to].
 func _bolt_line(from: Vector2, to: Vector2) -> void:
 	var colors: Array = FAMILIES[&"spark"]
@@ -565,13 +556,14 @@ func _column(id: int) -> void:
 		)
 
 
-## A beam of light from above the screen onto fighter [param id], flashing at its feet.
+## A beam of light from under the HUD's top band onto fighter [param id], flashing at its feet: it
+## never covers the boss bar or the panels there (R8).
 func _beam(id: int) -> void:
 	var target: CharacterSprite = _world.character(id)
 	if target == null:
 		return
 	var feet: Vector2 = target.position
-	var height: int = maxi(roundi(feet.y - _screen_top()), 16)
+	var height: int = maxi(roundi(feet.y - _band_top()), 16)
 	for spec: Array in [[&"yellow", 5], [&"white", 1]]:
 		var beam: FxParticle = _particle(&"holy_beam")
 		if beam == null:
@@ -659,6 +651,12 @@ func _drop(particle: FxParticle) -> void:
 	if particle.get_parent() != null:
 		particle.get_parent().remove_child(particle)
 	particle.queue_free()
+
+
+## The world row just under the HUD's top band (the boss bar, the panels there).
+func _band_top() -> float:
+	var zoom: float = _world.camera.zoom.y if _world.camera != null else 1.0
+	return ceilf(_screen_top() + (Hud.TOP_BAND + 1.0) / zoom)
 
 
 ## The world row at the top of the screen.

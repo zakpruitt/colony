@@ -228,11 +228,12 @@ func play_attack(windup_seconds: float, ranged: bool) -> void:
 ## with a lead replaces the one playing; one with none (a passive's flourish) plays over whatever
 ## the character is doing. A leap or dash goes at most [param room] pixels forward, and at a game
 ## speed of [param pace] its recovery is that much shorter. An empty [param move] ends every move
-## at once, leaving the character at rest in this same frame.
+## at once, leaving the character at rest in this same frame. A dead or [member held] character
+## starts none: its move would play late, when it moves again.
 func play_move(move: StringName, lead: float, room: float = INF, pace: float = 1.0) -> void:
 	if move == &"":
 		moves.stop()
-	elif not _dead:
+	elif not _dead and not held:
 		moves.play(move, lead, room, pace)
 	_apply_pose()
 

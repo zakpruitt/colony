@@ -237,7 +237,7 @@ func setup(world: World, simulation: Simulation) -> void:
 		spell_effects = SpellEffects.new()
 		spell_effects.name = "SpellEffects"
 		add_child(spell_effects)
-	spell_effects.setup(world, simulation)
+	spell_effects.setup(world, simulation, ability_effects.credit)
 
 
 ## Advances every effect. Called every frame; tests call it.

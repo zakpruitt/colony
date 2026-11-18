@@ -286,7 +286,12 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
   `white`, `yellow`, `cyan`; thrown steel `silver`, `white`, `steel`. A fireball and an ice shard fly with a
   trail, a meteor falls from above the screen, frost spreads along the floor, flakes fall for a blizzard, a
   spark jumps from enemy to enemy, a column of light stands on whoever is healed, a beam falls for a smite.
-  Every spell is gone within a second of landing.
+  Every spell is gone within a second of landing. A spell that shows on whom it lands shows only on
+  the fighters the fight's events say it reached, and a beam starts under the HUD's top band.
+- **Particle caps.** Each kind of effect keeps its own: spec 010's combat effects 300
+  (`CombatEffects.MAX_PARTICLES`), spec 056's ability effects 150 (`AbilityEffects.MAX_PARTICLES`)
+  and spells 120 (`SpellEffects.MAX_PARTICLES`), so at most 570 at once; past its cap an effect
+  makes fewer particles, never more.
 
 ## UI
 

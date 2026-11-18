@@ -261,7 +261,12 @@ func sync(delta: float) -> void:
 	if _frozen > 0.0:
 		_frozen -= delta
 		for id: int in _sprites:
-			_sprites[id].moves.advance(delta)  # a hit-stop holds the pose, not a move's blow
+			# A hit-stop holds the pose, not a move's blow; a move that ends in it lets go at once.
+			var sprite: CharacterSprite = _sprites[id]
+			var playing: int = sprite.moves.names().size()
+			sprite.moves.advance(delta)
+			if sprite.moves.names().size() < playing:
+				sprite.advance(0.0)
 	else:
 		for id: int in _sprites:
 			if not fallen_party.animate(id, _sprites[id], delta):

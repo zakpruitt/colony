@@ -60,6 +60,9 @@ var scale: Vector2 = Vector2.ONE
 var turns: Dictionary[StringName, float] = {}
 ## How many main moves have reached their blow, ever: a test sees a blow fall by this.
 var impacts: int = 0
+## Seconds [method land] last brought a blow forward (0 when the move reached its blow by itself):
+## a move timed to its wind-up needs at most a tick of it.
+var brought_forward: float = 0.0
 
 var _main: Slot
 var _over: Slot
@@ -115,6 +118,7 @@ func play(move: StringName, lead: float, room: float, pace: float) -> void:
 func land() -> void:
 	if _main == null or _main.landed:
 		return
+	brought_forward = _main.lead - _main.time
 	_main.time = _main.lead
 	_main.landed = true
 	impacts += 1
@@ -135,6 +139,7 @@ func advance(delta: float) -> void:
 		_main.time += delta
 		if not _main.landed and _main.time >= _main.lead:
 			_main.landed = true
+			brought_forward = 0.0
 			impacts += 1
 			_landed = _main.move
 		if _main.time >= _main.lead + _main.recover:
