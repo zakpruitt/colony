@@ -67,9 +67,14 @@ implementer lane builds exactly that.
 
 ### In progress (2026-11-18)
 
-Zak asked for more movement in fights: heroes that leap, spin and cast, and spells you can see. New rows
-go in this table.
+Zak asked for more movement in fights (heroes that leap, spin and cast, and spells you can see) and for a
+UI overhaul: a sharper UI layer, a font made for reading, and windows that open side by side as in WoW.
+New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [057 Lively moves](057-lively-moves/spec.md) | in progress, provisional | 007, 008, 010, 048, 050, 051, 056 |
+| [057 Lively moves](057-lively-moves/spec.md) | in review, [#58](https://github.com/zakpruitt/colony/pull/58), provisional | 007, 008, 010, 048, 050, 051, 056 |
+| [058 A sharp UI layer, a readable font and windows](058-sharp-ui-and-windows/spec.md) | in progress, provisional | 009, 011, 027, 030, 035 |
+| 059 Windows for the shop, the area map and the tally | to be written once 058 lands | 058 |
+| 060 Hero sheets as windows, several at once | to be written once 058 lands | 058 |
+| 061 The fixed HUD on the sharp layer (top bar, hero frames, goals, ladder, tooltips) | to be written once 058 lands | 058 |
