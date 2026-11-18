@@ -293,21 +293,27 @@ func train_row(index: int) -> void:
 ## paragon stat's &"training_power" ([code]Power 2 +6%[/code]); and &"microskills", the Skills
 ## tab's lines, one per line.
 func line(key: StringName) -> String:
-	if key == &"class":
-		return class_label.text
+	var shown: Label = _line_label(key)
+	if shown != null:
+		return shown.text
 	if key == &"microskills":
 		return "\n".join(PackedStringArray(skills.lines()))
-	if key == &"talent_points":
-		return talents.points_label.text
-	if key == &"paragon_points":
-		return talents.paragon_label.text
 	for cell: ParagonCell in talents.paragon_cells:
 		if key == StringName("training_" + String(cell.id)):
 			return cell.text()
-	if HeroStatsTab.STAT_NAMES.has(key):
-		return stats.line(key)
-	var value: Label = _values.get(key, null)
-	return value.text if value != null else ""
+	return stats.line(key) if HeroStatsTab.STAT_NAMES.has(key) else ""
+
+
+## The label that shows line [param key] whole, or null for a line made of several.
+func _line_label(key: StringName) -> Label:
+	match key:
+		&"class":
+			return class_label
+		&"talent_points":
+			return talents.points_label
+		&"paragon_points":
+			return talents.paragon_label
+	return _values.get(key, null)
 
 
 ## The fraction a bar shows this frame: &"health" or &"xp".

@@ -161,6 +161,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key: InputEventKey = event as InputEventKey
 	if key == null or not key.pressed or key.echo or _simulation == null:
 		return
+	var handled: bool = true
 	match key.keycode:
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_step_target(-1)
@@ -174,21 +175,20 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_U:
 			_toggle_shop()
 		KEY_ESCAPE:
-			if not shop.is_open():
-				return
+			handled = shop.is_open()
 			shop.close()
 		KEY_TAB:
 			# Spec 060: the next hero's window to the front, or Shift+Tab closes the front one.
 			if hero_windows == null:
-				return
-			if key.shift_pressed:
+				handled = false
+			elif key.shift_pressed:
 				hero_windows.close_front()
 			else:
 				hero_windows.open_next()
 		KEY_B:
-			if not shop.is_open():
-				return
-			shop.toggle_auto_buy()
+			handled = shop.is_open()
+			if handled:
+				shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
 			# The shop first; else the front hero window spends paragon points, on its Talents tab
 			# only (spec 034, spec 055, spec 060).
@@ -199,7 +199,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			elif training and key.keycode <= KEY_3:
 				front.train_row(key.keycode - KEY_1)
 			else:
-				return
+				handled = false
 		KEY_Q, KEY_E:
 			# The tally's previous and next measure while it is open (spec 045), else the front
 			# hero window's previous and next tab (spec 034, spec 060).
@@ -215,10 +215,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				else:
 					shown.next_page()
 			else:
-				return
+				handled = false
 		_:
-			return
-	get_viewport().set_input_as_handled()
+			handled = false
+	if handled:
+		get_viewport().set_input_as_handled()
 
 
 ## Call once, before the first advance.
