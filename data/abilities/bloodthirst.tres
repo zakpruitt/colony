@@ -16,6 +16,7 @@ script = ExtResource("1")
 id = &"bloodthirst"
 display_name = "Bloodthirst"
 description = "When hit, a 25% chance the knight strikes 30% faster for 4 s."
+move = &"flourish"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 4

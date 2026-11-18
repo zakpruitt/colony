@@ -111,6 +111,8 @@ var _snap_heroes: bool = false
 var _frozen: float = 0.0
 ## Heroes kept out of a fighting guardian's body (spec 038 R3).
 var _spacing := GuardianSpacing.new()
+## The heroes' moves, started and ended from the events (spec 057).
+var _fight_moves := FightMoves.new()
 ## True for the sync in progress when the camera is to jump to the party.
 var _snap_camera: bool = false
 ## The stage shown (spec 054), or 0 before the first.
@@ -201,6 +203,12 @@ func is_recent(event: SimEvent) -> bool:
 	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS * maxi(speed, 1)
 
 
+## True during a sync that catches up on a stall (many ticks in one frame, or the first sync): it
+## starts no move or spell, only brings the picture up to date (spec 057 R7).
+func catching_up() -> bool:
+	return _snap_all
+
+
 ## Holds every character's animation still for [param seconds] (a hit-stop): [method sync] goes on
 ## following the simulation, but does not advance the sprites' animation until it is over. A
 ## shorter freeze does not cut a longer one short.
@@ -218,6 +226,8 @@ func sync(delta: float) -> void:
 	_snap_heroes = false
 	_snap_camera = false
 	_last_tick = now
+	if _snap_all:
+		_fight_moves.stop_all(self)  # spec 057 R7: a stall leaves every body at rest
 
 	# Spec 049: when the party has gone to another area, the events from before its arrival are
 	# shown in the old area first, and the world changes area when it reaches AREA_CHANGED (monster
@@ -250,6 +260,8 @@ func sync(delta: float) -> void:
 	quest_props.animate(delta)
 	if _frozen > 0.0:
 		_frozen -= delta
+		for id: int in _sprites:
+			_sprites[id].moves.advance(delta)  # a hit-stop holds the pose, not a move's blow
 	else:
 		for id: int in _sprites:
 			if not fallen_party.animate(id, _sprites[id], delta):
@@ -524,6 +536,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 			# A revival seen as it happens is acted out whole; one heard late, from where it has got to.
 			_snap_camera = not fallen_party.revived(0.0 if animate else age)
 			_snap_heroes = true
+	_fight_moves.heard(self, event, animate and not _snap_all)
 
 
 ## A wind-up of [param attacker] that struck by [param tick] is over.
@@ -590,8 +603,9 @@ func _change_stage() -> void:
 	_snap_all = true
 
 
-## The fight is over: wind-ups still pending stop, and bolts in flight vanish.
+## The fight is over: wind-ups and moves still pending stop, and bolts in flight vanish.
 func _cut_short_everything() -> void:
+	_fight_moves.stop_all(self)
 	for attacker: int in _windups:
 		var sprite: CharacterSprite = character(attacker)
 		if sprite != null:

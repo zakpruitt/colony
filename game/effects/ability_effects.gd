@@ -5,8 +5,8 @@ extends Node
 ## - R1: an ability's name rises over its fighter in the hero's (or monster's) colour, at most
 ##   [constant MAX_NAMES] stacked over one fighter. An action is named as its wind-up begins, a
 ##   passive as it fires.
-## - R2: an action's wind-up lights its fighter (a pulsing glow for its length) and swings as a
-##   strike does; a heavy blow throws a larger spark, damage to many a ring on the floor, a push
+## - R2: an action's wind-up lights its fighter (a pulsing glow for its length) and performs its
+##   move (spec 057); a heavy blow throws a larger spark, damage to many a ring on the floor, a push
 ##   kicks dust at the feet of those the events say it landed on (its target, and whoever its
 ##   ability's other effects reached in that tick) as they slide. A heal shows the heal effect
 ##   [CombatEffects] already draws for every HEALED, and a revive stands the fallen hero up
@@ -260,7 +260,7 @@ func _forget_fight() -> void:
 	_blocked.clear()
 
 
-## An action's wind-up begins: its fighter glows and swings for its length, and it is named.
+## An action's wind-up begins: its fighter glows for its length, and it is named.
 func _started(event: SimEvent, recent: bool) -> void:
 	var ability: AbilityDef = Content.ability(event.ability_id)
 	var sprite: CharacterSprite = _world.character(event.source_id)
@@ -274,10 +274,7 @@ func _started(event: SimEvent, recent: bool) -> void:
 	_light(event.source_id)
 	if not recent:
 		return
-	if ability.aim != AbilityDef.Aim.SELF:
-		var ranged: bool = ability.anywhere or ability.reach > Battle.MELEE_REACH
-		sprite.play_attack(left, ranged)
-	_announce(event.source_id, ability)
+	_announce(event.source_id, ability)  # its fighter's move is the World's (spec 057)
 	_announced[event.source_id] = ability.id
 
 

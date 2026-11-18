@@ -171,6 +171,8 @@ var quest_effects: QuestEffects
 var ability_effects: AbilityEffects
 ## Resource drops rising and flying to the purse (spec 052), advanced with these.
 var resource_effects: ResourceEffects
+## Spells seen flying and landing (spec 057), advanced with these.
+var spell_effects: SpellEffects
 
 var _world: World
 var _simulation: Simulation
@@ -231,6 +233,11 @@ func setup(world: World, simulation: Simulation) -> void:
 		resource_effects = ResourceEffects.new()
 		add_child(resource_effects)
 	resource_effects.setup(world, _screen_to_world)
+	if spell_effects == null:
+		spell_effects = SpellEffects.new()
+		spell_effects.name = "SpellEffects"
+		add_child(spell_effects)
+	spell_effects.setup(world, simulation)
 
 
 ## Advances every effect. Called every frame; tests call it.
@@ -239,6 +246,7 @@ func advance(delta: float) -> void:
 		return
 	quest_effects.advance(delta)
 	ability_effects.advance(delta)
+	spell_effects.advance(delta)
 	resource_effects.advance(delta)
 	ability_effects.keep_drops_in_band(resource_effects.live_icons())  # spec 056 R8
 	if _revival_due:

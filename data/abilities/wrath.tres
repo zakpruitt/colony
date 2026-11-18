@@ -20,6 +20,7 @@ script = ExtResource("1")
 id = &"wrath"
 display_name = "Wrath"
 description = "Strikes every enemy for 2x damage and heals every ally by half the healing power. Every 20 s."
+move = &"channel"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 20.0

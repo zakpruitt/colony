@@ -5,6 +5,8 @@ extends Node2D
 ## death, then reappearing: heroes facing right, monsters facing left, at 2x with their names, and
 ## once more below at their real size. The guardians stand at the end of the monster rows at
 ## their real size, which is already as big as a large monster at 2x.
+## Spec 057: at the top left, one more knight plays every move of [constant AbilityDef.MOVES] in
+## turn, its name under it, in a loop of its own.
 ## Run: python tools/dev.py shot --scene=res://game/entities/character_demo.tscn --name=cast
 ##      --seconds=0.7 --count=10
 ## The cycle is timed so those ten shots catch a wind-up, its strike, and the white flash of a hit.
@@ -57,11 +59,24 @@ const REAL_SIZE_SPACING: float = 36.0
 const FONT_SIZE: int = 8
 const SCREEN: Vector2 = Vector2(640, 360)
 
+## Spec 057: the moves the mover plays, in turn; seconds each has (its blow falls MOVE_LEAD into
+## it), and the whole loop; the mover's class, where it stands and its size.
+const MOVES: Array[StringName] = AbilityDef.MOVES
+const MOVE_SECONDS: float = 1.3
+const MOVE_LEAD: float = 0.5
+const MOVES_CYCLE: float = MOVE_SECONDS * 11  # one slot for each of the eleven moves
+const MOVER: StringName = &"knight"
+const MOVER_SPOT: Vector2 = Vector2(60, 84)
+
 var _clock: float = 0.0
 var _cast: Array[CharacterSprite] = []
 var _real_size: Array[CharacterSprite] = []
 var _stage: Node2D
 var _phase_label: Label
+## Spec 057: the knight playing every move, its label, and its own clock.
+var _mover: CharacterSprite
+var _move_label: Label
+var _move_clock: float = -1.0
 
 
 func _ready() -> void:
@@ -81,6 +96,15 @@ func _ready() -> void:
 	_stage.name = "Stage"
 	add_child(_stage)
 	_add_names()
+	_mover = CharacterSprite.for_hero(MOVER)
+	_mover.name = "Mover"
+	_mover.position = MOVER_SPOT
+	_mover.scale = Vector2(ZOOM, ZOOM)
+	add_child(_mover)
+	_move_label = _label("", MOVER_SPOT + Vector2(-40, 5))
+	_move_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_move_label.size = Vector2(80, 10)
+	_move_label.add_theme_color_override("font_color", Palette.color(&"yellow"))
 	_run_event(&"reappear")
 	_run_event(&"idle")
 
@@ -92,6 +116,7 @@ func _process(delta: float) -> void:
 ## Moves the demo's cycle on by [param delta] seconds, starting each animation when its time
 ## comes. The characters animate themselves each frame.
 func advance(delta: float) -> void:
+	_advance_moves(delta)
 	var from: float = _clock
 	_clock += delta
 	if _clock < CYCLE_SECONDS:
@@ -100,6 +125,28 @@ func advance(delta: float) -> void:
 	_run_events_between(from, CYCLE_SECONDS)
 	_clock = fposmod(_clock, CYCLE_SECONDS)
 	_run_events_between(-1.0, _clock)
+
+
+## Spec 057: the knight that plays every move.
+func mover() -> CharacterSprite:
+	return _mover
+
+
+## Spec 057: the label naming the move it plays.
+func move_label() -> Label:
+	return _move_label
+
+
+## Starts the next move of the mover's loop when its time comes. The mover animates itself.
+func _advance_moves(delta: float) -> void:
+	var before: int = floori(_move_clock / MOVE_SECONDS) if _move_clock >= 0.0 else -1
+	_move_clock = fposmod(maxf(_move_clock, 0.0) + delta, MOVES_CYCLE)
+	var now: int = floori(_move_clock / MOVE_SECONDS)
+	if now == before:
+		return
+	var move: StringName = MOVES[now % MOVES.size()]
+	_mover.play_move(move, MOVE_LEAD)
+	_move_label.text = "move: %s" % String(move).replace("_", " ")
 
 
 ## The characters in the named rows: the four heroes, then every monster.

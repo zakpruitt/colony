@@ -14,6 +14,7 @@ script = ExtResource("1")
 id = &"prayer"
 display_name = "Prayer"
 description = "With an ally below 80%: heals every ally by the healing power. Every 12 s."
+move = &"prayer"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 12.0

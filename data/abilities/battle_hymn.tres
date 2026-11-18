@@ -16,6 +16,7 @@ script = ExtResource("1")
 id = &"battle_hymn"
 display_name = "Battle Hymn"
 description = "As a fight starts, every ally strikes 20% faster for 12 s."
+move = &"shout"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 0

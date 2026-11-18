@@ -14,6 +14,7 @@ script = ExtResource("1")
 id = &"guardian_angel"
 display_name = "Guardian Angel"
 description = "Once a fight, when an ally dies it stands up with 40% health."
+move = &"prayer"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 6
