@@ -31,7 +31,7 @@ const HOTKEY: String = "W"
 ## What the foot says while no area is chosen.
 const CHOOSE_HINT: String = "Click an open area to choose where the party goes."
 ## UI pixels between cards, and between the cards and the foot.
-const CARD_GAP: int = 4
+const CARD_GAP: int = 3
 const FOOT_GAP: int = 6
 
 ## One card per area, in area order.

@@ -14,10 +14,15 @@ const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
 const MOSSY: StringName = &"mossy_hollow"
 const CLAYPITS: StringName = &"claypits"
+const CLAY: StringName = &"clay"
 const CRYPT: StringName = &"old_crypt"
 const IDS: Array[StringName] = [&"shop", &"map", &"tally"]
 const WIKI: String = "res://docs/wiki/index.html"
 const SHOWCASE: String = "res://game/dev/showcase.tscn"
+## The stage each batch of [method test_r7_true_in_a_crowded_frame] sends the party to.
+const CROWD_TARGETS: Array[int] = [3, 1, 4, 2, 5, 3]
+## "Last fight: 2 cave bats, Mossy Hollow 1, 4 s" (or "This fight: ..." while one goes on).
+const FIGHT_LINE: String = "^(?<head>Last|This) fight: .+, (?<place>[A-Z].+ \\d+), (?<secs>\\d+) s$"
 
 ## Every event the world told of in the main scene a test made last, oldest first.
 var _events: Array[SimEvent] = []
@@ -381,6 +386,26 @@ func test_r4_the_tally_reads_at_a_glance() -> void:
 		tally.hero_lines[1].get_global_rect().position.y,
 		"above the next hero's line"
 	)
+	# Frames with nothing new keep the same lines: updated in place, not made afresh each frame.
+	var kept: Array[Control] = tally.ability_lines.duplicate()
+	var size_before: Vector2 = _window(main, &"tally").size
+	for i: int in 3:
+		main.hud.advance(STEP)
+		await get_tree().process_frame
+	assert_eq(tally.ability_lines, kept, "the same line nodes after quiet frames")
+	for line: Control in kept:
+		assert_true(is_instance_valid(line) and not line.is_queued_for_deletion(), "none freed")
+	assert_eq(_window(main, &"tally").size, size_before, "and the window keeps its size")
+	# New numbers update those lines; a line is made only when the set of lines changes.
+	var count: int = tally.ability_lines.size()
+	for i: int in LIMIT_TICKS:
+		_frame(main)
+		if _count(SimEvent.Kind.HIT) > 0 and main.simulation.expedition.battle != null:
+			break
+	for i: int in 30:
+		_frame(main)
+	if tally.ability_lines.size() == count:
+		assert_eq(tally.ability_lines, kept, "a fight's new numbers keep the lines")
 	# Q and E change tab while the tally is in front, and only then.
 	_key(KEY_E)
 	assert_eq(tally.measure(), Tally.Measure.HEALING, "E: the next tab")
@@ -407,20 +432,38 @@ func test_r5_nothing_lost() -> void:
 		_key(code)
 	hud.advance(STEP)
 	await _frames()
-	# The shop: a row's button and its key buy, the switch and B set auto-buy.
+	# The shop: a row's button and its key buy, both prices of a rank that costs a resource too
+	# (spec 052: Stout Armor from rank 4), and the switch sets auto-buy.
+	sim.upgrades.set_rank(ARMOR, 3)
+	sim.party.set_resource(CLAY, 50)
+	hud.advance(STEP)
+	await _frames()
 	main.ui.windows.raise(_window(main, &"shop"))
-	_click_on(main, hud.shop.rows[0].buy_button)
+	var armor: int = Content.upgrade_ids().find(ARMOR)
+	assert_eq(armor, 1, "setup: Stout Armor is the second row, key 2")
+	for how: String in ["by the button", "by the key"]:
+		var rank: int = sim.upgrades.rank(ARMOR)
+		var gold: int = sim.party.gold
+		var clay: int = sim.party.resource(CLAY)
+		var price: int = sim.upgrades.cost(ARMOR)
+		var clay_price: int = sim.upgrades.resource_cost(ARMOR)
+		assert_gt(clay_price, 0, "setup: rank %d costs clay" % (rank + 1))
+		if how == "by the button":
+			_click_on(main, hud.shop.rows[armor].buy_button)
+		else:
+			_key(KEY_2)
+		_frame(main)
+		assert_eq(sim.upgrades.rank(ARMOR), rank + 1, "buy_upgrade %s" % how)
+		assert_eq(sim.party.gold, gold - price, "%s: the gold paid" % how)
+		assert_eq(sim.party.resource(CLAY), clay - clay_price, "%s: and the clay" % how)
+	await _frames()
+	_click_on(main, hud.shop.auto_buy_button)
 	_frame(main)
-	_key(KEY_2)
-	_frame(main)
-	assert_eq(sim.upgrades.rank(Content.upgrade_ids()[0]), 1, "buy_upgrade by the button")
-	assert_eq(sim.upgrades.rank(Content.upgrade_ids()[1]), 1, "and by the key")
-	hud.shop.toggle_auto_buy()
-	_frame(main)
-	assert_true(sim.auto_buy, "set_auto_buy")
+	assert_true(sim.auto_buy, "set_auto_buy, by a click on the switch")
 	# Each row's tooltip still says both prices and where the resource comes from.
-	var tip: String = hud.shop.tip.text_for(hud.shop.rows[1])
-	assert_string_contains(tip, "Rank 2:", "the next rank's prices")
+	var tip: String = hud.shop.tip.text_for(hud.shop.rows[armor])
+	var next: String = "Rank %d:" % (sim.upgrades.rank(ARMOR) + 1)
+	assert_string_contains(tip, next, "the next rank's prices")
 	assert_string_contains(tip, "comes from", "and where its resource comes from")
 	# The map: a dangerous Go to another area travels and warns, once.
 	var map: AreaMapWindow = hud.area_map
@@ -505,7 +548,26 @@ func _crowd_ready(main: Main) -> void:
 	main.hud.area_map.choose(MOSSY)
 	main.hud.tally.set_span(Tally.Span.SESSION)
 	main.hud.tally.open_hero(sim.party.heroes[0].id)
+	# Strong heroes, sent up and down the stages, so a frame of 300 ticks often holds a fight
+	# and then a move to another stage: the last fight is heard after the party has gone on.
+	_level(main, 12)
+	sim.set_auto_push(false)
 	main.hud.advance(STEP)
+
+
+## [param shown] with the fight's line cut to its head, where it was and how long it took.
+func _fight_from_place(shown: Array[String], fight_line: RegEx) -> Array[String]:
+	var cut: Array[String] = []
+	for text: String in shown:
+		var found: RegExMatch = fight_line.search(text)
+		if found == null:
+			cut.append(text)
+		else:
+			var parts: Array[String] = [
+				found.get_string("head"), found.get_string("place"), found.get_string("secs")
+			]
+			cut.append("%s fight: ..., %s, %s s" % parts)
+	return cut
 
 
 func test_r7_true_in_a_crowded_frame() -> void:
@@ -513,13 +575,32 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	var steady: Main = _start()
 	_crowd_ready(crowded)
 	_crowd_ready(steady)
-	for batch: int in 4:
+	var fight_line := RegEx.create_from_string(FIGHT_LINE)
+	var places: Dictionary[String, bool] = {}
+	for batch: int in CROWD_TARGETS.size():
+		for main: Main in [crowded, steady]:
+			main.simulation.set_target_depth(CROWD_TARGETS[batch])
 		_frame(crowded, 300)
 		for i: int in 300:
 			_frame(steady)
 		assert_eq(crowded.simulation.tick, steady.simulation.tick, "setup: the same ticks")
 		for id: StringName in IDS:
 			assert_eq(_shown(crowded, id), _shown(steady, id), "batch %d: the %s" % [batch, id])
+		# The Last fight span too: its line (where the fight was, how long) and its numbers.
+		for main: Main in [crowded, steady]:
+			main.hud.tally.set_span(Tally.Span.LAST_FIGHT)
+		# A fight heard late names its monsters by count alone ("2 monsters"), as the old panel
+		# did: the line is compared from where it was on.
+		var last: Array[String] = _fight_from_place(_shown(crowded, &"tally"), fight_line)
+		var heard: Array[String] = _fight_from_place(_shown(steady, &"tally"), fight_line)
+		assert_eq(last, heard, "batch %d: the tally's last fight" % batch)
+		var found: RegExMatch = fight_line.search(crowded.hud.tally.rows()[0])
+		assert_not_null(found, "batch %d: the fight's line: %s" % [batch, last])
+		if found != null:
+			places[found.get_string("place")] = true
+		for main: Main in [crowded, steady]:
+			main.hud.tally.set_span(Tally.Span.SESSION)
+	assert_gt(places.size(), 2, "setup: fights on several stages %s" % [places.keys()])
 	var sim: Simulation = crowded.simulation
 	assert_gt(_count(SimEvent.Kind.UPGRADE_BOUGHT), 0, "setup: auto-buy bought")
 	var shop: Array[String] = _shown(crowded, &"shop")
@@ -585,6 +666,14 @@ func test_r8_fits_both_rooms() -> void:
 			assert_true(
 				space.encloses(rects[id]),
 				"%s, %s: above the frames' line: %s" % [room, id, rects[id]]
+			)
+			# Above the button bar's line too, with half the gap windows keep from each other, so
+			# the bar's buttons and the windows never touch whichever way a window is dragged.
+			var bar_top: float = ui.bar.get_global_rect().position.y - UiRoot.PLACE_GAP / 2.0
+			assert_lte(
+				rects[id].end.y,
+				bar_top,
+				"%s, %s: above the button bar: %s, bar at %s" % [room, id, rects[id], bar_top]
 			)
 			var needed: Vector2 = shown.get_combined_minimum_size()
 			assert_true(

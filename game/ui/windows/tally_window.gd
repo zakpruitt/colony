@@ -101,6 +101,8 @@ var _quest_labels: Array[Label] = []
 ## caption over them and the note shown on the Taken tab.
 var _opened: int = -1
 var _ability_boxes: Array[VBoxContainer] = []
+## Whose the ability lines are: their box and the class colouring their bars.
+var _lines_of: String = ""
 var _caption: Label
 var _note: Label
 
@@ -562,11 +564,7 @@ func _refresh_abilities() -> void:
 	if at < 0:
 		return
 	# The caption and the note are kept in a box always (they are never orphaned), moved to the
-	# open hero's; the lines are made afresh.
-	for line: Control in ability_lines:
-		line.get_parent().remove_child(line)
-		line.queue_free()
-	ability_lines.clear()
+	# open hero's.
 	var box: VBoxContainer = _ability_boxes[at]
 	if _caption.get_parent() != box:
 		_caption.reparent(box)
@@ -576,36 +574,60 @@ func _refresh_abilities() -> void:
 	_caption.text = "%s by ability" % TAB_NAMES[_measure]
 	_note.visible = _measure == Tally.Measure.TAKEN
 	_note.text = TAKEN_NOTE
-	if _note.visible:
-		return
-	var amounts: Dictionary[String, int] = tally.by_ability(_opened, _measure, _span)
-	var names: Array[String] = []
-	names.assign(amounts.keys())
-	var largest: int = 0
-	for named: String in names:
-		largest = maxi(largest, amounts[named])
-	var class_id: StringName = heroes[at].class_id
-	var others: int = 0
-	for i: int in names.size():
-		if names.size() > BY_ABILITY_LINES and i >= BY_ABILITY_LINES - 1:
-			others += amounts[names[i]]
-			continue
-		var amount: int = amounts[names[i]]
-		_add_ability(box, names[i], amount, largest, class_id)
-	if names.size() > BY_ABILITY_LINES:
-		_add_ability(box, "Others", others, largest, class_id)
-	if names.is_empty():
+	var shown: Array[String] = []
+	var amounts: Dictionary[String, int] = {}
+	if not _note.visible:
+		amounts = tally.by_ability(_opened, _measure, _span)
+		shown = _ability_names(amounts)
+	if shown.is_empty() and not _note.visible:
 		_note.text = "None yet"
 		_note.visible = true
+	# The lines stay from frame to frame and are only filled in again; they are made afresh only
+	# when how many there are, or whose they are, changes (so the window does not refit every
+	# frame).
+	var class_id: StringName = heroes[at].class_id
+	var whose: String = "%s %s" % [box.get_instance_id(), class_id]
+	if shown.size() != ability_lines.size() or whose != _lines_of:
+		_make_ability_lines(box, shown.size(), class_id)
+		_lines_of = whose
+	var largest: int = 0
+	for named: String in shown:
+		largest = maxi(largest, amounts[named])
+	for i: int in shown.size():
+		var labels: Array[Node] = ability_lines[i].find_children("*", "Label", true, false)
+		_set_text(labels[0] as Label, shown[i])
+		_set_text(labels[1] as Label, Hud.group_thousands(amounts[shown[i]]))
+		var bar: UiBar = ability_lines[i].find_children("*", "UiBar", true, false)[0] as UiBar
+		bar.fraction = float(amounts[shown[i]]) / largest if largest > 0 else 0.0
 
 
-func _add_ability(
-	box: VBoxContainer, named: String, amount: int, largest: int, class_id: StringName
-) -> void:
-	var fraction: float = float(amount) / largest if largest > 0 else 0.0
-	var line: Control = _ability_line(named, amount, fraction, class_id)
-	box.add_child(line)
-	ability_lines.append(line)
+## The lines of [param amounts] in order, largest first: the first [constant BY_ABILITY_LINES]
+## names, or one fewer and "Others" for the rest, whose amount is added to [param amounts].
+func _ability_names(amounts: Dictionary[String, int]) -> Array[String]:
+	var names: Array[String] = []
+	names.assign(amounts.keys())
+	if names.size() <= BY_ABILITY_LINES:
+		return names
+	var others: int = 0
+	for i: int in range(BY_ABILITY_LINES - 1, names.size()):
+		others += amounts[names[i]]
+	names.resize(BY_ABILITY_LINES - 1)
+	names.append("Others")
+	amounts["Others"] = others
+	return names
+
+
+## Replaces the ability lines with [param count] new ones in [param box], with bars in the colours
+## of [param class_id].
+func _make_ability_lines(box: VBoxContainer, count: int, class_id: StringName) -> void:
+	for line: Control in ability_lines:
+		line.get_parent().remove_child(line)
+		line.queue_free()
+	ability_lines.clear()
+	for i: int in count:
+		var line: Control = _ability_line("", 0, 0.0, class_id)
+		box.add_child(line)
+		ability_lines.append(line)
 
 
 ## The line over the bars: which fight, or the session.

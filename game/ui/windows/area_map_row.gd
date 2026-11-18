@@ -15,7 +15,7 @@ signal clicked
 
 ## UI pixels: the space inside the card's edge, between the text and the sprites, and between two
 ## sprites.
-const PAD: int = 5
+const PAD: int = 4
 const GAP: int = 10
 const THUMB_GAP: int = 2
 ## The tags after an area's name.
