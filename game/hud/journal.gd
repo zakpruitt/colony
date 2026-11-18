@@ -1,5 +1,5 @@
 class_name Journal
-extends Control
+extends Node
 ## The party's journal (spec 027 R3): the last [constant CAPACITY] notable happenings as plain
 ## sentences stamped with the game time, newest first.
 ##
@@ -8,15 +8,14 @@ extends Control
 ## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
 ## the microskill it needed) (spec 028), an order changed (spec 035), a talent point gained
 ## and a path chosen (spec 055, [code]The Knight is now a Berserker[/code]) and the first of each
-## resource gathered (spec 052). The newest line shows
-## in a one-line [member ticker] just above the party frames for [constant TICKER_SECONDS], then
-## fades through the palette and goes;
-## events too old to animate ([method World.is_recent]) are written but not shown there.
-## Spec 058 moved the list of lines onto the UI layer: the Journal window ([kbd]J[/kbd]) is a
-## [JournalView] of this journal, told by [signal written].
+## resource gathered (spec 052). The newest line shows in the ticker just above the party frames
+## for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
+## animate ([method World.is_recent]) are written but not shown there. Spec 058 moved the list of
+## lines onto the UI layer: the Journal window ([kbd]J[/kbd]) is a [JournalView] of this journal,
+## told by [signal written]; spec 062 draws the ticker there too ([Ticker]), from
+## [method ticker_text] and [method ticker_colour].
 ##
-## The node itself has no size: its child, the ticker's [HudPanel], is what is seen. It moves
-## only in [method advance], so a test can step it exactly.
+## The node draws nothing. It moves only in [method advance], so a test can step it exactly.
 
 ## Emitted after a line is written.
 signal written
@@ -28,22 +27,13 @@ const TICKER_SECONDS: float = 4.0
 ## Then its text steps down through these colours, each for FADE_STEP seconds, and it goes.
 const FADE_COLOURS: Array[StringName] = [&"silver", &"steel", &"slate"]
 const FADE_STEP: float = 0.2
-## The ticker's height, and the pixels between it and the top of the party frames.
-const TICKER_HEIGHT: float = 13.0
-const TICKER_GAP: float = 3.0
-
-## The newest line, for a few seconds after it is written.
-var ticker: HudPanel
-## The top of the hero frames in the world's pixels, which the ticker stands on; the HUD keeps it
-## true to the frame of the screen (spec 061).
-var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - Hud.FRAMES_HEIGHT
-
 var _simulation: Simulation
 var _world: World
 ## Lines as written, newest first: the game time and the sentence.
 var _times: Array[String] = []
 var _sentences: Array[String] = []
-var _ticker_label: Label
+## The ticker's line, and seconds since it was written.
+var _ticker_line: String = ""
 var _ticker_age: float = INF
 ## What the journal knows of the party, kept in step with the events.
 var _depth: int = 1
@@ -58,8 +48,6 @@ var _gathered: Dictionary[StringName, bool] = {}
 
 func _init() -> void:
 	name = "Journal"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Vector2.ZERO
 
 
 ## Call once, before the first advance. [param world] may be null (nothing is written then).
@@ -74,7 +62,6 @@ func setup(simulation: Simulation, world: World) -> void:
 	for id: StringName in Content.resource_ids():
 		if simulation.has_gathered(id):
 			_gathered[id] = true
-	_build_ticker()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
@@ -86,7 +73,6 @@ func advance(delta: float) -> void:
 		return
 	_depth = _simulation.expedition.depth
 	_ticker_age += delta
-	_show_ticker()
 
 
 ## Every line kept, newest first, each the game time then the sentence: [code]12:04  Mage
@@ -100,7 +86,16 @@ func lines() -> Array[String]:
 
 ## The sentence in the ticker, or "" when nothing is showing.
 func ticker_text() -> String:
-	return _ticker_label.text if ticker.visible else ""
+	var fade: float = _ticker_age - TICKER_SECONDS
+	return _ticker_line if fade < FADE_STEP * FADE_COLOURS.size() else ""
+
+
+## The ticker's text colour now: white while fresh, then each of [constant FADE_COLOURS].
+func ticker_colour() -> StringName:
+	var fade: float = _ticker_age - TICKER_SECONDS
+	if fade < 0.0:
+		return &"white"
+	return FADE_COLOURS[mini(floori(fade / FADE_STEP), FADE_COLOURS.size() - 1)]
 
 
 ## Writes [param sentence] as a line now, without showing it in the ticker: the goals tracker's
@@ -122,10 +117,8 @@ func announce(sentence: String) -> void:
 	if _simulation == null or sentence.is_empty():
 		return
 	write(sentence)
-	_ticker_label.text = sentence
-	_ticker_label.reset_size()
+	_ticker_line = sentence
 	_ticker_age = 0.0
-	_show_ticker()
 
 
 ## Game time as m:ss, or h:mm:ss from an hour on.
@@ -149,10 +142,8 @@ func _on_sim_event(event: SimEvent) -> void:
 		_times.resize(CAPACITY)
 		_sentences.resize(CAPACITY)
 	if _world == null or _world.is_recent(event):
-		_ticker_label.text = sentence
-		_ticker_label.reset_size()
+		_ticker_line = sentence
 		_ticker_age = 0.0
-		_show_ticker()
 	written.emit()
 
 
@@ -289,39 +280,6 @@ func _quest_sentence(event: SimEvent) -> String:
 func _microskill(index: int) -> MicroskillDef:
 	var ids: Array[StringName] = Content.microskill_ids()
 	return Content.microskill(ids[index]) if index >= 0 and index < ids.size() else null
-
-
-# --- Showing -------------------------------------------------------------------
-
-
-func _build_ticker() -> void:
-	ticker = HudPanel.new()
-	ticker.name = "Ticker"
-	ticker.visible = false
-	add_child(ticker)
-	_ticker_label = PixelText.label("", &"white")
-	_ticker_label.name = "Text"
-	_ticker_label.position = Vector2(5, 2)
-	ticker.add_child(_ticker_label)
-
-
-## Shows the ticker while its line is fresh, its text stepping down through FADE_COLOURS at the
-## end, centred just above the party frames.
-func _show_ticker() -> void:
-	var fade: float = _ticker_age - TICKER_SECONDS
-	var showing: bool = fade < FADE_STEP * FADE_COLOURS.size() and _ticker_label.text != ""
-	ticker.visible = showing
-	if not showing:
-		return
-	var colour: StringName = &"white"
-	if fade >= 0.0:
-		colour = FADE_COLOURS[mini(floori(fade / FADE_STEP), FADE_COLOURS.size() - 1)]
-	_ticker_label.add_theme_color_override(&"font_color", Palette.color(colour))
-	var width: float = PixelText.width(_ticker_label.text) + 10.0
-	ticker.size = Vector2(width, TICKER_HEIGHT)
-	ticker.position = Vector2(
-		floorf((Hud.SCREEN.x - width) / 2.0), frames_top - TICKER_GAP - TICKER_HEIGHT
-	)
 
 
 ## [param stage] of the area the events are in, as the screen names it (spec 049).

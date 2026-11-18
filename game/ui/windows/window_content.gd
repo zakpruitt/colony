@@ -6,8 +6,9 @@ extends VBoxContainer
 ## so the content opens at the front; without a window (a HUD on its own) it never opens.
 ##
 ## As it opens, by any way in (its key, its button on the bar, a goal, a saved window put back),
-## it closes the "While you were away" report, as the old panels did, and [method _shown] lets it
-## bring itself up to date.
+## it closes the "While you were away" report, as the old panels did (but not as it opens under
+## the report, left open last session: spec 062 R5), and [method _shown] lets it bring itself up
+## to date.
 
 ## The HUD that made it, or null.
 var _hud: Hud
@@ -25,12 +26,18 @@ func _notification(what: int) -> void:
 	var open_now: bool = is_open()
 	if open_now and not _was_open:
 		_was_open = true
-		if _hud != null:
-			AwayPanel.close_in(_hud.get_parent())
+		var holder: UiWindow = window()
+		if holder != null:
+			AwayWindow.close_in(holder.get_parent() as UiWindows)
 		_shown()
 	elif not open_now and _was_open:
 		_was_open = false
 		_hidden()
+
+
+## The HUD that made it, or null.
+func made_by() -> Hud:
+	return _hud
 
 
 ## The window holding this content, or null.

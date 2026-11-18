@@ -26,8 +26,10 @@ var _ids: Array[StringName] = []
 var _room: Vector2 = Vector2(UiRoot.MIN_ROOM)
 ## True while saved places are being put back, so they are not saved again on the way.
 var _restoring: bool = false
-## Windows that were open last session, waiting to open until nothing is in their way.
+## Windows that were open last session, waiting to open until the game has started.
 var _waiting: Array[StringName] = []
+## True while [method open_waiting] opens them.
+var _opening_waiting: bool = false
 
 
 func _init() -> void:
@@ -201,29 +203,25 @@ func restore() -> void:
 	_restoring = false
 
 
-## Opens the windows that were open last session, once (the layer calls it when the away report
-## has gone).
+## Opens the windows that were open last session, once, as play starts (spec 062 R5: under the
+## away report, when there is one).
 func open_waiting() -> void:
 	var opening: Array[StringName] = _waiting.duplicate()
 	_waiting.clear()
+	_opening_waiting = true
 	for id: StringName in opening:
 		open_window(id)
+	_opening_waiting = false
+
+
+## True while [method open_waiting] is opening the windows left open last session.
+func is_opening_waiting() -> bool:
+	return _opening_waiting
 
 
 ## True while windows from last session wait to open.
 func is_waiting() -> bool:
 	return not _waiting.is_empty()
-
-
-## Closes every open window that overlaps [param world_rect], a rectangle in the world's 640x360
-## screen pixels where the old HUD is (an old panel opening there), keeping its place.
-func close_over(world_rect: Rect2) -> void:
-	for id: StringName in _ids:
-		var shown: UiWindow = _windows[id]
-		var at: Vector2 = _ui.ui_to_world(shown.position)
-		var over: Rect2 = Rect2(at, _ui.ui_to_world(shown.position + shown.size) - at)
-		if shown.is_open() and over.intersects(world_rect):
-			shown.close()
 
 
 ## True when [param at], in the viewport's coordinates (where input events are), is on an open

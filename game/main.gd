@@ -1,12 +1,13 @@
 class_name Main
 extends Node
 ## The main scene: one simulation, the driver that runs it, the world that shows it, and the HUD
-## layer above, which holds a small clock readout.
+## layer above, which holds a small clock readout and the dark of a crossing.
 ##
-## Spec 058 gives it two layers. The world, its effects and the old HUD are drawn into
-## [member world_viewport], 640x360 pixels scaled up by a whole number with hard edges; the HUD
-## layer stays where it was in the tree (so its controls hear input as before) but draws into that
-## viewport. Over it, [member ui] is the sharp UI layer with the windows and the button bar.
+## Spec 058 gives it two layers. The world and its effects are drawn into [member world_viewport],
+## 640x360 pixels scaled up by a whole number with hard edges; the HUD layer stays where it was in
+## the tree but draws into that viewport, and since spec 062 draws only the world's own there (the
+## dark of a crossing, the tick readout). Over it, [member ui] is the sharp UI layer with all the
+## player reads: the frame of the screen, the windows and the button bar.
 
 ## Emitted when the replay of the time away has ended, before the world is made: the
 ## simulation is then exactly where the replay left it.
@@ -55,12 +56,12 @@ var hud: Hud
 var away_seconds_override: float = -1.0
 ## The replay of the time away while it runs, then null. Null from the start without one.
 var replay: AwayReplay
-## Shown while [member replay] runs.
+## Shown while [member replay] runs, on the sharp layer (spec 062 R6).
 var catch_up_bar: CatchUpBar
 ## What happened while away, once a replay has ended; null if there was none.
 var away_report: AwayReport
-## The panel telling of [member away_report], until it closes.
-var away_panel: AwayPanel
+## The window telling of [member away_report] (spec 062 R5), until it closes.
+var away_window: AwayWindow
 ## Plays the sound effects; made with the world, so null during a replay (spec 021).
 var sound: SoundPlayer
 ## The player's settings (mute, and whether help has welcomed them: spec 030 R5). Null means none:
@@ -97,8 +98,8 @@ func _ready() -> void:
 	simulation = _load_or_new()
 	if replay != null:
 		catch_up_bar = CatchUpBar.new()
-		catch_up_bar.name = "CatchUpBar"
-		hud_layer.add_child(catch_up_bar)
+		ui.frame.add_child(catch_up_bar)
+		catch_up_bar.fit(Vector2(ui.room()))
 		return
 	_start_play()
 
@@ -202,8 +203,7 @@ func _start_play() -> void:
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	ui.setup(simulation, hud, settings)
-	if away_report == null:  # else the windows left open open once the away report has gone
-		ui.windows.open_waiting()
+	ui.windows.open_waiting()  # spec 062 R5: under the away report, when there is one
 	_welcome()
 
 
@@ -229,6 +229,7 @@ func _apply_speed() -> void:
 func _catch_up() -> void:
 	var done: bool = replay.run(SLICE_USEC)
 	catch_up_bar.fraction = replay.fraction()
+	catch_up_bar.fit(Vector2(ui.room()))
 	if not done:
 		return
 	away_report = replay.report
@@ -238,14 +239,7 @@ func _catch_up() -> void:
 	catch_up_bar = null
 	caught_up.emit(away_report)
 	_start_play()
-	away_panel = AwayPanel.new(away_report, simulation.party)
-	hud_layer.add_child(away_panel)
-	var report_panel: AwayPanel = away_panel
-	report_panel.visibility_changed.connect(
-		func() -> void:
-			if not report_panel.visible:  # it hides as it closes
-				ui.windows.open_waiting()
-	)
+	away_window = ui.show_away(away_report, simulation.party)
 
 
 ## The saved game if there is a good one, otherwise a new game. A saved game that was away

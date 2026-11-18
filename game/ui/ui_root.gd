@@ -47,6 +47,8 @@ var hero_windows: HeroWindows
 
 ## The HUD whose frame of the screen (spec 061) is on this layer, or null.
 var _hud: Hud
+## The report after time away while it is up (spec 062 R5).
+var _away: AwayWindow
 var _world_scale: int = 1
 var _ui_scale: int = 1
 var _room: Vector2i = WORLD_SIZE
@@ -144,6 +146,18 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	windows.restore()
 	if hud != null:
 		hud.windows = windows
+
+
+## Opens the report after time away (spec 062 R5) telling of [param report]: a window in the middle
+## of the room, in front of every other. Call after [method setup].
+func show_away(report: AwayReport, party: Party) -> AwayWindow:
+	var made := AwayWindow.new(report, party)
+	windows.add_child(made)  # not registered: never saved, no button on the bar
+	made.centre_in(Vector2(_room))
+	made.open()
+	windows.raise(made)
+	_away = made
+	return made
 
 
 ## Spec 059: the shop, the area map and the tally, which [param hud] made so they hear the
@@ -306,3 +320,5 @@ func _apply() -> void:
 		bar.fit_room(_room)
 	if _hud != null:
 		_hud.fit_frame(_room)
+	if is_instance_valid(_away) and not _away.is_queued_for_deletion():
+		_away.centre_in(Vector2(_room))

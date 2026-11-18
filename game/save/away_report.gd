@@ -1,7 +1,7 @@
 class_name AwayReport
 extends RefCounted
 ## What the party did while the game was closed (spec 019): filled in by an [AwayReplay] and
-## shown to the player by an [AwayPanel].
+## shown to the player by an [AwayWindow] (spec 062), as [AwayStory] tells it.
 
 ## How long the game was away, after the 8-hour cap, in seconds.
 var seconds: float

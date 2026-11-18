@@ -1,5 +1,5 @@
 class_name DefeatNote
-extends Control
+extends Node
 ## The defeat note (spec 041): after a wipe, a small panel in the upper middle of the screen says
 ## what beat the party and where, the plainest true reason when there is one, and offers up to
 ## [constant MOST] things that would help, each a button one click away. It changes no rule.
@@ -16,8 +16,7 @@ extends Control
 ## ([method World.is_recent]) is told: one from a stall or the time away is not, and leaves a note
 ## already showing as it was (spec 046 R5). The note stays while the heroes are down and stand up
 ## again ([method FallenParty.is_telling]) and [constant LINGER_SECONDS] after, never counting down
-## while the mouse is over it ([method point_at]) or a panel hides it (spec 046 R4), and whatever
-## fight starts meanwhile; then its text steps down [constant FADE_COLOURS] and it goes. Text never
+## while the mouse is over it ([method point_at]), and whatever fight starts meanwhile; then its text steps down [constant FADE_COLOURS] and it goes. Text never
 ## fades by opacity.
 ##
 ## The suggestions are read again at every [method advance], so they follow the gold, except while
@@ -35,15 +34,9 @@ const MOST: int = 3
 ## The party this many depths or more below its safe depth is too deep: that is the reason given.
 const TOO_DEEP: int = 2
 ## The font multiple of the WIPED banner ([CombatEffects]) in the middle of the screen; it pops one
-## larger as it appears. The note's bottom keeps [constant WIPED_GAP] pixels above it.
+## larger as it appears. The note's bottom keeps [constant WIPED_GAP] world pixels above it.
 const WIPED_SCALE: int = 3
 const WIPED_GAP: float = 6.0
-## Space inside the border, a line's height, and the space above the row of buttons.
-const PADDING: Vector2 = Vector2(6, 4)
-const LINE: float = 10.0
-const BUTTONS_GAP: float = 3.0
-## Pixels between two buttons.
-const BUTTON_GAP: float = 4.0
 ## Seconds the note stays after the heroes stand, while the mouse is not over it.
 const LINGER_SECONDS: float = 8.0
 ## Then the text steps down through these colours, each for FADE_STEP seconds,
@@ -59,15 +52,16 @@ const TIPS: Dictionary[Help, String] = {
 }
 const HOLDING_TIP: String = "The party stays away from guardians until Orders (O) sends it in."
 
-## The panel seen; the lines and buttons are its children.
-var panel: HudPanel
+## The note seen, on the sharp layer; the lines and buttons are its children.
+var panel: DefeatNoteView
 ## One button per suggestion slot, left to right; a slot with no suggestion is hidden.
-var buttons: Array[HudButton] = []
+var buttons: Array[UiButton] = []
 
 var _simulation: Simulation
 var _world: World
 var _hud: Hud
-var _labels: Array[Label] = []
+## True while the note is told (see [method is_shown]).
+var _on_screen: bool = false
 ## The lines of the defeat being told, the first and maybe a second.
 var _lines: Array[String] = []
 ## The suggestions showing, in order.
@@ -81,7 +75,7 @@ var _linger: float = -1.0
 ## Seconds into the fade once the linger is over, or -1 when not fading.
 var _fade: float = -1.0
 ## Where the mouse is, in screen pixels.
-var _mouse: Vector2 = HudTooltip.NOWHERE
+var _mouse: Vector2 = UiTip.NOWHERE
 ## The suggestions the buttons show, as last laid out, and the heroes Train and Spend talent
 ## points showed then.
 var _shown: Array[Help] = []
@@ -120,9 +114,6 @@ var _streak: int = 0
 
 func _init() -> void:
 	name = "DefeatNote"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Vector2.ZERO
-	visible = false
 
 
 ## Call once, before the first advance. [param world] may be null (then nothing is told, as
@@ -132,24 +123,12 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 	_world = world
 	_hud = hud
 	_area_now = simulation.expedition.place
-	panel = HudPanel.new()
-	panel.name = "DefeatPanel"
-	add_child(panel)
-	for i: int in 2:
-		var label: Label = PixelText.label("", &"white" if i == 0 else &"silver")
-		label.name = "Line%d" % i
-		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		panel.add_child(label)
-		_labels.append(label)
-	for i: int in MOST:
-		var button := HudButton.new("")
-		button.name = "Help%d" % i
-		button.visible = false
-		button.pressed.connect(press.bind(i))
-		panel.add_child(button)
-		buttons.append(button)
-		if hud != null and hud.tooltip != null:
-			hud.tooltip.tip([button], _tip.bind(i))
+	panel = DefeatNoteView.new()
+	buttons = panel.buttons
+	for i: int in buttons.size():
+		buttons[i].pressed.connect(press.bind(i))
+		if hud != null and hud.frame_tip != null:
+			hud.frame_tip.attach(buttons[i], _tip.bind(i))
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
@@ -171,12 +150,9 @@ func advance(delta: float) -> void:
 ## The work of [method advance], without reading the expedition's depths: also called while the
 ## world is telling a frame's events.
 func _update(delta: float) -> void:
-	var covered: bool = _covered()
 	if _telling and _stood():
 		_telling = false
 		_linger = LINGER_SECONDS
-	elif covered:
-		pass  # a panel hides the note: its time waits for it
 	elif _hovered() and (_linger >= 0.0 or _fade >= 0.0):
 		_linger = maxf(_linger, 0.0)  # read while the mouse rests on it: it waits
 		_fade = -1.0
@@ -191,17 +167,19 @@ func _update(delta: float) -> void:
 	var told: bool = _telling or _linger >= 0.0 or _fade >= 0.0
 	if told and not _hovered():
 		_suggest()  # under the mouse, the row stays as it is
-	visible = told and not covered
-	if visible:
+	_on_screen = told
+	panel.visible = told
+	if told:
 		_show()
 
 
 ## True while the note is on screen.
 func is_shown() -> bool:
-	return visible
+	return _on_screen
 
 
-## Moves the mouse to [param at], in screen pixels: while it is over the note, the note waits.
+## Moves the mouse to [param at], in the screen's 640x360 pixels (where input events are): while
+## it is over the note, the note waits.
 func point_at(at: Vector2) -> void:
 	_mouse = at
 
@@ -467,17 +445,13 @@ func _lowest_level() -> int:
 
 ## True while the mouse is over the note's panel.
 func _hovered() -> bool:
-	return visible and panel.get_global_rect().has_point(_mouse)
+	return _on_screen and panel.is_inside_tree() and Hud.on_screen(panel).has_point(_mouse)
 
 
 func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
-		# Under a window or the button bar of the UI layer (spec 058) is nowhere for the note.
-		var covered: bool = (
-			_hud != null and _hud.windows != null and _hud.windows.covers(motion.position)
-		)
-		point_at(HudTooltip.NOWHERE if covered else motion.position)
+		point_at(motion.position)  # the note lies over every window (spec 062 R4)
 
 
 ## True once the party is up and the heroes have stood (spec 038), or the world tells nothing.
@@ -487,82 +461,30 @@ func _stood() -> bool:
 	return _world == null or not _world.fallen_party.is_telling()
 
 
-## True while a panel the note would sit beside is open.
-func _covered() -> bool:
-	if _hud == null:
-		return false
-	for open: bool in [
-		_hud.shop != null and _hud.shop.is_open(),
-		_hud.tally != null and _hud.tally.is_open(),  # spec 045
-		_hud.area_map != null and _hud.area_map.is_open(),  # spec 053
-	]:
-		if open:
-			return true
-	var layer: Node = _hud.get_parent()
-	if layer != null:
-		for child: Node in layer.get_children():
-			if child is AwayPanel and not child.is_queued_for_deletion():
-				return true
-	return false
-
-
 # --- Showing -------------------------------------------------------------------
 
 
-## Lays the note out: its lines over its buttons, the panel centred across the screen with its
-## bottom just above WIPED.
+## Lays the note out: its lines over its buttons, centred across the room with its bottom just
+## above WIPED.
 func _show() -> void:
 	var colour: StringName = &""
 	if _fade >= 0.0:
 		colour = FADE_COLOURS[mini(floori(_fade / FADE_STEP), FADE_COLOURS.size() - 1)]
-	var width: float = 0.0
-	var y: float = PADDING.y - 1.0
-	for i: int in _labels.size():
-		var label: Label = _labels[i]
-		label.visible = i < _lines.size()
-		if not label.visible:
-			continue
-		if label.text != _lines[i]:
-			label.text = _lines[i]
-			label.reset_size()
-		var own: StringName = &"white" if i == 0 else &"silver"
-		label.add_theme_color_override(
-			&"font_color", Palette.color(own if colour == &"" else colour)
-		)
-		width = maxf(width, PixelText.width(_lines[i]))
-		label.position.y = y
-		y += LINE
-	var row: float = 0.0
-	for i: int in buttons.size():
-		var button: HudButton = buttons[i]
-		button.visible = i < _helps.size()
-		if not button.visible:
-			continue
-		var text: String = _text(_helps[i])
-		if button.text != text:
-			button.text = text
-		button.lit = _helps[i] == Help.HOLD and _holding()
-		button.text_colour = colour
-		row += button.size.x + (BUTTON_GAP if row > 0.0 else 0.0)
-	width = maxf(width, row)
-	var full: float = width + PADDING.x * 2.0
-	for label: Label in _labels:
-		label.position.x = floorf((full - PixelText.width(label.text)) / 2.0)
-	var x: float = floorf((full - row) / 2.0)
-	if not _helps.is_empty():
-		y += BUTTONS_GAP
-		for i: int in _helps.size():
-			buttons[i].position = Vector2(x, y)
-			x += buttons[i].size.x + BUTTON_GAP
-		y += HudButton.HEIGHT
+	var texts: Array[String] = []
+	var lit: Array[bool] = []
+	for help: Help in _helps:
+		texts.append(_text(help))
+		lit.append(help == Help.HOLD and _holding())
 	_shown = _helps.duplicate()
 	_shown_trainee = _trainee
 	_shown_spender = _spender
-	panel.size = Vector2(full, y + PADDING.y)
 	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (WIPED_SCALE + 1))
 	var bottom: float = Hud.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP
-	panel.position = Vector2(floorf((Hud.SCREEN.x - full) / 2.0), floorf(bottom - panel.size.y))
-	panel.queue_redraw()
+	var room_width: float = Hud.SCREEN.x
+	if _hud != null:
+		room_width = _hud.note_room().x
+		bottom = _hud.world_to_note(Vector2(0.0, bottom)).y
+	panel.show_note(_lines, texts, lit, colour, room_width, bottom)
 
 
 ## [param stage] of the area of the wipe, as the screen names it (spec 049).
