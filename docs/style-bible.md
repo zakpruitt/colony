@@ -194,7 +194,29 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
 
 ## Text
 
-All text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `font`). The project theme
+Two fonts: the pixel font below, for the world and the old HUD in the world's 640x360 pixels, and the UI
+font (spec 058) for everything on the sharp UI layer.
+
+### The UI font
+
+`assets/fonts/ui.px` and its bold `ui_bold.px` (category `font`, 9x12 cells, baked like any sprite and
+linted), built into a `FontFile` by `UiText` (`game/ui/ui_text.gd`) at size 12 in UI pixels.
+
+- **Metrics.** Capitals and digits 9 pixels tall (rows 0-8, the baseline under row 8), an x-height of 6,
+  ascenders to row 0 and real descenders on rows 9-11. Ascent 10, descent 3, a line 13 UI pixels.
+- **Proportional, one-pixel strokes** (no 2x2 block of ink in a letter); a glyph's advance is its drawn
+  width plus one; a space is 4. **Digits are all 7 wide**, so numbers keep their width as they change.
+- **Look-alikes apart by at least 3 pixels:** `1` flagged with a foot, `l` with a tail, `I` with serifs; `0`
+  slashed, `O` round; `5` flat-topped, `S` curved; `rn` and `m` differ.
+- **Bold** is the regular thickened one pixel to the right: titles, button text, captions.
+- **Colour in code.** `UiText.label(text, &"silver", bold)`; no shadow (the layer always draws on a dark
+  panel). `UiText.width(text, bold)` measures.
+- Look at both, beside the old font, with
+  `python tools/dev.py shot --scene=res://game/ui/font_specimen.tscn --name=font`.
+
+### The pixel font
+
+All world and old-HUD text is drawn in Colony's pixel font, `assets/fonts/pixel.px` (category `font`). The project theme
 (`game/ui/theme.tres`) makes it every control's default, so a plain `Label` is already on style.
 
 - **One colour.** Glyphs are `white` on transparency, so text can be tinted to any palette colour. Any other
@@ -275,6 +297,17 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
 
 The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
 
+**The UI layer (spec 058).** Windows and the button bar are drawn on the sharp layer in UI pixels, themed in
+one place (`UiTheme`, `game/ui/ui_theme.gd`): a window is a `night` panel with a one-pixel `steel` edge and a
+`dusk` title bar (its name in bold `yellow`, `<key> or Esc to close` in `slate`, an `x` button). Buttons
+have four looks: `dusk` with a `slate` edge, `slate` with a `silver` edge under the mouse, `pine` with a
+`green` edge when pressed or lit (text one pixel lower), `night` when disabled; at least 4 UI pixels of
+padding round the text and 20 or more tall; a key hint (`Shop  U`) in `steel` after the text. Tooltips are
+one sentence, `white` on `ink` with a `steel` edge. The button bar sits at the bottom right just above the
+hero frames: a 28x28 button per window with a 16x16 icon (`assets/sprites/ui/window_icons.px`), then one
+that puts the windows back. The rules below are the old HUD's, in the world's pixels, until each panel
+moves over.
+
 - **Edges only.** The HUD keeps to the top 28 and bottom 40 pixels of the 640x360 screen; the middle belongs to
   the world.
 - **Always on a dark panel.** Every text and bar sits on a `HudPanel`: a 1-pixel `ink` border around a `night`
@@ -328,15 +361,14 @@ The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.
   `Stable in m:ss` in `silver` over a 40x5 bar filling in `yellow`/`amber` on `ink`, and what auto-push does
   next (`then depth N`) in `steel`; a stable depth reads `Stable` in `green`, with no bar. A fallen hero's
   frame reads `Down` in `red` where the level was, and all four read `Recovering` in `pink` during a revival.
-- **The journal ticker and panel** are overlays like the shop. The ticker is a one-line `HudPanel` centred
+- **The journal ticker** is an overlay like the shop (the journal itself is a window on the UI layer since
+  spec 058). The ticker is a one-line `HudPanel` centred
   just above the party frames, its sentence in `white`; after 4 s the text steps down `silver`, `steel`,
-  `slate` (0.2 s each) and the panel goes. Text never fades by opacity. The journal panel (`J`) drops from
-  under the top band at the left: `Journal` in `yellow`, the game time in `steel`, the newest line in `white`
-  and the rest in `silver`.
-- **Help and tooltips** (spec 030). The help panel is an overlay centred under the top band, ending above the
-  journal ticker's strip: `How Colony works` in `yellow` with an `x` button, `steel` section captions
-  (`The idea`, `Keys`), the idea in `white`, each key in `yellow` with what it does in `silver`, and a `steel`
-  footer under a `dusk` line. Its `?` button sits in the shop tab, left of `Shop`, lit while help is open. A
+  `slate` (0.2 s each) and the panel goes. Text never fades by opacity. The journal window (`J`) lists the
+  game time in `steel`, the newest line in `white` and the rest in `silver`.
+- **Help and tooltips** (spec 030). Help is a window on the UI layer since spec 058: `steel` section
+  captions (`The idea`, `Keys`), the idea in `white`, the keys in two columns, each key in `yellow` with what
+  it does in `silver`, and a `steel` footer. Its button is on the button bar. An old HUD
   tooltip is one line of `white` text on a 13-pixel `night` panel with a `slate` border: under the top band
   for a top element, just above a bottom one, never over what it explains.
 - **The depth ladder** (spec 033) is the one HUD panel that stays up below the top band: 52 pixels wide on the

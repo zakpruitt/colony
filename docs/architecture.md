@@ -22,6 +22,31 @@ nothing in `sim/` knows it is being drawn.
 `python tools/dev.py check` enforces the first half (the `boundary` step): a script under `sim/` that names
 `Node`, `Engine`, `Time`, `OS`, `Input`, the scene tree, or a global random function fails the check.
 
+## Two layers on screen (spec 058)
+
+The picture is drawn in two layers, each in its own pixels.
+
+- **The world** (the labyrinth, the party, the effects) and, for now, **the old HUD** are drawn at 640x360
+  into `Main.world_viewport`, a `SubViewport` inside `Main.world_view` (a stretching
+  `SubViewportContainer`, nearest filtering, snapped to pixels). The window shows it scaled by the largest
+  whole number that fits (`UiRoot.world_scale()`). The HUD's `CanvasLayer` stays at `Main/HUD` but draws
+  into that viewport (`custom_viewport`, set on `NOTIFICATION_SCENE_INSTANTIATED`: set any later, freeing
+  `Main` makes the engine undo a connection that is already gone).
+- **The UI layer** (`UiRoot`, `game/ui/ui_root.gd`, canvas layer 20) is drawn in *UI pixels*: the largest
+  whole UI scale that still leaves at least 960x540 of room (`ui_scale()`, `room()`). 1280x720 gives a scale
+  of 1 and 1280x720 of room, 1920x1080 a scale of 2 and 960x540. Everything on it hangs from `UiRoot.frame`,
+  which carries the one theme (`UiTheme`); text there is `UiText`, the UI font.
+- **Coordinates.** While a `UiRoot` is in the tree the window is in `CONTENT_SCALE_MODE_CANVAS_ITEMS` with
+  a content size of 640x360: the root viewport still *thinks* in world pixels, so every input event, the
+  world and the old HUD keep their 640x360 coordinates (tests push mouse events there), while drawing is at
+  the window's size. The UI layer's transform is `ui_scale / world_scale`; `UiRoot.world_to_ui()` and
+  `ui_to_world()` convert. Other scenes (the gallery, the showcase) keep the project's viewport mode.
+- **Windows** (`UiWindow`, `UiWindows`): a title bar to drag by and a close button, any number open, a
+  click raises one, `Esc` closes the front one (before any old HUD panel sees it), the title bar never leaves
+  the room. Places and which are open live in the settings file under `windows`, beside the sound setting,
+  never in the save. `UiButtonBar` holds a button per window. Help, the journal and the orders are windows;
+  the other panels move over spec by spec.
+
 ## Time
 
 The sim advances only when something calls its step function, one fixed tick at a time. It never asks what
