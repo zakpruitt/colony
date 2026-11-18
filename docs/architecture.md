@@ -54,7 +54,9 @@ The picture is drawn in two layers, each in its own pixels.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
   party. All four are as tall as the tallest needs, so lines line up across them; their default places
-  stand side by side in two columns at 1280x720 and cascade at 960x540 (`place_defaults`). The `Hud`
+  stand side by side in two columns at 1280x720 and cascade at 960x540 (`place_defaults`), where they
+  are made short enough that two stay clear of the frames' line and the tabs' content scrolls
+  (`HeroWindow.scroll`, a `ScrollContainer`; talent nodes pass the wheel on to it). The `Hud`
   routes keys to the front one (`HeroWindows.front()`): Tab, Shift+Tab, Q and E (after the tally) and 1 to 3
   on its Talents tab (after the shop). A window lays itself out by hand in 13-pixel lines (`WindowText`),
   sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
