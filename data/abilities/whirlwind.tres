@@ -16,6 +16,7 @@ id = &"whirlwind"
 display_name = "Whirlwind"
 description = "Strikes every enemy within 2 tiles for 1.2x damage. Every 6 s."
 move = &"spin"
+picture = &"strike"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 6.0

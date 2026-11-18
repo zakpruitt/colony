@@ -42,6 +42,8 @@ var frame: Control
 var windows: UiWindows
 ## The row of buttons that open and close the windows (spec 058 R7), made by [method setup].
 var bar: UiButtonBar
+## A window per hero (spec 060), made by [method setup] when there is a HUD.
+var hero_windows: HeroWindows
 
 var _world_scale: int = 1
 var _ui_scale: int = 1
@@ -120,10 +122,17 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	made_here.append_array(_management_windows(hud, icons, tip))  # spec 059
 	for made: UiWindow in made_here:
 		windows.register(made)
+	if hud != null:  # spec 060: the hero windows, each opened from its hero's frame
+		hero_windows = HeroWindows.new()
+		frame.add_child(hero_windows)
+		hero_windows.setup(simulation, self, tip)
+		hud.hero_windows = hero_windows
 	place_defaults()
 	for made: UiWindow in made_here:
 		made.place_at(made.default_place, Vector2(_room))
 	bar.setup(self, windows)
+	if hero_windows != null:
+		hero_windows.place_defaults()  # again, now the bar has its size: they keep clear of it
 	frame.add_child(tip)
 	windows.restore()
 	if hud != null:
@@ -175,8 +184,14 @@ func place_defaults() -> void:
 	var tally: UiWindow = windows.window(TallyWindow.ID)
 	var shop: UiWindow = windows.window(ShopWindow.ID)
 	var map: UiWindow = windows.window(AreaMapWindow.ID)
-	if tally == null or shop == null or map == null:
-		return
+	if tally != null and shop != null and map != null:
+		_place_management(tally, shop, map, top)
+	if hero_windows != null:
+		hero_windows.place_defaults()
+
+
+## Spec 059: the tally at the top left, the shop at the top right, the map between them.
+func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: float) -> void:
 	tally.default_place = Vector2(PLACE_GAP, top)
 	shop.default_place = Vector2(_room.x - PLACE_GAP - shop.size.x, top)
 	var left: float = tally.default_place.x + tally.size.x + PLACE_GAP

@@ -23,6 +23,7 @@ func _ability(kind: AbilityDef.Kind, effect: AbilityEffect) -> AbilityDef:
 	ability.display_name = "Unit"
 	ability.description = "A test."
 	ability.move = &"flourish"
+	ability.picture = &"strike"  # spec 060: every ability names its picture
 	ability.kind = kind
 	ability.anywhere = true
 	ability.effects.append(effect)

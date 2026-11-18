@@ -256,25 +256,6 @@ func _check_rows(sums: Dictionary[int, int], what: String) -> void:
 	assert_eq(percent_sum, 100 if total > 0 else 0, "%s: the shares sum to 100%%" % what)
 
 
-## Opens [param panel] by its own way in, with the tally open, and back. Spec 059: the tally is a
-## window; the hero sheet, an old panel, still closes the windows over it as it opens (spec 058's
-## interim rule), but the tally opens over the sheet and leaves it open.
-func _check_exclusion(panel: String, opening: Callable, is_open: Callable) -> void:
-	var tally: TallyWindow = _hud.tally
-	tally.open()
-	opening.call()
-	_hud.advance(STEP)
-	var other: bool = is_open.call()
-	assert_true(other, "%s opens over the tally" % panel)
-	assert_false(tally.is_open(), "the %s closes the tally" % panel)
-	tally.open()
-	_hud.advance(STEP)
-	other = is_open.call()
-	assert_true(tally.is_open(), "the tally opens over the %s" % panel)
-	assert_true(other, "and leaves the %s open" % panel)
-	tally.close()
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
@@ -315,17 +296,24 @@ func test_r1_tally_panel() -> void:
 		)
 	tally.close()
 
-	# The hero sheet closes it as it opens (spec 058's interim rule). Spec 059 R1: the shop is a
-	# window too, and opens beside the tally, by its key or otherwise.
+	# Specs 059 and 060: the tally, the hero windows and the shop are all windows, and any of them
+	# opens beside the others and leaves them open.
 	var hero: int = heroes[0].id
-	_check_exclusion("hero sheet", _hud.hero_sheet.open.bind(hero), _hud.hero_sheet.is_open)
-	_hud.hero_sheet.close()
 	tally.open()
+	_hud.hero_windows.open(hero)
+	_hud.advance(STEP)
+	assert_true(_hud.hero_windows.is_open(hero), "a hero window opens over the tally")
+	assert_true(tally.is_open(), "and leaves it open")
+	tally.close()
+	tally.open()
+	_hud.advance(STEP)
+	assert_true(_hud.hero_windows.is_open(hero), "the tally opening leaves a hero window open")
 	_key(KEY_U)
 	_hud.advance(STEP)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_true(tally.is_open(), "beside the tally")
+	assert_true(tally.is_open() and _hud.hero_windows.is_open(hero), "beside the tally and hero")
 	_hud.shop.close()
+	_hud.hero_windows.close_all()
 	tally.close()
 
 
@@ -371,7 +359,7 @@ func test_r2_three_measures() -> void:
 	_key(KEY_Q)
 	_key(KEY_Q)
 	assert_eq(tally.measure(), TAKEN, "Q: the previous tab, wrapping")
-	assert_false(_hud.hero_sheet.is_open(), "Q and E leave the hero sheet alone")
+	assert_false(_hud.hero_windows.is_open(), "Q and E leave the hero windows alone")
 
 
 # --- R3 ------------------------------------------------------------------------

@@ -720,6 +720,39 @@ func test_r8_fits_both_rooms() -> void:
 		main.free()
 
 
+## Since spec 060: the three windows and two hero windows open at once, each at its default
+## place, at both rooms, all clear the button bar and the hero frames' line (they may overlap each
+## other: a click brings one to the front).
+func test_r8_beside_the_hero_windows() -> void:
+	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
+		var main: Main = _start(room)
+		var ui: UiRoot = main.ui
+		for id: StringName in IDS:
+			ui.windows.open_window(id)
+		for hero: Hero in main.simulation.party.heroes.slice(0, 2):
+			main.hud.hero_windows.open(hero.id)
+		main.hud.advance(STEP)
+		await _frames()
+		var frames_top: float = floorf(ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y)
+		var bar_top: float = ui.bar.get_global_rect().position.y - UiRoot.PLACE_GAP / 2.0
+		var shown: Array[UiWindow] = []
+		for id: StringName in IDS:
+			shown.append(_window(main, id))
+		for hero: Hero in main.simulation.party.heroes.slice(0, 2):
+			shown.append(main.hud.hero_windows.window_of(hero.id))
+		for each: UiWindow in shown:
+			assert_true(each.is_open(), "%s, %s: open" % [room, each.window_id])
+			var rect: Rect2 = each.get_rect()
+			var where: String = "%s, %s: %s" % [room, each.window_id, rect]
+			assert_eq(each.position, each.default_place, "%s at its default place" % where)
+			assert_true(Rect2(Vector2.ZERO, Vector2(room)).encloses(rect), "%s on screen" % where)
+			assert_lte(rect.end.y, frames_top, "%s above the frames' line" % where)
+			var bar: Rect2 = ui.bar.get_global_rect()
+			var beside: bool = rect.end.x <= bar.position.x
+			assert_true(rect.end.y <= bar_top or beside, "%s clear of the bar" % where)
+		main.free()
+
+
 # --- R9 ------------------------------------------------------------------------
 
 

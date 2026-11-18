@@ -473,7 +473,7 @@ func test_r5_the_frames_show_it() -> void:
 	taken.append(tree.path_nodes(0)[0])
 	hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
 	hero.set_talents(taken)
-	var titled: String = TalentTab.title(hero)
+	var titled: String = HeroTalentsTab.title(hero)
 	assert_true(titled.begins_with("Knight, "), "the knight has a path")
 	var both: String = "%s: Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
 	_mouse(Vector2(-1000, -1000))

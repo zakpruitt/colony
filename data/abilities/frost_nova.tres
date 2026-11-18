@@ -25,6 +25,7 @@ id = &"frost_nova"
 display_name = "Frost Nova"
 description = "With two enemies or more, a burst around the nearest: enemies there are pushed back and slowed for 3 s. Every 12 s."
 move = &"cast"
+picture = &"frost"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 12.0

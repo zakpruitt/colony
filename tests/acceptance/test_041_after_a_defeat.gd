@@ -305,10 +305,10 @@ func test_r3_offers_help() -> void:
 	assert_eq(_note().buttons.size(), DefeatNote.MOST, "never more than three buttons")
 
 	_note().press(0)
-	assert_true(_hud.hero_sheet.is_open(), "Train opens a hero sheet")
-	assert_eq(_hud.hero_sheet.shown_hero_id(), trainee.id, "the hero with a point to spend")
-	assert_eq(_hud.hero_sheet.page(), HeroSheet.Page.TALENTS, "on the Talents tab")
-	_hud.hero_sheet.close()
+	assert_true(_hud.hero_windows.is_open(), "Train opens a hero window")
+	assert_eq(_hud.hero_windows.front().hero_id, trainee.id, "the hero with a point to spend")
+	assert_eq(_hud.hero_windows.front().page(), HeroWindow.Page.TALENTS, "on the Talents tab")
+	_hud.hero_windows.close_all()
 	_hud.advance(STEP)
 
 	_note().press(1)
@@ -434,14 +434,20 @@ func test_r5_out_of_the_way() -> void:
 	_assert_out_of_the_way("after the wipe")
 
 	# Hidden while each panel is open. (Help, the journal and the orders are windows on the UI
-	# layer since spec 058: they float over the note and do not hide it.)
+	# layer since spec 058, and the hero sheet since spec 060: they float over the note and do not
+	# hide it.)
+	_hud.hero_windows.open(_sim.party.heroes[0].id)
+	_hud.advance(STEP)
+	assert_true(note.is_shown(), "a hero window floats over the note")
+	_hud.hero_windows.close_all()
+	_hud.advance(STEP)
 	var panels: Dictionary[String, Callable] = {
 		"shop": _hud.shop.open,
-		"hero sheet": _hud.hero_sheet.open.bind(_sim.party.heroes[0].id),
+		"tally": _hud.tally.open,
 	}
 	var closes: Dictionary[String, Callable] = {
 		"shop": _hud.shop.close,
-		"hero sheet": _hud.hero_sheet.close,
+		"tally": _hud.tally.close,
 	}
 	for panel: String in panels:
 		panels[panel].call()

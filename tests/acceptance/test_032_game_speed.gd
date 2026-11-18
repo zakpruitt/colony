@@ -423,16 +423,16 @@ func test_r7_keys() -> void:
 	sim.set_auto_push(false)
 	sim.step()
 	var windows: UiWindows = main.ui.windows
-	var panels: Array[String] = ["nothing", "shop", "hero sheet", "journal"]
+	var panels: Array[String] = ["nothing", "shop", "hero window", "journal"]
 	for panel: String in panels:
 		hud.shop.close()
-		hud.hero_sheet.close()
+		hud.hero_windows.close_all()
 		windows.close_window(UiRoot.JOURNAL)
 		match panel:
 			"shop":
 				hud.shop.open()
-			"hero sheet":
-				hud.hero_sheet.open_next()
+			"hero window":
+				hud.hero_windows.open_next()
 			"journal":
 				windows.open_window(UiRoot.JOURNAL)
 		hud.advance(0.0)
@@ -441,7 +441,7 @@ func test_r7_keys() -> void:
 		var auto: bool = sim.expedition.auto_push
 		var zoom: int = main.world.camera.zoom_level()
 		var shop_open: bool = hud.shop.is_open()
-		var sheet_open: bool = hud.hero_sheet.is_open()
+		var sheet_open: bool = hud.hero_windows.is_open()
 		var journal_open: bool = windows.is_open(UiRoot.JOURNAL)
 		_key(KEY_F)
 		sim.step()
@@ -450,7 +450,7 @@ func test_r7_keys() -> void:
 		assert_eq(sim.expedition.auto_push, auto, "and auto-push (%s)" % panel)
 		assert_eq(main.world.camera.zoom_level(), zoom, "and the zoom (%s)" % panel)
 		assert_eq(hud.shop.is_open(), shop_open, "and the shop (%s)" % panel)
-		assert_eq(hud.hero_sheet.is_open(), sheet_open, "and the hero sheet (%s)" % panel)
+		assert_eq(hud.hero_windows.is_open(), sheet_open, "and the hero window (%s)" % panel)
 		assert_eq(windows.is_open(UiRoot.JOURNAL), journal_open, "and the journal (%s)" % panel)
 
 		# The other keys do what they did, and leave the speed alone.
@@ -470,7 +470,7 @@ func test_r7_keys() -> void:
 		assert_eq(main.speed, speed, "none of them changes the speed (%s)" % panel)
 
 	hud.shop.close()
-	hud.hero_sheet.close()
+	hud.hero_windows.close_all()
 	windows.close_window(UiRoot.JOURNAL)
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
@@ -480,5 +480,5 @@ func test_r7_keys() -> void:
 	assert_true(windows.is_open(UiRoot.JOURNAL), "J still opens the journal")
 	_key(KEY_J)
 	_key(KEY_TAB)
-	assert_true(hud.hero_sheet.is_open(), "Tab still opens a hero sheet")
+	assert_true(hud.hero_windows.is_open(), "Tab still opens a hero window")
 	_key(KEY_ESCAPE)

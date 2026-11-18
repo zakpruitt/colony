@@ -38,6 +38,8 @@ var icon: Texture2D
 ## upgrades the party can pay for, the map's areas opened since it was last open); 0 shows none.
 ## The window's content sets it.
 var badge: int = 0
+## False for a window with no button on the bar (spec 060: a hero's window opens from its frame).
+var on_bar: bool = true
 
 var title_bar: PanelContainer
 var title_label: Label

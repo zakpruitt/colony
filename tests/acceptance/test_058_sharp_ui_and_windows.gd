@@ -178,7 +178,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	_key(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
 	_click_world(hud.frames[0].get_global_rect().get_center())
-	assert_true(hud.hero_sheet.is_open(), "a hero frame still opens the hero sheet")
+	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
 	hud.shop.close()
@@ -470,7 +470,7 @@ func test_r5_windows() -> void:
 		_click_world(under)
 	main.simulation.step()
 	assert_eq(main.simulation.expedition.target_depth, target, "the target is unchanged")
-	assert_false(main.hud.hero_sheet.is_open(), "no hero sheet opened")
+	assert_false(main.hud.hero_windows.is_open(), "no hero window opened")
 
 	# Esc closes the front window only, and nothing of the old HUD with it.
 	main.hud.shop.open()
@@ -581,7 +581,7 @@ func test_r7_a_button_bar() -> void:
 	var ui: UiRoot = main.ui
 	var bar: UiButtonBar = ui.bar
 	await _frames()
-	assert_eq(bar.buttons.keys(), ui.windows.ids(), "one button per window, in order")
+	assert_eq(bar.buttons.keys(), _bar_ids(ui.windows), "one button per window, in order")
 	# At the bottom right, above the hero frames' line.
 	var rect: Rect2 = bar.get_global_rect()
 	var frames_top: float = ui.world_to_ui(main.hud.frames[0].get_global_rect().position).y
@@ -880,3 +880,13 @@ func test_r11_in_the_help_list_and_the_wiki() -> void:
 	var wiki: String = FileAccess.get_file_as_string(WIKI).to_lower()
 	for words: String in ["window", "title bar", "esc", "button bar", "overhaul"]:
 		assert_true(wiki.contains(words), "the wiki says: %s" % words)
+
+
+## The windows of spec 058 and their like, each with a button on the bar: every window but the
+## hero windows of spec 060, which open from their frames and cascade at 960x540 by design.
+func _bar_ids(windows: UiWindows) -> Array[StringName]:
+	var made: Array[StringName] = []
+	for id: StringName in windows.ids():
+		if windows.window(id).on_bar:
+			made.append(id)
+	return made

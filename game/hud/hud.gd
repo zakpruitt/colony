@@ -101,8 +101,14 @@ var shop_tab: HudPanel
 var boss_bar: BossBar
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
-## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
-var hero_sheet: HeroSheet
+## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
+## when there is no UI layer (a HUD on its own in a test). Set by [method UiRoot.setup].
+var hero_windows: HeroWindows:
+	set(value):
+		hero_windows = value
+		if value != null:
+			value.changed.connect(_mark_frames)
+			_mark_frames()
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
 ## The next few things within reach, under the depth panel (spec 037); G hides it.
@@ -123,8 +129,6 @@ var area_map: AreaMapWindow
 
 var _simulation: Simulation
 var _world: World
-## The old panels shown at the last [method advance], so one that has just opened is seen.
-var _panels_shown: Array[Control] = []
 var _effects: CombatEffects
 var _icons: PixelSheet
 var _frames_by_id: Dictionary[int, HeroFrame] = {}
@@ -152,6 +156,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key: InputEventKey = event as InputEventKey
 	if key == null or not key.pressed or key.echo or _simulation == null:
 		return
+	var handled: bool = true
+	# Specs 059 and 060: a window's keys act only while it is the front window of all (Esc, which
+	# closes the front window, is the windows' own).
+	var top: UiWindow = windows.front() if windows != null else null
+	var hero_top: HeroWindow = top as HeroWindow
 	match key.keycode:
 		KEY_MINUS, KEY_KP_SUBTRACT:
 			_step_target(-1)
@@ -162,44 +171,48 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F3:
 			if clock_label != null:
 				clock_label.visible = not clock_label.visible
-		KEY_ESCAPE:
-			if not hero_sheet.is_open():
-				return
-			hero_sheet.close()
 		KEY_TAB:
-			hero_sheet.open_next()
+			# The next hero's window to the front, whatever is in front; Shift+Tab closes the
+			# front hero window.
+			if hero_windows == null or (key.shift_pressed and hero_top == null):
+				handled = false
+			elif key.shift_pressed:
+				hero_top.close()
+			else:
+				hero_windows.open_next()
 		KEY_B:
-			if not _in_front(shop):
-				return
-			shop.toggle_auto_buy()
+			handled = _in_front(shop)
+			if handled:
+				shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop's keys while it is the front window (spec 059 R2); else the sheet spends
-			# paragon points, only on its Talents page (spec 034, spec 055).
-			var training: bool = hero_sheet.page() == HeroSheet.Page.TALENTS
+			# The shop's rows while it is the front window (spec 059 R2); paragon points while a
+			# hero window on its Talents tab is (spec 034, spec 055, spec 060).
+			var training: bool = hero_top != null and hero_top.page() == HeroWindow.Page.TALENTS
 			if _in_front(shop):
 				shop.buy_row(key.keycode - KEY_1)
-			elif hero_sheet.is_open() and training and key.keycode <= KEY_3:
-				hero_sheet.train_row(key.keycode - KEY_1)
+			elif training and key.keycode <= KEY_3:
+				hero_top.train_row(key.keycode - KEY_1)
 			else:
-				return
+				handled = false
 		KEY_Q, KEY_E:
-			# The tally's previous and next measure while it is the front window (spec 059 R4),
-			# else the hero sheet's previous and next page while it is open (spec 034).
-			if _in_front(tally):
+			# The front window's previous and next tab: a hero window's pages (spec 034, spec
+			# 060) or the tally's measures (spec 059 R4).
+			if hero_top != null:
+				if key.keycode == KEY_Q:
+					hero_top.previous_page()
+				else:
+					hero_top.next_page()
+			elif _in_front(tally):
 				if key.keycode == KEY_Q:
 					tally.previous_measure()
 				else:
 					tally.next_measure()
-			elif hero_sheet.is_open():
-				if key.keycode == KEY_Q:
-					hero_sheet.previous_page()
-				else:
-					hero_sheet.next_page()
 			else:
-				return
+				handled = false
 		_:
-			return
-	get_viewport().set_input_as_handled()
+			handled = false
+	if handled:
+		get_viewport().set_input_as_handled()
 
 
 ## Call once, before the first advance.
@@ -215,7 +228,8 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_depth()
 	_build_gold()
 	_build_shop()
-	_build_sheet()
+	for frame: HeroFrame in frames:  # spec 060: a click opens or closes the hero's window
+		frame.clicked.connect(_on_frame_clicked)
 	_adopt_clock()
 	boss_bar = BossBar.new()
 	add_child(boss_bar)
@@ -266,7 +280,8 @@ func advance(delta: float) -> void:
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
-	hero_sheet.advance(delta)
+	if hero_windows != null:
+		hero_windows.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
 	ladder.advance(delta)
@@ -275,35 +290,12 @@ func advance(delta: float) -> void:
 	area_map.advance(delta)
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
-	_make_room_for_panels()
 
 
 ## True while the window holding [param content] is the front window on the UI layer (spec 059).
 func _in_front(content: Control) -> bool:
 	var top: UiWindow = windows.front() if windows != null else null
 	return top != null and top.content == content
-
-
-## Closes every UI-layer window over an old panel that has just opened (spec 058), keeping the
-## window's place: the hero sheet or the away report. Until spec 060 moves the sheet onto the UI
-## layer, it would open hidden under a window. (The shop, the tally and the map are windows since
-## spec 059.)
-func _make_room_for_panels() -> void:
-	var shown: Array[Control] = []
-	var layer: Node = get_parent()
-	var panels: Array[Node] = [hero_sheet]
-	if layer != null:
-		panels.append_array(
-			layer.get_children().filter(func(n: Node) -> bool: return n is AwayPanel)
-		)
-	for node: Node in panels:
-		var panel: Control = node as Control
-		if panel == null or not panel.is_visible_in_tree() or panel.is_queued_for_deletion():
-			continue
-		shown.append(panel)
-		if windows != null and not _panels_shown.has(panel):
-			windows.close_over(panel.get_global_rect())
-	_panels_shown = shown
 
 
 ## What the party is doing and why, as the depth panel shows it: "Heading on to stage 5",
@@ -522,15 +514,10 @@ func show_speed(value: int) -> void:
 	speed_button.lit = value > 1
 
 
-## The hero sheet (spec 026): a frame's click opens or closes it, and the open hero's frame is
-## marked.
-func _build_sheet() -> void:
-	hero_sheet = HeroSheet.new()
-	add_child(hero_sheet)
-	hero_sheet.setup(_simulation, _world)
-	hero_sheet.shown_changed.connect(_mark_frames)
-	for frame: HeroFrame in frames:
-		frame.clicked.connect(hero_sheet.toggle)
+## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).
+func _on_frame_clicked(hero_id: int) -> void:
+	if hero_windows != null:
+		hero_windows.toggle(hero_id)
 
 
 ## The depth ladder (spec 033): it hides itself on L and while the shop is open; a click on a
@@ -553,14 +540,13 @@ func _build_tooltip() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
-	hero_sheet.talents.add_tips(tooltip)  # spec 055 R11
 
 
 func _mark_frames() -> void:
 	for hero: Hero in _simulation.party.heroes:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
-			frame.marked = hero.id == hero_sheet.shown_hero_id()
+			frame.marked = hero_windows != null and hero_windows.is_open(hero.id)
 			frame.refresh(hero, 0.0)
 	_advance_shop(0.0)
 
@@ -811,6 +797,8 @@ func _advance_shop(delta: float) -> void:
 
 
 func _on_sim_event(event: SimEvent) -> void:
+	if event.kind == SimEvent.Kind.PARAGON_SPENT and hero_windows != null:
+		hero_windows.flash_paragon(event.source_id, event.target_id)
 	if event.kind == SimEvent.Kind.UPGRADE_BOUGHT:
 		# The purchase spent gold: the count drops to the real gold at once.
 		_shown_gold = _simulation.party.gold

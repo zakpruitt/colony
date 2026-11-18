@@ -16,19 +16,14 @@ func _default_rect(window: UiWindow) -> Rect2:
 
 
 ## Where each old panel opens and where the goals are, in UI pixels on [param main]'s layer:
-## the hero sheet, opened by a click on a hero's frame and closed again. (Spec 059 made the shop,
-## the tally and the area map windows.)
+## the goals. (Spec 059 made the shop, the tally and the area map windows, and spec 060 the
+## hero sheet.)
 func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	var hud: Hud = main.hud
 	var ui: UiRoot = main.ui
 	var found: Dictionary[String, Rect2] = {}
 	hud.advance(0.016)
 	found["goals"] = _in_ui(ui, hud.goals.panel.get_global_rect())
-	_click_world(hud.frames[0].get_global_rect().get_center())
-	hud.advance(0.016)
-	assert_true(hud.hero_sheet.is_visible_in_tree(), "the hero sheet opened by a click")
-	found["hero sheet"] = _in_ui(ui, hud.hero_sheet.get_global_rect())
-	hud.hero_sheet.close()
 	return found
 
 
@@ -96,12 +91,9 @@ func test_r5_the_mouse_on_a_window_is_not_on_the_hud() -> void:
 	assert_ne(hud.tooltip.shown_text(), "", "with the journal closed, the goal's tooltip shows")
 
 
-## Review 3a: the default places beside what the old HUD shows and opens, at both rooms. The
-## orders keep clear of all of it. Help keeps clear of the goals, the hero sheet and the tally; it
-## covers where the shop and the area map open. The journal covers the goals, and where the hero
-## sheet, the tally and the area map open: the three windows side by side are as wide as a 960x540
-## room and those panels fill the top of it, so it cannot. A window over a panel closes as the panel
-## opens (the next test but one). With that, stands in for 045 R1 (the tally opens over nothing).
+## Review 3a: the default places beside what the old HUD still shows, at both rooms: the orders
+## and help keep clear of the goals (the shop, the tally, the area map and the hero sheet are
+## windows since specs 059 and 060).
 func test_r6_default_places_beside_the_old_hud() -> void:
 	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
 		var main: Main = _main(room)
@@ -115,7 +107,7 @@ func test_r6_default_places_beside_the_old_hud() -> void:
 			assert_false(
 				orders.intersects(panels[panel]), "%s: orders clear the %s" % [room, panel]
 			)
-		for panel: String in ["goals", "hero sheet"]:
+		for panel: String in ["goals"]:
 			assert_false(help.intersects(panels[panel]), "%s: help clears the %s" % [room, panel])
 		main.free()
 
@@ -129,57 +121,45 @@ func test_r6_default_places_clear_the_frames_and_the_bar() -> void:
 		await _frames()
 		var frames_top: float = ui.world_to_ui(main.hud.frames[0].get_global_rect().position).y
 		var bar: Rect2 = ui.bar.get_global_rect()
-		for id: StringName in ui.windows.ids():
+		for id: StringName in _bar_ids(ui.windows):
 			var place: Rect2 = _default_rect(ui.windows.window(id))
 			assert_lte(place.end.y, frames_top, "%s: %s above the frames' line" % [room, id])
 			assert_false(place.intersects(bar), "%s: %s clear of the button bar" % [room, id])
 		main.free()
 
 
-## Review 3b: an old panel opening closes every window over it, keeps each window's place, and
-## writes nothing in the journal. Since spec 059 the hero sheet is the one old panel left (the
-## shop, the tally and the area map are windows, and open beside the others: spec 059 R1). Stands
-## in for 027 R6 and 037 R6 (the old journal and goals panels kept clear of the hero sheet) and
-## 041 R5 (nothing opens hidden).
-func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
+## Review 3b, since specs 059 and 060: no old panel is left to open under the windows, so nothing
+## closes a window but the player. A hero window opening by a click on its frame, and each window
+## opening by its key, leave every other window open and in its place, and the journal says
+## nothing. Stands in for 027 R6 and 037 R6 (the old journal and goals panels kept clear of the
+## hero sheet) and 041 R5 (nothing opens hidden).
+func test_r5_nothing_closes_the_windows_but_the_player() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var ui: UiRoot = main.ui
 	var hud: Hud = main.hud
 	var windows: UiWindows = ui.windows
-	var frame_at: Vector2 = hud.frames[0].get_global_rect().get_center()
-	var openers: Array[Array] = [
-		["hero sheet", hud.hero_sheet, func() -> void: _click_world(frame_at)],
-	]
-	for opener: Array in openers:
-		var panel_name: String = opener[0]
-		var panel: Control = opener[1]
-		var open_it: Callable = opener[2]
-		for id: StringName in windows.ids():
-			windows.open_window(id)
-		await _frames()
+	for id: StringName in _bar_ids(windows):
+		windows.open_window(id)
+	await _frames()
+	hud.advance(0.016)
+	var places: Dictionary[StringName, Vector2] = {}
+	for id: StringName in _bar_ids(windows):
+		places[id] = windows.window(id).position
+	var written: Array[String] = hud.journal.lines()
+	_click_world(hud.frames[0].get_global_rect().get_center())
+	hud.advance(0.016)
+	assert_true(hud.hero_windows.is_open(), "a click on a frame opens a hero window")
+	for keycode: Key in [KEY_U, KEY_T, KEY_W]:  # each closes its window, then opens it again
+		_key(keycode)
+		_key(keycode)
 		hud.advance(0.016)
-		var places: Dictionary[StringName, Vector2] = {}
-		for id: StringName in windows.ids():
-			assert_true(windows.is_open(id), "%s: %s open before" % [panel_name, id])
-			places[id] = windows.window(id).position
-		var written: Array[String] = hud.journal.lines()
-		open_it.call()
-		hud.advance(0.016)
-		assert_true(panel.is_visible_in_tree(), "the %s opened" % panel_name)
-		var over: Rect2 = _in_ui(ui, panel.get_global_rect())
-		var closed: int = 0
-		for id: StringName in windows.ids():
-			var window: UiWindow = windows.window(id)
-			var covers: bool = window.get_rect().intersects(over)
-			assert_eq(window.is_open(), not covers, "%s: %s closed if over it" % [panel_name, id])
-			assert_eq(window.position, places[id], "%s: %s keeps its place" % [panel_name, id])
-			closed += 0 if window.is_open() else 1
-		assert_gt(closed, 0, "%s: a window was over it" % panel_name)
-		assert_eq(hud.journal.lines(), written, "%s: the journal says nothing" % panel_name)
-		panel.call(&"close")
-		hud.advance(0.016)
-		for id: StringName in windows.ids():
-			windows.close_window(id)
+	await _frames()
+	hud.advance(0.016)
+	assert_true(hud.hero_windows.is_open(), "the hero window stays open")
+	for id: StringName in _bar_ids(windows):
+		assert_true(windows.is_open(id), "%s stays open" % id)
+		assert_eq(windows.window(id).position, places[id], "%s keeps its place" % id)
+	assert_eq(hud.journal.lines(), written, "the journal says nothing")
 
 
 ## Review 3c: windows left open last session open only once the away report has gone.
@@ -210,3 +190,13 @@ func test_r6_windows_left_open_wait_for_the_away_report() -> void:
 	await _frames()
 	assert_false(is_instance_valid(main.away_panel), "the report went")
 	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "then the journal opens as it was left")
+
+
+## The windows of spec 058, each with a button on the bar: every window but the hero windows of
+## spec 060, which open from their frames, are as tall as the room allows and cascade at 960x540.
+func _bar_ids(windows: UiWindows) -> Array[StringName]:
+	var made: Array[StringName] = []
+	for id: StringName in windows.ids():
+		if windows.window(id).on_bar:
+			made.append(id)
+	return made

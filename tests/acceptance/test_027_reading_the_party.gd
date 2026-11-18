@@ -568,7 +568,7 @@ func test_r6_it_fits() -> void:
 	for rect: Rect2 in [ticker, bar]:
 		assert_true(Rect2(Vector2.ZERO, Hud.SCREEN).encloses(rect), "on the screen")
 	# (Spec 058: the journal is a window on the UI layer now, which floats over the HUD and the
-	# shop and hero sheet beside it; where windows go is tested there.)
+	# shop beside it, as the hero windows of spec 060 do; where windows go is tested there.)
 
 	# The game goes on with the journal open.
 	var main: Main = _start_main()
@@ -610,9 +610,9 @@ func test_r7_keys() -> void:
 	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal stays open through them all")
 	_key(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.JOURNAL), "Esc closes it")
-	main.hud.hero_sheet.open(KNIGHT)
+	main.hud.hero_windows.open(KNIGHT)  # spec 060: a hero's sheet is its window
 	_key(KEY_ESCAPE)
-	assert_false(main.hud.hero_sheet.is_open(), "Esc closes a hero sheet too")
+	assert_false(main.hud.hero_windows.is_open(KNIGHT), "Esc closes a hero window too")
 	_key(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL))
 	_key(KEY_U)

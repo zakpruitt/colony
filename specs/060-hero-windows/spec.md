@@ -1,6 +1,6 @@
 # 060 — Hero sheets as windows, several at once
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 026, 028, 034, 051, 055, 058
 
