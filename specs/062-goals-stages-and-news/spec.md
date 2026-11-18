@@ -21,7 +21,9 @@ them, and with them the old HUD layer is gone.
   each guardian with its name written beside its stage and struck through once beaten, and each stage's
   number coloured safe, within reach or dangerous, with the tooltip saying so as spec 043 rules
   (nothing for a safe stage). A click sets the target;
-  the wheel scrolls; a small arrow returns to the party. Every rule of specs 033, 043 and 047 holds.
+  the wheel scrolls; a small arrow returns to the party. Every rule of specs 033, 043 and 047 holds,
+  except that the list no longer hides while the shop is open, nor the goals while the tally is:
+  windows are drawn over them (R10).
 - **R3. The ticker:** the newest journal line for 4 seconds, in the new font, above the hero frames,
   never over a window's title bar at the default places. A click on it opens the Journal.
 - **R4. The note after a defeat** is drawn on the sharp layer above every window, so it can never be
@@ -40,7 +42,9 @@ them, and with them the old HUD layer is gone.
   specs listed above pass, amended only where they name a node or a pixel position (list each amendment
   and what still guards the behaviour).
 - **R9. True in a crowded frame.** After a frame of 300 ticks the goals, the stage list and the ticker
-  show the end state; a defeat and a revival in one frame still show the note for the lost fight.
+  show the end state. A defeat heard late but still recent (spec 046 R5 decides what is recent, and a
+  wipe older than that is not told) shows the note for the lost fight: its stage and its monsters come
+  from the event, not from where the party is by then.
 - **R10. Fits both rooms.** At 960x540 and 1280x720 the goals, the stage list, the ticker and the
   catching-up bar overlap neither the frame of the screen (spec 061's pieces and the button bar), nor
   each other, nor the room's edges, and no text is cut with the longest names in the data. Windows are
