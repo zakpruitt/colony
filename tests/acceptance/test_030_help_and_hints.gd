@@ -203,31 +203,32 @@ func test_r1_frames_show_live_health() -> void:
 
 
 func test_r2_help_panel() -> void:
-	var help: HelpPanel = _hud.help
-	assert_not_null(help, "the HUD has a help panel")
+	# Spec 058 moved help to a window on the UI layer, opened by H or its button on the button bar
+	# (where the ? button was); it no longer closes the other panels, nor they it.
+	var main: Main = MAIN_SCENE.instantiate()
+	add_child_autofree(main)
+	var windows: UiWindows = main.ui.windows
+	var help: HelpPanel = windows.window(UiRoot.HELP).content as HelpPanel
+	assert_not_null(help, "the game has a help window")
 	if help == null:
 		return
-	assert_false(help.is_open(), "closed at first")
-	assert_not_null(_hud.help_button, "a ? button")
-	assert_eq(_hud.help_button.text, "?")
-	assert_true(_hud.help_button.is_visible_in_tree(), "on screen")
-	var button: Rect2 = _hud.help_button.get_global_rect()
-	assert_lte(button.end.y, TOP_BAND, "in the top band")
-
-	_hud.help_button.pressed.emit()
-	assert_true(help.is_open(), "the button opens help")
+	assert_false(windows.is_open(UiRoot.HELP), "closed at first")
+	var button: UiButton = main.ui.bar.buttons[UiRoot.HELP]
+	assert_true(button.is_visible_in_tree(), "a help button on the bar")
+	button.pressed.emit()
+	assert_true(windows.is_open(UiRoot.HELP), "the button opens help")
 	assert_true(help.is_visible_in_tree(), "and it shows")
-	_hud.help_button.pressed.emit()
-	assert_false(help.is_open(), "and closes it")
+	button.pressed.emit()
+	assert_false(windows.is_open(UiRoot.HELP), "and closes it")
 	_key(KEY_H)
-	assert_true(help.is_open(), "H opens help")
+	assert_true(windows.is_open(UiRoot.HELP), "H opens help")
 	_key(KEY_H)
-	assert_false(help.is_open(), "H closes it")
+	assert_false(windows.is_open(UiRoot.HELP), "H closes it")
 	_key(KEY_H)
 	_key(KEY_ESCAPE)
-	assert_false(help.is_open(), "Esc closes it")
+	assert_false(windows.is_open(UiRoot.HELP), "Esc closes it")
 	_key(KEY_ESCAPE)
-	assert_false(help.is_open(), "and does not open it")
+	assert_false(windows.is_open(UiRoot.HELP), "and does not open it")
 
 	# The idea, then the keys.
 	var lines: Array[String] = help.lines()
@@ -247,43 +248,25 @@ func test_r2_help_panel() -> void:
 		var row: String = "%s  %s" % [entry[0], entry[1]]
 		assert_has(lines, row, "the panel lists %s" % row)
 
-	# The panels exclude one another.
+	# Help stays open beside the shop, the hero sheet and the journal.
+	_key(KEY_H)
 	_key(KEY_U)
-	assert_true(_hud.shop.is_open(), "the shop is open")
-	_key(KEY_H)
-	assert_true(help.is_open(), "help opens")
-	assert_false(_hud.shop.is_open(), "and closes the shop")
-	_key(KEY_U)  # help closes in the same frame
-	assert_true(_hud.shop.is_open(), "the shop opens")
-	assert_false(help.is_open(), "and help closes")
-
+	assert_true(main.hud.shop.is_open(), "the shop opens")
+	assert_true(windows.is_open(UiRoot.HELP), "beside help")
+	main.hud.shop.close()
 	_key(KEY_TAB)
-	assert_true(_hud.hero_sheet.is_open(), "the sheet is open")
-	_key(KEY_H)
-	assert_true(help.is_open(), "help opens")
-	assert_false(_hud.hero_sheet.is_open(), "and closes the hero sheet")
-	_key(KEY_TAB)  # help closes in the same frame
-	assert_true(_hud.hero_sheet.is_open(), "the sheet opens")
-	assert_false(help.is_open(), "and help closes")
-
+	assert_true(main.hud.hero_sheet.is_open(), "the sheet opens")
+	assert_true(windows.is_open(UiRoot.HELP), "beside help")
+	main.hud.hero_sheet.close()
 	_key(KEY_J)
-	assert_true(_hud.journal.is_open(), "the journal is open")
-	_key(KEY_H)
-	assert_true(help.is_open(), "help opens")
-	assert_false(_hud.journal.is_open(), "and closes the journal")
-	_key(KEY_J)  # help closes in the same frame
-	assert_true(_hud.journal.is_open(), "the journal opens")
-	assert_false(help.is_open(), "and help closes")
-	_key(KEY_J)
+	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal opens")
+	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 
 	# The game goes on behind it.
-	var main: Main = MAIN_SCENE.instantiate()
-	add_child_autofree(main)
-	main.hud.help.open()
 	main.driver.advance(1_000_000)
 	var tick: int = main.simulation.tick
 	main.driver.advance(2_000_000)
-	assert_true(main.hud.help.is_open(), "help is open")
+	assert_true(windows.is_open(UiRoot.HELP), "help is open")
 	assert_gt(main.simulation.tick, tick, "and the game runs behind it")
 	assert_false(get_tree().paused, "unpaused")
 
@@ -310,6 +293,7 @@ func _key_names_in(dir: String, into: Dictionary[String, String]) -> void:
 ## changes what the entry says it does.
 func _check_entry(main: Main, label: String) -> void:
 	var hud: Hud = main.hud
+	var windows: UiWindows = main.ui.windows
 	var sim: Simulation = main.simulation
 	var codes: Array[int] = HelpPanel.keycodes(label)
 	assert_false(codes.is_empty(), "%s: names keys" % label)
@@ -317,20 +301,20 @@ func _check_entry(main: Main, label: String) -> void:
 		var what: String = "%s (%s)" % [label, OS.get_keycode_string(code)]
 		match label:
 			"H":
-				var was: bool = hud.help.is_open()
+				var was: bool = windows.is_open(UiRoot.HELP)
 				_key(code)
-				assert_ne(hud.help.is_open(), was, "%s opens or closes help" % what)
+				assert_ne(windows.is_open(UiRoot.HELP), was, "%s opens or closes help" % what)
 				_key(code)
 			"Esc":
 				hud.shop.open()
 				_key(code)
 				assert_false(hud.shop.is_open(), "%s closes the shop" % what)
-				hud.help.open()
+				windows.open_window(UiRoot.HELP)
 				_key(code)
-				assert_false(hud.help.is_open(), "%s closes help" % what)
+				assert_false(windows.is_open(UiRoot.HELP), "%s closes help" % what)
 				_key(KEY_J)
 				_key(code)
-				assert_false(hud.journal.is_open(), "%s closes the journal" % what)
+				assert_false(windows.is_open(UiRoot.JOURNAL), "%s closes the journal" % what)
 			"- +":
 				sim.set_target_depth(4)
 				sim.step()
@@ -389,15 +373,19 @@ func _check_entry(main: Main, label: String) -> void:
 				assert_ne(hud.hero_sheet.shown_hero_id(), shown, "%s moves the sheet" % what)
 				hud.hero_sheet.close()
 			"J":
-				var open: bool = hud.journal.is_open()
+				var open: bool = windows.is_open(UiRoot.JOURNAL)
 				_key(code)
-				assert_ne(hud.journal.is_open(), open, "%s opens or closes the journal" % what)
-				hud.journal.close()
+				assert_ne(
+					windows.is_open(UiRoot.JOURNAL), open, "%s opens or closes the journal" % what
+				)
+				windows.close_window(UiRoot.JOURNAL)
 			"O":
-				var orders: bool = hud.orders.is_open()
+				var orders: bool = windows.is_open(UiRoot.ORDERS)
 				_key(code)
-				assert_ne(hud.orders.is_open(), orders, "%s opens or closes the orders" % what)
-				hud.orders.close()
+				assert_ne(
+					windows.is_open(UiRoot.ORDERS), orders, "%s opens or closes the orders" % what
+				)
+				windows.close_window(UiRoot.ORDERS)
 			"T":
 				var tally: bool = hud.tally.is_open()
 				_key(code)
@@ -485,7 +473,6 @@ func _tipped(hud: Hud) -> Array[Array]:
 		["the Auto button", hud.auto_button, ""],
 		["the Shop button", hud.shop_button, ""],
 		["the gold", hud.gold_label, ""],
-		["the ? button", hud.help_button, ""],
 		["the speed button", hud.speed_button, ""],
 	]
 	for frame: HeroFrame in hud.frames:
@@ -566,14 +553,14 @@ func _main_with(settings: SoundSettings, store: SaveStore) -> Main:
 func test_r5_welcome_on_first_run() -> void:
 	assert_false(SoundSettings.new(_settings_path).help_seen(), "a new settings file: not seen")
 	var first: Main = _main_with(SoundSettings.new(_settings_path), null)
-	assert_true(first.hud.help.is_open(), "a new game opens help by itself")
+	assert_true(first.ui.windows.is_open(UiRoot.HELP), "a new game opens help by itself")
 	assert_true(SoundSettings.new(_settings_path).help_seen(), "and remembers it was seen")
 	assert_false(SoundSettings.new(_settings_path).muted(), "leaving the mute choice alone")
-	first.hud.help.close()
+	first.ui.windows.close_window(UiRoot.HELP)
 	first.free()
 
 	var second: Main = _main_with(SoundSettings.new(_settings_path), null)
-	assert_false(second.hud.help.is_open(), "not again")
+	assert_false(second.ui.windows.is_open(UiRoot.HELP), "not again")
 	second.free()
 
 	# Mute is kept beside it in the same file.
@@ -589,7 +576,7 @@ func test_r5_welcome_on_first_run() -> void:
 	store.write(saved.to_save())
 	var loaded: Main = _main_with(SoundSettings.new(_settings_path), SaveStore.new(_save_path))
 	assert_eq(loaded.simulation.party.gold, 5, "a save was loaded")
-	assert_false(loaded.hud.help.is_open(), "help does not open over a loaded save")
+	assert_false(loaded.ui.windows.is_open(UiRoot.HELP), "help does not open over a loaded save")
 	assert_false(SoundSettings.new(_settings_path).help_seen(), "and is not marked seen")
 	loaded.save_store = null
 	loaded.free()
@@ -598,27 +585,29 @@ func test_r5_welcome_on_first_run() -> void:
 	add_child_autofree(test_run)
 	assert_null(test_run.settings, "a test run has no settings file")
 	assert_null(test_run.sound.settings, "nor does its sound")
-	assert_false(test_run.hud.help.is_open(), "and never opens help by itself")
+	assert_false(test_run.ui.windows.is_open(UiRoot.HELP), "and never opens help by itself")
 
 
 # --- R6 ------------------------------------------------------------------------
 
 
 func test_r6_it_fits() -> void:
-	var help: HelpPanel = _hud.help
-	assert_not_null(help, "the HUD has a help panel")
-	if help == null:
-		return
-	help.open()
-	_hud.advance(0.016)
-	var rect: Rect2 = help.get_global_rect()
-	var frames_top: float = _frames_top(_hud)
-	assert_gte(rect.position.y, TOP_BAND, "below the top band %s" % rect)
+	# Spec 058: help is a window on the UI layer, in UI pixels and the UI font, placed inside the
+	# smallest room (960x540) above the hero frames' line.
+	var main: Main = MAIN_SCENE.instantiate()
+	add_child_autofree(main)
+	main.ui.set_room_for_test(Vector2i(960, 540))
+	main.ui.windows.open_window(UiRoot.HELP)
+	await get_tree().process_frame
+	var window: UiWindow = main.ui.windows.window(UiRoot.HELP)
+	var help: HelpPanel = window.content as HelpPanel
+	var rect: Rect2 = window.get_global_rect()
+	var frames_top: float = main.ui.world_to_ui(Vector2(0, _frames_top(main.hud))).y
+	var top_band: float = main.ui.world_to_ui(Vector2(0, TOP_BAND)).y
+	assert_gte(rect.position.y, top_band, "below the top band %s" % rect)
 	assert_lte(rect.end.y, frames_top, "above the party frames %s" % rect)
 	assert_gte(rect.position.x, 0.0, "on screen %s" % rect)
-	assert_lte(rect.end.x, SCREEN.x, "on screen %s" % rect)
-	for frame: HeroFrame in _hud.frames:
-		assert_false(rect.intersects(frame.get_global_rect()), "off the frames")
+	assert_lte(rect.end.x, 960.0, "on screen %s" % rect)
 	var labels: Array[Label] = []
 	_collect_labels(help, labels)
 	var shown: Array[Label] = []
@@ -637,15 +626,9 @@ func test_r6_it_fits() -> void:
 		assert_true(found, "%s is shown" % line)
 	for label: Label in shown:
 		var where: String = "%s %s" % [label.text, label.get_global_rect()]
-		assert_true(rect.encloses(label.get_global_rect()), "%s inside the panel" % where)
-		assert_eq(
-			label.get_theme_font_size(&"font_size"), PixelText.SIZE, "%s: the pixel font" % where
-		)
-		assert_eq(
-			label.get_theme_color(&"font_shadow_color"),
-			Palette.color(&"ink"),
-			"%s: shadowed" % where
-		)
+		assert_true(rect.encloses(label.get_global_rect()), "%s inside the window" % where)
+		var font: Font = label.get_theme_font(&"font")
+		assert_true(font == UiText.font() or font == UiText.font(true), "%s: the UI font" % where)
 		for other: Label in shown:
 			if other != label and other.get_global_rect().intersects(label.get_global_rect()):
 				fail_test("%s overlaps %s" % [where, other.text])

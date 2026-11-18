@@ -281,7 +281,7 @@ and try again:</p>
 <pre><code>python tools/dev.py import</code></pre>
 <p>The game keeps running while the window is minimised or unfocused, saves by itself every 30 seconds
 and when it closes, and plays out the time it was closed (up to 8 hours) when it next starts. Sound is
-quiet by default; <kbd>M</kbd> mutes it and the game remembers. A new game opens the help panel once.</p>
+quiet by default; <kbd>M</kbd> mutes it and the game remembers. A new game opens the help window once.</p>
 
 <h2 id="game">2. What the game is</h2>
 <p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of four heroes
@@ -555,7 +555,12 @@ Rampage), which wait for a fight that goes badly.</p>
 
 <h2 id="screen">5. The screen</h2>
 <p>The labyrinth is seen from the side, like an ant farm, with the party in the middle and the controls at
-the edges. The game's picture is 640 by 360 pixels, scaled up.</p>
+the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number with hard edges.</p>
+<p><strong>Two layers.</strong> Over the world sits a sharper <em>UI layer</em>, drawn in finer pixels
+(at least 960 by 540 of them, up to about 1280 by 720), with its own readable font: taller letters, real
+descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The old
+HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel, and
+help, the journal and the orders are the first panels moved onto the new layer, as windows.</p>
 
 <h3>Around the edges</h3>
 <div class="table-wrap">
@@ -564,7 +569,8 @@ the edges. The game's picture is 640 by 360 pixels, scaled up.</p>
   <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) over the stage in big numbers; <em>Safe 3</em>, the stage a wipe sends the party back to; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and a line for what the party is doing: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
-  <tr><td>Top right</td><td>Orders, speed, help, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
+  <tr><td>Top right</td><td>Speed, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
+  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders), lit while its window is open; rest the mouse on one for its name and key. The last button puts every window back in its place.</td></tr>
   <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
   <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
@@ -576,8 +582,8 @@ the edges. The game's picture is 640 by 360 pixels, scaled up.</p>
 <div class="table-wrap">
 <table>
   <tr><th>Key</th><th>Does</th></tr>
-  <tr><td><kbd>H</kbd></td><td>Show or hide the help panel (the <kbd>?</kbd> button does the same)</td></tr>
-  <tr><td><kbd>Esc</kbd></td><td>Close whatever panel is open</td></tr>
+  <tr><td><kbd>H</kbd></td><td>Open or close the help window (its button on the button bar does the same)</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Close the front window; with no window open, close whatever panel is open</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
   <tr><td><kbd>W</kbd></td><td>Open or close the area map (a click on the area's name does the same)</td></tr>
@@ -599,6 +605,22 @@ the edges. The game's picture is 640 by 360 pixels, scaled up.</p>
 </table>
 </div>
 <p>Rest the mouse on any part of the HUD for 0.4 seconds and a small box explains it in one sentence.</p>
+
+<h3>Windows</h3>
+<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>) and the party's orders (<kbd>O</kbd>) are windows on the
+UI layer. Each has a title bar with its name and a close button. Drag a window by its title bar to put it
+anywhere; it can hang off an edge, but its title bar always stays on screen, and if the game's window
+shrinks a window is moved wholly back on screen. Click anywhere on a window to bring it to the front.
+Any number can be open at once, and the game keeps running behind them; a click on a window never
+reaches the world or a window under it, and pointing at a window shows no hint for what is under it.
+<kbd>Esc</kbd> closes only the front window. The game remembers which windows are open and where each
+one you dragged is, in the settings file beside the sound setting (not in the save); a window you never
+moved sits in its usual place for the size the game's window has. Windows left open open again once the
+"While you were away" report has gone, and the last button on the button bar puts them all back where a
+new game has them.</p>
+<p>Until the other panels move onto the UI layer, the hero sheet, the shop, the tally, the area map and the
+away report still open on the old layer, under the windows. So when one of them opens, any window over it
+closes (it keeps its place; open it again with its key or button).</p>
 
 <h3>The area map (<kbd>W</kbd>)</h3>
 <p>A list of every area. Each row shows its monsters (point at one for its name), its guardian with a green
@@ -674,7 +696,8 @@ you watch, is never saved, and changes nothing about the game.</p>
 turning safe, a level up, a talent point gained, a path chosen, a wipe and what beat the party where, a
 guardian slain, an area opened, the first of each resource, an upgrade bought, a side quest done, passed
 or sprung, a microskill learned. The newest shows for 4 seconds in the ticker above the hero frames;
-<kbd>J</kbd> opens the last 12.</p>
+<kbd>J</kbd> opens the journal window: at least 20 lines in view, and the mouse wheel scrolls back
+through all 50.</p>
 
 <h3>After a defeat</h3>
 <p>When the party is wiped, a note above <code>WIPED</code> says what beat it and where (<em>Beaten by the
@@ -756,7 +779,8 @@ every status with the seconds left.</p>
 
 <h3>Help, speed and zoom</h3>
 <ul>
-  <li><strong>Help</strong> (<kbd>H</kbd> or the <kbd>?</kbd> button): the idea in five lines and every key.</li>
+  <li><strong>Help</strong> (<kbd>H</kbd> or its button on the button bar): the idea in five lines and
+  every key, in two columns.</li>
   <li><strong>Speed</strong> (<kbd>F</kbd>): 1x, 2x or 4x. It is the same game, only sooner; every session
   starts at 1x.</li>
   <li><strong>Zoom</strong> (<kbd>Z</kbd>): the labyrinth at twice the size, centred on the party; the HUD
@@ -828,7 +852,8 @@ bakes each into an image, and a lint refuses art that breaks the rules. Characte
 head, arm, weapon) that the game moves in code: they breathe, bob as they walk, draw back before they
 strike, flinch when hit, hop on a kill, cheer a won fight, make each ability's move and collapse when they
 die. Guardians are drawn 64x64, twice a hero's height. All
-text uses Colony's own pixel font, typed the same way. The 16 sound effects are baked from text recipes
+text uses Colony's own pixel fonts, typed the same way: the small one in the world's pixels, and a
+taller, more readable one (with a bold) on the UI layer. The 16 sound effects are baked from text recipes
 (<code>.sfx</code>). The rules are in
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>.
 All of it is placeholder: Zak makes the characters.</p>
@@ -859,14 +884,15 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
   <tr><td>Run the game with no window and print what happened as numbers</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code></td></tr>
-  <tr><td>Screenshot the running game into <code>.shots/</code></td><td><code>python tools/dev.py shot --name=look --seconds=5</code></td></tr>
+  <tr><td>Screenshot the running game into <code>.shots/</code>: the whole window, world and UI layer, at 1280x720</td><td><code>python tools/dev.py shot --name=look --seconds=5</code></td></tr>
+  <tr><td>The same, as a 1920x1080 window shows it (the UI's smallest room, 960x540)</td><td><code>python tools/dev.py shot --name=look --ui-room=960x540</code></td></tr>
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
   <tr><td>Bake the sound effects from their recipes</td><td><code>python tools/sfx.py bake</code></td></tr>
   <tr><td>Check the sounds</td><td><code>python tools/sfx.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
-  <tr><td>See the pixel font</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
+  <tr><td>See the fonts: the UI font, its bold and the old pixel font</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
 </table>
 </div>
 <h3>Options of the headless run</h3>
@@ -943,6 +969,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal and the orders so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on

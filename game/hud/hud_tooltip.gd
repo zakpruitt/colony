@@ -31,6 +31,8 @@ var _sentences: Array[Callable] = []
 var _mouse: Vector2 = NOWHERE
 var _hovered: int = -1
 var _rested: float = 0.0
+## The HUD, whose UI-layer windows hide what is under them from the mouse.
+var _hud: Hud
 
 
 func _init() -> void:
@@ -53,7 +55,11 @@ func _init() -> void:
 func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
-		point_at(motion.position)
+		# Under a window or the button bar of the UI layer (spec 058) is nowhere for the HUD.
+		var covered: bool = (
+			_hud != null and _hud.windows != null and _hud.windows.covers(motion.position)
+		)
+		point_at(NOWHERE if covered else motion.position)
 
 
 func _notification(what: int) -> void:
@@ -63,6 +69,7 @@ func _notification(what: int) -> void:
 
 ## Gives each of [param hud]'s elements its sentence. Call once, after the HUD has built them.
 func setup(hud: Hud) -> void:
+	_hud = hud
 	_tip([hud.depth_label, hud.depth_caption], "The stage the party is on now.")
 	_tip([hud.state_label], "What the party is doing right now, and why.")
 	_tip([hud.stable_label], "The last safe stage: a wipe sends the party back there.")
@@ -92,8 +99,6 @@ func setup(hud: Hud) -> void:
 	_tip([hud.speed_button], "How fast the game runs: click (or press F) for 1x, 2x or 4x.")
 	_tip([hud.gold_panel], "Gold from fights, to spend in the Shop.")
 	_tip([hud.boss_bar], "A guardian holds the way on: beat it to go further.")
-	if hud.help_button != null:
-		_tip([hud.help_button], "Help: what everything means, and the keys.")
 	for frame: HeroFrame in hud.frames:
 		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
 		_tip([frame], frame.tip)

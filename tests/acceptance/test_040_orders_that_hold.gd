@@ -19,6 +19,9 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## An orders panel on [member _sim], made on its own: spec 058 moved it from the HUD into a window
+## on the UI layer.
+var _orders: OrdersPanel
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -45,6 +48,10 @@ func _make_hud(sim: Simulation) -> void:
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
 	_hud.advance(0.0)
+	_orders = OrdersPanel.new()
+	add_child_autofree(_orders)
+	_orders.set_process(false)
+	_orders.setup(_sim, null)
 
 
 func _raise(sim: Simulation, level: int) -> void:
@@ -170,9 +177,10 @@ func _rests_after_fight(pace: Expedition.Pace, others: float, last: float) -> bo
 
 func _lit_choice(order: int) -> int:
 	var lit: int = -1
-	var buttons: Array = _hud.orders.choice_buttons[order]
+	_orders.advance(0.0)
+	var buttons: Array = _orders.choice_buttons[order]
 	for i: int in buttons.size():
-		var button: HudButton = buttons[i]
+		var button: UiButton = buttons[i]
 		if button.lit:
 			assert_eq(lit, -1, "one choice lit in row %d" % order)
 			lit = i
@@ -228,8 +236,7 @@ func test_r1_hold_on_the_ladder() -> void:
 
 func test_r2_panel_shows_the_simulation() -> void:
 	_make_hud(Simulation.new(SEED))
-	var orders: OrdersPanel = _hud.orders
-	orders.open()
+	var orders: OrdersPanel = _orders
 	# A click, then a different command before the step: the simulation ends on the command.
 	orders.choose(PartyOrders.PACE, Expedition.Pace.BOLD)
 	assert_eq(_lit_choice(PartyOrders.PACE), Expedition.Pace.BOLD, "Bold lit at once")
@@ -238,7 +245,11 @@ func test_r2_panel_shows_the_simulation() -> void:
 	_hud.advance(0.0)
 	assert_eq(_sim.expedition.pace, Expedition.Pace.CAUTIOUS, "the simulation holds Cautious")
 	assert_eq(_lit_choice(PartyOrders.PACE), Expedition.Pace.CAUTIOUS, "the panel lights it")
-	assert_eq(orders.line(PartyOrders.PACE), "Cautious: rest below 80% health", "and explains it")
+	assert_eq(
+		orders.line(PartyOrders.PACE),
+		OrdersPanel.LINES[PartyOrders.PACE][Expedition.Pace.CAUTIOUS],
+		"and explains it"
+	)
 
 	orders.choose(PartyOrders.GUARDIANS, HOLD)
 	_sim.set_guardian_order(CHALLENGE)
@@ -289,7 +300,7 @@ func test_r5_names_live_in_the_view() -> void:
 
 	_make_hud(Simulation.new(SEED))
 	var shown: Array[String] = []
-	for row: Array in _hud.orders.choice_buttons:
-		for button: HudButton in row:
+	for row: Array in _orders.choice_buttons:
+		for button: UiButton in row:
 			shown.append(button.text)
 	assert_eq(shown, PACE_TEXTS + GUARDIAN_TEXTS, "the panel's text is unchanged")

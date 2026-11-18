@@ -1,8 +1,9 @@
 extends GutTest
 ## Acceptance tests for specs/042-goals-you-can-click/spec.md, one per requirement.
 ##
-## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
-## _process turned off, puts the simulation in a situation by hand (as spec 037's tests do), and
+## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, and
+## the UI layer whose windows hold the orders (spec 058), every _process turned off, puts the
+## simulation in a situation by hand (as spec 037's tests do), and
 ## clicks the goals tracker's lines: through [method Goals.press] and through a mouse click pushed
 ## into the viewport at the line, as the window would send it.
 
@@ -17,6 +18,8 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## The UI layer, as Main has it: help, the journal and the orders are windows on it (spec 058).
+var _ui: UiRoot
 
 
 func before_each() -> void:
@@ -52,6 +55,9 @@ func _build_hud() -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	_ui = UiRoot.new()
+	add_child_autofree(_ui)
+	_ui.setup(_sim, _hud, null)
 
 
 func _level(hero: Hero, level: int) -> void:
@@ -164,9 +170,8 @@ func _click(index: int) -> void:
 func _close_all() -> void:
 	_hud.shop.close()
 	_hud.hero_sheet.close()
-	_hud.orders.close()
-	_hud.help.close()
-	_hud.journal.close()
+	for id: StringName in _ui.windows.ids():
+		_ui.windows.close_window(id)
 	if not _hud.ladder.is_shown():
 		_key(KEY_L)
 	_hud.advance(STEP)
@@ -179,11 +184,11 @@ func _open_panels() -> Array[String]:
 		open.append("shop")
 	if _hud.hero_sheet.is_open():
 		open.append("sheet %d" % _hud.hero_sheet.shown_hero_id())
-	if _hud.orders.is_open():
+	if _ui.windows.is_open(UiRoot.ORDERS):
 		open.append("orders")
-	if _hud.help.is_open():
+	if _ui.windows.is_open(UiRoot.HELP):
 		open.append("help")
-	if _hud.journal.is_open():
+	if _ui.windows.is_open(UiRoot.JOURNAL):
 		open.append("journal")
 	return open
 
@@ -264,7 +269,7 @@ func test_r1_click_a_goal() -> void:
 	for how: String in ["press", "mouse"]:
 		_close_all()
 		_do(how, guardian)
-		assert_true(_hud.orders.is_open(), "%s on the guardian opens the orders" % how)
+		assert_true(_ui.windows.is_open(UiRoot.ORDERS), "%s on the guardian opens the orders" % how)
 		assert_eq(_open_panels(), ["orders"] as Array[String], "%s: the orders only" % how)
 
 	# Reach depth N: the ladder shows if hidden, and rung N flashes for about a second.
@@ -455,9 +460,9 @@ func test_r4_nothing_else_changes() -> void:
 	# Opening from a goal leaves the same panels open as opening by its own button, from every
 	# panel that might be open before.
 	var openers: Dictionary[String, Callable] = {
-		"help": func() -> void: _hud.help.open(),
-		"journal": func() -> void: _hud.journal.open(),
-		"orders": func() -> void: _hud.orders_button.pressed.emit(),
+		"help": func() -> void: _ui.windows.open_window(UiRoot.HELP),
+		"journal": func() -> void: _ui.windows.open_window(UiRoot.JOURNAL),
+		"orders": func() -> void: _ui.bar.buttons[UiRoot.ORDERS].pressed.emit(),
 		"shop": func() -> void: _hud.shop_button.pressed.emit(),
 		"sheet": func() -> void: sheet.toggle(_sim.party.heroes[0].id),
 		"nothing": func() -> void: pass,
@@ -498,30 +503,34 @@ func test_r4_nothing_else_changes() -> void:
 		_close_all()
 		match before:
 			"help":
-				_hud.help.open()
+				_ui.windows.open_window(UiRoot.HELP)
 			"journal":
-				_hud.journal.open()
+				_ui.windows.open_window(UiRoot.JOURNAL)
 			"shop":
 				_hud.shop.open()
 		_hud.advance(STEP)
-		_hud.orders_button.pressed.emit()
+		_ui.bar.buttons[UiRoot.ORDERS].pressed.emit()
 		_hud.advance(STEP)
+		_ui.bar.refresh()
 		var expected: Array[String] = _open_panels()
-		var lit: bool = _hud.orders_button.lit
+		var lit: bool = _ui.bar.buttons[UiRoot.ORDERS].lit
 		_close_all()
 		match before:
 			"help":
-				_hud.help.open()
+				_ui.windows.open_window(UiRoot.HELP)
 			"journal":
-				_hud.journal.open()
+				_ui.windows.open_window(UiRoot.JOURNAL)
 			"shop":
 				_hud.shop.open()
 		_hud.advance(STEP)
 		if goals.is_shown():
 			goals.press(0)
 			_hud.advance(STEP)
+			_ui.bar.refresh()
 			assert_eq(_open_panels(), expected, "orders over %s: as its own button" % before)
-			assert_eq(_hud.orders_button.lit, lit, "orders over %s: its button lit" % before)
+			assert_eq(
+				_ui.bar.buttons[UiRoot.ORDERS].lit, lit, "orders over %s: its button lit" % before
+			)
 
 	# The tracker hides behind a left-side panel, as before, and comes back.
 	_close_all()

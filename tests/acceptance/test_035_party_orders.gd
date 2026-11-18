@@ -81,6 +81,10 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## The orders panel the tests look at: the main scene's Orders window's content (spec 058 moved
+## the panel onto the UI layer), or one made on its own over a loaded save.
+var _orders: OrdersPanel
+var _main: Main
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -90,6 +94,27 @@ func after_each() -> void:
 	_world = null
 	_fx = null
 	_hud = null
+	_orders = null
+	_main = null
+
+
+## Runs the main scene with its processing off, laid out for the smallest UI room, and points the
+## tests' simulation, world and HUD at its own.
+func _make_main() -> Main:
+	_main = MAIN_SCENE.instantiate()
+	add_child_autofree(_main)
+	_main.driver.set_process(false)
+	_main.world.set_process(false)
+	_main.effects.set_process(false)
+	_main.hud.set_process(false)
+	_main.ui.set_room_for_test(Vector2i(960, 540))
+	_sim = _main.simulation
+	_world = _main.world
+	_fx = _main.effects
+	_hud = _main.hud
+	_orders = _main.ui.windows.window(UiRoot.ORDERS).content as OrdersPanel
+	_hud.advance(0.0)
+	return _main
 
 
 func _make_hud(sim: Simulation) -> void:
@@ -579,133 +604,123 @@ func test_r6_they_do_what_they_say() -> void:
 
 func _lit_choice(order: int) -> int:
 	var lit: int = -1
-	var buttons: Array = _hud.orders.choice_buttons[order]
+	var buttons: Array = _orders.choice_buttons[order]
 	for i: int in buttons.size():
-		var button: HudButton = buttons[i]
+		var button: UiButton = buttons[i]
 		if button.lit:
 			assert_eq(lit, -1, "one choice lit in row %d" % order)
 			lit = i
 	return lit
 
 
+## Spec 058 R8 moved the panel into a window on the UI layer: opened by O, its button on the
+## button bar, closed by Esc when in front, and beside the other panels rather than instead of them.
 func test_r7_orders_panel() -> void:
-	_make_hud(Simulation.new(SEED))
-	var orders: OrdersPanel = _hud.orders
-	assert_not_null(orders, "the HUD has an orders panel")
-	assert_not_null(_hud.orders_button, "and an Orders button")
-	if orders == null or _hud.orders_button == null:
-		return
-	assert_eq(_hud.orders_button.text, "Orders")
-	assert_true(_hud.orders_button.is_visible_in_tree(), "on screen")
-	assert_lte(_hud.orders_button.get_global_rect().end.y, TOP_BAND, "in the top band")
-	assert_false(orders.is_open(), "closed at first")
-	_hud.orders_button.pressed.emit()
-	assert_true(orders.is_open(), "the button opens it")
+	_make_main()
+	var windows: UiWindows = _main.ui.windows
+	var orders: OrdersPanel = _orders
+	assert_not_null(orders, "the game has an orders window")
+	var button: UiButton = _main.ui.bar.buttons[UiRoot.ORDERS]
+	assert_true(button.is_visible_in_tree(), "and an Orders button on the bar")
+	assert_false(windows.is_open(UiRoot.ORDERS), "closed at first")
+	button.pressed.emit()
+	assert_true(windows.is_open(UiRoot.ORDERS), "the button opens it")
 	assert_true(orders.is_visible_in_tree(), "and it shows")
-	assert_true(_hud.orders_button.lit, "the button is lit while open")
-	_hud.orders_button.pressed.emit()
-	assert_false(orders.is_open(), "and closes it")
+	_main.ui.bar.refresh()
+	assert_true(button.lit, "the button is lit while open")
+	button.pressed.emit()
+	assert_false(windows.is_open(UiRoot.ORDERS), "and closes it")
 	_key(KEY_O)
-	assert_true(orders.is_open(), "O opens it")
+	assert_true(windows.is_open(UiRoot.ORDERS), "O opens it")
 	_key(KEY_O)
-	assert_false(orders.is_open(), "O closes it")
+	assert_false(windows.is_open(UiRoot.ORDERS), "O closes it")
 	_key(KEY_O)
 	_key(KEY_ESCAPE)
-	assert_false(orders.is_open(), "Esc closes it")
+	assert_false(windows.is_open(UiRoot.ORDERS), "Esc closes it")
 	_key(KEY_ESCAPE)
-	assert_false(orders.is_open(), "and does not open it")
+	assert_false(windows.is_open(UiRoot.ORDERS), "and does not open it")
 
 	# A row per order: its name, the current choice explained, a button per choice.
-	orders.open()
+	windows.open_window(UiRoot.ORDERS)
 	_hud.advance(0.0)
+	orders.advance(0.0)
 	assert_eq(orders.choice_buttons.size(), 2, "two rows")
 	assert_eq(orders.name_labels[0].text, "Pace", "the pace row")
 	assert_eq(orders.name_labels[1].text, "Guardians", "the guardian row")
 	var pace_texts: Array[String] = []
-	for button: HudButton in orders.choice_buttons[0]:
-		pace_texts.append(button.text)
+	for choice: UiButton in orders.choice_buttons[0]:
+		pace_texts.append(choice.text)
 	assert_eq(pace_texts, ["Cautious", "Steady", "Bold"] as Array[String], "the paces")
 	var guardian_texts: Array[String] = []
-	for button: HudButton in orders.choice_buttons[1]:
-		guardian_texts.append(button.text)
+	for choice: UiButton in orders.choice_buttons[1]:
+		guardian_texts.append(choice.text)
 	assert_eq(guardian_texts, ["Challenge", "Hold"] as Array[String], "the guardian orders")
-	assert_eq(orders.line(0), "Steady: rest below 60% health", "Steady explained")
-	assert_eq(orders.line(1), "Challenge: fight guardians to go further", "Challenge explained")
+	assert_eq(orders.line(0), OrdersPanel.LINES[0][STEADY], "Steady explained")
+	assert_string_contains(orders.line(0), "60% health", "Steady's threshold")
+	assert_eq(orders.line(1), OrdersPanel.LINES[1][CHALLENGE], "Challenge explained")
 	assert_eq(orders.line_labels[0].text, orders.line(0), "the line is shown")
 	assert_eq(_lit_choice(0), STEADY, "Steady lit")
 	assert_eq(_lit_choice(1), CHALLENGE, "Challenge lit")
 
 	# A click sends the command; the choice lights at once and the simulation follows.
-	(orders.choice_buttons[0][BOLD] as HudButton).pressed.emit()
+	(orders.choice_buttons[0][BOLD] as UiButton).pressed.emit()
 	assert_eq(_lit_choice(0), BOLD, "Bold lit at once")
-	assert_eq(orders.line(0), "Bold: rest only below 40% health", "Bold explained")
+	assert_string_contains(orders.line(0), "40% health", "Bold explained")
 	_tick()
 	assert_eq(_sim.expedition.pace, BOLD, "the command reached the simulation")
-	(orders.choice_buttons[1][HOLD] as HudButton).pressed.emit()
+	(orders.choice_buttons[1][HOLD] as UiButton).pressed.emit()
 	_tick()
+	orders.advance(0.0)
 	assert_eq(_sim.expedition.guardian_order, HOLD, "Hold reached the simulation")
 	assert_eq(_lit_choice(1), HOLD, "Hold lit")
-	assert_eq(orders.line(1), "Hold: do not fight guardians until told", "Hold explained")
+	assert_eq(orders.line(1), OrdersPanel.LINES[1][HOLD], "Hold explained")
 	orders.choose(0, CAUTIOUS)
 	_tick()
 	assert_eq(_sim.expedition.pace, CAUTIOUS, "choose sends it too")
-	assert_eq(orders.line(0), "Cautious: rest below 80% health", "Cautious explained")
+	assert_string_contains(orders.line(0), "80% health", "Cautious explained")
 	# It follows the simulation, not its own memory.
 	_sim.set_pace(STEADY)
 	_tick()
+	orders.advance(0.0)
 	assert_eq(_lit_choice(0), STEADY, "follows the simulation")
 
 	# A loaded save shows the saved orders.
 	_sim.set_pace(BOLD)
 	_tick()
 	var loaded: Simulation = Simulation.from_save(_through_json(_sim.to_save()))
-	_make_hud(loaded)
-	_hud.orders.open()
-	_hud.advance(0.0)
+	var loaded_orders := OrdersPanel.new()
+	add_child_autofree(loaded_orders)
+	loaded_orders.setup(loaded, null)
+	_orders = loaded_orders
 	assert_eq(_lit_choice(0), BOLD, "a loaded save: Bold lit")
 	assert_eq(_lit_choice(1), HOLD, "and Hold")
-	assert_eq(_hud.orders.line(0), "Bold: rest only below 40% health")
+	assert_eq(loaded_orders.line(0), OrdersPanel.LINES[0][BOLD])
+	_orders = orders
 
-	# The panels exclude one another.
-	orders = _hud.orders
+	# The orders stay open beside the other panels and windows.
 	var others: Dictionary = {
 		"the shop": [KEY_U, _hud.shop.is_open],
 		"the hero sheet": [KEY_TAB, _hud.hero_sheet.is_open],
-		"the journal": [KEY_J, _hud.journal.is_open],
-		"help": [KEY_H, _hud.help.is_open],
+		"the journal": [KEY_J, windows.is_open.bind(UiRoot.JOURNAL)],
+		"help": [KEY_H, windows.is_open.bind(UiRoot.HELP)],
 	}
 	for what: String in others:
 		var keycode: Key = others[what][0]
 		var other_open: Callable = others[what][1]
-		orders.close()
 		_key(keycode)
 		_hud.advance(0.0)
 		var was_open: bool = other_open.call()
-		assert_true(was_open, "%s is open" % what)
-		_key(KEY_O)
-		_hud.advance(0.0)
-		assert_true(orders.is_open(), "orders open over %s" % what)
-		var still_open: bool = other_open.call()
-		assert_false(still_open, "and close %s" % what)
-		_key(keycode)
-		_hud.advance(0.0)
-		var reopened: bool = other_open.call()
-		assert_true(reopened, "%s opens" % what)
-		assert_false(orders.is_open(), "and orders close for %s" % what)
+		assert_true(was_open, "%s opens" % what)
+		assert_true(windows.is_open(UiRoot.ORDERS), "beside the orders: %s" % what)
 	_hud.hero_sheet.close()
-	_hud.help.close()
 	_hud.shop.close()
-	_hud.journal.close()
 
 	# The game goes on behind it.
-	var main: Main = MAIN_SCENE.instantiate()
-	add_child_autofree(main)
-	main.hud.orders.open()
-	main.driver.advance(1_000_000)
-	var tick: int = main.simulation.tick
-	main.driver.advance(2_000_000)
-	assert_true(main.hud.orders.is_open(), "orders are open")
-	assert_gt(main.simulation.tick, tick, "and the game runs behind them")
+	_main.driver.advance(1_000_000)
+	var tick: int = _sim.tick
+	_main.driver.advance(2_000_000)
+	assert_true(windows.is_open(UiRoot.ORDERS), "orders are open")
+	assert_gt(_sim.tick, tick, "and the game runs behind them")
 
 
 # --- R8 ------------------------------------------------------------------------
@@ -786,142 +801,105 @@ func _frames_top() -> float:
 	return top
 
 
-## Rests the mouse on [param control] and returns the tooltip's sentence, checking it is one plain
-## sentence in a box on the screen, clear of the control.
-func _check_tip(what: String, control: Control) -> String:
-	var tooltip: HudTooltip = _hud.tooltip
-	var rect: Rect2 = control.get_global_rect()
-	_mouse(Vector2(SCREEN.x / 2.0, 300))
-	_hud.advance(1.0)
-	_mouse(rect.get_center())
-	_hud.advance(0.2)
-	_hud.advance(0.15)
-	assert_eq(tooltip.shown_text(), "", "%s: nothing before 0.4 s" % what)
-	_hud.advance(0.06)
-	var text: String = tooltip.shown_text()
-	assert_ne(text, "", "%s: a sentence after 0.4 s" % what)
-	assert_true(text.ends_with("."), "%s: one sentence: %s" % [what, text])
+## The tooltip sentence [param control] has on the UI layer, checking it is one plain sentence.
+func _check_tip(what: String, tip: UiTip, control: Control) -> String:
+	var text: String = tip.text_for(control)
+	assert_ne(text, "", "%s: a sentence" % what)
+	assert_true(text.ends_with(".") or text.ends_with(")"), "%s: one sentence: %s" % [what, text])
 	assert_false(text.trim_suffix(".").contains(". "), "%s: only one: %s" % [what, text])
-	var box: Rect2 = tooltip.box.get_global_rect()
-	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(box), "%s: on the screen %s" % [what, box])
-	assert_false(box.intersects(rect), "%s: clear of the element %s %s" % [what, box, rect])
-	_mouse(Vector2(SCREEN.x / 2.0, 300))
-	_hud.advance(0.016)
 	return text
 
 
 func test_r9_explains_itself() -> void:
-	_make_hud(Simulation.new(SEED))
+	_make_main()
 	var seen: Dictionary[String, String] = {}
-	var button_text: String = _check_tip("the Orders button", _hud.orders_button)
+	var bar: UiButtonBar = _main.ui.bar
+	var button_text: String = _check_tip("the Orders button", bar.tip, bar.buttons[UiRoot.ORDERS])
 	assert_string_contains(button_text.to_lower(), "orders", "the button's tip names orders")
 	seen[button_text] = "the Orders button"
-	_hud.orders.open()
-	_hud.advance(0.0)
-	for order: int in _hud.orders.choice_buttons.size():
-		for button: HudButton in _hud.orders.choice_buttons[order]:
-			var what: String = "the %s choice" % button.text
-			var text: String = _check_tip(what, button)
+	var tips: UiTip = null
+	for child: Node in _main.ui.frame.get_children():
+		if child is UiTip and child != bar.tip:
+			tips = child as UiTip
+	assert_not_null(tips, "the orders have a tooltip")
+	for order: int in _orders.choice_buttons.size():
+		for choice: UiButton in _orders.choice_buttons[order]:
+			var what: String = "the %s choice" % choice.text
+			var text: String = _check_tip(what, tips, choice)
+			assert_true(text.ends_with("."), "%s: a sentence" % what)
 			assert_false(seen.has(text), "%s says what %s says" % [what, seen.get(text, "")])
 			seen[text] = what
-	_hud.orders.close()
 
-	# O is in the help panel's key list, and the panel still fits.
+	# O is in the help window's key list.
+	var help: HelpPanel = _main.ui.windows.window(UiRoot.HELP).content as HelpPanel
 	var listed: bool = false
 	for entry: Array in HelpPanel.KEYS:
 		if HelpPanel.keycodes(str(entry[0])).has(KEY_O):
 			listed = true
-			assert_has(_hud.help.lines(), "%s  %s" % [entry[0], entry[1]], "the panel lists O")
+			assert_has(help.lines(), "%s  %s" % [entry[0], entry[1]], "the panel lists O")
 	assert_true(listed, "O is in the key list")
-	_hud.help.open()
-	_hud.advance(0.0)
-	var rect: Rect2 = _hud.help.get_global_rect()
-	assert_gte(rect.position.y, TOP_BAND, "help below the top band %s" % rect)
-	assert_lte(rect.end.y, _frames_top(), "help above the party frames %s" % rect)
-	var labels: Array[Label] = []
-	_collect_labels(_hud.help, labels)
-	for label: Label in labels:
-		if label.is_visible_in_tree():
-			assert_true(rect.encloses(label.get_global_rect()), "%s inside help" % label.text)
 
 
 # --- R10 -----------------------------------------------------------------------
 
 
-## Checks the Orders button and the open panel against everything they must stay clear of.
+## Checks the open Orders window against everything it must stay clear of (spec 058: in UI
+## pixels, inside the smallest room, above the hero frames and clear of the top band).
 func _check_fits(what: String) -> void:
 	_hud.advance(0.0)
-	var screen := Rect2(Vector2.ZERO, SCREEN)
-	var button: Rect2 = _hud.orders_button.get_global_rect()
-	assert_true(screen.encloses(button), "%s: the button on screen %s" % [what, button])
-	assert_lte(button.end.y, TOP_BAND, "%s: the button in the top band" % what)
-	var band: Dictionary = {
-		"the depth panel": _hud.depth_panel,
-		"the gold": _hud.gold_panel,
-		"the Shop button": _hud.shop_button,
-		"the speed button": _hud.speed_button,
-		"the ? button": _hud.help_button,
-		"the shop marker": _hud.shop_marker,
-	}
-	for part: String in band:
-		var control: Control = band[part]
-		if control.is_visible_in_tree():
-			var rect: Rect2 = control.get_global_rect()
-			assert_false(button.intersects(rect), "%s: button clear of %s %s" % [what, part, rect])
-	if _hud.boss_bar.is_showing():
-		var bar: Rect2 = _hud.boss_bar.get_global_rect()
-		assert_false(button.intersects(bar), "%s: button clear of the boss bar %s" % [what, bar])
-	assert_true(
-		(
-			_hud.shop_tab.get_global_rect().encloses(button)
-			or _hud.depth_panel.get_global_rect().encloses(button)
-		),
-		"%s: the button sits on a top panel" % what
+	var ui: UiRoot = _main.ui
+	ui.windows.open_window(UiRoot.ORDERS)
+	ui.windows.window(UiRoot.ORDERS).place_at(
+		ui.windows.window(UiRoot.ORDERS).default_place, Vector2(ui.room())
 	)
-	_hud.orders.open()
-	_hud.advance(0.0)
-	var panel: Rect2 = _hud.orders.get_global_rect()
-	assert_true(screen.encloses(panel), "%s: the panel on screen %s" % [what, panel])
-	assert_gte(panel.position.y, TOP_BAND, "%s: the panel below the top band %s" % [what, panel])
-	assert_lte(panel.end.y, _frames_top(), "%s: the panel above the frames %s" % [what, panel])
-	for frame: HeroFrame in _hud.frames:
-		assert_false(panel.intersects(frame.get_global_rect()), "%s: off the frames" % what)
+	_orders.advance(0.0)
+	await get_tree().process_frame
+	var room := Rect2(Vector2.ZERO, Vector2(ui.room()))
+	var panel: Rect2 = ui.windows.window(UiRoot.ORDERS).get_global_rect()
+	var top_band: float = ui.world_to_ui(Vector2(0, TOP_BAND)).y
+	assert_true(room.encloses(panel), "%s: the window on screen %s" % [what, panel])
+	assert_gte(panel.position.y, top_band, "%s: below the top band %s" % [what, panel])
+	assert_lte(
+		panel.end.y,
+		ui.world_to_ui(Vector2(0, _frames_top())).y,
+		"%s: above the frames %s" % [what, panel]
+	)
 	if _hud.boss_bar.is_showing():
-		assert_false(
-			panel.intersects(_hud.boss_bar.get_global_rect()), "%s: off the boss bar" % what
-		)
-	if _hud.ladder.is_visible_in_tree():
-		var ladder: Rect2 = _hud.ladder.get_global_rect()
-		assert_false(panel.intersects(ladder), "%s: off the depth ladder %s" % [what, ladder])
+		var boss: Rect2 = _hud.boss_bar.get_global_rect()
+		var boss_ui := Rect2(ui.world_to_ui(boss.position), boss.size * ui.world_to_ui(Vector2.ONE))
+		assert_false(panel.intersects(boss_ui), "%s: off the boss bar" % what)
 	var labels: Array[Label] = []
-	_collect_labels(_hud.orders, labels)
+	_collect_labels(_orders, labels)
 	var shown: Array[Control] = []
 	for label: Label in labels:
-		if label.is_visible_in_tree() and not label.text.is_empty():
+		if (
+			label.is_visible_in_tree()
+			and not label.text.is_empty()
+			and label.get_parent() is not UiButton
+		):
 			shown.append(label)
-	for row: Array in _hud.orders.choice_buttons:
-		for choice: HudButton in row:
+	for row: Array in _orders.choice_buttons:
+		for choice: UiButton in row:
 			shown.append(choice)
 	for control: Control in shown:
 		var rect: Rect2 = control.get_global_rect()
-		assert_true(panel.encloses(rect), "%s: %s inside the panel" % [what, control.name])
+		assert_true(panel.encloses(rect), "%s: %s inside the window" % [what, control.name])
 		for other: Control in shown:
 			if other != control and other.get_global_rect().intersects(rect):
 				fail_test("%s: %s overlaps %s" % [what, control.name, other.name])
-	_hud.orders.close()
 
 
 func test_r10_it_fits() -> void:
-	_make_hud(Simulation.new(SEED))
-	_check_fits("at the start")
+	_make_main()
+	await _check_fits("at the start")
 	_sim.party.gold = 9_999_999
 	_hud.advance(Hud.GOLD_CATCH_UP_SECONDS + 0.1)
-	_check_fits("with a lot of gold")
-	_hud.orders.choose(0, BOLD)
-	_hud.orders.choose(1, HOLD)
+	await _check_fits("with a lot of gold")
+	_orders.choose(0, BOLD)
+	_orders.choose(1, HOLD)
 	_tick()
-	_check_fits("with the longest lines")
-	_hud.orders.choose(1, CHALLENGE)
+	await _check_fits("with the longest lines")
+	_orders.choose(1, CHALLENGE)
 	_raise(_sim, STRONG_LEVEL)
 	_before_guardian(_sim, GUARDIAN_DEPTH)
 	var fighting: bool = false
@@ -931,4 +909,4 @@ func test_r10_it_fits() -> void:
 			fighting = true
 			break
 	assert_true(fighting, "a guardian fight")
-	_check_fits("in a guardian fight")
+	await _check_fits("in a guardian fight")

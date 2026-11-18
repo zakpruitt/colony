@@ -894,7 +894,8 @@ func test_r11_it_fits_and_is_explained() -> void:
 		keys.append(str(entry[1]))
 	for text: String in keys:
 		assert_false(text.contains("Training"), "no Training tab in help: %s" % text)
-	assert_has(keys, "On a hero's Talents tab: put a paragon point into that stat", "Talents")
+	# Spec 058 shortened the row to fit the help window's column on one line.
+	assert_has(keys, "Talents tab: a paragon point to that stat", "Talents")
 
 
 # --- R12 -----------------------------------------------------------------------

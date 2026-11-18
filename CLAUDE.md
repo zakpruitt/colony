@@ -54,6 +54,9 @@ incomplete, stop and report the question.
   (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
 - **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
   in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
+- **Two layers on screen** (`docs/architecture.md`, spec 058). The world and the old HUD draw at 640x360 in
+  `Main.world_viewport`; windows and new UI go on `UiRoot` (`Main.ui`) in UI pixels, themed by `UiTheme`, text
+  by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
 - **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
   few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
   `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.
@@ -80,14 +83,15 @@ incomplete, stop and report the question.
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
 | Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents]` |
 | Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=95` |
-| Screenshot the running game | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…]` → `.shots/<n>.png` |
+| Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 
 ## Looking at the game
 
 Tests cannot tell you whether something looks right. If your change affects what is on screen, run
 `python tools/dev.py shot --name=<what> --seconds=<enough to see it>` and open the PNG with the Read tool. It
-runs the main scene in a real window for a few seconds (headless Godot draws nothing) and saves the game's own
-640x360 picture. Use `--count`
+runs the main scene in a real window for a few seconds (headless Godot draws nothing) and saves the whole
+composed window, the world and the sharp UI layer over it (spec 058), at 1280x720; `--ui-room=960x540` saves
+it as a 1920x1080 window shows it, the UI's smallest room. Check UI work at both. Use `--count`
 for a sequence when motion matters, and `--scene=res://…` to run a scene other than the main one. Look before you call visual work done, and say what you saw in your report.
 A plain grey shot means the scene's script did not load (a typing warning is an error, and `shot` does not
 print it): run `python tools/dev.py check --only=compile` on it. A throwaway scene for a shot must not be

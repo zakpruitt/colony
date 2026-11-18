@@ -428,20 +428,15 @@ func test_r5_out_of_the_way() -> void:
 
 	_assert_out_of_the_way("after the wipe")
 
-	# Hidden while each panel is open.
+	# Hidden while each panel is open. (Help, the journal and the orders are windows on the UI
+	# layer since spec 058: they float over the note and do not hide it.)
 	var panels: Dictionary[String, Callable] = {
 		"shop": _hud.shop.open,
 		"hero sheet": _hud.hero_sheet.open.bind(_sim.party.heroes[0].id),
-		"journal": _hud.journal.open,
-		"help": _hud.help.open,
-		"orders": _hud.orders.open,
 	}
 	var closes: Dictionary[String, Callable] = {
 		"shop": _hud.shop.close,
 		"hero sheet": _hud.hero_sheet.close,
-		"journal": _hud.journal.close,
-		"help": _hud.help.close,
-		"orders": _hud.orders.close,
 	}
 	for panel: String in panels:
 		panels[panel].call()

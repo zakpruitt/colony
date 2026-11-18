@@ -13,8 +13,8 @@ extends Control
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
 ## HUD is made: after time away the HUD is made only once the replay is over (spec 019), so the
 ## time away adds nothing. [kbd]T[/kbd] or the HUD's button opens and closes it, [kbd]Esc[/kbd]
-## closes it; opening it closes the shop, the hero sheet, the journal, help, the orders and the
-## away report, and it closes itself when one of those opens ([method advance]). It never pauses
+## closes it; opening it closes the shop, the hero sheet and the away report, and it closes itself
+## when one of those opens ([method advance]). It never pauses
 ## the game and changes nothing in the simulation. Drawn as a [HudPanel] is.
 ##
 ## Spec 056 R6: clicking a hero's line opens it: the other heroes' lines make way for two columns,
@@ -217,8 +217,8 @@ func advance(delta: float) -> void:
 	queue_redraw()
 
 
-## Shows the panel, closing the shop, the hero sheet, the journal, help, the orders and the "While
-## you were away" panel if any is up.
+## Shows the panel, closing the shop, the hero sheet and the "While you were away" panel if any
+## is up.
 func open() -> void:
 	var hud: Hud = get_parent() as Hud
 	if hud != null:
@@ -226,12 +226,6 @@ func open() -> void:
 			hud.shop.close()
 		if hud.hero_sheet != null:
 			hud.hero_sheet.close()
-		if hud.journal != null:
-			hud.journal.close()
-		if hud.help != null:
-			hud.help.close()
-		if hud.orders != null:
-			hud.orders.close()
 		var layer: Node = hud.get_parent()
 		if layer != null:
 			for child: Node in layer.get_children():
@@ -665,10 +659,7 @@ func _another_is_open() -> bool:
 		return false
 	var shop: bool = hud.shop != null and hud.shop.is_open()
 	var sheet: bool = hud.hero_sheet != null and hud.hero_sheet.is_open()
-	var journal: bool = hud.journal != null and hud.journal.is_open()
-	var help: bool = hud.help != null and hud.help.is_open()
-	var orders: bool = hud.orders != null and hud.orders.is_open()
-	return shop or sheet or journal or help or orders
+	return shop or sheet
 
 
 func _label(text: String, colour: StringName, at: Vector2) -> Label:

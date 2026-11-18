@@ -7,7 +7,10 @@
     python tools/dev.py format           rewrite scripts with gdformat
     python tools/dev.py import           rebuild Godot's import cache
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
-                                         run the game in a window, save PNGs to .shots/
+                             [--ui-room=WxH]
+                                         run the game in a window, save PNGs to .shots/:
+                                         the whole window, 1280x720 (--ui-room=960x540:
+                                         as a 1920x1080 window shows it)
     python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
                             [--buy-upgrades] [--timeline] [--spend-talents]
                                          run the simulation headless, print a JSON summary
@@ -325,8 +328,34 @@ def command_import(_args: argparse.Namespace) -> int:
     return 0
 
 
+# The world's own size, and the least room the UI layer is given (game/ui/ui_root.gd, spec 058).
+WORLD_SIZE = (640, 360)
+MIN_ROOM = (960, 540)
+
+
+def ui_room_for(window: tuple[int, int]) -> tuple[int, int]:
+    """The UI layer's room in a window of this size, as UiRoot.room_for works it out."""
+    world = max(1, min(window[0] // WORLD_SIZE[0], window[1] // WORLD_SIZE[1]))
+    shown = (WORLD_SIZE[0] * world, WORLD_SIZE[1] * world)
+    ui = max(1, min(shown[0] // MIN_ROOM[0], shown[1] // MIN_ROOM[1]))
+    return (shown[0] // ui, shown[1] // ui)
+
+
+def shot_window(ui_room: str) -> tuple[int, int]:
+    """The smallest window whose UI room is `ui_room` ("960x540" is a 1920x1080 window)."""
+    match = re.fullmatch(r"(\d+)x(\d+)", ui_room.strip())
+    if not match:
+        raise StepFailed(f"--ui-room wants WIDTHxHEIGHT, not {ui_room!r}")
+    room = (int(match.group(1)), int(match.group(2)))
+    for times in range(1, 5):
+        window = (room[0] * times, room[1] * times)
+        if ui_room_for(window) == room:
+            return window
+    raise StepFailed(f"no window gives the UI a room of {ui_room}")
+
+
 def command_shot(args: argparse.Namespace) -> int:
-    """Run the game in a real window (not headless) and save screenshots."""
+    """Run the game in a real window (not headless) and save screenshots of the whole window."""
     folder = ROOT / ".shots"
     folder.mkdir(exist_ok=True)
     # Keeps Godot from importing the screenshots as game assets.
@@ -346,6 +375,8 @@ def command_shot(args: argparse.Namespace) -> int:
     if args.scene:
         command.append(f"--scene={args.scene}")
     try:
+        window = shot_window(args.ui_room)
+        command.append(f"--window={window[0]}x{window[1]}")
         code, output = run(command, timeout=int(args.seconds * args.count) + 60)
     except StepFailed as failure:
         print(failure)
@@ -388,7 +419,8 @@ def command_sim(args: argparse.Namespace) -> int:
     return 0
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
+    """The command line: a sub-command per thing dev.py does."""
     parser = argparse.ArgumentParser(description="Colony checks and dev commands.")
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -412,6 +444,11 @@ def main() -> int:
     shot.add_argument("--seconds", type=float, default=2.0, help="run time before each shot")
     shot.add_argument("--count", type=int, default=1, help="number of shots")
     shot.add_argument("--scene", help="res:// scene to run instead of the main scene")
+    shot.add_argument(
+        "--ui-room",
+        default="1280x720",
+        help="the UI layer's room: 1280x720 (a 1280x720 window) or 960x540 (1920x1080)",
+    )
     shot.set_defaults(handler=command_shot)
 
     sim = commands.add_parser("sim", help="run the simulation headless and print a JSON summary")
@@ -439,6 +476,11 @@ def main() -> int:
         help="send the party to this area (an id, e.g. claypits) at the start, opening it",
     )
     sim.set_defaults(handler=command_sim)
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
 
     # Godot's output can hold characters a Windows console cannot encode.
     for stream in (sys.stdout, sys.stderr):

@@ -441,22 +441,19 @@ func test_r3_journal() -> void:
 	assert_eq(journal.lines()[0], "0:11  Knight reached level 9", "an old event is written")
 	assert_eq(journal.ticker_text(), "", "but not shown")
 
-	# J opens and closes the panel of the last 12, newest at the top.
+	# The journal keeps the last 50, newest at the top. (Spec 058 moved its panel to a window on
+	# the UI layer, which shows them all; J opening and closing it is tested there, in R8.)
 	for level: int in range(10, 70):
 		_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, level)
 	assert_eq(journal.lines().size(), 50, "at most 50 lines are kept")
 	assert_eq(journal.lines()[0], "0:12  Knight reached level 69", "newest first")
 	assert_eq(journal.lines()[49], "0:12  Knight reached level 20", "the oldest kept")
-	assert_false(journal.is_open(), "closed at first")
-	_key(KEY_J)
-	assert_true(journal.is_open(), "J opens it")
-	assert_true(journal.panel.is_visible_in_tree(), "on screen")
-	var shown: Array[String] = journal.shown_lines()
-	assert_eq(shown.size(), 12, "the last 12 lines")
-	assert_eq(shown, journal.lines().slice(0, 12), "newest at the top")
-	_key(KEY_J)
-	assert_false(journal.is_open(), "J closes it")
-	assert_false(journal.panel.is_visible_in_tree(), "off screen")
+	var view := JournalView.new()
+	add_child_autofree(view)
+	view.setup(journal)
+	assert_eq(
+		view.shown_lines(), journal.lines(), "the journal window shows them, newest at the top"
+	)
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -546,10 +543,8 @@ func test_r6_it_fits() -> void:
 	for level: int in 20:
 		_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, level + 2)
 	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
-	journal.open()
 	_hud.advance(0.0)
 	assert_true(journal.ticker.visible, "the ticker shows")
-	assert_true(journal.is_open(), "the journal shows")
 
 	var frames: Dictionary = {}
 	for frame: HeroFrame in _hud.frames:
@@ -562,45 +557,26 @@ func test_r6_it_fits() -> void:
 	var depth: Rect2 = _hud.depth_panel.get_global_rect()
 	var shop: Rect2 = _hud.shop.get_global_rect()
 	var ticker: Rect2 = journal.ticker.get_global_rect()
-	var panel: Rect2 = journal.panel.get_global_rect()
 	var bar: Rect2 = _hud.stable_bar.get_global_rect()
-	for rect: Rect2 in [ticker, panel]:
-		_clear_of(rect, frames, "ticker or journal")
-		_clear_of(rect, top, "ticker or journal")
-		_clear_of(rect, {"depth panel": depth, "shop": shop}, "ticker or journal")
+	_clear_of(ticker, frames, "ticker")
+	_clear_of(ticker, top, "ticker")
+	_clear_of(ticker, {"depth panel": depth, "shop": shop}, "ticker")
 	_clear_of(bar, frames, "stable bar")
 	_clear_of(bar, top, "stable bar")
 	_clear_of(bar, {"shop": shop}, "stable bar")
 	assert_true(depth.encloses(bar), "the stable bar is in the depth panel")
-	assert_false(ticker.intersects(panel), "the ticker and the journal apart")
-	for rect: Rect2 in [ticker, panel, bar]:
+	for rect: Rect2 in [ticker, bar]:
 		assert_true(Rect2(Vector2.ZERO, Hud.SCREEN).encloses(rect), "on the screen")
-
-	# Opening the shop closes the journal.
-	_key(KEY_U)
-	_hud.advance(0.0)
-	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_false(journal.is_open(), "which closes the journal")
-
-	# The hero sheet (spec 026) drops into the same place: opening it closes the journal, and
-	# opening the journal closes it.
-	_hud.shop.close()
-	journal.open()
-	_hud.hero_sheet.open(KNIGHT)
-	_hud.advance(0.0)
-	assert_false(journal.is_open(), "opening a hero sheet closes the journal")
-	journal.open()
-	_hud.advance(0.0)
-	assert_false(_hud.hero_sheet.is_open(), "opening the journal closes the sheet")
-	assert_true(journal.is_open())
+	# (Spec 058: the journal is a window on the UI layer now, which floats over the HUD and the
+	# shop and hero sheet beside it; where windows go is tested there.)
 
 	# The game goes on with the journal open.
 	var main: Main = _start_main()
-	main.hud.journal.open()
+	main.ui.windows.open_window(UiRoot.JOURNAL)
 	main.driver.advance(0)
 	var before: int = main.simulation.tick
 	main.driver.advance(2_000_000)
-	assert_true(main.hud.journal.is_open(), "the journal is open")
+	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "the journal is open")
 	assert_gt(main.simulation.tick, before, "and the ticks go on")
 
 
@@ -610,10 +586,10 @@ func test_r6_it_fits() -> void:
 func test_r7_keys() -> void:
 	var main: Main = _start_main()
 	var sim: Simulation = main.simulation
-	var journal: Journal = main.hud.journal
+	var windows: UiWindows = main.ui.windows
 	main.hud.advance(0.0)
 	_key(KEY_J)
-	assert_true(journal.is_open(), "J opens the journal")
+	assert_true(windows.is_open(UiRoot.JOURNAL), "J opens the journal")
 
 	var target: int = sim.expedition.target_depth
 	_key(KEY_EQUAL)
@@ -631,14 +607,14 @@ func test_r7_keys() -> void:
 	var muted: bool = main.sound.is_muted()
 	_key(KEY_M)
 	assert_ne(main.sound.is_muted(), muted, "M mutes")
-	assert_true(journal.is_open(), "the journal stays open through them all")
+	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal stays open through them all")
 	_key(KEY_ESCAPE)
-	assert_false(journal.is_open(), "Esc closes it")
+	assert_false(windows.is_open(UiRoot.JOURNAL), "Esc closes it")
 	main.hud.hero_sheet.open(KNIGHT)
 	_key(KEY_ESCAPE)
 	assert_false(main.hud.hero_sheet.is_open(), "Esc closes a hero sheet too")
 	_key(KEY_J)
-	assert_true(journal.is_open())
+	assert_true(windows.is_open(UiRoot.JOURNAL))
 	_key(KEY_U)
 	main.hud.advance(0.0)
 	assert_true(main.hud.shop.is_open(), "U opens the shop")

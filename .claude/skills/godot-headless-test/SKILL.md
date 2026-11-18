@@ -62,7 +62,16 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `_gui_input` and its hover, but only if the HUD is on a `CanvasLayer` above GUT's own window (layer 128,
   whose panel otherwise takes every click) and not on the root canvas (where the world's camera moves it away
   from its screen rect). Spec 042's test builds the HUD in a `CanvasLayer` with `layer = 129`; move the mouse
-  away in `after_each`, since the viewport remembers where it was.
+  away in `after_each`, since the viewport remembers where it was. A test that clicks a whole `Main` raises
+  its layers the same way (`main.hud_layer.layer = 129`, `main.ui.layer = 130`, spec 058's `_main`).
+- A click on the UI layer (spec 058) is pushed at world coordinates: the root viewport thinks in 640x360
+  whatever the window's size. Turn a point on a window into one with `main.ui.ui_to_world(point)`, and lay the
+  layer out for the room under test with `main.ui.set_room_for_test(Vector2i(960, 540))` first (the headless
+  window is too small to give it a real room).
+- A `CanvasLayer` that draws into another viewport (`custom_viewport`) must be given it before it enters the
+  tree (`Main` does it on `NOTIFICATION_SCENE_INSTANTIATED`). Set in `_ready`, freeing the scene prints
+  `Attempt to disconnect a nonexistent connection ... canvas_parent_mark_dirty`, which fails every test that
+  frees a `Main` (spec 058).
 - Gold set directly (`sim.party.gold = 10_000`) is counted up on the HUD like coins, after
   `Hud.GOLD_CATCH_UP_SECONDS`. A test of "the gold count drops at once" must let the count catch up first
   (`hud.advance(Hud.GOLD_CATCH_UP_SECONDS + 0.1)`), or the count is still below the gold and has nothing to
