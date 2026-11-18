@@ -106,11 +106,27 @@
 <main>
 
 <h1>Colony Wiki</h1>
-<p class="lede">How the game works, how the code is put together, and the commands to run it.
-Things marked <span class="tag built">Built</span> work today;
-<span class="tag planned">Planned</span> is designed but not yet in the game.</p>
+<p class="lede">How the game plays, what is on the screen, how the code is put together, and the commands to
+run it. Everything here works today on the <code>dev</code> branch unless it is marked
+<span class="tag planned">Planned</span>.</p>
 
-<h2 id="now">Where we are (17 November 2026, evening): areas and skill trees to check in on</h2>
+<nav>
+  <ol start="0">
+    <li><a href="#now">Where we are</a></li>
+    <li><a href="#run">Run the game</a></li>
+    <li><a href="#game">What the game is</a></li>
+    <li><a href="#loop">How the game plays</a></li>
+    <li><a href="#heroes">Heroes, talents and paragon</a></li>
+    <li><a href="#screen">The screen</a></li>
+    <li><a href="#code">How the code works</a></li>
+    <li><a href="#commands">Dev commands</a></li>
+    <li><a href="#folders">Where things live</a></li>
+    <li><a href="#process">How work gets done</a></li>
+    <li><a href="#status">Status</a></li>
+  </ol>
+</nav>
+
+<h2 id="now">0. Where we are (17 November 2026): areas and skill trees to check in on</h2>
 <div class="note">
   <p><strong>In one line:</strong> after Zak played the demo he asked for areas to choose between instead of
   one descent, and a skill tree of real abilities for every hero. That is now on <code>dev</code>: eight
@@ -119,13 +135,18 @@ Things marked <span class="tag built">Built</span> work today;
   <code>main</code>. Every spec after 001 is <em>provisional</em> until Zak has played it. The direction is
   in <code>docs/design/world.md</code>, "Areas and skill trees".</p>
 </div>
+
 <h3>Play it</h3>
-<p>From the project folder, on the <code>dev</code> branch: <code>git pull</code>, then
-<code>python tools/dev.py import</code> once (new scripts need it), then <code>godot --path .</code>. For a
-fresh start, first delete <code>colony.save</code>, <code>colony.save.bak</code> and
-<code>colony.settings</code> in <code>%APPDATA%\Godot\app_userdata\Colony</code>. An old save loads
-too: it starts in Mossy Hollow at the stage its depth was, gold spent on training comes back, and each
-hero has the talent points its level has earned, unspent.</p>
+<p>From the project folder, on the <code>dev</code> branch:</p>
+<pre><code>git pull
+python tools/dev.py import
+godot --path .</code></pre>
+<p>The import is needed once after pulling (new scripts). For a fresh start, first delete
+<code>colony.save</code>, <code>colony.save.bak</code> and <code>colony.settings</code> in
+<code>%APPDATA%\Godot\app_userdata\Colony</code>. An old save loads too: it starts in Mossy Hollow at the
+stage its depth was, gold spent on training comes back, and each hero has the talent points its level has
+earned, unspent.</p>
+
 <h3>Fifteen minutes with it</h3>
 <ol>
   <li><strong>Watch the party change stage.</strong> It walks out through a doorway, the screen dims with
@@ -145,163 +166,37 @@ hero has the talent points its level has earned, unspent.</p>
   gold; the row says which and where it comes from.</li>
 </ol>
 <p>To see every moment in about ninety seconds, labelled, including the map, the four areas, each class's
-actions and every status on a row of fighters:
-<code>godot --path . res://game/dev/showcase.tscn</code>. (When it says it is over, the party is left in
-Ember Deep with mismatched levels and loses; that is the showcase's leftovers, not the game.)</p>
-<h3>New since the demo</h3>
-<ul>
-  <li><strong>Areas.</strong> Mossy Hollow, the Claypits, the Old Crypt and Ember Deep. Each has its own
-  monsters, guardian, colouring and layout. Inside an area, stages get harder as depths did. Beating an
-  area's guardian (stage 5) opens the next area.</li>
-  <li><strong>The map</strong> (<kbd>W</kbd>). Every area, what lives there, how far the party has got,
-  and a stage to send it to. The journey takes ten seconds and rests the party.</li>
-  <li><strong>Zones on screen.</strong> A doorway and a short dark crossing in place of the climb down a
-  shaft. The game says stage, further and back; it no longer says depth or deeper.</li>
-  <li><strong>Talent trees.</strong> Each class has a trunk of three abilities and then two paths of four:
-  Knight (Guardian or Berserker), Rogue (Assassin or Trickster), Mage (Pyromancer or Frostbinder),
-  Cleric (Lifebinder or Sunpriest). One point at every even level, seven in all. Taking a path closes the
-  other; a reset costs 100 gold a level.</li>
-  <li><strong>Paragon.</strong> From level 15 each level gives a point for Power, Toughness or Quickness
-  (3% each, no limit). Buying training with gold is gone.</li>
-  <li><strong>Abilities on screen.</strong> Names over fighters, a mark for each of the fourteen statuses,
-  <code>Miss</code> and <code>Blocked</code>, status icons on hero frames, damage by ability in the
-  tally.</li>
-  <li><strong>Resources.</strong> Glowcaps (Mossy Hollow), clay (the Claypits), old bones (the Old Crypt),
-  embers (Ember Deep), dropped by monsters there and paid for upgrade ranks past the third.</li>
-</ul>
-<h3>From the round before (specs 025 to 048)</h3>
-<ul>
-  <li><strong>Side quests and microskills.</strong> About three plain chambers in ten hold a locked chest, a
-  stuck door, a hurt wanderer, a rune stone or a tripwire instead of monsters. A hero with the right
-  microskill (Lockpicker, Strongarm, Mender, Runereader, Trapspotter, learned by levelling) steps forward and
-  does it; without one the party walks past and the game says what was needed.</li>
-  <li><strong>The hero sheet.</strong> Click a hero's frame: stats, a Talents tab with the hero's whole talent
-  tree (take a node, choose a path) and its paragon points to put into Power, Toughness or Quickness, and a
-  Skills tab for their microskills.</li>
-  <li><strong>Reading the party.</strong> A status line that says what and why, a countdown to the next
-  stable depth, a journal (<kbd>J</kbd>), a depth ladder you can click to steer, and a "while you were away"
-  report that tells the whole story.</li>
-  <li><strong>Party orders</strong> (<kbd>O</kbd>): how hurt the party gets before it rests, and whether it
-  fights guardians or holds until told.</li>
-  <li><strong>Help in the game</strong> (<kbd>H</kbd>), tooltips on every control, and a game speed of 1x, 2x
-  or 4x (<kbd>F</kbd>).</li>
-  <li><strong>The party tally</strong> (<kbd>T</kbd>): a damage meter. Who dealt the damage, who healed and who
-  took the hits, for the last fight or the whole session, as bars side by side. Click a hero's line to see
-  its damage and healing by ability.</li>
-  <li><strong>A livelier start.</strong> Depth 1 is stable in a minute, not ten (rising to ten minutes by
-  depth 10), chambers near the surface refill in seconds, and early levels cost less. A new party reaches
-  depth 2 in about 90 seconds and meets the Slime King after about nine minutes. These are the balance
-  numbers most worth Zak's judgement.</li>
-  <li><strong>Goals</strong> (<kbd>G</kbd>): the next few things within reach, with progress. Click one to
-  go where you would act on it. The countdown now reads <code>Deeper in 0:56</code>, the moment the party
-  will really move on.</li>
-  <li><strong>After a defeat</strong> a note says who beat the party and why, and offers what would help:
-  train a hero (with its paragon points), buy an upgrade, or hold at the guardian.</li>
-  <li><strong>On screen:</strong> the party lies where it fell, the camera travels to where it revives and
-  the heroes stand up again; melee heroes stand a sword's reach from a guardian; side quests glint in the
-  dark.</li>
-  <li><strong>A ladder that warns.</strong> Each rung's number is coloured safe, within reach or dangerous
-  for this party; the target's rung has a yellow frame and the party's a white one; the mouse wheel
-  scrolls it.</li>
-</ul>
-<h3>What is in the game</h3>
-<ul>
-  <li><strong>The loop:</strong> four heroes walk an endless labyrinth, fight, earn XP and gold, level up,
-  rest, push deeper, wipe and fall back to the last stable depth.</li>
-  <li><strong>Guardians:</strong> a boss holds the way down on every fifth level, with its name announced, a
-  health bar at the top and a big death.</li>
-  <li><strong>Spending gold:</strong> a shop with five camp upgrades, and an auto-buy switch.</li>
-  <li><strong>Resources</strong> (spec 052): each area gives its own (glowcaps, clay, old bones, embers),
-  and the later ranks of the camp upgrades cost one, so what you want to build decides where the party goes
-  (see "Resources" below).</li>
-  <li><strong>Hero sheets:</strong> click a hero's frame (or press <kbd>Tab</kbd>) to see who they are, their
-  health, XP and what they are doing right now, with three tabs below: their stats, their talent and
-  paragon points, and their microskills.</li>
-  <li><strong>Talent trees and paragon:</strong> every class has a tree of eleven abilities, a trunk of three and two paths of four;
-  heroes earn a talent point every second level and paragon points after level 14 (see "Talent trees and
-  paragon" below).</li>
-  <li><strong>Idle:</strong> the game saves by itself and plays out the time it was closed (up to a limit),
-  then shows what happened.</li>
-  <li><strong>Reading the party:</strong> the HUD says what the party is doing and why, counts down to the
-  next stable depth, and keeps a journal (<kbd>J</kbd>) of what has happened; an arrow over the party points
-  the way it is heading.</li>
-  <li><strong>Game speed:</strong> watch at 1x, 2x or 4x with the small button beside Shop (or <kbd>F</kbd>);
-  the button turns green above 1x. It is the same game, only sooner, and every session starts at 1x.</li>
-  <li><strong>Help in the game</strong> (spec 030): the <kbd>?</kbd> button or <kbd>H</kbd> opens a panel with
-  the idea in five lines and every key; resting the mouse on any part of the HUD explains it in one sentence.
-  A new game opens the help once by itself.</li>
-  <li><strong>The party tally</strong> (spec 045): <kbd>T</kbd>, or the small button with three bars left of
-  the hero frames, opens a damage meter on the left. Three tabs (<kbd>Q</kbd> <kbd>E</kbd> move between them)
-  show each hero's damage dealt to monsters, healing done (only the health actually restored: healing past
-  full health is never counted) or damage taken (traps included; damage dealt and taken count a killing blow whole, overkill included,
-  as the tooltips say), as a bar in the hero's colour scaled to the
-  largest, with the number and the hero's share. A switch picks <em>Last fight</em> (the fight under way
-  while fighting; the line above the bars says what it was, where and how long:
-  <em>Last fight: 3 ogres, depth 7, 14 s</em>) or <em>Session</em> (since the game was opened or loaded, with
-  each hero's side quests under the bars). It counts only what happens while you watch: the time away is
-  the away report's; a game opened in the middle of a fight shows that fight as the one under way. It is never saved, and it changes nothing about the game.</li>
-  <li><strong>The depth ladder</strong> (spec 033): a column of depths down the right edge shows the whole
-  descent at once: where the party is, the safe depth, how deep it has been, where it is heading and which
-  guardians are beaten. Click a depth to send the party there; <kbd>L</kbd> hides it. Each depth's number
-  says how it looks for your party (spec 043): blue is safe, orange is within reach, red is dangerous. The
-  mouse wheel scrolls it. The target's number has a yellow frame and the party's a white one (spec 047).</li>
-  <li><strong>Goals</strong> (spec 037): a small panel under the depth says what to look forward to next,
-  each goal with a bar or a price; a hero's frame shows a small orange tag when there is something to do on
-  their sheet. Click a goal to go where it is done: the shop, a hero's talents or skills, the orders, or
-  the depth ladder (spec 042). <kbd>G</kbd> hides the goals.</li>
-  <li><strong>The area map</strong> (spec 053): <kbd>W</kbd>, or a click on the area's name at the top left,
-  opens a list of every area: its monsters (point at one for its name), its guardian with a green tick once
-  beaten, the level of its first stage, and how far the party has got there (<em>Safe 3, furthest 5</em>). The
-  area the party is in says <em>Here</em>; on the road the destination says <em>On the way, 7 s</em>. A closed
-  area is dimmed and says which guardian opens it (<em>Beat the Slime King in Mossy Hollow</em>). Click an open
-  area to choose it: a stage shows under the list, starting at that area's safe stage, with <kbd>-</kbd> and
-  <kbd>+</kbd> from 1 to one past the furthest, coloured as the ladder colours depths (blue safe, orange within
-  reach, red dangerous, by that area's levels). <em>Go</em> sends the party there (ten seconds on the road), or
-  for the area it is in sets the target, as a click on the ladder does; a dangerous choice is warned of in the
-  journal. Each row also shows the area's resource: its icon and how many the party holds (<em>12
-  glowcaps</em>), or for a closed area what opening it gives (<em>Gives clay</em>) (spec 052). A guardian
-  stays ticked after a reload. When a guardian opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears
-  (click it for the map) and the area's name at the top left carries a small orange mark until you open the
-  map.</li>
-  <li><strong>Party orders</strong> (spec 035): the <em>Orders</em> button (or <kbd>O</kbd>) opens a small panel
-  with two standing orders the party follows by itself. <em>Pace</em> says how hurt it may get before it
-  rests after a fight: Cautious (below 80% health), Steady (below 60%, the usual) or Bold (only below 40%).
-  <em>Guardians</em> says whether it fights a guardian: Challenge (the usual) or Hold, where it turns back at
-  the guardian's door and keeps hunting on that level until you choose Challenge; the status line then reads
-  <em>Holding at the Slime King</em>. The current choice is lit green and explained in one line underneath.</li>
-  <li><strong>Feel:</strong> lit chambers, ambient life, damage numbers, bursts, coins, screen shake, a HUD, and
-  16 sound effects.</li>
-  <li><strong>Cast:</strong> 4 heroes, 13 monsters across three depth bands, 4 guardians, 5 microskills and
-  5 side quests.</li>
-</ul>
-<h3>Keys</h3>
+actions and every status on a row of fighters:</p>
+<pre><code>godot --path . res://game/dev/showcase.tscn</code></pre>
+<p>When it says it is over, the party is left in Ember Deep with mismatched levels and loses; that is the
+showcase's leftovers, not the game.</p>
+
+<h3>What was added this round</h3>
 <div class="table-wrap">
 <table>
-  <tr><th>Key</th><th>Does</th></tr>
-  <tr><td><kbd>H</kbd></td><td>Show or hide the help panel (the <kbd>?</kbd> button does the same)</td></tr>
-  <tr><td><kbd>Esc</kbd></td><td>Close whatever panel is open</td></tr>
-  <tr><td><kbd>U</kbd></td><td>Open or close the shop (<kbd>Esc</kbd> closes it)</td></tr>
-  <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero (<kbd>Esc</kbd> closes it; so does clicking the hero's frame again)</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put one of the hero's paragon points into that stat (Power, Toughness, Quickness), while their sheet is open on the Talents tab</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Move to the previous or next tab of the hero sheet (Stats, Talents, Skills) or of the party tally (Damage, Healing, Taken), wrapping round</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Turn auto-buy on or off, while the shop is open</td></tr>
-  <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Lower or raise the target depth (<kbd>=</kbd> and the keypad work too)</td></tr>
-  <tr><td><kbd>A</kbd></td><td>Turn auto-push (go deeper after holding the target for the stable time) on or off</td></tr>
-  <tr><td><kbd>Z</kbd></td><td>Zoom in or out</td></tr>
-  <tr><td><kbd>M</kbd></td><td>Mute or unmute sound</td></tr>
-  <tr><td><kbd>J</kbd></td><td>Open or close the journal of what has happened (<kbd>Esc</kbd> closes it)</td></tr>
-  <tr><td><kbd>L</kbd></td><td>Hide or show the depth ladder on the right</td></tr>
-  <tr><td><kbd>W</kbd></td><td>Open or close the area map, where you choose where the party goes (a click on the area's name does the same; <kbd>Esc</kbd> closes it)</td></tr>
-  <tr><td><kbd>G</kbd></td><td>Hide or show the goals under the depth</td></tr>
-  <tr><td><kbd>O</kbd></td><td>Open or close the party's orders (the Orders button does the same; <kbd>Esc</kbd> closes it)</td></tr>
-  <tr><td><kbd>T</kbd></td><td>Open or close the party tally of damage, healing and hits taken (the button left of the hero frames does the same; <kbd>Esc</kbd> closes it)</td></tr>
-  <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
-  <tr><td><kbd>F</kbd></td><td>Change the game speed: 1x, 2x, 4x, then back to 1x</td></tr>
+  <tr><th>Spec</th><th>What you get</th></tr>
+  <tr><td>049 Areas</td><td>Four areas (Mossy Hollow, the Claypits, the Old Crypt, Ember Deep), each with its
+  own monsters and guardian and its own numbered stages. Beating an area's guardian opens the next area. The
+  party can be sent to any open area; the journey takes ten seconds.</td></tr>
+  <tr><td>050 Abilities in combat</td><td>The rules for abilities: actions with a cooldown, passives that fire
+  when something happens, and fourteen statuses (stunned, burning, shielded and so on).</td></tr>
+  <tr><td>051 Talent trees and paragon</td><td>A tree of eleven abilities for each class: a trunk of three,
+  then two paths of four, where taking one closes the other. A talent point at every even level; paragon
+  points from level 15. Buying training with gold is gone.</td></tr>
+  <tr><td>052 Resources</td><td>Glowcaps, clay, old bones and embers, one per area, dropped by its monsters.
+  Upgrade ranks past the third cost one as well as gold.</td></tr>
+  <tr><td>053 The area map</td><td><kbd>W</kbd> opens a list of every area: its monsters, guardian, resource
+  and how far the party has got, with a stage to send it to.</td></tr>
+  <tr><td>054 Zones on screen</td><td>Doorways and a short dark crossing in place of shafts and ladders. Each
+  area has its own colouring. The game says stage, further and back, never depth or deeper.</td></tr>
+  <tr><td>055 The tree on the hero sheet</td><td>The Talents tab: the whole tree, every ability readable, a
+  question before a path is chosen, a paid reset, and paragon points.</td></tr>
+  <tr><td>056 Abilities on screen</td><td>Ability names over fighters, a mark for every status,
+  <code>Miss</code> and <code>Blocked</code>, status icons on hero frames, damage by ability in the
+  tally.</td></tr>
 </table>
 </div>
-<p>To see every moment of the loop in about a minute, labelled, without waiting for it:</p>
-<pre><code>godot --path . res://game/dev/showcase.tscn</code></pre>
+
 <h3>What to judge when you play</h3>
 <ul>
   <li><strong>Does it still feel like going down?</strong> The doorway, the crossing and the four looks are
@@ -309,8 +204,8 @@ Ember Deep with mismatched levels and loses; that is the showcase's leftovers, n
   <li><strong>Is there a reason to go somewhere else?</strong> Today the reasons are different monsters and
   the resource three upgrades need. Is that enough "intentionality", or do areas need more of their own
   (their own side quests, upgrades only their resource buys)?</li>
-  <li><strong>Are the trees interesting yet simple?</strong> Read all eight paths. Which abilities are dull,
-  which path would you never take? Pyromancer tested weakest.</li>
+  <li><strong>Are the trees interesting yet simple?</strong> Read all eight paths (section 4 lists every
+  ability). Which abilities are dull, which path would you never take? Pyromancer tested weakest.</li>
   <li><strong>Can you see what an ability did?</strong> Names, marks and rings are plain placeholders.
   Which statuses can you not tell apart?</li>
   <li><strong>Is it too easy now?</strong> With talents and upgrades both used, an hour of automatic play on
@@ -320,6 +215,7 @@ Ember Deep with mismatched levels and loses; that is the showcase's leftovers, n
   <li><strong>The sheet's size.</strong> It grows from 150 to 278 pixels tall on the Talents tab only.</li>
   <li><strong>The sounds.</strong> Still nobody has heard them. Abilities reuse existing sounds.</li>
 </ul>
+
 <h3>Decisions waiting for Zak</h3>
 <ul>
   <li><strong>The first guardian is no longer a wall</strong> for a player who spends talents and gold
@@ -339,10 +235,13 @@ Ember Deep with mismatched levels and loses; that is the showcase's leftovers, n
   Frost Nova wait for two enemies; a hero tries its newest ability first.</li>
   <li><strong>While a hero has a talent point to spend</strong>, that goal takes one of the three goal
   places ahead of the microskill and upgrade goals.</li>
+  <li><strong>The journey rests the party:</strong> ten seconds on the road heal as ten seconds of rest
+  would, and the fallen stand up.</li>
   <li><strong>Still open from the demo:</strong> pace barely changes how often the party wipes; fallen
   heroes lie on the field in ordinary fights; heroes stand about 10 pixels from a guardian; one seed in
   five misses no side quest in its first hour; side-quest gold ignores Fat Purse.</li>
 </ul>
+
 <h3>Known rough edges</h3>
 <ul>
   <li><strong>Reviews.</strong> All eight pull requests of this round were read by an independent reviewer
@@ -360,51 +259,31 @@ Ember Deep with mismatched levels and loses; that is the showcase's leftovers, n
   the split between abilities could be off in rare cases.</li>
   <li>A frame holding two arrivals in different areas (a long return from time away) may draw the events
   between them in the last area.</li>
+  <li>No monster has an ability yet: only heroes do.</li>
   <li>The full check takes about nine minutes.</li>
 </ul>
-<h3>Not built yet</h3>
-<p>Choosing who is in the party (a roster) and new classes such as the beast master, professions, loot and
-equipment, the warren-town at
-the surface, music, a settings screen.</p>
 
-<nav>
-  <ol start="0">
-    <li><a href="#now">Where we are</a></li>
-    <li><a href="#run">Run the game</a></li>
-    <li><a href="#game">What the game is</a></li>
-    <li><a href="#loop">How a session plays</a></li>
-    <li><a href="#code">How the code works</a></li>
-    <li><a href="#commands">Dev commands</a></li>
-    <li><a href="#folders">Where things live</a></li>
-    <li><a href="#process">How work gets done</a></li>
-    <li><a href="#status">Status</a></li>
-  </ol>
-</nav>
+<h3>Not built yet <span class="tag planned">Planned</span></h3>
+<p>Choosing who is in the party (a roster) and new classes such as the beast master, trades, loot and
+equipment, the warren-town at the surface, music, a settings screen, a "new game" button.</p>
 
 <h2 id="run">1. Run the game</h2>
 <p>From the <code>colony</code> folder, in any terminal:</p>
 <pre><code>godot --path .</code></pre>
 <p>To open the project in the Godot editor instead (press F5 there to play):</p>
 <pre><code>godot -e --path .</code></pre>
-<div class="note">
-  <p><strong>What you will see today:</strong> the party of four walking the labyrinth on its own, seen from
-  the side like an ant farm, with monsters waiting in the chambers ahead. When the party walks into a chamber
-  with monsters, the fight plays out: heroes and monsters wind up and strike, the mage and the cleric throw
-  small bolts (amber to hurt, green to heal), the struck flash white and the dead collapse. Along the bottom,
-  a frame per hero shows its portrait, level, health and XP; top left, the depth, what the party is doing and
-  the target-depth controls; top right, the gold. The game keeps running while the window is minimised.</p>
-  <p>Fights, coins, level ups, wipes and the other beats of the loop have short 8-bit sound effects, quiet by
-  default. Press <kbd>M</kbd> to mute or unmute them; the game remembers the choice (in a small settings file
-  next to the save, not in the save).</p>
-</div>
 <p>If the game fails to start after pulling new work or switching branch, rebuild Godot's import cache
 and try again:</p>
 <pre><code>python tools/dev.py import</code></pre>
+<p>The game keeps running while the window is minimised or unfocused, saves by itself every 30 seconds
+and when it closes, and plays out the time it was closed (up to 8 hours) when it next starts. Sound is
+quiet by default; <kbd>M</kbd> mutes it and the game remembers. A new game opens the help panel once.</p>
 
 <h2 id="game">2. What the game is</h2>
-<p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of heroes lives in
-an endless labyrinth. They explore, fight, loot and rest on their own. You are the manager: you recruit,
-gear and spec the party, point it at a depth, and check in now and then.</p>
+<p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of four heroes
+explores a labyrinth of four areas on its own: it walks, fights, picks up gold and resources, rests and
+moves on. You are the manager: you choose where it goes, spend its talent points, buy camp upgrades, set
+its orders, and check in now and then.</p>
 <h3>Design pillars</h3>
 <ul>
   <li><strong>Built to be left running.</strong> Leaving it alone is how it is played. Progress never goes backwards.</li>
@@ -412,399 +291,465 @@ gear and spec the party, point it at a depth, and check in now and then.</p>
   <li><strong>Flavour over power.</strong> Rare things give stories, not a must-have meta.</li>
   <li><strong>A rich, lively little world.</strong> Simple sprites, a lot of character in items and effects.</li>
 </ul>
-<p>The full design is in <a href="https://github.com/zakpruitt/colony/blob/main/docs/design/plan.md"><code>docs/design/plan.md</code></a>.</p>
+<p>The first design is in
+<a href="https://github.com/zakpruitt/colony/blob/main/docs/design/plan.md"><code>docs/design/plan.md</code></a>;
+the world and the direction since (the colony of little folk, areas, skill trees) are in
+<code>docs/design/world.md</code>.</p>
 
-<h2 id="loop">3. How a session plays <span class="tag planned">Planned</span></h2>
+<h2 id="loop">3. How the game plays</h2>
+
+<h3>The loop</h3>
 <ol>
-  <li>The party moves through the labyrinth on its own and fights what it meets.</li>
-  <li>Kills give XP, gold and item drops.</li>
-  <li>When resources run low the party rests, then carries on.</li>
-  <li>You check in: spend XP on talents, buy and equip gear, change the party, set a target depth.</li>
-  <li>You tab away again.</li>
+  <li>The party (knight, rogue, mage, cleric, in that marching order) walks through a stage of an area, one
+  chamber after another, and fights whatever it walks into.</li>
+  <li>Each kill gives every living hero XP and the party gold, and sometimes the area's resource.</li>
+  <li>After a fight, if anyone is down or badly hurt, the party rests where it stands until all are full.</li>
+  <li>Once it has held a stage long enough without a wipe, that stage is <em>safe</em> and the party heads
+  one stage further (unless you turned Auto off).</li>
+  <li>Sooner or later it meets something it cannot beat, wipes, and stands up again at its last safe stage.
+  It grows there and tries again.</li>
+  <li>You check in: spend talent points, buy upgrades, choose an area, change the orders. Then you leave
+  it alone again.</li>
 </ol>
-<p><span class="tag built">Built: spec 005</span> The loop runs in the simulation with nobody touching it,
-and <span class="tag built">Built: spec 008</span> the main game draws it (see "The world on screen" below). A party of four (knight, rogue, mage, cleric) starts in the middle of the start
-chamber and walks at 3 tiles a second, one behind the other, knight first. It has a <em>target depth</em>:
-above it, the party walks to the shaft and climbs down; below it, it climbs back up; at it, it walks from one
-end of the level to the other and back, farming. Every chamber except the start and the two chambers with a
-shaft holds 2 to 5 monsters (more in a den); deeper kinds are more likely once they appear. Walking into a
-chamber with monsters starts a fight. Each kill gives every living hero the monster's XP and the party some
-gold (double in a vault); enough XP raises a hero's level (20 XP for level 2, 90 for level 3, 380 for level 5). After a fight, if anyone is dead or under 60%
-health (80% or 40% under the Cautious or Bold pace, spec 035), the party rests where it stands until everyone is full again (4% of health a second). A cleared
-chamber fills up again quickly near the surface (5 seconds on depth 1) and more slowly deeper down, 90 seconds from depth 10 on. Each target depth that holds for the stable time is followed by
-the next one down (auto-push, which can be turned off), so the party keeps going deeper until it meets
-something it cannot beat.</p>
-<p><span class="tag built">Built: spec 036</span> <strong>A lively start.</strong> The first half hour moves
-quickly: in a new game the party fights five or more times in its first two minutes, every hero reaches level 2
-within half a minute or so and level 5 within about eight minutes, it goes down to depth 2 after about a minute
-and a half and reaches depth 5 in about eight minutes, and the first camp upgrade is affordable after about a
-minute. The Slime King on depth 5 usually beats the party a few times before the party beats it. From depth 10
-down nothing changed: the deep game is as slow and idle as before.</p>
-<p><span class="tag built">Built: spec 020</span> <strong>Guardians.</strong> Every fifth level (5, 10, 15, 20,
-25, ...) has a guardian in the chamber with the shaft down: one huge monster, alone, that the party must beat
-to go deeper. The Slime King holds depth 5, the Clay Colossus depth 10, the Bone Lord depth 15 and the Deep
-Maw depth 20 and every fifth level below. A guardian is a wall: four level-5 heroes almost never beat the
-Slime King, level-9 heroes almost always do (levels 10 and 15 against the Clay Colossus). The party throws
-itself at it, wipes, falls back to farm, grows and comes back. Beating one pays at least ten ordinary kills'
-worth of XP and gold, and its chamber then stays empty for 30 minutes so the party can pass freely. Guardians
-are never met in ordinary fights.</p>
-<p><span class="tag built">Built: spec 049</span> <strong>Areas.</strong> The labyrinth is four areas, not one
-endless shaft: <em>Mossy Hollow</em> (slimes, cave bats, goblins and spiders; the Slime King), <em>The
-Claypits</em> (mud golems, clay hounds, ogres; the Clay Colossus), <em>The Old Crypt</em> (skeletons, ghouls,
-wraiths; the Bone Lord) and <em>Ember Deep</em> (fire imps, crystal beetles, deep horrors; the Deep Maw). Inside
-an area the party goes down through numbered <em>stages</em> exactly as it went down through depths; the screen
-names a place as an area and a stage (<em>Mossy Hollow 3</em>). Each area has a base level (1, 6, 11, 16): stage
-1 of the Claypits is as hard as old depth 6, but the time to make a stage safe goes by the stage number, so stage 1
-of any area is safe in a minute. Each area's guardian waits on its stage 5 and every fifth stage
-after; beating it the first time opens the next area (<em>The Claypits is open</em> in the journal). A new game
-has only Mossy Hollow open. Sending the party to another open area takes ten seconds on the road
-(<em>On the way to The Claypits 1</em>), which rests it as ten seconds of resting would (the fallen stand up),
-and every area keeps its own safe and furthest stage, so it can go back. The area map (spec 053, below) is
-where you choose; <code>dev.py sim --area</code> does it for a headless run.
-An old save opens the areas its deepest depth had already reached past. The labyrinth of each area is its
-own, and a monster appears in only its own area.</p>
-<p><span class="tag built">Built: spec 052</span> <strong>Resources.</strong> Each area gives its own
-resource: Mossy Hollow <em>glowcaps</em>, the Claypits <em>clay</em>, the Old Crypt <em>old bones</em> and Ember
-Deep <em>embers</em>. A monster killed there may drop some: a small one about three times in ten, a large one
-eight times in ten, a guardian always and several (6 on stage 1). Further in pays more: a quarter more for
-every stage past the first (a small drop is 1 on stage 1, 3 on stage 9). A side quest finished pays a large
-monster's drop. A drop shows as gold does: its small icons rise from the monster and fly to the top right, where
-each resource the party holds has an icon and a count beside the gold (rest the mouse on one for where it comes
-from); the journal notes the first of each, and the "While you were away" panel lists what was gathered
-(<em>Gathered 40 glowcaps, 12 clay</em>). Each camp upgrade takes one resource from its fourth rank on: Field
-Medicine and Quick March glowcaps, Stout Armor clay, Sharp Blades old bones and Fat Purse embers. The first three
-ranks cost gold alone, so the opening is as it was. In the headless runs a party that stays in Mossy Hollow
-stops at rank 3 of Stout Armor, Sharp Blades and Fat Purse however much gold it has, and one sent to the
-Claypits holds clay within a minute of arriving. Resources are saved; an older save loads with none and keeps
-its upgrade ranks.</p>
-<p><span class="tag built">Built: spec 024</span> <strong>Guardian fights feel like boss fights.</strong> When the
-party meets a guardian, its name appears large in the upper middle of the screen (<code>SLIME KING</code>, with
-<code>GUARDIAN OF DEPTH 5</code> under it) for two seconds, the screen shakes once and a low horn sounds. For the
-whole fight a wide red health bar with its name sits at the top centre, between the depth panel and the gold;
-it drains smoothly, flashes white on each hit and goes away when the fight ends. When a guardian dies the
-screen shakes hard, everything stands still for a fifth of a second, it bursts in three waves of its own
-colours, a fountain of at least 20 coins pours out, <code>GUARDIAN SLAIN</code> shows in gold and a rising
-fanfare plays. Losing to one shows the usual <code>WIPED</code> and the defeat note (below), which says
-whether the heroes were below its level and counts the defeats in a row.</p>
-<p><span class="tag built">Built: spec 025</span> <strong>Side quests and microskills.</strong> Not every chamber
-is a fight. On each visit, about one plain chamber in three holds a <em>side quest</em> instead of monsters: a
-locked chest, a stuck door, a hurt wanderer, a rune stone or a tripwire. Each needs a <em>microskill</em>, a
-small talent a hero picks up as they level: the rogue becomes a Lockpicker at level 2 and a Trapspotter at 6,
-the knight a Strongarm at 3, the cleric a Mender at 3 and the mage a Runereader at 4. If someone in the party
-has it, the party stops for 3 to 6 seconds (the HUD says <em>Working: Locked Chest</em>) and gets the reward: gold worth one
-to three kills of that depth, or, from a rune stone, XP worth two kills for every living hero. Then the chamber
-is cleared and fills again after the usual time for its depth. If nobody can, the party walks past and the quest waits
-for a later pass, once someone has learned the skill; a tripwire instead springs and every hero loses a fifth of
-their health (never down to 0, so it cannot wipe the party). Early on the party walks past a lot; a stronger
-party unlocks more.</p>
-<p><span class="tag built">Built: spec 028</span> <strong>Seeing side quests.</strong> A chamber holding a side
-quest shows its prop on the floor near its middle, as far off as monsters show: a chest, a door, a small figure
-sitting down, a standing stone with glowing runes, or a wire between two pegs (plain placeholder drawings). When
-the party works one, the hero with the microskill steps up to the prop and works at it with their attack, a soft
-click on every swing, while the others wait; the microskill's name (<em>Lockpicker</em>) and a small filling
-bar show over them. Done, the prop bursts into bits of its own colours and words say what happened in the
-reward's colour (gold yellow, XP cyan): <em>Chest opened</em>, <em>Door forced</em>, <em>Wanderer
-mended</em>, <em>Runes read</em>, <em>Trap disarmed</em>, then the usual coins or XP. A quest nobody can do
-shows a grey <em>Needs Lockpicker</em> rising from it, once per visit; a tripwire nobody spots shows a red
-<em>Sprung!</em>, shakes the screen and makes every hero flash and yelp. A hero who learns a microskill gets
-<em>Learned Lockpicker</em> over their head with the level-up sound. The journal writes each of these
-(<em>Chest opened: 34 gold</em>, <em>Runes read: 12 XP each</em>, <em>Passed a Stuck Door: needs
-Strongarm</em>, <em>Sprang a Tripwire: needs Trapspotter</em>, <em>Rogue learned Lockpicker</em>), and each
-hero sheet's Skills tab lists the class's microskills: the ones the hero has in white with what they do, the ones to come
-in grey with their level (<em>Trapspotter, level 6</em>).</p>
-<p><span class="tag built">Built: spec 038</span> <strong>Rough edges on screen.</strong> A side quest out
-in the dark, beyond the party's light, now shows a small white glint at the prop's top corner that pulses
-slowly (small, big, small, then a pause, every two seconds) above the darkness, so you can spot it from afar. The
-glint goes when the party's light reaches the prop, comes back once the party has passed a quest nobody can
-do, and is gone for good once the quest is done. In a guardian fight, the knight and the rogue no longer
-stand inside the guardian's body: since spec 048 they stand a sword's reach from it, with a small gap of air
-between them at rest, so that neither the guardian's lunge nor their own swings ever draw one over the other.
-The others keep their room behind them.</p>
-<h3>Death and the last stable depth</h3>
-<p>There is no permadeath. The game remembers the deepest area where the party survived for a set time
-(one minute on depth 1, longer each level down, ten minutes from depth 10 on). If the party wipes, it revives there and keeps farming. A wipe costs
-efficiency, never progress.</p>
-<p><span class="tag built">Built: spec 005, spec 036</span> A depth becomes the last stable depth once the party has
-held it without a wipe for long enough: one minute on depth 1, then a little longer on each level down (about
-1:17 on depth 2, 2:47 on depth 5, 7:45 on depth 9), and ten minutes on depth 10 and every depth below. After a wipe the party stands up again five seconds later, at full health, where the shaft
-lands on its last stable depth (or in the start chamber), and that becomes its target. XP, gold and levels are
-never lost. A fight still going after 90 seconds counts as a wipe: the party is overwhelmed. If you set a
-target depth while the party is down, it keeps your choice when it stands up. To watch an hour of this as numbers, run the <code>sim</code> command in the table below.</p>
-<h3>Party</h3>
-<p>One to four heroes from a small classic set of classes: tank, healer, melee damage, ranged damage.
-Balance matters: a party with no healer should struggle at depth. Loot is randomised from standard base
-types.</p>
-<h3>The labyrinth</h3>
-<p>Endless and generated as the party explores, from a seed, so the same seed always gives the same
-labyrinth. Difficulty rises with depth.</p>
-<p><span class="tag built">Built: spec 003</span> The simulation generates the levels.
-Each depth is a band of earth 120 tiles wide and 16 tall with four to six chambers on one flat floor, joined
-by low tunnels. Each level has one shaft down, on the right on odd depths and on the left on even ones, so the
-party crosses most of a level to go deeper. Chambers are plain, a den or (at most one per level) a vault; the
-first chamber of depth 1 is the start. A level is only made the first time something asks for it.</p>
-<p><span class="tag built">Built: spec 006</span> The labyrinth is drawn as a cross-section, like an ant farm:
-earth with the chambers, tunnels and shafts cut out of it, a ladder down every shaft, and sky and grass above
-depth 1. Floors have a bright top edge, ceilings and walls a ragged outline. The earth changes every five
-levels (brown loam, then clay, then grey stone, then deep teal rock, then round again) so going deeper looks
-like going somewhere. Only the levels next to the action are kept in memory. A camera follows the action
-smoothly and can shake. A demo shows it on its own (see the table below).</p>
-<h3>The world on screen <span class="tag built">Built: spec 008</span></h3>
-<p>The main game joins the simulation, the labyrinth and the sprites. The camera follows the party, looking a
-little ahead of it, and glides down shafts with it. Each hero walks smoothly between the simulation's steps;
-when the heroes line up for a fight, regroup after one or step onto a ladder, they run to their places rather
-than jumping. Monsters stand idle in every chamber that holds them on the levels near the party, facing the
-party's side, and reappear when a chamber refills. In a fight every attack, hit, death and bolt comes from the
-simulation, so what you see is what happened. A hero who falls topples onto their back and lies there
-until the fight is won (spec 038). After a wipe the camera stays on the fallen party for about a second and
-a half, then glides to where the party will revive and arrives before the revival, so you see the heroes,
-still lying, sit up and stand under the light. If that place is more than three screens away the camera stays
-on the fallen and cuts there just before they stand. At 2x and 4x the same story plays faster, and it picks
-up wherever the wipe has got to if you come back to the game while the party is down or the game freezes
-for a moment (spec 048). If the game falls behind (a long freeze, say), it
-catches up at once to the simulation's
-true state instead of replaying old animations.</p>
-<p><span class="tag built">Built: spec 054</span> <strong>Zones, not depths.</strong> The screen shows one
-stage at a time. The way on and the way back are stone doorways in the back wall (no more shafts or ladders):
-the party walks into the doorway and is gone, the screen dims, a title names where it is going
-("Mossy Hollow 4"), and it opens on the party stepping out of a doorway on the next stage. The crossing lasts
-exactly as long as the simulation's stage change (about four seconds at 1x, shorter at 2x and 4x, always long
-enough to read the title). Going back a stage, or reviving on another stage after a wipe, uses the doorway the
-party came in by. A journey to another area holds the dark screen for its ten seconds with "Leaving Mossy
-Hollow" and then the arrival's name. A wipe on another stage holds on the fallen, dims, names the safe stage
-and opens on the heroes standing up there. Each area has its own look: Mossy Hollow brown loam, The Claypits
-red clay, The Old Crypt grey-blue stone, Ember Deep dark teal, each with its own torchlight, and every stage
-of an area a little darker than the one before. Nothing on screen says deeper, down, climb or depth any more:
-the party goes further or back, and the ladder on the right is headed by the area's name.</p>
-<p><span class="tag built">Built: spec 012</span> The labyrinth is lit and alive. Underground is dark; each
-chamber has torches on its back wall that throw warm, flickering pools of light in a few hard-edged rings
-(pixel art, not a smooth blur), and the tunnels between are darker. Light stops at the walls: the lit
-shape is the room's shape, and the solid earth stays a dim, even mass you can always make out. The party
-carries a light of its own, so the heroes always show their true colours, even in a dark tunnel. The earth holds things to notice: stones, roots near the surface,
-bones, fossils and ore that glints now and then. Each kind of chamber looks like itself: the start has a
-campfire and bedrolls, a den has webs, a hanging spider, bones and a nest, a vault has a chest, coins and a
-gleam of gold, and plain chambers have a few stalactites, mushrooms, a broken crate or a puddle. Something
-is always moving: flames, rising embers, dust drifting in the light, drips that splash on the floor, a beetle
-crossing a floor or a moth circling a torch. The mood follows the earth: warm in the loam and clay, cold and
-darker in the stone, an eerie teal in the deep, where torches burn teal and glowing mushrooms and crystals
-grow. Nothing here touches the rules, and the same seed always looks the same. It is not in the main game
-yet: a demo tours it (see the table below).</p>
-<h3>Combat effects <span class="tag built">Built: spec 010</span></h3>
-<p>Every hit is felt. A number pops out of whoever was hit and arcs up: white on monsters, red on heroes, and a
-big gold number with a <code>!</code> for a critical hit. Sparks fly away from the attacker and fall. A crit
-also shakes the screen a little and holds every character still for a split second; a hero dying shakes it
-harder. Heals show a green <code>+N</code> with sparkles. A monster that dies bursts into bits of its own
-colours with a pale puff, its coins spill out, bounce on the floor, rest a moment and fly to the purse at the
-top right (one coin per 5 gold, up to 12), and blue XP motes fly to each hero who earned them. A level up
-throws gold sparks and shows <code>LEVEL UP</code>. Bolts leave a short trail and flash where they land.
-Resting heroes give off a small <code>z</code> now and then; a wipe shows <code>WIPED</code> until the party
-stands up again in a column of light; a new last stable stage shows <code>MOSSY HOLLOW n STABLE</code> (spec 049). Effects
-never fade: they shrink, blink or fly away. After a long freeze old events start no effects (their gold is
-counted at once), and there are never more than 40 numbers and 300 particles on screen.</p>
-<h3>Abilities on screen <span class="tag built">Built: spec 056</span></h3>
-<p>What the talent trees' abilities do is now seen. When a fighter uses an ability its name rises over its
-head in its colour (never more than two at once over one fighter). An action's wind-up lights the fighter
-yellow for exactly as long as it takes; a heavy blow throws a bigger white flash and amber shards; damage to
-many draws a ring out from the fighter or the target; a heal shows the green numbers on everyone healed; a
-push slides the pushed back with a little dust; a revived hero stands up where it fell, in the fight. A blow
-that misses says <code>Miss</code>, and one a shield soaks up whole says <code>Blocked</code> with no number.
-Statuses show for exactly as long as they last: stars circling a stunned head (and it stands still), a red
-<code>!</code> over a taunter, an outline round the shielded that dims as the shield is used, an orange, red
-or pale blue wash with little motes for burning, bleeding and chilled (their damage numbers take the
-colour), green motes for mending, arrows up and down for hasted and slowed, a bright or a broken sword for
-mighty and weakened, a target for marked, and a half-faded sprite for nimble and untouchable. Each hero
-frame shows up to three small status icons, and resting the mouse on the frame names every status with the
-seconds it has left. In the party tally, click a hero's line to see its damage and healing by ability
-(<em>Whirlwind 412</em>, <em>Strikes 950</em>, <em>Bleeding 88</em>); click again to close it. These are
-the only effects that fade: the half-faded sprite and nothing else.</p>
-<h3>The HUD <span class="tag built">Built: spec 011</span></h3>
-<p>Everything you need to manage the party, at the edges of the screen so the action stays clear. Each piece
-sits on a small dark panel so it reads over the sky and the darkest rock alike.</p>
-<ul>
-  <li><strong>Party frames</strong> (bottom), in marching order: each hero's portrait, class, level, a health
-  bar (green above half, yellow down to a quarter, red below) that drains smoothly, and an XP bar toward the
-  next level. During a fight the bar follows the fight blow by blow (spec 030). A hit flashes the frame; a
-  hero who falls goes dark at once, with a skull and reads <em>Down</em>
-  where the level was until it stands up again (after a wipe all four read <em>Recovering</em>); a
-  level-up makes the level number pulse and the XP bar start again from empty.</li>
-  <li><strong>Gold</strong> (top right), with commas. It counts up as coins arrive; if it is still behind 3
-  seconds after the last coin, it catches up at once. From 10,000 the top bar shortens the gold and the
-  resource counts, rounding down (12.3k, 123k, 9.9M), so they always fit.</li>
-  <li><strong>Depth</strong> (top left): the area's name over the current stage in big numbers (it lights up
-  when it changes; spec 049), the last stable stage (<em>Safe 3</em>: where the party falls back to after a wipe), the target depth, and a short line for what the party is doing and why (spec 027):
-  <em>Heading down to stage 5</em>, <em>Hunting on stage 4</em>, <em>On the way to The Claypits 1</em>, <em>Fighting 3 monsters</em>, <em>Fighting
-  the Slime King</em>, <em>Resting, 64% health</em>, <em>Climbing down</em>, <em>Working: Locked Chest</em>, <em>Chased home!
-  Regrouping</em>.</li>
-  <li><strong>The road to stable</strong> (right of the depth, spec 027): on a depth that is not yet stable,
-  <em>Stable in 8:29</em> over a thin yellow bar that fills as the time passes; on a stable depth, a green
-  <em>Stable</em>. With auto-push on and the party at its target, it also says what comes next
-  (<em>then stage 3</em>). Auto-push moves the party on once it has held its target for the stable time
-  (counted from when it arrived or the target was set, whichever was later), so on a depth that is already
-  stable the note counts down to that instead: <em>Deeper in 0:42</em> over the bar (spec 039). With Auto
-  off it reads <em>Stable, staying on stage 3</em>, and while the Hold order keeps the party from a guardian,
-  <em>Holding, Orders (O) to go in</em>.</li>
-  <li><strong>After a defeat</strong> (spec 041): when the party is wiped, a small note appears above
-  <code>WIPED</code> in the middle of the screen and stays until 8 seconds after the heroes stand up
-  again (longer while the mouse rests on it, and a new fight does not hide it). It says what beat
-  the party and where (<em>Beaten by the Slime King on Mossy Hollow 5</em>, or <em>Beaten on Mossy Hollow 7 by 3
-  ogres</em>), with <em>(2 times)</em> from the second defeat in a row by the same guardian; the plainest
-  reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>, or <em>Mossy Hollow 7 is 3
-  below the safe stage</em>); and up to three buttons that would help: <em>Spend talent points</em> (first,
-  when any hero has one: opens that hero's Talents tab, spec 055), <em>Train Knight</em> (opens the first
-  hero with paragon points to spend on its Talents tab), <em>Buy an upgrade</em> (opens the shop),
-  or <em>Hold here</em> (sets the guardian order to Hold; it reads <em>Holding</em> only while the order is
-  Hold). When all four would help, <em>Buy an upgrade</em> is the one left out. Each has a tooltip. The buttons keep still while the mouse is over the note, so a click does what
-  the button said. It hides while a panel is open, and its 8 seconds wait while it is hidden. It says
-  nothing about wipes while you were away or seen only after a stall, and it describes the lost fight even
-  when the defeat and the revival arrive in one frame (at 4x). The journal writes its first line and where
-  the party falls back to: <em>Beaten by the Slime King on Mossy Hollow 5; falling back to Mossy Hollow 4</em>.</li>
-  <li><strong>The journal</strong> (spec 027): the game remembers the last 50 notable happenings with the game
-  time (a new deepest depth, a depth turning stable, a level up, a wipe and what beat the party where, a
-  guardian slain, an upgrade bought, a side quest done, passed or sprung, a microskill learned). The newest shows for 4 seconds in a one-line ticker just above the party
-  frames, then fades. <code>J</code> opens a panel with the last 12, newest at the top, under the depth; the
-  game keeps running, every other key still works, <code>Esc</code> closes it and so does opening the shop or a hero sheet.
-  Things that happened while the game was catching up are written but not flashed in the ticker.</li>
-  <li><strong>The arrow</strong> (spec 027): while the party is heading for a deeper or shallower target, a
-  small yellow arrow bobs over its heads pointing down or up. It hides in a fight, while the party is down
-  and once it is at its target depth.</li>
-  <li><strong>The depth ladder</strong> (spec 033): a narrow panel on the right, under the gold, shows twelve
-  depths as the rungs of a ladder, shallow at the top. A white diamond marks the party's depth and bobs; the
-  safe depth (where a wipe sends the party) is green; depths at or above it are solid, deeper ones the party
-  has reached are outlined, and depths never reached are dim. A yellow arrow points at the target, and a
-  small skull marks each guardian, crossed out in red while it is beaten. The ladder scrolls as the party
-  climbs, keeping its depth in view. Rest the mouse on a rung for a line in words
-  (<em>Depth 5: Slime King (beaten). Click to send the party here</em>); click it to make that depth the
-  target, as pressing <code>-</code> or <code>+</code> enough times would. <code>L</code> hides and shows it,
-  and it steps aside while the shop is open.
-  <span class="tag built">Built: spec 043</span> Each depth's number is coloured by how it looks for this
-  party, from its lowest hero's level L: blue (cyan) for safe, at or above the safe depth; orange for within
-  reach, down to depth L + 1; red for dangerous, deeper than that. It is a rough guide, not a promise. The
-  hover adds a second line, <em>Within reach</em> or <em>Dangerous: heroes are level 3</em>, and clicking a
-  dangerous depth still sets it but the ticker says <em>Target set to depth 9: dangerous for level 3
-  heroes</em>. The mouse wheel scrolls the ladder a depth per notch, from depth 1 to six below the deepest
-  reached; while scrolled away a small white arrow at its top or bottom points to the party, and clicking it,
-  or five seconds with the mouse off the ladder, brings it back. A goal's flash scrolls its depth into view.
-  <span class="tag built">Built: spec 047</span> The target's number sits in a yellow frame (the arrow points
-  into it) and the party's in a white one, so both are easy to find whatever colour the number is. When the
-  rungs move under a still mouse (a wheel notch, the ladder following the party, a flash) the outline and
-  the line in words move to the rung now under it, so the warning is never about the wrong depth. A scrolled
-  ladder stays where you put it until you click the arrow or five seconds pass with the mouse off it; a
-  wheel notch moves it one rung at most, even while the party is climbing; and the arrow sits in the
-  caption's row or on the bottom edge, never over the party's diamond. The ladder, the goals and the note
-  after a defeat all read the lowest hero level the same way.</li>
-  <li><strong>Goals</strong> (spec 037): a small panel under the depth panel on the left lists up to three
-  things within reach, first that apply of: <em>Beat the Slime King</em> (once its depth is within three of the
-  deepest reached, with the party's lowest level against the level it is about right for, its depth plus 4),
-  <em>Reach depth 6</em> (at the deepest depth, filling toward auto-push's next push and showing the time
-  left, <em>on the way</em> once the target is below, <em>Auto is off</em> when nothing will take the party
-  deeper; elsewhere, as the party works its way back down; it gives way to the guardian's goal while the party
-  is holding at it, spec 039), <em>Spend the Knight's talent point</em> (spec 055: the first hero with one;
-  a click opens its Talents tab), <em>Rogue learns Trapspotter at level 6</em> (the hero's XP toward that level), <em>Train a hero</em>
-  (when a hero has paragon points, with how many) and <em>Buy an upgrade</em> (when the gold is there, with the price). When one is done its line flashes
-  green, shows a tick for 3 seconds and the journal gets a line (<em>Goal: reached depth 6</em>), then the next
-  goal takes its place. Resting the mouse on a goal says how to get there (under the Hold order, that the
-  party is holding back and Orders sends it in), then what a click does. Each line is a button (spec 042):
-  it lights up under the mouse, and those two goals carry a small yellow <em>&gt;</em> since they can be done
-  now. Clicking <em>Buy an upgrade</em> opens the shop; <em>Train a hero</em> opens the sheet of the first hero
-  with paragon points to spend, on its Talents tab; a microskill opens that hero's sheet
-  on its Skills tab; <em>Beat the ...</em> opens the orders; <em>Reach depth N</em> shows the depth ladder
-  (closing the shop if it covers it) and flashes that depth's rung for a second. A click only opens things:
-  nothing is bought or trained from the goals, and a goal showing its tick does nothing. It gives no
-  rewards: it is a signpost. <code>G</code> hides and shows it, and it steps aside while a hero sheet, the journal or the tally is open.
-  Things done while the game was catching up are not celebrated.</li>
-  <li><strong>Frame tags</strong> (spec 037): a hero's frame carries a small orange tag with a number in its
-  top-right corner while that hero has something for you: talent and paragon points to spend, and microskills
-  learned since you last looked at their Skills tab. It clears as the sheet's own tab tags do.</li>
-  <li><strong>Controls:</strong> <code>-</code> and <code>+</code> (or the <code>-</code> and <code>=</code>
-  keys) lower and raise the target depth, never below 1. <strong>Auto</strong> (or the <code>A</code> key)
-  turns auto-push on and off; it is green when on. If auto-push raises the target, the HUD shows it.</li>
-  <li><strong>Z</strong> zooms the labyrinth in to twice the size, centred on the party, and back out again
-  (spec 018). The change eases over a quarter of a second; the HUD stays the same size.</li>
-  <li><strong>Help</strong> (spec 030): the <strong>?</strong> button left of Shop, or <code>H</code>, opens a
-  panel in the middle of the screen: what the game is about in five lines, every key and what it does, and a
-  hint to click a hero or rest the mouse on things. <code>H</code>, <code>Esc</code> or its <strong>x</strong>
-  closes it; it never shares the screen with the shop, a hero sheet or the journal, and the game keeps running.
-  The first time a new game starts, it opens by itself, once.</li>
-  <li><strong>Tooltips</strong> (spec 030): rest the mouse on the depth, the status line, the road to stable,
-  the target and its buttons, Auto, Shop, the gold, a hero frame, the boss bar or the ? button for 0.4
-  seconds, and a small box explains it in one sentence. It never covers what it explains.</li>
-  <li><strong>F3</strong> shows or hides a developer readout of the simulation's tick and seconds, in the
-  bottom-right corner.</li>
-</ul>
-<h3>The upgrade shop <span class="tag built">Built: spec 017</span></h3>
-<p>The <strong>Shop</strong> button sits left of the gold (or press <code>U</code>). When the party can afford
-at least one camp upgrade, a small amber tag on the button pulses and shows how many. The shop opens as a panel
-under the gold, between the top of the screen and the party frames, and the game keeps running behind it. Each
-row shows an upgrade's name, what it does, its rank (<code>Rank 3/20</code>), the bonus it gives now
-(<code>+15%</code>) and a button with the next rank's price: yellow when you can pay, dim red (and doing nothing)
-when you cannot, and <code>MAX</code> at the top rank. From the fourth rank a row also shows its resource's
-icon and price left of the button, white when the party holds enough and grey when not (spec 052); the row
-can be bought only when both are paid. Rest the mouse on a row for both prices and where the resource comes
-from, and, if that area is still closed, how to open it. Click the price, or press the row's number
-(<code>1</code> to <code>5</code>), to buy: the row flashes green and the gold drops at once. <code>U</code> or
-<code>Esc</code> closes it; the depth keys, <code>Z</code> and <code>F3</code> still work while it is open. Opening the shop
-closes the "While you were away" panel if it is still up.</p>
-<h3>Auto-buy <span class="tag built">Built: spec 022</span></h3>
-<p>At the bottom of the shop is an <strong>Auto-buy</strong> toggle (or press <code>B</code> while the shop is
-open). It is off in a new game and reads <code>Auto-buy off</code>; when on it turns green and reads
-<code>Auto-buy on</code>. While it is on, once every second of game time the camp buys the cheapest upgrade the
-party can afford (the one higher in the list on a tie), exactly as if you had clicked it: the row flashes and the
-gold drops. It never spends gold the party does not have, nor buys a rank whose resource it lacks (spec 052), and it stops by itself once every upgrade is at its top
-rank. The switch is saved, and it keeps buying while the game is closed: the "While you were away" panel then
-says how many upgrades were bought.</p>
-<h3>The hero sheet <span class="tag built">Built: spec 026</span></h3>
-<p>Click a hero's frame (or press <code>Tab</code>) and a panel opens under the depth panel at the top left
-with everything about that hero; the hero's frame gets a yellow edge so you can see whose sheet it is. Click
-another frame, or press <code>Tab</code> again, to move to the next hero; click the same frame, the small
-<code>x</code>, or press <code>Esc</code> to close it. The sheet and the shop never show together: opening one
-closes the other. The game keeps running behind it, and every other key still works.</p>
-<p><span class="tag built">Built: spec 034</span> The sheet is a compact panel (240 by 150 pixels, taller on the
-Talents tab so the whole tree fits) that leaves the party in view. Its top part, who the hero is (with its path
-once chosen: <code>Knight, Berserker</code>), what they are doing and their health and XP bars, is always
-there. Under it are three tabs: <strong>Stats</strong>, <strong>Talents</strong> and <strong>Skills</strong>.
-Click a tab, or press <kbd>Q</kbd> and <kbd>E</kbd> for the previous and next one (they wrap round). The sheet
-remembers the open tab while you step through heroes with <kbd>Tab</kbd> and when you close and reopen it; a new
-session starts on Stats. A small pulsing tag beside a tab asks for a look: on Talents, the number of talent and
-paragon points this hero has to spend; on Skills, the number of microskills the hero learned since you last looked
-at that tab (it clears when you open it).</p>
-<ul>
-  <li><strong>Who</strong> (always shown)<strong>:</strong> the hero's portrait at twice the size (a skull while they are down), the class, the
-  role in one word (Tank, Striker, Caster, Healer) and the level.</li>
-  <li><strong>Doing now:</strong> one coloured line: <code>Walking</code>, <code>Fighting Goblin</code> (the
-  monster they are attacking), <code>Healing Knight</code>, <code>Resting</code>, <code>Climbing</code>,
-  <code>Down</code> in red, or <code>Recovering</code> while the party stands back up.</li>
-  <li><strong>Where they stand:</strong> health as numbers and a bar (during a fight, the health they have in
-  that fight), and XP toward the next level (<code>12 / 20 XP, 8 to level 2</code>).</li>
-  <li><strong>What they can do</strong> (the Stats tab)<strong>:</strong> Health, Damage, Armor, Attack speed (attacks a second), Crit chance,
-  Range (<code>Melee</code> or tiles) and, for the Cleric, Healing, with the camp upgrades and the hero's
-  paragon points already counted in. A stat an upgrade or paragon points raise shows the two bonuses together
-  beside it in green (<code>Damage 14 (+21%)</code>).</li>
-  <li><strong>Talents</strong> <span class="tag built">Built: spec 055</span><strong>:</strong> the hero's
-  whole tree on one tab. At the top, the unspent talent points (<code>2 talent points</code>), or the level that
-  brings the next (<code>Next point at level 6</code>), and <code>Reset</code> with its price (100 gold a level),
-  greyed with the reason when it cannot be used (<code>Nothing to reset</code>, <code>In a fight</code>,
-  <code>Not enough gold</code>) and asking before it acts. Then the three trunk nodes in a row and the two paths
-  side by side under their names, four nodes each, joined by lines. Each node has a small picture of its kind
-  (strike, guard, heal, fire, frost, shadow, light, rally) and its ability's name: taken nodes are bright with a
-  green tick; one that can be taken now is framed in yellow and pulses; the rest are plain, and the nodes of the
-  path not chosen go dark with the path's name struck through. Point at a node, or click it, and the place under
-  the tree says what it does, whether it is an action (with its cooldown) or a passive, and why it cannot be
-  taken (<code>Take Taunt first</code>, <code>The Guardian path is closed</code>, <code>No talent point</code>).
-  Click a glowing node to take it; the first node of a path asks first (<code>Choose Berserker? This closes
-  Guardian.</code>, with <code>Choose</code> and <code>Not yet</code>). Under it all, the paragon points: before
-  level 14 it says <code>Paragon points come after level 14</code>; at level 14, with every talent point earned,
-  it shows <code>0 paragon points</code> and the three stats, and each level from 15 brings a point to put in
-  with the <code>+1</code> beside Power, Toughness or Quickness (or <kbd>1</kbd>, <kbd>2</kbd> or <kbd>3</kbd>),
-  with each one's bonus so far beside it. A question (a path or a reset) goes away when you change tab or
-  close the sheet; a reset question goes too when a fight starts or the price changes, so you are never
-  charged a price you did not read.
-  The journal notes each talent point and each path chosen (<code>The Knight is now a Berserker</code>).</li>
-  <li><strong>Skills</strong> (the Skills tab)<strong>:</strong> the class's microskills, learned ones in white
-  with what they do, the ones to come in grey with their level.</li>
-</ul>
-<p>Everything on it is read from the game every frame, so it is right after a level up, a purchase or loading
-a save. Later sheets (equipment) can become tabs of their own.</p>
+<p><strong>Numbers.</strong> The party walks 3 tiles a second. Every chamber but the first and the two with
+doorways holds 2 to 5 monsters (more in a den; a vault pays double gold). A cleared chamber fills again
+after 5 seconds on stage 1, more slowly on later stages, 90 seconds from stage 10 on. Level 2 costs 20 XP,
+level 3 90, level 5 380. Resting heals 4% of health a second. In a new game the party fights five times or
+more in its first two minutes, every hero is level 2 within half a minute or so, the party reaches stage 2
+after about a minute and a half, and the first upgrade is affordable after about a minute.</p>
 
-<h2 id="code">4. How the code works</h2>
+<h3>Areas and stages</h3>
+<p>The labyrinth is four areas. Inside an area the party moves through numbered stages, each harder than
+the last; the screen names a place as an area and a stage (<em>Mossy Hollow 3</em>).</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Area</th><th>Stage 1 is level</th><th>Monsters</th><th>Guardian</th><th>Resource</th><th>Opens when</th></tr>
+  <tr><td>Mossy Hollow</td><td>1</td><td>Slime, cave bat, spider, goblin</td><td>Slime King</td><td>Glowcaps</td><td>Open from the start</td></tr>
+  <tr><td>The Claypits</td><td>6</td><td>Mud golem, clay hound, ogre</td><td>Clay Colossus</td><td>Clay</td><td>The Slime King is beaten</td></tr>
+  <tr><td>The Old Crypt</td><td>11</td><td>Skeleton, ghoul, wraith</td><td>Bone Lord</td><td>Old bones</td><td>The Clay Colossus is beaten</td></tr>
+  <tr><td>Ember Deep</td><td>16</td><td>Fire imp, crystal beetle, deep horror</td><td>Deep Maw</td><td>Embers</td><td>The Bone Lord is beaten</td></tr>
+</table>
+</div>
+<ul>
+  <li><strong>How hard a stage is:</strong> monsters there are the area's first level plus the stage minus
+  one. Mossy Hollow 5 is level 5; the Claypits 1 is level 6.</li>
+  <li><strong>Each area keeps its own progress:</strong> its safe stage and the furthest stage reached. The
+  party can go back to an area and pick up where it left off.</li>
+  <li><strong>Travelling:</strong> sending the party to another open area takes ten seconds on the road
+  (<em>On the way to The Claypits 1</em>). The journey rests the party as ten seconds of resting would, and
+  the fallen stand up. A side quest being worked is finished first.</li>
+  <li><strong>A monster lives in one area only,</strong> and each area's labyrinth is its own. The same seed
+  always gives the same labyrinth.</li>
+  <li><strong>A stage</strong> is a band 120 tiles wide with four to six chambers on one flat floor, joined
+  by low tunnels: plain chambers, dens and at most one vault. The way on is a doorway at one end, the way
+  back a doorway at the other, so the party crosses most of a stage to go further.</li>
+</ul>
+
+<h3>Safe stages, the target and Auto</h3>
+<ul>
+  <li><strong>The target</strong> is the stage the party is trying to be on. Short of it, the party heads on;
+  past it, it heads back; on it, it walks from one end to the other and back, hunting.</li>
+  <li><strong>Safe (stable).</strong> A stage becomes safe once the party has held it without a wipe for long
+  enough: one minute on stage 1, about 1:17 on stage 2, 2:47 on stage 5, 7:45 on stage 9, and ten minutes
+  from stage 10 on. The time goes by the stage's number, so stage 1 of any area is safe in a minute.</li>
+  <li><strong>Auto</strong> (on in a new game) moves the target one stage further each time the party has
+  held its target for the safe time. Turn it off and the party stays where you put it.</li>
+  <li><strong>A wipe</strong> costs efficiency, never progress. Five seconds after the last hero falls the
+  party stands up at full health on the area's last safe stage, which becomes its target. XP, gold, levels
+  and resources are never lost. A fight still going after 90 seconds counts as a wipe.</li>
+</ul>
+
+<h3>Guardians</h3>
+<p>Each area's guardian waits alone in the chamber with the doorway on, on stage 5 and every fifth stage
+after: one huge monster the party must beat to go further. It is meant as a wall: four level-5 heroes
+without talents almost never beat the Slime King, level-9 heroes almost always do. Beating one pays at
+least ten ordinary kills' worth of XP and gold and always drops several of the area's resource, and its
+chamber then stays empty for 30 minutes so the party can pass freely. The first win over an area's guardian
+opens the next area. Guardians are never met in ordinary fights, and the game remembers which are
+beaten.</p>
+<p>A guardian fight is staged as a boss fight: its name appears large (<code>SLIME KING</code>, with
+<code>GUARDIAN OF MOSSY HOLLOW 5</code> under it), the screen shakes and a horn sounds; a wide red health
+bar sits at the top centre for the whole fight; and when it dies the screen shakes hard, it bursts in
+three waves, at least 20 coins pour out, <code>GUARDIAN SLAIN</code> shows in gold and a fanfare plays.</p>
+
+<h3>Resources</h3>
+<p>Each area gives its own resource. A monster killed there may drop some: a small one about three times
+in ten, a large one eight times in ten, a guardian always and several (6 on stage 1). Further in pays
+more: a quarter more for every stage past the first. A side quest finished pays a large monster's drop.
+Resources pay for camp upgrades past their third rank (see "Camp upgrades"), so what you want to build
+decides where the party goes. They are saved, and never lost in a wipe.</p>
+
+<h3>Side quests and microskills</h3>
+<p>Not every chamber is a fight. About three plain chambers in ten hold a <em>side quest</em> instead of
+monsters. Each needs a <em>microskill</em>, a small knack a hero picks up at a certain level.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Side quest</th><th>Needs</th><th>Learned by</th><th>Pays</th></tr>
+  <tr><td>Locked chest</td><td>Lockpicker</td><td>Rogue, level 2</td><td>Gold</td></tr>
+  <tr><td>Stuck door</td><td>Strongarm</td><td>Knight, level 3</td><td>Gold</td></tr>
+  <tr><td>Hurt wanderer</td><td>Mender</td><td>Cleric, level 3</td><td>Gold</td></tr>
+  <tr><td>Rune stone</td><td>Runereader</td><td>Mage, level 4</td><td>XP worth two kills for every living hero</td></tr>
+  <tr><td>Tripwire</td><td>Trapspotter</td><td>Rogue, level 6</td><td>Gold; unspotted, it springs</td></tr>
+</table>
+</div>
+<p>If someone in the party has the microskill, that hero steps up and works at it for 3 to 6 seconds
+(<em>Working: Locked Chest</em>) and the party gets the reward: gold worth one to three kills of that stage,
+plus a resource drop. If nobody can, the party walks past and the quest waits for a later visit; a tripwire
+instead springs and every hero loses a fifth of their health (never down to 0, so it cannot wipe the
+party). A quest out in the dark shows a small white glint so you can spot it from afar.</p>
+
+<h3>Camp upgrades</h3>
+<p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last. The
+first three ranks cost gold alone; from the fourth, each rank also costs the upgrade's resource.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Upgrade</th><th>Each rank gives</th><th>Ranks</th><th>Resource from rank 4</th></tr>
+  <tr><td>Sharp Blades</td><td>+5% damage and healing</td><td>20</td><td>Old bones (the Old Crypt)</td></tr>
+  <tr><td>Stout Armor</td><td>+5% maximum health</td><td>20</td><td>Clay (the Claypits)</td></tr>
+  <tr><td>Field Medicine</td><td>+10% healing speed while resting</td><td>10</td><td>Glowcaps (Mossy Hollow)</td></tr>
+  <tr><td>Quick March</td><td>+4% travel speed</td><td>10</td><td>Glowcaps (Mossy Hollow)</td></tr>
+  <tr><td>Fat Purse</td><td>+5% gold from kills</td><td>20</td><td>Embers (Ember Deep)</td></tr>
+</table>
+</div>
+<p>Ranks add up: rank 3 of Sharp Blades is +15%. <strong>Auto-buy</strong> (a switch in the shop, off in a
+new game) buys the cheapest upgrade the party can pay for once a second of game time, never a rank whose
+resource it lacks, and keeps buying while the game is closed.</p>
+
+<h3>Party orders</h3>
+<p>Two standing orders the party follows by itself (<kbd>O</kbd>):</p>
+<ul>
+  <li><strong>Pace:</strong> how hurt it may get before it rests after a fight. Cautious (any hero below 80%
+  health), Steady (below 60%, the usual) or Bold (only below 40%).</li>
+  <li><strong>Guardians:</strong> Challenge (the usual) or Hold, where the party turns back at the guardian's
+  door and keeps hunting on that stage until you choose Challenge.</li>
+</ul>
+
+<h3>Time away</h3>
+<p>Each save remembers the real time it was written. When the game starts it works out how long it was
+closed (at most 8 hours; under a minute counts as nothing) and plays that time through the same rules as
+fast as it can, behind a <code>Catching up...</code> bar; eight hours takes a few seconds. Then a panel
+says how long the party was away, the gold it earned, the resources it gathered (<em>Gathered 40 glowcaps,
+12 clay</em>), the levels each hero gained, where it was and where it is now, monsters slain, wipes,
+guardians slain, side quests done and missed (with the microskill the misses needed most), microskills
+learned and, with auto-buy on, upgrades bought. A click or any key closes it.</p>
+
+<h2 id="heroes">4. Heroes, talents and paragon</h2>
+<p>Four heroes: the <strong>Knight</strong> (tank, in front), the <strong>Rogue</strong> (striker), the
+<strong>Mage</strong> (caster, at range) and the <strong>Cleric</strong> (healer). Camp upgrades lift all
+of them at once; talents make one hero different from another.</p>
+
+<h3>The rules of a tree</h3>
+<ul>
+  <li>Each class has a tree of eleven abilities: a <strong>trunk</strong> of three, then two named
+  <strong>paths</strong> of four.</li>
+  <li>A hero earns one <strong>talent point at every even level</strong> (2, 4 ... 14): seven in all, which
+  fills the trunk and one path.</li>
+  <li>Points are spent in order: the trunk first, then the first node of either path, then that path in
+  order. <strong>Taking a node of one path closes the other.</strong> The game asks before it does.</li>
+  <li>Every node is an ability: an <strong>action</strong> the hero does in a fight (with a cooldown), or a
+  <strong>passive</strong> that fires when something happens. None is a plain bonus to damage or health.</li>
+  <li>A hero uses its abilities from its next fight on. Every action is ready as a fight starts and waits
+  only for its condition (Prayer waits for a hurt ally) and, once used, its cooldown. A hero tries its
+  newest node first.</li>
+  <li>A <strong>reset</strong> gives a hero back every talent point and opens both paths again, for 100
+  gold per level, outside a fight. Paragon points stay.</li>
+</ul>
+
+<h3>Knight</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Where</th><th>Ability</th><th>Kind</th><th>What it does</th></tr>
+  <tr><td>Trunk</td><td>Shield Bash</td><td>Action</td><td>Bashes the nearest enemy for 1.5x damage and stuns it for 1.5 s. Every 8 s.</td></tr>
+  <tr><td>Trunk</td><td>Taunt</td><td>Action</td><td>With two enemies or more, makes those that can reach the knight strike it for 4 s. Every 12 s.</td></tr>
+  <tr><td>Trunk</td><td>Bottle-top Block</td><td>Passive</td><td>When hit, a 20% chance of a small shield (6% of health) for 5 s.</td></tr>
+  <tr><td>Guardian</td><td>Hold the Line</td><td>Passive</td><td>As a fight starts, every ally gets a shield of 8% of its health for 10 s.</td></tr>
+  <tr><td>Guardian</td><td>Last Stand</td><td>Passive</td><td>Once a fight, below 30% health: a shield of 30% of health and mending, for 6 s.</td></tr>
+  <tr><td>Guardian</td><td>Bulwark</td><td>Action</td><td>With another ally below 80%: taunts for 4 s and shields the knight. Every 15 s.</td></tr>
+  <tr><td>Guardian</td><td>Rallying Cry</td><td>Action</td><td>With an ally below 60%: shields every ally (10% of health) and mends them for 8 s. Every 30 s.</td></tr>
+  <tr><td>Berserker</td><td>Whirlwind</td><td>Action</td><td>Strikes every enemy within 2 tiles for 1.2x damage. Every 6 s.</td></tr>
+  <tr><td>Berserker</td><td>Bloodthirst</td><td>Passive</td><td>When hit, a 25% chance the knight strikes 30% faster for 4 s.</td></tr>
+  <tr><td>Berserker</td><td>Reckless Swing</td><td>Passive</td><td>Every fourth strike hits double and heals the knight for half of it.</td></tr>
+  <tr><td>Berserker</td><td>Rampage</td><td>Passive</td><td>Once a fight, below 50% health: 50% more damage and 30% faster strikes for 8 s.</td></tr>
+</table>
+</div>
+
+<h3>Rogue</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Where</th><th>Ability</th><th>Kind</th><th>What it does</th></tr>
+  <tr><td>Trunk</td><td>Backstab</td><td>Action</td><td>Strikes the furthest enemy for 3x damage and leaves it bleeding for 4 s. Every 8 s.</td></tr>
+  <tr><td>Trunk</td><td>Smoke Step</td><td>Passive</td><td>When hit, a 25% chance to dodge half of all strikes for 3 s.</td></tr>
+  <tr><td>Trunk</td><td>Finisher</td><td>Action</td><td>Strikes an enemy below 25% health for double damage. Every 5 s.</td></tr>
+  <tr><td>Assassin</td><td>Poisoned Blades</td><td>Passive</td><td>Every hit leaves the enemy bleeding for 3 s.</td></tr>
+  <tr><td>Assassin</td><td>Mark for Death</td><td>Action</td><td>The weakest enemy takes 30% more damage for 6 s. Every 12 s.</td></tr>
+  <tr><td>Assassin</td><td>Ambush</td><td>Passive</td><td>As a fight starts, the nearest enemy is stunned for 2 s.</td></tr>
+  <tr><td>Assassin</td><td>Killing Spree</td><td>Passive</td><td>On a kill, the rogue deals 50% more damage for 5 s.</td></tr>
+  <tr><td>Trickster</td><td>Fan of Knives</td><td>Action</td><td>Strikes every enemy for 0.8x damage. Every 8 s.</td></tr>
+  <tr><td>Trickster</td><td>Caltrops</td><td>Action</td><td>Every enemy strikes 50% slower for 5 s. Every 14 s.</td></tr>
+  <tr><td>Trickster</td><td>Dizzying Feint</td><td>Passive</td><td>A critical hit weakens the enemy: 30% less damage for 4 s.</td></tr>
+  <tr><td>Trickster</td><td>Vanish</td><td>Passive</td><td>Once a fight, below 30% health: cannot be hit for 4 s, and mends.</td></tr>
+</table>
+</div>
+
+<h3>Mage</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Where</th><th>Ability</th><th>Kind</th><th>What it does</th></tr>
+  <tr><td>Trunk</td><td>Fireball</td><td>Action</td><td>Hits the target and enemies beside it for 1.2x damage and sets them burning. Every 8 s.</td></tr>
+  <tr><td>Trunk</td><td>Frost Nova</td><td>Action</td><td>With two enemies or more, a burst around the nearest: enemies there are pushed back and slowed for 3 s. Every 12 s.</td></tr>
+  <tr><td>Trunk</td><td>Chain Spark</td><td>Passive</td><td>A critical hit also strikes every enemy for 0.3x damage.</td></tr>
+  <tr><td>Pyromancer</td><td>Ignite</td><td>Passive</td><td>Hits have a 50% chance to set the enemy burning for 3 s.</td></tr>
+  <tr><td>Pyromancer</td><td>Meteor</td><td>Action</td><td>Drops a meteor on the furthest enemy: 3x damage to it and those beside it. Every 15 s.</td></tr>
+  <tr><td>Pyromancer</td><td>Wildfire</td><td>Passive</td><td>On a kill, every enemy starts burning for 3 s.</td></tr>
+  <tr><td>Pyromancer</td><td>Inferno</td><td>Action</td><td>With two enemies or more: all burn and take 25% more damage for 5 s. Every 25 s.</td></tr>
+  <tr><td>Frostbinder</td><td>Ice Lance</td><td>Action</td><td>Hits the weakest enemy for 2x damage and stuns it for 1 s. Every 9 s.</td></tr>
+  <tr><td>Frostbinder</td><td>Frost Armor</td><td>Passive</td><td>As a fight starts, every ally gets a shield of 10% of its health for 10 s.</td></tr>
+  <tr><td>Frostbinder</td><td>Deep Freeze</td><td>Action</td><td>Stuns the target and enemies beside it for 2 s. Every 18 s.</td></tr>
+  <tr><td>Frostbinder</td><td>Blizzard</td><td>Action</td><td>Every enemy is slowed and frostbitten, taking damage each second, for 6 s. Every 25 s.</td></tr>
+</table>
+</div>
+
+<h3>Cleric</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Where</th><th>Ability</th><th>Kind</th><th>What it does</th></tr>
+  <tr><td>Trunk</td><td>Prayer</td><td>Action</td><td>With an ally below 80%: heals every ally by the healing power. Every 12 s.</td></tr>
+  <tr><td>Trunk</td><td>Blessing</td><td>Passive</td><td>As a fight starts, every ally mends for 6 s.</td></tr>
+  <tr><td>Trunk</td><td>Smite</td><td>Action</td><td>Strikes an enemy for 2x damage and weakens it (30% less damage) for 4 s. Every 8 s.</td></tr>
+  <tr><td>Lifebinder</td><td>Renewal</td><td>Action</td><td>The weakest hurt ally mends for 8 s. Every 6 s.</td></tr>
+  <tr><td>Lifebinder</td><td>Sanctuary</td><td>Action</td><td>With an ally below 30%: shields it (30% of its health) for 6 s. Every 15 s.</td></tr>
+  <tr><td>Lifebinder</td><td>Guardian Angel</td><td>Passive</td><td>Once a fight, when an ally dies it stands up with 40% health.</td></tr>
+  <tr><td>Lifebinder</td><td>Miracle</td><td>Action</td><td>With an ally below 25%: heals every ally for 40% of its health. Every 45 s.</td></tr>
+  <tr><td>Sunpriest</td><td>Holy Fire</td><td>Action</td><td>Strikes an enemy for 1.5x damage and sets it burning for 4 s. Every 6 s.</td></tr>
+  <tr><td>Sunpriest</td><td>Battle Hymn</td><td>Passive</td><td>As a fight starts, every ally strikes 20% faster for 12 s.</td></tr>
+  <tr><td>Sunpriest</td><td>Judgement</td><td>Passive</td><td>Every third strike marks the enemy: 30% more damage taken for 5 s.</td></tr>
+  <tr><td>Sunpriest</td><td>Wrath</td><td>Action</td><td>Strikes every enemy for 2x damage and heals every ally by half the healing power. Every 20 s.</td></tr>
+</table>
+</div>
+
+<h3>Paragon</h3>
+<p>Once a hero has earned its seven talent points (level 14), every level after gives a <strong>paragon
+point</strong> instead: the only place plain strength is bought. Each point adds 3% to one of three stats,
+with no limit: <strong>Power</strong> (damage and healing), <strong>Toughness</strong> (maximum health) or
+<strong>Quickness</strong> (attack speed). They are spent on the Talents tab. Buying training with gold
+(spec 029) is gone; a save from before gets that gold back.</p>
+
+<h3>How much talents are worth</h3>
+<p>From headless runs on seeds 1 to 5, the minutes until the first win over the Slime King:</p>
+<div class="table-wrap">
+<table>
+  <tr><th>The party uses</th><th>First win (minutes)</th></tr>
+  <tr><td>Nothing</td><td>14 to 28</td></tr>
+  <tr><td>Upgrades only</td><td>13 to 19</td></tr>
+  <tr><td>Talents only</td><td>9 to 15</td></tr>
+  <tr><td>Both</td><td>9 to 13, at the first meeting on four seeds of five</td></tr>
+</table>
+</div>
+<p>In half an hour of headless play every action a hero has held for ten minutes is used at least five
+times and every passive fires, except the rescues (Last Stand, Vanish, Guardian Angel, Miracle, Sanctuary,
+Rampage), which wait for a fight that goes badly.</p>
+
+<h2 id="screen">5. The screen</h2>
+<p>The labyrinth is seen from the side, like an ant farm, with the party in the middle and the controls at
+the edges. The game's picture is 640 by 360 pixels, scaled up.</p>
+
+<h3>Around the edges</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Where</th><th>What</th><th>Says</th></tr>
+  <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) over the stage in big numbers; <em>Safe 3</em>, the stage a wipe sends the party back to; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and a line for what the party is doing: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
+  <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off.</td></tr>
+  <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
+  <tr><td>Top right</td><td>Orders, speed, help, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
+  <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
+  <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
+  <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
+  <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name and health.</td></tr>
+</table>
+</div>
+
+<h3>Keys</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Key</th><th>Does</th></tr>
+  <tr><td><kbd>H</kbd></td><td>Show or hide the help panel (the <kbd>?</kbd> button does the same)</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Close whatever panel is open</td></tr>
+  <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
+  <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
+  <tr><td><kbd>W</kbd></td><td>Open or close the area map (a click on the area's name does the same)</td></tr>
+  <tr><td><kbd>U</kbd></td><td>Open or close the shop</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open</td></tr>
+  <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the hero sheet (Stats, Talents, Skills) or of the tally (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, on a hero's Talents tab</td></tr>
+  <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
+  <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
+  <tr><td><kbd>J</kbd></td><td>Open or close the journal</td></tr>
+  <tr><td><kbd>L</kbd></td><td>Hide or show the stage ladder</td></tr>
+  <tr><td><kbd>G</kbd></td><td>Hide or show the goals</td></tr>
+  <tr><td><kbd>F</kbd></td><td>Game speed: 1x, 2x, 4x, then back to 1x</td></tr>
+  <tr><td><kbd>Z</kbd></td><td>Zoom in to twice the size, or back out</td></tr>
+  <tr><td><kbd>M</kbd></td><td>Sound on or off</td></tr>
+  <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
+</table>
+</div>
+<p>Rest the mouse on any part of the HUD for 0.4 seconds and a small box explains it in one sentence.</p>
+
+<h3>The area map (<kbd>W</kbd>)</h3>
+<p>A list of every area. Each row shows its monsters (point at one for its name), its guardian with a green
+tick once beaten, the level of its first stage, how far the party has got (<em>Safe 3, furthest 5</em>) and
+its resource with how many the party holds. The area the party is in says <em>Here</em>; on the road the
+destination says <em>On the way, 7 s</em>. A closed area is dimmed and says which guardian opens it and
+what it gives (<em>Gives clay</em>). Click an open area to choose it: a stage shows under the list, starting
+at that area's safe stage, with <kbd>-</kbd> and <kbd>+</kbd> from 1 to one past the furthest, coloured blue
+(safe), orange (within reach) or red (dangerous) for this party. <em>Go</em> sends the party there; for the
+area it is already in, it sets the target. A dangerous choice is warned of in the journal. When a guardian
+opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears and the area's name
+carries a small orange mark until you open the map.</p>
+
+<h3>The stage ladder (<kbd>L</kbd>)</h3>
+<p>A narrow list of twelve stages down the right edge. A white diamond marks the party's stage; the safe
+stage is green; stages reached are outlined and stages never reached are dim; a yellow arrow and frame
+mark the target; a small skull marks each guardian, crossed out once beaten. Each stage's number is
+coloured for this party, from its lowest hero's level: blue is safe, orange within reach, red dangerous
+(a rough guide, not a promise). Click a stage to make it the target; rest the mouse on one for a line in
+words. The mouse wheel scrolls it; a small arrow brings it back to the party.</p>
+
+<h3>Goals (<kbd>G</kbd>)</h3>
+<p>Up to three things to look forward to, the first that apply of: <em>Beat the Slime King</em> (with the
+party's lowest level against the level it is balanced for), <em>Reach Mossy Hollow 6</em> (filling toward
+Auto's next move), <em>Visit The Claypits</em> (a newly opened area), <em>Spend the Knight's talent
+points</em>, <em>Rogue learns Trapspotter at level 6</em>, a hero's paragon points to spend, and <em>Buy
+an upgrade</em> (when the party can pay its gold and its resource). Each line is a button that opens the
+place where it is done: the shop, a hero's tab, the orders, the map or the ladder. A goal done flashes
+green with a tick and the journal gets a line. Goals give no reward: they are a signpost.</p>
+
+<h3>The hero sheet (click a frame, or <kbd>Tab</kbd>)</h3>
+<p>A compact panel at the top left. Its top part is always there: the hero's portrait, class and path
+(<code>Knight, Berserker</code>), role, level, what they are doing (<code>Fighting Goblin</code>,
+<code>Healing Knight</code>, <code>Resting</code>, <code>Down</code>), and health and XP as bars and
+numbers. Under it are three tabs:</p>
+<ul>
+  <li><strong>Stats:</strong> Health, Damage, Armor, Attack speed, Crit chance, Range and, for the Cleric,
+  Healing, with upgrades and paragon points counted in and shown in green (<code>Damage 14 (+21%)</code>).</li>
+  <li><strong>Talents:</strong> the whole tree. At the top, the unspent points (<code>2 talent
+  points</code>) or the level that brings the next (<code>Next point at level 6</code>), and
+  <code>Reset</code> with its price. Then the three trunk nodes in a row and the two paths side by side under
+  their names. A taken node is bright with a green tick; one that can be taken now is framed in yellow and
+  pulses; the nodes of a closed path go dark with the path's name struck through. Point at a node and the
+  place under the tree says what it does, whether it is an action (with its cooldown) or a passive, and why
+  it cannot be taken (<code>Take Taunt first</code>, <code>The Guardian path is closed</code>, <code>No
+  talent point</code>). Click a glowing node to take it; the first node of a path asks first (<code>Choose
+  Berserker? This closes Guardian.</code>). Under the tree are the paragon stats with a <code>+1</code>
+  each, or <code>Paragon points come after level 14</code>. The sheet is taller on this tab so the whole
+  tree fits.</li>
+  <li><strong>Skills:</strong> the class's microskills, learned ones in white with what they do, the ones to
+  come in grey with their level.</li>
+</ul>
+<p>A small pulsing tag on a tab, and on the hero's frame, counts what is waiting there.</p>
+
+<h3>The shop (<kbd>U</kbd>)</h3>
+<p>A panel under the gold; the game keeps running behind it. Each row shows an upgrade's name, what it
+does, its rank (<code>Rank 3/20</code>), the bonus it gives now and a button with the next rank's gold
+price: yellow when you can pay, dim red when you cannot, <code>MAX</code> at the top rank. From the fourth
+rank a row also shows its resource's icon and price, white when the party holds enough and grey when not;
+the row can be bought only when both are paid. Rest the mouse on a row for both prices, where the resource
+comes from and, if that area is closed, how to open it. The Shop button carries an amber tag counting the
+upgrades the party can pay for. The Auto-buy switch is at the bottom.</p>
+
+<h3>The party tally (<kbd>T</kbd>)</h3>
+<p>A damage meter on the left. Three tabs show each hero's damage dealt, healing done (only health actually
+restored) or damage taken, as bars in the hero's colour with the number and the hero's share. A switch
+picks <em>Last fight</em> or <em>Session</em>. Click a hero's line to see its damage and healing by ability
+(<em>Whirlwind 412</em>, <em>Strikes 950</em>, <em>Bleeding 88</em>). It counts only what happens while
+you watch, is never saved, and changes nothing about the game.</p>
+
+<h3>The journal (<kbd>J</kbd>) and the ticker</h3>
+<p>The game remembers the last 50 notable happenings with the game time: a new furthest stage, a stage
+turning safe, a level up, a talent point gained, a path chosen, a wipe and what beat the party where, a
+guardian slain, an area opened, the first of each resource, an upgrade bought, a side quest done, passed
+or sprung, a microskill learned. The newest shows for 4 seconds in the ticker above the hero frames;
+<kbd>J</kbd> opens the last 12.</p>
+
+<h3>After a defeat</h3>
+<p>When the party is wiped, a note above <code>WIPED</code> says what beat it and where (<em>Beaten by the
+Slime King on Mossy Hollow 5</em>, with <em>(2 times)</em> from the second defeat in a row), the plainest
+reason when there is one (<em>Heroes are level 6; it is balanced for about 9</em>), and up to three buttons
+that would help: <em>Spend talent points</em>, a hero's paragon points, <em>Buy an upgrade</em> (only when
+the party can pay) or <em>Hold here</em>. It stays until 8 seconds after the heroes stand up.</p>
+
+<h3>The world on screen</h3>
+<ul>
+  <li><strong>One stage at a time.</strong> The way on and the way back are stone doorways in the back wall.
+  The party walks into a doorway and is gone, the screen dims, a title names where it is going
+  (<em>Mossy Hollow 4</em>), and it opens on the party stepping out of a doorway on the next stage. The
+  crossing lasts as long as the game takes to change stage: about four seconds at 1x.</li>
+  <li><strong>A journey</strong> to another area holds the dark screen for its ten seconds with <em>Leaving
+  Mossy Hollow</em> and then the arrival's name.</li>
+  <li><strong>Each area has its own look:</strong> Mossy Hollow brown loam, the Claypits red clay, the Old
+  Crypt grey-blue stone, Ember Deep dark teal, each with its own torchlight, and every stage a little
+  darker than the one before.</li>
+  <li><strong>Lit and alive.</strong> Chambers have torches that throw warm, flickering pools of light in
+  hard-edged rings; tunnels are darker; the party carries its own light. The start has a campfire and
+  bedrolls, a den webs and bones, a vault a chest and coins. Embers rise, dust drifts, water drips,
+  beetles and moths wander.</li>
+  <li><strong>The arrow.</strong> While the party is heading for another stage a small yellow arrow over
+  its heads points the way it is going.</li>
+  <li><strong>A wipe.</strong> The party lies where it fell; if it revives on another stage the screen
+  dims, names the safe stage and opens on the heroes standing up there.</li>
+  <li><strong>If the game falls behind</strong> (a long freeze, 4x speed), the screen jumps to the true
+  state instead of replaying old animations.</li>
+</ul>
+
+<h3>What a fight looks like</h3>
+<ul>
+  <li><strong>Hits:</strong> a number pops out of whoever was hit: white on monsters, red on heroes, big
+  and gold with a <code>!</code> for a critical hit, which also shakes the screen a little. Heals are a
+  green <code>+N</code>.</li>
+  <li><strong>Deaths:</strong> a monster bursts into bits of its own colours; its coins bounce and fly to
+  the gold counter, its resource icons to theirs, and blue XP motes to each hero. A fallen hero topples
+  and lies there until the fight is won.</li>
+  <li><strong>Abilities:</strong> the ability's name rises over the fighter. An action's wind-up lights the
+  fighter yellow; a heavy blow throws a bigger flash; damage to many draws a ring; a push slides the pushed
+  back with a little dust; a revived hero stands up where it fell. A blow that misses says
+  <code>Miss</code>, and one a shield soaks up whole says <code>Blocked</code>.</li>
+  <li><strong>Level up:</strong> gold sparks and <code>LEVEL UP</code>. A stage turning safe shows
+  <code>MOSSY HOLLOW 3 STABLE</code>.</li>
+</ul>
+<p>Statuses show for exactly as long as they last:</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Status</th><th>What it does</th><th>How it looks</th></tr>
+  <tr><td>Stunned</td><td>Cannot act</td><td>Stars circling the head; the sprite stands still</td></tr>
+  <tr><td>Taunting</td><td>Enemies in reach strike this fighter</td><td>A red <code>!</code> over it</td></tr>
+  <tr><td>Shielded</td><td>Soaks up damage</td><td>An outline that dims as the shield is used</td></tr>
+  <tr><td>Burning</td><td>Damage every second</td><td>An orange wash and motes; orange numbers</td></tr>
+  <tr><td>Bleeding</td><td>Damage every second</td><td>A red wash and motes; red numbers</td></tr>
+  <tr><td>Chilled</td><td>Frost damage every second</td><td>A pale blue wash and motes; pale blue numbers</td></tr>
+  <tr><td>Mending</td><td>Heals every second</td><td>Green motes rising</td></tr>
+  <tr><td>Hasted</td><td>Strikes faster</td><td>A small arrow up</td></tr>
+  <tr><td>Slowed</td><td>Strikes slower</td><td>A small arrow down</td></tr>
+  <tr><td>Mighty</td><td>Deals more damage</td><td>A bright sword</td></tr>
+  <tr><td>Weakened</td><td>Deals less damage</td><td>A broken sword</td></tr>
+  <tr><td>Marked</td><td>Takes more damage</td><td>A target</td></tr>
+  <tr><td>Nimble</td><td>Dodges half of all strikes</td><td>The sprite half faded</td></tr>
+  <tr><td>Untouchable</td><td>Cannot be hit</td><td>The sprite half faded</td></tr>
+</table>
+</div>
+<p>A hero's frame shows up to three status icons, and its tooltip names the hero's class and path and
+every status with the seconds left.</p>
+
+<h3>Help, speed and zoom</h3>
+<ul>
+  <li><strong>Help</strong> (<kbd>H</kbd> or the <kbd>?</kbd> button): the idea in five lines and every key.</li>
+  <li><strong>Speed</strong> (<kbd>F</kbd>): 1x, 2x or 4x. It is the same game, only sooner; every session
+  starts at 1x.</li>
+  <li><strong>Zoom</strong> (<kbd>Z</kbd>): the labyrinth at twice the size, centred on the party; the HUD
+  stays the same size.</li>
+</ul>
+
+<h2 id="code">6. How the code works</h2>
 <p>The code is in two halves that are kept strictly apart.</p>
 <div class="table-wrap">
 <table>
@@ -812,217 +757,128 @@ a save. Later sheets (equipment) can become tabs of their own.</p>
   <tr>
     <td><strong>Simulation</strong></td>
     <td><code>sim/</code></td>
-    <td>Every rule of the game: movement, combat, loot, rest, depth. Plain code with no graphics, no clock
-    and no global randomness, so it can run with no window at all.</td>
+    <td>Every rule of the game: movement, fights, abilities, areas, rest, rewards. Plain code with no
+    graphics, no clock and no global randomness, so it can run with no window at all.</td>
   </tr>
   <tr>
     <td><strong>Game</strong></td>
     <td><code>game/</code></td>
-    <td>Shows the simulation (sprites, effects, UI) and passes the player's choices to it. Decides no rules.</td>
+    <td>Shows the simulation (sprites, effects, HUD) and passes the player's choices to it as commands.
+    Decides no rules.</td>
   </tr>
 </table>
 </div>
-<p>This split is what makes the rest possible:</p>
-<h3>Time <span class="tag built">Built</span></h3>
-<p>The simulation moves in fixed ticks, ten per second of game time, and never asks what time it is. A driver
-measures real elapsed time and steps the simulation that many ticks. Because ticks follow the clock and not
-the frame rate, the game keeps exact time when unfocused or minimised, and time missed while the game was
-closed is simply more ticks to work through.</p>
-<p>At 2x or 4x (spec 032) the driver steps two or four times as many ticks a second. The extra ticks are a
-best effort: if a frame has no time left for them, they are dropped rather than saved up for later, so a slow
-moment never ends in a burst. Time away, saving and running while minimised always count real time at 1x.</p>
-<h3>Randomness <span class="tag built">Built</span></h3>
-<p>Every dice roll comes from a seeded stream (<code>SimRng</code>). The same seed gives the same run, which
-makes bugs repeatable and balance testable. Each system takes its own stream, so adding a loot roll never
-changes what combat rolls. Watching the game never changes it: a game on screen and the same seed run
-headless (the <code>sim</code> command) play out exactly alike, monster for monster (spec 023).</p>
-<h3>Content as data <span class="tag built">Built</span></h3>
-<p>Classes, talents, items and monsters are data files under <code>data/</code>, not code. Adding a monster
-means adding a file. Every data file is checked automatically. So far there are four hero classes
-(<code>data/heroes/</code>: knight, rogue, mage, cleric) and thirteen monsters plus four guardians (<code>data/monsters/</code>),
-five microskills (<code>data/microskills/</code>) and five side quests (<code>data/sidequests/</code>).
-Each band of five levels has its own inhabitants (<span class="tag built">Built: spec 013</span>): slime and cave
-bat from depth 1, skeleton from 2, spider from 3, goblin from 4 and ogre from 5 in the loam; mud golem from 6,
-fire imp from 7 and clay hound from 8 in the clay; ghoul from 11, crystal beetle from 12 and wraith from 13 in
-the stone; and the deep horror from 16. Deeper kinds are met more often once they appear, so each band is
-mostly its own monsters, and they are worth more XP and gold. A party of four level-12 heroes usually, but not
-always, beats three stone-band monsters; a level-6 party almost never does. The talent trees are data too
-(<code>data/talents/</code>, spec 051); items come later.</p>
-<h3>Camp upgrades <span class="tag built">Built: spec 016</span></h3>
-<p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last (the price of
-the next rank is its first price times a growth factor for every rank already bought). There are five, as data
-files in <code>data/upgrades/</code>: <strong>Sharp Blades</strong> (+5% damage and healing per rank, up to 20),
-<strong>Stout Armor</strong> (+5% maximum health, up to 20; buying it also heals by the health gained),
-<strong>Field Medicine</strong> (+10% healing speed while resting, up to 10), <strong>Quick March</strong> (+4%
-travel speed, up to 10) and <strong>Fat Purse</strong> (+5% gold from kills, up to 20). Ranks add up:
-rank 3 of Sharp Blades is +15%. Rest, travel and gold bonuses apply at once; damage and health by the next
-fight. Upgrades are saved. You buy them in the upgrade shop on the HUD (spec 017). In a one-hour headless run, a party that keeps buying the
-cheapest upgrade it can afford holds a few depths deeper than one that buys nothing.</p>
-<h3>Talent trees and paragon <span class="tag built">Built: specs 051 and 055</span></h3>
-<p>Camp upgrades lift every hero at once; talents make one hero different. Each class has a small tree
-(<code>data/talents/</code>) of eleven abilities (<code>data/abilities/</code>, the rules are spec 050's): a
-trunk of three, then two named paths of four. A hero earns one talent point at every even level (2, 4 ... 14),
-seven in all, which fills the trunk and one path. Points are spent in order: the trunk first, then the first node
-of either path, then that path in order. Taking a node of one path closes the other, so two knights can be
-different heroes. A hero fights with its nodes' abilities from its next fight on. Ordinary fights last a few
-seconds, so every action is ready as a fight starts and waits only for its condition (Prayer for an ally
-below 80%, say) and, once used, its cooldown; a hero tries its newest node first, so a deeper one is not
-crowded out by the trunk. In half an hour of headless play every action a hero has held for ten minutes is
-used at least five times and every passive fires, except the rescues (Last Stand, Vanish, Guardian Angel,
-Miracle, Sanctuary, Rampage), which wait for a fight that goes badly.</p>
-<ul>
-  <li><strong>Knight:</strong> Shield Bash, Taunt, Bottle-top Block; then <em>Guardian</em> (Hold the Line,
-  Last Stand, Bulwark, Rallying Cry: shields and taunts that keep the party up) or <em>Berserker</em>
-  (Whirlwind, Bloodthirst, Reckless Swing, Rampage: hits harder the more it fights).</li>
-  <li><strong>Rogue:</strong> Backstab, Smoke Step, Finisher; then <em>Assassin</em> (Poisoned Blades, Mark for
-  Death, Ambush, Killing Spree) or <em>Trickster</em> (Fan of Knives, Caltrops, Dizzying Feint, Vanish).</li>
-  <li><strong>Mage:</strong> Fireball, Frost Nova, Chain Spark; then <em>Pyromancer</em> (Ignite, Meteor,
-  Wildfire, Inferno) or <em>Frostbinder</em> (Ice Lance, Frost Armor, Deep Freeze, Blizzard).</li>
-  <li><strong>Cleric:</strong> Prayer, Blessing, Smite; then <em>Lifebinder</em> (Renewal, Sanctuary, Guardian
-  Angel, Miracle) or <em>Sunpriest</em> (Holy Fire, Battle Hymn, Judgement, Wrath).</li>
-</ul>
-<p>Once a hero has earned its seven talent points, every level after gives a <strong>paragon point</strong>
-instead, the only place plain strength is bought: <strong>Power</strong> (+3% damage and healing),
-<strong>Toughness</strong> (+3% maximum health) or <strong>Quickness</strong> (+3% attack speed), with no limit.
-They are spent on the hero sheet's Talents tab. A <strong>fresh start</strong> gives a hero back every talent
-point and opens both paths, for 100 gold per level, outside a fight; paragon points stay. Auto-buy never spends a
-point. Gold training (spec 029) is gone: a save from before gives every hero back the gold its training cost and
-all the talent and paragon points its level earned, unspent. On screen the tree is the hero sheet's Talents tab
-(spec 055); <code>python tools/dev.py sim --spend-talents</code> spends them headless (trunk, then the first path, paragon
-into Power): on seeds 1 to 5 it beats the Slime King in 9 to 15 minutes instead of 14 to 28, with 0 or 1 wipes
-before instead of 1 to 4. With auto-buy on as well it wins in 9 to 13 minutes, at the first meeting on four
-seeds of five.</p>
-<h3>Fights <span class="tag built">Built</span></h3>
-<p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation (knight in front,
-then rogue, mage, cleric, a tile apart); monsters spread over the far half. Every tick, each fighter picks the
-nearest enemy (the cleric instead picks whoever is most hurt, if anyone is below 80% health), walks into
-range and attacks on a rhythm: a short wind-up, the strike, then a cooldown. Fighters on one side keep a
-little distance from each other (knight nearest the enemy, then rogue, mage, cleric), and whoever is held back
-behind an ally strikes over that ally's shoulder instead of waiting for a turn at the front. Melee strikes land at once;
-spells, spit and heals fly as projectiles. Damage rolls 85% to 115%, crits double it, armour takes some off,
-and every hit does at least 1. Monsters get 12% tougher for each level deeper than where they first appear,
-and heroes grow per level. The fight ends when one side is all dead (or, as a safety net, after five minutes
-of game time, which counts as a loss). Everything that happens comes out as a list of events for the screen
-to animate; nothing is drawn yet. The numbers are checked by tests that play hundreds of fights: a fresh
-party always beats three slimes, needs its cleric against a pack of skeletons, and loses to six ogres.</p>
-
-<h3>Abilities in fights <span class="tag built">Built: spec 050, in the simulation</span></h3>
-<p>The rules the skill trees will be made of. An ability is a file under <code>data/abilities</code>. An
-<em>action</em> has a cooldown and a wind-up and replaces an ordinary strike when it is ready: it aims at the
-nearest, weakest or furthest enemy, the weakest ally or the fighter itself, can be kept for when an ally or
-the fighter is low, enough enemies are up, an enemy is right next to it (it never walks for that one) or the
-target is nearly dead, and the fighter walks into its reach first. A healer with a badly hurt ally heals before
-it uses an action on an enemy. A <em>passive</em>
-fires when something happens: the fight starts, the fighter lands a hit or a crit, kills, is hit, falls below
-some health, loses an ally, or makes its Nth strike; it can have a chance and be once a fight, and can land on the nearest enemy (an
-ambush). A passive on a strike can make that strike hit harder instead of adding a hit of its own (a reckless
-swing), and then it never fires on a miss. A passive with nobody to land on (its target already dead) does
-nothing and says nothing. Either does
-one or more things: damage (which can ignore armour, hit harder on the wounded, or heal the fighter for part
-of it), healing, a push, standing a fallen ally back up, or a status. The statuses are stunned, taunting,
-shielded, burning, bleeding, chilled, mending, hasted, slowed, mighty, weakened, marked, nimble and
-untouchable (no enemy's blow, spell or poison lands on it, and enemies pick someone else while they can); the
-same one again starts its time over and keeps the stronger without missing a tick of its damage, and every
-status ends with the fight. Nothing but a revive lands on the dead, and the dead die only once. Twelve sample
-abilities (Shield Bash, Taunt, Whirlwind, Last Stand, Backstab, Finisher, Fireball, Frost Nova, Chain
-spark, Prayer, Guardian Angel, Battle Hymn) are built in the tests. <strong>No monster has one, and no hero
-yet</strong> but through a hero's talents: the talent trees (spec 051) hand them out and the hero
-sheet (spec 055) will show them.</p>
-<h3>Art <span class="tag built">Built</span></h3>
-<p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one pixel,
-using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool bakes each
-text sprite into an ordinary image the game loads, and a lint refuses any art that breaks the rules: a colour
-outside the palette, the wrong size, a gap in the dark outline. Characters come in parts (body, head, arm,
-weapon) so the game can move them. The rules are in
-<a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>,
-a first pass for Zak to change. To see every sprite, run the gallery (below).</p>
-<p><span class="tag built">Built: spec 007</span> The cast: four heroes (knight, rogue, mage, cleric) and five
-monsters (slime, cave bat, skeleton, spider, ogre), joined by spec 013's eight (goblin, mud golem, fire imp, clay
-hound, ghoul, crystal beetle, wraith, deep horror) and spec 020's four guardians (slime king, clay colossus,
-bone lord, deep maw, drawn 64x64, twice a hero's height), coloured for their band: warm in the clay, cold in the
-stone, teal in the deep. Each part of a character turns around its own joint (the
-neck, the shoulder, the hand), and the game moves the parts in code rather than flipping through drawn frames:
-characters breathe while they stand, bob and lean as they walk, draw back before they strike, flash white and
-flinch when hit, and collapse when they die. A demo shows the whole cast doing all of it (below); the
-characters are not in the labyrinth yet.</p>
-<h3>Text <span class="tag built">Built: spec 009</span></h3>
-<p>All text in the game is drawn in Colony's own small pixel font, typed the same way as the sprites
-(<code>assets/fonts/pixel.px</code>, one glyph per part). Capitals are 5 pixels tall, letters have their own
-widths (an <code>i</code> is narrower than an <code>m</code>), and every label uses it without being told to.
-Coloured text gets a one-pixel dark shadow so it reads over any background. To see every character, run the
-font specimen (below).</p>
+<h3>Time</h3>
+<p>The simulation moves in fixed ticks, ten per second of game time, and never asks what time it is. A
+driver measures real elapsed time and steps the simulation that many ticks, so the game keeps exact time
+when unfocused or minimised, and time missed while the game was closed is simply more ticks to work
+through. At 2x or 4x the driver steps two or four times as many ticks; if a frame has no time for the
+extra ones they are dropped, not saved up. Time away and saving always count real time at 1x.</p>
+<h3>Randomness</h3>
+<p>Every dice roll comes from a seeded stream (<code>SimRng</code>). The same seed gives the same run,
+which makes bugs repeatable and balance testable. Each system takes its own stream, so adding a resource
+roll never changes what combat rolls. Watching the game never changes it: a game on screen and the same
+seed run headless play out exactly alike.</p>
+<h3>Events</h3>
+<p>The simulation reports what happened as a list of events (a hit, a death, a status begun, an area
+opened). The screen draws from those events, in order, and not from the simulation's state at the end of
+the frame. That matters when many ticks arrive in one frame (4x speed, a hitch): the most common kind of
+bug in this project has been a view reading the live state too early.</p>
+<h3>Content as data</h3>
+<p>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills and side quests are
+data files under <code>data/</code>, not code. Adding a monster means adding a file. Every data file is
+checked automatically. Today: 4 hero classes, 13 monsters and 4 guardians, 4 areas, 4 resources, 44
+abilities in 4 talent trees, 5 upgrades, 5 microskills and 5 side quests.</p>
+<h3>Fights</h3>
+<p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation; monsters
+spread over the far half. Every tick, each fighter picks the nearest enemy (the cleric instead picks
+whoever is most hurt, if anyone is below 80% health), walks into range and attacks on a rhythm: a short
+wind-up, the strike, then a cooldown. Melee strikes land at once; spells, spit and heals fly as
+projectiles. Damage rolls 85% to 115%, crits double it, armour takes some off, and every hit does at least
+1. Monsters get 12% tougher for each level above the one they first appear at, and heroes grow per level.
+The fight ends when one side is all dead, or as a loss after 90 seconds.</p>
+<h3>Abilities</h3>
+<p>An ability is a file under <code>data/abilities/</code>. An <em>action</em> has a cooldown and a
+wind-up and replaces an ordinary strike when it is ready: it aims at the nearest, weakest or furthest
+enemy, the weakest ally or the fighter itself, and can wait for a condition (an ally or the fighter is low,
+enough enemies are up, an enemy is right next to it, the target is nearly dead). A <em>passive</em> fires
+when something happens: the fight starts, the fighter lands a hit or a crit, kills, is hit, falls below
+some health, loses an ally, or makes its Nth strike; it can have a chance and be once a fight. Either does
+one or more things: damage, healing, a push, standing a fallen ally back up, or a status. The same status
+again starts its time over and keeps the stronger; every status ends with the fight. No monster has an
+ability yet.</p>
+<h3>Art, text and sound</h3>
+<p>Every sprite is typed, not painted: a small text file (<code>.px</code>) where each character is one
+pixel, using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool
+bakes each into an image, and a lint refuses art that breaks the rules. Characters come in parts (body,
+head, arm, weapon) that the game moves in code: they breathe, bob as they walk, draw back before they
+strike, flinch when hit and collapse when they die. Guardians are drawn 64x64, twice a hero's height. All
+text uses Colony's own pixel font, typed the same way. The 16 sound effects are baked from text recipes
+(<code>.sfx</code>). The rules are in
+<a href="https://github.com/zakpruitt/colony/blob/main/docs/style-bible.md"><code>docs/style-bible.md</code></a>.
+All of it is placeholder: Zak makes the characters.</p>
 <h3>Saving</h3>
-<p><span class="tag built">Built: spec 014</span> A save keeps the party's <em>progress</em>, not the exact moment:
-the seed, the time played, the gold, each hero's class, level and XP, the last stable depth, the deepest depth
-reached, the target depth, whether auto-push is on, the rank of each camp upgrade (older saves load with no
-upgrades) and each hero's talents and paragon points (spec 051; a save with spec 029's gold training gets
-the gold back and every point unspent), the resources the party holds and the guardians it has beaten (spec 052;
-an older save loads with no resources, and counts a guardian beaten when the area it opens is open or the party
-has been past it). Loading stands the party up fresh at its last stable
-depth, exactly as it does after a wipe, with everything it has earned; the chambers there are full of monsters
-again. A damaged or unknown save is refused rather than guessed at. The file is written whole or not at all
-(to a temporary file, then renamed into place), and the save before it is kept as a backup that is read if the
-save itself is missing or damaged. The save lives at <code>user://colony.save</code>.</p>
-<p><span class="tag built">Built</span> The game loads the save when it starts, saves every 30 seconds, and
-saves when it closes. Tests, screenshots and headless runs never touch the real save. To start over, delete
-the save file (on Windows: <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code> and
-<code>colony.save.bak</code>).</p>
-<h3>Progress while you were away</h3>
-<p><span class="tag built">Built: spec 019</span> Each save remembers the real time it was written. When the
-game starts with a save, it works out how long it was closed (at most 8 hours; under a minute counts as
-nothing, and a clock that went backwards counts as nothing) and plays that time through the same simulation
-as fast as it can, with the same rules as watching. Meanwhile the screen shows <code>Catching up...</code>
-and a bar that fills; eight hours takes a few seconds. Then the game starts as usual, with a panel in the
-middle of the screen saying how long the party was away, the gold it earned, the levels each hero gained,
-the depth before and after, monsters slain and wipes (and, with auto-buy on, the upgrades bought). A click or any key closes it, or it goes by itself
-after 12 seconds. No effects or flying coins are replayed for the time away. If you quit while it is catching
-up, nothing is lost: the save is untouched until the catch-up ends.</p>
-<p><span class="tag built">Built: spec 031</span> The panel tells the whole story. "Slain" counts monsters that
-died (side quests pay gold too, so gold no longer stands in for kills). When there is something to say, it also
-shows guardians slain with the deepest one's name (<code>Guardians slain 2 (deepest: Clay Colossus)</code>),
-side quests done, side quests missed and the microskill the misses needed most
-(<code>Most needed: Trapspotter</code>, a hint for the next upgrade or party), and one line per microskill a hero
-learned (<code>Rogue learned Lockpicker</code>), up to four and then <code>and N more</code>. With none of these,
-the panel reads as before.</p>
-<p><span class="tag planned">Planned</span> A "new game" control in the game itself.</p>
+<p>A save keeps the party's <em>progress</em>, not the exact moment: the seed, the time played, the gold
+and resources, each hero's class, level, XP, talents and paragon points, the area the party is in, each
+area's safe and furthest stage, the open areas and beaten guardians, the target, the Auto and auto-buy
+switches, the orders and each upgrade's rank. Loading stands the party up fresh at its last safe stage, as
+after a wipe. Older saves are brought forward (the save is at version 8); a damaged or unknown one is
+refused rather than guessed at. The file is written whole or not at all, and the save before it is kept as
+a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code>; delete it and
+<code>colony.save.bak</code> to start over. Tests, screenshots and headless runs never touch it.</p>
 <p>The technical version of this section is
 <a href="https://github.com/zakpruitt/colony/blob/main/docs/architecture.md"><code>docs/architecture.md</code></a>.</p>
 
-<h2 id="commands">5. Dev commands</h2>
+<h2 id="commands">7. Dev commands</h2>
 <p>Run from the <code>colony</code> folder.</p>
 <div class="table-wrap">
 <table>
   <tr><th>To</th><th>Run</th></tr>
   <tr><td>Play the game</td><td><code>godot --path .</code></td></tr>
   <tr><td>Open the editor</td><td><code>godot -e --path .</code></td></tr>
-  <tr><td>Run every check (what CI runs, about 10 seconds)</td><td><code>python tools/dev.py check</code></td></tr>
+  <tr><td>Watch the showcase: every moment of the game, labelled, in about ninety seconds (it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
+  <tr><td>Run every check (what CI runs, about nine minutes)</td><td><code>python tools/dev.py check</code></td></tr>
   <tr><td>Run only some check steps</td><td><code>python tools/dev.py check --only=compile,tests</code></td></tr>
   <tr><td>Run the tests</td><td><code>python tools/dev.py test</code></td></tr>
   <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
+  <tr><td>Run the game with no window and print what happened as numbers</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code></td></tr>
+  <tr><td>Screenshot the running game into <code>.shots/</code></td><td><code>python tools/dev.py shot --name=look --seconds=5</code></td></tr>
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
   <tr><td>Check the art against the style rules</td><td><code>python tools/art.py lint</code></td></tr>
-  <tr><td>Bake the sound effects from their text recipes (<code>assets/audio/sfx/*.sfx</code>)</td><td><code>python tools/sfx.py bake</code></td></tr>
-  <tr><td>Check the sounds (missing or out of date, longer than 1.2 s, too loud)</td><td><code>python tools/sfx.py lint</code></td></tr>
+  <tr><td>Bake the sound effects from their recipes</td><td><code>python tools/sfx.py bake</code></td></tr>
+  <tr><td>Check the sounds</td><td><code>python tools/sfx.py lint</code></td></tr>
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
-  <tr><td>See the pixel font (the specimen)</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
-  <tr><td>Run the game with no window for some game time and print what happened (depths, fights, wipes, gold, levels, kills)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code> (add <code>--stable-seconds=120</code> to make each depth hold sooner, <code>--target-depth=3</code> to send the party straight to depth 3, <code>--buy-upgrades</code> to have it buy the cheapest camp upgrade it can afford whenever it can; the summary lists each upgrade's rank; <code>--timeline</code> to add when each first happened, in seconds of game time: every hero at level 2 and at level 5, depth 2, depth 5, the first upgrade the party can afford, and the first guardian met and beaten; <code>--area=claypits</code> to send the party to that area at the start, opening it for the run; the summary names the area and stage the party ends in, each area's safe and furthest stage and the open areas)</td></tr>
-  <tr><td>Watch the labyrinth demo (a camera walking down three levels)</td><td><code>godot --path . res://game/world/labyrinth_demo.tscn</code></td></tr>
-  <tr><td>Watch the showcase (every moment of the loop, each labelled: a tunnel, a crit, a kill with coins and XP, a heal, a level up, a rest, going on a stage and back (the doorway crossing), a wipe and the revival, a stage becoming stable, a fight in The Claypits, The Old Crypt and Ember Deep, a guardian fight, a side quest done, one nobody can do, a tripwire sprung, a microskill learned, each class's hero using its actions, every status on a row of fighters, the four areas in turn and the knight choosing a path on its Talents tab, in about a minute and a half; it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
-  <tr><td>Watch the ambience demo (the party touring a lit labyrinth: every kind of chamber, a dark tunnel, every band of earth)</td><td><code>godot --path . res://game/ambience/ambience_demo.tscn</code></td></tr>
+  <tr><td>See the pixel font</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
 </table>
 </div>
+<h3>Options of the headless run</h3>
+<div class="table-wrap">
+<table>
+  <tr><th>Option</th><th>Does</th></tr>
+  <tr><td><code>--seed=N</code>, <code>--minutes=M</code></td><td>Which labyrinth, and how much game time</td></tr>
+  <tr><td><code>--buy-upgrades</code></td><td>Buys the cheapest upgrade the party can pay for, whenever it can</td></tr>
+  <tr><td><code>--spend-talents</code></td><td>Spends talent points (trunk, then the first path) and paragon points (into Power)</td></tr>
+  <tr><td><code>--area=claypits</code></td><td>Sends the party to that area at the start, opening it for the run. Without it the run stays in Mossy Hollow: it never travels by itself.</td></tr>
+  <tr><td><code>--target-depth=3</code></td><td>Sets that target stage at the start</td></tr>
+  <tr><td><code>--stable-seconds=120</code></td><td>Makes every stage safe after that long</td></tr>
+  <tr><td><code>--timeline</code></td><td>Adds when each first happened: level 2, level 5, stage 2, stage 5, the first affordable upgrade, the first guardian met and beaten</td></tr>
+</table>
+</div>
+<p>The summary lists where the party ended, each area's safe and furthest stage, the open areas, gold,
+resources, each hero's level and talents, each upgrade's rank, kills by monster, fights won and lost, and
+wipes.</p>
 <h3>What the check does</h3>
 <div class="table-wrap">
 <table>
   <tr><th>Step</th><th>Fails when</th></tr>
   <tr><td><code>format</code></td><td>Code is not formatted, or breaks a lint rule</td></tr>
   <tr><td><code>boundary</code></td><td>Something in <code>sim/</code> uses graphics, a clock or global randomness</td></tr>
-  <tr><td><code>art</code></td><td>A sprite breaks the style rules, or its image is out of date with its text file; or a sound is missing, out of date with its recipe, longer than 1.2 s or too loud</td></tr>
+  <tr><td><code>art</code></td><td>A sprite breaks the style rules or is out of date with its text file; or a sound is missing, out of date, longer than 1.2 s or too loud</td></tr>
   <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
-  <tr><td><code>tests</code></td><td>Any test fails</td></tr>
+  <tr><td><code>tests</code></td><td>Any of the 605 tests fails</td></tr>
   <tr><td><code>data</code></td><td>Any data file does not load or reports a problem</td></tr>
   <tr><td><code>boot</code></td><td>The game prints an error while starting</td></tr>
 </table>
@@ -1030,46 +886,52 @@ the panel reads as before.</p>
 <p>It ends with <code>check: PASS</code> or names the step that failed. Requirements: Godot 4.7.2 and Python
 on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>) for the format step.</p>
 
-<h2 id="folders">6. Where things live</h2>
+<h2 id="folders">8. Where things live</h2>
 <div class="table-wrap">
 <table>
   <tr><th>Folder</th><th>Holds</th></tr>
   <tr><td><code>sim/</code></td><td>The simulation: the game's rules</td></tr>
-  <tr><td><code>game/</code></td><td>Scenes, sprites, effects, UI</td></tr>
-  <tr><td><code>data/</code></td><td>Classes, talents, items, monsters as data files</td></tr>
-  <tr><td><code>assets/</code></td><td>Sprites (text files and the images baked from them), the palette, audio</td></tr>
+  <tr><td><code>game/</code></td><td>Scenes, sprites, effects, the HUD</td></tr>
+  <tr><td><code>data/</code></td><td>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills and side quests as data files</td></tr>
+  <tr><td><code>assets/</code></td><td>Sprites (text files and the images baked from them), the palette, the font, audio</td></tr>
   <tr><td><code>tests/</code></td><td>Automated tests</td></tr>
-  <tr><td><code>tools/</code></td><td><code>dev.py</code> and its helpers</td></tr>
-  <tr><td><code>specs/</code></td><td>One folder per spec, plus the board of what is in progress</td></tr>
-  <tr><td><code>docs/</code></td><td>The design plan, the architecture, this wiki</td></tr>
+  <tr><td><code>tools/</code></td><td><code>dev.py</code>, <code>art.py</code>, <code>sfx.py</code> and their helpers</td></tr>
+  <tr><td><code>specs/</code></td><td>One folder per spec, plus the board</td></tr>
+  <tr><td><code>docs/</code></td><td>The design, the architecture, the style bible, this wiki</td></tr>
   <tr><td><code>.claude/</code></td><td>The agents and skills that build the game</td></tr>
 </table>
 </div>
 
-<h2 id="process">7. How work gets done</h2>
+<h2 id="process">9. How work gets done</h2>
 <p>Colony is built spec-first. A spec says what a piece of the game must do and how we will know it does.</p>
 <ol>
-  <li><strong>Draft.</strong> Zak and the lead Claude session write the spec together.</li>
-  <li><strong>Approve.</strong> Zak approves it. Nothing is built from an unapproved spec.</li>
-  <li><strong>Build.</strong> An implementer agent builds exactly that spec in its own copy of the repo and opens a pull request.</li>
-  <li><strong>Review.</strong> CI runs the check, and a separate reviewer agent compares the spec with the code.</li>
-  <li><strong>Land.</strong> The lead merges it and marks the spec landed.</li>
-  <li><strong>Playtest.</strong> At the end of each milestone Zak plays the game and signs off.</li>
+  <li><strong>Draft.</strong> Zak and the lead Claude session write the spec together. A spec the lead writes
+  alone from Zak's direction is marked <em>provisional</em> until Zak has read it or played the result.</li>
+  <li><strong>Build.</strong> An implementer agent builds exactly that spec in its own copy of the repo,
+  tests first, and opens a pull request into <code>dev</code>.</li>
+  <li><strong>Review.</strong> CI runs the check, and a separate reviewer agent, told nothing about how the
+  build went, compares the spec with the code and tries to break the tests.</li>
+  <li><strong>Land.</strong> The lead merges it into <code>dev</code> as one commit and marks the spec landed.</li>
+  <li><strong>Playtest.</strong> Zak plays <code>dev</code>. <code>main</code> moves only when he promotes it.</li>
 </ol>
-<p>The board and the full process are in <a href="https://github.com/zakpruitt/colony/blob/main/specs/README.md"><code>specs/README.md</code></a>.</p>
+<p>The board and the full process are in
+<a href="https://github.com/zakpruitt/colony/blob/main/specs/README.md"><code>specs/README.md</code></a>.</p>
 
-<h2 id="status">8. Status</h2>
+<h2 id="status">10. Status</h2>
 <div class="table-wrap">
 <table>
   <tr><th>Milestone</th><th>Delivers</th><th>State</th></tr>
-  <tr><td>M0</td><td>Harness, project skeleton, background tick, saves, style bible</td><td>In progress: harness and skeleton <span class="tag built">Built</span>; the simulation clock <span class="tag built">Built</span>; the art foundation (palette, sprite tools, style bible) <span class="tag built">Built</span>; the pixel font (spec 009) <span class="tag built">Built</span></td></tr>
-  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td>In progress: generation (spec 003) <span class="tag built">Built</span>; drawing (spec 006) <span class="tag built">Built</span>, in the main game (spec 008)</td></tr>
-  <tr><td>M2</td><td>One hero who moves and fights on their own</td><td>In progress: fights (spec 004) <span class="tag built">Built</span>; character sprites and their animation (spec 007) <span class="tag built">Built</span>; monsters for the deeper bands (spec 013) <span class="tag built">Built</span>; the party and the fights in the main game (spec 008) <span class="tag built">Built</span></td></tr>
-  <tr><td>M3</td><td>XP, gold, loot, the death fallback rule</td><td>In progress: the expedition loop (travel, fights, XP, gold, levels, rest, the fallback rule; spec 005) <span class="tag built">Built</span> and drawn (spec 008); saving progress (spec 014) <span class="tag built">Built</span>; camp upgrades to spend gold on (spec 016) <span class="tag built">Built</span>; guardians every fifth level (spec 020) <span class="tag built">Built</span>; auto-buy for camp upgrades (spec 022) <span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M4</td><td>Full party of four classes, talents, the shop</td><td>In progress: the HUD (spec 011) <span class="tag built">Built</span>; the upgrade shop (spec 017) <span class="tag built">Built</span>; the hero sheet (spec 026) <span class="tag built">Built</span>; training each hero from their sheet (spec 029) <span class="tag built">Built</span>; party orders, pace and guardians (spec 035) <span class="tag built">Built</span>; side quests and microskills in the simulation (spec 025) <span class="tag built">Built</span> and on screen (spec 028) <span class="tag built">Built</span>; talents <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M5</td><td>Offline catch-up, effects, balance</td><td>In progress: ambient life (light, decoration and motion in the labyrinth; spec 012) <span class="tag built">Built</span>, in the main game; combat effects (spec 010) <span class="tag built">Built</span>; the loop showcase, the zoom and readable damage numbers (spec 018) <span class="tag built">Built</span>; offline catch-up (spec 019) <span class="tag built">Built</span>; the away report that tells the whole story (spec 031) <span class="tag built">Built</span>; sound effects (spec 021) <span class="tag built">Built</span>; guardian fights that feel like boss fights (spec 024) <span class="tag built">Built</span>; reading the party (status line, road to stable, journal, arrow; spec 027) <span class="tag built">Built</span>; the depth ladder (spec 033) <span class="tag built">Built</span>; goals and frame tags (spec 037) <span class="tag built">Built</span>; goals you can click (spec 042) <span class="tag built">Built</span>; a ladder that warns and scrolls (spec 043) <span class="tag built">Built</span>; a ladder that points true (spec 047) <span class="tag built">Built</span>; help, tooltips and live frame health (spec 030) <span class="tag built">Built</span>; game speed 1x, 2x and 4x (spec 032) <span class="tag built">Built</span>; a livelier first half hour (spec 036) <span class="tag built">Built</span>; a countdown that says when the party goes deeper (spec 039) <span class="tag built">Built</span>; after a defeat, what went wrong and what to do (spec 041) <span class="tag built">Built</span>; the party tally, a damage meter (spec 045) <span class="tag built">Built</span>; abilities and statuses on screen (spec 056) <span class="tag built">Built</span>; the rest of the balance <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M0</td><td>Harness, project skeleton, the simulation clock, the art tools and style bible, the pixel font</td><td><span class="tag built">Built</span></td></tr>
+  <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag built">Built</span></td></tr>
+  <tr><td>M2</td><td>Heroes and monsters that move and fight on their own</td><td><span class="tag built">Built</span></td></tr>
+  <tr><td>M3</td><td>XP, gold, the fallback after a wipe, saving, camp upgrades, guardians, auto-buy</td><td><span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
 </table>
 </div>
+<p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on
+<code>main</code>.</p>
 
 <footer>This page is <code>docs/wiki/index.html</code>. It is updated in the same pull request as the feature it describes.</footer>
 
