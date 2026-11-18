@@ -43,6 +43,8 @@ them, and with them the old HUD layer is gone.
 - **R10. Fits both rooms.** At 960x540 and 1280x720 nothing overlaps the frame of the screen or the
   windows' default places, and no text is cut with the longest names in the data.
 - **R11. Showcase, help and wiki** are true to it, and the wiki no longer says the overhaul is under way.
+- **R12. Tags stay under windows.** The count tags on the bar's buttons (spec 059's `UiBadge`) are drawn
+  over their buttons and under any window dragged across the bar; tooltips stay above everything.
 
 ## Interfaces
 
