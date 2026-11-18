@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"frost_armor"
 display_name = "Frost Armor"
 description = "As a fight starts, every ally gets a shield of 10% of its health for 10 s."
+move = &"flourish"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 0

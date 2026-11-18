@@ -25,6 +25,7 @@ script = ExtResource("1")
 id = &"inferno"
 display_name = "Inferno"
 description = "With two enemies or more: all burn and take 25% more damage for 5 s. Every 25 s."
+move = &"channel"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 25.0

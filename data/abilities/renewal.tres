@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"renewal"
 display_name = "Renewal"
 description = "The weakest hurt ally mends for 8 s. Every 6 s."
+move = &"cast"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 6.0

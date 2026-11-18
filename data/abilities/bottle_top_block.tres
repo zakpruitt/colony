@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"bottle_top_block"
 display_name = "Bottle-top Block"
 description = "When hit, a 20% chance of a small shield (6% of health) for 5 s."
+move = &"brace"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 4

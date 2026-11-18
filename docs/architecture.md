@@ -283,6 +283,36 @@ or a passive; `Combatant.abilities` lists a fighter's: a hero's talents (spec 05
   hashes stand. Events: `ABILITY_STARTED`, `ABILITY_USED`, `STATUS_BEGAN`, `STATUS_ENDED`, `MISSED`,
   `REVIVED`, with `SimEvent.ability_id` and `SimEvent.status`.
 
+## Moves and spells on screen
+
+Spec 057. Every `AbilityDef` names a `move`, one of `AbilityDef.MOVES` (the data check refuses any
+other); it is a view hint that no rule reads and the state hash leaves out.
+
+- **`CharacterMoves`** (`game/entities/character_moves.gd`, one `_pose_<move>` function each) works out a
+  move's offsets from time alone: a shift, a turn and a scale for the rig, and turns for the parts.
+  `CharacterSprite.play_move(move, lead, room, pace)` starts one, or ends every move with `&""`; the
+  sprite adds the offsets on top of its own pose and clamps the arm and weapon so layers that add up never
+  swing through the floor. The blow falls at `lead` (the wind-up left, in real seconds), then a recovery
+  of at most 0.4 s. A move with a lead plays in the main slot; one with none (a passive's flourish, a hop on
+  a kill or crit, a cheer) plays in an overlay slot over it without interrupting it.
+- **`FightMoves`** (`game/world/fight_moves.gd`), held by the `World`, reads the events `_show` draws:
+  `ABILITY_STARTED` starts the move (only for a fresh event, never while catching up), `ABILITY_USED`
+  brings its blow forward to that frame (`CharacterMoves.land`, by a tick at most:
+  `brought_forward` says how far) so it falls on the simulation's tick, and
+  stuns, deaths, the end of a fight, a wipe and a change of stage or area end moves at once. `room` keeps a
+  leap or dash in front of its target (the gap less both sprites' reach). A stall (`World.catching_up`)
+  ends every move. An action heard only as it lands moves nothing, and a sprite held by a stun starts
+  no move (it would play late).
+- **`SpellEffects`** (`game/effects/spell_effects.gd`), made and advanced by `CombatEffects`, maps an
+  ability to a kind of spell (`KINDS`) drawn from palette particles in one colour family each: a flight
+  (fireball, meteor, ice shard) leaves on `ABILITY_STARTED` and arrives as the wind-up ends; the rest
+  burst on `ABILITY_USED`. Flakes, flames, light, beams, shadow and a spark's jumps show only on the
+  fighters the same tick's `HIT`, `HEALED`, `REVIVED` and `STATUS_BEGAN` events credit to the spell,
+  read through `AbilityEffects`' `AbilityCredit`. It keeps its own particle cap, as `AbilityEffects` does, and clears everything
+  on an interrupt or while the world catches up.
+- An ordinary strike's draw back and step are stronger (`BODY_WINDUP_SHIFT`, `BODY_STRIKE_SHIFT`) and a
+  ranged shot recoils; none of it changes a tick.
+
 ## Conventions
 
 - One class per file, `class_name` in PascalCase, file in snake_case, a `##` doc comment on the class and on

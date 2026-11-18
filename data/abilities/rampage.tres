@@ -24,6 +24,7 @@ script = ExtResource("1")
 id = &"rampage"
 display_name = "Rampage"
 description = "Once a fight, below 50% health: 50% more damage and 30% faster strikes for 8 s."
+move = &"shout"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 trigger = 5

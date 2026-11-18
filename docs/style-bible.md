@@ -271,6 +271,28 @@ Effects (spec 010, `game/effects/`) are drawn in code from palette colours and a
   spec names it ("the sprite half faded"). It is a state, not an effect ending, and it is whole again the
   frame the status ends.
 
+### Moves and spells (spec 057)
+
+- **Moves** are made in code from the existing parts, never new sheets: a leap (up 12 px in an arc, 8 px
+  forward), a spin (a full turn with a small hop), a dash (back 8, through 10), a heavy swing, a throw, a
+  brace (a crouch, shield up), a shout (rear back, puff up), a cast (lift 4 px, thrust as it lands), a
+  channel (arms up, lift 6, held), a prayer (head bowed, then arms raised) and a flourish (a short hop or
+  flick over whatever the hero is doing). Each squashes on landing (shorter and wider) and stretches in the
+  air. The blow lands on the simulation's tick; the recovery after is at most 0.4 s.
+- **Bounce.** An ordinary strike draws back 3.5 px and steps in 4.5; a ranged shot recoils 2.5. A kill or a
+  crit hops 5 px; after a won fight each living hero cheers (a 6 px hop, weapon raised), 0.12 s apart.
+- **Spells** are palette squares only, one colour family each: fire `orange`, `amber`, `yellow`, `red`;
+  frost `cyan`, `white`, `silver`; holy `yellow`, `sand`, `white`; shadow `orchid`, `plum`, `dusk`; spark
+  `white`, `yellow`, `cyan`; thrown steel `silver`, `white`, `steel`. A fireball and an ice shard fly with a
+  trail, a meteor falls from above the screen, frost spreads along the floor, flakes fall for a blizzard, a
+  spark jumps from enemy to enemy, a column of light stands on whoever is healed, a beam falls for a smite.
+  Every spell is gone within a second of landing. A spell that shows on whom it lands shows only on
+  the fighters the fight's events say it reached, and a beam starts under the HUD's top band.
+- **Particle caps.** Each kind of effect keeps its own: spec 010's combat effects 300
+  (`CombatEffects.MAX_PARTICLES`), spec 056's ability effects 150 (`AbilityEffects.MAX_PARTICLES`)
+  and spells 120 (`SpellEffects.MAX_PARTICLES`), so at most 570 at once; past its cap an effect
+  makes fewer particles, never more.
+
 ## UI
 
 The HUD (`game/hud/`, spec 011) sets the pattern for every screen element.

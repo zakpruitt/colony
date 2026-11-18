@@ -16,6 +16,7 @@ script = ExtResource("1")
 id = &"caltrops"
 display_name = "Caltrops"
 description = "Every enemy strikes 50% slower for 5 s. Every 14 s."
+move = &"throw"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 14.0

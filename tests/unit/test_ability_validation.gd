@@ -22,6 +22,7 @@ func _ability(kind: AbilityDef.Kind, effect: AbilityEffect) -> AbilityDef:
 	ability.id = &"unit"
 	ability.display_name = "Unit"
 	ability.description = "A test."
+	ability.move = &"flourish"
 	ability.kind = kind
 	ability.anywhere = true
 	ability.effects.append(effect)

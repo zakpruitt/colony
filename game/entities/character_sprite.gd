@@ -78,10 +78,17 @@ const RANGED_STRIKE_TURN: float = 0.5
 const WEAPON_WINDUP_TURN: float = 0.5
 const WEAPON_STRIKE_TURN: float = 0.35
 const WEAPON_RANGED_WINDUP_TURN: float = -0.6
-## How many pixels the body shifts back while winding up and forward on the strike.
-const BODY_WINDUP_SHIFT: float = 1.5
-const BODY_STRIKE_SHIFT: float = 2.5
+## How many pixels the body shifts back while winding up and forward on the strike: a clear draw
+## back and a step in (spec 057 R5). A shot instead kicks the body back by RANGED_RECOIL.
+const BODY_WINDUP_SHIFT: float = 3.5
+const BODY_STRIKE_SHIFT: float = 4.5
+const RANGED_WINDUP_SHIFT: float = 1.5
+const RANGED_RECOIL: float = 2.5
 ## How many pixels a character with no arm or weapon gathers back and then lunges.
+## Spec 057: the furthest the arm and the weapon turn, back (x) and forward (y), however the
+## layers of a pose add up, so a weapon never swings through the floor.
+const ARM_LIMITS: Vector2 = Vector2(-2.8, 1.3)
+const WEAPON_LIMITS: Vector2 = Vector2(-1.2, 0.7)
 const LUNGE_BACK: float = 3.0
 const LUNGE_FORWARD: float = 7.0
 
@@ -110,6 +117,9 @@ static var _created: int = 0
 ## Spec 056: true while the character is stunned: it stands still in the pose it had, though a hit
 ## or a death still plays.
 var held: bool = false
+## Spec 057: the moves it performs for its abilities, laid over every other layer of its pose.
+## Read it to see what is playing; start and end moves with [method play_move].
+var moves: CharacterMoves = CharacterMoves.new()
 
 var _sheet: PixelSheet
 var _mirror: Node2D
@@ -213,6 +223,21 @@ func play_attack(windup_seconds: float, ranged: bool) -> void:
 	_apply_pose()
 
 
+## Spec 057: performs [param move] (one of [constant AbilityDef.MOVES], or a cheer or hop of
+## [CharacterMoves]) so that its blow falls [param lead] seconds from now, then recovers. A move
+## with a lead replaces the one playing; one with none (a passive's flourish) plays over whatever
+## the character is doing. A leap or dash goes at most [param room] pixels forward, and at a game
+## speed of [param pace] its recovery is that much shorter. An empty [param move] ends every move
+## at once, leaving the character at rest in this same frame. A dead or [member held] character
+## starts none: its move would play late, when it moves again.
+func play_move(move: StringName, lead: float, room: float = INF, pace: float = 1.0) -> void:
+	if move == &"":
+		moves.stop()
+	elif not _dead and not held:
+		moves.play(move, lead, room, pace)
+	_apply_pose()
+
+
 ## Ends an attack still in its wind-up without the strike: [signal struck] does not fire and the
 ## character eases back to rest and to what it was doing. After the strike, or with no attack,
 ## does nothing.
@@ -246,6 +271,7 @@ func play_death() -> void:
 	_dead = true
 	_death_time = 0.0
 	_walking = false
+	moves.stop()
 	_attack_time = -1.0
 	_cancel_time = -1.0
 	_hit_time = -1.0
@@ -259,6 +285,7 @@ func revive() -> void:
 		return
 	_dead = false
 	_death_time = -1.0
+	moves.stop()
 	_walking = false
 	_walk_weight = 0.0
 	_walk_time = 0.0
@@ -353,6 +380,7 @@ func _advance_motion(delta: float) -> void:
 		_cancel_time += delta
 		if _cancel_time >= SETTLE_TIME:
 			_cancel_time = -1.0
+	moves.advance(delta)
 
 
 func _build(sheet: PixelSheet, sheet_path: String) -> void:
@@ -415,6 +443,17 @@ func _apply_pose() -> void:
 		_pose_attack(_attack_curve())
 	if _cancel_time >= 0.0:
 		_pose_attack(_cancel_from * (1.0 - smoothstep(0.0, 1.0, _cancel_time / SETTLE_TIME)))
+	moves.pose()
+	_rig_shift += moves.shift
+	_rig_turn += moves.turn
+	_rig_scale *= moves.scale
+	for key: StringName in moves.turns:
+		_turn(key, moves.turns[key])
+	# Layers add up (a passive's move over a strike): the arm and weapon keep within their reach.
+	if _part_turn.has(&"arm"):
+		_part_turn[&"arm"] = clampf(_part_turn[&"arm"], ARM_LIMITS.x, ARM_LIMITS.y)
+	if _part_turn.has(&"weapon"):
+		_part_turn[&"weapon"] = clampf(_part_turn[&"weapon"], WEAPON_LIMITS.x, WEAPON_LIMITS.y)
 	if _hit_time >= 0.0:
 		_pose_hit(_hit_time)
 		if _hit_time < FLASH_TIME:
@@ -534,7 +573,10 @@ func _pose_attack(curve: float) -> void:
 			_turn(&"weapon", forward * WEAPON_STRIKE_TURN - back * cock)
 		else:
 			_turn(&"weapon", turn)
-		_rig_shift.x += forward * BODY_STRIKE_SHIFT - back * BODY_WINDUP_SHIFT
+		if _ranged:
+			_rig_shift.x -= forward * RANGED_RECOIL + back * RANGED_WINDUP_SHIFT
+		else:
+			_rig_shift.x += forward * BODY_STRIKE_SHIFT - back * BODY_WINDUP_SHIFT
 		_rig_turn += 0.07 * forward - 0.05 * back
 		_turn(&"head", 0.12 * forward - 0.1 * back)
 		return

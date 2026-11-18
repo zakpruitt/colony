@@ -180,6 +180,9 @@ const CLASS_PATHS: Dictionary[StringName, int] = {
 	&"knight": 1, &"rogue": 1, &"mage": 0, &"cleric": 1
 }
 const CLASS_LEVEL: int = 14
+## Spec 057: how many different moves the class's hero's abilities make (an action's among them)
+## before its moment is seen.
+const CLASS_MOVES_SEEN: int = 2
 const CLASS_STAGE: int = 2
 const CLASS_TOUGHER: int = 6
 ## Spec 056: in the statuses' moment, the statuses on each hero (by place in the party) and on
@@ -241,6 +244,10 @@ var _steered: Dictionary[int, bool] = {}
 var _map_on_the_way: bool = false
 ## The tree's moment: the clicks made so far.
 var _tree_clicks: int = 0
+## A class's moment: the moves of the abilities its hero has used so far (spec 057), and whether
+## one was an action.
+var _moves_used: Dictionary[StringName, bool] = {}
+var _actions_used: bool = false
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
@@ -329,6 +336,8 @@ func _next_moment() -> void:
 	_moment_time = 0.0
 	_since_evidence = -1.0
 	_steered.clear()
+	_moves_used.clear()
+	_actions_used = false
 	if moment_index >= MOMENTS.size():
 		done = true
 		_caption.text = "THE SHOWCASE IS OVER"
@@ -610,8 +619,12 @@ func _on_sim_event(event: SimEvent) -> void:
 			var ability: AbilityDef = Content.ability(event.ability_id)
 			var hero: Hero = main.simulation.party.hero(event.source_id)
 			if event.kind == SimEvent.Kind.ABILITY_USED and ability != null and hero != null:
-				if ability.is_action() and hero.class_id == CLASS_MOMENTS[moment()]:
-					_see()
+				var seen: bool = main.world.is_recent(event) and not main.world.catching_up()
+				if seen and hero.class_id == CLASS_MOMENTS[moment()]:
+					_moves_used[ability.move] = true
+					_actions_used = _actions_used or ability.is_action()
+					if _actions_used and _moves_used.size() >= CLASS_MOVES_SEEN:
+						_see()
 		&"talent_tree":
 			var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
 			if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
