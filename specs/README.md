@@ -74,7 +74,7 @@ New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [058 A sharp UI layer, a readable font and windows](058-sharp-ui-and-windows/spec.md) | in progress, provisional | 009, 011, 027, 030, 035 |
-| 059 Windows for the shop, the area map and the tally | to be written once 058 lands | 058 |
-| 060 Hero sheets as windows, several at once | to be written once 058 lands | 058 |
+| [058 A sharp UI layer, a readable font and windows](058-sharp-ui-and-windows/spec.md) | in review, [#59](https://github.com/zakpruitt/colony/pull/59), provisional | 009, 011, 027, 030, 035 |
+| [059 The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | written, waits for 058 to land, provisional | 017, 022, 045, 052, 053, 056, 058 |
+| [060 Hero sheets as windows, several at once](060-hero-windows/spec.md) | written, waits for 058 to land, provisional | 026, 028, 034, 051, 055, 058 |
 | 061 The fixed HUD on the sharp layer (top bar, hero frames, goals, ladder, tooltips) | to be written once 058 lands | 058 |
