@@ -27,6 +27,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Callable
@@ -38,6 +39,11 @@ GDTOOLKIT = "gdtoolkit==4.5.0"
 
 # Folders whose .gd files are ours to format and lint (never addons/).
 SOURCE_DIRS = ("sim", "game", "data", "tests", "tools")
+
+# A run that prints more than this is stopped (a test that errors every frame never ends by
+# itself), and a stopped run reports only this much of its end.
+MAX_OUTPUT_BYTES = 64 * 1024 * 1024
+TAIL_BYTES = 20_000
 
 # Lines Godot prints when a script or the engine reports an error.
 ERROR_MARKERS = ("SCRIPT ERROR", "Parse Error", "ERROR:")
@@ -91,22 +97,51 @@ def godot_binary() -> str:
 
 def run(command: list[str], timeout: int) -> tuple[int, str]:
     """Run a command from the project root; return its exit code and output."""
-    try:
-        done = subprocess.run(
-            command,
-            cwd=ROOT,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            timeout=timeout,
-            encoding="utf-8",
-            errors="replace",
+    return run_capped(command, timeout, MAX_OUTPUT_BYTES)
+
+
+def run_capped(command: list[str], timeout: int, max_bytes: int) -> tuple[int, str]:
+    """As run(), with the output kept in a file and the run stopped if it grows past max_bytes.
+
+    A test that prints an error every frame once wrote gigabytes into this process's memory and
+    starved every other lane on the machine, so the output goes to disk and has a limit.
+    """
+    with tempfile.TemporaryFile() as sink:
+        process = subprocess.Popen(command, cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+        deadline = time.monotonic() + timeout
+        problem = ""
+        while process.poll() is None:
+            time.sleep(0.2)
+            if os.fstat(sink.fileno()).st_size > max_bytes:
+                problem = f"stopped: more than {max_bytes // (1024 * 1024)} MB of output"
+            elif time.monotonic() > deadline:
+                problem = f"timed out after {timeout}s"
+            if problem:
+                stop_tree(process)
+                break
+        size = os.fstat(sink.fileno()).st_size
+        sink.seek(max(0, size - TAIL_BYTES) if problem else 0)
+        output = sink.read().decode("utf-8", errors="replace").replace("\r\n", "\n")
+    if problem:
+        raise StepFailed(f"{problem}\n{output}")
+    return process.returncode, output
+
+
+def stop_tree(process: subprocess.Popen) -> None:
+    """Stop this one process and the children it started (Godot's console build starts another)."""
+    if os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            check=False,
         )
-    except subprocess.TimeoutExpired as expired:
-        output = expired.output or ""
-        if isinstance(output, bytes):
-            output = output.decode("utf-8", errors="replace")
-        raise StepFailed(f"timed out after {timeout}s\n{output}") from None
-    return done.returncode, done.stdout
+    else:
+        process.kill()
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        process.kill()
 
 
 def godot(args: list[str], timeout: int) -> tuple[int, str]:
