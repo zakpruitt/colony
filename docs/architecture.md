@@ -51,6 +51,19 @@ The picture is drawn in two layers, each in its own pixels.
   spec by spec. Until they do, `Hud` closes any window over an old panel (the shop, the tally, the area
   map) as that opens, and `HudTooltip` and `DefeatNote` treat a point on a window or the bar as nowhere
   (`UiWindows.covers`). A window with `on_bar` false (a hero window) has no button on the bar.
+- **The frame of the screen** (spec 061, `game/ui/frame/`): `PlacePanel` and `Countdown` at the top left,
+  `Purse` (with the speed button) at the top right, `BossBarView` between them in a guardian fight, and a
+  `HeroFrameView` per hero along the bottom. The `Hud` builds them under `Hud.screen_frame`, keeps making
+  their texts (`status_text`, `_stable_parts`, `PlaceText`) and lays them out each frame; `UiRoot.setup`
+  moves `screen_frame` onto the layer (`Hud.adopt_frame`, first child of `frame`, so windows draw over it)
+  and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A `Hud` built alone in a test keeps it as its
+  own child at a scale of 640/960, so its pieces' global rects stay in world pixels. Their tooltips are
+  one `UiTip` (`Hud.frame_tip`) that follows the mouse itself (`follows_mouse`: the labels take no mouse)
+  and treats a point on a window as nowhere. Effects aim at the pieces' places on the screen
+  (`Hud.on_screen`, through `get_global_transform_with_canvas`): coins at the purse's coin, resource
+  icons at their counts, and XP motes at their hero's frame (`CombatEffects.frame_screen_targets`; with no
+  HUD, at the hero's chest as before). After a stall (`World.STALL_TICKS` at the game's speed) every
+  piece snaps to the simulation's state.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
   party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is
@@ -231,7 +244,7 @@ position in `Content.resource_ids()`, the amount). Each `UpgradeDef` names a res
 the buy, auto-buy, the shop and its marker share. With no resource held and no guardian beaten the state hash is
 what it was, so the recorded hashes changed only where they now include resources.
 `AreaTravel.guardians_beaten` keeps the areas whose guardian has been beaten at least once
-(`Simulation.is_guardian_beaten`); the area map reads it. On screen, `ResourcePurse` (in the gold panel) shows
+(`Simulation.is_guardian_beaten`); the area map reads it. On screen, the `Purse` (spec 061) shows
 the counts and `ResourceEffects` (made by `CombatEffects`) sends a drop's icons rising from the monster to it.
 
 ## Talent trees and paragon

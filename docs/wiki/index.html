@@ -562,23 +562,26 @@ Rampage), which wait for a fight that goes badly.</p>
 the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number with hard edges.</p>
 <p><strong>Two layers.</strong> Over the world sits a sharper <em>UI layer</em>, drawn in finer pixels
 (at least 960 by 540 of them, up to about 1280 by 720), with its own readable font: taller letters, real
-descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The old
-HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel. Help,
-the journal, the orders and the hero sheets have moved onto the new layer, as windows.</p>
+descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The
+<em>frame of the screen</em> is on it: the place panel, the countdown, the purse, the boss bar and the
+hero frames, with their tooltips (a bold title, then a sentence or two, after the mouse rests 0.4 s).
+Help, the journal, the orders and the hero sheets are on it too, as windows. What is left of the old HUD
+(the shop, the tally, the area map, the ladder, the goals) still sits in the world's coarse pixels for now:
+the UI overhaul is under way, panel by panel.</p>
 
 <h3>Around the edges</h3>
 <div class="table-wrap">
 <table>
   <tr><th>Where</th><th>What</th><th>Says</th></tr>
   <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) over the stage in big numbers; <em>Safe 3</em>, the stage a wipe sends the party back to; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and a line for what the party is doing: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
-  <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off.</td></tr>
+  <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off; <em>Holding</em> at a guardian the party is told to wait for.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
-  <tr><td>Top right</td><td>Speed, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
+  <tr><td>Top right</td><td>The purse, with the speed and the Shop</td><td>The speed button (<em>1x</em>, <em>2x</em>, <em>4x</em>; lit when faster than 1x, <kbd>F</kbd>), then the gold with its coin, counting up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
   <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for its name and key. The last button puts every window back in its place.</td></tr>
   <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
-  <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
+  <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. Click a frame to open its window.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
-  <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name and health.</td></tr>
+  <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name in bold over a wide bar with its health as a number (<em>1,234 / 2,000</em>), draining smoothly and flashing on a hit.</td></tr>
 </table>
 </div>
 
@@ -993,7 +996,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
-  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal, the orders and the hero windows so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal, the orders and the hero windows so far), and the frame of the screen (place panel, countdown, purse, boss bar, hero frames)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on
