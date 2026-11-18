@@ -197,7 +197,6 @@ func test_r2_boss_bar() -> void:
 	assert_gte(
 		rect.position.x, _hud.place_panel.get_global_rect().end.x, "right of the depth panel"
 	)
-	assert_lte(rect.end.x, _hud.shop_tab.get_global_rect().position.x, "left of the shop button")
 	assert_lte(rect.end.x, _hud.purse.get_global_rect().position.x, "left of the gold")
 	assert_gt(rect.size.x, 150.0, "wide")
 	_hud.shop.open()

@@ -204,7 +204,7 @@ func _gui_input(event: InputEvent) -> void:
 ## The frame's tooltip, as [method HeroWindows.frame_tip] builds it: the class and its path (spec
 ## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
 func tip() -> String:
-	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
 	return HeroWindows.frame_tip(_hero, line)
 
@@ -275,7 +275,7 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 
 ## Spec 056 R5: the hero's statuses, as the tally's book has them.
 func _refresh_statuses() -> void:
-	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var statuses: Array[ShownStatus] = []
 	if tally != null and not _dead:
 		statuses = tally.tally.credit.statuses.statuses_of(hero_id)

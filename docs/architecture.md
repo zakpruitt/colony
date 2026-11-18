@@ -47,10 +47,22 @@ The picture is drawn in two layers, each in its own pixels.
   file under `windows`, beside the sound setting, never in the save; an undragged window takes its default
   place for the current room, and a dragged one is moved wholly back in when the room shrinks. Windows
   saved open wait until the away report has gone (`UiWindows.open_waiting`). `UiButtonBar` holds a button
-  per window. Help, the journal, the orders and the hero windows are windows; the other panels move over
-  spec by spec. Until they do, `Hud` closes any window over an old panel (the shop, the tally, the area
-  map) as that opens, and `HudTooltip` and `DefeatNote` treat a point on a window or the bar as nowhere
-  (`UiWindows.covers`). A window with `on_bar` false (a hero window) has no button on the bar.
+  per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
+  upgrades, the map's newly opened areas); a window with `on_bar` false (a hero window) has no button.
+  A window refits when its content's minimum size changes. Help, the journal, the orders, the shop, the
+  area map, the tally and the hero windows are windows; no old panel opens over them any more (the away
+  report, the goals and the rest of the old HUD move over in specs 061 and 062). `HudTooltip` and
+  `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
+- **Keys and the front window** (specs 059, 060): a window's keys act only while it is the front window
+  of all (`UiWindows.front()`): 1 to 5 and B the shop's, 1 to 3 a hero window's on its Talents tab, Q and
+  E a hero window's or the tally's tabs. Tab opens the next hero's window in front whatever is in front,
+  Esc closes the front window (`UiWindows`), and a click anywhere on a window brings it to the front.
+  The `Hud` hears the keys and asks `UiWindows.front()` (`Hud._in_front`).
+- **Window contents made by the HUD** (spec 059): `ShopWindow`, `AreaMapWindow` and `TallyWindow`
+  (`game/ui/windows/`, all `WindowContent`) are made by `Hud.setup` as `hud.shop`, `hud.area_map` and
+  `hud.tally`, so they hear the world's events from the start, and `UiRoot.setup` puts each in a window.
+  They open and close through their window (`WindowContent.open`), so without a `UiRoot` (a HUD-only
+  test) they never open: such a test adds one. `UiBar` is the UI layer's thin bar.
 - **The frame of the screen** (spec 061, `game/ui/frame/`): `PlacePanel` and `Countdown` at the top left,
   `Purse` (with the speed button) at the top right, `BossBarView` between them in a guardian fight, and a
   `HeroFrameView` per hero along the bottom. The `Hud` builds them under `Hud.screen_frame`, keeps making
@@ -60,7 +72,7 @@ The picture is drawn in two layers, each in its own pixels.
   own child at a scale of 640/960, so its pieces' global rects stay in world pixels. Their tooltips are
   one `UiTip` (`Hud.frame_tip`) that follows the mouse itself (`follows_mouse`: the labels take no mouse)
   and treats a point on a window as nowhere. Effects aim at the pieces' places on the screen
-  (`Hud.on_screen`, through `get_global_transform_with_canvas`): coins at the purse's coin, resource
+  (`Hud.on_screen`, through the canvas layer's transform, never a camera's): coins at the purse's coin, resource
   icons at their counts, and XP motes at their hero's frame (`CombatEffects.frame_screen_targets`; with no
   HUD, at the hero's chest as before). After a stall (`World.STALL_TICKS` at the game's speed) every
   piece snaps to the simulation's state.
@@ -71,10 +83,7 @@ The picture is drawn in two layers, each in its own pixels.
   column, right column, then a cascade at 1280x720; a cascade at 960x540, where the windows are made
   short enough that two clear the frames' line, the cascade clears the bar (`UiButtonBar.rect_in`) and
   the tabs' content scrolls in `HeroWindow.scroll`, the Talents tab's `top_row` standing above it).
-  The `Hud` routes Tab, Shift+Tab, Q, E and 1 to 3 to a hero window only while it is the front window
-  of all (`UiWindows.front()`, `HeroWindows.top()`), and the old shop's and tally's keys only while no
-  window is open; until the shop is a window, a hero window opening closes it and it opening closes the
-  hero windows (spec 026's rule). A window lays itself out by hand in 13-pixel lines (`WindowText`),
+  A window lays itself out by hand in 13-pixel lines (`WindowText`),
   sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
   its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
   `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A

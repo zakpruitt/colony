@@ -37,6 +37,8 @@ const RUNGS: int = 12
 const PITCH: float = 20.0
 ## The panel's width: room for the longest area name in the heading (spec 049).
 const WIDTH: float = 60.0
+## Pixels between the panel and the HUD's top band above it.
+const DROP: float = 2.0
 ## The caption's row at the top of the panel, and where the rungs start below it.
 const CAPTION_HEIGHT: float = 13.0
 const RUNGS_TOP: float = 15.0
@@ -145,7 +147,7 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	size = Vector2(WIDTH, RUNGS_TOP + RUNGS * PITCH + PADDING)
-	position = Vector2(Hud.SCREEN.x - Hud.MARGIN - WIDTH, Hud.TOP_BAND + ShopPanel.DROP)
+	position = Vector2(Hud.SCREEN.x - Hud.MARGIN - WIDTH, Hud.TOP_BAND + DROP)
 
 
 func _unhandled_input(event: InputEvent) -> void:

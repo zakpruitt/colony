@@ -477,7 +477,7 @@ func _tipped(hud: Hud) -> Array[Array]:
 		["the target -", hud.place_panel.minus_button, ""],
 		["the target +", hud.place_panel.plus_button, ""],
 		["the Auto button", hud.place_panel.auto_button, ""],
-		["the Shop button", hud.shop_button, ""],
+		# Spec 059: the Shop button is on the UI layer's bar, with the bar's tooltips.
 		["the gold", hud.purse.gold_label, ""],
 		["the speed button", hud.purse.speed_button, ""],
 	]

@@ -49,6 +49,7 @@ const MOMENTS: Array[StringName] = [
 	&"quest_missed",
 	&"tripwire_sprung",
 	&"microskill_learned",
+	&"shop",
 	&"area_map",
 	&"journey",
 	&"four_areas",
@@ -80,6 +81,7 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
 	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
+	&"shop": "THE SHOP WINDOW: AN UPGRADE BOUGHT",
 	&"area_map": "THE AREA MAP: WHERE THE PARTY CAN GO",
 	&"journey": "A JOURNEY TO THE CLAYPITS",
 	&"four_areas": "THE FOUR AREAS",
@@ -111,6 +113,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"quest_missed": 1.0,
 	&"tripwire_sprung": 1.0,
 	&"microskill_learned": 1.0,
+	&"shop": 1.5,
 	&"area_map": 1.5,
 	&"journey": 1.2,
 	&"four_areas": 0.2,
@@ -167,6 +170,8 @@ const CUT_TICKS: int = 1200
 const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
 ## The area the map moments open and the journey goes to.
 const NEW_AREA: StringName = &"claypits"
+## Spec 059: the gold the shop moment gives the party, enough for a few ranks.
+const SHOP_GOLD: int = 300
 ## Spec 056: each class's moment, the path its hero takes there (the one whose actions look most
 ## unlike the trunk's), the heroes' level (every talent point earned), the stage of the fight and
 ## how many times their health the monsters have, so the hero's actions are seen.
@@ -418,6 +423,12 @@ func _begin(current: StringName) -> void:
 				# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 			_cut_to_quest(QUEST_OF[current])
+		&"shop":
+			# Spec 059: the shop's window, gold for a few ranks, and the first row bought.
+			_settle_now()
+			sim.party.gold = SHOP_GOLD
+			main.hud.shop.open()
+			main.hud.shop.buy_row(0)
 		&"area_map":
 			_settle_now()
 			expedition.travel.open[NEW_AREA] = true
@@ -465,6 +476,8 @@ func _end_moment() -> void:
 				hero.health = hero.max_health()
 		&"depth_stable":
 			sim.expedition.stable_seconds = 600.0
+		&"shop":
+			main.hud.shop.close()
 		&"area_map", &"journey":
 			main.hud.area_map.close()
 		&"statuses":
@@ -595,6 +608,9 @@ func _on_sim_event(event: SimEvent) -> void:
 				_see()
 		&"revival":
 			if event.kind == SimEvent.Kind.PARTY_REVIVED:
+				_see()
+		&"shop":
+			if event.kind == SimEvent.Kind.UPGRADE_BOUGHT and main.hud.shop.is_open():
 				_see()
 		&"depth_stable":
 			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:

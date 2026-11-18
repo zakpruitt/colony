@@ -123,7 +123,9 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	if hud != null and hud.journal != null:
 		view.setup(hud.journal)
 	panel.setup(simulation, tip)
-	for made: UiWindow in [help, journal, orders]:
+	var made_here: Array[UiWindow] = [help, journal, orders]
+	made_here.append_array(_management_windows(hud, icons, tip))  # spec 059
+	for made: UiWindow in made_here:
 		windows.register(made)
 	if hud != null:  # spec 060: the hero windows, each opened from its hero's frame
 		hero_windows = HeroWindows.new()
@@ -131,7 +133,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hero_windows.setup(simulation, self, tip)
 		hud.hero_windows = hero_windows
 	place_defaults()
-	for made: UiWindow in [help, journal, orders]:
+	for made: UiWindow in made_here:
 		made.place_at(made.default_place, Vector2(_room))
 	bar.setup(self, windows)
 	if hero_windows != null:
@@ -142,12 +144,35 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
-## Works out each window's default place for the room it has now, none over another: the journal
-## at the top left under the HUD's top band, help at the top right, and the orders under the
-## journal, or lower still, under where the area map opens, when that leaves the hero frames' line
-## clear. Until specs 059 to 061 move the old panels, the journal and help cannot also keep clear
-## of where they open (they fill the top of the screen); the HUD closes a window over a panel as it
-## opens ([method Hud.advance]).
+## Spec 059: the shop, the area map and the tally, which [param hud] made so they hear the
+## simulation from the start, each put in a window of its own with its icon and its key, and
+## given [param tip] for its tooltips. None without a HUD.
+func _management_windows(hud: Hud, icons: PixelSheet, tip: UiTip) -> Array[UiWindow]:
+	var made: Array[UiWindow] = []
+	if hud == null or hud.shop == null or hud.area_map == null or hud.tally == null:
+		return made
+	made.append(UiWindow.new(ShopWindow.ID, ShopWindow.TITLE, hud.shop, ShopWindow.HOTKEY, KEY_U))
+	made.append(
+		UiWindow.new(
+			AreaMapWindow.ID, AreaMapWindow.TITLE, hud.area_map, AreaMapWindow.HOTKEY, KEY_W
+		)
+	)
+	made.append(
+		UiWindow.new(TallyWindow.ID, TallyWindow.TITLE, hud.tally, TallyWindow.HOTKEY, KEY_T)
+	)
+	for each: UiWindow in made:
+		each.icon = icons.part(each.window_id) if icons != null else null
+	hud.shop.add_tips(tip)
+	hud.area_map.add_tips(tip)
+	hud.tally.add_tips(tip)
+	return made
+
+
+## Works out each window's default place for the room it has now: the journal at the top left
+## under the HUD's top band, help at the top right, and the orders under the journal. Spec 059:
+## the tally at the top left, the shop at the top right and the area map between them, side by
+## side so all three open at once with none over another, all clear of the hero frames' line
+## (they lie over the journal, help and the orders, which a click brings back to the front).
 func place_defaults() -> void:
 	if windows == null:
 		return
@@ -158,19 +183,26 @@ func place_defaults() -> void:
 	if journal != null:
 		journal.default_place = Vector2(PLACE_GAP, top)
 	if orders != null and journal != null:
-		var under: float = top + journal.size.y + PLACE_GAP
-		var map_bottom: float = (
-			Hud.TOP_BAND + AreaMap.DROP + AreaMap.height_for(Content.area_ids().size())
-		)
-		var lower: float = ceilf(world_to_ui(Vector2(0, map_bottom)).y) + PLACE_GAP
-		var frames: float = floorf(world_to_ui(Vector2(0, frames_top())).y)
-		if lower > under and lower + orders.size.y + PLACE_GAP <= frames:
-			under = lower
-		orders.default_place = Vector2(PLACE_GAP, under)
+		orders.default_place = Vector2(PLACE_GAP, top + journal.size.y + PLACE_GAP)
 	if help != null:
 		help.default_place = Vector2(_room.x - PLACE_GAP - help.size.x, top)
+	var tally: UiWindow = windows.window(TallyWindow.ID)
+	var shop: UiWindow = windows.window(ShopWindow.ID)
+	var map: UiWindow = windows.window(AreaMapWindow.ID)
+	if tally != null and shop != null and map != null:
+		_place_management(tally, shop, map, top)
 	if hero_windows != null:
 		hero_windows.place_defaults()
+
+
+## Spec 059: the tally at the top left, the shop at the top right, the map between them.
+func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: float) -> void:
+	tally.default_place = Vector2(PLACE_GAP, top)
+	shop.default_place = Vector2(_room.x - PLACE_GAP - shop.size.x, top)
+	var left: float = tally.default_place.x + tally.size.x + PLACE_GAP
+	var right: float = shop.default_place.x - PLACE_GAP
+	var middle: float = floorf((_room.x - map.size.x) / 2.0)
+	map.default_place = Vector2(clampf(middle, left, maxf(right - map.size.x, left)), top)
 
 
 ## The top of the hero frames' line, in the world's 640x360 screen pixels.

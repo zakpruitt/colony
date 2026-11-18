@@ -81,6 +81,16 @@ func close() -> void:
 	queue_free()
 
 
+## Closes every away report among [param layer]'s children: the shop, the map and the tally close
+## it as they open (spec 059, as their old panels did).
+static func close_in(layer: Node) -> void:
+	if layer == null:
+		return
+	for child: Node in layer.get_children():
+		if child is AwayPanel:
+			(child as AwayPanel).close()
+
+
 ## Every line the panel shows, one per row.
 func text() -> String:
 	var rows: PackedStringArray = []

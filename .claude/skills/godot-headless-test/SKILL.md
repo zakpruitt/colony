@@ -68,6 +68,15 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   whatever the window's size. Turn a point on a window into one with `main.ui.ui_to_world(point)`, and lay the
   layer out for the room under test with `main.ui.set_room_for_test(Vector2i(960, 540))` first (the headless
   window is too small to give it a real room).
+- A window on the UI layer lays out a frame after it opens or its content changes (its containers sort, then
+  the window refits): `await get_tree().process_frame` (two, after content shows or hides) before reading a
+  control's rect to click it, or the click lands where the control is not yet and silently does nothing.
+- A test without `set_room_for_test` (a HUD-only test, or a `Main` in the headless window) gets a room of
+  640x360, smaller than any real one, and a tall window's lower controls (the map's foot) fall outside it,
+  where no click reaches. Press those by their signal and leave the real click to a test that sets the room.
+- Since spec 059 the shop, the area map and the tally are window contents made by the HUD: without a
+  `UiRoot` their `open()` does nothing. A HUD-only test that opens one adds `UiRoot.new()` (layer 130 if the
+  HUD is on 129) and calls `ui.setup(sim, hud, null)`.
 - A `CanvasLayer` that draws into another viewport (`custom_viewport`) must be given it before it enters the
   tree (`Main` does it on `NOTIFICATION_SCENE_INSTANTIATED`). Set in `_ready`, freeing the scene prints
   `Attempt to disconnect a nonexistent connection ... canvas_parent_mark_dirty`, which fails every test that

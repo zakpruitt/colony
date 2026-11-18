@@ -33,8 +33,6 @@ const TOP_Y: float = 2.0
 const TOP_HEIGHT: float = 24.0
 ## The line of the hero frames, in the screen's pixels: the frames stay under it.
 const FRAMES_HEIGHT: float = 34.0
-## Pixels between the Shop button and its panel's right edge: room for the marker.
-const SHOP_TAB_RIGHT: float = 6.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
 ## Seconds after the last coin before a shown gold count that is still behind catches up.
@@ -100,12 +98,9 @@ var boss_bar: BossBarView
 var frame_tip: UiTip
 ## Main's tick readout, for developers: bottom right, dim, hidden until F3.
 var clock_label: Label
-## The upgrade shop (spec 017), its button beside the purse and the marker on it.
-var shop: ShopPanel
-var shop_button: HudButton
-## The small panel the Shop button sits on.
-var shop_tab: HudPanel
-var shop_marker: ShopMarker
+## The upgrade shop (spec 017): since spec 059 the content of the Shop window on the UI layer,
+## made here so it hears the simulation from the start; [UiRoot] puts it in its window.
+var shop: ShopWindow
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
 ## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
@@ -115,7 +110,6 @@ var hero_windows: HeroWindows:
 		hero_windows = value
 		if value != null:
 			value.changed.connect(_mark_frames)
-			value.opened.connect(_on_hero_window_opened)
 			_mark_frames()
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
@@ -132,17 +126,15 @@ var windows: UiWindows:
 			frame_tip.covered = value.covers
 ## What beat the party and what would help (spec 041), under the top band in the middle.
 var defeat_note: DefeatNote
-## The party tally (spec 045): who deals, heals and takes the damage, and its button beside the
-## party frames.
-var tally: TallyPanel
-var tally_button: HudButton
-## The area map (spec 053): where the party can go, opened with W or the area's name.
-var area_map: AreaMap
+## The party tally (spec 045): who deals, heals and takes the damage; the content of the Party
+## tally window since spec 059, made here so it counts from the start.
+var tally: TallyWindow
+## The area map (spec 053): where the party can go, opened with W or the area's name; the content
+## of the Area map window since spec 059.
+var area_map: AreaMapWindow
 
 var _simulation: Simulation
 var _world: World
-## The old panels shown at the last [method advance], so one that has just opened is seen.
-var _panels_shown: Array[Control] = []
 var _effects: CombatEffects
 var _icons: PixelSheet
 var _frames_by_id: Dictionary[int, HeroFrameView] = {}
@@ -154,12 +146,10 @@ var _depth_emphasis: float = 0.0
 ## A target asked for that the simulation has not applied yet (it applies on the next tick), or 0.
 var _asked_target: int = 0
 var _auto_on: bool = false
-## The small meter drawn on the tally button.
-var _tally_meter: Control
-## The simulation's tick at the last [method advance] (-1 before the first): more ticks than a
-## stall since then and the frame shows where things are, not how they got there (spec 061 R9).
 ## The room the frame of the screen is laid out in, in UI pixels.
 var _frame_room: Vector2 = Vector2(UiRoot.MIN_ROOM)
+## The simulation's tick at the last [method advance] (-1 before the first): more ticks than a
+## stall since then and the frame shows where things are, not how they got there (spec 061 R9).
 var _seen_tick: int = -1
 
 
@@ -178,8 +168,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo or _simulation == null:
 		return
 	var handled: bool = true
-	# Spec 060: the keys reach a hero window only while it is the front window of all, and the old
-	# shop and tally panels only while no window is open in front of them.
+	# Specs 059 and 060: a window's keys act only while it is the front window of all (Esc, which
+	# closes the front window, is the windows' own).
 	var top: UiWindow = windows.front() if windows != null else null
 	var hero_top: HeroWindow = top as HeroWindow
 	match key.keycode:
@@ -192,13 +182,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_F3:
 			if clock_label != null:
 				clock_label.visible = not clock_label.visible
-		KEY_U:
-			_toggle_shop()
-		KEY_ESCAPE:
-			handled = shop.is_open()
-			shop.close()
 		KEY_TAB:
-			# The next hero's window to the front, or Shift+Tab closes the front one.
+			# The next hero's window to the front, whatever is in front; Shift+Tab closes the
+			# front hero window.
 			if hero_windows == null or (key.shift_pressed and hero_top == null):
 				handled = false
 			elif key.shift_pressed:
@@ -206,28 +192,28 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				hero_windows.open_next()
 		KEY_B:
-			handled = shop.is_open() and top == null
+			handled = _in_front(shop)
 			if handled:
 				shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop's rows; or paragon points, on the front hero window's Talents tab only
-			# (spec 034, spec 055, spec 060).
+			# The shop's rows while it is the front window (spec 059 R2); paragon points while a
+			# hero window on its Talents tab is (spec 034, spec 055, spec 060).
 			var training: bool = hero_top != null and hero_top.page() == HeroWindow.Page.TALENTS
-			if shop.is_open() and top == null:
+			if _in_front(shop):
 				shop.buy_row(key.keycode - KEY_1)
 			elif training and key.keycode <= KEY_3:
 				hero_top.train_row(key.keycode - KEY_1)
 			else:
 				handled = false
 		KEY_Q, KEY_E:
-			# The front hero window's previous and next tab (spec 034, spec 060), or the tally's
-			# previous and next measure while it is open with no window in front (spec 045).
+			# The front window's previous and next tab: a hero window's pages (spec 034, spec
+			# 060) or the tally's measures (spec 059 R4).
 			if hero_top != null:
 				if key.keycode == KEY_Q:
 					hero_top.previous_page()
 				else:
 					hero_top.next_page()
-			elif tally.is_open() and top == null:
+			elif _in_front(tally):
 				if key.keycode == KEY_Q:
 					tally.previous_measure()
 				else:
@@ -259,15 +245,14 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	goals = Goals.new()  # spec 037: before the tooltips, so its lines get them
 	add_child(goals)
 	goals.setup(simulation, world)
-	_build_tally()  # spec 045: before the tooltips, so its tabs get them
+	# Spec 059: the tally and the area map are windows on the UI layer, which [UiRoot] makes.
+	tally = TallyWindow.new()
+	tally.setup(simulation, world, self)
+	area_map = AreaMapWindow.new()
+	area_map.setup(simulation, world, self)
 	_build_tooltip()
-	area_map = AreaMap.new()  # spec 053: after the tooltips, which it gives its controls
-	add_child(area_map)
-	area_map.setup(simulation, world)
-	area_map.add_tips(tooltip)
 	place_panel.area_button.pressed.connect(area_map.toggle)
 	purse.setup(simulation, effects.resource_effects if effects != null else null)
-	shop.add_tips(tooltip)
 	defeat_note = DefeatNote.new()  # spec 041: after the tooltips exist, so it can give its own
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
@@ -318,14 +303,12 @@ func advance(delta: float) -> void:
 	ladder.advance(delta)
 	goals.advance(delta)
 	tally.advance(delta)
-	_light_tally_button()
 	area_map.advance(delta)
 	_mark_area()
 	_lay_out_frame()
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
 	frame_tip.advance(delta)
-	_make_room_for_panels()
 
 
 ## Puts the frame of the screen on [param ui]'s layer (spec 061), under its windows, filling its
@@ -338,35 +321,24 @@ func adopt_frame(ui: UiRoot) -> void:
 	fit_frame(ui.room())
 
 
-## Gives the frame of the screen a room of [param room] UI pixels, and lays it out.
+## Gives the frame of the screen a room of [param room] UI pixels, and lays it out. A room smaller
+## than [constant UiRoot.MIN_ROOM] (a window under 960x540, as a headless test's is) has the frame
+## laid out at that size and scaled down to fit, so it still keeps to the two bands.
 func fit_frame(room: Vector2i) -> void:
+	var fit: float = minf(
+		1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y)
+	)
 	screen_frame.position = Vector2.ZERO
-	_frame_room = Vector2(room)
+	screen_frame.scale = Vector2.ONE * fit
+	_frame_room = Vector2(room) / fit
 	frame_tip.room = _frame_room
 	_lay_out_frame()
 
 
-## Closes every UI-layer window over an old panel that has just opened (spec 058), keeping the
-## window's place: the shop, the tally, the area map or the away report. Until specs 059 and 061
-## move those panels onto the UI layer, they would open hidden under a window.
-func _make_room_for_panels() -> void:
-	var shown: Array[Control] = []
-	var layer: Node = get_parent()
-	var panels: Array[Node] = [shop, tally, area_map]
-	if layer != null:
-		panels.append_array(
-			layer.get_children().filter(func(n: Node) -> bool: return n is AwayPanel)
-		)
-	for node: Node in panels:
-		var panel: Control = node as Control
-		if panel == null or not panel.is_visible_in_tree() or panel.is_queued_for_deletion():
-			continue
-		shown.append(panel)
-		if windows != null and not _panels_shown.has(panel):
-			windows.close_over(panel.get_global_rect())
-			if panel == shop and hero_windows != null:
-				hero_windows.close_all()  # spec 026's rule, back for the shop (spec 060)
-	_panels_shown = shown
+## True while the window holding [param content] is the front window on the UI layer (spec 059).
+func _in_front(content: Control) -> bool:
+	var top: UiWindow = windows.front() if windows != null else null
+	return top != null and top.content == content
 
 
 ## What the party is doing and why, as the place panel shows it: "Heading on to stage 5",
@@ -581,37 +553,17 @@ func _countdown_tip() -> String:
 	return "This stage is safe: a wipe comes back here."
 
 
-## The Shop button in its own small panel left of the purse, the marker on it, and the shop.
+## The shop: the content of the Shop window since spec 059, which [UiRoot] puts in its window (the
+## Shop button is on the bar).
 func _build_shop() -> void:
-	shop_tab = HudPanel.new()
-	shop_tab.name = "ShopTab"
-	add_child(shop_tab)
-	shop_button = HudButton.new("Shop")
-	shop_button.name = "ShopButton"
-	shop_button.position = Vector2(4, 7)
-	shop_button.pressed.connect(_toggle_shop)
-	shop_tab.add_child(shop_button)
-	var tab_width: float = shop_button.position.x + shop_button.size.x + SHOP_TAB_RIGHT
-	shop_tab.size = Vector2(tab_width, TOP_HEIGHT)
-	shop_marker = ShopMarker.new()
-	shop_marker.visible = false
-	shop_tab.add_child(shop_marker)
-	shop = ShopPanel.new()
-	add_child(shop)
-	shop.setup(_simulation, _world)
+	shop = ShopWindow.new()
+	shop.setup(_simulation, _world, self)
 
 
 ## Shows the game's speed (spec 032) on the purse's speed button: its label, lit above 1x.
 func show_speed(value: int) -> void:
 	purse.speed_button.text = "%dx" % value
 	purse.speed_button.lit = value > 1
-
-
-## A hero window opened: the old shop panel closes (spec 026's rule, kept for the shop until it
-## is a window too).
-func _on_hero_window_opened(_hero_id: int) -> void:
-	if shop.is_open():
-		shop.close()
 
 
 ## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).
@@ -640,58 +592,6 @@ func _build_tooltip() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
-
-
-## The party tally (spec 045): its panel, and its button beside the party frames, left of the first,
-## as tall as a frame's line, with a small meter drawn on it.
-func _build_tally() -> void:
-	tally = TallyPanel.new()
-	add_child(tally)
-	tally.setup(_simulation, _world)
-	tally_button = HudButton.new("")
-	tally_button.name = "TallyButton"
-	tally_button.pressed.connect(
-		func() -> void:
-			tally.toggle()
-			_light_tally_button()
-	)
-	add_child(tally_button)
-	_tally_meter = Control.new()
-	_tally_meter.name = "Meter"
-	_tally_meter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tally_meter.draw.connect(_draw_tally_meter.bind(_tally_meter))
-	tally_button.add_child(_tally_meter)
-
-
-## Lights the tally button while the tally is open, and redraws its face (the key turns white).
-func _light_tally_button() -> void:
-	if tally_button.lit != tally.is_open():
-		tally_button.lit = tally.is_open()
-		_tally_meter.queue_redraw()
-
-
-## The tally button's face: three bars of falling length in the first three classes' bar colours,
-## each on an ink edge, and the key, T, under them.
-func _draw_tally_meter(meter: Control) -> void:
-	var colours: Array[StringName] = [&"red", &"blue", &"amber"]
-	var lengths: Array[float] = [1.0, 0.7, 0.45]
-	var inner: float = meter.size.x - 8.0
-	for i: int in colours.size():
-		var bar := Rect2(4.0, 6.0 + i * 6.0, roundf(inner * lengths[i]), 5.0)
-		meter.draw_rect(bar, Palette.color(&"ink"))
-		meter.draw_rect(bar.grow(-1.0), Palette.color(colours[i]))
-	var key: String = "T"
-	var x: float = floorf((meter.size.x - PixelText.width(key) + 1.0) / 2.0)
-	var ink: StringName = &"white" if tally.is_open() else &"silver"
-	meter.draw_string(
-		PixelText.font(),
-		Vector2(x, 30.0),
-		key,
-		HORIZONTAL_ALIGNMENT_LEFT,
-		-1,
-		PixelText.SIZE,
-		Palette.color(ink)
-	)
 
 
 func _mark_frames() -> void:
@@ -782,10 +682,10 @@ func _mark_area() -> void:
 	place_panel.area_button.lit = area_map.is_open()
 
 
-## Lays the frame of the screen out in its room (spec 061 R10): the place panel and the countdown
-## at the top left, the purse at the top right with the Shop button's tab left of it, the boss bar
-## centred between them, and the hero frames in a row along the bottom. Everything stays in the
-## two bands; the effects are told where the counters and frames are.
+## Lays the frame of the screen out in its room (spec 061 R10): the place panel and the countdown at
+## the top left, the purse at the top right, the boss bar centred between them, and the hero frames
+## in a row along the bottom. Everything stays in the two bands; the effects are told where the
+## counters and frames are.
 func _lay_out_frame() -> void:
 	var room: Vector2 = _frame_room
 	place_panel.position = Vector2(FRAME_EDGE, FRAME_TOP)
@@ -796,27 +696,11 @@ func _lay_out_frame() -> void:
 	for frame: HeroFrameView in frames:
 		frame.position = Vector2(x, room.y - FRAME_EDGE - HeroFrameView.SIZE.y)
 		x += HeroFrameView.SIZE.x + FRAME_GAP
-	# The old HUD's Shop tab and tally button, in the screen's pixels, beside the pieces they go with.
-	var to_screen: Transform2D = _screen_transform(screen_frame)
-	var from_hud: Transform2D = _screen_transform(self).affine_inverse()
-	var purse_left: Vector2 = from_hud * to_screen * purse.position
-	shop_tab.position = Vector2(floorf(purse_left.x) - GAP - shop_tab.size.x, TOP_Y)
-	if not frames.is_empty():
-		var first: Rect2 = from_hud * to_screen * Rect2(frames[0].position, HeroFrameView.SIZE)
-		var line: float = SCREEN.y - MARGIN - FRAMES_HEIGHT
-		var width: float = maxf(floorf(first.position.x) - GAP - MARGIN, HudButton.HEIGHT)
-		tally_button.custom_minimum_size = Vector2(width, FRAMES_HEIGHT)
-		tally_button.size = tally_button.get_combined_minimum_size()
-		tally_button.position = Vector2(floorf(first.position.x) - GAP - width, line)
-		_tally_meter.size = tally_button.size
-	# The boss bar: centred on the room when it can be, between the countdown and the Shop tab.
+	# The boss bar: centred on the room when it can be, between the countdown and the purse.
 	var left: float = place_panel.position.x + place_panel.size.x + FRAME_GAP
 	if countdown.visible:
 		left = countdown.position.x + countdown.size.x + FRAME_GAP
-	var tab_left: Vector2 = (
-		(to_screen.affine_inverse() * from_hud.affine_inverse()) * shop_tab.position
-	)
-	var right: float = minf(purse.position.x, floorf(tab_left.x)) - FRAME_GAP
+	var right: float = purse.position.x - FRAME_GAP
 	var widest: float = minf(BossBarView.MAX_WIDTH, room.x * BossBarView.ROOM_SHARE)
 	var width_bar: float = floorf(minf(widest, right - left))
 	var bar_x: float = clampf(floorf((room.x - width_bar) / 2.0), left, right - width_bar)
@@ -901,13 +785,6 @@ func _party_health_percent() -> int:
 
 func _advance_shop(delta: float) -> void:
 	shop.advance(delta)
-	shop_button.lit = shop.is_open()
-	shop_marker.count = shop.affordable_count()
-	shop_marker.visible = shop_marker.count > 0 and not shop.is_open()
-	shop_marker.advance(delta)
-	shop_marker.position = Vector2(
-		shop_button.position.x + shop_button.size.x - 3.0, shop_button.position.y - 5.0
-	)
 
 
 # --- Reacting ------------------------------------------------------------------
@@ -939,14 +816,6 @@ func _on_coin_collected(amount: int) -> void:
 	_since_coin = 0.0
 	_gold_bump = GOLD_BUMP_SECONDS
 	_show_gold()
-
-
-func _toggle_shop() -> void:
-	if shop.is_open():
-		shop.close()
-	else:
-		shop.open()
-	_advance_shop(0.0)
 
 
 func _step_target(by: int) -> void:

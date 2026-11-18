@@ -39,6 +39,11 @@ func _build_hud() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	# Spec 059: the shop is a window on the UI layer, so the HUD needs one for it to open.
+	var ui := UiRoot.new()
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
+	ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -404,7 +409,7 @@ func test_r6_stays_out_of_the_way() -> void:
 	_situation(120, 119, 120, 123)
 	var rect: Rect2 = ladder.get_global_rect()
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
-	for control: Control in [_hud.place_panel, _hud.purse, _hud.shop_tab]:
+	for control: Control in [_hud.place_panel, _hud.purse]:
 		assert_false(rect.intersects(control.get_global_rect()), "clear of %s" % control.name)
 	for frame: HeroFrameView in _hud.frames:
 		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)

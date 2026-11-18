@@ -176,6 +176,9 @@ func test_r3_tabs() -> void:
 
 
 func test_r3_keys_reach_only_the_front_window() -> void:
+	# Since spec 059 the shop and the tally are windows too: the shop, a hero window on Talents and
+	# the tally stand open together, and each key goes to the front window only. 1 to 5 and B are
+	# the shop's, 1 to 3 the hero window's on Talents, Q and E the hero window's or the tally's.
 	var main: Main = _main(ROOM_LARGE)
 	var sim: Simulation = main.simulation
 	var windows: UiWindows = main.ui.windows
@@ -184,73 +187,85 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 	_level(knight, 20)
 	knight.set_talents(_walked(&"knight", 0, 4))
 	main.hud.advance(STEP)
-	var blades: int = sim.party.upgrades.rank(&"sharp_blades")
-	var power: int = knight.paragon_rank(TrainingDef.Stat.POWER)
-	# The shop and a hero window are never open together (spec 026's rule, for the shop only).
 	_press(main, KEY_U)
 	_tick(main)
-	assert_true(main.hud.shop.is_open(), "U opens the shop")
+	var shop: UiWindow = windows.window(ShopWindow.ID)
+	assert_true(shop.is_open(), "U opens the shop")
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
-	assert_false(main.hud.shop.is_open(), "a hero window opening closes the shop")
-	var gold: int = sim.party.gold
-	_press(main, KEY_1)
-	_tick(main)  # a command lands on the next tick
-	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades, "1 buys no Sharp Blades")
-	assert_eq(sim.party.gold, gold, "and spends no gold")
-	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "1: a point into Power")
-	_press(main, KEY_U)
-	_tick(main)
-	assert_true(main.hud.shop.is_open(), "the shop opens again")
-	assert_false(shown.is_open(), "and closes the hero window")
-	_press(main, KEY_1)
-	_tick(main)  # a command lands on the next tick
-	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades + 1, "no window open: 1 buys")
-	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "and spends no point")
-	# A window in front of the shop: its keys wait.
-	windows.open_window(&"journal")
-	gold = sim.party.gold
-	_press(main, KEY_1)
-	_tick(main)  # a command lands on the next tick
-	assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades + 1, "the journal in front: no buy")
-	assert_eq(sim.party.gold, gold, "and no gold spent")
-	windows.window(&"journal").close()
-	_press(main, KEY_U)
-	_tick(main)
-	# The tally under a hero window.
+	assert_true(shop.is_open(), "a hero window opening leaves the shop open")
 	_press(main, KEY_T)
-	assert_true(main.hud.tally.is_open(), "T opens the tally")
-	var measure: Tally.Measure = main.hud.tally.measure()
-	shown = _open(main, knight, HeroWindow.Page.STATS)
-	assert_true(main.hud.tally.is_open(), "a hero window opens over the tally")
-	_press(main, KEY_E)
-	assert_eq(main.hud.tally.measure(), measure, "E leaves the tally under it")
-	assert_eq(shown.page(), HeroWindow.Page.TALENTS, "E: the front hero window's next tab")
-	shown.close()
 	main.hud.advance(STEP)
-	_press(main, KEY_E)
-	assert_ne(main.hud.tally.measure(), measure, "no window open: E is the tally's")
-	_press(main, KEY_T)
-	# The journal in front of a hero window.
-	shown = _open(main, knight, HeroWindow.Page.TALENTS)
-	windows.open_window(&"journal")
+	await _frames()
+	var tally: TallyWindow = main.hud.tally
+	assert_true(tally.is_open() and shown.is_open() and shop.is_open(), "all three open together")
+
+	for front: String in ["tally", "hero", "shop"]:
+		match front:
+			"tally":
+				_click_ui(main.ui, _plain_point(main, windows.window(TallyWindow.ID)))
+			"hero":
+				_click_ui(main.ui, _visible_point(main, shown))
+			"shop":
+				_click_ui(main.ui, _plain_point(main, shop))
+		main.hud.advance(STEP)
+		var expected: UiWindow = {
+			"tally": windows.window(TallyWindow.ID), "hero": shown, "shop": shop
+		}[front]
+		assert_eq(windows.front(), expected, "a click makes the %s the front window" % front)
+		var blades: int = sim.party.upgrades.rank(&"sharp_blades")
+		var gold: int = sim.party.gold
+		var power: int = knight.paragon_rank(TrainingDef.Stat.POWER)
+		var auto: bool = sim.auto_buy
+		var measure: Tally.Measure = tally.measure()
+		var page: HeroWindow.Page = shown.page()
+		_press(main, KEY_1)
+		_tick(main)  # a command lands on the next tick
+		var bought: int = 1 if front == "shop" else 0
+		var trained: int = 1 if front == "hero" else 0
+		var why: String = "the %s in front" % front
+		assert_eq(sim.party.upgrades.rank(&"sharp_blades"), blades + bought, "1, %s: a buy" % why)
+		if bought == 0:
+			assert_eq(sim.party.gold, gold, "1, %s: no gold spent" % why)
+		var points: int = knight.paragon_rank(TrainingDef.Stat.POWER)
+		assert_eq(points, power + trained, "1, %s: a paragon point" % why)
+		_press(main, KEY_B)
+		_tick(main)
+		assert_eq(sim.auto_buy, auto != (front == "shop"), "B, %s: auto-buy" % why)
+		if sim.auto_buy:
+			sim.set_auto_buy(false)
+			_tick(main)
+		_press(main, KEY_E)
+		var tally_tab: Tally.Measure = tally.measure()
+		var moved: bool = front == "tally"
+		assert_eq(tally_tab != measure, moved, "E, %s: the tally's tab" % why)
+		assert_eq(shown.page() != page, front == "hero", "E, %s: the hero window's tab" % why)
+		_press(main, KEY_Q)
+		assert_eq(tally.measure(), measure, "Q, %s: the tally's tab back" % why)
+		assert_eq(shown.page(), page, "Q, %s: the hero window's tab back" % why)
+		assert_true(tally.is_open() and shown.is_open() and shop.is_open(), "%s: all open" % why)
+
+	# Tab brings the next hero's window in front whatever is in front; Esc closes the front one.
+	assert_eq(windows.front(), shop, "the shop in front")
+	_press(main, KEY_TAB)
 	main.hud.advance(STEP)
-	assert_eq(windows.front(), windows.window(&"journal"), "the journal in front")
-	power = knight.paragon_rank(TrainingDef.Stat.POWER)
-	_press(main, KEY_1)
-	_tick(main)  # a command lands on the next tick
-	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power, "1 spends no point behind it")
-	_press(main, KEY_E)
-	assert_eq(shown.page(), HeroWindow.Page.TALENTS, "E changes no tab behind it")
-	_press(main, KEY_TAB, true)
-	assert_true(shown.is_open(), "Shift+Tab closes no hero window behind it")
-	_click_ui(main.ui, _visible_point(main, shown))
+	var next: UiWindow = windows.front()
+	assert_true(next is HeroWindow and next != shown, "Tab: the next hero's window in front")
+	assert_true(shop.is_open(), "the shop stays open")
+	_press(main, KEY_ESCAPE)
 	main.hud.advance(STEP)
-	assert_eq(windows.front(), shown, "a click makes the hero window the front one")
-	_press(main, KEY_1)
-	_tick(main)  # a command lands on the next tick
-	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), power + 1, "then 1 spends its point")
-	_press(main, KEY_TAB, true)
-	assert_false(shown.is_open(), "and Shift+Tab closes it")
+	assert_false(next.is_open(), "Esc closes the front window")
+	assert_true(shown.is_open() and shop.is_open() and tally.is_open(), "and only it")
+
+
+## A point on [param shown] that shows it, on no button: its title bar's, if one shows, else
+## [method _visible_point]'s.
+func _plain_point(main: Main, shown: UiWindow) -> Vector2:
+	var bar: Rect2 = shown.title_bar.get_global_rect()
+	for x: int in range(int(bar.position.x) + 4, int(bar.end.x) - 24, 8):
+		var at := Vector2(x, bar.get_center().y)
+		if main.ui.windows.window_at(main.ui.ui_to_world(at)) == shown:
+			return at
+	return _visible_point(main, shown)
 
 
 # --- R4 ------------------------------------------------------------------------

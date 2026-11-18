@@ -16,26 +16,14 @@ func _default_rect(window: UiWindow) -> Rect2:
 
 
 ## Where each old panel opens and where the goals are, in UI pixels on [param main]'s layer:
-## each opened by its own key and closed again. (The hero sheet was one until spec 060 made it
-## windows, which layer with the others.)
+## the goals. (Spec 059 made the shop, the tally and the area map windows, and spec 060 the
+## hero sheet.)
 func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	var hud: Hud = main.hud
 	var ui: UiRoot = main.ui
 	var found: Dictionary[String, Rect2] = {}
 	hud.advance(0.016)
 	found["goals"] = _in_ui(ui, hud.goals.panel.get_global_rect())
-	var by_key: Dictionary[String, Control] = {
-		"shop": hud.shop, "tally": hud.tally, "area map": hud.area_map
-	}
-	var keys: Dictionary[String, Key] = {"shop": KEY_U, "tally": KEY_T, "area map": KEY_W}
-	for panel_name: String in by_key:
-		_key(keys[panel_name])
-		hud.advance(0.016)
-		var panel: Control = by_key[panel_name]
-		assert_true(panel.is_visible_in_tree(), "the %s opened by its key" % panel_name)
-		found[panel_name] = _in_ui(ui, panel.get_global_rect())
-		panel.call(&"close")
-		hud.advance(0.016)
 	return found
 
 
@@ -103,13 +91,9 @@ func test_r5_the_mouse_on_a_window_is_not_on_the_hud() -> void:
 	assert_ne(hud.tooltip.shown_text(), "", "with the journal closed, the goal's tooltip shows")
 
 
-## Review 3a: the default places beside what the old HUD shows and opens, at both rooms. The
-## orders keep clear of all of it. Help keeps clear of the goals and the tally; it covers where the
-## shop and the area map open. The journal covers the goals, and where the tally and the area map
-## open (the hero sheet is windows since spec 060): the three windows side by side are as wide as
-## a 960x540 room and those panels fill the top of it, so it cannot. A window over a panel closes
-## as the panel opens (the next test but one). With that, stands in for 045 R1 (the tally opens
-## over nothing).
+## Review 3a: the default places beside what the old HUD still shows, at both rooms: the orders
+## and help keep clear of the goals (the shop, the tally, the area map and the hero sheet are
+## windows since specs 059 and 060).
 func test_r6_default_places_beside_the_old_hud() -> void:
 	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
 		var main: Main = _main(room)
@@ -123,7 +107,7 @@ func test_r6_default_places_beside_the_old_hud() -> void:
 			assert_false(
 				orders.intersects(panels[panel]), "%s: orders clear the %s" % [room, panel]
 			)
-		for panel: String in ["goals", "tally"]:
+		for panel: String in ["goals"]:
 			assert_false(help.intersects(panels[panel]), "%s: help clears the %s" % [room, panel])
 		main.free()
 
@@ -144,61 +128,38 @@ func test_r6_default_places_clear_the_frames_and_the_bar() -> void:
 		main.free()
 
 
-## Review 3b: an old panel opening closes every window over it, keeps each window's place, and
-## writes nothing in the journal. Stands in for 027 R6 and 037 R6 (the old journal and goals
-## panels kept clear of the hero sheet) and 041 R5 (nothing opens hidden).
-func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
+## Review 3b, since specs 059 and 060: no old panel is left to open under the windows, so nothing
+## closes a window but the player. A hero window opening by a click on its frame, and each window
+## opening by its key, leave every other window open and in its place, and the journal says
+## nothing. Stands in for 027 R6 and 037 R6 (the old journal and goals panels kept clear of the
+## hero sheet) and 041 R5 (nothing opens hidden).
+func test_r5_nothing_closes_the_windows_but_the_player() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var ui: UiRoot = main.ui
 	var hud: Hud = main.hud
 	var windows: UiWindows = ui.windows
-	var frame_at: Vector2 = Hud.on_screen(hud.frames[0]).get_center()
-	# Spec 060: the hero sheet is windows now, so a hero window opening closes none of the others.
-	for keycode: Key in [KEY_H, KEY_J, KEY_O]:
-		_key(keycode)
+	for id: StringName in _bar_ids(windows):
+		windows.open_window(id)
 	await _frames()
-	_click_world(frame_at)
+	hud.advance(0.016)
+	var places: Dictionary[StringName, Vector2] = {}
+	for id: StringName in _bar_ids(windows):
+		places[id] = windows.window(id).position
+	var written: Array[String] = hud.journal.lines()
+	_click_world(Hud.on_screen(hud.frames[0]).get_center())
 	hud.advance(0.016)
 	assert_true(hud.hero_windows.is_open(), "a click on a frame opens a hero window")
+	for keycode: Key in [KEY_U, KEY_T, KEY_W]:  # each closes its window, then opens it again
+		_key(keycode)
+		_key(keycode)
+		hud.advance(0.016)
+	await _frames()
+	hud.advance(0.016)
+	assert_true(hud.hero_windows.is_open(), "the hero window stays open")
 	for id: StringName in _bar_ids(windows):
-		assert_true(windows.is_open(id), "a hero window opening leaves %s open" % id)
-		windows.close_window(id)
-	hud.hero_windows.close_all()
-	var openers: Array[Array] = [
-		["shop", hud.shop, func() -> void: _key(KEY_U)],
-		["tally", hud.tally, func() -> void: _key(KEY_T)],
-		["area map", hud.area_map, func() -> void: _key(KEY_W)],
-	]
-	for opener: Array in openers:
-		var panel_name: String = opener[0]
-		var panel: Control = opener[1]
-		var open_it: Callable = opener[2]
-		for keycode: Key in [KEY_H, KEY_J, KEY_O]:
-			_key(keycode)
-		await _frames()
-		hud.advance(0.016)
-		var places: Dictionary[StringName, Vector2] = {}
-		for id: StringName in _bar_ids(windows):
-			assert_true(windows.is_open(id), "%s: %s open before" % [panel_name, id])
-			places[id] = windows.window(id).position
-		var written: Array[String] = hud.journal.lines()
-		open_it.call()
-		hud.advance(0.016)
-		assert_true(panel.is_visible_in_tree(), "the %s opened" % panel_name)
-		var over: Rect2 = _in_ui(ui, panel.get_global_rect())
-		var closed: int = 0
-		for id: StringName in _bar_ids(windows):
-			var window: UiWindow = windows.window(id)
-			var covers: bool = window.get_rect().intersects(over)
-			assert_eq(window.is_open(), not covers, "%s: %s closed if over it" % [panel_name, id])
-			assert_eq(window.position, places[id], "%s: %s keeps its place" % [panel_name, id])
-			closed += 0 if window.is_open() else 1
-		assert_gt(closed, 0, "%s: a window was over it" % panel_name)
-		assert_eq(hud.journal.lines(), written, "%s: the journal says nothing" % panel_name)
-		panel.call(&"close")
-		hud.advance(0.016)
-		for id: StringName in windows.ids():
-			windows.close_window(id)
+		assert_true(windows.is_open(id), "%s stays open" % id)
+		assert_eq(windows.window(id).position, places[id], "%s keeps its place" % id)
+	assert_eq(hud.journal.lines(), written, "the journal says nothing")
 
 
 ## Review 3c: windows left open last session open only once the away report has gone.

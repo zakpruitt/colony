@@ -578,7 +578,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 		var held: int = sim.party.resource(id)
 		assert_lte(hud.purse.shown(id), held, "%s never more than held" % id)
 	var recent_hits: Dictionary[int, bool] = {}
-	var tally: TallyPanel = hud.tally
+	var tally: TallyWindow = hud.tally
 	for frame: HeroFrameView in hud.frames:
 		var hero: Hero = sim.party.hero(frame.hero_id)
 		var fighter: Combatant = (

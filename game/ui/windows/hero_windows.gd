@@ -164,12 +164,13 @@ func toggle(hero_id: int) -> void:
 		open(hero_id)
 
 
-## Opens the window of the hero after the front window's, when that is a hero window (else the
-## first hero's), wrapping, and brings it to the front; the others stay as they are.
+## Opens the window of the hero after the front hero window's (the first hero's when none is
+## open), wrapping, and brings it to the front, whatever window is in front; the others stay as
+## they are (spec 059: Tab with the shop or the tally in front still steps through the heroes).
 func open_next() -> void:
 	if _ids.is_empty():
 		return
-	var shown: HeroWindow = top()
+	var shown: HeroWindow = front()
 	var index: int = _ids.find(shown.hero_id) if shown != null else -1
 	open(_ids[(index + 1) % _ids.size()])
 

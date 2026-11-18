@@ -627,9 +627,7 @@ func test_r6_out_of_the_way() -> void:
 	var rect: Rect2 = _rect()
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
 	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(rect), "on the screen")
-	var others: Array[Control] = [
-		_hud.place_panel, _hud.purse, _hud.shop_tab, _hud.ladder, _hud.boss_bar
-	]
+	var others: Array[Control] = [_hud.place_panel, _hud.purse, _hud.ladder, _hud.boss_bar]
 	for frame: HeroFrameView in _hud.frames:
 		others.append(frame)
 	for control: Control in others:

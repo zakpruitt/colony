@@ -313,7 +313,6 @@ func _check_depth_panel(what: String) -> void:
 				"%s: %s fits" % [what, label.name]
 			)
 	assert_lte(panel.end.y, Hud.TOP_BAND, "in the top band")
-	assert_false(panel.intersects(_hud.shop_tab.get_global_rect()), "%s: clear of the shop" % what)
 	assert_false(panel.intersects(_hud.purse.get_global_rect()), "%s: clear of gold" % what)
 
 
@@ -558,7 +557,6 @@ func test_r6_it_fits() -> void:
 		frames[frame.name] = frame.get_global_rect()
 	var top: Dictionary = {
 		"gold": _hud.purse.get_global_rect(),
-		"shop tab": _hud.shop_tab.get_global_rect(),
 		"boss bar": _hud.boss_bar.get_global_rect(),
 	}
 	var depth: Rect2 = _hud.place_panel.get_global_rect()

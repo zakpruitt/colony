@@ -279,11 +279,8 @@ func test_r3_large_counts_fit_the_top_bar() -> void:
 			assert_false(
 				rect.intersects(other), "%s and %s do not overlap" % [parts[i].name, parts[j].name]
 			)
-	var tab: Rect2 = _hud.shop_tab.get_global_rect()
-	assert_false(tab.intersects(panel), "the Shop tab is clear of the gold")
 	var depth: Rect2 = _hud.place_panel.get_global_rect()
-	assert_false(tab.intersects(depth), "and of the stage panel on the left")
-	assert_lte(depth.end.x, tab.position.x, "the stage panel ends before the Shop tab")
+	assert_lte(depth.end.x, panel.position.x, "the stage panel ends before the gold")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -348,13 +345,12 @@ func test_r5_the_shop_says_what_is_missing() -> void:
 	var rows: Dictionary = {}
 	for row: ShopRow in _hud.shop.rows:
 		rows[row.id] = row
+	# Spec 059 R2: one buy button carries the whole price, the resource with its icon, and a row
+	# that cannot be paid says what is missing.
 	var armor: ShopRow = rows[&"stout_armor"]
-	assert_true(armor.resource_label.visible and armor.resource_icon.visible, "both prices")
-	assert_eq(armor.buy_button.text, "91", "the gold")
-	assert_eq(armor.resource_label.text, "4", "and the clay")
-	assert_eq(armor.resource_icon.texture, ResourceIcon.texture(CLAY), "beside its icon")
-	assert_eq(armor.price_colour(), ShopRow.PRICE_AFFORDABLE, "the gold paid")
-	assert_eq(armor.resource_colour(), ShopRow.RESOURCE_AFFORDABLE, "the clay paid")
+	assert_eq(armor.buy_button.text, "91 gold + 4", "both prices: the gold and the clay")
+	assert_eq(armor.buy_button.icon, ResourceIcon.texture(CLAY), "beside its icon")
+	assert_eq(armor.needs_label.text, "", "nothing missing")
 	assert_true(armor.affordable() and not armor.buy_button.disabled, "it can be bought")
 	assert_eq(
 		_tip(armor),
@@ -362,10 +358,11 @@ func test_r5_the_shop_says_what_is_missing() -> void:
 		"its tooltip says where the clay comes from"
 	)
 	var medicine: ShopRow = rows[&"field_medicine"]
-	assert_eq(medicine.price_colour(), ShopRow.PRICE_AFFORDABLE, "the gold is there")
-	assert_eq(medicine.resource_colour(), ShopRow.RESOURCE_TOO_FEW, "the glowcaps greyed")
-	assert_ne(ShopRow.RESOURCE_TOO_FEW, ShopRow.RESOURCE_AFFORDABLE)
-	assert_eq(ShopRow.RESOURCE_TOO_FEW, &"slate", "grey")
+	assert_eq(
+		medicine.needs_label.text,
+		"Needs 5 more glowcaps, from Mossy Hollow",
+		"the glowcaps missing, the gold not"
+	)
 	assert_true(medicine.buy_button.disabled and not medicine.affordable(), "it cannot be bought")
 	assert_eq(
 		_tip(medicine),
@@ -373,7 +370,7 @@ func test_r5_the_shop_says_what_is_missing() -> void:
 		"its tooltip says where to find them"
 	)
 	var blades: ShopRow = rows[&"sharp_blades"]
-	assert_eq(blades.resource_colour(), ShopRow.RESOURCE_TOO_FEW, "no old bones")
+	assert_string_starts_with(blades.needs_label.text, "Needs 4 more old bones", "no old bones")
 	assert_eq(
 		_tip(blades),
 		(
@@ -383,14 +380,13 @@ func test_r5_the_shop_says_what_is_missing() -> void:
 		"a closed area's row says how it is opened"
 	)
 	var purse: ShopRow = rows[&"fat_purse"]
-	assert_false(purse.resource_label.visible, "a rank of gold alone shows one price")
+	assert_null(purse.buy_button.icon, "a rank of gold alone shows one price")
+	assert_false(purse.buy_button.text.contains("+"), "and no second")
 	assert_string_contains(_tip(purse), "From rank 4 it costs embers too.")
 	_sim.party.gold = 0
 	_hud.advance(0.0)
-	assert_eq(armor.price_colour(), ShopRow.PRICE_TOO_DEAR, "gold missing is dimmed as before")
-	assert_eq(armor.resource_colour(), ShopRow.RESOURCE_AFFORDABLE, "the clay still there")
+	assert_eq(armor.needs_label.text, "Needs 91 more gold", "the gold missing, the clay there")
 	assert_true(armor.buy_button.disabled, "and it cannot be bought")
-	assert_true(_hud.shop.get_global_rect().end.x <= Hud.SCREEN.x, "the shop fits the screen")
 
 
 ## With gold to spare and none of the resource, nothing points at an upgrade: no shop marker, no
@@ -403,9 +399,10 @@ func test_r5_nothing_offers_an_upgrade_the_party_cannot_pay() -> void:
 	_build_hud()
 	_hunting_on(7, 4)
 	_frame(0)
+	var marker: UiBadge = _ui.bar.badges[ShopWindow.ID]  # spec 059 R6: on the bar's Shop button
 	assert_eq(_hud.shop.affordable_count(), 0, "none can be paid")
-	assert_eq(_hud.shop_marker.count, 0, "the shop's marker counts none")
-	assert_false(_hud.shop_marker.visible, "and is not shown")
+	assert_eq(marker.count, 0, "the shop's marker counts none")
+	assert_false(marker.visible, "and is not shown")
 	assert_false(_offers_upgrade_goal(), "no goal to buy an upgrade")
 	assert_true(_lose_a_fight(), "(the party loses a fight)")
 	assert_true(_hud.defeat_note.visible, "(the defeat note is up)")
@@ -413,8 +410,9 @@ func test_r5_nothing_offers_an_upgrade_the_party_cannot_pay() -> void:
 	# Clay for Stout Armor: that one can be paid now.
 	_sim.party.set_resource(CLAY, 1000)
 	_hud.advance(STEP)
+	_ui.bar.advance(STEP)
 	assert_eq(_hud.shop.affordable_count(), 1, "Stout Armor can be paid")
-	assert_eq(_hud.shop_marker.count, 1, "the marker counts it")
+	assert_eq(marker.count, 1, "the marker counts it")
 	assert_true(_offers_upgrade_goal(), "the goal to buy one is back")
 	assert_true(_hud.defeat_note.suggestions().has("Buy an upgrade"), "and the suggestion")
 
@@ -482,6 +480,8 @@ func test_r7_the_map_shows_it() -> void:
 	_build_hud()
 	_hud.area_map.open()
 	_hud.advance(0.0)
+	await get_tree().process_frame  # the window lays out
+	await get_tree().process_frame
 	var expected: Dictionary = {
 		MOSSY: [GLOWCAPS, "12 glowcaps"],
 		CLAYPITS: [CLAY, "Gives clay"],
@@ -495,11 +495,9 @@ func test_r7_the_map_shows_it() -> void:
 		var says: String = shown[1]
 		assert_eq(row.resource_icon.texture, ResourceIcon.texture(gives), "its icon")
 		assert_eq(row.resource_label.text, says, "and how many, or what opening it gives")
-		var text_end: float = row.thumbs[0].position.x
-		assert_lte(row.resource_label.position.x + row.resource_label.size.x, text_end, "clear")
-		assert_true(
-			Rect2(Vector2.ZERO, row.size).encloses(row.resource_label.get_rect()), "in the row"
-		)
+		var label: Rect2 = row.resource_label.get_global_rect()
+		assert_lte(label.end.x, row.thumbs[0].get_global_rect().position.x, "clear")
+		assert_true(row.get_global_rect().encloses(label), "in the row")
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.party.set_resource(CLAY, 1234)
 	_hud.advance(0.0)

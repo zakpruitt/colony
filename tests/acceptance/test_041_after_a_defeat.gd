@@ -44,9 +44,11 @@ func _build_hud() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
-	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
+	# Spec 059: the shop is a window on the UI layer, so the HUD needs one for it to open.
+	var ui := UiRoot.new()
 	add_child_autofree(ui)
 	ui.setup(_sim, _hud, null)
+	ui.bar.set_process(false)
 
 
 func _note() -> DefeatNote:
@@ -480,7 +482,6 @@ func _assert_out_of_the_way(when: String) -> void:
 	var parts: Dictionary[String, Rect2] = {
 		"depth panel": _rect(_hud.place_panel),
 		"goals": _rect(_hud.goals.panel),
-		"shop tab": _rect(_hud.shop_tab),
 		"gold": _rect(_hud.purse),
 		"ladder": _rect(_hud.ladder),
 		"boss bar": _rect(_hud.boss_bar),

@@ -1,6 +1,6 @@
 # 059 — The shop, the area map and the tally as windows
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 017, 022, 045, 052, 053, 056, 058
 

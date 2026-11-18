@@ -15,6 +15,8 @@ const WINDOWS: Array[Array] = [
 	[Vector2i(3840, 2160), 6, 4, Vector2i(960, 540)],
 ]
 ## Every KEY_ name written in the game's scripts must be in the help list (spec 030 R3).
+## The three windows spec 058 made; spec 059 added the shop, the map and the tally beside them.
+const OWN_WINDOWS: Array[StringName] = [UiRoot.HELP, UiRoot.JOURNAL, UiRoot.ORDERS]
 const KEY_PATTERN: String = "\\bKEY_[A-Z0-9_]+\\b"
 ## A string literal in a script or a resource.
 const STRING_PATTERN: String = '"((?:[^"\\\\\\n]|\\\\.)*)"'
@@ -169,10 +171,12 @@ func test_r2_the_old_hud_still_works() -> void:
 	assert_eq(
 		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
 	)
-	_click_world(hud.shop_button.get_global_rect().get_center())
+	# Spec 059: the Shop button moved to the bar, and the shop is a window Esc closes.
+	await _frames()
+	_click_ui(main.ui, main.ui.bar.buttons[ShopWindow.ID].get_global_rect().get_center())
 	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
 	_key(KEY_ESCAPE)
-	assert_false(hud.shop.is_open(), "Esc still closes it when no window is open")
+	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
 	_click_world(Hud.on_screen(hud.frames[0]).get_center())
 	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
 	_key(KEY_U)
@@ -415,7 +419,8 @@ func test_r5_windows() -> void:
 	var journal: UiWindow = windows.window(UiRoot.JOURNAL)
 	var orders: UiWindow = windows.window(UiRoot.ORDERS)
 	var help: UiWindow = windows.window(UiRoot.HELP)
-	for id: StringName in _bar_ids(windows):
+	# Spec 059: this spec's three windows; the shop, map and tally (spec 059) open over them.
+	for id: StringName in OWN_WINDOWS:
 		windows.open_window(id)
 	await _frames()
 	assert_true(journal.is_open() and orders.is_open() and help.is_open(), "all open at once")
@@ -553,7 +558,8 @@ func test_r6_remembered() -> void:
 	# A new game's default places do not overlap at 960x540, nor the button bar.
 	var fresh: Main = _main(ROOM_SMALL)
 	var rects: Dictionary[StringName, Rect2] = {}
-	for id: StringName in _bar_ids(fresh.ui.windows):
+	# Spec 059: this spec's three windows; spec 059 R8 checks its own three do not overlap.
+	for id: StringName in OWN_WINDOWS:
 		var made: UiWindow = fresh.ui.windows.window(id)
 		assert_eq(made.position, made.default_place, "%s at its default place" % id)
 		rects[id] = made.get_global_rect()
@@ -627,7 +633,7 @@ func test_r8_three_panels_become_windows() -> void:
 		_key(keycode)
 		assert_true(windows.is_open(id), "%s opens with its key" % id)
 	assert_eq(windows.front(), windows.window(UiRoot.ORDERS), "the last opened in front")
-	for id: StringName in _bar_ids(windows):
+	for id: StringName in OWN_WINDOWS:
 		assert_true(windows.is_open(id), "%s open beside the others" % id)
 	await _frames()
 

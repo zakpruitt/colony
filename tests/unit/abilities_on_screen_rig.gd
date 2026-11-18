@@ -31,6 +31,8 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## Spec 059: the tally is a window on the UI layer, over the HUD's layer; made with the HUD.
+var _ui: UiRoot
 ## The simulation tick a test's battle began on: its events are stamped from it.
 var _base: int = 0
 ## Every event the world told of, oldest first.
@@ -75,6 +77,10 @@ func _build(simulation: Simulation, with_hud: bool = false) -> void:
 		layer.add_child(_hud)
 		_hud.set_process(false)
 		_hud.setup(_sim, _world, _fx)
+		_ui = UiRoot.new()
+		_ui.layer = 130
+		add_child_autofree(_ui)
+		_ui.setup(_sim, _hud, null)
 		_hud.advance(0.0)
 
 

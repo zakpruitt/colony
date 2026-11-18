@@ -16,6 +16,9 @@ const RESET_TIP: String = "Put every window back in its place"
 
 ## A button per window id.
 var buttons: Dictionary[StringName, UiButton] = {}
+## Spec 059 R6: each button's amber tag, shown while its window's [member UiWindow.badge] is
+## above 0.
+var badges: Dictionary[StringName, UiBadge] = {}
 ## Puts every window back where a new game has it.
 var reset_button: UiButton
 ## The tooltip the buttons share.
@@ -31,8 +34,16 @@ func _init() -> void:
 	add_theme_constant_override(&"separation", 4)
 
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	advance(delta)
+
+
+## Lights the buttons, shows the tags and runs their pulse on by [param delta] seconds. Called
+## every frame; tests call it.
+func advance(delta: float) -> void:
 	refresh()
+	for id: StringName in badges:
+		badges[id].advance(delta)
 
 
 ## Call once, after the windows are registered with [param windows].
@@ -70,14 +81,23 @@ func rebuild() -> void:
 		move_child(button, reset_button.get_index())
 		buttons[id] = button
 		tip.attach(button, "%s (%s)" % [shown.title, shown.key_hint])
+		var tag := UiBadge.new()
+		button.add_child(tag)
+		badges[id] = tag
 	refresh()
 	fit_room(_ui.room())
 
 
-## Lights each button whose window is open.
+## Lights each button whose window is open, and shows each window's tag (spec 059 R6).
 func refresh() -> void:
 	for id: StringName in buttons:
 		buttons[id].lit = _windows.is_open(id)
+		var tag: UiBadge = badges.get(id, null)
+		if tag == null:
+			continue
+		tag.count = _windows.window(id).badge
+		tag.visible = tag.count > 0
+		tag.position = Vector2(buttons[id].size.x - tag.size.x + 4.0, -6.0)
 
 
 ## Puts the bar at the bottom right of a room of [param room] UI pixels, above the frames' line.

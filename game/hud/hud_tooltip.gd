@@ -71,14 +71,6 @@ func _notification(what: int) -> void:
 ## (The frame of the screen has its own, [member Hud.frame_tip]: spec 061.)
 func setup(hud: Hud) -> void:
 	_hud = hud
-	_tip([hud.shop_button], "Spend gold on upgrades for the whole party.")
-	if hud.tally != null:
-		# Spec 045 R6: the tally's tabs, its span switch and its button.
-		for i: int in hud.tally.tab_buttons.size():
-			_tip([hud.tally.tab_buttons[i]], TallyPanel.TAB_TIPS[i])
-		for i: int in hud.tally.span_buttons.size():
-			_tip([hud.tally.span_buttons[i]], TallyPanel.SPAN_TIPS[i])
-		_tip([hud.tally_button], "The party tally: who deals, heals and takes the damage (T).")
 	if hud.goals != null:
 		# Spec 037 R5: each goal line says how to get there; spec 042 R3: then what a click does.
 		for i: int in hud.goals.rows.size():
