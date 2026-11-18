@@ -58,7 +58,7 @@ func _init(id: StringName, on_path: int, width: float) -> void:
 	ability_id = id
 	path = on_path
 	name = "Node_%s" % id
-	mouse_filter = Control.MOUSE_FILTER_STOP
+	mouse_filter = Control.MOUSE_FILTER_PASS  # the wheel goes on to the window's scroll
 	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	icon = TextureRect.new()
 	icon.name = "Icon"

@@ -120,12 +120,21 @@ func _check_fits(main: Main, shown: HeroWindow, what: String) -> void:
 	assert_lte(window.size.y, room.size.y, "%s: never taller than the room" % what)
 	var labels: Array[Label] = _shown_labels(shown)
 	var rects: Array[Rect2] = []
+	# What scrolls is judged against the whole scrolled content, every line of it reachable.
+	var view: Rect2 = shown.scroll.get_global_rect()
+	assert_true(window.encloses(view), "%s: the scrolled view inside the window" % what)
+	assert_true(room.encloses(view), "%s: the scrolled view inside the room" % what)
+	var content: Rect2 = view
+	content.position.y -= shown.scroll.scroll_vertical
+	content.size.y = maxf(view.size.y, shown.scroll.get_v_scroll_bar().max_value)
 	for label: Label in labels:
 		var inked: Rect2 = _text_rect(label)
 		rects.append(inked)
 		var named: String = "%s: '%s'" % [what, label.text.replace("\n", " / ")]
-		assert_true(window.encloses(inked), "%s inside the window" % named)
-		assert_true(room.encloses(inked), "%s inside the room" % named)
+		var scrolled: bool = shown.scroll.is_ancestor_of(label)
+		assert_true((content if scrolled else window).encloses(inked), "%s inside" % named)
+		if not scrolled:
+			assert_true(room.encloses(inked), "%s inside the room" % named)
 		assert_lte(inked.size.x, label.size.x + 1.0, "%s not cut at its right" % named)
 		assert_eq(label.clip_text, false, "%s not clipped" % named)
 		assert_eq(label.text_overrun_behavior, TextServer.OVERRUN_NO_TRIMMING, "%s whole" % named)
@@ -612,6 +621,7 @@ func test_r7_compare() -> void:
 		for rect: Rect2 in [first, second]:
 			assert_true(room.encloses(rect), "%s: in the room" % named)
 			assert_lte(rect.end.y, frames_top, "%s: clear of the frames' line" % named)
+		assert_false(_window(main, a).scrolls(), "%s: the whole tree shows" % named)
 		_click_frame(main, a)
 		_click_frame(main, b)
 	main.free()
@@ -621,8 +631,15 @@ func test_r7_compare() -> void:
 	for hero: Hero in small.simulation.party.heroes:
 		opened.append(_open(small, hero, HeroWindow.Page.TALENTS))
 	await _frames()
+	# Under the top band and clear of the frames' line, each of them, so any two are too.
+	var band: float = small.ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var frame_rect: Rect2 = small.hud.frames[0].get_global_rect()
+	var small_frames: float = small.ui.world_to_ui(frame_rect.position).y
 	for i: int in opened.size():
-		assert_true(small_room.encloses(opened[i].get_global_rect()), "960x540: %d in the room" % i)
+		var rect: Rect2 = opened[i].get_global_rect()
+		assert_true(small_room.encloses(rect), "960x540: %d in the room" % i)
+		assert_gte(rect.position.y, band, "960x540: %d under the top band" % i)
+		assert_lte(rect.end.y, small_frames, "960x540: %d clear of the frames' line" % i)
 		for j: int in range(i + 1, opened.size()):
 			var back: HeroWindow = opened[i]
 			var over: HeroWindow = opened[j]
@@ -633,6 +650,27 @@ func test_r7_compare() -> void:
 				over.get_global_rect().intersects(title),
 				"960x540: %d's title shows past %d" % [i, j]
 			)
+	# Too short there for the whole tree: the Talents tab scrolls inside the window, with the wheel.
+	var front: HeroWindow = opened[opened.size() - 1]
+	assert_true(front.scrolls(), "960x540: the Talents tab scrolls")
+	var view: Rect2 = front.scroll.get_global_rect()
+	assert_true(small_room.encloses(view), "960x540: the scrolled view shows")
+	var bar: VScrollBar = front.scroll.get_v_scroll_bar()
+	assert_true(bar.is_visible_in_tree(), "960x540: with its scroll bar")
+	assert_gte(bar.max_value, front.talents.size.y, "960x540: it reaches the tree's end")
+	var lowest: TalentNode = front.talents.tree_view().path_nodes[0][3]
+	var at: Vector2 = small.ui.ui_to_world(view.get_center())
+	_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
+	_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
+	assert_gt(front.scroll.scroll_vertical, 0, "960x540: the wheel scrolls it")
+	front.scroll.scroll_vertical = int(bar.max_value)
+	await _frames()
+	assert_true(
+		front.scroll.get_global_rect().encloses(_text_rect(lowest.description_label)),
+		"960x540: scrolled down, the last node reads whole"
+	)
+	front.open_page(HeroWindow.Page.STATS)
+	assert_eq(front.scroll.scroll_vertical, 0, "another tab starts at its top")
 
 
 # --- R8 ------------------------------------------------------------------------

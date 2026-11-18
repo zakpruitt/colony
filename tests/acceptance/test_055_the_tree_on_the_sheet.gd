@@ -83,8 +83,8 @@ func _tab() -> HeroTalentsTab:
 func _tip_text(control: Control) -> String:
 	for found: Node in _ui.find_children("*", "", true, false):
 		var tip: UiTip = found as UiTip
-		if tip != null and not _tip_text(control).is_empty():
-			return _tip_text(control)
+		if tip != null and not tip.text_for(control).is_empty():
+			return tip.text_for(control)
 	return ""
 
 

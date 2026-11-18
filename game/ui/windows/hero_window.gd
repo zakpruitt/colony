@@ -14,7 +14,9 @@ extends UiWindow
 ##
 ## Every value is read from the simulation at each [method advance], so nothing goes stale across
 ## a level up, a command or a crowded frame. It is laid out by hand ([WindowText]), the same size
-## on every tab and for every hero, so windows line up when compared.
+## on every tab and for every hero, so windows line up when compared. In a room too short for its
+## tallest tab (960x540), [HeroWindows] makes it shorter and the tabs' content scrolls inside it
+## ([member scroll]); a question on the Talents tab brings the view back to the top, where it is.
 
 ## The window's tabs, in order.
 enum Page { STATS, TALENTS, SKILLS }
@@ -41,6 +43,8 @@ const TABS_Y: float = 53.0
 const TAB_GAP: float = 16.0
 const TAB_LINE_Y: float = TABS_Y + UiTheme.BUTTON_HEIGHT + 3.0
 const PAGE_Y: float = TAB_LINE_Y + 6.0
+## The room a scroll bar takes at the right of the tabs' content, when it scrolls.
+const SCROLL_ROOM: float = 12.0
 ## The dim line of keys at the right of the tab row.
 const KEYS_HINT: String = "Q E tabs   Tab next hero   Shift+Tab close"
 ## The role of each class, in one word.
@@ -83,8 +87,13 @@ var skills_tag: Tag
 var stats: HeroStatsTab
 var talents: HeroTalentsTab
 var skills: HeroSkillsTab
+## Holds the tabs' content under the tab row; it scrolls when the window is shorter than the
+## tallest tab needs.
+var scroll: ScrollContainer
 
 var _simulation: Simulation
+var _holder: Control
+var _was_asking: bool = false
 var _body: Control
 var _pages: Array[Control] = []
 var _page: Page = Page.STATS
@@ -119,9 +128,19 @@ func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	stats = HeroStatsTab.new(simulation, hero.id, WIDTH)
 	talents = HeroTalentsTab.new(simulation, hero.id, WIDTH, tip)
 	skills = HeroSkillsTab.new(simulation, hero.id, WIDTH)
+	scroll = ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.position = Vector2(0, PAGE_Y)
+	scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	body.add_child(scroll)
+	_holder = Control.new()
+	_holder.name = "Pages"
+	_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	scroll.add_child(_holder)
 	for page_box: Control in [stats, talents, skills]:
-		page_box.position = Vector2(0, PAGE_Y)
-		body.add_child(page_box)
+		_holder.add_child(page_box)
 		_pages.append(page_box)
 	set_body_height(body_height())
 	body.draw.connect(_draw_body)
@@ -139,12 +158,30 @@ func body_height() -> float:
 
 
 ## Makes the content [param height] UI pixels tall on every tab (so every hero's window is the
-## same size), and the window as big as it then needs.
+## same size), and the window as big as it then needs. Shorter than [method body_height], the
+## tabs' content scrolls, with room at the right for the scroll bar.
 func set_body_height(height: float) -> void:
-	_body.custom_minimum_size = Vector2(WIDTH, height)
+	var view: float = height - PAGE_Y
+	var short: bool = height < body_height() - 0.5
+	var wide: float = WIDTH + (SCROLL_ROOM if short else 0.0)
+	_body.custom_minimum_size = Vector2(wide, height)
 	_body.size = _body.custom_minimum_size
+	scroll.custom_minimum_size = Vector2(wide, view)
+	scroll.size = scroll.custom_minimum_size
+	_fit_holder()
+	reset_size()
 	fit_size()
 	settle()
+
+
+## True when the tabs' content is shorter than the open tab needs, so it scrolls.
+func scrolls() -> bool:
+	return _holder.custom_minimum_size.y > scroll.size.y + 0.5
+
+
+## The window's height less its content's: the title bar and the margins.
+func chrome_height() -> float:
+	return size.y - _body.size.y
 
 
 ## Lays the window's frame out now (its title bar and margins are containers, which would
@@ -194,6 +231,11 @@ func advance(delta: float) -> void:
 	stats.refresh()
 	talents.refresh(delta)
 	skills.refresh()
+	_fit_holder()
+	var asking: bool = talents.asking() != HeroTalentsTab.Asking.NOTHING
+	if asking and not _was_asking:
+		scroll.scroll_vertical = 0  # the question is at the top of the tab
+	_was_asking = asking
 	_refresh_tags(hero)
 	var part: StringName = &"skull" if _down else hero.class_id
 	if part != _portrait_part:
@@ -428,6 +470,17 @@ func _show_page() -> void:
 		_pages[i].visible = i == _page
 	for i: int in tab_buttons.size():
 		tab_buttons[i].lit = i == _page
+	if scroll != null:
+		_fit_holder()
+		scroll.scroll_vertical = 0
+
+
+## Sizes the scrolled holder to the open tab, so the scroll bar reaches its end and no further.
+func _fit_holder() -> void:
+	var shown: Control = _pages[_page] if _page < _pages.size() else null
+	var tall: float = shown.size.y if shown != null else 0.0
+	_holder.custom_minimum_size = Vector2(WIDTH, tall)
+	_holder.size = _holder.custom_minimum_size
 
 
 ## Brings the two tags up to date with [param hero] (counting what the open Skills tab shows as

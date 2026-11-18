@@ -1,8 +1,9 @@
 class_name HeroWindows
 extends Node
 ## The hero windows (spec 060): one [HeroWindow] per hero, each a window of spec 058 registered
-## with [UiWindows] as [code]hero_<n>[/code] (n the hero's place in the party, from 0), so they move, layer, close on [kbd]Esc[/kbd] and are
-## remembered like any other window, and any of them can be open at once to compare heroes.
+## with [UiWindows] as [code]hero_<n>[/code] (n the hero's place in the party, from 0), so they
+## move, layer, close on [kbd]Esc[/kbd] and are remembered like any other window, and any of them
+## can be open at once to compare heroes.
 ##
 ## A click on a hero's frame opens or closes its window ([method toggle]); [kbd]Tab[/kbd] opens the
 ## next hero's window and brings it to the front ([method open_next]); [kbd]Shift+Tab[/kbd] closes
@@ -13,8 +14,9 @@ extends Node
 ## side by side (1280x720), they stand in two columns under the HUD's top band, clear of the hero
 ## frames' line: the first and third hero's on the left, the second and fourth's on the right, the
 ## third and fourth set in a little and lower so their title bars show. In a narrower room
-## (960x540) they cascade from the top left, each set right and down from the one before, so every
-## title shows.
+## (960x540) they cascade from the top left under the top band, each set right of the one before
+## and every other one down, so every title shows; there the windows are made short enough that
+## two of them stay clear of the frames' line, and their tabs' content scrolls.
 
 ## Emitted when a hero window opens or closes, or another comes to the front.
 signal changed
@@ -33,6 +35,8 @@ var _simulation: Simulation
 ## The windows by hero id, in the party's order.
 var _windows: Dictionary[int, HeroWindow] = {}
 var _ids: Array[int] = []
+## The content height every window needs to show its tallest tab whole.
+var _tallest: float = 0.0
 
 
 func _init() -> void:
@@ -56,6 +60,7 @@ func setup(simulation: Simulation, ui: UiRoot, tip: UiTip) -> void:
 		_windows[hero.id] = made
 		_ids.append(hero.id)
 		tallest = maxf(tallest, made.body_height())
+	_tallest = tallest
 	for hero_id: int in _ids:
 		var made: HeroWindow = _windows[hero_id]
 		made.set_body_height(tallest)  # every hero's window the same size, to compare
@@ -74,11 +79,17 @@ func place_defaults() -> void:
 	if _ui == null or _ids.is_empty():
 		return
 	var room := Vector2(_ui.room())
-	var window_size: Vector2 = _windows[_ids[0]].size
 	var top: float = ceilf(_ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + GAP / 2.0
-	var frames: float = floorf(_ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y)
+	var frames: float = floorf(_ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y) - GAP / 2.0
+	_set_heights(_tallest)
+	var window_size: Vector2 = _windows[_ids[0]].size
 	var rows: float = top + SECOND_ROW.y + window_size.y
 	var side_by_side: bool = room.x >= 2.0 * window_size.x + 3.0 * GAP and rows <= frames
+	if not side_by_side:
+		# Two cascaded windows, one set down from the other, clear of the frames' line.
+		var chrome: float = _windows[_ids[0]].chrome_height()
+		_set_heights(minf(_tallest, frames - top - CASCADE.y - chrome))
+		window_size = _windows[_ids[0]].size
 	for i: int in _ids.size():
 		var place: Vector2
 		if side_by_side:
@@ -88,11 +99,14 @@ func place_defaults() -> void:
 			var inward: float = SECOND_ROW.x * row * (1.0 if column == 0 else -1.0)
 			place = Vector2(x + inward, top + SECOND_ROW.y * row)
 		else:
-			var spare: float = maxf(room.y - window_size.y, 0.0)
-			var step := Vector2(CASCADE.x, minf(CASCADE.y, spare / maxf(_ids.size() - 1, 1)))
-			var start: float = clampf(top, 0.0, maxf(spare - step.y * (_ids.size() - 1), 0.0))
-			place = Vector2(GAP, start) + step * i
+			place = Vector2(GAP + CASCADE.x * i, top + CASCADE.y * (i % 2))
 		_windows[_ids[i]].default_place = place.round()
+
+
+## Makes every hero window's content [param height] UI pixels tall.
+func _set_heights(height: float) -> void:
+	for hero_id: int in _ids:
+		_windows[hero_id].set_body_height(height)
 
 
 ## Brings every open window up to date with the simulation. The HUD calls it every frame.
