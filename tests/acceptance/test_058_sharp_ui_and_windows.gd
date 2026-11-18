@@ -1,16 +1,12 @@
-extends GutTest
-## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, one per requirement.
+extends "res://tests/acceptance/ui_layer_test.gd"
+## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, one per requirement (more for R5
+## to R8, beside the old HUD, are in test_058_windows_beside_the_old_hud.gd).
 ##
-## Most tests run the main scene with its processing turned off and step it by hand. The UI layer
-## is laid out for a chosen room ([method UiRoot.set_room_for_test]); mouse events are pushed into
-## the viewport as the window would send them, at the world's 640x360 coordinates
-## ([method UiRoot.ui_to_world] turns a UI point into one). Nothing here touches the real settings
-## file: R6 gives Main a file of its own under user://, named for this process, and deletes it.
+## Most tests run the main scene with its processing turned off and step it by hand, the UI layer
+## laid out for a chosen room ([method UiRoot.set_room_for_test]); the helpers are in
+## ui_layer_test.gd.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SPECIMEN: PackedScene = preload("res://game/ui/font_specimen.tscn")
-const ROOM_SMALL: Vector2i = Vector2i(960, 540)
-const ROOM_LARGE: Vector2i = Vector2i(1280, 720)
 ## The window sizes R1 lists: each with its world scale, its UI scale and its room.
 const WINDOWS: Array[Array] = [
 	[Vector2i(1280, 720), 2, 1, Vector2i(1280, 720)],
@@ -23,114 +19,6 @@ const KEY_PATTERN: String = "\\bKEY_[A-Z0-9_]+\\b"
 ## A string literal in a script or a resource.
 const STRING_PATTERN: String = '"((?:[^"\\\\\\n]|\\\\.)*)"'
 const WIKI: String = "res://docs/wiki/index.html"
-
-var _settings_path: String = "user://test_058_windows_%d.settings" % OS.get_process_id()
-
-
-func after_each() -> void:
-	_delete_files()
-
-
-func after_all() -> void:
-	_delete_files()
-
-
-func _delete_files() -> void:
-	if FileAccess.file_exists(_settings_path):
-		DirAccess.remove_absolute(_settings_path)
-
-
-# --- Helpers -------------------------------------------------------------------
-
-
-## A main scene, its own processing off, laid out for [param room]; [param settings] keeps its
-## windows' places.
-func _main(room: Vector2i = ROOM_SMALL, settings: SoundSettings = null) -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
-	main.settings = settings
-	add_child_autofree(main)
-	main.driver.set_process(false)
-	main.world.set_process(false)
-	main.effects.set_process(false)
-	main.hud.set_process(false)
-	main.ui.set_room_for_test(room)
-	# Above GUT's runner (canvas layer 128), whose window would otherwise take the mouse; the two
-	# keep their order.
-	main.hud_layer.layer = 129
-	main.ui.layer = 130
-	return main
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-## Moves the mouse to [param at], in the world's screen pixels, as the window would.
-func _move(at: Vector2, held: bool = false) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	event.button_mask = MOUSE_BUTTON_MASK_LEFT if held else 0
-	get_viewport().push_input(event, true)
-
-
-func _button(at: Vector2, pressed: bool, index: MouseButton = MOUSE_BUTTON_LEFT) -> void:
-	var event := InputEventMouseButton.new()
-	event.button_index = index
-	event.pressed = pressed
-	event.position = at
-	event.global_position = at
-	if index == MOUSE_BUTTON_LEFT and pressed:
-		event.button_mask = MOUSE_BUTTON_MASK_LEFT
-	get_viewport().push_input(event, true)
-
-
-## A left click at [param at], a point in UI pixels on [param ui].
-func _click_ui(ui: UiRoot, at: Vector2) -> void:
-	var world: Vector2 = ui.ui_to_world(at)
-	_move(world)
-	_button(world, true)
-	_button(world, false)
-
-
-## A left click at [param at], in the world's screen pixels.
-func _click_world(at: Vector2) -> void:
-	_move(at)
-	_button(at, true)
-	_button(at, false)
-
-
-## Drags [param window] by its title bar by [param by] UI pixels, in [param steps] moves, calling
-## [param between] after each move (a frame of the game).
-func _drag(
-	ui: UiRoot, window: UiWindow, by: Vector2, steps: int = 8, between: Callable = Callable()
-) -> void:
-	var grip: Vector2 = window.title_bar.get_global_rect().position + Vector2(12, 6)
-	_move(ui.ui_to_world(grip))
-	_button(ui.ui_to_world(grip), true)
-	for step: int in range(1, steps + 1):
-		_move(ui.ui_to_world(grip + by * float(step) / steps), true)
-		if between.is_valid():
-			between.call()
-	_button(ui.ui_to_world(grip + by), false)
-
-
-## Every control on [param node]'s branch.
-func _controls(node: Node, into: Array[Control]) -> void:
-	for child: Node in node.get_children():
-		if child is Control:
-			into.append(child as Control)
-		_controls(child, into)
-
-
-func _frames() -> void:
-	await get_tree().process_frame
-	await get_tree().process_frame
 
 
 ## The pixels [param text] inks in the UI font, each glyph placed after the last one's advance.
@@ -249,7 +137,9 @@ func test_r1_two_layers() -> void:
 		for control: Control in controls:
 			if not control.is_visible_in_tree():
 				continue
-			var at: Vector2 = control.get_global_rect().position * float(ui.ui_scale())
+			var in_ui: Vector2 = control.get_global_rect().position
+			assert_eq(in_ui, in_ui.round(), "%s %s at whole UI pixels" % [room, control.get_path()])
+			var at: Vector2 = in_ui * float(ui.ui_scale())
 			assert_eq(at, at.round(), "%s %s at whole pixels" % [room, control.get_path()])
 		assert_eq(ui.world_to_ui(ui.ui_to_world(Vector2(13, 7))), Vector2(13, 7), "the two ways")
 
@@ -445,6 +335,23 @@ func test_r4_a_theme() -> void:
 		[&"pressed", &"font_pressed_color"],
 		[&"disabled", &"font_disabled_color"],
 	]
+	main.ui.windows.open_window(UiRoot.ORDERS)
+	var close: UiButton = main.ui.windows.window(UiRoot.ORDERS).close_button
+	for padded: UiButton in [button, close]:
+		for state: Array in states:
+			var padded_state: StringName = state[0]
+			var box: StyleBoxFlat = padded.get_theme_stylebox(padded_state) as StyleBoxFlat
+			var what: String = "%s %s" % [padded.text, padded_state]
+			assert_not_null(box, "%s: a flat box" % what)
+			if box == null:
+				continue
+			# At least 4 UI pixels of padding inside the edge, round the text.
+			assert_gte(box.content_margin_left - box.border_width_left, 4.0, "%s: left" % what)
+			assert_gte(box.content_margin_right - box.border_width_right, 4.0, "%s: right" % what)
+			assert_gte(box.content_margin_top - box.border_width_top, 4.0, "%s: top" % what)
+			assert_gte(
+				box.content_margin_bottom - box.border_width_bottom, 4.0, "%s: bottom" % what
+			)
 	for state: Array in states:
 		var state_name: StringName = state[0]
 		var colour_name: StringName = state[1]
@@ -456,15 +363,6 @@ func test_r4_a_theme() -> void:
 		looks["%s %s %s" % [box.bg_color, box.border_color, text]] = true
 		for colour: Color in [box.bg_color, box.border_color, text]:
 			assert_true(palette.has(colour), "%s: %s is a palette colour" % [state[0], colour])
-		# At least 4 UI pixels of padding inside the edge, round the text.
-		assert_gte(
-			box.content_margin_left - box.border_width_left, 4.0, "%s: padding left" % state[0]
-		)
-		assert_gte(box.content_margin_right - box.border_width_right, 4.0, "%s: right" % state[0])
-		assert_gte(box.content_margin_top - box.border_width_top, 4.0, "%s: top" % state[0])
-		assert_gte(
-			box.content_margin_bottom - box.border_width_bottom, 3.0, "%s: bottom" % state[0]
-		)
 		assert_false(box.anti_aliasing, "%s: hard edges" % state[0])
 	assert_eq(looks.size(), 4, "four states drawn apart")
 	# Measured: tall enough to hit, wide enough for the text, the key hint shown after it.
@@ -693,6 +591,8 @@ func test_r7_a_button_bar() -> void:
 		var tip: String = bar.tip.text_for(button)
 		assert_string_contains(tip, window.title, "%s: its name in the tooltip" % id)
 		assert_string_contains(tip, "(%s)" % window.key_hint, "%s: and its key" % id)
+		assert_eq(button.key_hint, window.key_hint, "%s: the key shown on the button (R4)" % id)
+		assert_gte(button.size.x, button.hinted_width(), "%s: room for the icon and the key" % id)
 		assert_false(button.lit, "%s: dark while closed" % id)
 		_click_ui(ui, button.get_global_rect().get_center())
 		assert_true(window.is_open(), "%s: a click opens it" % id)
@@ -753,6 +653,26 @@ func test_r8_three_panels_become_windows() -> void:
 				keys_shown.append(label.text)
 	assert_eq(keys_shown.size(), HelpPanel.KEYS.size(), "every key shown")
 	assert_eq(columns.size(), 2, "in two columns")
+	# Each key's row on one line, at both rooms: what it does fits beside it without wrapping.
+	for room: Vector2i in [ROOM_LARGE, ROOM_SMALL]:
+		ui.set_room_for_test(room)
+		await _frames()
+		var grid: GridContainer = help.get_node(^"Keys") as GridContainer
+		var rows: int = 0
+		for cell: Node in grid.get_children():
+			var key_label: Label = cell as Label
+			if key_label == null or key_label.get_index() + 1 >= grid.get_child_count():
+				continue
+			var does: Label = grid.get_child(key_label.get_index() + 1) as Label
+			if does == null or not HelpPanel.keycodes(key_label.text).size() > 0:
+				continue
+			rows += 1
+			assert_eq(does.get_line_count(), 1, "%s: '%s' on one line" % [room, does.text])
+			assert_lte(
+				float(UiText.width(does.text)), does.size.x, "%s: '%s' not cut" % [room, does.text]
+			)
+			assert_lte(does.size.y, key_label.size.y, "%s: '%s' one row tall" % [room, does.text])
+		assert_eq(rows, HelpPanel.KEYS.size(), "%s: every key's row" % room)
 
 	# Orders: a full sentence for each choice, and both orders' commands sent by real clicks.
 	var orders: OrdersPanel = windows.window(UiRoot.ORDERS).content as OrdersPanel
@@ -834,6 +754,45 @@ func test_r9_screenshots_show_what_the_player_sees() -> void:
 	assert_string_contains(script, "size_2d_override = UiRoot.WORLD_SIZE", "the world's pixels")
 	assert_string_contains(script, "size_2d_override_stretch = true", "stretched over the window")
 	assert_string_contains(script, "--window=", "at the window's size")
+	# The shot's path to the layers (a viewport of the window's size) and the game's (the window
+	# itself) agree: the same UI room, scales and on-screen transform for the UI layer, and the
+	# world scaled the same.
+	var shot_script: GDScript = load("res://tools/godot/shot.gd") as GDScript
+	var root: Window = get_tree().root
+	var was: Vector2i = root.size
+	for window: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
+		var frame: SubViewport = shot_script.call(&"frame_for", window) as SubViewport
+		add_child_autofree(frame)
+		var shot: Main = MAIN_SCENE.instantiate()
+		frame.add_child(shot)
+		root.size = window
+		var game: Main = MAIN_SCENE.instantiate()
+		add_child_autofree(game)
+		await _frames()
+		assert_eq(shot.ui.room(), game.ui.room(), "%s: the same room" % window)
+		assert_eq(shot.ui.ui_scale(), game.ui.ui_scale(), "%s: the same UI scale" % window)
+		assert_eq(shot.ui.world_scale(), game.ui.world_scale(), "%s: the same world scale" % window)
+		assert_eq(
+			_on_screen(shot.ui), _on_screen(game.ui), "%s: the UI layer drawn the same" % window
+		)
+		assert_eq(
+			_world_on_screen(shot), _world_on_screen(game), "%s: the world drawn the same" % window
+		)
+		assert_eq(_world_on_screen(game), float(game.ui.world_scale()), "%s: at its scale" % window)
+		game.free()
+	root.size = was
+
+
+## [param layer]'s transform on screen: its own, then its viewport's stretch.
+func _on_screen(layer: CanvasLayer) -> Transform2D:
+	return layer.get_viewport().get_final_transform() * layer.get_final_transform()
+
+
+## How many screen pixels one of [param main]'s world pixels is.
+func _world_on_screen(main: Main) -> float:
+	var view: SubViewportContainer = main.world_view
+	var shown: Transform2D = view.get_viewport().get_final_transform() * view.get_global_transform()
+	return shown.get_scale().x * view.size.x / float(UiRoot.WORLD_SIZE.x)
 
 
 # --- R10 -----------------------------------------------------------------------

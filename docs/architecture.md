@@ -43,9 +43,13 @@ The picture is drawn in two layers, each in its own pixels.
   `ui_to_world()` convert. Other scenes (the gallery, the showcase) keep the project's viewport mode.
 - **Windows** (`UiWindow`, `UiWindows`): a title bar to drag by and a close button, any number open, a
   click raises one, `Esc` closes the front one (before any old HUD panel sees it), the title bar never leaves
-  the room. Places and which are open live in the settings file under `windows`, beside the sound setting,
-  never in the save. `UiButtonBar` holds a button per window. Help, the journal and the orders are windows;
-  the other panels move over spec by spec.
+  the room. Which are open, and the places of those the player dragged (`placed`), live in the settings
+  file under `windows`, beside the sound setting, never in the save; an undragged window takes its default
+  place for the current room, and a dragged one is moved wholly back in when the room shrinks. Windows
+  saved open wait until the away report has gone (`UiWindows.open_waiting`). `UiButtonBar` holds a button
+  per window. Help, the journal and the orders are windows; the other panels move over spec by spec.
+  Until they do, `Hud` closes any window over an old panel as that opens, and `HudTooltip` and
+  `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
 
 ## Time
 
