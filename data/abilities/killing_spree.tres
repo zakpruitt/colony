@@ -16,6 +16,7 @@ script = ExtResource("1")
 id = &"killing_spree"
 display_name = "Killing Spree"
 description = "On a kill, the rogue deals 50% more damage for 5 s."
+move = &"flourish"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 3

@@ -26,6 +26,7 @@ script = ExtResource("1")
 id = &"last_stand"
 display_name = "Last Stand"
 description = "Once a fight, below 30% health: a shield of 30% of health and mending, for 6 s."
+move = &"brace"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 trigger = 5

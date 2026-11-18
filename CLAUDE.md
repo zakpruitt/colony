@@ -60,6 +60,9 @@ incomplete, stop and report the question.
 - **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
   few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
   `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.
+- **A view that reacts to events starts nothing for a stale one.** Check `World.is_recent(event)` and
+  `World.catching_up()` before starting a move or an effect, and clear what is running when the world
+  catches up; otherwise a stall or a fast-forward leaves things playing for events long past (spec 057).
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 

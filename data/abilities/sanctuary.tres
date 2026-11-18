@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"sanctuary"
 display_name = "Sanctuary"
 description = "With an ally below 30%: shields it (30% of its health) for 6 s. Every 15 s."
+move = &"prayer"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 15.0

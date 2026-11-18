@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"blessing"
 display_name = "Blessing"
 description = "As a fight starts, every ally mends for 6 s."
+move = &"prayer"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 0

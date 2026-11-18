@@ -34,9 +34,28 @@ enum Trigger {
 	EVERY_NTH_STRIKE,  ## every [member trigger_every]th ordinary strike; target: the one struck
 }
 
+## Spec 057: the moves a fighter's body can perform for an ability, the one set that the data
+## check and the view both read. Each is acted out in game/entities/character_moves.gd.
+const MOVES: Array[StringName] = [
+	&"leap",  ## jumps in an arc and comes down on the blow
+	&"spin",  ## turns round with the weapon out
+	&"dash",  ## a quick streak to the target and back
+	&"heavy_swing",  ## a long draw back and a big follow-through
+	&"throw",  ## the arm back over the shoulder, then a whip forward
+	&"brace",  ## crouches behind the shield
+	&"shout",  ## rears back and puffs up
+	&"cast",  ## staff raised, lifting off the floor, then a thrust as it lands
+	&"channel",  ## arms up and held, for the big spells
+	&"prayer",  ## head bowed, then arms raised
+	&"flourish",  ## a short hop and flick that does not stop what the fighter is doing
+]
+
 @export var id: StringName
 @export var display_name: String
 @export var description: String  # one line
+## Spec 057: how the fighter's body acts it out, one of [constant MOVES]. A view hint only: no
+## rule reads it and the state hash does not include it.
+@export var move: StringName
 @export var kind: Kind = Kind.ACTION
 @export var effects: Array[AbilityEffect] = []
 
@@ -94,6 +113,10 @@ func validate() -> PackedStringArray:
 		problems.append("display_name is empty")
 	if description.is_empty():
 		problems.append("description is empty")
+	if String(move).is_empty():
+		problems.append("move is empty")
+	elif not MOVES.has(move):
+		problems.append("move %s is not one of %s" % [move, MOVES])
 	problems.append_array(_action_problems() if is_action() else _passive_problems())
 	if effects.is_empty():
 		problems.append("it has no effects")

@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"hold_the_line"
 display_name = "Hold the Line"
 description = "As a fight starts, every ally gets a shield of 8% of its health for 10 s."
+move = &"brace"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 0

@@ -25,6 +25,7 @@ script = ExtResource("1")
 id = &"bulwark"
 display_name = "Bulwark"
 description = "With another ally below 80%: taunts for 4 s and shields the knight. Every 15 s."
+move = &"brace"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 15.0

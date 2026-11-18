@@ -194,6 +194,10 @@ showcase's leftovers, not the game.</p>
   <tr><td>056 Abilities on screen</td><td>Ability names over fighters, a mark for every status,
   <code>Miss</code> and <code>Blocked</code>, status icons on hero frames, damage by ability in the
   tally.</td></tr>
+  <tr><td>057 Lively moves</td><td>Every ability has a move: a leap, a spin, a dash, a heavy swing, a throw, a
+  brace, a shout, a cast, a channel, a prayer or a flourish. Spells are seen: fireballs and ice shards fly,
+  meteors fall, frost spreads, light stands on the healed. Ordinary blows bounce more, a kill or a crit
+  hops, and the party cheers a won fight.</td></tr>
 </table>
 </div>
 
@@ -727,6 +731,16 @@ the party can pay) or <em>Hold here</em>. It stays until 8 seconds after the her
   <li><strong>Deaths:</strong> a monster bursts into bits of its own colours; its coins bounce and fly to
   the gold counter, its resource icons to theirs, and blue XP motes to each hero. A fallen hero topples
   and lies there until the fight is won.</li>
+  <li><strong>Moves:</strong> every ability has a move the hero makes with its whole body: the Knight leaps
+  into a Shield Bash and spins a Whirlwind, the Rogue dashes through a Backstab and throws Fan of Knives,
+  the Mage lifts off the floor to cast and raises both arms to channel a Meteor, the Cleric bows its head
+  to pray. A passive that fires is a small hop or flick that does not stop what the hero is doing. The
+  blow still lands on the very tick the fight says. To see every move in a loop:
+  <code>godot --path . res://game/entities/character_demo.tscn</code>.</li>
+  <li><strong>Spells:</strong> a fireball flies with a flame trail and bursts, a meteor falls from above, an
+  ice shard flies and shatters, frost spreads along the floor, flakes fall for a blizzard, sparks jump from
+  enemy to enemy, a column of pale gold light stands on whoever is healed, a beam falls for a smite, knives
+  fan out. Fire is orange, frost pale blue, holy pale gold, shadow violet.</li>
   <li><strong>Abilities:</strong> the ability's name rises over the fighter. An action's wind-up lights the
   fighter yellow; a heavy blow throws a bigger flash; damage to many draws a ring; a push slides the pushed
   back with a little dust; a revived hero stands up where it fell. A blow that misses says
@@ -830,7 +844,8 @@ ability yet.</p>
 pixel, using only the 32 colours of the master palette (<code>assets/style/palette.txt</code>). A tool
 bakes each into an image, and a lint refuses art that breaks the rules. Characters come in parts (body,
 head, arm, weapon) that the game moves in code: they breathe, bob as they walk, draw back before they
-strike, flinch when hit and collapse when they die. Guardians are drawn 64x64, twice a hero's height. All
+strike, flinch when hit, hop on a kill, cheer a won fight, make each ability's move and collapse when they
+die. Guardians are drawn 64x64, twice a hero's height. All
 text uses Colony's own pixel fonts, typed the same way: the small one in the world's pixels, and a
 taller, more readable one (with a bold) on the UI layer. The 16 sound effects are baked from text recipes
 (<code>.sfx</code>). The rules are in

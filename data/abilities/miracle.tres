@@ -15,6 +15,7 @@ script = ExtResource("1")
 id = &"miracle"
 display_name = "Miracle"
 description = "With an ally below 25%: heals every ally for 40% of its health. Every 45 s."
+move = &"channel"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 45.0

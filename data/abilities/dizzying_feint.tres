@@ -16,6 +16,7 @@ script = ExtResource("1")
 id = &"dizzying_feint"
 display_name = "Dizzying Feint"
 description = "A critical hit weakens the enemy: 30% less damage for 4 s."
+move = &"flourish"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 2

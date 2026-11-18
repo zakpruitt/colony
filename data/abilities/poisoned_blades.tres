@@ -17,6 +17,7 @@ script = ExtResource("1")
 id = &"poisoned_blades"
 display_name = "Poisoned Blades"
 description = "Every hit leaves the enemy bleeding for 3 s."
+move = &"flourish"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 1
