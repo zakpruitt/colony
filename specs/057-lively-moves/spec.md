@@ -1,6 +1,6 @@
 # 057 — Lively moves: heroes that leap, spin and cast
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M6
 - **Depends on:** 007, 008, 010, 048, 050, 051, 056
 
