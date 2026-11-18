@@ -45,9 +45,8 @@ func _draw() -> void:
 		colour = &"dusk"
 	elif mode == DRAW_HOVER or mode == DRAW_HOVER_PRESSED:
 		colour = &"silver"
-	var down: int = 1 if mode == DRAW_PRESSED else 0
 	var x: float = size.x - UiTheme.BUTTON_PAD_X - 1 - UiText.width(key_hint) + UiText.SPACING
-	var baseline: float = floorf((size.y - UiText.LINE_HEIGHT) / 2.0) + UiText.ASCENT + down
+	var baseline: float = floorf((size.y - UiText.LINE_HEIGHT) / 2.0) + UiText.ASCENT
 	draw_string(
 		UiText.font(),
 		Vector2(x, baseline),
@@ -59,9 +58,13 @@ func _draw() -> void:
 	)
 
 
-## The text's width plus the hint's and the padding: the least width that shows both.
+## The icon's, the text's and the hint's widths plus the padding: the least width that shows all.
 func hinted_width() -> int:
-	var inner: int = UiText.width(text, true) - UiText.SPACING
+	var inner: int = UiText.width(text, true) - UiText.SPACING if not text.is_empty() else 0
+	if icon != null:
+		inner += (
+			icon.get_width() + (get_theme_constant(&"h_separation") if not text.is_empty() else 0)
+		)
 	if not key_hint.is_empty():
 		inner += HINT_GAP + UiText.width(key_hint) - UiText.SPACING
 	return inner + 2 * (UiTheme.BUTTON_PAD_X + 1)

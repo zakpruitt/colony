@@ -48,20 +48,26 @@ func _initialize() -> void:
 		print("[shot] FAIL could not load %s" % _scene)
 		quit(1)
 		return
+	_frame = frame_for(_window)
+	root.add_child(_frame)
+	_frame.add_child(scene.instantiate())
+	_take_shots()
+
+
+## The viewport a shot of a [param window]-sized window runs the scene in: that size, stretching
+## the world's 640x360 pixels over it by a whole number as the game's window does. (A test makes
+## one to check the layers come out as in the game.)
+static func frame_for(window: Vector2i) -> SubViewport:
 	var frame := SubViewport.new()
 	frame.name = "ShotWindow"
-	frame.size = _window
+	frame.size = window
 	frame.size_2d_override = UiRoot.WORLD_SIZE
 	frame.size_2d_override_stretch = true
 	frame.snap_2d_transforms_to_pixel = true
 	frame.snap_2d_vertices_to_pixel = true
 	frame.canvas_item_default_texture_filter = Viewport.DEFAULT_CANVAS_ITEM_TEXTURE_FILTER_NEAREST
 	frame.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	root.add_child(frame)
-	_frame = frame
-	var main: Node = scene.instantiate()
-	frame.add_child(main)
-	_take_shots()
+	return frame
 
 
 func _take_shots() -> void:

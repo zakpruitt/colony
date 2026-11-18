@@ -3,12 +3,14 @@ extends Control
 ## The windows on the UI layer (spec 058 R5, R6): any number open at once, overlapping, in an
 ## order. A press anywhere on a window brings it to the front before what was pressed acts;
 ## [kbd]Esc[/kbd] closes the front window only; each window's key opens and closes it. When the
-## room shrinks every window is moved back in.
+## room changes, a window the player never moved takes its default place for the new room, and one
+## they did is moved wholly back in if it fits.
 ##
-## Where each window is and whether it is open are kept in the settings file, beside the sound
-## setting (the [SoundSettings] file, under [constant SETTINGS_KEY]), never in the save, and put
-## back when the windows are next made. [method reset_places] puts every window back where a new
-## game has it.
+## Whether each window is open, and where it is if the player moved it, are kept in the settings
+## file, beside the sound setting (the [SoundSettings] file, under [constant SETTINGS_KEY]), never
+## in the save, and put back when the windows are next made; those that were open open once the
+## away report has gone ([method open_waiting]). [method reset_places] puts every window back where
+## a new game has it.
 
 ## Emitted when a window opens, closes or is moved, after it is saved.
 signal changed
@@ -24,6 +26,8 @@ var _ids: Array[StringName] = []
 var _room: Vector2 = Vector2(UiRoot.MIN_ROOM)
 ## True while saved places are being put back, so they are not saved again on the way.
 var _restoring: bool = false
+## Windows that were open last session, waiting to open until nothing is in their way.
+var _waiting: Array[StringName] = []
 
 
 func _init() -> void:
@@ -171,12 +175,13 @@ func fit_room(room: Vector2i) -> void:
 	for id: StringName in _ids:
 		var shown: UiWindow = _windows[id]
 		if shown.placed:
-			shown.keep_in(_room)
+			shown.fit_in(_room)
 		else:
 			shown.place_at(shown.default_place, _room)
 
 
-## Puts back each window's place and whether it was open, as the settings file has them.
+## Puts back each window's place, as the settings file has it, and notes which were open:
+## [method open_waiting] opens them.
 func restore() -> void:
 	var saved: Dictionary = _read().get(SETTINGS_KEY, {}) as Dictionary
 	_restoring = true
@@ -191,9 +196,46 @@ func restore() -> void:
 			var at := Vector2(x as float, y as float)
 			_windows[id].place_at(at, _room)
 			_windows[id].placed = true
-		if place.get("open", false) == true:
-			open_window(id)
+		if place.get("open", false) == true and not _waiting.has(id):
+			_waiting.append(id)
 	_restoring = false
+
+
+## Opens the windows that were open last session, once (the layer calls it when the away report
+## has gone).
+func open_waiting() -> void:
+	var opening: Array[StringName] = _waiting.duplicate()
+	_waiting.clear()
+	for id: StringName in opening:
+		open_window(id)
+
+
+## True while windows from last session wait to open.
+func is_waiting() -> bool:
+	return not _waiting.is_empty()
+
+
+## Closes every open window that overlaps [param world_rect], a rectangle in the world's 640x360
+## screen pixels where the old HUD is (an old panel opening there), keeping its place.
+func close_over(world_rect: Rect2) -> void:
+	for id: StringName in _ids:
+		var shown: UiWindow = _windows[id]
+		var at: Vector2 = _ui.ui_to_world(shown.position)
+		var over: Rect2 = Rect2(at, _ui.ui_to_world(shown.position + shown.size) - at)
+		if shown.is_open() and over.intersects(world_rect):
+			shown.close()
+
+
+## True when [param at], in the viewport's coordinates (where input events are), is on an open
+## window or the button bar: the old HUD under it must not answer the mouse there.
+func covers(at: Vector2) -> bool:
+	if window_at(at) != null:
+		return true
+	var bar: Control = _ui.bar if _ui != null else null
+	if bar == null or not bar.is_visible_in_tree():
+		return false
+	var local: Vector2 = bar.get_global_transform_with_canvas().affine_inverse() * at
+	return Rect2(Vector2.ZERO, bar.size).has_point(local)
 
 
 ## Writes every window's place and whether it is open to the settings file, keeping everything
@@ -204,7 +246,11 @@ func _save() -> void:
 	var places: Dictionary = {}
 	for id: StringName in _ids:
 		var shown: UiWindow = _windows[id]
-		places[String(id)] = {"x": shown.position.x, "y": shown.position.y, "open": shown.is_open()}
+		var entry: Dictionary = {"open": shown.is_open() or _waiting.has(id)}
+		if shown.placed:  # a window never moved takes the default of whatever room it is in
+			entry["x"] = shown.position.x
+			entry["y"] = shown.position.y
+		places[String(id)] = entry
 	var data: Dictionary = _read()
 	data[SETTINGS_KEY] = places
 	var path: String = _settings.file_path()

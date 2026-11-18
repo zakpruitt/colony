@@ -202,6 +202,8 @@ func _start_play() -> void:
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	ui.setup(simulation, hud, settings)
+	if away_report == null:  # else the windows left open open once the away report has gone
+		ui.windows.open_waiting()
 	_welcome()
 
 
@@ -238,6 +240,12 @@ func _catch_up() -> void:
 	_start_play()
 	away_panel = AwayPanel.new(away_report, simulation.party)
 	hud_layer.add_child(away_panel)
+	var report_panel: AwayPanel = away_panel
+	report_panel.visibility_changed.connect(
+		func() -> void:
+			if not report_panel.visible:  # it hides as it closes
+				ui.windows.open_waiting()
+	)
 
 
 ## The saved game if there is a good one, otherwise a new game. A saved game that was away

@@ -62,8 +62,9 @@ func rebuild() -> void:
 		var button := UiButton.new()
 		button.name = "Button_%s" % id
 		button.icon = shown.icon
-		button.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		button.icon_alignment = HORIZONTAL_ALIGNMENT_LEFT
 		button.custom_minimum_size = BUTTON_SIZE
+		button.key_hint = shown.key_hint  # R4: the window's key, after its icon
 		button.pressed.connect(_windows.toggle.bind(id))
 		add_child(button)
 		move_child(button, reset_button.get_index())

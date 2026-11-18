@@ -128,8 +128,12 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
-## Works out each window's default place for the room it has now: the journal at the top left
-## under the HUD's top band with the orders under it, and help at the top right, none over another.
+## Works out each window's default place for the room it has now, none over another: the journal
+## at the top left under the HUD's top band, help at the top right, and the orders under the
+## journal, or lower still, under where the area map opens, when that leaves the hero frames' line
+## clear. Until specs 059 to 061 move the old panels, the journal and help cannot also keep clear
+## of where they open (they fill the top of the screen); the HUD closes a window over a panel as it
+## opens ([method Hud.advance]).
 func place_defaults() -> void:
 	if windows == null:
 		return
@@ -140,9 +144,22 @@ func place_defaults() -> void:
 	if journal != null:
 		journal.default_place = Vector2(PLACE_GAP, top)
 	if orders != null and journal != null:
-		orders.default_place = Vector2(PLACE_GAP, top + journal.size.y + PLACE_GAP)
+		var under: float = top + journal.size.y + PLACE_GAP
+		var map_bottom: float = (
+			Hud.TOP_BAND + AreaMap.DROP + AreaMap.height_for(Content.area_ids().size())
+		)
+		var lower: float = ceilf(world_to_ui(Vector2(0, map_bottom)).y) + PLACE_GAP
+		var frames: float = floorf(world_to_ui(Vector2(0, frames_top())).y)
+		if lower > under and lower + orders.size.y + PLACE_GAP <= frames:
+			under = lower
+		orders.default_place = Vector2(PLACE_GAP, under)
 	if help != null:
 		help.default_place = Vector2(_room.x - PLACE_GAP - help.size.x, top)
+
+
+## The top of the hero frames' line, in the world's 640x360 screen pixels.
+static func frames_top() -> float:
+	return Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
 
 
 ## How many screen pixels one UI pixel is.

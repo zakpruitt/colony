@@ -12,14 +12,14 @@ extends VBoxContainer
 ## A label is one or more keys split by spaces; [code]1-5[/code] is a run of number keys.
 const KEYS: Array[Array] = [
 	["H", "Show or hide this help"],
-	["Esc", "Close the front window, or any open panel"],
+	["Esc", "Close the front window or any open panel"],
 	["- +", "Set the target a stage back or further"],
-	["A", "Auto on or off: go further when a stage is safe"],
+	["A", "Auto on or off: go on when it is safe"],
 	["U", "Open or close the Shop"],
 	["B", "In the Shop: auto-buy on or off"],
 	["1-5", "In the Shop: buy that upgrade"],
-	["1-3", "On a hero's Talents tab: put a paragon point into that stat"],
-	["Q E", "On a hero sheet or the tally: previous or next tab"],
+	["1-3", "Talents tab: a paragon point to that stat"],
+	["Q E", "Hero sheet or tally: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],
 	["J", "Open or close the journal"],
 	["O", "Open or close the party's orders"],
@@ -50,8 +50,9 @@ const ALIASES: Dictionary[String, Array] = {
 	"+": [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD],
 }
 ## The width of a key's column and of what it does, in UI pixels; the gap between the two halves.
+## Every text in [constant KEYS] fits [constant DOES_WIDTH] on one line (a test checks it).
 const SHORTCUT_WIDTH: int = 30
-const DOES_WIDTH: int = 210
+const DOES_WIDTH: int = 216
 const HALVES_GAP: int = 16
 
 ## Every line shown, top to bottom, as [method lines] gives them.
@@ -138,6 +139,5 @@ func _key_cells(grid: GridContainer, entry: Array) -> void:
 	grid.add_child(key)
 	var does: Label = UiText.label(str(entry[1]), &"silver")
 	does.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	does.autowrap_mode = TextServer.AUTOWRAP_WORD
 	does.custom_minimum_size.x = DOES_WIDTH
 	grid.add_child(does)

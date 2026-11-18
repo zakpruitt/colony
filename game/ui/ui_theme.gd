@@ -12,14 +12,13 @@ extends RefCounted
 ## [constant BUTTON_PAD_X] by [constant BUTTON_PAD_Y] UI pixels of padding inside the edge, so a
 ## button is at least [constant BUTTON_HEIGHT] tall.
 
-## Theme type variations for the window's panel, its title bar, its title, its close button, and
-## the tooltip.
+## Theme type variations for the window's panel, its title bar, its title and the tooltip.
 const WINDOW: StringName = &"UiWindow"
 const TITLE_BAR: StringName = &"UiTitleBar"
 const TITLE: StringName = &"UiTitle"
-const CLOSE: StringName = &"UiClose"
 const TIP: StringName = &"UiTip"
-## Padding between a button's edge and its text, in UI pixels (the edge itself is one more).
+## Padding between a button's edge and its text, in UI pixels (the edge itself is one more), the
+## same in every state: at least 4 all round (R4).
 const BUTTON_PAD_X: int = 6
 const BUTTON_PAD_Y: int = 4
 ## A button's least height: its text line, the padding above and below and the edge.
@@ -27,10 +26,6 @@ const BUTTON_HEIGHT: int = UiText.LINE_HEIGHT + 2 * (BUTTON_PAD_Y + 1)
 ## Space inside a window's edge around its content, and inside its title bar.
 const WINDOW_PAD: int = 6
 const TITLE_PAD: int = 4
-## The close button's padding above and below its x: smaller than a button's, still a hit area of
-## [constant CLOSE_SIZE] UI pixels.
-const CLOSE_PAD_Y: int = 3
-const CLOSE_SIZE: int = UiText.LINE_HEIGHT + 2 * (CLOSE_PAD_Y + 1)
 
 static var _theme: Theme
 
@@ -76,10 +71,7 @@ static func _buttons(made: Theme) -> void:
 	made.set_font_size(&"font_size", &"Button", UiText.SIZE)
 	made.set_stylebox(&"normal", &"Button", box(&"dusk", &"slate", BUTTON_PAD_X, BUTTON_PAD_Y))
 	made.set_stylebox(&"hover", &"Button", box(&"slate", &"silver", BUTTON_PAD_X, BUTTON_PAD_Y))
-	var pressed: StyleBoxFlat = box(&"pine", &"green", BUTTON_PAD_X, BUTTON_PAD_Y)
-	pressed.content_margin_top += 1  # the text sinks a pixel
-	pressed.content_margin_bottom -= 1
-	made.set_stylebox(&"pressed", &"Button", pressed)
+	made.set_stylebox(&"pressed", &"Button", box(&"pine", &"green", BUTTON_PAD_X, BUTTON_PAD_Y))
 	made.set_stylebox(
 		&"hover_pressed", &"Button", box(&"forest", &"yellow", BUTTON_PAD_X, BUTTON_PAD_Y)
 	)
@@ -99,14 +91,6 @@ static func _windows(made: Theme) -> void:
 	made.set_stylebox(&"panel", WINDOW, box(&"night", &"steel"))
 	made.set_type_variation(TITLE_BAR, &"PanelContainer")
 	made.set_stylebox(&"panel", TITLE_BAR, box(&"dusk", &"dusk", TITLE_PAD, 1))
-	made.set_type_variation(CLOSE, &"Button")
-	for state: StringName in [&"normal", &"hover", &"pressed", &"hover_pressed", &"disabled"]:
-		var style: StyleBoxFlat = (made.get_stylebox(state, &"Button") as StyleBoxFlat).duplicate()
-		style.content_margin_left = CLOSE_PAD_Y + 2
-		style.content_margin_right = CLOSE_PAD_Y + 2
-		style.content_margin_top = CLOSE_PAD_Y + 1
-		style.content_margin_bottom = CLOSE_PAD_Y + 1
-		made.set_stylebox(state, CLOSE, style)
 	made.set_type_variation(TITLE, &"Label")
 	made.set_font(&"font", TITLE, UiText.font(true))
 	made.set_color(&"font_color", TITLE, Palette.color(&"yellow"))

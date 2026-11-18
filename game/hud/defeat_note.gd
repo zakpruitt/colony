@@ -475,7 +475,11 @@ func _hovered() -> bool:
 func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
-		point_at(motion.position)
+		# Under a window or the button bar of the UI layer (spec 058) is nowhere for the note.
+		var covered: bool = (
+			_hud != null and _hud.windows != null and _hud.windows.covers(motion.position)
+		)
+		point_at(HudTooltip.NOWHERE if covered else motion.position)
 
 
 ## True once the party is up and the heroes have stood (spec 038), or the world tells nothing.

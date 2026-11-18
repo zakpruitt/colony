@@ -84,10 +84,8 @@ func _init(
 		hint.name = "Hint"
 		hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(hint)
-	close_button = UiButton.new("x")
+	close_button = UiButton.new("x")  # padded as every button is (R4)
 	close_button.name = "Close"
-	close_button.theme_type_variation = UiTheme.CLOSE
-	close_button.custom_minimum_size = Vector2(UiTheme.CLOSE_SIZE, UiTheme.CLOSE_SIZE)
 	close_button.pressed.connect(close)
 	row.add_child(close_button)
 	var margin := MarginContainer.new()
@@ -147,8 +145,23 @@ func place_at(place: Vector2, room: Vector2) -> void:
 	keep_in(room)
 
 
-## Keeps the title bar inside [param room]: all of it top to bottom, and at least
-## [constant KEEP_SHOWN] pixels of it left to right.
+## Moves the window wholly inside [param room] (the window was resized), as far as it fits: a
+## window wider or taller than the room keeps its top-left corner in it. The title bar is then
+## inside too, as [method keep_in] asks.
+func fit_in(room: Vector2) -> void:
+	_room = room
+	position = (
+		Vector2(
+			clampf(position.x, 0.0, maxf(room.x - size.x, 0.0)),
+			clampf(position.y, 0.0, maxf(room.y - size.y, 0.0))
+		)
+		. round()
+	)
+	keep_in(room)
+
+
+## Keeps the title bar inside [param room] while the window is dragged: all of it top to bottom,
+## and at least [constant KEEP_SHOWN] pixels of it left to right.
 func keep_in(room: Vector2) -> void:
 	_room = room
 	var column: Control = title_bar.get_parent() as Control

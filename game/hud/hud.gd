@@ -124,6 +124,8 @@ var area_map: AreaMap
 
 var _simulation: Simulation
 var _world: World
+## The old panels shown at the last [method advance], so one that has just opened is seen.
+var _panels_shown: Array[Control] = []
 var _effects: CombatEffects
 var _icons: PixelSheet
 var _frames_by_id: Dictionary[int, HeroFrame] = {}
@@ -281,6 +283,28 @@ func advance(delta: float) -> void:
 	area_map.advance(delta)
 	defeat_note.advance(delta)
 	tooltip.advance(delta)
+	_make_room_for_panels()
+
+
+## Closes every UI-layer window over an old panel that has just opened (spec 058), keeping the
+## window's place: the hero sheet, the shop, the tally, the area map or the away report. Until
+## specs 059 to 061 move those panels onto the UI layer, they would open hidden under a window.
+func _make_room_for_panels() -> void:
+	var shown: Array[Control] = []
+	var layer: Node = get_parent()
+	var panels: Array[Node] = [hero_sheet, shop, tally, area_map]
+	if layer != null:
+		panels.append_array(
+			layer.get_children().filter(func(n: Node) -> bool: return n is AwayPanel)
+		)
+	for node: Node in panels:
+		var panel: Control = node as Control
+		if panel == null or not panel.is_visible_in_tree() or panel.is_queued_for_deletion():
+			continue
+		shown.append(panel)
+		if windows != null and not _panels_shown.has(panel):
+			windows.close_over(panel.get_global_rect())
+	_panels_shown = shown
 
 
 ## What the party is doing and why, as the depth panel shows it: "Heading on to stage 5",
