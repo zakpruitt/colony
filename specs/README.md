@@ -76,6 +76,6 @@ New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [059 The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | in progress, provisional | 017, 022, 045, 052, 053, 056, 058 |
-| [061 The frame of the screen on the sharp layer](061-the-frame-of-the-screen/spec.md) | written, waits for 059 and 060 to land, provisional | 011, 024, 027, 030, 032, 039, 049, 052, 056, 058 |
+| [059 The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | in review, [#61](https://github.com/zakpruitt/colony/pull/61), provisional | 017, 022, 045, 052, 053, 056, 058 |
+| [061 The frame of the screen on the sharp layer](061-the-frame-of-the-screen/spec.md) | in progress, provisional | 011, 024, 027, 030, 032, 039, 049, 052, 056, 058 |
 | [062 Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | written, waits for 061 to land, provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
