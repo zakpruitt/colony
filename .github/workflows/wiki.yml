@@ -1,10 +1,12 @@
 # Publishes the wiki (docs/wiki, plain static files) to GitHub Pages:
-# https://zakpruitt.github.io/colony/ on every push to main that touches it.
+# https://zakpruitt.github.io/colony/ on every push to dev that touches it.
+# It follows dev, not main, because the wiki describes the build Zak playtests,
+# and main moves only when he promotes that build.
 name: Wiki
 
 on:
   push:
-    branches: [main]
+    branches: [dev]
     paths: ["docs/wiki/**", ".github/workflows/wiki.yml"]
   workflow_dispatch:
 
