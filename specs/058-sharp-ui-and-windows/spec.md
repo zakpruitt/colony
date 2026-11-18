@@ -1,6 +1,6 @@
 # 058 — A sharp UI layer, a readable font and windows
 
-- **Status:** provisional (direction and three choices from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction and three choices from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 009, 011, 027, 030, 035
 

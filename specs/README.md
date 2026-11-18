@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 058 | [A sharp UI layer, a readable font and windows](058-sharp-ui-and-windows/spec.md) | M7 | landed on dev, [#59](https://github.com/zakpruitt/colony/pull/59), provisional | 009, 011, 027, 030, 035 |
 | 057 | [Lively moves](057-lively-moves/spec.md) | M6 | landed on dev, [#58](https://github.com/zakpruitt/colony/pull/58), provisional | 007, 008, 010, 048, 050, 051, 056 |
 | 056 | [Abilities on screen](056-abilities-on-screen/spec.md) | M6 | landed on dev, [#57](https://github.com/zakpruitt/colony/pull/57), provisional | 010, 027, 045, 050, 051 |
 | 052 | [Resources](052-resources/spec.md) | M6 | landed on dev, [#55](https://github.com/zakpruitt/colony/pull/55), provisional | 016, 017, 022, 031, 049, 051, 053 |
@@ -74,7 +75,6 @@ New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| [058 A sharp UI layer, a readable font and windows](058-sharp-ui-and-windows/spec.md) | in review, [#59](https://github.com/zakpruitt/colony/pull/59), provisional | 009, 011, 027, 030, 035 |
 | [059 The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | written, waits for 058 to land, provisional | 017, 022, 045, 052, 053, 056, 058 |
 | [060 Hero sheets as windows, several at once](060-hero-windows/spec.md) | written, waits for 058 to land, provisional | 026, 028, 034, 051, 055, 058 |
 | 061 The fixed HUD on the sharp layer (top bar, hero frames, goals, ladder, tooltips) | to be written once 058 lands | 058 |
