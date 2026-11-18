@@ -56,6 +56,8 @@ var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+## Spec 059: the shop and the map are windows on the UI layer, over the HUD's layer.
+var _ui: UiRoot
 var _heard: Array[SimEvent] = []
 
 
@@ -83,6 +85,10 @@ func _build_hud() -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	_ui = UiRoot.new()
+	_ui.layer = 130
+	add_child_autofree(_ui)
+	_ui.setup(_sim, _hud, null)
 	_world.sim_event.connect(func(event: SimEvent) -> void: _heard.append(event))
 
 
@@ -93,6 +99,7 @@ func _frame(ticks: int = 1, delta: float = STEP) -> void:
 	_world.sync(delta)
 	_fx.advance(delta)
 	_hud.advance(delta)
+	_ui.bar.advance(delta)
 
 
 func _level(sim: Simulation, level: int) -> void:
@@ -113,8 +120,11 @@ func _mouse(at: Vector2) -> void:
 	get_viewport().push_input(event, true)
 
 
-## The tooltip shown after resting the mouse on [param control].
+## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
+## a window (spec 059), the HUD's otherwise.
 func _tip(control: Control) -> String:
+	if _ui != null and _ui.frame.is_ancestor_of(control):
+		return _hud.shop.tip.text_for(control)
 	_hud.tooltip.point_at(control.get_global_rect().get_center())
 	_hud.tooltip.advance(HudTooltip.DELAY + 0.01)
 	var text: String = _hud.tooltip.shown_text()

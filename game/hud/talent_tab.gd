@@ -850,7 +850,7 @@ class ParagonCell:
 		size = Vector2(rank_label.position.x + PixelText.width(text_in), HudButton.HEIGHT)
 		var spendable: bool = hero.paragon_points() > 0
 		buy_button.disabled = not spendable
-		buy_button.text_colour = ShopRow.PRICE_AFFORDABLE if spendable else ShopRow.PRICE_TOO_DEAR
+		buy_button.text_colour = &"yellow" if spendable else &"brick"  # as the old shop's prices
 		_flash = maxf(_flash - delta, 0.0)
 		var colour: StringName = &"green" if rank > 0 else &"steel"
 		if _flash > 0.0:

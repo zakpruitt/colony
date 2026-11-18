@@ -29,6 +29,7 @@ var _sim: Simulation
 var _world: World
 var _effects: CombatEffects
 var _hud: Hud
+var _ui: UiRoot
 
 
 func before_each() -> void:
@@ -55,6 +56,9 @@ func _make_hud(simulation: Simulation) -> Hud:
 	add_child_autofree(made)
 	made.set_process(false)
 	made.setup(simulation, _world, _effects)
+	_ui = UiRoot.new()  # spec 059: the shop is a window on the UI layer
+	add_child_autofree(_ui)
+	_ui.setup(simulation, made, null)
 	made.advance(0.0)
 	return made
 
@@ -159,16 +163,19 @@ func test_r1_opening_and_closing() -> void:
 	_key(KEY_TAB)
 	assert_eq(sheet.shown_hero_id(), _hero(0).id, "Tab after the last hero wraps to the first")
 
+	# Spec 059: the shop is a window and opens beside the sheet; opening the sheet still closes
+	# it (spec 058's interim rule, kept for the sheet until spec 060).
 	_key(KEY_U)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_false(sheet.is_open(), "which closes the sheet")
-	assert_eq(_marked_ids(), [] as Array[int], "and unmarks the frame")
+	assert_true(sheet.is_open(), "beside the sheet")
+	sheet.close()
+	_hud.advance(0.016)
+	assert_eq(_marked_ids(), [] as Array[int], "a closed sheet unmarks the frame")
 	_click(first)
 	assert_true(sheet.is_open(), "opening the sheet")
 	assert_false(_hud.shop.is_open(), "closes the shop")
-	_hud.shop_button.pressed.emit()
+	_ui.bar.buttons[ShopWindow.ID].pressed.emit()
 	assert_true(_hud.shop.is_open(), "the Shop button")
-	assert_false(sheet.is_open(), "closes the sheet too")
 	_key(KEY_TAB)
 	assert_true(sheet.is_open(), "Tab")
 	assert_false(_hud.shop.is_open(), "closes the shop")

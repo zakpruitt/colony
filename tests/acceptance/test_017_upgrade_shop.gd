@@ -3,9 +3,6 @@ extends GutTest
 
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 17
-const SCREEN: Vector2 = Vector2(640, 360)
-const TOP_BAND: float = 28.0
-const BOTTOM_BAND: float = 40.0
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
@@ -14,6 +11,8 @@ var _sim: Simulation
 var _world: World
 var _effects: CombatEffects
 var _hud: Hud
+## Spec 059: the shop is a window on the UI layer, so the HUD needs one.
+var _ui: UiRoot
 
 
 func before_each() -> void:
@@ -30,6 +29,10 @@ func before_each() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _effects)
+	_ui = UiRoot.new()
+	add_child_autofree(_ui)
+	_ui.setup(_sim, _hud, null)
+	_ui.bar.set_process(false)
 	_hud.advance(0.0)
 
 
@@ -64,24 +67,21 @@ func _step() -> void:
 
 
 func test_r1_button_and_keys_open_and_close() -> void:
-	var shop: ShopPanel = _hud.shop
+	# Spec 059: the Shop button is the shop window's button on the UI layer's bar.
+	var shop: ShopWindow = _hud.shop
+	var shop_button: UiButton = _ui.bar.buttons.get(ShopWindow.ID, null)
 	assert_not_null(shop, "the HUD has a shop")
-	assert_not_null(_hud.shop_button, "and a Shop button")
-	if shop == null or _hud.shop_button == null:
+	assert_not_null(shop_button, "and a Shop button")
+	if shop == null or shop_button == null:
 		return
-	assert_eq(_hud.shop_button.text, "Shop")
-	var button: Rect2 = _hud.shop_button.get_global_rect()
-	var gold: Rect2 = _hud.gold_panel.get_global_rect()
-	assert_lte(button.end.y, TOP_BAND, "in the top band")
-	assert_lte(button.end.x, gold.position.x, "left of the gold")
-	assert_lt(gold.position.x - button.end.x, 16.0, "beside it")
+	assert_string_contains(_ui.bar.tip.text_for(shop_button), "upgrades", "named")
 	assert_false(shop.is_open(), "closed at first")
 	assert_false(shop.is_visible_in_tree(), "and not shown")
 
-	_hud.shop_button.pressed.emit()
+	shop_button.pressed.emit()
 	assert_true(shop.is_open(), "the button opens it")
 	assert_true(shop.is_visible_in_tree(), "and it shows")
-	_hud.shop_button.pressed.emit()
+	shop_button.pressed.emit()
 	assert_false(shop.is_open(), "and closes it")
 	_key(KEY_U)
 	assert_true(shop.is_open(), "U opens it")
@@ -105,49 +105,56 @@ func test_r1_button_and_keys_open_and_close() -> void:
 
 
 func test_r2_marker_when_affordable() -> void:
-	var marker: ShopMarker = _hud.shop_marker
-	assert_not_null(marker, "the HUD has a marker")
+	# Spec 059 R6: the marker is the amber tag on the bar's Shop button.
+	var marker: UiBadge = _ui.bar.badges.get(ShopWindow.ID, null)
+	assert_not_null(marker, "the Shop button has a marker")
 	if marker == null:
 		return
 	_sim.party.gold = 0
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_eq(_hud.shop.affordable_count(), 0)
 	assert_false(marker.is_visible_in_tree(), "no marker with nothing affordable")
 
 	var cheapest: int = mini(_price(MEDICINE), _price(BLADES))
 	_sim.party.gold = cheapest - 1
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_false(marker.is_visible_in_tree(), "none just below a price")
 	_sim.party.gold = _price(MEDICINE)  # 25: field medicine and quick march
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_eq(_hud.shop.affordable_count(), 2, "two upgrades cost 25")
 	assert_true(marker.is_visible_in_tree(), "the marker shows when gold reaches a price")
 	assert_eq(marker.count, 2, "with the number affordable")
 	assert_string_contains(marker.text(), "2", "drawn as a number")
 	var first: float = marker.pulse()
-	_hud.advance(0.3)
+	_advance(0.3)
 	assert_ne(marker.pulse(), first, "and it is animated")
-	assert_lte(marker.get_global_rect().end.y, TOP_BAND, "in the top band")
+	assert_eq(marker.get_parent(), _ui.bar.buttons[ShopWindow.ID], "on the Shop button")
 
 	_sim.party.gold = 10_000
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_eq(marker.count, 5, "every upgrade")
 	_hud.shop.open()
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_false(marker.is_visible_in_tree(), "no marker while the shop is open")
 	_hud.shop.close()
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_true(marker.is_visible_in_tree(), "back once it closes")
 	_sim.party.gold = 0
-	_hud.advance(0.016)
+	_advance(0.016)
 	assert_false(marker.is_visible_in_tree(), "gone when gold falls short")
+
+
+## Advances the HUD and the bar by [param delta] seconds, as a frame does.
+func _advance(delta: float) -> void:
+	_hud.advance(delta)
+	_ui.bar.advance(delta)
 
 
 # --- R3 ------------------------------------------------------------------------
 
 
 func test_r3_lists_every_upgrade() -> void:
-	var shop: ShopPanel = _hud.shop
+	var shop: ShopWindow = _hud.shop
 	_sim.upgrades.set_rank(ARMOR, 3)
 	shop.open()
 	_hud.advance(0.016)
@@ -161,23 +168,21 @@ func test_r3_lists_every_upgrade() -> void:
 		var rank: int = _sim.upgrades.rank(ids[i])
 		assert_eq(row.id, ids[i], "row %d is in shop order" % i)
 		assert_eq(row.name_label.text, def.display_name, "name")
-		assert_eq(row.description_label.text, def.description, "description")
-		assert_eq(row.rank_label.text, "Rank %d/%d" % [rank, def.max_rank], "rank")
+		assert_string_contains(row.description_label.text, def.description, "description")
+		assert_eq(row.rank_label.text, "%d / %d" % [rank, def.max_rank], "rank")
 		var bonus: int = roundi(rank * def.per_rank * 100.0)
-		assert_eq(row.bonus_label.text, "+%d%%" % bonus, "bonus")
+		assert_eq(row.bonus_label.text, "+%d%% now" % bonus, "bonus")
 		assert_true(row.buy_button.is_visible_in_tree(), "a buy button")
 		assert_string_contains(row.buy_button.text, str(def.cost_at(rank)), "with the price")
-	assert_eq(_row(ARMOR).bonus_label.text, "+15%", "three ranks of 5%")
+	assert_eq(_row(ARMOR).bonus_label.text, "+15% now", "three ranks of 5%")
+	await get_tree().process_frame  # the window's containers lay out
+	await get_tree().process_frame
 	if shop.rows.size() > 1:
 		assert_lt(shop.rows[0].position.y, shop.rows[1].position.y, "top to bottom")
 
-	var rect: Rect2 = shop.get_global_rect()
-	assert_gte(rect.position.y, TOP_BAND, "below the top band")
-	assert_lte(rect.end.y, SCREEN.y - BOTTOM_BAND, "above the party frames")
-	for frame: HeroFrame in _hud.frames:
-		assert_false(rect.intersects(frame.get_global_rect()), "clear of %s" % frame.name)
-	assert_gte(rect.position.x, 0.0)
-	assert_lte(rect.end.x, SCREEN.x)
+	# Spec 059: a window on the UI layer. Where it stands, clear of the top band and the party
+	# frames, at the rooms the game has, is spec 059 R8's test; here, its labels are inside it.
+	var rect: Rect2 = shop.window().get_global_rect()
 	var labels: Array[Label] = []
 	_collect_labels(shop, labels)
 	for label: Label in labels:
@@ -220,21 +225,19 @@ func test_r4_rows_show_affordability() -> void:
 		return
 	assert_true(armor.affordable(), "a price within reach")
 	assert_false(armor.buy_button.disabled, "is enabled")
-	assert_eq(armor.price_colour(), ShopRow.PRICE_AFFORDABLE, "and bright")
+	assert_eq(armor.needs_label.text, "", "and nothing is missing")
 	assert_false(fat_purse.affordable(), "a price out of reach")
 	assert_true(fat_purse.buy_button.disabled, "does nothing")
-	assert_eq(fat_purse.price_colour(), ShopRow.PRICE_TOO_DEAR, "and is dim red")
-	assert_ne(ShopRow.PRICE_AFFORDABLE, ShopRow.PRICE_TOO_DEAR)
-	assert_false(medicine.buy_button.is_visible_in_tree(), "a maxed row has no button")
-	assert_true(medicine.max_label.is_visible_in_tree(), "it says MAX")
-	assert_eq(medicine.max_label.text, "MAX")
-	assert_false(armor.max_label.is_visible_in_tree(), "the others do not")
+	assert_string_starts_with(fat_purse.needs_label.text, "Needs", "and says what is missing")
+	assert_true(medicine.buy_button.disabled, "a maxed row's button does nothing")
+	assert_eq(medicine.buy_button.text, "Max", "it says Max")
+	assert_ne(armor.buy_button.text, "Max", "the others do not")
 
 	_sim.party.gold = _price(&"fat_purse")
 	_hud.advance(0.016)
 	assert_true(fat_purse.affordable(), "gold arriving makes a row affordable")
 	assert_false(fat_purse.buy_button.disabled, "enabled without reopening")
-	assert_eq(fat_purse.price_colour(), ShopRow.PRICE_AFFORDABLE, "and bright")
+	assert_eq(fat_purse.needs_label.text, "", "and nothing is missing")
 	assert_true(blades.affordable())
 
 
@@ -242,7 +245,7 @@ func test_r4_rows_show_affordability() -> void:
 
 
 func test_r5_buying() -> void:
-	var shop: ShopPanel = _hud.shop
+	var shop: ShopWindow = _hud.shop
 	shop.open()
 	var blades: ShopRow = _row(BLADES)
 	var armor: ShopRow = _row(ARMOR)
@@ -261,7 +264,7 @@ func test_r5_buying() -> void:
 	assert_eq(_sim.party.gold, 1000 - price, "for its price")
 	assert_gt(blades.flash(), 0.0, "the row flashes")
 	assert_eq(armor.flash(), 0.0, "only that row")
-	assert_eq(blades.rank_label.text, "Rank 1/20", "its rank changed")
+	assert_eq(blades.rank_label.text, "1 / 20", "its rank changed")
 	assert_string_contains(blades.buy_button.text, str(_price(BLADES)), "and its price")
 	assert_ne(_price(BLADES), price, "to the next rank's")
 	assert_eq(_hud.shown_gold(), _sim.party.gold, "the HUD shows the real gold at once")
@@ -291,7 +294,7 @@ func test_r5_buying() -> void:
 
 
 func test_r6_follows_the_simulation() -> void:
-	var shop: ShopPanel = _hud.shop
+	var shop: ShopWindow = _hud.shop
 	shop.open()
 	_sim.party.gold = 0
 	_hud.advance(0.016)
@@ -299,18 +302,18 @@ func test_r6_follows_the_simulation() -> void:
 	assert_not_null(blades)
 	if blades == null:
 		return
-	assert_eq(blades.rank_label.text, "Rank 0/20")
+	assert_eq(blades.rank_label.text, "0 / 20")
 	_sim.upgrades.set_rank(BLADES, 7)
 	_sim.party.gold = 5000
 	_sim.party.set_resource(&"old_bones", 1000)  # spec 052: rank 8 costs old bones too
 	_hud.advance(0.016)
-	assert_eq(blades.rank_label.text, "Rank 7/20", "a rank set directly shows at once")
-	assert_eq(blades.bonus_label.text, "+35%")
+	assert_eq(blades.rank_label.text, "7 / 20", "a rank set directly shows at once")
+	assert_eq(blades.bonus_label.text, "+35% now")
 	assert_string_contains(blades.buy_button.text, str(_price(BLADES)), "with its price")
 	assert_true(blades.affordable(), "and the gold set directly")
 	_sim.upgrades.set_rank(BLADES, 20)
 	_hud.advance(0.016)
-	assert_true(blades.max_label.is_visible_in_tree(), "maxed directly")
+	assert_eq(blades.buy_button.text, "Max", "maxed directly")
 	assert_eq(blades.flash(), 0.0, "no flash without a purchase event")
 
 	var loaded: Simulation = Simulation.from_save(_sim.to_save())
@@ -318,9 +321,8 @@ func test_r6_follows_the_simulation() -> void:
 	add_child_autofree(hud)
 	hud.set_process(false)
 	hud.setup(loaded, null, null)
-	hud.shop.open()
 	hud.advance(0.016)
-	assert_eq(hud.shop.rows[0].rank_label.text, "Rank 20/20", "a loaded save shows")
+	assert_eq(hud.shop.rows[0].rank_label.text, "20 / 20", "a loaded save shows")
 
 
 # --- R7 ------------------------------------------------------------------------

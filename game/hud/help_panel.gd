@@ -12,12 +12,12 @@ extends VBoxContainer
 ## A label is one or more keys split by spaces; [code]1-5[/code] is a run of number keys.
 const KEYS: Array[Array] = [
 	["H", "Show or hide this help"],
-	["Esc", "Close the front window or any open panel"],
+	["Esc", "Close the front window, or the hero sheet"],
 	["- +", "Set the target a stage back or further"],
 	["A", "Auto on or off: go on when it is safe"],
 	["U", "Open or close the Shop"],
-	["B", "In the Shop: auto-buy on or off"],
-	["1-5", "In the Shop: buy that upgrade"],
+	["B", "Shop in front: auto-buy on or off"],
+	["1-5", "Shop in front: buy that upgrade"],
 	["1-3", "Talents tab: a paragon point to that stat"],
 	["Q E", "Hero sheet or tally: previous or next tab"],
 	["Tab", "Show the next hero's sheet"],

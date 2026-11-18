@@ -559,8 +559,9 @@ the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number
 <p><strong>Two layers.</strong> Over the world sits a sharper <em>UI layer</em>, drawn in finer pixels
 (at least 960 by 540 of them, up to about 1280 by 720), with its own readable font: taller letters, real
 descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The old
-HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel, and
-help, the journal and the orders are the first panels moved onto the new layer, as windows.</p>
+HUD still sits in the world's coarse pixels for now: the UI overhaul is under way, panel by panel. Help,
+the journal, the orders, the shop, the area map and the party tally have moved onto the new layer, as
+windows.</p>
 
 <h3>Around the edges</h3>
 <div class="table-wrap">
@@ -569,10 +570,10 @@ help, the journal and the orders are the first panels moved onto the new layer, 
   <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) over the stage in big numbers; <em>Safe 3</em>, the stage a wipe sends the party back to; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and a line for what the party is doing: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each with a bar or a price; click one to go where it is done.</td></tr>
-  <tr><td>Top right</td><td>Speed, Shop, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
-  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders), lit while its window is open; rest the mouse on one for its name and key. The last button puts every window back in its place.</td></tr>
+  <tr><td>Top right</td><td>Speed, gold and resources</td><td>The gold counts up as coins arrive. Each resource the party holds has an icon and a count. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
+  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders, the shop, the area map, the tally), lit while its window is open; rest the mouse on one for its name and key. The Shop button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened. The last button puts every window back in its place.</td></tr>
   <tr><td>Right edge</td><td>The stage ladder (<kbd>L</kbd>)</td><td>Twelve stages of this area as a list, headed by the area's name.</td></tr>
-  <tr><td>Bottom</td><td>The tally button and four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
+  <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class, level, health bar, XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds.</td></tr>
   <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name and health.</td></tr>
 </table>
@@ -583,15 +584,15 @@ help, the journal and the orders are the first panels moved onto the new layer, 
 <table>
   <tr><th>Key</th><th>Does</th></tr>
   <tr><td><kbd>H</kbd></td><td>Open or close the help window (its button on the button bar does the same)</td></tr>
-  <tr><td><kbd>Esc</kbd></td><td>Close the front window; with no window open, close whatever panel is open</td></tr>
+  <tr><td><kbd>Esc</kbd></td><td>Close the front window; with no window open, close the hero sheet</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
-  <tr><td><kbd>W</kbd></td><td>Open or close the area map (a click on the area's name does the same)</td></tr>
-  <tr><td><kbd>U</kbd></td><td>Open or close the shop</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is open</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is open</td></tr>
+  <tr><td><kbd>W</kbd></td><td>Open or close the area map window (a click on the area's name, or its button on the button bar, does the same)</td></tr>
+  <tr><td><kbd>U</kbd></td><td>Open or close the shop window (or its button on the button bar)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is the front window</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is the front window</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the hero sheet, then step to the next hero</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the hero sheet (Stats, Talents, Skills) or of the tally (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the tally (Damage, Healing, Taken) while it is the front window, otherwise of the hero sheet (Stats, Talents, Skills)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, on a hero's Talents tab</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
@@ -607,7 +608,8 @@ help, the journal and the orders are the first panels moved onto the new layer, 
 <p>Rest the mouse on any part of the HUD for 0.4 seconds and a small box explains it in one sentence.</p>
 
 <h3>Windows</h3>
-<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>) and the party's orders (<kbd>O</kbd>) are windows on the
+<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>), the party's orders (<kbd>O</kbd>), the shop
+(<kbd>U</kbd>), the area map (<kbd>W</kbd>) and the party tally (<kbd>T</kbd>) are windows on the
 UI layer. Each has a title bar with its name and a close button. Drag a window by its title bar to put it
 anywhere; it can hang off an edge, but its title bar always stays on screen, and if the game's window
 shrinks a window is moved wholly back on screen. Click anywhere on a window to bring it to the front.
@@ -618,21 +620,27 @@ one you dragged is, in the settings file beside the sound setting (not in the sa
 moved sits in its usual place for the size the game's window has. Windows left open open again once the
 "While you were away" report has gone, and the last button on the button bar puts them all back where a
 new game has them.</p>
-<p>Until the other panels move onto the UI layer, the hero sheet, the shop, the tally, the area map and the
-away report still open on the old layer, under the windows. So when one of them opens, any window over it
-closes (it keeps its place; open it again with its key or button).</p>
+<p>The tally stands at the top left, the shop at the top right and the map between them, so the three can
+be open together without covering each other or the hero frames. Until the hero sheet moves onto the UI layer it
+still opens on the old layer, under the windows, so when it opens any window over it closes (it keeps its
+place; open it again with its key or button). The keys a window answers to (<kbd>1</kbd> to <kbd>5</kbd>
+and <kbd>B</kbd> for the shop, <kbd>Q</kbd> <kbd>E</kbd> for the tally) work only while it is the front
+window.</p>
 
-<h3>The area map (<kbd>W</kbd>)</h3>
-<p>A list of every area. Each row shows its monsters (point at one for its name), its guardian with a green
-tick once beaten, the level of its first stage, how far the party has got (<em>Safe 3, furthest 5</em>) and
-its resource with how many the party holds. The area the party is in says <em>Here</em>; on the road the
-destination says <em>On the way, 7 s</em>. A closed area is dimmed and says which guardian opens it and
-what it gives (<em>Gives clay</em>). Click an open area to choose it: a stage shows under the list, starting
-at that area's safe stage, with <kbd>-</kbd> and <kbd>+</kbd> from 1 to one past the furthest, coloured blue
-(safe), orange (within reach) or red (dangerous) for this party. <em>Go</em> sends the party there; for the
-area it is already in, it sets the target. A dangerous choice is warned of in the journal. When a guardian
-opens a new area, the journal says so, a goal <em>Visit The Claypits</em> appears and the area's name
-carries a small orange mark until you open the map.</p>
+<h3>The Area map window (<kbd>W</kbd>)</h3>
+<p>A card for every area. Each card shows the area's name in bold, the level of its first stage, how far
+the party has got (<em>Safe 3, furthest 5</em>), its resource's icon with how many the party holds, and
+its monsters as small sprites (point at one for its name) with its guardian last, ticked in green once
+beaten. The area the party is in says <em>Here</em>; on the road the destination says <em>On the way,
+7 s</em>. A closed area's card is dimmed and says which guardian opens it (<em>Beat the Clay Colossus in
+The Claypits</em>) and what it gives (<em>Gives old bones</em>). Click an open card to choose it: under
+the cards a stage shows between <kbd>-</kbd> and <kbd>+</kbd>, starting at that area's safe stage, from 1
+to one past the furthest, coloured blue, orange or red with the word beside it (<em>Safe</em>,
+<em>Within reach</em>, <em>Dangerous</em>; point at the word for the levels). The Go button says what it
+will do: <em>Travel to The Claypits 3</em>, or for the area the party is in <em>Set target: stage 4</em>.
+A dangerous choice is warned of in the journal. When a guardian opens a new area, the journal says so, a
+goal <em>Visit The Claypits</em> appears and the Map button on the button bar carries a mark until you
+open the map. A click on the area's name at the top left opens it too.</p>
 
 <h3>The stage ladder (<kbd>L</kbd>)</h3>
 <p>A narrow list of twelve stages down the right edge. A white diamond marks the party's stage; the safe
@@ -675,21 +683,28 @@ numbers. Under it are three tabs:</p>
 </ul>
 <p>A small pulsing tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
-<h3>The shop (<kbd>U</kbd>)</h3>
-<p>A panel under the gold; the game keeps running behind it. Each row shows an upgrade's name, what it
-does, its rank (<code>Rank 3/20</code>), the bonus it gives now and a button with the next rank's gold
-price: yellow when you can pay, dim red when you cannot, <code>MAX</code> at the top rank. From the fourth
-rank a row also shows its resource's icon and price, white when the party holds enough and grey when not;
-the row can be bought only when both are paid. Rest the mouse on a row for both prices, where the resource
-comes from and, if that area is closed, how to open it. The Shop button carries an amber tag counting the
-upgrades the party can pay for. The Auto-buy switch is at the bottom.</p>
+<h3>The Shop window (<kbd>U</kbd>)</h3>
+<p>One row per camp upgrade; the game keeps running behind it. A row has the upgrade's number key and
+name in bold, a sentence saying what one rank gives (<em>Each rank gives +5% damage and healing.</em>),
+its rank as <code>3 / 20</code> with a thin bar and the bonus it gives now (<em>+15% now</em>), and one
+buy button with the whole price: the gold, and from the fourth rank the resource with its icon
+(<code>91 gold + 4</code>). The button can be pressed when the party can pay both; when it cannot, it is
+greyed and a line in orange says what is missing (<em>Needs 12 more clay, from The Claypits</em>). At the
+top rank it reads <code>Max</code>. Rest the mouse on a row for both prices, where the resource comes from
+and, if that area is closed, how to open it. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a
+sentence saying what it does. While the shop is closed, its button on the button bar carries an amber tag
+counting the upgrades the party can pay for. A row flashes when its upgrade is bought, by you or by
+auto-buy.</p>
 
-<h3>The party tally (<kbd>T</kbd>)</h3>
-<p>A damage meter on the left. Three tabs show each hero's damage dealt, healing done (only health actually
-restored) or damage taken, as bars in the hero's colour with the number and the hero's share. A switch
-picks <em>Last fight</em> or <em>Session</em>. Click a hero's line to see its damage and healing by ability
-(<em>Whirlwind 412</em>, <em>Strikes 950</em>, <em>Bleeding 88</em>). It counts only what happens while
-you watch, is never saved, and changes nothing about the game.</p>
+<h3>The Party tally window (<kbd>T</kbd>)</h3>
+<p>A damage meter. Three tabs show each hero's damage dealt, healing done (only health actually restored)
+or damage taken; a switch picks <em>Last fight</em> or <em>Session</em>, and a line says which fight
+(<em>Last fight: 3 goblins, Mossy Hollow 4, 12 s</em>). Each hero has a line with its portrait, its name,
+its number (right-aligned, the digits all one width) and its share, over a bar in its class colour
+scaled to the largest. Click a hero's line to open its numbers by ability under it, indented, each with a
+thin bar (<em>Whirlwind 412</em>, <em>Strikes 950</em>, <em>Bleeding 88</em>); click again to close them.
+<kbd>Q</kbd> and <kbd>E</kbd> change tab while the tally is the front window. It counts only what happens
+while you watch, is never saved, and changes nothing about the game.</p>
 
 <h3>The journal (<kbd>J</kbd>) and the ticker</h3>
 <p>The game remembers the last 50 notable happenings with the game time: a new furthest stage, a stage
@@ -969,7 +984,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the ladder, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
-  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal and the orders so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the other panels <span class="tag planned">Planned</span>, moving over one by one</td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font, and windows you can drag, stack and close (help, the journal, the orders, the shop, the area map and the tally so far)</td><td><span class="tag built">Built</span>, on <code>dev</code>; the hero sheet <span class="tag planned">Planned</span>, moving over next</td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on

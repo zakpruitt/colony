@@ -34,6 +34,10 @@ var key_hint: String = ""
 var keycode: Key
 ## Its picture on the button bar.
 var icon: Texture2D
+## A count the button bar shows on the window's button as an amber tag (spec 059 R6: the shop's
+## upgrades the party can pay for, the map's areas opened since it was last open); 0 shows none.
+## The window's content sets it.
+var badge: int = 0
 
 var title_bar: PanelContainer
 var title_label: Label
@@ -44,6 +48,8 @@ var _dragging: bool = false
 var _grab: Vector2 = Vector2.ZERO
 ## The room the window is kept in.
 var _room: Vector2 = Vector2(UiRoot.MIN_ROOM)
+## True while a fit to the content's new size waits for the end of the frame.
+var _refit_waiting: bool = false
 
 
 func _init(
@@ -96,6 +102,8 @@ func _init(
 	column.add_child(margin)
 	content = body
 	margin.add_child(body)
+	# Spec 059: a window grows and shrinks with what it shows (the tally's open line).
+	body.minimum_size_changed.connect(_refit_later)
 	title = window_title
 
 
@@ -134,8 +142,25 @@ func is_dragging() -> bool:
 
 ## The window's size as its content asks, in whole UI pixels.
 func fit_size() -> void:
+	_refit_waiting = false
 	reset_size()
 	size = get_combined_minimum_size().ceil()
+
+
+## Fits the window to its content once this frame's changes are made, keeping its top-left
+## corner, and keeps its title bar in the room.
+func _refit_later() -> void:
+	if _refit_waiting:
+		return
+	_refit_waiting = true
+	_refit.call_deferred()
+
+
+func _refit() -> void:
+	if not _refit_waiting:
+		return
+	fit_size()
+	keep_in(_room)
 
 
 ## Moves the window to [param place] (rounded to whole UI pixels), then back inside

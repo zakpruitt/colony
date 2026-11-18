@@ -409,7 +409,7 @@ func test_r6_nothing_else_changes() -> void:
 	assert_eq(rect.size, Vector2(60, 258), "the ladder's size as before")
 	assert_eq(
 		rect.position,
-		Vector2(Hud.SCREEN.x - Hud.MARGIN - 60, Hud.TOP_BAND + ShopPanel.DROP),
+		Vector2(Hud.SCREEN.x - Hud.MARGIN - 60, Hud.TOP_BAND + DepthLadder.DROP),
 		"place"
 	)
 	var hash_before: int = _sim.state_hash()

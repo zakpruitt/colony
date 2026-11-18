@@ -47,9 +47,18 @@ The picture is drawn in two layers, each in its own pixels.
   file under `windows`, beside the sound setting, never in the save; an undragged window takes its default
   place for the current room, and a dragged one is moved wholly back in when the room shrinks. Windows
   saved open wait until the away report has gone (`UiWindows.open_waiting`). `UiButtonBar` holds a button
-  per window. Help, the journal and the orders are windows; the other panels move over spec by spec.
-  Until they do, `Hud` closes any window over an old panel as that opens, and `HudTooltip` and
-  `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
+  per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
+  upgrades, the map's newly opened areas). A window refits when its content's minimum size changes.
+  Help, the journal, the orders, the shop, the area map and the tally are windows; the hero sheet moves
+  over next. Until it does, `Hud` closes any window over it (or over the away report) as that opens, and
+  `HudTooltip` and `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
+- **Window contents made by the HUD** (spec 059): `ShopWindow`, `AreaMapWindow` and `TallyWindow`
+  (`game/ui/windows/`, all `WindowContent`) are made by `Hud.setup` as `hud.shop`, `hud.area_map` and
+  `hud.tally`, so they hear the world's events from the start, and `UiRoot.setup` puts each in a window.
+  They open and close through their window (`WindowContent.open`), so without a `UiRoot` (a HUD-only
+  test) they never open: such a test adds one. Their keys (1-5 and B for the shop, Q and E for the tally)
+  are heard by the HUD and act only while that window is in front (`Hud._in_front`). `UiBar` is the
+  UI layer's thin bar.
 
 ## Time
 

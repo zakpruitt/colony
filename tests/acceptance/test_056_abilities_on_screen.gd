@@ -547,31 +547,35 @@ func test_r6_the_tally_knows_abilities() -> void:
 	assert_gt(actions, 3, "actions have lines of their own")
 
 	# The tally's line for a hero opens to show it.
-	var panel: TallyPanel = _hud.tally
+	# Spec 059 R4: a window on the UI layer; the open tab's measure opens under the hero's line,
+	# and the other heroes' lines stay.
+	var panel: TallyWindow = _hud.tally
 	panel.open()
 	_hud.advance(FRAME)
-	var row: Vector2 = (
-		panel.get_global_rect().position
-		+ Vector2(TallyPanel.TEXT_X + 10.0, TallyPanel.ROWS_Y + 5.0)
-	)
+	await get_tree().process_frame  # the window lays out
+	await get_tree().process_frame
+	var row: Vector2 = _ui.ui_to_world(panel.hero_lines[0].get_global_rect().get_center())
 	_click_at(row)
 	_hud.advance(FRAME)
 	assert_eq(panel.opened_hero(), _sim.party.heroes[0].id, "a click opens the hero's line")
 	var shown: Array[String] = panel.breakdown()
-	assert_eq(shown[0], "Damage", "its damage")
-	assert_has(shown, "Healing", "and its healing")
+	assert_eq(shown[0], "Damage by ability", "its damage")
 	var first: Hero = _sim.party.heroes[0]
 	var dealt: Dictionary[String, int] = tally.by_ability(
-		first.id, Tally.Measure.DAMAGE, panel._span
+		first.id, Tally.Measure.DAMAGE, panel.span()
 	)
 	var top: String = dealt.keys()[0]
 	assert_eq(shown[1], "%s %s" % [top, Hud.group_thousands(dealt[top])], "largest first")
+	panel.set_measure(Tally.Measure.HEALING)
+	assert_eq(panel.breakdown()[0], "Healing by ability", "and its healing, on that tab")
+	panel.set_measure(Tally.Measure.DAMAGE)
 	var heroes_shown: int = 0
 	for line: String in panel.rows():
 		for hero: Hero in _sim.party.heroes:
 			if line.begins_with(hero.def().display_name + " "):
 				heroes_shown += 1
-	assert_eq(heroes_shown, 1, "the other lines make way")
+	assert_eq(heroes_shown, _sim.party.heroes.size(), "the other lines stay")
+	await get_tree().process_frame
 	_click_at(row)
 	_hud.advance(FRAME)
 	assert_eq(panel.opened_hero(), -1, "a second click closes it")

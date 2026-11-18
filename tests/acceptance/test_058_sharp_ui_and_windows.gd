@@ -169,10 +169,12 @@ func test_r2_the_old_hud_still_works() -> void:
 	assert_eq(
 		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
 	)
-	_click_world(hud.shop_button.get_global_rect().get_center())
+	# Spec 059: the Shop button moved to the bar, and the shop is a window Esc closes.
+	await _frames()
+	_click_ui(main.ui, main.ui.bar.buttons[ShopWindow.ID].get_global_rect().get_center())
 	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
 	_key(KEY_ESCAPE)
-	assert_false(hud.shop.is_open(), "Esc still closes it when no window is open")
+	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
 	_click_world(hud.frames[0].get_global_rect().get_center())
 	assert_true(hud.hero_sheet.is_open(), "a hero frame still opens the hero sheet")
 	_key(KEY_U)

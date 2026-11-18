@@ -219,7 +219,7 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 
 ## Spec 056 R5: the hero's statuses right of its name, and the frame's own tooltip line.
 func _refresh_statuses() -> void:
-	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var statuses: Array[ShownStatus] = []
 	if tally != null and not _dead:
 		statuses = tally.tally.credit.statuses.statuses_of(hero_id)
@@ -230,7 +230,7 @@ func _refresh_statuses() -> void:
 ## The frame's tooltip, as [method TalentTab.frame_tip] builds it: the class and its path (spec
 ## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
 func tip() -> String:
-	var tally: TallyPanel = _hud.tally if _hud != null else null
+	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
 	if _hud == null or _hud.hero_sheet == null:
 		return CLICK_TIP if line.is_empty() else "%s. %s" % [line, CLICK_TIP]

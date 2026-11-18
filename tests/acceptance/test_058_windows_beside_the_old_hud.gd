@@ -16,7 +16,8 @@ func _default_rect(window: UiWindow) -> Rect2:
 
 
 ## Where each old panel opens and where the goals are, in UI pixels on [param main]'s layer:
-## each opened by its own key, or the hero sheet by a click on a hero's frame, and closed again.
+## the hero sheet, opened by a click on a hero's frame and closed again. (Spec 059 made the shop,
+## the tally and the area map windows.)
 func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	var hud: Hud = main.hud
 	var ui: UiRoot = main.ui
@@ -28,18 +29,6 @@ func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	assert_true(hud.hero_sheet.is_visible_in_tree(), "the hero sheet opened by a click")
 	found["hero sheet"] = _in_ui(ui, hud.hero_sheet.get_global_rect())
 	hud.hero_sheet.close()
-	var by_key: Dictionary[String, Control] = {
-		"shop": hud.shop, "tally": hud.tally, "area map": hud.area_map
-	}
-	var keys: Dictionary[String, Key] = {"shop": KEY_U, "tally": KEY_T, "area map": KEY_W}
-	for panel_name: String in by_key:
-		_key(keys[panel_name])
-		hud.advance(0.016)
-		var panel: Control = by_key[panel_name]
-		assert_true(panel.is_visible_in_tree(), "the %s opened by its key" % panel_name)
-		found[panel_name] = _in_ui(ui, panel.get_global_rect())
-		panel.call(&"close")
-		hud.advance(0.016)
 	return found
 
 
@@ -126,7 +115,7 @@ func test_r6_default_places_beside_the_old_hud() -> void:
 			assert_false(
 				orders.intersects(panels[panel]), "%s: orders clear the %s" % [room, panel]
 			)
-		for panel: String in ["goals", "hero sheet", "tally"]:
+		for panel: String in ["goals", "hero sheet"]:
 			assert_false(help.intersects(panels[panel]), "%s: help clears the %s" % [room, panel])
 		main.free()
 
@@ -148,7 +137,8 @@ func test_r6_default_places_clear_the_frames_and_the_bar() -> void:
 
 
 ## Review 3b: an old panel opening closes every window over it, keeps each window's place, and
-## writes nothing in the journal. Stands in for 027 R6 and 037 R6 (the old journal and goals
+## writes nothing in the journal. Since spec 059 the hero sheet is the one old panel left (the shop,
+## the tally and the area map are windows, and open beside the others: spec 059 R1). Stands in for 027 R6 and 037 R6 (the old journal and goals
 ## panels kept clear of the hero sheet) and 041 R5 (nothing opens hidden).
 func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
 	var main: Main = _main(ROOM_SMALL)
@@ -158,16 +148,13 @@ func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
 	var frame_at: Vector2 = hud.frames[0].get_global_rect().get_center()
 	var openers: Array[Array] = [
 		["hero sheet", hud.hero_sheet, func() -> void: _click_world(frame_at)],
-		["shop", hud.shop, func() -> void: _key(KEY_U)],
-		["tally", hud.tally, func() -> void: _key(KEY_T)],
-		["area map", hud.area_map, func() -> void: _key(KEY_W)],
 	]
 	for opener: Array in openers:
 		var panel_name: String = opener[0]
 		var panel: Control = opener[1]
 		var open_it: Callable = opener[2]
-		for keycode: Key in [KEY_H, KEY_J, KEY_O]:
-			_key(keycode)
+		for id: StringName in windows.ids():
+			windows.open_window(id)
 		await _frames()
 		hud.advance(0.016)
 		var places: Dictionary[StringName, Vector2] = {}

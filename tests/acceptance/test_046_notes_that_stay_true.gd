@@ -51,6 +51,9 @@ func _build_hud() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	var ui := UiRoot.new()  # spec 059: the tally is a window on the UI layer
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
 	_world.sim_event.connect(_on_event)
 
 
@@ -378,7 +381,7 @@ func test_r7_started_mid_fight() -> void:
 	_sim = running
 	_build_hud()
 	var depth: int = _sim.expedition.depth
-	var tally: TallyPanel = _hud.tally
+	var tally: TallyWindow = _hud.tally
 	tally.open()
 	tally.set_span(Tally.Span.LAST_FIGHT)
 	tally.set_measure(Tally.Measure.DAMAGE)
@@ -455,15 +458,15 @@ func test_r8_measures_say_what_they_count() -> void:
 	# The events carry the whole blow, not the health lost: the tally counts the blow, and the
 	# tooltips of Damage and Taken say that overkill is in it.
 	assert_eq(dealt, blow.amount, "the whole blow is counted")
-	var damage_tip: String = TallyPanel.TAB_TIPS[Tally.Measure.DAMAGE]
-	var taken_tip: String = TallyPanel.TAB_TIPS[Tally.Measure.TAKEN]
+	var damage_tip: String = TallyWindow.TAB_TIPS[Tally.Measure.DAMAGE]
+	var taken_tip: String = TallyWindow.TAB_TIPS[Tally.Measure.TAKEN]
 	assert_true(damage_tip.contains("overkill"), "the Damage tooltip says so: %s" % damage_tip)
 	assert_true(taken_tip.contains("overkill"), "the Taken tooltip says so: %s" % taken_tip)
 	_hud.tally.open()
 	_hud.advance(STEP)
 	for measure: int in [Tally.Measure.DAMAGE, Tally.Measure.TAKEN]:
-		var tip: String = _tip_of(_hud.tally.tab_buttons[measure])
-		assert_eq(tip, TallyPanel.TAB_TIPS[measure], "shown on the tab")
+		var tip: String = _hud.tally.tip.text_for(_hud.tally.tab_buttons[measure])  # spec 059
+		assert_eq(tip, TallyWindow.TAB_TIPS[measure], "shown on the tab")
 	_hud.tally.close()
 
 	# A heal on a hero one short of full: only the one point restored is counted. When a heal
