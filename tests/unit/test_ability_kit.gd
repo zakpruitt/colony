@@ -138,6 +138,7 @@ func _ability(id: StringName, kind: AbilityDef.Kind, effects: Array, props := {}
 	ability.display_name = String(id).capitalize()
 	ability.description = "Does what the test needs."
 	ability.move = &"flourish"
+	ability.picture = &"strike"  # spec 060: every ability names its picture
 	ability.kind = kind
 	ability.effects.assign(effects)
 	_set_all(ability, props)

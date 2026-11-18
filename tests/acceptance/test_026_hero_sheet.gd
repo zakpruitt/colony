@@ -1,12 +1,11 @@
 extends GutTest
-## Acceptance tests for specs/026-hero-sheet/spec.md, one per requirement.
+## Acceptance tests for specs/026-hero-sheet/spec.md, one per requirement. Since spec 060 the
+## sheet is a window per hero on the UI layer ([HeroWindows]): these tests read the hero's window.
 
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 26
-const SCREEN: Vector2 = Vector2(640, 360)
-const TOP_BAND: float = 28.0
-## Pixels kept clear just above the party frames (spec 027 puts a one-line ticker there).
-const TICKER_STRIP: float = 12.0
+## The UI layer's room these tests lay it out in (spec 058).
+const ROOM: Vector2i = Vector2i(1280, 720)
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const ROLES: Dictionary[StringName, String] = {
@@ -29,6 +28,7 @@ var _sim: Simulation
 var _world: World
 var _effects: CombatEffects
 var _hud: Hud
+var _ui: UiRoot
 
 
 func before_each() -> void:
@@ -55,6 +55,11 @@ func _make_hud(simulation: Simulation) -> Hud:
 	add_child_autofree(made)
 	made.set_process(false)
 	made.setup(simulation, _world, _effects)
+	# Spec 060: the hero windows live on the UI layer, which gives them to the HUD.
+	_ui = UiRoot.new()
+	add_child_autofree(_ui)
+	_ui.set_room_for_test(ROOM)
+	_ui.setup(simulation, made, null)
 	made.advance(0.0)
 	return made
 
@@ -78,8 +83,14 @@ func _click(frame: HeroFrame) -> void:
 		frame._gui_input(event)
 
 
-func _sheet() -> HeroSheet:
-	return _hud.hero_sheet
+func _windows() -> HeroWindows:
+	return _hud.hero_windows
+
+
+## Hero [param hero_id]'s window, opened (spec 060: the sheet of that hero).
+func _open(hero_id: int, hud: Hud = _hud) -> HeroWindow:
+	hud.hero_windows.open(hero_id)
+	return hud.hero_windows.window_of(hero_id)
 
 
 func _hero(index: int) -> Hero:
@@ -103,83 +114,80 @@ func _marked_ids() -> Array[int]:
 	return marked
 
 
-static func _percent(multiplier: float) -> String:
-	return " (+%d%%)" % roundi((multiplier - 1.0) * 100.0)
+## What an upgrade adds, as the Stats tab says it beside the stat (spec 060 R4):
+## [code] +15% Sharp Blades[/code].
+static func _bonus(multiplier: float, upgrade_id: StringName) -> String:
+	var percent: int = roundi((multiplier - 1.0) * 100.0)
+	return " +%d%% %s" % [percent, Content.upgrade(upgrade_id).display_name]
 
 
 # --- R1 ------------------------------------------------------------------------
 
 
 func test_r1_opening_and_closing() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	var windows: HeroWindows = _windows()
+	assert_not_null(windows, "the HUD has hero windows")
+	if windows == null:
 		return
-	assert_false(sheet.is_open(), "closed at first")
-	assert_false(sheet.is_visible_in_tree(), "and not shown")
-	assert_eq(sheet.shown_hero_id(), -1, "showing nobody")
+	assert_false(windows.is_open(), "closed at first")
 	assert_eq(_marked_ids(), [] as Array[int], "no frame is marked")
 
 	var first: HeroFrame = _hud.frames[0]
 	var second: HeroFrame = _hud.frames[1]
+	var first_window: HeroWindow = windows.window_of(first.hero_id)
+	var second_window: HeroWindow = windows.window_of(second.hero_id)
+	assert_false(first_window.is_visible_in_tree(), "not shown")
 	_click(first)
-	assert_true(sheet.is_open(), "clicking a frame opens the sheet")
-	assert_true(sheet.is_visible_in_tree(), "and it shows")
-	assert_eq(sheet.shown_hero_id(), first.hero_id, "on that hero")
+	assert_true(first_window.is_open(), "clicking a frame opens its hero's window")
+	assert_true(first_window.is_visible_in_tree(), "and it shows")
 	assert_eq(_marked_ids(), [first.hero_id] as Array[int], "that frame is marked")
 	var plain: HeroFrame = _hud.frames[2]
 	assert_ne(first.border, plain.border, "visibly: its edge differs from an unmarked frame's")
 	_click(first)
-	assert_false(sheet.is_open(), "clicking the same frame closes it")
+	assert_false(first_window.is_open(), "clicking the same frame closes it")
 	assert_eq(_marked_ids(), [] as Array[int], "and unmarks it")
 
+	# Spec 060 R1: another frame opens another window beside the first, rather than switching.
 	_click(first)
 	_click(second)
-	assert_true(sheet.is_open(), "clicking another frame keeps it open")
-	assert_eq(sheet.shown_hero_id(), second.hero_id, "and switches to that hero")
-	assert_eq(_marked_ids(), [second.hero_id] as Array[int], "the mark moves")
+	assert_true(second_window.is_open(), "clicking another frame opens that hero's window")
+	assert_true(first_window.is_open(), "beside the first")
+	assert_eq(_marked_ids(), [first.hero_id, second.hero_id] as Array[int], "both marked")
 	_key(KEY_ESCAPE)
-	assert_false(sheet.is_open(), "Esc closes it")
+	assert_false(second_window.is_open(), "Esc closes the front one")
 	_key(KEY_ESCAPE)
-	assert_false(sheet.is_open(), "and does not open it")
+	assert_false(first_window.is_open(), "and again the next")
+	_key(KEY_ESCAPE)
+	assert_false(windows.is_open(), "and does not open one")
 
 	_click(second)
-	assert_not_null(sheet.close_button, "the sheet has a close button")
-	if sheet.close_button != null:
-		assert_true(sheet.close_button.is_visible_in_tree(), "shown on the sheet")
-		sheet.close_button.pressed.emit()
-		assert_false(sheet.is_open(), "the close button closes it")
+	assert_not_null(second_window.close_button, "the window has a close button")
+	if second_window.close_button != null:
+		assert_true(second_window.close_button.is_visible_in_tree(), "shown on the window")
+		second_window.close_button.pressed.emit()
+		assert_false(second_window.is_open(), "the close button closes it")
 		assert_eq(_marked_ids(), [] as Array[int], "and unmarks the frame")
 
+	var opened: Array[int] = []
 	for i: int in _sim.party.heroes.size():
 		_key(KEY_TAB)
-		assert_true(sheet.is_open(), "Tab opens or keeps the sheet open")
-		assert_eq(sheet.shown_hero_id(), _hero(i).id, "Tab %d shows hero %d" % [i + 1, i + 1])
-		assert_eq(_marked_ids(), [_hero(i).id] as Array[int], "and marks its frame")
+		opened.append(_hero(i).id)
+		var told: String = "Tab %d: hero %d in front" % [i + 1, i + 1]
+		assert_eq(windows.front(), windows.window_of(_hero(i).id), told)
+		assert_eq(_marked_ids(), opened, "and marks its frame")
 	_key(KEY_TAB)
-	assert_eq(sheet.shown_hero_id(), _hero(0).id, "Tab after the last hero wraps to the first")
+	assert_eq(windows.front(), windows.window_of(_hero(0).id), "after the last hero, the first")
 
 	_key(KEY_U)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_false(sheet.is_open(), "which closes the sheet")
-	assert_eq(_marked_ids(), [] as Array[int], "and unmarks the frame")
-	_click(first)
-	assert_true(sheet.is_open(), "opening the sheet")
-	assert_false(_hud.shop.is_open(), "closes the shop")
-	_hud.shop_button.pressed.emit()
-	assert_true(_hud.shop.is_open(), "the Shop button")
-	assert_false(sheet.is_open(), "closes the sheet too")
-	_key(KEY_TAB)
-	assert_true(sheet.is_open(), "Tab")
-	assert_false(_hud.shop.is_open(), "closes the shop")
 
 	var main: Main = MAIN_SCENE.instantiate()
 	add_child_autofree(main)
-	main.hud.hero_sheet.open(main.simulation.party.heroes[0].id)
+	main.hud.hero_windows.open(main.simulation.party.heroes[0].id)
 	main.driver.advance(1_000_000)
 	var tick: int = main.simulation.tick
 	main.driver.advance(2_000_000)
-	assert_true(main.hud.hero_sheet.is_open(), "the sheet is open")
+	assert_true(main.hud.hero_windows.is_open(), "the window is open")
 	assert_gt(main.simulation.tick, tick, "and the game runs behind it")
 	assert_false(get_tree().paused, "unpaused")
 
@@ -188,15 +196,15 @@ func test_r1_opening_and_closing() -> void:
 
 
 func test_r2_who_they_are() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(_windows(), "the HUD has hero windows")
+	if _windows() == null:
 		return
 	assert_eq(_sim.party.heroes.size(), 4, "four heroes")
 	_hero(2).gain_xp(Hero.xp_for_level(4))
+	var sheet: HeroWindow
 	for i: int in _sim.party.heroes.size():
 		var hero: Hero = _hero(i)
-		sheet.open(hero.id)
+		sheet = _open(hero.id)
 		_hud.advance(0.016)
 		var what: String = String(hero.class_id)
 		assert_eq(sheet.line(&"class"), hero.def().display_name, "%s: the class name" % what)
@@ -209,7 +217,7 @@ func test_r2_who_they_are() -> void:
 			assert_eq(sheet.portrait.size, frame_icon * 2.0, "%s: twice the frame's size" % what)
 			assert_true(sheet.portrait.is_visible_in_tree(), "%s: shown" % what)
 	assert_eq(sheet.line(&"level"), "Level %d" % _hero(3).level)
-	sheet.open(_hero(2).id)
+	sheet = _open(_hero(2).id)
 	assert_eq(sheet.line(&"level"), "Level 4", "the mage's levels show")
 
 
@@ -226,12 +234,11 @@ func _expected_xp(hero: Hero) -> String:
 
 
 func test_r3_where_they_stand() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(_windows(), "the HUD has hero windows")
+	if _windows() == null:
 		return
 	var hero: Hero = _hero(1)
-	sheet.open(hero.id)
+	var sheet: HeroWindow = _open(hero.id)
 	_hud.advance(0.016)
 	assert_eq(sheet.line(&"health"), "%d / %d" % [hero.max_health(), hero.max_health()], "full")
 	assert_eq(sheet.line(&"xp"), "0 / 20 XP, 20 to level 2", "no XP yet")
@@ -272,49 +279,54 @@ func _expected_stats(hero: Hero) -> Dictionary[StringName, String]:
 	stats[&"stat_health"] = "Health %d" % hero.max_health()
 	stats[&"stat_damage"] = "Damage %d" % fighter.damage
 	if health_bonus > 1.0:
-		stats[&"stat_health"] += _percent(health_bonus)
+		stats[&"stat_health"] += _bonus(health_bonus, ARMOR)
 	if power > 1.0:
-		stats[&"stat_damage"] += _percent(power)
+		stats[&"stat_damage"] += _bonus(power, BLADES)
 	stats[&"stat_armor"] = "Armor %d" % fighter.armor
 	stats[&"stat_attack_speed"] = "Attack speed %.1f/s" % (1.0 / def.attack_interval)
 	stats[&"stat_crit"] = "Crit chance %d%%" % roundi(def.crit_chance * 100.0)
 	var reach: String = "Melee"
 	if def.attack_range > Battle.MELEE_REACH:
-		reach = "%s tiles" % HeroSheet.tiles(def.attack_range)
+		reach = "%s tiles" % HeroWindow.tiles(def.attack_range)
 	stats[&"stat_range"] = "Range %s" % reach
 	stats[&"stat_healing"] = ""
 	if def.heal_power > 0:
 		stats[&"stat_healing"] = "Healing %d" % fighter.heal_power
 		if power > 1.0:
-			stats[&"stat_healing"] += _percent(power)
+			stats[&"stat_healing"] += _bonus(power, BLADES)
 	return stats
 
 
-func _check_stats(sheet: HeroSheet, hero: Hero, when: String) -> void:
+func _check_stats(sheet: HeroWindow, hero: Hero, when: String) -> void:
 	var expected: Dictionary[StringName, String] = _expected_stats(hero)
 	for key: StringName in STAT_KEYS:
 		var want: String = expected[key]
 		assert_eq(sheet.line(key), want, "%s %s: %s" % [hero.class_id, when, key])
 
 
+## The colour the Stats tab draws [param key]'s bonus in (spec 060 R4: beside the stat).
+func _bonus_colour(sheet: HeroWindow, key: StringName) -> Color:
+	return sheet.stats.reason_labels[key].get_theme_color(&"font_color")
+
+
 func test_r4_what_they_can_do() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(_windows(), "the HUD has hero windows")
+	if _windows() == null:
 		return
+	var sheet: HeroWindow
 	for hero: Hero in _sim.party.heroes:
-		sheet.open(hero.id)
+		sheet = _open(hero.id)
 		_hud.advance(0.016)
 		_check_stats(sheet, hero, "before upgrades")
 		assert_false(sheet.line(&"stat_damage").contains("+"), "no bonus before any upgrade")
-	sheet.open(_hero(0).id)
+	sheet = _open(_hero(0).id)
 	assert_eq(sheet.line(&"stat_range"), "Range Melee", "the knight fights in melee")
 	assert_eq(sheet.line(&"stat_healing"), "", "and does not heal")
-	sheet.open(_hero(2).id)
+	sheet = _open(_hero(2).id)
 	assert_eq(sheet.line(&"stat_range"), "Range 7 tiles", "the mage casts from 7 tiles")
 	assert_eq(sheet.line(&"stat_attack_speed"), "Attack speed 0.5/s", "every two seconds")
 	assert_eq(sheet.line(&"stat_crit"), "Crit chance 10%")
-	sheet.open(_hero(3).id)
+	sheet = _open(_hero(3).id)
 	assert_eq(sheet.line(&"stat_healing"), "Healing 22", "the cleric heals")
 
 	_sim.party.gold = 100_000
@@ -325,32 +337,31 @@ func test_r4_what_they_can_do() -> void:
 	assert_eq(_sim.upgrades.rank(BLADES), 3, "three ranks of sharp blades bought")
 	_hud.advance(0.016)
 	for hero: Hero in _sim.party.heroes:
-		sheet.open(hero.id)
+		sheet = _open(hero.id)
 		_hud.advance(0.016)
 		_check_stats(sheet, hero, "after upgrades")
-		assert_string_contains(sheet.line(&"stat_damage"), "(+15%)", "the damage bonus")
-		assert_string_contains(sheet.line(&"stat_health"), "(+15%)", "the health bonus")
-		assert_eq(sheet.bonus_colour(&"stat_damage"), Palette.color(&"green"), "in green")
-		assert_eq(sheet.bonus_colour(&"stat_health"), Palette.color(&"green"))
+		assert_string_contains(sheet.line(&"stat_damage"), "+15% ", "the damage bonus")
+		assert_string_contains(sheet.line(&"stat_health"), "+15% ", "the health bonus")
+		assert_eq(_bonus_colour(sheet, &"stat_damage"), Palette.color(&"green"), "in green")
+		assert_eq(_bonus_colour(sheet, &"stat_health"), Palette.color(&"green"))
 		assert_false(sheet.line(&"stat_armor").contains("+"), "armor has no upgrade")
-	sheet.open(_hero(3).id)
-	assert_string_contains(sheet.line(&"stat_healing"), "(+15%)", "healing gains the bonus")
-	assert_eq(sheet.bonus_colour(&"stat_healing"), Palette.color(&"green"))
+	sheet = _open(_hero(3).id)
+	assert_string_contains(sheet.line(&"stat_healing"), "+15% ", "healing gains the bonus")
+	assert_eq(_bonus_colour(sheet, &"stat_healing"), Palette.color(&"green"))
 
 
 # --- R5 ------------------------------------------------------------------------
 
 
 func _activity(hero: Hero) -> String:
-	_sheet().open(hero.id)
+	var sheet: HeroWindow = _open(hero.id)
 	_hud.advance(0.016)
-	return _sheet().line(&"activity")
+	return sheet.line(&"activity")
 
 
 func test_r5_what_they_are_doing() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(_windows(), "the HUD has hero windows")
+	if _windows() == null:
 		return
 	for hero: Hero in _sim.party.heroes:
 		assert_eq(_activity(hero), "Walking", "%s walks at first" % hero.class_id)
@@ -371,12 +382,14 @@ func test_r5_what_they_are_doing() -> void:
 	assert_eq(_activity(_hero(1)), "Fighting %s" % monster, "fighting a named monster")
 	assert_eq(battle.combatant(cleric.id).target_id, knight.id, "the cleric aims at the knight")
 	assert_eq(_activity(cleric), "Healing Knight", "a healer healing an ally")
+	var sheet: HeroWindow = _windows().window_of(cleric.id)
 	assert_ne(sheet.line_colour(&"activity"), Palette.color(&"red"), "not in red")
 
 	var rogue: Combatant = battle.combatant(_hero(1).id)
 	rogue.health = 0
 	rogue.state = Combatant.State.DEAD
 	assert_eq(_activity(_hero(1)), "Down", "a hero fallen in the fight is down")
+	sheet = _windows().window_of(_hero(1).id)
 	assert_eq(sheet.line_colour(&"activity"), Palette.color(&"red"), "in red")
 
 	_sim.expedition.battle = null
@@ -387,6 +400,7 @@ func test_r5_what_they_are_doing() -> void:
 	_sim.expedition.state = Expedition.State.TRAVELLING
 	knight.health = 0
 	assert_eq(_activity(knight), "Down", "a dead hero is down")
+	sheet = _windows().window_of(knight.id)
 	assert_eq(sheet.line_colour(&"activity"), Palette.color(&"red"), "in red")
 	assert_eq(_activity(cleric), "Walking", "while the others walk")
 	_sim.expedition.state = Expedition.State.REVIVING
@@ -398,12 +412,11 @@ func test_r5_what_they_are_doing() -> void:
 
 
 func test_r6_follows_the_simulation() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(_windows(), "the HUD has hero windows")
+	if _windows() == null:
 		return
 	var hero: Hero = _hero(0)
-	sheet.open(hero.id)
+	var sheet: HeroWindow = _open(hero.id)
 	_hud.advance(0.016)
 	assert_eq(sheet.line(&"level"), "Level 1")
 	var damage: String = sheet.line(&"stat_damage")
@@ -421,7 +434,7 @@ func test_r6_follows_the_simulation() -> void:
 	_hud.advance(0.016)
 	assert_eq(
 		sheet.line(&"stat_damage"),
-		"Damage %d (+5%%)" % hero.combatant().damage,
+		"Damage %d +5%% Sharp Blades" % hero.combatant().damage,
 		"an upgrade shows without reopening"
 	)
 
@@ -433,17 +446,17 @@ func test_r6_follows_the_simulation() -> void:
 	if loaded == null:
 		return
 	var loaded_hud: Hud = _make_hud(loaded)
-	var loaded_sheet: HeroSheet = loaded_hud.hero_sheet
+	var loaded_sheet: HeroWindow
 	for saved: Hero in loaded.party.heroes:
-		loaded_sheet.open(saved.id)
+		loaded_sheet = _open(saved.id, loaded_hud)
 		loaded_hud.advance(0.016)
 		assert_eq(loaded_sheet.line(&"level"), "Level %d" % saved.level, "the saved level")
 		assert_eq(loaded_sheet.line(&"xp"), _expected_xp(saved), "the saved XP")
-	loaded_sheet.open(loaded.party.heroes[0].id)
+	loaded_sheet = _open(loaded.party.heroes[0].id, loaded_hud)
 	assert_eq(loaded_sheet.line(&"level"), "Level %d" % hero.level, "the knight's levels kept")
 	assert_eq(
 		loaded_sheet.line(&"stat_damage"),
-		"Damage %d (+5%%)" % loaded.party.heroes[0].combatant().damage,
+		"Damage %d +5%% Sharp Blades" % loaded.party.heroes[0].combatant().damage,
 		"and the upgrade"
 	)
 
@@ -459,9 +472,9 @@ func _collect_labels(node: Node, into: Array[Label]) -> void:
 
 
 func test_r7_it_fits() -> void:
-	var sheet: HeroSheet = _sheet()
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	var windows: HeroWindows = _windows()
+	assert_not_null(windows, "the HUD has hero windows")
+	if windows == null:
 		return
 	_sim.party.gold = 1_000_000
 	for i: int in 20:
@@ -470,37 +483,34 @@ func test_r7_it_fits() -> void:
 	_sim.step()
 	for hero: Hero in _sim.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(99))
-	var frames_top: float = SCREEN.y
-	for frame: HeroFrame in _hud.frames:
-		frames_top = minf(frames_top, frame.get_global_rect().position.y)
+	# Spec 060: the windows are on the UI layer, measured in its pixels.
+	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
+	var room := Vector2(_ui.room())
 	for hero: Hero in _sim.party.heroes:
-		sheet.open(hero.id)
+		var sheet: HeroWindow = _open(hero.id)
 		_hud.advance(0.5)
 		var rect: Rect2 = sheet.get_global_rect()
 		var what: String = "%s %s" % [hero.class_id, rect]
-		assert_gte(rect.position.y, TOP_BAND, "%s: below the top band" % what)
-		assert_lte(rect.end.y, frames_top - TICKER_STRIP, "%s: above the frames" % what)
+		assert_gte(rect.position.y, top_band, "%s: below the top band" % what)
+		assert_lte(rect.end.y, frames_top, "%s: above the frames" % what)
 		assert_gte(rect.position.x, 0.0, "%s: on screen" % what)
-		assert_lte(rect.end.x, SCREEN.x, "%s: on screen" % what)
-		for frame: HeroFrame in _hud.frames:
-			assert_false(rect.intersects(frame.get_global_rect()), "%s: off the frames" % what)
+		assert_lte(rect.end.x, room.x, "%s: on screen" % what)
 		var labels: Array[Label] = []
 		_collect_labels(sheet, labels)
 		var shown: Array[Label] = []
 		for label: Label in labels:
 			if label.is_visible_in_tree() and not label.text.is_empty():
 				shown.append(label)
-		assert_gt(shown.size(), 12, "%s: the sheet's text" % what)
+		assert_gt(shown.size(), 12, "%s: the window's text" % what)
 		for label: Label in shown:
 			var where: String = "%s %s %s" % [hero.class_id, label.text, label.get_global_rect()]
-			assert_true(rect.encloses(label.get_global_rect()), "%s inside the sheet" % where)
-			var font_size: int = label.get_theme_font_size(&"font_size")
-			assert_eq(font_size % PixelText.SIZE, 0, "%s: the pixel font at a whole size" % where)
+			assert_true(rect.encloses(label.get_global_rect()), "%s inside the window" % where)
 			for other: Label in shown:
 				if other != label and other.get_global_rect().intersects(label.get_global_rect()):
 					fail_test("%s overlaps %s" % [where, other.text])
-		if sheet.close_button != null:
-			assert_true(rect.encloses(sheet.close_button.get_global_rect()), "the close button")
+		assert_true(rect.encloses(sheet.close_button.get_global_rect()), "the close button")
+		sheet.close()
 
 
 # --- R8 ------------------------------------------------------------------------
@@ -510,19 +520,19 @@ func test_r8_keys() -> void:
 	var main: Main = MAIN_SCENE.instantiate()
 	add_child_autofree(main)
 	var hud: Hud = main.hud
-	var sheet: HeroSheet = hud.hero_sheet
-	assert_not_null(sheet, "the HUD has a hero sheet")
-	if sheet == null:
+	assert_not_null(hud.hero_windows, "the HUD has hero windows")
+	if hud.hero_windows == null:
 		return
 	var hero_id: int = main.simulation.party.heroes[1].id
-	sheet.open(hero_id)
+	hud.hero_windows.open(hero_id)
+	var sheet: HeroWindow = hud.hero_windows.window_of(hero_id)
 
 	var target: int = main.simulation.expedition.target_depth
 	_key(KEY_EQUAL)
 	assert_eq(hud.target_label.text, str(target + 1), "= raises the target")
 	_key(KEY_MINUS)
 	assert_eq(hud.target_label.text, str(target), "- lowers it")
-	assert_true(sheet.is_open(), "the sheet stays open")
+	assert_true(sheet.is_open(), "the window stays open")
 
 	var auto: bool = main.simulation.expedition.auto_push
 	_key(KEY_A)
@@ -540,9 +550,8 @@ func test_r8_keys() -> void:
 	assert_ne(main.sound.is_muted(), muted, "M mutes")
 	_key(KEY_M)
 	assert_eq(main.sound.is_muted(), muted, "and unmutes")
-	assert_true(sheet.is_open(), "the sheet is still open")
-	assert_eq(sheet.shown_hero_id(), hero_id, "on the same hero")
+	assert_true(sheet.is_open(), "the window is still open")
+	assert_eq(hud.hero_windows.front(), sheet, "the same hero's")
 
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U opens the shop")
-	assert_false(sheet.is_open(), "and closes the sheet")

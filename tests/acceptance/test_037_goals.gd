@@ -47,6 +47,9 @@ func _build_hud() -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
+	add_child_autofree(ui)
+	ui.setup(_sim, _hud, null)
 
 
 func _goals() -> Goals:
@@ -471,7 +474,7 @@ func test_r3_finished_goal() -> void:
 
 
 func test_r4_frames_point_at_themselves() -> void:
-	var sheet: HeroSheet = _hud.hero_sheet
+	var windows: HeroWindows = _hud.hero_windows
 	for frame: HeroFrame in _hud.frames:
 		assert_not_null(frame.marker, "frame %d has a marker" % frame.hero_id)
 		if frame.marker == null:
@@ -486,10 +489,10 @@ func test_r4_frames_point_at_themselves() -> void:
 	var frame: HeroFrame = _frame(hero)
 	_level(hero, Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1, true)
 	# The microskills learned on the way are seen first, so the marker is the point alone.
-	sheet.open(hero.id)
-	sheet.open_page(HeroSheet.Page.SKILLS)
+	var sheet: HeroWindow = windows.window_of(hero.id)
+	windows.open(hero.id, HeroWindow.Page.SKILLS)
 	_hud.advance(STEP)
-	sheet.open_page(HeroSheet.Page.STATS)
+	sheet.open_page(HeroWindow.Page.STATS)
 	sheet.close()
 	_hud.advance(STEP)
 	assert_true(frame.marker.is_visible_in_tree(), "a paragon point to spend")
@@ -500,10 +503,10 @@ func test_r4_frames_point_at_themselves() -> void:
 		frame.marker.get_global_rect().intersects(frame.level_label.get_global_rect()),
 		"not over the level"
 	)
-	# The same rule as the sheet's Talents tab.
-	sheet.open(hero.id)
+	# The same rule as the window's Talents tab.
+	windows.open(hero.id)
 	_hud.advance(STEP)
-	assert_eq(frame.marker.visible, sheet.page_marked(HeroSheet.Page.TALENTS), "as the tab")
+	assert_eq(frame.marker.visible, sheet.page_marked(HeroWindow.Page.TALENTS), "as the tab")
 	sheet.close()
 	hero.set_paragon_rank(TrainingDef.Stat.POWER, 1)
 	_hud.advance(STEP)
@@ -517,14 +520,14 @@ func test_r4_frames_point_at_themselves() -> void:
 	_level(hero, skill_level)
 	_hud.advance(STEP)
 	assert_true(frame.marker.visible, "a new microskill")
-	sheet.open(hero.id)
-	sheet.open_page(HeroSheet.Page.STATS)
+	sheet = windows.window_of(hero.id)
+	windows.open(hero.id, HeroWindow.Page.STATS)
 	_hud.advance(STEP)
-	assert_true(sheet.page_marked(HeroSheet.Page.SKILLS), "the Skills tab is marked")
+	assert_true(sheet.page_marked(HeroWindow.Page.SKILLS), "the Skills tab is marked")
 	assert_true(frame.marker.visible, "the frame too, until the Skills page is seen")
-	sheet.open_page(HeroSheet.Page.SKILLS)
+	sheet.open_page(HeroWindow.Page.SKILLS)
 	_hud.advance(STEP)
-	assert_false(sheet.page_marked(HeroSheet.Page.SKILLS), "seen on the sheet")
+	assert_false(sheet.page_marked(HeroWindow.Page.SKILLS), "seen on the window")
 	assert_false(frame.marker.visible, "and so cleared on the frame")
 	sheet.close()
 	_hud.advance(STEP)
@@ -660,22 +663,27 @@ func test_r6_out_of_the_way() -> void:
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	assert_false(_rect().intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
 
-	# Hidden while the hero sheet is open, back when it closes. (Spec 058: the journal is a window
-	# on the UI layer now, which floats over the goals and does not hide them.)
-	_hud.hero_sheet.open(hero.id)
+	# Hidden while the tally is open, back when it closes. (Spec 058: the journal is a window on
+	# the UI layer now, and spec 060 the hero sheet, which float over the goals and do not hide
+	# them.)
+	_hud.hero_windows.open(hero.id)
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "hidden under the hero sheet")
+	assert_true(goals.is_shown(), "a hero window floats over the goals")
+	_hud.hero_windows.close_all()
+	_hud.tally.open()
+	_hud.advance(STEP)
+	assert_false(goals.is_shown(), "hidden under the tally")
 	assert_false(goals.is_visible_in_tree(), "not drawn")
-	_hud.hero_sheet.close()
+	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "back when the sheet closes")
-	# Hidden by G, it stays hidden after the sheet.
+	assert_true(goals.is_shown(), "back when the tally closes")
+	# Hidden by G, it stays hidden after the tally.
 	_key(KEY_G)
-	_hud.hero_sheet.open(hero.id)
+	_hud.tally.open()
 	_hud.advance(STEP)
-	_hud.hero_sheet.close()
+	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "hidden by G stays hidden after the sheet closes")
+	assert_false(goals.is_shown(), "hidden by G stays hidden after the tally closes")
 	_key(KEY_G)
 	_hud.advance(STEP)
 

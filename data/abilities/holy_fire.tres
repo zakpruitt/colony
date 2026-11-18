@@ -24,6 +24,7 @@ id = &"holy_fire"
 display_name = "Holy Fire"
 description = "Strikes an enemy for 1.5x damage and sets it burning for 4 s. Every 6 s."
 move = &"cast"
+picture = &"light"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 6.0

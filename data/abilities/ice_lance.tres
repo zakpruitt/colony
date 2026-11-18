@@ -23,6 +23,7 @@ id = &"ice_lance"
 display_name = "Ice Lance"
 description = "Hits the weakest enemy for 2x damage and stuns it for 1 s. Every 9 s."
 move = &"cast"
+picture = &"frost"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 9.0

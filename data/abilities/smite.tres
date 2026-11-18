@@ -23,6 +23,7 @@ id = &"smite"
 display_name = "Smite"
 description = "Strikes an enemy for 2x damage and weakens it (30% less damage) for 4 s. Every 8 s."
 move = &"heavy_swing"
+picture = &"light"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 8.0

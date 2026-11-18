@@ -8,10 +8,10 @@ extends HudPanel
 ## Spec 037 R4: a [ShopMarker] inside the frame's top-right corner (clear of the ticker's strip
 ## above), with the level moved left of it, counts what the hero has for the player to do: its
 ## unspent talent and paragon points (spec 051, spec 055), and the microskills learned since the
-## hero's Skills page was last open. It follows the same rules as the hero sheet's tab markers
+## hero's Skills page was last open. It follows the same rules as the hero window's tab tags
 ## (spec 034).
 
-## Clicking the frame opens or closes this hero's sheet (spec 026).
+## Clicking the frame opens or closes this hero's window (spec 026, spec 060).
 signal clicked(hero_id: int)
 
 const SIZE: Vector2 = Vector2(142, 34)
@@ -48,7 +48,7 @@ var name_label: Label
 var level_label: Label
 ## True while the party is being revived after a wipe: set by the HUD before [method refresh].
 var recovering: bool = false
-## True while this hero's sheet is open (spec 026): the frame's edge is drawn in yellow.
+## True while this hero's window is open (spec 026, spec 060): the frame's edge is drawn in yellow.
 var marked: bool = false
 ## The hero's fighter in the battle under way, or null outside a fight: set by the HUD before
 ## [method refresh] (spec 030 R1).
@@ -62,6 +62,8 @@ var marker: ShopMarker
 var status_icons: StatusIcons
 
 var _hud: Hud
+## The hero, as last refreshed.
+var _hero: Hero
 var _class_id: StringName
 var _icon_part: StringName = &""
 var _dead: bool = false
@@ -71,7 +73,7 @@ var _level: int = 0
 var _health: EasedValue = EasedValue.new(EASE_SECONDS)
 var _xp: EasedValue = EasedValue.new(EASE_SECONDS)
 ## How many microskills the hero had when their Skills page was last open (or when the frame was
-## made), as the hero sheet counts them.
+## made), as the hero window counts them.
 var _skills_seen: int = 0
 
 
@@ -79,6 +81,7 @@ var _skills_seen: int = 0
 func _init(hero: Hero, hud: Hud) -> void:
 	super()
 	hero_id = hero.id
+	_hero = hero
 	_hud = hud
 	_class_id = hero.class_id
 	name = "Frame%d" % hero.id
@@ -127,6 +130,7 @@ static func xp_progress(hero: Hero) -> float:
 ## Brings the frame up to date with [param hero] and advances its animations by [param delta].
 ## During a fight the health and death are [member fighter]'s (spec 030 R1), else the hero's own.
 func refresh(hero: Hero, delta: float) -> void:
+	_hero = hero
 	_flash = maxf(_flash - delta, 0.0)
 	_pulse = maxf(_pulse - delta, 0.0)
 	var health: float = _health_fraction(hero)
@@ -192,7 +196,7 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
-## Makes the frame clickable, and edges it in yellow while [member marked] (the hero's sheet is
+## Makes the frame clickable, and edges it in yellow while [member marked] (the hero's window is
 ## open); a hit's flash still shows. Called by [method refresh].
 func _apply_mark() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -203,15 +207,15 @@ func _apply_mark() -> void:
 
 
 ## Brings [member marker] up to date with [param hero] (marking the microskills its open Skills
-## page shows as seen, as the sheet does), pins it in the top-right corner and runs its pulse on by
+## tab shows as seen, as the window does), pins it in the top-right corner and runs its pulse on by
 ## [param delta] seconds.
 func _refresh_marker(hero: Hero, delta: float) -> void:
 	var learned: int = hero.microskills().size()
-	var sheet: HeroSheet = _hud.hero_sheet if _hud != null else null
-	if sheet != null and sheet.shown_hero_id() == hero_id:
-		if sheet.page() == HeroSheet.Page.SKILLS:
-			_skills_seen = learned
-	marker.count = HeroSheet.unspent(hero) + maxi(learned - _skills_seen, 0)
+	var windows: HeroWindows = _hud.hero_windows if _hud != null else null
+	var shown: HeroWindow = windows.window_of(hero_id) if windows != null else null
+	if shown != null and shown.is_open() and shown.page() == HeroWindow.Page.SKILLS:
+		_skills_seen = learned
+	marker.count = HeroWindow.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
 	marker.position = Vector2(HEALTH_BAR.end.x - marker.size.x, MARKER_Y)
@@ -227,14 +231,12 @@ func _refresh_statuses() -> void:
 	status_icons.position = Vector2(name_label.position.x + name_label.size.x + 3.0, TEXT_Y + 1.0)
 
 
-## The frame's tooltip, as [method TalentTab.frame_tip] builds it: the class and its path (spec
+## The frame's tooltip, as [method HeroWindows.frame_tip] builds it: the class and its path (spec
 ## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
 func tip() -> String:
 	var tally: TallyPanel = _hud.tally if _hud != null else null
 	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
-	if _hud == null or _hud.hero_sheet == null:
-		return CLICK_TIP if line.is_empty() else "%s. %s" % [line, CLICK_TIP]
-	return _hud.hero_sheet.talents.frame_tip(hero_id, line)
+	return HeroWindows.frame_tip(_hero, line)
 
 
 ## The hero was hit: flash the frame for an instant.

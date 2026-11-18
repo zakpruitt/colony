@@ -28,15 +28,12 @@ const MICROSKILLS: Array = [
 	[&"mage", "Runereader", 4, "Reads old runes"],
 	[&"rogue", "Trapspotter", 6, "Sees a trap before it sees you"],
 ]
-const SCREEN: Vector2 = Vector2(640, 360)
-const TOP_BAND: float = 28.0
-## Pixels kept clear just above the party frames (spec 027's ticker).
-const TICKER_STRIP: float = 12.0
 
 var _sim: Simulation
 var _world: World
 var _effects: CombatEffects
 var _hud: Hud
+var _ui: UiRoot
 var _sound: SoundPlayer
 ## Where [method _before_quest] put the party: Vector2i(depth, chamber index).
 var _quest_at: Vector2i = Vector2i(0, -1)
@@ -97,6 +94,11 @@ func _show(simulation: Simulation) -> void:
 	add_child_autofree(_hud)
 	_hud.set_process(false)
 	_hud.setup(simulation, _world, _effects)
+	# Spec 060: the hero windows live on the UI layer, which gives them to the HUD.
+	_ui = UiRoot.new()
+	add_child_autofree(_ui)
+	_ui.set_room_for_test(Vector2i(1280, 720))
+	_ui.setup(simulation, _hud, null)
 	_sound = SoundPlayer.new()
 	add_child_autofree(_sound)
 	_sound.set_process(false)
@@ -459,8 +461,10 @@ func test_r6_journal_and_status() -> void:
 func test_r7_sheet_lists_microskills() -> void:
 	var sim := Simulation.new(28)
 	_show(sim)
-	var sheet: HeroSheet = _hud.hero_sheet
-	sheet.open_page(HeroSheet.Page.SKILLS)  # spec 034: the microskills are on the Skills tab
+	# Spec 060: each hero's sheet is its own window; spec 034: the microskills are on Skills.
+	for hero: Hero in sim.party.heroes:
+		_hud.hero_windows.window_of(hero.id).open_page(HeroWindow.Page.SKILLS)
+	var sheet: HeroWindow
 	var ids: Dictionary[StringName, int] = {
 		&"knight": KNIGHT, &"rogue": ROGUE, &"mage": MAGE, &"cleric": CLERIC
 	}
@@ -471,7 +475,7 @@ func test_r7_sheet_lists_microskills() -> void:
 		var description: String = row[3]
 		var hero: Hero = sim.party.hero(ids[class_id])
 		_set_level(hero, level - 1)
-		sheet.open(hero.id)
+		sheet = _open(hero.id)
 		_hud.advance(0.0)
 		var text: String = sheet.line(&"microskills")
 		var upcoming: String = "%s, level %d" % [skill, level]
@@ -496,26 +500,25 @@ func test_r7_sheet_lists_microskills() -> void:
 			assert_eq(white, Palette.color(&"white"), "%s: white once learned" % skill)
 	# Rogue at level 2: one of each, in the class's order.
 	_set_level(sim.party.hero(ROGUE), 2)
-	sheet.open(ROGUE)
+	sheet = _open(ROGUE)
 	_hud.advance(0.0)
 	assert_eq(
 		sheet.line(&"microskills"), "Lockpicker: Opens locks\nTrapspotter, level 6", "the rogue's"
 	)
 
-	# It still fits, for every hero, at every level.
-	var frames_top: float = SCREEN.y
-	for frame: HeroFrame in _hud.frames:
-		frames_top = minf(frames_top, frame.get_global_rect().position.y)
+	# It still fits, for every hero, at every level (spec 060: on the UI layer, in its pixels).
+	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
 	for level: int in [1, 6]:
 		for hero: Hero in sim.party.heroes:
 			_set_level(hero, level)
-			sheet.open(hero.id)
+			sheet = _open(hero.id)
 			_hud.advance(0.5)
 			var rect: Rect2 = sheet.get_global_rect()
 			var what: String = "%s level %d %s" % [hero.class_id, level, rect]
-			assert_gte(rect.position.y, TOP_BAND, "%s: below the top band" % what)
-			assert_lte(rect.end.y, frames_top - TICKER_STRIP, "%s: above the frames" % what)
-			assert_lte(rect.end.x, SCREEN.x, "%s: on screen" % what)
+			assert_gte(rect.position.y, top_band, "%s: below the top band" % what)
+			assert_lte(rect.end.y, frames_top, "%s: above the frames" % what)
+			assert_lte(rect.end.x, float(_ui.room().x), "%s: on screen" % what)
 			var shown: Array[Label] = []
 			_collect_labels(sheet, shown)
 			for label: Label in shown:
@@ -527,9 +530,16 @@ func test_r7_sheet_lists_microskills() -> void:
 						and other.get_global_rect().intersects(label.get_global_rect())
 					):
 						fail_test("%s overlaps '%s'" % [where, other.text])
+			sheet.close()
 
 
-func _row(sheet: HeroSheet, skill: String) -> Label:
+## Hero [param hero_id]'s window, opened and in front.
+func _open(hero_id: int) -> HeroWindow:
+	_hud.hero_windows.open(hero_id)
+	return _hud.hero_windows.window_of(hero_id)
+
+
+func _row(sheet: HeroWindow, skill: String) -> Label:
 	var shown: Array[Label] = []
 	_collect_labels(sheet, shown)
 	for label: Label in shown:

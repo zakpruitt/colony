@@ -47,9 +47,21 @@ The picture is drawn in two layers, each in its own pixels.
   file under `windows`, beside the sound setting, never in the save; an undragged window takes its default
   place for the current room, and a dragged one is moved wholly back in when the room shrinks. Windows
   saved open wait until the away report has gone (`UiWindows.open_waiting`). `UiButtonBar` holds a button
-  per window. Help, the journal and the orders are windows; the other panels move over spec by spec.
-  Until they do, `Hud` closes any window over an old panel as that opens, and `HudTooltip` and
-  `DefeatNote` treat a point on a window or the bar as nowhere (`UiWindows.covers`).
+  per window. Help, the journal, the orders and the hero windows are windows; the other panels move over
+  spec by spec. Until they do, `Hud` closes any window over an old panel (the shop, the tally, the area
+  map) as that opens, and `HudTooltip` and `DefeatNote` treat a point on a window or the bar as nowhere
+  (`UiWindows.covers`). A window with `on_bar` false (a hero window) has no button on the bar.
+- **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
+  `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
+  party. All four are as tall as the tallest needs, so lines line up across them; their default places
+  stand side by side in two columns at 1280x720 and cascade at 960x540 (`place_defaults`). The `Hud`
+  routes keys to the front one (`HeroWindows.front()`): Tab, Shift+Tab, Q and E (after the tally) and 1 to 3
+  on its Talents tab (after the shop). A window lays itself out by hand in 13-pixel lines (`WindowText`),
+  sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
+  its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
+  `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A
+  node's picture is its ability's `AbilityDef.picture` (one of `AbilityDef.PICTURES`, a view hint the
+  data check validates and the state hash leaves out), drawn from `assets/sprites/ui/talent_icons.png`.
 
 ## Time
 

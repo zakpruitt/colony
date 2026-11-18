@@ -71,11 +71,12 @@ func _delete_files() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _key(keycode: Key) -> void:
+func _key(keycode: Key, shift: bool = false) -> void:
 	for pressed: bool in [true, false]:
 		var event := InputEventKey.new()
 		event.keycode = keycode
 		event.physical_keycode = keycode
+		event.shift_pressed = shift
 		event.pressed = pressed
 		get_viewport().push_input(event)
 
@@ -248,16 +249,16 @@ func test_r2_help_panel() -> void:
 		var row: String = "%s  %s" % [entry[0], entry[1]]
 		assert_has(lines, row, "the panel lists %s" % row)
 
-	# Help stays open beside the shop, the hero sheet and the journal.
+	# Help stays open beside the shop, a hero window (spec 060) and the journal.
 	_key(KEY_H)
 	_key(KEY_U)
 	assert_true(main.hud.shop.is_open(), "the shop opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 	main.hud.shop.close()
 	_key(KEY_TAB)
-	assert_true(main.hud.hero_sheet.is_open(), "the sheet opens")
+	assert_true(main.hud.hero_windows.is_open(), "a hero window opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
-	main.hud.hero_sheet.close()
+	main.hud.hero_windows.close_all()
 	_key(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
@@ -350,28 +351,33 @@ func _check_entry(main: Main, label: String) -> void:
 				hud.shop.close()
 			"1-3":
 				var hero: Hero = sim.party.heroes[0]
-				hud.hero_sheet.open(hero.id)
-				hud.hero_sheet.open_page(HeroSheet.Page.TALENTS)  # spec 034
+				hud.hero_windows.open(hero.id, HeroWindow.Page.TALENTS)  # spec 034, spec 060
 				# Spec 051: a row spends a paragon point, which levels past 14 bring.
 				hero.gain_xp(Hero.xp_for_level(40) - hero.xp)
-				var training: StringName = hud.hero_sheet.talents.paragon_cells[code - KEY_1].id
+				var tab: HeroTalentsTab = hud.hero_windows.window_of(hero.id).talents
+				var cells: Array[ParagonCell] = tab.paragon_cells
+				var training: StringName = cells[code - KEY_1].id
 				var stat: TrainingDef.Stat = Content.training(training).stat
 				var trained: int = hero.paragon_rank(stat)
 				_key(code)
 				sim.step()
 				assert_gt(hero.paragon_rank(stat), trained, "%s trains %s" % [what, training])
-				hud.hero_sheet.close()
+				hud.hero_windows.close_all()
 			"Q E":
-				hud.hero_sheet.open(sim.party.heroes[0].id)
-				var page: HeroSheet.Page = hud.hero_sheet.page()
+				hud.hero_windows.open(sim.party.heroes[0].id)
+				var page: HeroWindow.Page = hud.hero_windows.front().page()
 				_key(code)
-				assert_ne(hud.hero_sheet.page(), page, "%s changes the hero sheet's page" % what)
-				hud.hero_sheet.close()
+				assert_ne(hud.hero_windows.front().page(), page, "%s changes the front tab" % what)
+				hud.hero_windows.close_all()
 			"Tab":
-				var shown: int = hud.hero_sheet.shown_hero_id()
+				var front: HeroWindow = hud.hero_windows.front()
 				_key(code)
-				assert_ne(hud.hero_sheet.shown_hero_id(), shown, "%s moves the sheet" % what)
-				hud.hero_sheet.close()
+				assert_ne(hud.hero_windows.front(), front, "%s opens the next hero window" % what)
+				hud.hero_windows.close_all()
+			"Shift+Tab":
+				hud.hero_windows.open(sim.party.heroes[0].id)
+				_key(code, true)
+				assert_false(hud.hero_windows.is_open(), "%s closes the front hero window" % what)
 			"J":
 				var open: bool = windows.is_open(UiRoot.JOURNAL)
 				_key(code)

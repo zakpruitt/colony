@@ -120,6 +120,9 @@ func _make_hud(simulation: Simulation) -> Hud:
 	add_child_autofree(made)
 	made.set_process(false)
 	made.setup(simulation, world, effects)
+	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
+	add_child_autofree(ui)
+	ui.setup(simulation, made, null)
 	made.advance(0.0)
 	return made
 
@@ -142,17 +145,19 @@ func test_r2_sheet_is_right_at_once() -> void:
 	if frame == null:
 		return
 	assert_almost_eq(frame.shown_xp(), fraction, 0.001, "the frame's bar from the first frame")
-	hud.hero_sheet.open(knight.id)
+	hud.hero_windows.open(knight.id)
 	hud.advance(0.016)
+	var sheet: HeroWindow = hud.hero_windows.window_of(knight.id)
 	var expected: String = "%d / %d XP, %d to level 6" % [into, span, Hero.xp_for_level(6) - OLD_XP]
-	assert_eq(hud.hero_sheet.line(&"xp"), expected, "the sheet's XP line on the first frame")
-	assert_eq(hud.hero_sheet.line(&"level"), "Level 5", "and its level")
-	assert_almost_eq(hud.hero_sheet.bar_fraction(&"xp"), fraction, 0.001, "and its bar")
+	assert_eq(sheet.line(&"xp"), expected, "the window's XP line on the first frame")
+	assert_eq(sheet.line(&"level"), "Level 5", "and its level")
+	assert_almost_eq(sheet.bar_fraction(&"xp"), fraction, 0.001, "and its bar")
 	assert_almost_eq(frame.shown_xp(), fraction, 0.001, "the frame's bar still")
 	for hero: Hero in sim.party.heroes:
-		hud.hero_sheet.open(hero.id)
+		hud.hero_windows.open(hero.id)
 		hud.advance(0.016)
-		assert_false(hud.hero_sheet.line(&"xp").contains("-"), "%s: no negative" % hero.class_id)
+		var line: String = hud.hero_windows.window_of(hero.id).line(&"xp")
+		assert_false(line.contains("-"), "%s: no negative" % hero.class_id)
 
 
 # --- R3 ------------------------------------------------------------------------

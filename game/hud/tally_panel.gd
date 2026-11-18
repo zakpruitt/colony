@@ -13,7 +13,7 @@ extends Control
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
 ## HUD is made: after time away the HUD is made only once the replay is over (spec 019), so the
 ## time away adds nothing. [kbd]T[/kbd] or the HUD's button opens and closes it, [kbd]Esc[/kbd]
-## closes it; opening it closes the shop, the hero sheet and the away report, and it closes itself
+## closes it; opening it closes the shop and the away report, and it closes itself
 ## when one of those opens ([method advance]). It never pauses
 ## the game and changes nothing in the simulation. Drawn as a [HudPanel] is.
 ##
@@ -22,8 +22,8 @@ extends Control
 ## 412", "Strikes 950", "Bleeding 88"), largest first. Clicking the line again closes it. The
 ## tally's [StatusBook] also gives the hero frames their statuses (R5, [method status_line]).
 
-## The panel's size in pixels (spec 045 R7: no larger than the hero sheet).
-const SIZE: Vector2 = HeroSheet.SIZE
+## The panel's size in pixels (spec 045 R7: no larger than the old hero sheet, 240x150).
+const SIZE: Vector2 = Vector2(240, 150)
 ## Space inside the border.
 const PADDING: float = 4.0
 ## The left and right edges of the content.
@@ -132,7 +132,7 @@ func _init() -> void:
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	size = SIZE
-	position = Vector2(Hud.MARGIN, Hud.TOP_BAND + HeroSheet.DROP)
+	position = Vector2(Hud.MARGIN, Hud.TOP_BAND + 2.0)
 
 
 func _draw() -> void:
@@ -217,15 +217,13 @@ func advance(delta: float) -> void:
 	queue_redraw()
 
 
-## Shows the panel, closing the shop, the hero sheet and the "While you were away" panel if any
+## Shows the panel, closing the shop and the "While you were away" panel if any
 ## is up.
 func open() -> void:
 	var hud: Hud = get_parent() as Hud
 	if hud != null:
 		if hud.shop != null:
 			hud.shop.close()
-		if hud.hero_sheet != null:
-			hud.hero_sheet.close()
 		var layer: Node = hud.get_parent()
 		if layer != null:
 			for child: Node in layer.get_children():
@@ -657,9 +655,7 @@ func _another_is_open() -> bool:
 	var hud: Hud = get_parent() as Hud
 	if hud == null:
 		return false
-	var shop: bool = hud.shop != null and hud.shop.is_open()
-	var sheet: bool = hud.hero_sheet != null and hud.hero_sheet.is_open()
-	return shop or sheet
+	return hud.shop != null and hud.shop.is_open()
 
 
 func _label(text: String, colour: StringName, at: Vector2) -> Label:

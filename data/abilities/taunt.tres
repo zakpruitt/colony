@@ -17,6 +17,7 @@ id = &"taunt"
 display_name = "Taunt"
 description = "With two enemies or more, makes those that can reach the knight strike it for 4 s. Every 12 s."
 move = &"shout"
+picture = &"rally"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 12.0

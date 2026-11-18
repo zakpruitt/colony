@@ -56,9 +56,9 @@ func setup(ui: UiRoot, windows: UiWindows) -> void:
 ## Makes a button for each window there is, then lays the bar out.
 func rebuild() -> void:
 	for id: StringName in _windows.ids():
-		if buttons.has(id):
-			continue
 		var shown: UiWindow = _windows.window(id)
+		if buttons.has(id) or not shown.on_bar:
+			continue
 		var button := UiButton.new()
 		button.name = "Button_%s" % id
 		button.icon = shown.icon

@@ -102,8 +102,14 @@ var shop_marker: ShopMarker
 var boss_bar: BossBar
 ## The last happenings, the ticker over the party frames and the J panel (spec 027).
 var journal: Journal
-## The sheet of one hero (spec 026), opened by clicking its frame or with Tab.
-var hero_sheet: HeroSheet
+## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
+## when there is no UI layer (a HUD on its own in a test). Set by [method UiRoot.setup].
+var hero_windows: HeroWindows:
+	set(value):
+		hero_windows = value
+		if value != null:
+			value.changed.connect(_mark_frames)
+			_mark_frames()
 ## The whole descent as a ladder of depths down the right edge (spec 033); L hides it.
 var ladder: DepthLadder
 ## The next few things within reach, under the depth panel (spec 037); G hides it.
@@ -168,39 +174,46 @@ func _unhandled_input(event: InputEvent) -> void:
 		KEY_U:
 			_toggle_shop()
 		KEY_ESCAPE:
-			if not shop.is_open() and not hero_sheet.is_open():
+			if not shop.is_open():
 				return
 			shop.close()
-			hero_sheet.close()
 		KEY_TAB:
-			hero_sheet.open_next()
+			# Spec 060: the next hero's window to the front, or Shift+Tab closes the front one.
+			if hero_windows == null:
+				return
+			if key.shift_pressed:
+				hero_windows.close_front()
+			else:
+				hero_windows.open_next()
 		KEY_B:
 			if not shop.is_open():
 				return
 			shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop and the hero sheet are never open together (spec 029); the sheet spends
-			# paragon points only on its Talents page (spec 034, spec 055).
-			var training: bool = hero_sheet.page() == HeroSheet.Page.TALENTS
+			# The shop first; else the front hero window spends paragon points, on its Talents tab
+			# only (spec 034, spec 055, spec 060).
+			var front: HeroWindow = hero_windows.front() if hero_windows != null else null
+			var training: bool = front != null and front.page() == HeroWindow.Page.TALENTS
 			if shop.is_open():
 				shop.buy_row(key.keycode - KEY_1)
-			elif hero_sheet.is_open() and training and key.keycode <= KEY_3:
-				hero_sheet.train_row(key.keycode - KEY_1)
+			elif training and key.keycode <= KEY_3:
+				front.train_row(key.keycode - KEY_1)
 			else:
 				return
 		KEY_Q, KEY_E:
-			# The hero sheet's previous and next page, while it is open (spec 034), or the tally's
-			# previous and next measure (spec 045); the two are never open together.
+			# The tally's previous and next measure while it is open (spec 045), else the front
+			# hero window's previous and next tab (spec 034, spec 060).
+			var shown: HeroWindow = hero_windows.front() if hero_windows != null else null
 			if tally.is_open():
 				if key.keycode == KEY_Q:
 					tally.previous_measure()
 				else:
 					tally.next_measure()
-			elif hero_sheet.is_open():
+			elif shown != null:
 				if key.keycode == KEY_Q:
-					hero_sheet.previous_page()
+					shown.previous_page()
 				else:
-					hero_sheet.next_page()
+					shown.next_page()
 			else:
 				return
 		_:
@@ -221,7 +234,8 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_build_depth()
 	_build_gold()
 	_build_shop()
-	_build_sheet()
+	for frame: HeroFrame in frames:  # spec 060: a click opens or closes the hero's window
+		frame.clicked.connect(_on_frame_clicked)
 	_adopt_clock()
 	boss_bar = BossBar.new()
 	add_child(boss_bar)
@@ -273,7 +287,8 @@ func advance(delta: float) -> void:
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
-	hero_sheet.advance(delta)
+	if hero_windows != null:
+		hero_windows.advance(delta)
 	boss_bar.advance(delta)
 	journal.advance(delta)
 	ladder.advance(delta)
@@ -287,12 +302,12 @@ func advance(delta: float) -> void:
 
 
 ## Closes every UI-layer window over an old panel that has just opened (spec 058), keeping the
-## window's place: the hero sheet, the shop, the tally, the area map or the away report. Until
-## specs 059 to 061 move those panels onto the UI layer, they would open hidden under a window.
+## window's place: the shop, the tally, the area map or the away report. Until specs 059 and 061
+## move those panels onto the UI layer, they would open hidden under a window.
 func _make_room_for_panels() -> void:
 	var shown: Array[Control] = []
 	var layer: Node = get_parent()
-	var panels: Array[Node] = [hero_sheet, shop, tally, area_map]
+	var panels: Array[Node] = [shop, tally, area_map]
 	if layer != null:
 		panels.append_array(
 			layer.get_children().filter(func(n: Node) -> bool: return n is AwayPanel)
@@ -531,15 +546,10 @@ func show_speed(value: int) -> void:
 	speed_button.lit = value > 1
 
 
-## The hero sheet (spec 026): a frame's click opens or closes it, and the open hero's frame is
-## marked.
-func _build_sheet() -> void:
-	hero_sheet = HeroSheet.new()
-	add_child(hero_sheet)
-	hero_sheet.setup(_simulation, _world)
-	hero_sheet.shown_changed.connect(_mark_frames)
-	for frame: HeroFrame in frames:
-		frame.clicked.connect(hero_sheet.toggle)
+## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).
+func _on_frame_clicked(hero_id: int) -> void:
+	if hero_windows != null:
+		hero_windows.toggle(hero_id)
 
 
 ## The depth ladder (spec 033): it hides itself on L and while the shop is open; a click on a
@@ -562,7 +572,6 @@ func _build_tooltip() -> void:
 	tooltip = HudTooltip.new()
 	add_child(tooltip)
 	tooltip.setup(self)
-	hero_sheet.talents.add_tips(tooltip)  # spec 055 R11
 
 
 ## The party tally (spec 045): its panel, and its button beside the party frames, left of the first,
@@ -627,7 +636,7 @@ func _mark_frames() -> void:
 	for hero: Hero in _simulation.party.heroes:
 		var frame: HeroFrame = _frames_by_id.get(hero.id, null)
 		if frame != null:
-			frame.marked = hero.id == hero_sheet.shown_hero_id()
+			frame.marked = hero_windows != null and hero_windows.is_open(hero.id)
 			frame.refresh(hero, 0.0)
 	_advance_shop(0.0)
 
@@ -885,6 +894,8 @@ func _advance_shop(delta: float) -> void:
 
 
 func _on_sim_event(event: SimEvent) -> void:
+	if event.kind == SimEvent.Kind.PARAGON_SPENT and hero_windows != null:
+		hero_windows.flash_paragon(event.source_id, event.target_id)
 	if event.kind == SimEvent.Kind.UPGRADE_BOUGHT:
 		# The purchase spent gold: the count drops to the real gold at once.
 		_shown_gold = _simulation.party.gold

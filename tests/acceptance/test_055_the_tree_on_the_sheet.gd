@@ -4,7 +4,9 @@ extends GutTest
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
 ## _process turned off, and drives the hero sheet's Talents tab with mouse moves and clicks pushed
 ## into the viewport, as the window sends them; the simulation is stepped after each command and
-## checked.
+## checked. Since spec 060 the sheet is a hero window on the UI layer ([HeroWindow]), so the HUD
+## has a [UiRoot] over it, laid out for a 1280x720 room; a click on one of its controls is pushed
+## at the world point under it ([method UiRoot.ui_to_world]).
 
 const SEED: int = 55
 const STEP: float = 1.0 / 60.0
@@ -14,17 +16,16 @@ const LIMIT_TICKS: int = 30_000
 const AWAY: Vector2 = Vector2(420, 200)
 const NOWHERE: Vector2 = Vector2(-1000, -1000)
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
-## Pixels kept clear just above the party frames (spec 027's ticker).
-const TICKER_STRIP: float = 12.0
+## The UI layer's room (spec 058): two hero windows side by side, clear of the frames' line.
+const ROOM: Vector2i = Vector2i(1280, 720)
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const GUARDIAN_DEPTH: int = 5
-## The pixel font's height of a line of capitals, for a name measured from its text.
-const NAME_HEIGHT: float = 7.0
 
 var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
 var _hud: Hud
+var _ui: UiRoot
 
 
 func before_each() -> void:
@@ -60,15 +61,38 @@ func _build_hud() -> void:
 	layer.add_child(_hud)
 	_hud.set_process(false)
 	_hud.setup(_sim, _world, _fx)
+	_ui = UiRoot.new()
+	add_child_autofree(_ui)
+	_ui.layer = 130  # over the HUD, as Main has it
+	_ui.setup(_sim, _hud, null)
+	_ui.set_room_for_test(ROOM)
 	_hud.advance(0.0)
 
 
-func _sheet() -> HeroSheet:
-	return _hud.hero_sheet
+## The front hero window (spec 060: the sheet is a window per hero), or null when none is open.
+func _sheet() -> HeroWindow:
+	return _hud.hero_windows.front()
 
 
-func _tab() -> TalentTab:
-	return _hud.hero_sheet.talents
+func _tab() -> HeroTalentsTab:
+	return _sheet().talents
+
+
+## The tooltip [param control] has on the UI layer (spec 058's tips, which the hero windows'
+## controls use), or "".
+func _tip_text(control: Control) -> String:
+	for found: Node in _ui.find_children("*", "", true, false):
+		var tip: UiTip = found as UiTip
+		if tip != null and not _tip_text(control).is_empty():
+			return _tip_text(control)
+	return ""
+
+
+## Where to push a mouse event for [param control]: its centre, turned into the world's screen
+## pixels when it is on the UI layer.
+func _at(control: Control) -> Vector2:
+	var centre: Vector2 = control.get_global_rect().get_center()
+	return _ui.ui_to_world(centre) if _ui.is_ancestor_of(control) else centre
 
 
 func _hero(class_id: StringName) -> Hero:
@@ -101,7 +125,8 @@ func _open_talents(hero: Hero) -> void:
 	for frame: HeroFrame in _hud.frames:
 		if frame.hero_id == hero.id:
 			_click_at(frame.get_global_rect().get_center())
-	_click_at(_sheet().tab_buttons[HeroSheet.Page.TALENTS].get_global_rect().get_center())
+	_hud.advance(STEP)
+	_click_at(_at(_sheet().tab_buttons[HeroWindow.Page.TALENTS]))
 	_hud.advance(STEP)
 
 
@@ -133,7 +158,7 @@ func _click_at(at: Vector2) -> void:
 
 
 func _click(control: Control) -> void:
-	_click_at(control.get_global_rect().get_center())
+	_click_at(_at(control))
 	_hud.advance(STEP)
 
 
@@ -142,11 +167,6 @@ func _click_node(ability_id: StringName) -> void:
 	assert_not_null(node, "%s is on the tab" % ability_id)
 	if node != null:
 		_click(node)
-
-
-func _point_at(control: Control) -> void:
-	_mouse(control.get_global_rect().get_center())
-	_hud.advance(STEP)
 
 
 func _state(ability_id: StringName) -> TalentNode.State:
@@ -205,17 +225,17 @@ func _controls(node: Node, into: Array[Control]) -> void:
 
 
 func test_r1_the_tree_is_drawn() -> void:
-	var sheet: HeroSheet = _sheet()
 	assert_eq(
-		HeroSheet.TAB_NAMES, ["Stats", "Talents", "Skills"] as Array[String], "Training is Talents"
+		HeroWindow.TAB_NAMES, ["Stats", "Talents", "Skills"] as Array[String], "Training is Talents"
 	)
-	assert_eq(sheet.tab_buttons[HeroSheet.Page.TALENTS].text, "Talents", "the tab's name")
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)
 		var tree: TalentTreeDef = _tree(class_id)
 		_open_talents(hero)
-		assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "%s: on the Talents tab" % class_id)
-		var view: TalentTab.TreeView = _tab().tree_view()
+		var sheet: HeroWindow = _sheet()
+		assert_eq(sheet.tab_buttons[HeroWindow.Page.TALENTS].text, "Talents", "the tab's name")
+		assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "%s: on the Talents tab" % class_id)
+		var view: TalentTreeView = _tab().tree_view()
 		assert_not_null(view, "%s: a tree" % class_id)
 		if view == null:
 			continue
@@ -256,10 +276,10 @@ func test_r1_the_tree_is_drawn() -> void:
 			var ability: AbilityDef = Content.ability(node.ability_id)
 			assert_eq(node.name_label.text, ability.display_name, "%s's name" % node.ability_id)
 			assert_not_null(node.icon.texture, "%s has a picture" % node.ability_id)
-			assert_eq(node.icon.size, Vector2(12, 12), "a 12x12 picture")
+			assert_eq(node.icon.size, Vector2(24, 24), "a 12x12 picture at twice its size")
 			assert_has(
 				["strike", "guard", "heal", "fire", "frost", "shadow", "light", "rally"],
-				String(TalentNode.kind_of(node.ability_id)),
+				String(Content.ability(node.ability_id).picture),
 				"%s's picture is one of the eight kinds" % node.ability_id
 			)
 		# Joined by lines: each node to the next in its order, the trunk to both paths.
@@ -281,13 +301,13 @@ func test_r1_the_tree_is_drawn() -> void:
 			for i: int in range(1, nodes.size()):
 				var key: String = "%s>%s" % [nodes[i - 1], nodes[i]]
 				assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
+		# Spec 060: a hero window keeps one size on every tab (it no longer grows for the tree).
+		var tall: Vector2 = sheet.size
+		sheet.open_page(HeroWindow.Page.STATS)
+		_hud.advance(STEP)
+		assert_eq(sheet.size, tall, "%s: Stats, the same size" % class_id)
 		sheet.close()
 		_hud.advance(STEP)
-	# The rest of the sheet's pages are unchanged in size.
-	sheet.open(_hero(&"knight").id)
-	sheet.open_page(HeroSheet.Page.STATS)
-	_hud.advance(STEP)
-	assert_eq(sheet.size, HeroSheet.SIZE, "Stats keeps spec 034's size")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -338,7 +358,7 @@ func test_r2_a_node_shows_its_state() -> void:
 				assert_eq(_state_name(closed.state()), "CLOSED", "%s: %s is closed" % [on, id])
 				assert_false(closed.icon.visible, "%s: dark, no picture" % on)
 				assert_eq(closed.frame_colour(), &"ink", "%s: dark" % on)
-			var view: TalentTab.TreeView = _tab().tree_view()
+			var view: TalentTreeView = _tab().tree_view()
 			assert_true(view.is_closed(1 - path), "%s: the other name struck through" % on)
 			var strike: ColorRect = view.path_labels[1 - path].get_node("Strike")
 			assert_true(strike.is_visible_in_tree(), "%s: a line through it" % on)
@@ -365,69 +385,56 @@ func test_r2_a_node_shows_its_state() -> void:
 func test_r3_every_ability_can_be_read() -> void:
 	var knight: Hero = _hero(&"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	var place: Rect2 = Rect2()
-	# Every node of all four trees, pointed at, tells its name, kind and whole description in the
-	# same place, the description inside its three lines.
+	# Every node of all four trees tells its name, kind and whole description. Spec 060 shows them
+	# beside each node without pointing, in place of spec 055's one place under the tree that told
+	# the node pointed at (test_060's R5 checks they are never cut).
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)
 		_level(hero, 1)
 		_open_talents(hero)
-		if place == Rect2():
-			place = _tab().info_name.get_global_rect()
 		var panel: Rect2 = _sheet().get_global_rect()
 		for node: TalentNode in _tab().tree_view().nodes():
 			var ability: AbilityDef = Content.ability(node.ability_id)
-			_point_at(node)
-			var lines: Array[String] = _tab().info_lines()
-			assert_gt(lines.size(), 1, "%s: told" % node.ability_id)
-			if lines.size() < 2:
-				continue
 			var kind: String = "Passive"
 			if ability.is_action():
-				kind = "Action, every %s s" % HeroSheet.tiles(ability.cooldown)
-			assert_eq(lines[0], "%s %s" % [ability.display_name, kind], "name and kind")
-			var description: String = ""
-			var used: int = 0
-			for label: Label in _tab().info_description:
-				if label.is_visible_in_tree() and not label.text.is_empty():
-					used += 1
-					description += (" " if not description.is_empty() else "") + label.text
-					var box: Rect2 = label.get_global_rect()
-					box.size.x = PixelText.width(label.text)
-					assert_true(panel.encloses(box), "%s: '%s' fits" % [ability.id, label.text])
-					assert_lte(box.size.x, TalentTab.WIDTH, "%s: a line in the width" % ability.id)
-			assert_lte(used, TalentTab.DESCRIPTION_LINES, "%s: three lines at most" % ability.id)
+				kind = "Action, every %s s" % HeroWindow.tiles(ability.cooldown)
+			assert_eq(node.name_label.text, ability.display_name, "%s: its name" % ability.id)
+			assert_eq(node.kind_label.text, kind, "%s: its kind" % ability.id)
+			var description: String = node.description_label.text.replace("\n", " ")
 			assert_eq(description, ability.description, "%s: all of its description" % ability.id)
-			assert_eq(_tab().info_name.get_global_rect().position, place.position, "a fixed place")
+			for label: Label in [node.name_label, node.kind_label, node.description_label]:
+				assert_true(label.is_visible_in_tree(), "%s: %s shows" % [ability.id, label.name])
+				var box: Rect2 = label.get_global_rect()
+				assert_true(panel.encloses(box), "%s: '%s' fits" % [ability.id, label.text])
 		_sheet().close()
 		_hud.advance(STEP)
-	_open_talents(knight)
-	# The mouse leaving the window points at nothing: the place goes back to the default node.
-	_point_at(_tab().node(tree.trunk[2]))
-	assert_true(_tab().info_lines()[0].begins_with("Bottle-top Block"), "pointed at")
-	_hud.propagate_notification(Node.NOTIFICATION_WM_MOUSE_EXIT)
-	_hud.advance(STEP)
-	assert_true(_tab().info_lines()[0].begins_with("Shield Bash"), "the mouse gone: the default")
 	assert_true(Content.ability(&"shield_bash").is_action(), "an action is told")
 	assert_false(Content.ability(&"bottle_top_block").is_action(), "and a passive")
-	# Why it cannot be taken.
-	_point_at(_tab().node(tree.trunk[0]))
-	assert_eq(_tab().info_reason.text, "No talent point", "the next node without a point")
+	# Why it cannot be taken: in the node's tooltip (spec 060 keeps the reasons there).
+	_open_talents(knight)
+	assert_eq(HeroTalentsTab.reason(knight, tree.trunk[0]), "No talent point", "without a point")
+	assert_string_contains(
+		_tip_text(_tab().node(tree.trunk[0])).to_lower(), "no talent point", "in its tooltip"
+	)
 	_level(knight, 2)
 	knight.set_talents([tree.trunk[0]] as Array[StringName])
 	_hud.advance(STEP)
-	_point_at(_tab().node(tree.trunk[2]))
-	assert_eq(_tab().info_reason.text, "Take Taunt first", "a node further on")
+	assert_eq(HeroTalentsTab.reason(knight, tree.trunk[2]), "Take Taunt first", "further on")
+	assert_string_contains(
+		_tip_text(_tab().node(tree.trunk[2])).to_lower(), "take taunt first", "in its tooltip"
+	)
 	_level(knight, 8)
 	knight.set_talents(_walked(&"knight", 1, 1))
 	_hud.advance(STEP)
-	_point_at(_tab().node(tree.path_a[1]))
-	assert_eq(_tab().info_reason.text, "The Guardian path is closed", "the other path")
-	# Selecting: a click on a node it cannot take tells it, after the mouse has gone.
-	_click_node(tree.path_a[2])
-	assert_eq(
-		_tab().info_lines()[0].begins_with("Bulwark"), true, "selected: %s" % [_tab().info_lines()]
+	var closed: String = HeroTalentsTab.reason(knight, tree.path_a[1])
+	assert_eq(closed, "The Guardian path is closed", "the other path")
+	assert_string_contains(
+		_tip_text(_tab().node(tree.path_a[1])).to_lower(), closed.to_lower(), "in its tooltip"
 	)
+	# A click on a node it cannot take takes nothing and asks nothing.
+	_click_node(tree.path_a[2])
+	_frame()
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "no question")
 	assert_eq(knight.talents(), _walked(&"knight", 1, 1), "and nothing is taken")
 
 
@@ -454,17 +461,21 @@ func test_r4_taking_a_node() -> void:
 	assert_eq(knight.talents(), tree.trunk, "not reachable: nothing")
 	# The first node of a path asks first, in the fixed place.
 	_click_node(tree.path_b[0])
-	assert_eq(_tab().asking(), TalentTab.Asking.PATH, "it asks")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.PATH, "it asks")
 	assert_eq(_tab().ask_label.text, "Choose Berserker? This closes Guardian.", "the question")
 	assert_eq(_tab().choose_button.text, "Choose")
 	assert_eq(_tab().not_yet_button.text, "Not yet")
 	assert_true(_tab().choose_button.is_visible_in_tree(), "Choose shows")
 	assert_true(_tab().not_yet_button.is_visible_in_tree(), "Not yet shows")
-	assert_eq(_tab().ask_label.position.y, TalentTab.INFO_Y + TalentTab.LINE, "in the fixed place")
+	# Spec 060: the question takes the top row, in place of the reset, above the tree.
+	assert_lt(
+		_tab().ask_label.position.y, _tab().tree_view().position.y, "in the top row, over the tree"
+	)
+	assert_false(_tab().reset_button.is_visible_in_tree(), "in the reset's place")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "asking sends nothing")
 	_click(_tab().not_yet_button)
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "Not yet: no question")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "Not yet: no question")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "Not yet sends nothing")
 	assert_eq(knight.path(), -1, "both paths open")
@@ -475,19 +486,19 @@ func test_r4_taking_a_node() -> void:
 	assert_eq(knight.path(), 1, "a Berserker")
 	# Further down the path, no question.
 	_click_node(tree.path_b[1])
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "no question further on")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "no question further on")
 	_frame()
 	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "taken at once")
 	# While the page is hidden its handlers do nothing, whatever reaches them.
 	_level(knight, 14)
 	_sim.party.gold = RICH
-	_click(_sheet().tab_buttons[HeroSheet.Page.STATS])
+	_click(_sheet().tab_buttons[HeroWindow.Page.STATS])
 	_tab().press_node(tree.path_b[2])
 	_tab().press_reset()
 	_tab().confirm()
 	_frame()
 	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "a hidden page takes nothing")
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "and asks nothing")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "and asks nothing")
 	assert_eq(_sim.party.gold, RICH, "and resets nothing")
 
 
@@ -497,24 +508,26 @@ func test_r4_taking_a_node() -> void:
 func test_r5_unspent_points_are_shown() -> void:
 	var knight: Hero = _hero(&"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	var sheet: HeroSheet = _sheet()
 	_level(knight, 4)
 	_open_talents(knight)
+	var sheet: HeroWindow = _sheet()
 	assert_eq(_tab().points_label.text, "2 talent points", "at the top of the tab")
 	assert_true(_tab().points_label.is_visible_in_tree(), "shown")
-	assert_lt(_tab().points_label.position.y, _tab().tree_view().trunk_nodes[0].position.y, "top")
-	var tab: Rect2 = sheet.tab_buttons[HeroSheet.Page.TALENTS].get_global_rect()
-	assert_true(sheet.talents_marker.is_visible_in_tree(), "on the tab's name")
-	assert_eq(sheet.talents_marker.count, 2, "two")
-	assert_true(sheet.talents_marker.get_global_rect().intersects(tab), "pinned to the tab")
+	var points_y: float = _tab().points_label.get_global_rect().position.y
+	var trunk_y: float = _tab().tree_view().trunk_nodes[0].get_global_rect().position.y
+	assert_lt(points_y, trunk_y, "at the top")
+	var tab: Rect2 = sheet.tab_buttons[HeroWindow.Page.TALENTS].get_global_rect()
+	assert_true(sheet.talents_tag.is_visible_in_tree(), "on the tab's name")
+	assert_eq(sheet.talents_tag.count, 2, "two")
+	assert_true(sheet.talents_tag.get_global_rect().intersects(tab), "pinned to the tab")
 	_click_node(tree.trunk[0])
 	_frame()
 	assert_eq(_tab().points_label.text, "1 talent point", "one")
-	assert_eq(sheet.talents_marker.count, 1, "the tab says one")
+	assert_eq(sheet.talents_tag.count, 1, "the tab says one")
 	_click_node(tree.trunk[1])
 	_frame()
 	assert_eq(_tab().points_label.text, "Next point at level 6", "none: when the next comes")
-	assert_false(sheet.talents_marker.is_visible_in_tree(), "no mark")
+	assert_false(sheet.talents_tag.is_visible_in_tree(), "no mark")
 	_level(knight, 5)
 	_hud.advance(STEP)
 	assert_eq(_tab().points_label.text, "Next point at level 6", "level 5")
@@ -529,10 +542,10 @@ func test_r5_unspent_points_are_shown() -> void:
 func test_r6_a_fresh_start() -> void:
 	var knight: Hero = _hero(&"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	var reset: HudButton = _tab().reset_button
 	_level(knight, 8)
 	_sim.party.gold = 0
 	_open_talents(knight)
+	var reset: UiButton = _tab().reset_button
 	assert_eq(reset.text, "Reset 800", "the price: 100 gold a level")
 	assert_true(reset.disabled, "nothing to reset: greyed")
 	assert_eq(_tab().reset_reason_label.text, "Nothing to reset", "with the reason")
@@ -549,7 +562,7 @@ func test_r6_a_fresh_start() -> void:
 	)
 	# It asks first.
 	_click(reset)
-	assert_eq(_tab().asking(), TalentTab.Asking.RESET, "it asks")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "it asks")
 	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "the question")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "asking resets nothing")
@@ -568,21 +581,21 @@ func test_r6_a_fresh_start() -> void:
 	knight.set_talents(tree.trunk)
 	_hud.advance(STEP)
 	_click(reset)
-	assert_eq(_tab().asking(), TalentTab.Asking.RESET, "asked again")
-	_click(_sheet().tab_buttons[HeroSheet.Page.STATS])
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "another tab: the question goes")
-	_click(_sheet().tab_buttons[HeroSheet.Page.TALENTS])
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "and does not come back")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked again")
+	_click(_sheet().tab_buttons[HeroWindow.Page.STATS])
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "another tab: the question goes")
+	_click(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "and does not come back")
 	_click(reset)
-	_sheet().close()
+	_hud.hero_windows.window_of(knight.id).close()
 	_hud.advance(STEP)
 	_open_talents(knight)
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "the sheet closed: gone")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "the sheet closed: gone")
 	_click(reset)
 	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "asked at 800")
 	_level(knight, 17)
 	_hud.advance(STEP)
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "a new price: the old question goes")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the old question goes")
 	_tab().confirm()
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "nothing reset at a price never read")
@@ -590,16 +603,16 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(reset.text, "Reset 1,700", "the new price shows")
 	# A path question goes with the tab too.
 	_click_node(tree.path_b[0])
-	assert_eq(_tab().asking(), TalentTab.Asking.PATH, "a path question")
-	_click(_sheet().tab_buttons[HeroSheet.Page.SKILLS])
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "another tab: it goes")
-	_click(_sheet().tab_buttons[HeroSheet.Page.TALENTS])
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.PATH, "a path question")
+	_click(_sheet().tab_buttons[HeroWindow.Page.SKILLS])
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "another tab: it goes")
+	_click(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
 	# In a fight: an open question goes when the fight starts.
 	_click(reset)
-	assert_eq(_tab().asking(), TalentTab.Asking.RESET, "asked before the fight")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked before the fight")
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a fight")
-	assert_eq(_tab().asking(), TalentTab.Asking.NOTHING, "the fight starts: the question goes")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "the fight starts: the question goes")
 	assert_true(reset.disabled, "in a fight: greyed")
 	assert_eq(_tab().reset_reason_label.text, "In a fight", "with the reason")
 
@@ -612,7 +625,7 @@ func test_r7_paragon() -> void:
 	_level(knight, 13)
 	_open_talents(knight)
 	assert_eq(_tab().paragon_label.text, "Paragon points come after level 14", "before then")
-	for cell: TalentTab.ParagonCell in _tab().paragon_cells:
+	for cell: ParagonCell in _tab().paragon_cells:
 		assert_false(cell.is_visible_in_tree(), "no stats before then")
 	_level(knight, 14)
 	_hud.advance(STEP)
@@ -624,14 +637,14 @@ func test_r7_paragon() -> void:
 	for node: TalentNode in _tab().tree_view().nodes():
 		tree_bottom = maxf(tree_bottom, node.get_global_rect().end.y)
 	var names: Array[String] = []
-	for cell: TalentTab.ParagonCell in _tab().paragon_cells:
+	for cell: ParagonCell in _tab().paragon_cells:
 		assert_true(cell.is_visible_in_tree(), "%s shows" % cell.id)
 		assert_gt(cell.get_global_rect().position.y, tree_bottom, "under the tree")
 		assert_eq(cell.buy_button.text, "+1", "a +1 each")
 		assert_false(cell.buy_button.disabled, "lit with a point")
 		names.append(cell.name_label.text)
 	assert_eq(names, ["Power", "Toughness", "Quickness"] as Array[String], "the three stats")
-	var power: TalentTab.ParagonCell = _tab().paragon_cells[0]
+	var power: ParagonCell = _tab().paragon_cells[0]
 	assert_eq(power.text(), "Power 0 +0%", "no bonus yet")
 	_click(power.buy_button)
 	_frame()
@@ -660,9 +673,9 @@ func test_r8_the_game_points_at_it() -> void:
 	assert_gte(row, 0, "a goal: %s" % [_hud.goals.lines()])
 	if row >= 0:
 		_click(_hud.goals.rows[row])
-		assert_true(_sheet().is_open(), "the goal opens the sheet")
-		assert_eq(_sheet().shown_hero_id(), knight.id, "the knight's")
-		assert_eq(_sheet().page(), HeroSheet.Page.TALENTS, "on its Talents tab")
+		assert_true(_hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
+		assert_eq(_sheet().hero_id, knight.id, "in front")
+		assert_eq(_sheet().page(), HeroWindow.Page.TALENTS, "on its Talents tab")
 	# A path chosen.
 	_level(knight, 8)
 	knight.set_talents(_tree(&"knight").trunk)
@@ -689,9 +702,10 @@ func test_r8_the_game_points_at_it() -> void:
 	assert_eq(offered[0], "Spend talent points", "first: %s" % [offered])
 	assert_has(offered, "Buy an upgrade", "then the rest")
 	_hud.defeat_note.press(0)
-	assert_true(_sheet().is_open(), "it opens a sheet")
-	assert_eq(_sheet().shown_hero_id(), knight.id, "of a hero with a point")
-	assert_eq(_sheet().page(), HeroSheet.Page.TALENTS, "on its Talents tab")
+	_hud.advance(STEP)
+	assert_true(_hud.hero_windows.is_open(), "it opens a hero window")
+	assert_eq(_sheet().hero_id, knight.id, "of a hero with a point")
+	assert_eq(_sheet().page(), HeroWindow.Page.TALENTS, "on its Talents tab")
 	_sheet().close()
 	_hud.advance(STEP)
 	# At a guardian, with talent points, a paragon point and gold: four things would help, and the
@@ -729,8 +743,7 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	_frame()
 	assert_eq(_sheet().line(&"class"), "Knight, Berserker", "at the top of the sheet")
 	assert_true(
-		_sheet().get_global_rect().encloses(_sheet()._values[&"class"].get_global_rect()),
-		"and it fits"
+		_sheet().get_global_rect().encloses(_sheet().class_label.get_global_rect()), "and it fits"
 	)
 	_sheet().close()
 	_hud.advance(STEP)
@@ -779,7 +792,7 @@ func test_r10_true_in_a_crowded_frame() -> void:
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "and the command")
 	# The end state, with no stale mark.
 	assert_eq(_tab().points_label.text, "1 talent point", "one left")
-	assert_eq(_sheet().talents_marker.count, 1, "the tab's mark says one")
+	assert_eq(_sheet().talents_tag.count, 1, "the tab's mark says one")
 	assert_eq(_state_name(_state(tree.trunk[0])), "TAKEN", "the node taken")
 	assert_eq(_state_name(_state(tree.trunk[1])), "AVAILABLE", "the next can be taken")
 	_sheet().close()
@@ -815,25 +828,26 @@ func test_r10_true_in_a_crowded_frame() -> void:
 
 
 func test_r11_it_fits_and_is_explained() -> void:
-	var sheet: HeroSheet = _sheet()
-	var screen := Rect2(Vector2.ZERO, Hud.SCREEN)
-	var frames_top: float = Hud.SCREEN.y - Hud.MARGIN - HeroFrame.SIZE.y
+	# Spec 060: the sheet is a hero window in UI pixels, inside the room and over the frames' line
+	# no more (test_060's R7 and R10 check every class, both rooms and the longest data).
+	var screen := Rect2(Vector2.ZERO, Vector2(_ui.room()))
+	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var frames_top: float = _ui.world_to_ui(Vector2(0, UiRoot.frames_top())).y
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)
 		_level(hero, 17)
 		_sim.party.gold = RICH
 		hero.set_talents(_walked(class_id, 1, 1))
 		_open_talents(hero)
+		var sheet: HeroWindow = _sheet()
 		var panel: Rect2 = sheet.get_global_rect()
 		assert_true(screen.encloses(panel), "%s: on the screen" % class_id)
-		assert_gte(panel.position.y, Hud.TOP_BAND, "%s: under the top band" % class_id)
-		assert_lte(panel.end.y, frames_top - TICKER_STRIP, "%s: clear of the ticker" % class_id)
+		assert_gte(panel.position.y, top_band, "%s: under the top band" % class_id)
+		assert_lte(panel.end.y, frames_top, "%s: clear of the frames" % class_id)
 		var nodes: Array[TalentNode] = _tab().tree_view().nodes()
 		for node: TalentNode in nodes:
 			var box: Rect2 = node.get_global_rect()
-			# The name as drawn, measured from its text, not from the node's own size.
 			var label: Rect2 = node.name_label.get_global_rect()
-			label.size = Vector2(PixelText.width(node.name_label.text), NAME_HEIGHT)
 			var named: String = "%s: %s's name" % [class_id, node.ability_id]
 			assert_true(panel.encloses(label), "%s on the sheet" % named)
 			assert_true(panel.encloses(box), "%s: %s on the sheet" % [class_id, node.ability_id])
@@ -842,23 +856,20 @@ func test_r11_it_fits_and_is_explained() -> void:
 					continue
 				var other_box := Rect2(other.global_position, TalentNode.BOX)
 				var other_label: Rect2 = other.name_label.get_global_rect()
-				other_label.size = Vector2(PixelText.width(other.name_label.text), NAME_HEIGHT)
 				assert_false(label.intersects(other_box), "%s clear of %s" % [named, other.name])
 				assert_false(label.intersects(other_label), "%s clear of its name" % named)
 		for label: Label in _tab().tree_view().path_labels:
 			assert_true(panel.encloses(label.get_global_rect()), "%s: path name fits" % class_id)
-		# Every control of the tab shows inside the sheet.
+		# Every control of the tab shows inside the window.
 		var all: Array[Control] = []
 		_controls(_tab(), all)
 		for control: Control in all:
-			if control.is_visible_in_tree() and (control is Label or control is HudButton):
+			if control.is_visible_in_tree() and (control is Label or control is Button):
 				var rect: Rect2 = control.get_global_rect()
-				if control is Label:
-					rect.size.x = PixelText.width((control as Label).text)
 				assert_true(panel.encloses(rect), "%s: %s inside" % [class_id, control.name])
 		sheet.close()
 		_hud.advance(STEP)
-	# Every control has a tooltip.
+	# Every control has a tooltip, one sentence (the UI layer's, spec 058).
 	var knight: Hero = _hero(&"knight")
 	_open_talents(knight)
 	var tips: Array[Control] = [_tab().reset_button, _tab().points_label, _tab().paragon_label]
@@ -866,28 +877,18 @@ func test_r11_it_fits_and_is_explained() -> void:
 		tips.append(node)
 	for label: Label in _tab().tree_view().path_labels:
 		tips.append(label)
-	for cell: TalentTab.ParagonCell in _tab().paragon_cells:
+	for cell: ParagonCell in _tab().paragon_cells:
 		tips.append(cell.buy_button)
 	for control: Control in tips:
-		_mouse(AWAY)
-		_hud.advance(STEP)
-		_mouse(control.get_global_rect().get_center())
-		_hud.advance(0.2)
-		_hud.advance(0.3)
-		var text: String = _hud.tooltip.shown_text()
+		var text: String = _tip_text(control)
 		assert_ne(text, "", "%s has a tooltip" % control.name)
 		assert_true(text.ends_with("."), "%s: one sentence: %s" % [control.name, text])
-	_mouse(AWAY)
 	knight.set_talents(_tree(&"knight").trunk)
 	_hud.advance(STEP)
 	_click_node(&"whirlwind")
 	for control: Control in [_tab().choose_button, _tab().not_yet_button]:
-		_mouse(control.get_global_rect().get_center())
-		_hud.advance(0.2)
-		_hud.advance(0.3)
-		assert_ne(_hud.tooltip.shown_text(), "", "%s has a tooltip" % control.name)
-		_mouse(AWAY)
-		_hud.advance(STEP)
+		assert_true(control.is_visible_in_tree(), "%s shows" % control.name)
+		assert_ne(_tip_text(control), "", "%s has a tooltip" % control.name)
 	# The help panel's text about training is replaced.
 	var keys: Array[String] = []
 	for entry: Array in HelpPanel.KEYS:
@@ -895,7 +896,7 @@ func test_r11_it_fits_and_is_explained() -> void:
 	for text: String in keys:
 		assert_false(text.contains("Training"), "no Training tab in help: %s" % text)
 	# Spec 058 shortened the row to fit the help window's column on one line.
-	assert_has(keys, "Talents tab: a paragon point to that stat", "Talents")
+	assert_has(keys, "Talents tab: a paragon point to a stat", "Talents")
 
 
 # --- R12 -----------------------------------------------------------------------
@@ -910,17 +911,19 @@ func test_r12_in_the_showcase() -> void:
 	var sim: Simulation = showcase.main.simulation
 	var knight: Hero = sim.party.heroes[0]
 	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
-	var sheet: HeroSheet = showcase.main.hud.hero_sheet
-	assert_true(sheet.is_open(), "the sheet is open")
-	assert_eq(sheet.shown_hero_id(), knight.id, "on a hero")
-	assert_eq(sheet.page(), HeroSheet.Page.TALENTS, "on its tree")
+	var sheet: HeroWindow = showcase.main.hud.hero_windows.front()
+	assert_not_null(sheet, "a hero window is open")
+	if sheet == null:
+		return
+	assert_eq(sheet.hero_id, knight.id, "on a hero")
+	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "on its tree")
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "one trunk node taken")
 	assert_gt(knight.talent_points(), 0, "a point to spend")
 	var asked: bool = false
 	var start: float = showcase.elapsed
 	while showcase.moment() == &"talent_tree" and showcase.elapsed - start < 10.0:
 		showcase.advance(1.0 / 30.0)
-		asked = asked or sheet.talents.asking() == TalentTab.Asking.PATH
+		asked = asked or sheet.talents.asking() == HeroTalentsTab.Asking.PATH
 	assert_true(showcase.evidence.has(&"talent_tree"), "seen")
 	assert_true(asked, "the path asked first")
 	assert_true(knight.talents().has(tree.trunk[1]), "a node taken")
