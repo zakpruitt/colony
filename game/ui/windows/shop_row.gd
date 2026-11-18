@@ -119,7 +119,9 @@ static func button_width() -> int:
 	var widest: int = UiText.width("Max", true)
 	for upgrade: StringName in Content.upgrade_ids():
 		var def: UpgradeDef = Content.upgrade(upgrade)
-		var price: String = price_text(def.cost_at(def.max_rank - 1), def.resource_cost_at(def.max_rank - 1))
+		var price: String = price_text(
+			def.cost_at(def.max_rank - 1), def.resource_cost_at(def.max_rank - 1)
+		)
 		widest = maxi(widest, UiText.width(price, true) + int(ResourceIcon.SIZE.x) + 4)
 	return widest + 2 * (UiTheme.BUTTON_PAD_X + 1)
 
@@ -175,7 +177,9 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	var bright: bool = _flash > FLASH_SECONDS / 2.0
 	if _flash_bright != bright or (_flash == 0.0 and get_theme_stylebox(&"panel") is StyleBoxFlat):
 		_flash_bright = bright
-		add_theme_stylebox_override(&"panel", _box(&"" if _flash <= 0.0 else (&"bright" if bright else &"dim")))
+		add_theme_stylebox_override(
+			&"panel", _box(&"" if _flash <= 0.0 else (&"bright" if bright else &"dim"))
+		)
 	rank_label.add_theme_color_override(
 		&"font_color", Palette.color(&"yellow" if _flash > 0.0 else &"white")
 	)

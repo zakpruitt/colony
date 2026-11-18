@@ -276,14 +276,11 @@ func advance(delta: float) -> void:
 	queue_redraw()
 
 
-## Shows the sheet of the hero with id [param hero_id], closing the shop if it is open. The open
-## page stays as it was.
+## Shows the sheet of the hero with id [param hero_id]. The open page stays as it was. (Since spec
+## 059 the shop is a window: the HUD closes it only if it lies over the sheet, as any window.)
 func open(hero_id: int) -> void:
 	if _simulation == null or _simulation.party.hero(hero_id) == null:
 		return
-	var hud: Hud = get_parent() as Hud
-	if hud != null and hud.shop != null:
-		hud.shop.close()
 	var switched: bool = hero_id != _hero_id or not visible
 	_hero_id = hero_id
 	visible = true

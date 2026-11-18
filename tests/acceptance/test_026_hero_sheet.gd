@@ -163,8 +163,9 @@ func test_r1_opening_and_closing() -> void:
 	_key(KEY_TAB)
 	assert_eq(sheet.shown_hero_id(), _hero(0).id, "Tab after the last hero wraps to the first")
 
-	# Spec 059: the shop is a window and opens beside the sheet; opening the sheet still closes
-	# it (spec 058's interim rule, kept for the sheet until spec 060).
+	# Spec 059: the shop is a window and opens beside the sheet; the sheet opening closes it only
+	# if it lies over the sheet (spec 058's interim rule, kept for the sheet until spec 060, and
+	# tested in test_058_windows_beside_the_old_hud R5).
 	_key(KEY_U)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
 	assert_true(sheet.is_open(), "beside the sheet")
@@ -173,12 +174,10 @@ func test_r1_opening_and_closing() -> void:
 	assert_eq(_marked_ids(), [] as Array[int], "a closed sheet unmarks the frame")
 	_click(first)
 	assert_true(sheet.is_open(), "opening the sheet")
-	assert_false(_hud.shop.is_open(), "closes the shop")
-	_ui.bar.buttons[ShopWindow.ID].pressed.emit()
-	assert_true(_hud.shop.is_open(), "the Shop button")
+	assert_true(_hud.shop.is_open(), "leaves the shop beside it")
 	_key(KEY_TAB)
 	assert_true(sheet.is_open(), "Tab")
-	assert_false(_hud.shop.is_open(), "closes the shop")
+	assert_true(_hud.shop.is_open(), "leaves the shop open")
 
 	var main: Main = MAIN_SCENE.instantiate()
 	add_child_autofree(main)
@@ -552,4 +551,5 @@ func test_r8_keys() -> void:
 
 	_key(KEY_U)
 	assert_true(hud.shop.is_open(), "U opens the shop")
-	assert_false(sheet.is_open(), "and closes the sheet")
+	# Spec 059: the shop is a window and opens beside the sheet.
+	assert_true(sheet.is_open(), "beside the sheet")

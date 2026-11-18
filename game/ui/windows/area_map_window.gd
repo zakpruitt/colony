@@ -25,6 +25,8 @@ extends WindowContent
 ## The window's id, title and key.
 const ID: StringName = &"map"
 const TITLE: String = "Area map"
+## What the stage chooser's number and the place before it say under the mouse.
+const STAGE_TIP: String = "The stage to go to: - and + change it, up to one past the furthest."
 const HOTKEY: String = "W"
 ## What the foot says while no area is chosen.
 const CHOOSE_HINT: String = "Click an open area to choose where the party goes."
@@ -407,7 +409,7 @@ func _tip_now() -> void:
 		if each_row.guardian_thumb != null:
 			tip.attach(each_row.guardian_thumb, _guardian_tip(each_row))
 		tip.attach(each_row, _row_tip(each_row))
-	var stage_tip: String = "The stage the party goes to: - and + change it, from 1 to one past the furthest."
+	var stage_tip: String = STAGE_TIP
 	tip.attach(stage_label, stage_tip)
 	tip.attach(place_label, stage_tip)
 	tip.attach(go_button, _go_tip())

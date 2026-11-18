@@ -22,7 +22,6 @@ const SHOWCASE: String = "res://game/dev/showcase.tscn"
 ## Every event the world told of in the main scene a test made last, oldest first.
 var _events: Array[SimEvent] = []
 
-
 # --- Helpers -------------------------------------------------------------------
 
 
@@ -583,9 +582,14 @@ func test_r8_fits_both_rooms() -> void:
 			var shown: UiWindow = _window(main, id)
 			assert_eq(shown.position, shown.default_place, "%s at its default place" % id)
 			rects[id] = shown.get_rect()
-			assert_true(space.encloses(rects[id]), "%s, %s: above the frames' line: %s" % [room, id, rects[id]])
+			assert_true(
+				space.encloses(rects[id]),
+				"%s, %s: above the frames' line: %s" % [room, id, rects[id]]
+			)
 			var needed: Vector2 = shown.get_combined_minimum_size()
-			assert_true(shown.size.x >= needed.x and shown.size.y >= needed.y, "%s fits its content" % id)
+			assert_true(
+				shown.size.x >= needed.x and shown.size.y >= needed.y, "%s fits its content" % id
+			)
 			var labels: Array[Label] = []
 			_labels(shown.content, labels)
 			for label: Label in labels:
@@ -593,22 +597,37 @@ func test_r8_fits_both_rooms() -> void:
 				var where: String = "%s, %s: '%s' %s" % [room, id, label.text, at]
 				assert_true(rects[id].encloses(at), "%s inside its window" % where)
 				if label.autowrap_mode == TextServer.AUTOWRAP_OFF:
-					assert_gte(at.size.x, float(UiText.width(label.text, _bold(label)) - UiText.SPACING), "%s not cut" % where)
+					assert_gte(
+						at.size.x,
+						float(UiText.width(label.text, _bold(label)) - UiText.SPACING),
+						"%s not cut" % where
+					)
 			for a: int in labels.size():
 				for b: int in range(a + 1, labels.size()):
 					var one: Rect2 = labels[a].get_global_rect()
 					var two: Rect2 = labels[b].get_global_rect()
 					if labels[a].text.is_empty() or labels[b].text.is_empty():
 						continue
-					assert_false(one.intersects(two), "%s, %s: '%s' and '%s' overlap" % [room, id, labels[a].text, labels[b].text])
+					assert_false(
+						one.intersects(two),
+						"%s, %s: '%s' and '%s' overlap" % [room, id, labels[a].text, labels[b].text]
+					)
 		for a: int in IDS.size():
 			for b: int in range(a + 1, IDS.size()):
-				assert_false(rects[IDS[a]].intersects(rects[IDS[b]]), "%s: the %s and the %s overlap %s %s" % [room, IDS[a], IDS[b], rects[IDS[a]], rects[IDS[b]]])
+				assert_false(
+					rects[IDS[a]].intersects(rects[IDS[b]]),
+					(
+						"%s: the %s and the %s overlap %s %s"
+						% [room, IDS[a], IDS[b], rects[IDS[a]], rects[IDS[b]]]
+					)
+				)
 		# The tally's ability column fits the longest ability name in the data.
 		var longest: int = 0
 		for id: StringName in Content.ability_ids():
 			longest = maxi(longest, UiText.width(Content.ability(id).display_name))
-		assert_gte(main.hud.tally.ability_name_width(), longest, "%s: the longest ability fits" % room)
+		assert_gte(
+			main.hud.tally.ability_name_width(), longest, "%s: the longest ability fits" % room
+		)
 		main.free()
 
 

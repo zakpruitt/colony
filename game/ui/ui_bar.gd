@@ -26,7 +26,9 @@ var shade: StringName = &"forest":
 			queue_redraw()
 
 
-func _init(fill_colour: StringName = &"green", shade_colour: StringName = &"forest", height: int = 6) -> void:
+func _init(
+	fill_colour: StringName = &"green", shade_colour: StringName = &"forest", height: int = 6
+) -> void:
 	name = "Bar"
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	fill = fill_colour

@@ -36,7 +36,10 @@ func _draw() -> void:
 	draw_rect(rect, Palette.color(&"ink"))
 	var face: Rect2 = rect.grow(-1.0)
 	draw_rect(face, Palette.color(&"amber" if bright else &"orange"))
-	draw_rect(Rect2(face.position, Vector2(face.size.x, 1)), Palette.color(&"yellow" if bright else &"amber"))
+	draw_rect(
+		Rect2(face.position, Vector2(face.size.x, 1)),
+		Palette.color(&"yellow" if bright else &"amber")
+	)
 	draw_string(
 		UiText.font(true),
 		Vector2(PAD + 1.0, rect.position.y + 11.0),

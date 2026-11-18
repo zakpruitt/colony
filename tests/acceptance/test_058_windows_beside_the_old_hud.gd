@@ -137,9 +137,10 @@ func test_r6_default_places_clear_the_frames_and_the_bar() -> void:
 
 
 ## Review 3b: an old panel opening closes every window over it, keeps each window's place, and
-## writes nothing in the journal. Since spec 059 the hero sheet is the one old panel left (the shop,
-## the tally and the area map are windows, and open beside the others: spec 059 R1). Stands in for 027 R6 and 037 R6 (the old journal and goals
-## panels kept clear of the hero sheet) and 041 R5 (nothing opens hidden).
+## writes nothing in the journal. Since spec 059 the hero sheet is the one old panel left (the
+## shop, the tally and the area map are windows, and open beside the others: spec 059 R1). Stands
+## in for 027 R6 and 037 R6 (the old journal and goals panels kept clear of the hero sheet) and
+## 041 R5 (nothing opens hidden).
 func test_r5_an_old_panel_opening_closes_the_windows_over_it() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var ui: UiRoot = main.ui
