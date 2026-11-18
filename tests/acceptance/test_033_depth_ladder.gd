@@ -430,16 +430,13 @@ func test_r6_stays_out_of_the_way() -> void:
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	assert_false(Hud.on_screen(ladder).intersects(_hud.boss_bar.get_global_rect()), "clear of it")
 
-	# The shop: the ladder hides while it is open.
+	# The shop: since spec 062 R2 the ladder stays while it is open (the window is drawn over it).
 	_hud.shop.open()
 	_hud.advance(STEP)
-	assert_false(ladder.is_shown(), "hidden while the shop is open")
-	ladder.click_depth(9)
-	_sim.step()
-	assert_ne(_sim.expedition.target_depth, 9, "and takes no clicks")
+	assert_true(ladder.is_shown(), "shown while the shop is open")
 	_hud.shop.close()
 	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "back when it closes")
+	assert_true(ladder.is_shown(), "and when it closes")
 	# Hidden by L, it stays hidden after the shop.
 	_key(KEY_L)
 	_hud.shop.open()

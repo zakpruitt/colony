@@ -13,8 +13,8 @@ extends Panel
 ## target ([method click_depth]); resting the mouse on one shows a line in words beside the list
 ## ([member hint]). The wheel scrolls it ([method scroll_by]); while scrolled away an arrow points
 ## toward the party, and a click on it, or [constant RETURN_SECONDS] without the mouse over the
-## list, brings it back to following the party. [kbd]L[/kbd] hides and shows it, and it hides
-## while the shop is open. A goal's click (spec 042) shows it and flashes a row ([method flash]).
+## list, brings it back to following the party. [kbd]L[/kbd] hides and shows it; windows are drawn
+## over it (spec 062 R2). A goal's click (spec 042) shows it and flashes a row ([method flash]).
 ## It moves only in [method advance], so a test can step it.
 
 ## A click asked for a new target (the HUD mirrors it on its own target number at once).
@@ -73,6 +73,8 @@ const DELAY: float = UiTip.DELAY
 
 ## The line beside the list while the mouse rests on a row.
 var hint: PanelContainer
+## What the last drawing put where, by kind, in this control's own pixels (for tests).
+var drawn: Dictionary[StringName, Array] = {}
 ## The stage whose row is outlined as under the mouse, or 0. The list sets it; others read it.
 var hovered: int = 0
 ## What each stage is.
@@ -115,8 +117,6 @@ var _arrow_layer: Control
 ## Drawn over that, clipped to the rows: the strike through a beaten guardian's name and the
 ## party's diamond, so nothing covers them.
 var _marker_layer: Control
-## The shop, which hides the list while it is open; null for none.
-var _shop: ShopWindow
 
 
 func _init() -> void:
@@ -185,10 +185,9 @@ func _draw() -> void:
 
 
 ## Call once, before the first advance. [param journal] hears a dangerous click (may be null);
-## [param shop] hides the list while open (may be null).
-func setup(simulation: Simulation, journal: Journal, shop: ShopWindow) -> void:
+## Call once: the list shows [param simulation]'s stages; [param journal] hears a dangerous target.
+func setup(simulation: Simulation, journal: Journal) -> void:
 	_simulation = simulation
-	_shop = shop
 	ladder = DepthLadder.new(simulation, journal)
 	_caption = UiText.label(PlaceText.area_name(simulation.expedition.place), &"steel", true)
 	_caption.name = "Caption"
@@ -236,7 +235,7 @@ func setup(simulation: Simulation, journal: Journal, shop: ShopWindow) -> void:
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
-	visible = _wanted and not (_shop != null and _shop.is_open())
+	visible = _wanted  # windows, the shop's too, are drawn over it (spec 062 R2)
 	if not visible:
 		hovered = 0
 	ladder.advance()
@@ -593,6 +592,8 @@ func _place_labels() -> void:
 ## over it.
 func _draw_rungs() -> void:
 	var canvas: Control = _rungs
+	for kind: StringName in [&"arrow", &"target_frame", &"party_frame"]:
+		drawn[kind] = []
 	var rail: Color = Palette.color(&"slate")
 	var span: float = RUNGS * PITCH
 	canvas.draw_rect(Rect2(RAIL_LEFT, 0.0, 1.0, span), rail)
@@ -613,16 +614,15 @@ func _draw_arrow_layer() -> void:
 ## A strike through each beaten guardian's name, then the party's diamond, over everything else on
 ## the rows.
 func _draw_marker_layer() -> void:
+	drawn[&"strike"] = []
 	var top: int = floori(_scroll)
 	for depth: int in range(top, top + RUNGS + 1):
 		var shown: Array[StringName] = marks(depth)
 		if shown.has(&"guardian_beaten"):
 			var name_box: Rect2 = mark_rect(depth, &"name")
 			var y: float = name_box.position.y - RUNGS_TOP + UiText.ASCENT - 4.0
-			_marker_layer.draw_rect(
-				Rect2(name_box.position.x - 1.0, y, name_box.size.x + 2.0, 1.0),
-				Palette.color(&"red")
-			)
+			var line := Rect2(name_box.position.x - 1.0, y, name_box.size.x + 2.0, 1.0)
+			_paint(_marker_layer, &"strike", line, Palette.color(&"red"))
 	var bob: float = 1.0 if _time < BOB_SECONDS / 2.0 else 0.0
 	_draw_marker(_marker_layer, _marker_at() - Vector2(0.0, bob))
 
@@ -660,12 +660,8 @@ func _draw_rung(canvas: Control, depth: int, row: float) -> void:
 	# Spec 047 R5: frames round the target's and the party's numbers (drawn under the numbers).
 	for mark: StringName in MARK_BOXES:
 		if shown.has(mark):
-			var box: Rect2 = MARK_BOXES[mark]
-			_outline(
-				canvas,
-				Rect2(box.position + Vector2(0.0, row), box.size),
-				Palette.color(MARK_COLOURS[mark])
-			)
+			var box := Rect2(MARK_BOXES[mark].position + Vector2(0.0, row), MARK_BOXES[mark].size)
+			_outline(canvas, box, Palette.color(MARK_COLOURS[mark]), StringName("%s_frame" % mark))
 	var bar := Rect2(RAIL_LEFT, middle - 2.0, RAIL_RIGHT - RAIL_LEFT + 1.0, BAR_HEIGHT)
 	if shown.has(&"safe"):
 		canvas.draw_rect(bar, Palette.color(&"green"))
@@ -687,7 +683,10 @@ func _draw_rung(canvas: Control, depth: int, row: float) -> void:
 		_draw_arrow(canvas, Vector2(ARROW_X, middle))
 
 
-func _outline(canvas: Control, rect: Rect2, colour: Color) -> void:
+## A 1-pixel edge round [param rect]; noted in [member drawn] as [param kind] unless that is empty.
+func _outline(canvas: Control, rect: Rect2, colour: Color, kind: StringName = &"") -> void:
+	if kind != &"":
+		_record(canvas, kind, rect)
 	canvas.draw_rect(Rect2(rect.position, Vector2(rect.size.x, 1.0)), colour)
 	canvas.draw_rect(Rect2(rect.position.x, rect.end.y - 1.0, rect.size.x, 1.0), colour)
 	canvas.draw_rect(Rect2(rect.position, Vector2(1.0, rect.size.y)), colour)
@@ -713,9 +712,26 @@ func _draw_marker(canvas: Control, at: Vector2) -> void:
 func _draw_arrow(canvas: Control, at: Vector2) -> void:
 	for column: int in 5:
 		var half: int = 4 - column
-		canvas.draw_rect(
-			Rect2(at.x + column, at.y - half, 1.0, half * 2.0 + 1.0), Palette.color(&"yellow")
+		_paint(
+			canvas,
+			&"arrow",
+			Rect2(at.x + column, at.y - half, 1.0, half * 2.0 + 1.0),
+			Palette.color(&"yellow")
 		)
+
+
+## Fills [param rect] on [param canvas] in [param colour] and notes it in [member drawn].
+func _paint(canvas: Control, kind: StringName, rect: Rect2, colour: Color) -> void:
+	canvas.draw_rect(rect, colour)
+	_record(canvas, kind, rect)
+
+
+## Notes in [member drawn] that a [param kind] was drawn at [param rect] on [param canvas] (one of
+## the list's own layers), in the list's coordinates.
+func _record(canvas: Control, kind: StringName, rect: Rect2) -> void:
+	var at: Array = drawn.get(kind, [])
+	at.append(Rect2(rect.position + canvas.position, rect.size))
+	drawn[kind] = at
 
 
 ## A guardian's skull at [param at] (its top-left), dim when beaten.

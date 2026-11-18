@@ -8,9 +8,15 @@ const OLD_FILES: Array[String] = [
 	"res://game/hud/hud_button.gd",
 	"res://game/hud/hud_tooltip.gd",
 	"res://game/hud/shop_marker.gd",
-	"res://game/hud/away_window.gd",
+	"res://game/hud/away_panel.gd",
 	"res://game/hud/catch_up_bar.gd",
 ]
+## The widest line the ticker shows in a real game: a defeat deep in The Old Crypt.
+const WIDEST_TICKER: String = (
+	"Beaten on The Old Crypt 118 by 2 crystal beetles, 2 deep horrors and a bone lord;"
+	+ " falling back to The Old Crypt 117"
+)
+const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const SPECIMEN: PackedScene = preload("res://game/ui/font_specimen.tscn")
 const GALLERY: PackedScene = preload("res://game/art/gallery.tscn")
 ## Classes of the old HUD that drew in the old font.
@@ -52,6 +58,11 @@ func test_r1_goals() -> void:
 			assert_eq(row.bar_rect().has_area(), not gold, "%s: %s's bar" % [what, lines[i]])
 			if gold:
 				assert_false(row.detail_label.text.is_empty(), "%s: %s's price" % [what, lines[i]])
+		await _frames()
+		var drawn_bar: Array = view.rows[0].drawn.get(&"bar", [])
+		assert_eq(drawn_bar, [view.rows[0].bar_rect()], "%s: the bar is drawn" % what)
+		var no_tick: Array = view.rows[0].drawn.get(&"tick", [])
+		assert_eq(no_tick, [], "%s: no tick before it is done" % what)
 		for i: int in range(lines.size(), view.rows.size()):
 			assert_false(view.rows[i].visible, "%s: no fourth goal" % what)
 		# A click opens the window where it is done.
@@ -99,6 +110,12 @@ func test_r1_goals() -> void:
 			Palette.color(&"green"),
 			"%s: then green, with its tick" % what
 		)
+		await _frames()
+		var tick: Array = done.drawn.get(&"tick", [])
+		assert_eq(tick.size(), 1, "%s: the tick is drawn" % what)
+		if tick.size() == 1:
+			var tick_box: Rect2 = tick[0]
+			assert_true(Rect2(Vector2.ZERO, done.size).encloses(tick_box), "%s: on its row" % what)
 		main.free()
 
 
@@ -114,6 +131,10 @@ func test_r2_stage_list() -> void:
 		var what: String = "%s" % room
 		_situation(main, 1, 12, 1)  # been deep, so the list scrolls (spec 047)
 		var list: StageList = hud.ladder
+		await _frames()
+		_assert_drawn(list, &"party_frame", 1, "%s: the party's frame" % what)
+		_assert_drawn(list, &"target_frame", 1, "%s: the target's frame" % what)
+		_assert_drawn(list, &"arrow", 1, "%s: the target's arrow" % what)
 		assert_true(main.ui.is_ancestor_of(list), "%s: the list is on the sharp layer" % what)
 		assert_true(list.is_visible_in_tree(), "%s: and shown" % what)
 		var rect: Rect2 = list.get_global_rect()
@@ -156,12 +177,30 @@ func test_r2_stage_list() -> void:
 		_rest_at(main, _row_at(list, seen[DepthLadder.Risk.SAFE]), StageList.DELAY + 0.05)
 		assert_false(list.hint_text().is_empty(), "%s: a safe stage's line" % what)
 		assert_false(list.hint_text().contains("\n"), "%s: with no risk line" % what)
+		# No line through a window lying over the list.
+		var dangerous_at: Vector2 = _row_at(list, dangerous)
+		main.ui.windows.open_window(UiRoot.HELP)
+		var over: UiWindow = main.ui.windows.window(UiRoot.HELP)
+		await _frames()
+		over.position = dangerous_at - Vector2(over.size.x - 20.0, 40.0)
+		main.ui.windows.raise(over)
+		assert_true(over.get_global_rect().has_point(dangerous_at), "%s: a window there" % what)
+		_rest_at(main, dangerous_at, StageList.DELAY + 0.05)
+		assert_eq(list.hint_text(), "", "%s: no line through the window" % what)
+		main.ui.windows.close_window(UiRoot.HELP)
+		_rest_at(main, dangerous_at, StageList.DELAY + 0.05)
+		assert_ne(list.hint_text(), "", "%s: the line again with the window gone" % what)
 		# A click sets the target.
 		_click_ui(main.ui, _row_at(list, 3))
 		hud.advance(STEP)
 		sim.step()
 		assert_eq(e.target_depth, 3, "%s: a click on stage 3 targets it" % what)
 		assert_true(list.marks(3).has(&"target"), "%s: shown as the target" % what)
+		hud.advance(STEP)
+		await _frames()
+		_assert_drawn(list, &"target_frame", 3, "%s: the target's frame moves" % what)
+		_assert_drawn(list, &"arrow", 3, "%s: and its arrow" % what)
+		_assert_drawn(list, &"party_frame", 1, "%s: the party's stays" % what)
 		# The wheel scrolls; the arrow returns to the party.
 		var middle: Vector2 = main.ui.ui_to_world(_row_at(list, 4))
 		_move(middle)
@@ -189,12 +228,35 @@ func test_r2_stage_list() -> void:
 		if named != null:
 			assert_eq(named.get_theme_color(&"font_color"), Palette.color(&"steel"), "dimmed")
 		assert_true(list.marks(GUARDIAN_DEPTH).has(&"guardian_beaten"), "%s: struck" % what)
+		await _frames()
+		var strikes: Array = list.drawn.get(&"strike", [])
+		var name_box: Rect2 = list.mark_rect(GUARDIAN_DEPTH, &"name")
+		var struck: bool = false
+		for line: Rect2 in strikes:
+			struck = (
+				struck
+				or (
+					line.size.x >= name_box.size.x
+					and line.position.y > name_box.position.y
+					and line.end.y < name_box.end.y
+				)
+			)
+		assert_true(struck, "%s: a line through the name %s %s" % [what, name_box, strikes])
 		# L hides and shows it.
 		_press(main, KEY_L)
 		assert_false(list.is_visible_in_tree(), "%s: L hides the list" % what)
 		_press(main, KEY_L)
 		assert_true(list.is_visible_in_tree(), "%s: L shows it again" % what)
 		main.free()
+
+
+## Asserts [param list] drew a [param kind] on the row of [param depth] when last drawn.
+func _assert_drawn(list: StageList, kind: StringName, depth: int, what: String) -> void:
+	var row: Rect2 = list.rung_rect(depth)
+	var found: bool = false
+	for rect: Rect2 in list.drawn.get(kind, []):
+		found = found or row.encloses(rect)  # the arrow is noted a column at a time
+	assert_true(found, "%s: %s on row %s: %s" % [what, kind, row, list.drawn.get(kind, [])])
 
 
 ## The middle of the row of [param depth] on [param list], in UI pixels.
@@ -308,6 +370,10 @@ func test_r4_defeat_note_over_every_window() -> void:
 		var upgrade: UiButton = panel.buttons[texts.find("Buy an upgrade")]
 		help.position = upgrade.get_global_rect().position - Vector2(20, 30)
 		assert_true(help.get_global_rect().encloses(upgrade.get_global_rect()), "a window under")
+		var said: String = _rest_on(main, upgrade)
+		assert_ne(said, "", "%s: the button's tip shows over the window" % what)
+		# The stage list's line may lie over windows, as a tip does, but never over the note.
+		assert_true(_is_over(main.ui, panel, hud.ladder.hint), "%s: the note over its line" % what)
 		_click(main, upgrade)
 		assert_true(hud.shop.is_open(), "%s: the button opens the shop" % what)
 		assert_true(note.is_shown(), "%s: and the note stays" % what)
@@ -348,6 +414,17 @@ func test_r5_away_report_window() -> void:
 		assert_true(
 			Rect2(Vector2.ZERO, Vector2(room)).encloses(report.get_global_rect()), "in the room"
 		)
+		# Dragged, it keeps its place when the room changes and back; it is not centred again.
+		await _frames()
+		_drag(main.ui, report, Vector2(-60, -40))
+		await _frames()
+		var dragged: Vector2 = report.position
+		assert_ne(report.get_global_rect().get_center(), centre, "%s: dragged" % what)
+		for other: Vector2i in [ROOM_SMALL, ROOM_LARGE, room]:
+			main.ui.set_room_for_test(other)
+			var inside := Rect2(Vector2.ZERO, Vector2(main.ui.room()))
+			assert_true(inside.encloses(report.get_global_rect()), "%s: on screen" % other)
+		assert_eq(report.position, dragged, "%s: where the player put it" % what)
 		var journal: UiWindow = main.ui.windows.window(UiRoot.JOURNAL)
 		assert_true(journal.is_open(), "%s: the window left open opens" % what)
 		var order: Array[UiWindow] = main.ui.windows.order()
@@ -501,13 +578,21 @@ func test_r8_nothing_lost() -> void:
 	assert_true(hud.ladder.is_shown(), "L shows it")
 	_press(main, KEY_J)
 	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "J opens the journal")
-	# The list hides while the shop is open, as before.
+	# The list stays while the shop is open, and the goals while the tally is: windows are drawn
+	# over them (R2, R10).
 	hud.shop.open()
 	hud.advance(STEP)
-	assert_false(hud.ladder.is_shown(), "the shop hides the list")
+	assert_true(hud.shop.is_open(), "the shop is open")
+	assert_true(hud.ladder.is_shown(), "the list stays under the shop")
+	assert_true(hud.ladder.is_visible_in_tree(), "drawn")
 	hud.shop.close()
+	hud.tally.open()
 	hud.advance(STEP)
-	assert_true(hud.ladder.is_shown(), "and gives it back")
+	assert_true(hud.tally.is_open(), "the tally is open")
+	assert_true(hud.goals.is_shown(), "the goals stay under the tally")
+	assert_true(hud.goals_view.is_visible_in_tree(), "drawn")
+	hud.tally.close()
+	hud.advance(STEP)
 	# A dangerous target is still said in the ticker.
 	var deep: int = 400
 	hud.ladder.click_depth(deep)
@@ -560,31 +645,37 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	assert_true(list.marks(e.target_depth).has(&"target"), "the target")
 	var newest: String = hud.journal.ticker_text()
 	assert_eq(hud.ticker.label.text if hud.ticker.visible else "", newest, "the ticker's line")
-	# A defeat, the wipe and the fall back in one frame at 4x: the note tells of the lost fight,
-	# not of the stage the party fell back to.
+	# A defeat heard late but still recent: the party is beaten by the guardian of stage 5 and has
+	# fallen back to stage 4 by the time the frame's events arrive. They are recent by spec 046 R5
+	# (stamped with the frame's tick, as a frame that has just stepped them has them: a real revival
+	# takes longer than 4x keeps a wipe recent), and the note tells of the lost fight from them.
 	var fresh: Main = _main(ROOM_SMALL)
-	fresh.set_speed(4)
+	var fe: Expedition = fresh.simulation.expedition
 	_before_guardian(fresh, GUARDIAN_DEPTH)
-	fresh.simulation.expedition.last_stable_depth = GUARDIAN_DEPTH - 1
+	fe.last_stable_depth = GUARDIAN_DEPTH - 1
 	assert_true(_fight(fresh), "a guardian fight")
-	for fighter: Combatant in fresh.simulation.expedition.battle.heroes:
+	var guardian: String = Content.monster(fe.guardian_of(GUARDIAN_DEPTH)).display_name
+	for fighter: Combatant in fe.battle.heroes:
 		fighter.health = 0
-	for i: int in World.ANIMATE_TICKS * 4:
+	var wiped: bool = false
+	for i: int in LIMIT_TICKS:
 		fresh.simulation.step()
-	assert_eq(
-		fresh.simulation.expedition.state, Expedition.State.REVIVING, "wiped in the one frame"
-	)
-	fresh.world.sync(STEP)
+		wiped = wiped or fe.state == Expedition.State.REVIVING
+		if wiped and fe.state != Expedition.State.REVIVING:
+			break
+	assert_true(wiped, "wiped")
+	assert_eq(fe.depth, GUARDIAN_DEPTH - 1, "fallen back by the frame's end")
+	for event: SimEvent in fresh.simulation.drain_events():
+		event.tick = fresh.simulation.tick
+		assert_true(fresh.world.is_recent(event), "recent")
+		fresh.world.sim_event.emit(event)
 	fresh.hud.advance(STEP)
-	var guardian: String = (
-		Content.monster(fresh.simulation.expedition.guardian_of(GUARDIAN_DEPTH)).display_name
-	)
 	assert_true(fresh.hud.defeat_note.is_shown(), "the note shows")
 	assert_true(fresh.hud.defeat_note.panel.is_visible_in_tree(), "drawn")
-	assert_eq(
+	assert_string_contains(
 		fresh.hud.defeat_note.panel.labels[0].text,
 		"Beaten by the %s on Mossy Hollow %d" % [guardian, GUARDIAN_DEPTH],
-		"for the lost fight"
+		"the lost fight: its monster and its stage, not where the party is now"
 	)
 
 
@@ -596,12 +687,31 @@ func test_r10_fits_both_rooms() -> void:
 		var main: Main = _main(room)
 		var hud: Hud = main.hud
 		var what: String = "%s" % room
-		# The widest goals: the longest guardian's name; the longest ticker line.
-		_gold_situation(main)
-		_raise(main, 1)
+		# The widest goals the data makes (a talent goal with its count and >, wider than the
+		# panel's least width), and the widest line the ticker shows.
+		main.simulation.party.gold = RICH
+		_raise(main, GOAL_LEVEL)  # points unspent
 		_situation(main, 1, 1, 1)
-		hud.journal.announce(_longest_line(main))
+		hud.journal.announce(WIDEST_TICKER)
 		hud.advance(STEP)
+		assert_eq(hud.ticker.label.text, WIDEST_TICKER, "%s: the widest line" % what)
+		var widest: float = 0.0
+		for i: int in hud.goals.count():
+			widest = maxf(widest, GoalRow.needed_width(hud.goals.goal_at(i)))
+		assert_gt(
+			widest + GoalsView.PAD * 2.0, GoalsView.MIN_WIDTH, "%s: wider than the least" % what
+		)
+		for row: GoalRow in hud.goals_view.rows:
+			if not row.visible:
+				continue
+			var words: Rect2 = _ink(row.sentence_label)
+			var said: String = row.sentence_label.text
+			if not row.detail_label.text.is_empty():
+				var count: Rect2 = _ink(row.detail_label)
+				assert_false(words.intersects(count), "%s: '%s' clear of its count" % [what, said])
+			var arrow: Rect2 = row.get_global_transform() * row.arrow_rect()
+			if arrow.has_area():
+				assert_false(words.intersects(arrow), "%s: '%s' clear of its >" % [what, said])
 		var pieces: Dictionary[String, Control] = _pieces(main)
 		pieces["button bar"] = main.ui.bar
 		var news: Dictionary[String, Control] = {
@@ -625,15 +735,11 @@ func test_r10_fits_both_rooms() -> void:
 						"%s: %s clear of %s" % [what, name_key, other]
 					)
 			_assert_not_cut(piece, "%s %s" % [what, name_key])
-		# The stage list with the longest guardian names in the data beside their stages.
-		var list: StageList = hud.ladder
-		for depth: int in range(1, Expedition.GUARDIAN_EVERY * 6):
-			var named: String = list.ladder.guardian_name(depth)
-			if named.is_empty():
-				continue
-			var width: float = UiText.width(named) - UiText.SPACING
+		# Every area's guardian, named beside its stage, fits the list.
+		for id: StringName in Content.area_ids():
+			var named: String = Content.monster(Content.area(id).guardian).display_name
 			assert_lte(
-				StageList.NAME_X + width,
+				StageList.NAME_X + GoalRow.ink(named),
 				StageList.WIDTH - StageList.PADDING,
 				"%s: '%s' fits beside its stage" % [what, named]
 			)
@@ -655,23 +761,6 @@ func test_r10_fits_both_rooms() -> void:
 	await wait_until(func() -> bool: return not away.is_catching_up(), 60.0, "replay ends")
 
 
-## The longest sentence the journal writes for a microskill learned: the longest hero and skill
-## names in the data, at the deepest stage the list shows.
-func _longest_line(main: Main) -> String:
-	var hero: String = ""
-	for id: StringName in Content.hero_class_ids():
-		var named: String = Content.hero_class(id).display_name
-		if named.length() > hero.length():
-			hero = named
-	var skill: String = ""
-	for id: StringName in Content.microskill_ids():
-		var named: String = Content.microskill(id).display_name
-		if named.length() > skill.length():
-			skill = named
-	var where: String = PlaceText.here(main.simulation, 999)
-	return "%s learned %s on %s" % [hero, skill, where]
-
-
 # --- R11 -----------------------------------------------------------------------
 
 
@@ -680,9 +769,18 @@ func test_r11_showcase_help_and_wiki() -> void:
 	assert_false(wiki.contains("under way"), "the wiki no longer says the overhaul is under way")
 	for said: String in ["Goals", "stage list", "ticker", "Back to the game"]:
 		assert_string_contains(wiki, said, "the wiki tells of %s" % said)
-	var showcase: String = FileAccess.get_file_as_string(SHOWCASE)
-	assert_string_contains(showcase, "away_window", "the showcase shows the report window")
-	assert_false(showcase.contains("AwayPanel"), "and no old panel")
+	# The showcase, run to its moment, shows the report as a window.
+	var show: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
+	add_child_autofree(show)
+	await _frames()
+	show.skip_to(&"away_report")
+	await _frames()
+	assert_eq(show.moment(), &"away_report", "the showcase's moment")
+	var report: AwayWindow = show.main.away_window
+	assert_true(is_instance_valid(report) and report.is_open(), "the report window is open")
+	if is_instance_valid(report):
+		assert_true(show.main.ui.windows.is_ancestor_of(report), "among the windows")
+	assert_false(FileAccess.get_file_as_string(SHOWCASE).contains("AwayPanel"), "no old panel")
 	var keys: Dictionary[String, bool] = {}
 	for entry: Array in HelpPanel.KEYS:
 		keys[str(entry[0])] = true

@@ -294,11 +294,11 @@ func test_r1_click_a_goal() -> void:
 		_hud.advance(0.6)
 		assert_false(ladder.is_flashing(3), "%s: done after about a second" % how)
 		assert_eq(_open_panels(), [] as Array[String], "%s: no panel" % how)
-	# With the shop open (it hides the ladder), the ladder still shows.
+	# With the shop open (which no longer hides the ladder, spec 062 R2), the ladder shows.
 	_close_all()
 	_hud.shop.open()
 	_hud.advance(STEP)
-	assert_false(ladder.is_shown(), "the shop hides the ladder")
+	assert_true(ladder.is_shown(), "the shop leaves the ladder")
 	goals.press(depth)
 	_hud.advance(STEP)
 	assert_true(ladder.is_shown(), "shown from under the shop")
@@ -551,10 +551,10 @@ func test_r4_nothing_else_changes() -> void:
 	sheet.close_all()
 	_hud.tally.open()
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "the tracker hides under the tally")
+	assert_true(goals.is_shown(), "the tracker stays under the tally too (spec 062 R2)")
 	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "and comes back")
+	assert_true(goals.is_shown(), "and after")
 
 	# Clicks that only open panels leave the simulation as it was: the state hash, the target.
 	_close_all()

@@ -321,4 +321,8 @@ func _apply() -> void:
 	if _hud != null:
 		_hud.fit_frame(_room)
 	if is_instance_valid(_away) and not _away.is_queued_for_deletion():
-		_away.centre_in(Vector2(_room))
+		# Centred until the player drags it; then kept where it was, moved back on screen if need be.
+		if _away.placed:
+			_away.fit_in(Vector2(_room))
+		else:
+			_away.centre_in(Vector2(_room))

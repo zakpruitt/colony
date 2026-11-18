@@ -603,7 +603,7 @@ func test_r6_nothing_says_down() -> void:
 			_play_frame()
 			main.hud.advance(FRAME)
 			if i % 10 == 0:
-				for label: Node in main.hud.screen_frame.find_children("*", "Label", true, false):
+				for label: Node in main.ui.find_children("*", "Label", true, false):
 					shown[(label as Label).text] = true
 	for text: String in shown:
 		assert_null(down.search(text), "the HUD showed: " + text)

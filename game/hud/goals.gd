@@ -15,8 +15,8 @@ extends Node
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
 ## brought old events ([method World.is_recent]: after a stall or time away) is replaced quietly.
 ##
-## [kbd]G[/kbd] hides and shows it; it starts shown. It also hides while the hero sheet, which
-## drops into the same place, or the tally is open. Each line has a tooltip ([method hint], then
+## [kbd]G[/kbd] hides and shows it; it starts shown. Windows are drawn over it (spec 062 R2), and
+## none hides it. Each line has a tooltip ([method hint], then
 ## what a click does, [method action]), and since spec 042 a click on a line takes the player where
 ## the goal is managed ([method press]): the shop, a hero's sheet on a tab, the orders, or the
 ## depth ladder with the goal's rung flashing. A click opens what the HUD's own buttons open and
@@ -59,7 +59,7 @@ var _simulation: Simulation
 var _world: World
 ## The goals showing, top first (some may be celebrating).
 var _shown: Array[Goal] = []
-## Whether the player wants the tracker ([kbd]G[/kbd]); the sheet or the tally can still hide it.
+## Whether the player wants the tracker ([kbd]G[/kbd]).
 var _wanted: bool = true
 ## True once an old event arrives, until the next advance: nothing achieved then is celebrated.
 var _stale: bool = false
@@ -132,7 +132,7 @@ func advance(delta: float) -> void:
 	_show()
 
 
-## True while the tracker is on screen: wanted ([kbd]G[/kbd]) and not under the tally.
+## True while the tracker is on screen: while it is wanted ([kbd]G[/kbd]).
 func is_shown() -> bool:
 	return _on_screen
 
@@ -522,13 +522,10 @@ func _finish(goal: Goal) -> void:
 	goal_finished.emit(goal.done)
 
 
-## Works out whether the tracker shows: wanted and not under the tally (spec 045).
+## Works out whether the tracker shows: whenever it is wanted. Windows, the tally's too, are drawn
+## over it (spec 062 R2).
 func _show() -> void:
-	var hud: Hud = get_parent() as Hud
-	var covered: bool = false
-	if hud != null:
-		covered = hud.tally != null and hud.tally.is_open()  # spec 045
-	_on_screen = _wanted and not covered
+	_on_screen = _wanted
 	refreshed.emit()
 
 

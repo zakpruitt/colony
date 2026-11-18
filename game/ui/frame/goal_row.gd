@@ -39,6 +39,8 @@ const ARROW: Array[String] = ["#...", "##..", ".##.", "..##", ".##.", "##..", "#
 const ARROW_ROOM: float = 10.0
 
 var sentence_label: Label
+## What the last drawing put where, by kind, in this control's own pixels (for tests).
+var drawn: Dictionary[StringName, Array] = {}
 var detail_label: Label
 
 var _goal: Goals.Goal
@@ -136,6 +138,7 @@ func bar_rect() -> Rect2:
 
 
 func _draw() -> void:
+	drawn = {}
 	if _goal == null:
 		return
 	if _goal.flash > 0.0:
@@ -148,7 +151,7 @@ func _draw() -> void:
 		_draw_pixels(ARROW, _arrow.position, Palette.color(&"yellow"))
 	var dot_y: float = PAD + 1.0
 	if _goal.celebrate > 0.0:
-		_draw_pixels(TICK, Vector2(4, dot_y), Palette.color(&"green"))
+		_draw_pixels(TICK, Vector2(4, dot_y), Palette.color(&"green"), &"tick")
 	else:
 		draw_rect(Rect2(6, dot_y + 2.0, 5, 5), Palette.color(&"steel"))
 		draw_rect(Rect2(6, dot_y + 2.0, 5, 1), Palette.color(&"silver"))
@@ -159,19 +162,23 @@ func _draw() -> void:
 		colours = [&"green", &"forest"]
 	var colour: StringName = colours[0]
 	var shade: StringName = colours[1]
-	UiBar.draw_bar(
-		self,
-		_bar,
-		_goal.progress,
-		Palette.color(colour),
-		Palette.color(shade),
-		Palette.color(&"ink")
-	)
+	_draw_bar(Palette.color(colour), Palette.color(shade))
+
+
+## The goal's bar in [param colour] with its [param shade] on an ink track, noted in
+## [member drawn].
+func _draw_bar(colour: Color, shade: Color) -> void:
+	UiBar.draw_bar(self, _bar, _goal.progress, colour, shade, Palette.color(&"ink"))
+	drawn[&"bar"] = [_bar]
 
 
 ## Draws [param pixels] ([code]#[/code] in [param colour]) at [param at], with an ink shadow a pixel
-## below.
-func _draw_pixels(pixels: Array[String], at: Vector2, colour: Color) -> void:
+## below; noted in [member drawn] as [param kind] unless that is empty.
+func _draw_pixels(
+	pixels: Array[String], at: Vector2, colour: Color, kind: StringName = &""
+) -> void:
+	if kind != &"":
+		drawn[kind] = [Rect2(at, Vector2(pixels[0].length(), pixels.size() + 1))]
 	for y: int in pixels.size():
 		for x: int in pixels[y].length():
 			if pixels[y][x] == "#":

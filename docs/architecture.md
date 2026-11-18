@@ -30,7 +30,8 @@ The picture is drawn in two layers, each in its own pixels.
   into `Main.world_viewport`, a `SubViewport` inside `Main.world_view` (a stretching
   `SubViewportContainer`, nearest filtering, snapped to pixels). The window shows it scaled by the largest
   whole number that fits (`UiRoot.world_scale()`). The HUD's `CanvasLayer` stays at `Main/HUD` but draws
-  into that viewport (since spec 062 it draws nothing of its own: every piece it makes is on the UI layer) (`custom_viewport`, set on `NOTIFICATION_SCENE_INSTANTIATED`: set any later, freeing
+  into that viewport (since spec 062 all it draws there is the world's own veil, the dark of a crossing:
+  every other piece it makes is on the UI layer) (`custom_viewport`, set on `NOTIFICATION_SCENE_INSTANTIATED`: set any later, freeing
   `Main` makes the engine undo a connection that is already gone).
 - **The UI layer** (`UiRoot`, `game/ui/ui_root.gd`, canvas layer 20) is drawn in *UI pixels*: the largest
   whole UI scale that still leaves at least 960x540 of room (`ui_scale()`, `room()`). 1280x720 gives a scale

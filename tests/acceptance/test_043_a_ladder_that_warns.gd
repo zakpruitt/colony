@@ -408,7 +408,7 @@ func test_r6_nothing_else_changes() -> void:
 	var rect: Rect2 = ladder.get_rect()
 	var room := Vector2(UiRoot.MIN_ROOM)  # a HUD alone lays its frame out at the least room
 	var top: float = Hud.FRAME_TOP + PlacePanel.HEIGHT + Hud.FRAME_GAP
-	assert_eq(rect.size.x, StageList.WIDTH, "the list's width")
+	assert_eq(rect.size, Vector2(150, 312), "the list's size: 12 rows of 24 under its heading")
 	assert_eq(rect.position, Vector2(room.x - Hud.FRAME_EDGE - StageList.WIDTH, top), "place")
 	var hash_before: int = _sim.state_hash()
 	var target: int = _sim.expedition.target_depth

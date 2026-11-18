@@ -136,7 +136,7 @@ var windows: UiWindows:
 	set(value):
 		windows = value
 		if frame_tip != null and value != null:
-			frame_tip.covered = value.covers
+			frame_tip.covered = _covered
 ## What beat the party and what would help (spec 041); its [member DefeatNote.panel] is drawn over
 ## every window (spec 062 R4).
 var defeat_note: DefeatNote
@@ -372,6 +372,7 @@ func lift_tip(ui: UiRoot) -> void:
 	note.reparent(ui.frame, false)
 	ui.frame.move_child(note, -1)
 	note.scale = Vector2.ONE
+	note.z_index = 1  # with the stage list's line, which it comes after: drawn over it
 	frame_tip.reparent(ui.frame, false)
 	ui.frame.move_child(frame_tip, -1)
 	frame_tip.scale = Vector2.ONE
@@ -624,7 +625,7 @@ func _on_frame_clicked(hero_id: int) -> void:
 func _build_ladder() -> void:
 	ladder = StageList.new()
 	screen_frame.add_child(ladder)
-	ladder.setup(_simulation, journal, shop)
+	ladder.setup(_simulation, journal)
 	ladder.target_asked.connect(_on_ladder_target)
 
 
@@ -654,6 +655,15 @@ func _show_ticker() -> void:
 		var bar_at: Vector2 = _ui.bar.rect_in(Vector2i(_ui.room())).position
 		bar_left = (screen_frame.get_transform().affine_inverse() * bar_at).x
 	ticker.show_line(journal.ticker_text(), journal.ticker_colour(), room.x, frames_y, bar_left)
+
+
+## True when [param at] (the viewport's coordinates) lies on a window or the button bar and not on
+## the note after a defeat, which is drawn over them (spec 062 R4): the frame's tip treats such a
+## point as nowhere.
+func _covered(at: Vector2) -> bool:
+	if windows == null or not windows.covers(at):
+		return false
+	return not (defeat_note.is_shown() and Hud.on_screen(defeat_note.panel).has_point(at))
 
 
 ## A click on the ticker opens the Journal window (spec 062 R3).

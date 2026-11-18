@@ -669,13 +669,14 @@ func test_r6_out_of_the_way() -> void:
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "a hero window floats over the goals")
 	_hud.hero_windows.close_all()
+	# Spec 062 R2: the goals stay under the tally too, which is drawn over them.
 	_hud.tally.open()
 	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "hidden under the tally")
-	assert_false(_hud.goals_view.is_visible_in_tree(), "not drawn")
+	assert_true(goals.is_shown(), "shown with the tally open")
+	assert_true(_hud.goals_view.is_visible_in_tree(), "and drawn")
 	_hud.tally.close()
 	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "back when the tally closes")
+	assert_true(goals.is_shown(), "and when the tally closes")
 	# Hidden by G, it stays hidden after the tally.
 	_key(KEY_G)
 	_hud.tally.open()
