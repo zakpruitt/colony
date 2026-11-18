@@ -19,7 +19,8 @@ them, and with them the old HUD layer is gone.
 - **R2. The stage list** (`L`), at the right edge: the stages of this area headed by its name, with the
   party's stage, the safe stage, the target (yellow frame and arrow), stages reached and never reached,
   each guardian with its name written beside its stage and struck through once beaten, and each stage's
-  number coloured safe, within reach or dangerous with that word in the tooltip. A click sets the target;
+  number coloured safe, within reach or dangerous, with the tooltip saying so as spec 043 rules
+  (nothing for a safe stage). A click sets the target;
   the wheel scrolls; a small arrow returns to the party. Every rule of specs 033, 043 and 047 holds.
 - **R3. The ticker:** the newest journal line for 4 seconds, in the new font, above the hero frames,
   never over a window's title bar at the default places. A click on it opens the Journal.
@@ -40,8 +41,10 @@ them, and with them the old HUD layer is gone.
   and what still guards the behaviour).
 - **R9. True in a crowded frame.** After a frame of 300 ticks the goals, the stage list and the ticker
   show the end state; a defeat and a revival in one frame still show the note for the lost fight.
-- **R10. Fits both rooms.** At 960x540 and 1280x720 nothing overlaps the frame of the screen or the
-  windows' default places, and no text is cut with the longest names in the data.
+- **R10. Fits both rooms.** At 960x540 and 1280x720 the goals, the stage list, the ticker and the
+  catching-up bar overlap neither the frame of the screen (spec 061's pieces and the button bar), nor
+  each other, nor the room's edges, and no text is cut with the longest names in the data. Windows are
+  drawn over the goals and the stage list, as they are over the world; their default places do not change.
 - **R11. Showcase, help and wiki** are true to it, and the wiki no longer says the overhaul is under way.
 - **R12. Tags stay under windows.** The count tags on the bar's buttons (spec 059's `UiBadge`) are drawn
   over their buttons and under any window dragged across the bar; tooltips stay above everything.
