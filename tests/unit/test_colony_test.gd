@@ -31,7 +31,8 @@ func test_r2_the_copied_helpers_are_gone() -> void:
 
 func test_r2_a_save_path_is_removed_with_its_backups() -> void:
 	var path: String = save_path("r2")
-	assert_true(path.begins_with("user://"), "under user://: %s" % path)
+	var user_dir: String = OS.get_user_data_dir()
+	assert_true(ProjectSettings.globalize_path(path).begins_with(user_dir), "under user: %s" % path)
 	assert_true(path.contains(str(OS.get_process_id())), "named for this process: %s" % path)
 	var files: Array[String] = [path, path + SaveStore.BACKUP_SUFFIX, path + SaveStore.TEMP_SUFFIX]
 	for file_path: String in files:

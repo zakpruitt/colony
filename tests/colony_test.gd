@@ -85,12 +85,18 @@ func raise_party(simulation: Simulation, level: int) -> void:
 		raise(hero, level)
 
 
-## Sets every hero of [param simulation]'s party at [param level] outright, its experience that
-## level's and its health full, without levelling up through the levels between (no points gained).
+## Sets [param hero] at [param level] outright, its experience that level's. It does not level up
+## through the levels between (no points gained) and does not touch its health.
+func set_level_keeping_health(hero: Hero, level: int) -> void:
+	hero.level = level
+	hero.xp = Hero.xp_for_level(level)
+
+
+## Sets every hero of [param simulation]'s party at [param level] outright (as
+## [method set_level_keeping_health]), and its health full.
 func set_party_level(simulation: Simulation, level: int) -> void:
 	for hero: Hero in simulation.party.heroes:
-		hero.level = level
-		hero.xp = Hero.xp_for_level(level)
+		set_level_keeping_health(hero, level)
 		hero.health = hero.max_health()
 
 

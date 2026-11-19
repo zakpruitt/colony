@@ -3,7 +3,6 @@ extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## constants and helpers, on top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays
 ## under gdlint's length.
 
-const STEP: float = 1.0 / 60.0
 const LIMIT_TICKS: int = 30_000
 const STRONG_LEVEL: int = 30
 const ROOMS: Array[Vector2i] = [Vector2i(960, 540), Vector2i(1280, 720)]
@@ -79,17 +78,6 @@ func _pieces(main: Main) -> Dictionary[String, Control]:
 	for frame: HeroFrameView in hud.frames:
 		pieces[String(frame.name)] = frame
 	return pieces
-
-
-## A real click on [param control], a control on the UI layer, then a frame of the HUD.
-func _click(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
-	main.hud.advance(STEP)
-
-
-func _press(main: Main, keycode: Key) -> void:
-	press(keycode)
-	main.hud.advance(STEP)
 
 
 ## Where [param node], a node of the world's viewport, is on the UI layer, in UI pixels.

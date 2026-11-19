@@ -162,7 +162,7 @@ func _stall(main: Main, ticks: int) -> void:
 ## checks the other starts closing with the line into the chosen node lit; returns the window.
 func _choose_now(main: Main, hero: Hero) -> HeroWindow:
 	var tree: TalentTreeDef = _tree(hero.class_id)
-	_level(hero, 8)
+	set_level_keeping_health(hero, 8)
 	hero.set_talents(tree.trunk)
 	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 	main.simulation.take_talent(hero.id, tree.path_a[0])

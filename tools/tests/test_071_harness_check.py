@@ -13,7 +13,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import dev  # noqa: E402
 
-WRITES = 'extends GutTest\n\nvar _path: String = "user://made_up_%d.save" % OS.get_process_id()\n'
+WRITES = "extends GutTest\n## Writes a file of its own under user://.\n\nvar _path: String = save_path()\n"
+OWN_PATH = 'var _own: String = "user://made_up_%d.save" % OS.get_process_id()\n'
 CLEANS = "\n\nfunc after_all() -> void:\n\tpass\n"
 
 
@@ -65,6 +66,28 @@ class HarnessCheck(unittest.TestCase):
         problems = self.problems()
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("tests/unit/test_writes.gd", problems[0])
+
+    def test_r5_a_test_naming_its_own_user_path_fails(self) -> None:
+        self.write("tests/unit/test_own_path.gd", WRITES + CLEANS + OWN_PATH)
+        problems = self.problems()
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("tests/unit/test_own_path.gd:9", problems[0])
+        self.assertIn("save_path", problems[0])
+
+        # A path from the base passes, and so does an assertion on a game class's default path.
+        default = 'func test_default() -> void:\n\tassert_eq(SaveStore.DEFAULT_PATH, "user://c.save")\n'
+        self.write("tests/unit/test_own_path.gd", WRITES + CLEANS + "\n\n" + default)
+        self.assertEqual(self.problems(), [])
+
+        # Not any assertion: one about a path of its own still fails.
+        own = 'func test_own() -> void:\n\tassert_eq(_path, "user://made_up.save")\n'
+        self.write("tests/unit/test_own_path.gd", WRITES + CLEANS + "\n\n" + own)
+        self.assertEqual(len(self.problems()), 1)
+
+        # The shared base is where the paths are made.
+        base = 'extends GutTest\n\nvar made: String = "user://%d.save"\n' + CLEANS
+        self.write("tests/colony_test.gd", base)
+        self.assertEqual(len(self.problems()), 1, "only the test's own path above")
 
     def test_r5_a_script_without_its_uid_fails(self) -> None:
         self.write("game/made_up.gd", "extends Node\n", uid=False)

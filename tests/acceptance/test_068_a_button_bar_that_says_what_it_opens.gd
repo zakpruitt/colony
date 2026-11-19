@@ -15,7 +15,6 @@ const NAMES: Dictionary[StringName, String] = {
 	&"tally": "Tally",
 }
 const WIKI: String = "res://docs/wiki/index.html"
-const STEP: float = 1.0 / 60.0
 ## The most the bar may be wide at each room, in UI pixels: what stands at its left leaves it this
 ## (a hero window's default place and the ticker's longest line; the fourth cascaded hero window).
 const WIDEST: Dictionary[Vector2i, float] = {ROOM_SMALL: 317.0, ROOM_LARGE: 518.0}

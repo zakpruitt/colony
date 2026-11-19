@@ -80,7 +80,7 @@ func test_r1_a_window_per_hero() -> void:
 func test_r2_the_header() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var knight: Hero = _hero(main, &"knight")
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	knight.set_talents(Content.talent_tree(&"knight").trunk)
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.STATS)
 	await _frames()
@@ -89,7 +89,7 @@ func test_r2_the_header() -> void:
 	assert_eq(shown.portrait.size, Vector2(icon.get_size()) * 2.0, "at twice the size")
 	assert_eq(shown.line(&"class"), "Knight", "the class")
 	assert_eq(shown.class_label.get_theme_font(&"font"), UiText.font(true), "in bold")
-	_level(knight, 10)
+	set_level_keeping_health(knight, 10)
 	knight.set_talents(_walked(&"knight", 1, 1))
 	main.hud.advance(STEP)
 	assert_eq(shown.line(&"class"), "Knight, Berserker", "and its path")
@@ -130,7 +130,7 @@ func test_r3_tabs() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var knight: Hero = _hero(main, &"knight")
 	var mage: Hero = _hero(main, &"mage")
-	_level(knight, 4)
+	set_level_keeping_health(knight, 4)
 	var first: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var names: Array[String] = []
 	for button: UiButton in first.tab_buttons:
@@ -144,10 +144,10 @@ func test_r3_tabs() -> void:
 	_click(main, first.talents.node(Content.talent_tree(&"knight").trunk[0]))
 	_tick(main)
 	assert_eq(first.talents_tag.text, "1", "one left")
-	_level(mage, 3)
+	set_level_keeping_health(mage, 3)
 	var second: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
 	var learned: int = mage.microskills().size()
-	_level(mage, 6)
+	set_level_keeping_health(mage, 6)
 	main.hud.advance(STEP)
 	var new_skills: int = mage.microskills().size() - learned
 	if new_skills > 0:
@@ -184,7 +184,7 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 	var windows: UiWindows = main.ui.windows
 	sim.party.gold = RICH
 	var knight: Hero = _hero(main, &"knight")
-	_level(knight, 20)
+	set_level_keeping_health(knight, 20)
 	knight.set_talents(_walked(&"knight", 0, 4))
 	main.hud.advance(STEP)
 	_press(main, KEY_U)
@@ -280,7 +280,7 @@ func test_r4_stats_with_reasons() -> void:
 	assert_eq(shown.line(&"stat_damage"), "Damage %d" % plain.damage, "no bonus: no reason")
 	sim.upgrades.set_rank(&"sharp_blades", 3)
 	sim.upgrades.set_rank(&"stout_armor", 2)
-	_level(cleric, 17)
+	set_level_keeping_health(cleric, 17)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.QUICKNESS)
@@ -333,7 +333,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 		var class_tree: TalentTreeDef = Content.talent_tree(class_id)
 		for path: int in 2:
 			var what: String = "%s on %s" % [class_id, class_tree.path_names[path]]
-			_level(hero, 10)
+			set_level_keeping_health(hero, 10)
 			hero.set_talents(_walked(class_id, path, 1))
 			var opened: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 			main.hud.advance(STEP)
@@ -389,7 +389,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	# The commands, as spec 055 had them, on the front window's Talents tab.
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = Content.talent_tree(&"knight")
-	_level(knight, 4)
+	set_level_keeping_health(knight, 4)
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
@@ -400,7 +400,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	_click(main, tab.node(tree.trunk[1]))
 	_tick(main)
 	assert_eq(tab.points_label.text, "Next point at level 6", "the next point's level")
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	_click(main, tab.node(tree.trunk[2]))
 	_tick(main)
 	_click(main, tab.node(tree.path_b[0]))
@@ -415,7 +415,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	main.simulation.party.gold = RICH
 	main.hud.advance(STEP)
 	assert_eq(tab.reset_button.text, "Reset 800", "the reset with its price")
-	_level(knight, 17)
+	set_level_keeping_health(knight, 17)
 	main.hud.advance(STEP)
 	assert_eq(tab.paragon_label.text, "3 paragon points", "the paragon points")
 	# Spec 064 R9: the medallion, under the tree past the first view (test_064's R9 scrolls to it
@@ -428,7 +428,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "key 2 on the front Talents tab")
 	# Keys 1 to 3 belong to the front hero window, on its Talents tab only.
 	var mage: Hero = _hero(main, &"mage")
-	_level(mage, 17)
+	set_level_keeping_health(mage, 17)
 	var front: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
 	assert_eq(main.ui.windows.front(), front, "the mage's in front, on Stats")
 	_press(main, KEY_3)
@@ -455,7 +455,7 @@ func test_r5_a_question_seen_without_scrolling() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var mage: Hero = _hero(main, &"mage")
 	var tree: TalentTreeDef = Content.talent_tree(&"mage")
-	_level(mage, 8)
+	set_level_keeping_health(mage, 8)
 	mage.set_talents(tree.trunk)
 	var shown: HeroWindow = _open(main, mage, HeroWindow.Page.TALENTS)
 	await _frames()
@@ -500,7 +500,7 @@ func test_r6_skills() -> void:
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
 		var def: HeroClassDef = hero.def()
-		_level(hero, 1)
+		set_level_keeping_health(hero, 1)
 		var shown: HeroWindow = _open(main, hero, HeroWindow.Page.SKILLS)
 		main.hud.advance(STEP)
 		var cards: Array[HeroSkillsTab.Card] = shown.skills.cards
@@ -537,7 +537,7 @@ func test_r6_skills() -> void:
 					Palette.color(TalentNode.DIM),
 					"%s: dimmed" % named
 				)
-		_level(hero, 30)
+		set_level_keeping_health(hero, 30)
 		main.hud.advance(STEP)
 		for card: HeroSkillsTab.Card in cards:
 			assert_true(card.learned, "%s: all learned at 30" % class_id)
@@ -623,7 +623,7 @@ func test_r8_nothing_lost() -> void:
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = Content.talent_tree(&"knight")
 	# take_talent, spend_paragon and reset_talents, each with the same effect as before.
-	_level(knight, 17)
+	set_level_keeping_health(knight, 17)
 	sim.party.gold = RICH
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
@@ -637,7 +637,7 @@ func test_r8_nothing_lost() -> void:
 	# A reset is never charged at a price the player did not read.
 	_click(main, tab.reset_button)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.RESET, "asked")
-	_level(knight, 18)
+	set_level_keeping_health(knight, 18)
 	main.hud.advance(STEP)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the question goes")
 	tab.confirm()
@@ -711,7 +711,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	# Level-ups, a talent taken and a fight, all in one frame of 300 ticks.
 	knight.xp = Hero.xp_for_level(4) - 1
 	cleric.xp = Hero.xp_for_level(3) - 1
-	_level(knight, 2)
+	set_level_keeping_health(knight, 2)
 	knight.xp = Hero.xp_for_level(4) - 1
 	sim.take_talent(knight.id, tree.trunk[0])
 	for i: int in 300:
@@ -777,7 +777,7 @@ func test_r10_fits() -> void:
 		for class_id: StringName in CLASSES:
 			var hero: Hero = _hero(main, class_id)
 			for path: int in 2:
-				_level(hero, 17)
+				set_level_keeping_health(hero, 17)
 				hero.set_talents(_walked(class_id, path, 1))
 				var shown: HeroWindow = null
 				for page: HeroWindow.Page in [

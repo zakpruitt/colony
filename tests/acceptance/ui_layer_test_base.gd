@@ -9,6 +9,8 @@ extends ColonyTest
 
 const ROOM_SMALL: Vector2i = Vector2i(960, 540)
 const ROOM_LARGE: Vector2i = Vector2i(1280, 720)
+## A frame at 60 frames a second.
+const STEP: float = 1.0 / 60.0
 
 ## Files for a test's settings and save (used by the tests that extend this).
 @warning_ignore("unused_private_class_variable")
@@ -40,6 +42,23 @@ func _main(room: Vector2i = ROOM_SMALL, settings: SoundSettings = null) -> Main:
 ## A left click at [param at], a point in UI pixels on [param ui].
 func _click_ui(ui: UiRoot, at: Vector2) -> void:
 	click(ui.ui_to_world(at))
+
+
+## A real click in the middle of [param control], a control on [param main]'s UI layer.
+func _click_on(main: Main, control: Control) -> void:
+	_click_ui(main.ui, control.get_global_rect().get_center())
+
+
+## A real click on [param control], a control on the UI layer, then a frame of the HUD.
+func _click(main: Main, control: Control) -> void:
+	_click_on(main, control)
+	main.hud.advance(STEP)
+
+
+## [method ColonyTest.press], then a frame of the HUD.
+func _press(main: Main, keycode: Key, shift: bool = false) -> void:
+	press(keycode, shift)
+	main.hud.advance(STEP)
 
 
 ## Drags [param window] by its title bar by [param by] UI pixels, in [param steps] moves, calling

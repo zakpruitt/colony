@@ -131,7 +131,7 @@ run it. Everything here works today on the <code>dev</code> branch unless it is 
   <p><strong>In one line:</strong> after Zak played the demo he asked for areas to choose between instead of
   one descent, and a skill tree of real abilities for every hero. That is now on <code>dev</code>: eight
   more specs (049 to 056, pull requests #50 to #57), each read by an independent reviewer and fixed before
-  it merged. Nothing is in progress, the full check passes (605 tests), and nothing has gone to
+  it merged. Nothing is in progress, the full check passes, and nothing has gone to
   <code>main</code>. Every spec after 001 is <em>provisional</em> until Zak has played it. The direction is
   in <code>docs/design/world.md</code>, "Areas and skill trees".</p>
 </div>
@@ -1041,7 +1041,7 @@ wipes.</p>
   <tr><td><code>harness</code></td><td>A test that writes files does not clean up after its last test, or a script has no <code>.uid</code> file committed beside it</td></tr>
   <tr><td><code>art</code></td><td>A sprite breaks the style rules or is out of date with its text file; or a sound is missing, out of date, longer than 1.2 s or too loud</td></tr>
   <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
-  <tr><td><code>tests</code></td><td>Any of the 605 tests fails</td></tr>
+  <tr><td><code>tests</code></td><td>Any test fails</td></tr>
   <tr><td><code>data</code></td><td>Any data file does not load or reports a problem</td></tr>
   <tr><td><code>boot</code></td><td>The game prints an error while starting</td></tr>
 </table>

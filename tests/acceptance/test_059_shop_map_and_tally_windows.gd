@@ -6,7 +6,6 @@ extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## HUD after each), and drives the three windows with real keys and clicks (helpers in
 ## ui_layer_test_base.gd), checking the simulation after each command.
 
-const STEP: float = 1.0 / 60.0
 const LIMIT_TICKS: int = 30000
 const STRONG_LEVEL: int = 60
 const BLADES: StringName = &"sharp_blades"
@@ -40,11 +39,6 @@ func _start(room: Vector2i = ROOM_SMALL) -> Main:
 
 func _window(main: Main, id: StringName) -> UiWindow:
 	return main.ui.windows.window(id)
-
-
-## A click on the middle of [param control], a control on the UI layer.
-func _click_on(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
 
 
 ## A frame of [param ticks] ticks of the simulation, then the world and the HUD.

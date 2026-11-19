@@ -6,7 +6,6 @@ extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## a tick at a time (the world and the HUD after each), and drives the shop with real clicks and
 ## keys, checking the simulation after each command.
 
-const STEP: float = 1.0 / 60.0
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
@@ -46,10 +45,6 @@ func _row(main: Main, id: StringName) -> ShopRow:
 func _open_shop(main: Main) -> void:
 	press(KEY_U)
 	main.hud.advance(STEP)
-
-
-func _click_on(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
 
 
 func _bold(label: Label) -> bool:
