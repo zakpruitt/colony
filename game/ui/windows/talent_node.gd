@@ -1,91 +1,101 @@
 class_name TalentNode
 extends Control
-## One node of a hero's talent tree on a hero window's Talents tab (spec 055, moved onto the UI
-## layer by spec 060): its ability's own picture (spec 063, [method UiIcon.picture]) in a box, and
-## beside it the ability's name, whether it is an action or a passive, and its whole one-line
-## description, wrapped to the node's width and never cut, so the tree reads without pointing.
-## [method show_state] says how it stands for the hero, and the node draws it: taken is bright with
-## a green tick; one that can be taken now is framed in yellow and pulses gently; one not yet
-## reachable is plain; one on the path the hero did not choose is dark, with no picture, its words
-## dimmed but still readable.
+## One node of a hero's talent tree on a hero window's Talents tab (spec 064 R2, R3): its ability's
+## picture in a large [UiIcon] ([member slot]), square for an action and with cut corners for a
+## passive, and the ability's name under it, centred, on one or two lines and never cut. No
+## description is written here: pointing at the node shows its card ([HeroTalentsTab]).
 ##
-## It reads nothing itself: [HeroTalentsTab] sets its state and runs its pulse. A left click
-## anywhere on it emits [signal clicked].
+## [method show_state] says how it stands for the hero, and the slot shows it: taken is owned (a
+## gold frame), one that can be taken now is ready (a yellow frame that pulses), one not yet
+## reachable is locked, and one on the path the hero did not choose is closed (dark, a padlock). A
+## node on a path has a thin ring of the path's colour round its slot ([method tint]), dark once the
+## path is closed. The node is the size of its slot; its name hangs under it.
+##
+## It reads nothing itself: [HeroTalentsTab] sets its state and runs its pulse. A left click on the
+## slot emits [signal clicked]; the mouse entering and leaving it, [signal hovered].
 
 ## A left click on the node.
 signal clicked(ability_id: StringName)
+## The mouse came onto the node ([param inside] true) or left it.
+signal hovered(ability_id: StringName, inside: bool)
 
 ## How a node stands for the hero.
 enum State { TAKEN, AVAILABLE, LOCKED, CLOSED }
 
-## The picture's box: the 16x16 picture at twice its size inside a 1-pixel border.
-const BOX: Vector2 = Vector2(34, 34)
-const PICTURE_SCALE: float = 2.0
-## Where the words start, right of the box, and the gap between the name and its kind.
-const TEXT_X: float = 40.0
-const KIND_GAP: float = 8.0
-## Seconds of one pulse of a node that can be taken, bright half then dim half.
-const PULSE_SECONDS: float = 1.0
-## The colour of a closed node's words, and of anything else dimmed on a hero window: readable,
-## but plainly not in play.
+## The slot's size: the 16x16 picture at twice its size in a large frame.
+const SLOT: Vector2 = Vector2(36, 36)
+## The widest a name runs before it takes a second line, and the gap between the slot and it.
+const NAME_WIDTH: float = 116.0
+const NAME_GAP: float = 0.0
+## The most lines a name takes.
+const NAME_LINES: int = 2
+## The colour of anything dimmed on a hero window: readable, but plainly not in play.
 const DIM: StringName = &"steel"
-## A tick in 5x4 cells, each 2x2 pixels, drawn in code at the box's bottom right.
-const TICK: Array[String] = ["....#", "...#.", "#.#..", ".#..."]
+## The slot's look for each state.
+const LOOKS: Dictionary[State, UiIcon.State] = {
+	State.TAKEN: UiIcon.State.OWNED,
+	State.AVAILABLE: UiIcon.State.READY,
+	State.LOCKED: UiIcon.State.LOCKED,
+	State.CLOSED: UiIcon.State.CLOSED,
+}
 
 ## The ability this node stands for.
 var ability_id: StringName
 ## The path it is on (0 or 1), or -1 for the trunk.
 var path: int = -1
+## The framed picture, and the picture in it.
+var slot: UiIcon
 var icon: TextureRect
 var name_label: Label
-## "Action, every 8 s" or "Passive".
-var kind_label: Label
-## The ability's description, wrapped into lines.
-var description_label: Label
+## The palette name of the path's colour (the trunk's nodes have none).
+var path_colour: StringName = &""
 
 var _state: State = State.LOCKED
-## True while the node can be taken and the hero has a point: it pulses.
-var _pulsing: bool = false
-var _time: float = 0.0
+## The state the slot shows while a closing path holds its old look (-1: the node's own state).
+var _held: int = -1
 
 
-## A node for [param id], on [param on_path] (-1 for the trunk), [param width] UI pixels wide.
-func _init(id: StringName, on_path: int, width: float) -> void:
+## A node for [param id], on [param on_path] (-1 for the trunk) of a path coloured
+## [param colour] (&"" for the trunk).
+func _init(id: StringName, on_path: int, colour: StringName = &"") -> void:
 	ability_id = id
 	path = on_path
+	path_colour = colour
 	name = "Node_%s" % id
-	mouse_filter = Control.MOUSE_FILTER_PASS  # the wheel goes on to the window's scroll
-	mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	icon = TextureRect.new()
-	icon.name = "Icon"
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_SCALE
-	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	icon.position = Vector2(1, 1)
-	icon.size = BOX - Vector2(2, 2)
-	icon.texture = UiIcon.picture(id)
-	add_child(icon)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	size = SLOT
+	custom_minimum_size = SLOT
 	var ability: AbilityDef = Content.ability(id)
+	var action: bool = ability != null and ability.is_action()
+	slot = UiIcon.new(id, true, UiIcon.Shape.SQUARE if action else UiIcon.Shape.CUT)
+	slot.name = "Slot"
+	slot.mouse_filter = Control.MOUSE_FILTER_PASS  # the wheel goes on to the window's scroll
+	slot.clicked.connect(func() -> void: clicked.emit(ability_id))
+	slot.mouse_entered.connect(func() -> void: hovered.emit(ability_id, true))
+	slot.mouse_exited.connect(func() -> void: hovered.emit(ability_id, false))
+	add_child(slot)
+	icon = slot.picture_rect
 	var title: String = ability.display_name if ability != null else String(id)
-	name_label = WindowText.label("Name", title, &"steel", true)
+	name_label = WindowText.label("Name", "", &"silver", true)
+	var lines: Array[String] = WindowText.wrap(title, NAME_WIDTH, true)
+	WindowText.set_text(name_label, "\n".join(PackedStringArray(lines)))
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_label.position = Vector2(floorf((SLOT.x - name_label.size.x) / 2.0), SLOT.y + NAME_GAP)
 	add_child(name_label)
-	kind_label = WindowText.label("Kind", HeroTalentsTab.kind_text(id), &"slate")
-	add_child(kind_label)
-	description_label = WindowText.label("Description", "", &"silver")
-	add_child(description_label)
-	_lay_out(width, ability.description if ability != null else "")
 	_apply()
 
 
-## Sets how the node stands, and whether it pulses (it can be taken now and the hero has a point).
-func show_state(shown: State, pulsing: bool) -> void:
-	if shown == _state and pulsing == _pulsing:
+## How tall the node is with its name: the slot, the gap and the name's lines.
+func full_height() -> float:
+	return SLOT.y + NAME_GAP + name_label.size.y
+
+
+## Sets how the node stands. [param _pulsing] is kept for the callers of spec 055: a node that can
+## be taken now pulses by its state alone.
+func show_state(shown: State, _pulsing: bool = true) -> void:
+	if shown == _state:
 		return
 	_state = shown
-	_pulsing = pulsing
-	if not pulsing:
-		_time = 0.0
 	_apply()
 
 
@@ -94,121 +104,78 @@ func state() -> State:
 	return _state
 
 
-## True while the node pulses.
+## Shows the slot as [param look] whatever the node's state, until [method release] (a path
+## closing before the player's eyes holds each node's old look until the closing reaches it).
+func hold(look: State) -> void:
+	_held = look
+	_apply()
+
+
+## Shows the node's own state again.
+func release() -> void:
+	if _held < 0:
+		return
+	_held = -1
+	_apply()
+
+
+## True while the node can be taken now: its slot pulses.
 func is_pulsing() -> bool:
-	return _pulsing
+	return slot.state() == UiIcon.State.READY
 
 
 ## Runs the pulse on by [param delta] seconds.
 func advance(delta: float) -> void:
-	if not _pulsing:
-		return
-	var was_bright: bool = is_bright()
-	_time = fmod(_time + delta, PULSE_SECONDS)
-	if was_bright != is_bright():
-		queue_redraw()
+	slot.advance(delta)
 
 
-## True in the bright half of the pulse (always, for a node that does not pulse).
-func is_bright() -> bool:
-	return not _pulsing or _time < PULSE_SECONDS / 2.0
-
-
-## The palette colour of the box's border: yellow (amber on the pulse's dim half) for a node that
-## can be taken now, green for a taken one, dusk for a plain one, ink for a closed one.
+## The palette colour of the slot's edge now.
 func frame_colour() -> StringName:
-	match _state:
-		State.TAKEN:
-			return &"green"
-		State.AVAILABLE:
-			return &"yellow" if is_bright() else &"amber"
-		State.CLOSED:
-			return &"ink"
-	return &"dusk"
+	return slot.frame_colour()
 
 
-## True when the node draws its tick (it is taken).
+## True when the node is taken (its slot shows owned).
 func is_ticked() -> bool:
 	return _state == State.TAKEN
 
 
-func _gui_input(event: InputEvent) -> void:
-	var button: InputEventMouseButton = event as InputEventMouseButton
-	if button != null and button.pressed and button.button_index == MOUSE_BUTTON_LEFT:
-		accept_event()
-		clicked.emit(ability_id)
+## The palette name of the ring round the slot: the path's colour, dark once the path is closed,
+## or &"" for a trunk node.
+func tint() -> StringName:
+	if path_colour == &"":
+		return &""
+	return PathColours.DIM if _shown() == State.CLOSED else path_colour
 
 
 func _draw() -> void:
-	var fill: StringName = &"night"
-	var bevel: StringName = &"dusk"
-	match _state:
-		State.TAKEN:
-			fill = &"pine"
-			bevel = &"forest"
-		State.AVAILABLE:
-			bevel = &"slate"
-		State.CLOSED:
-			fill = &"ink"
-			bevel = &"ink"
-	var box := Rect2(Vector2.ZERO, BOX)
-	draw_rect(box, Palette.color(frame_colour()))
-	draw_rect(box.grow(-1.0), Palette.color(fill))
-	draw_rect(Rect2(1, 1, BOX.x - 2.0, 1), Palette.color(bevel))
-	draw_rect(Rect2(1, 1, 1, BOX.y - 2.0), Palette.color(bevel))
-	if _state == State.CLOSED:
-		draw_rect(Rect2(11, 16, 12, 2), Palette.color(&"night"))  # a dash where the picture was
-	if is_ticked():
-		var at := Vector2(BOX.x - 11.0, BOX.y - 10.0)
-		for y: int in TICK.size():
-			for x: int in TICK[y].length():
-				if TICK[y][x] == "#":
-					var cell := Vector2(x * 2, y * 2)
-					draw_rect(
-						Rect2(at + cell + Vector2(0, 2), Vector2(2, 2)), Palette.color(&"ink")
-					)
-					draw_rect(Rect2(at + cell, Vector2(2, 2)), Palette.color(&"green"))
+	var ring: StringName = tint()
+	if ring == &"":
+		return
+	var colour: Color = Palette.color(ring)
+	for edge: Rect2 in [
+		Rect2(-1, -1, SLOT.x + 2, 1),
+		Rect2(-1, SLOT.y, SLOT.x + 2, 1),
+		Rect2(-1, 0, 1, SLOT.y),
+		Rect2(SLOT.x, 0, 1, SLOT.y),
+	]:
+		draw_rect(edge, colour)
 
 
-## Places the words beside the box in [param width] UI pixels: the name, its kind after it (or
-## under it, when both do not fit on one line) and the description wrapped under them.
-func _lay_out(width: float, description: String) -> void:
-	var words: float = width - TEXT_X
-	name_label.position = Vector2(TEXT_X, 0)
-	var name_width: float = UiText.width(name_label.text, true)
-	var kind_width: float = UiText.width(kind_label.text)
-	var below: float = UiText.LINE_HEIGHT
-	if name_width + KIND_GAP + kind_width <= words:
-		kind_label.position = Vector2(TEXT_X + name_width + KIND_GAP, 0)
-	else:
-		kind_label.position = Vector2(TEXT_X, UiText.LINE_HEIGHT)
-		below += UiText.LINE_HEIGHT
-	var lines: Array[String] = WindowText.wrap(description, words)
-	description_label.text = "\n".join(PackedStringArray(lines))
-	description_label.position = Vector2(TEXT_X, below)
-	description_label.size = Vector2(words, lines.size() * UiText.LINE_HEIGHT)
-	for label: Label in [name_label, kind_label]:
-		label.size = Vector2(UiText.width(label.text, label == name_label), UiText.LINE_HEIGHT)
-	size = Vector2(width, maxf(BOX.y, below + lines.size() * UiText.LINE_HEIGHT))
-	custom_minimum_size = size
+func _shown() -> State:
+	return _held as State if _held >= 0 else _state
 
 
-## Shows the state: the picture (none when closed) and the words' colours.
+## Shows the state: the slot's look and the name's colour.
 func _apply() -> void:
-	icon.visible = _state != State.CLOSED
+	var shown: State = _shown()
+	slot.show_state(LOOKS[shown])
 	var colour: StringName = &"silver"
-	var words: StringName = &"silver"
-	var kind: StringName = &"steel"
-	match _state:
+	match shown:
 		State.TAKEN:
 			colour = &"white"
 		State.AVAILABLE:
 			colour = &"yellow"
 		State.CLOSED:
 			colour = DIM
-			words = DIM
-			kind = &"slate"
 	name_label.add_theme_color_override(&"font_color", Palette.color(colour))
-	description_label.add_theme_color_override(&"font_color", Palette.color(words))
-	kind_label.add_theme_color_override(&"font_color", Palette.color(kind))
 	queue_redraw()

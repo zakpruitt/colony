@@ -36,10 +36,10 @@ const KEYS: Array[Array] = [
 ## What the game is about, one short line each.
 const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
-	"When a stage turns stable (safe), it heads one further.",
-	"A wipe sends it back to the last safe stage.",
+	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
 	"Gold buys upgrades in the Shop.",
 	"It keeps going while the game is closed.",
+	"A hero's talent tree forks into two paths: choose one.",
 ]
 const TITLE: String = "How Colony works"
 const FOOTER: String = "Click a hero for details. Point at anything for a hint."

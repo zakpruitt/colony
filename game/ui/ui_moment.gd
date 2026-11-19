@@ -257,6 +257,12 @@ func _draw() -> void:
 			draw_rect(square, Palette.color(spark_colour))
 
 
+## True when a moment may start for [param event] now: it is recent and the world is not catching
+## up (spec 064 asks it before starting a moment of its own, such as a path closing).
+func may_start(event: SimEvent) -> bool:
+	return _may_start(event)
+
+
 ## True when a moment may start for [param event] (null: for no event in particular) now.
 func _may_start(event: SimEvent) -> bool:
 	if world == null:

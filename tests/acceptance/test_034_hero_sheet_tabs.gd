@@ -247,17 +247,18 @@ func test_r3_three_tabs() -> void:
 	for page: HeroWindow.Page in [HeroWindow.Page.STATS, HeroWindow.Page.SKILLS]:
 		sheet.open_page(page)
 		_hud.advance(0.016)
-		assert_false(power.buy_button.is_visible_in_tree(), "hidden on %s" % _page_name(page))
-		_click(power.buy_button)
+		# Spec 064 R9: the stat's medallion is what a click spends a point on.
+		assert_false(power.medallion.is_visible_in_tree(), "hidden on %s" % _page_name(page))
+		power.medallion.clicked.emit()
 		_sim.step()
 		assert_eq(_rank(rogue, POWER), 0, "no training from %s" % _page_name(page))
 	# The same press on the Talents tab trains.
 	sheet.open_page(HeroWindow.Page.TALENTS)
 	_hud.advance(0.016)
-	assert_true(power.buy_button.is_visible_in_tree(), "shown on Talents")
-	_click(power.buy_button)
+	assert_true(power.medallion.is_visible_in_tree(), "shown on Talents")
+	power.medallion.clicked.emit()
 	_sim.step()
-	assert_eq(_rank(rogue, POWER), 1, "the button trains on the Talents tab")
+	assert_eq(_rank(rogue, POWER), 1, "the medallion trains on the Talents tab")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -484,6 +485,14 @@ func test_r9_out_of_the_way() -> void:
 			for control: Control in shown:
 				var box: Rect2 = control.get_global_rect()
 				var where: String = "%s %s %s" % [what, _name(control), box]
+				if sheet.talents.is_ancestor_of(control) and box.end.y > rect.end.y:
+					# Spec 064 R9: the paragon medallions sit under the tree, past the first view
+					# of the part that scrolls (test_064's R9 scrolls to them, its R13 checks the
+					# tab fits): inside the window across, below its top.
+					var across: bool = box.position.x >= rect.position.x and box.end.x <= rect.end.x
+					assert_true(across, "%s inside the window" % where)
+					assert_gte(box.position.y, rect.position.y, "%s inside the window" % where)
+					continue
 				assert_true(rect.encloses(box), "%s inside the window" % where)
 				if control is HeroWindow.Tag:
 					continue

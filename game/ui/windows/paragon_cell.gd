@@ -1,23 +1,28 @@
 class_name ParagonCell
 extends Control
-## One paragon stat under a hero's talent tree (spec 055 R7, on the UI layer by spec 060): a
-## [code]+1[/code] button, the stat's picture (spec 063), its name and the bonus its points give
-## so far. [method refresh] reads the hero each frame.
+## One paragon stat under a hero's talent tree (spec 064 R9): a medallion, the stat's picture in a
+## large [UiIcon] with the stat's rank as its count, and under it the stat's name and the total its
+## ranks give ([code]+6% damage and healing[/code]). A click on the medallion spends a point
+## ([HeroTalentsTab]); it shows ready (pulsing) while the hero has one. [method refresh] reads the
+## hero each frame.
 
-## UI pixels between the button and the name, and between the name and the bonus.
-const GAP: float = 5.0
-## Letters a stat's name keeps when the row is too wide for the full names.
-const SHORT_NAME: int = 5
-## Seconds a stat's bonus shows in yellow after a point goes in.
+## The cell's width: room for the longest total under the medallion.
+const WIDTH: float = 132.0
+## UI pixels between the medallion and the name.
+const GAP: float = 1.0
+## Seconds a stat's total shows in yellow after a point goes in.
 const FLASH_SECONDS: float = 0.5
 
 ## The stat this cell shows: a [TrainingDef] id.
 var id: StringName
-var buy_button: UiButton
-var name_label: Label
-var rank_label: Label
-## The stat's own picture, at its own size, between the button and the name (spec 063).
+var medallion: UiIcon
+## The stat's own picture, in the medallion.
 var picture: TextureRect
+var name_label: Label
+## The total the stat's ranks give.
+var total_label: Label
+## The total, by the name the cells of spec 055 had.
+var rank_label: Label
 
 var _flash: float = 0.0
 var _rank: int = 0
@@ -28,57 +33,57 @@ func _init(training_id: StringName, index: int) -> void:
 	id = training_id
 	name = "Paragon%d" % (index + 1)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	buy_button = WindowText.button("Spend", "+1")
-	add_child(buy_button)
+	medallion = UiIcon.new(training_id, true, UiIcon.Shape.CUT)
+	medallion.name = "Medallion"
+	medallion.mouse_filter = Control.MOUSE_FILTER_PASS  # the wheel goes on to the window's scroll
+	medallion.position = Vector2(floorf((WIDTH - medallion.size.x) / 2.0), 0)
+	add_child(medallion)
+	picture = medallion.picture_rect
 	var def: TrainingDef = Content.training(training_id)
-	var middle: float = floorf((UiTheme.BUTTON_HEIGHT - UiText.LINE_HEIGHT) / 2.0)
-	picture = TextureRect.new()
-	picture.name = "Picture"
-	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.stretch_mode = TextureRect.STRETCH_SCALE
-	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	picture.custom_minimum_size = UiIcon.PICTURE_SIZE
-	picture.size = UiIcon.PICTURE_SIZE
-	picture.texture = UiIcon.picture(training_id)
-	picture.position = Vector2(
-		buy_button.size.x + GAP, floorf((UiTheme.BUTTON_HEIGHT - UiIcon.PICTURE_SIZE.y) / 2.0)
-	)
-	add_child(picture)
-	name_label = WindowText.label("Name", def.display_name, &"white")
+	name_label = WindowText.label("Name", def.display_name, &"white", true)
 	name_label.mouse_filter = Control.MOUSE_FILTER_PASS  # for its tooltip
-	name_label.position = Vector2(picture.position.x + UiIcon.PICTURE_SIZE.x + GAP, middle)
 	add_child(name_label)
-	rank_label = WindowText.label("Rank", "", &"green")
-	rank_label.mouse_filter = Control.MOUSE_FILTER_PASS
-	add_child(rank_label)
+	total_label = WindowText.label("Total", "", &"green")
+	total_label.mouse_filter = Control.MOUSE_FILTER_PASS
+	add_child(total_label)
+	rank_label = total_label
+	size = Vector2(WIDTH, medallion.size.y + GAP + 2.0 * UiText.LINE_HEIGHT)
+	custom_minimum_size = size
 
 
-## Brings the cell up to date with [param hero] and runs its flash down by [param delta];
-## [param short] shows the stat's name cut to [constant SHORT_NAME] letters.
-func refresh(hero: Hero, delta: float, short: bool = false) -> void:
+## Brings the cell up to date with [param hero] and runs its pulse and flash on by [param delta].
+func refresh(hero: Hero, delta: float) -> void:
 	var def: TrainingDef = Content.training(id)
-	var shown_name: String = def.display_name.left(SHORT_NAME) if short else def.display_name
-	WindowText.set_text(name_label, shown_name)
 	var rank: int = hero.paragon_rank(def.stat)
 	_rank = rank
-	WindowText.set_text(rank_label, "+%d%%" % roundi(rank * def.per_rank * 100.0))
-	rank_label.position = Vector2(
-		name_label.position.x + name_label.size.x + GAP, name_label.position.y
-	)
-	size = Vector2(rank_label.position.x + rank_label.size.x, UiTheme.BUTTON_HEIGHT)
-	buy_button.disabled = hero.paragon_points() <= 0
+	medallion.set_count(str(rank))
+	var can_spend: bool = hero.paragon_points() > 0
+	var look: UiIcon.State = UiIcon.State.OWNED if rank > 0 else UiIcon.State.LOCKED
+	medallion.show_state(UiIcon.State.READY if can_spend else look)
+	medallion.advance(delta)
+	WindowText.set_text(total_label, total_text(def, rank))
+	_centre(name_label, medallion.size.y + GAP)
+	_centre(total_label, medallion.size.y + GAP + UiText.LINE_HEIGHT)
 	_flash = maxf(_flash - delta, 0.0)
 	var colour: StringName = &"green" if rank > 0 else &"steel"
 	if _flash > 0.0:
 		colour = &"yellow"
-	rank_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	total_label.add_theme_color_override(&"font_color", Palette.color(colour))
 
 
-## The cell as one line: "<name> <points> <bonus>" ([code]Power 2 +6%[/code]); the cell shows
-## the name and the bonus.
+## The total [param rank] points of [param def] give, in words: [code]+6% damage and healing[/code]
+## (the stat's description, a rank's share replaced by the whole).
+static func total_text(def: TrainingDef, rank: int) -> String:
+	var what: String = def.description
+	if what.begins_with("+"):
+		what = what.substr(what.find(" ") + 1) if what.find(" ") > 0 else ""
+	return ("+%d%% %s" % [roundi(rank * def.per_rank * 100.0), what]).strip_edges()
+
+
+## The cell as one line: "<name> <points> +<percent>%" ([code]Power 2 +6%[/code]).
 func text() -> String:
-	return "%s %d %s" % [Content.training(id).display_name, _rank, rank_label.text]
+	var def: TrainingDef = Content.training(id)
+	return "%s %d +%d%%" % [def.display_name, _rank, roundi(_rank * def.per_rank * 100.0)]
 
 
 ## Starts the flash: a point just went in.
@@ -94,3 +99,7 @@ func stop_flash() -> void:
 ## Seconds of flash left.
 func flash() -> float:
 	return _flash
+
+
+func _centre(label: Label, y: float) -> void:
+	label.position = Vector2(floorf((WIDTH - label.size.x) / 2.0), y)

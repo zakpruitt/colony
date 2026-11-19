@@ -32,6 +32,8 @@ const GAP: float = 8.0
 ## How far each window of a cascade is set from the one before (less sideways when the room is
 ## too narrow for that and the button bar).
 const CASCADE: Vector2 = Vector2(64, 28)
+## Every this many ranks of a paragon stat gets a banner (spec 064 R9).
+const PARAGON_BANNER_EVERY: int = 10
 
 var _ui: UiRoot
 var _simulation: Simulation
@@ -104,7 +106,10 @@ func place_defaults() -> void:
 		_places.append(left.position)
 		_places.append(right.position)
 		for k: int in range(1, _ids.size() - 1):
-			_places.append(left.position + CASCADE * k)
+			# Set right and down from the left one, but never so far down it meets the frames.
+			var place: Vector2 = left.position + CASCADE * k
+			place.y = maxf(minf(place.y, frames - window_size.y), band)
+			_places.append(place)
 	else:
 		# Two cascaded windows, one set down from the other, clear of the frames' line.
 		var chrome: float = _windows[_ids[0]].chrome_height()
@@ -221,6 +226,26 @@ func open_ids() -> Array[int]:
 	return made
 
 
+## Marks a gain the world just reported (spec 064 R8 to R10), through the layer's [UiMoment]: a node
+## taken bursts on its open tree, the line into it lights and a banner names it (a path's first node
+## names the path, and the other path closes before the player's eyes); a paragon point spent bursts
+## its medallion, with a banner every tenth rank; a microskill learned gets a banner, and a burst on
+## its card while the hero's window is open on Skills. Nothing starts for an event that is not
+## recent or while the world catches up: the windows show the end state all the same. [Main]
+## connects it to the world's events.
+func hear(event: SimEvent) -> void:
+	var moment: UiMoment = _ui.moment if _ui != null else null
+	if moment == null:
+		return
+	match event.kind:
+		SimEvent.Kind.TALENT_TAKEN:
+			_on_taken(event, moment)
+		SimEvent.Kind.PARAGON_SPENT:
+			_on_paragon(event, moment)
+		SimEvent.Kind.MICROSKILL_LEARNED:
+			_on_microskill(event, moment)
+
+
 ## Starts the flash of paragon stat [param index] in hero [param hero_id]'s window (a point just
 ## went in).
 func flash_paragon(hero_id: int, index: int) -> void:
@@ -239,6 +264,99 @@ static func frame_tip(hero: Hero, statuses: String = "") -> String:
 		return "Click for details" if titled.is_empty() else "%s: click for details" % titled
 	var said: String = statuses if titled.is_empty() else "%s: %s" % [titled, statuses]
 	return "%s. Click for details" % said
+
+
+func _on_taken(event: SimEvent, moment: UiMoment) -> void:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	var ability: AbilityDef = Content.ability(event.ability_id)
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
+	if ability == null or tree == null:
+		return
+	var on: int = tree.path_of(event.ability_id)
+	var chose: bool = on >= 0 and tree.path_nodes(on)[0] == event.ability_id
+	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
+	if shown != null and moment.may_start(event):
+		var view: TalentTreeView = shown.talents.tree_view()
+		shown.advance(0.0)  # the node owned before it bursts
+		var node: TalentNode = view.node(event.ability_id)
+		if node != null:
+			moment.burst(node.slot, event)
+		view.light(event.ability_id)
+		if chose:
+			view.close_path(1 - on)
+	var who: String = hero.def().display_name
+	if chose:
+		var summary: String = tree.path_summaries[on] if on < tree.path_summaries.size() else ""
+		moment.announce(
+			event.ability_id,
+			"%s is now a %s" % [who, tree.path_names[on]],
+			_sentence(summary),
+			event
+		)
+	else:
+		moment.announce(
+			event.ability_id,
+			"%s learned %s" % [who, ability.display_name],
+			first_sentence(ability.description),
+			event
+		)
+
+
+func _on_paragon(event: SimEvent, moment: UiMoment) -> void:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	var ids: Array[StringName] = Content.training_ids()
+	if hero == null or event.target_id < 0 or event.target_id >= ids.size():
+		return
+	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
+	if shown != null and event.target_id < shown.talents.paragon_cells.size():
+		shown.advance(0.0)  # the count up before it bursts
+		moment.burst(shown.talents.paragon_cells[event.target_id].medallion, event)
+	var rank: int = event.amount
+	if rank > 0 and rank % PARAGON_BANNER_EVERY == 0:
+		var def: TrainingDef = Content.training(ids[event.target_id])
+		var headline: String = (
+			"%s: %s %d, %s"
+			% [hero.def().display_name, def.display_name, rank, ParagonCell.total_text(def, rank)]
+		)
+		moment.announce(def.id, headline, "%s for every point." % def.description, event)
+
+
+func _on_microskill(event: SimEvent, moment: UiMoment) -> void:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	var ids: Array[StringName] = Content.microskill_ids()
+	if hero == null or event.target_id < 0 or event.target_id >= ids.size():
+		return
+	var skill: MicroskillDef = Content.microskill(ids[event.target_id])
+	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.SKILLS)
+	if shown != null:
+		shown.advance(0.0)
+		for card: HeroSkillsTab.Card in shown.skills.cards:
+			if card.skill == skill:
+				moment.burst(card.slot, event)
+	var headline: String = "%s learned %s" % [hero.def().display_name, skill.display_name]
+	moment.announce(skill.id, headline, _sentence(skill.description), event)
+
+
+## Hero [param hero_id]'s window when it is open on tab [param page], else null.
+func _showing(hero_id: int, page: HeroWindow.Page) -> HeroWindow:
+	var shown: HeroWindow = window_of(hero_id)
+	if shown == null or not shown.is_open() or shown.page() != page:
+		return null
+	return shown
+
+
+## The first sentence of [param text]: up to the first full stop followed by a space, or all of it.
+static func first_sentence(text: String) -> String:
+	var at: int = text.find(". ")
+	return text if at < 0 else text.left(at + 1)
+
+
+## [param text] as a sentence: its first letter capital, a full stop at its end.
+static func _sentence(text: String) -> String:
+	if text.is_empty():
+		return ""
+	var made: String = text.left(1).to_upper() + text.substr(1)
+	return made if made.ends_with(".") else made + "."
 
 
 ## A hero window opened or closed: one never dragged takes the first free place as it opens.

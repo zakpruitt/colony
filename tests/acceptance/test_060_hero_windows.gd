@@ -350,23 +350,15 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 				assert_true(node.is_visible_in_tree(), "%s shows" % named)
 				assert_eq(node.name_label.text, ability.display_name, "%s: its name" % named)
 				var kind: String = "Action" if ability.is_action() else "Passive"
-				assert_true(node.kind_label.text.begins_with(kind), "%s: %s" % [named, kind])
-				assert_eq(
-					node.description_label.text.replace("\n", " "),
-					ability.description,
-					"%s: the whole description, beside the node" % named
-				)
-				assert_true(node.description_label.is_visible_in_tree(), "%s: shown" % named)
 				assert_true(
-					window.encloses(_text_rect(node.description_label)), "%s: inside" % named
+					HeroTalentsTab.kind_text(node.ability_id).begins_with(kind),
+					"%s: %s" % [named, kind]
 				)
-				var lines: PackedStringArray = node.description_label.text.split("\n")
-				for line: String in lines:
-					assert_lte(
-						UiText.width(line),
-						node.description_label.size.x + 1.0,
-						"%s: wrapped" % named
-					)
+				# Spec 064 replaces this requirement's descriptions beside the node: the name shows
+				# under it, whole, and the description is on its card and in the strip (test_064's
+				# R2, R5 and R6).
+				assert_true(node.name_label.is_visible_in_tree(), "%s: shown" % named)
+				assert_true(window.encloses(_text_rect(node.name_label)), "%s: inside" % named)
 				# The picture: the ability's own (spec 063).
 				var state: TalentNode.State = node.state()
 				if state != TalentNode.State.CLOSED:
@@ -383,11 +375,10 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 			for id: StringName in class_tree.path_nodes(1 - path):
 				var closed: TalentNode = view.node(id)
 				assert_eq(_state_name(closed.state()), "CLOSED", "%s: %s closed" % [what, id])
-				assert_true(
-					closed.description_label.is_visible_in_tree(), "%s: still readable" % id
-				)
+				# Spec 064: its name, where spec 060 had its description.
+				assert_true(closed.name_label.is_visible_in_tree(), "%s: still readable" % id)
 				assert_eq(
-					closed.description_label.get_theme_color(&"font_color"),
+					closed.name_label.get_theme_color(&"font_color"),
 					Palette.color(TalentNode.DIM),
 					"%s: dimmed" % id
 				)
@@ -402,7 +393,7 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
-	assert_eq(tab.points_label.text, "2 talent points", "the unspent points")
+	assert_eq(tab.points_label.text, "2 points to spend", "the unspent points")  # spec 064 R7
 	_click(main, tab.node(tree.trunk[0]))
 	_tick(main)
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "a click takes a node")
@@ -427,7 +418,9 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	_level(knight, 17)
 	main.hud.advance(STEP)
 	assert_eq(tab.paragon_label.text, "3 paragon points", "the paragon points")
-	_click(main, tab.paragon_cells[0].buy_button)
+	# Spec 064 R9: the medallion, under the tree past the first view (test_064's R9 scrolls to it
+	# and clicks it with the mouse).
+	tab.paragon_cells[0].medallion.clicked.emit()
 	_tick(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 1, "+1")
 	_press(main, KEY_2)
@@ -610,13 +603,13 @@ func test_r7_compare() -> void:
 	assert_gt(front.scroll.scroll_vertical, 0, "960x540: the wheel scrolls it")
 	front.scroll.scroll_vertical = int(bar.max_value)
 	await _frames()
+	# Spec 064: the last node's name, and the strip at the tree's foot (the paragon row shows only
+	# once there are paragon points).
 	assert_true(
-		view.encloses(_text_rect(lowest.description_label)),
+		view.encloses(_text_rect(lowest.name_label)),
 		"960x540: scrolled down, the last node reads whole"
 	)
-	assert_true(
-		view.encloses(front.talents.paragon_label.get_global_rect()), "and the paragon row too"
-	)
+	assert_true(view.encloses(front.talents.strip.get_global_rect()), "and the strip too")
 	front.open_page(HeroWindow.Page.STATS)
 	assert_eq(front.scroll.scroll_vertical, 0, "another tab starts at its top")
 
@@ -638,7 +631,7 @@ func test_r8_nothing_lost() -> void:
 		_click(main, tab.node(id))
 		_tick(main)
 	assert_eq(knight.talents(), tree.trunk, "take_talent, click by click")
-	_click(main, tab.paragon_cells[1].buy_button)
+	tab.paragon_cells[1].medallion.clicked.emit()  # spec 064 R9: the medallion
 	_tick(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "spend_paragon")
 	# A reset is never charged at a price the player did not read.
@@ -736,7 +729,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 		var hero: Hero = pair[1]
 		var named: String = hero.def().display_name
 		var points: int = hero.talent_points()
-		var said: String = "%d talent point%s" % [points, "" if points == 1 else "s"]
+		var said: String = "%d point%s to spend" % [points, "" if points == 1 else "s"]
 		if points == 0:
 			said = shown.talents.points_label.text  # the next point's level, checked below
 			assert_true(said.begins_with("Next point at level"), "%s: %s" % [named, said])

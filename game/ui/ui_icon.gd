@@ -139,6 +139,11 @@ func state() -> State:
 	return _state
 
 
+## The frame's shape (spec 064: square for an action, cut for a passive).
+func frame_shape() -> Shape:
+	return _shape
+
+
 ## Shows [param text] ("3", "12/20") at the bottom right; "" for none.
 func set_count(text: String) -> void:
 	count_label.visible = not text.is_empty()

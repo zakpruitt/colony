@@ -208,6 +208,12 @@ showcase's leftovers, not the game.</p>
   closed; a tooltip card with the picture; a burst of sparks when something is gained, and a banner that
   drops in at the top with a fanfare. Nothing uses the burst and banner yet; 064 and 065 decide when they
   play.</td></tr>
+  <tr><td>064 The talent tree as a tree</td><td>The Talents tab is a tree of pictures: the trunk runs down the
+  middle and forks into two paths, each in its own colour under a banner that says what a hero on it
+  becomes. Point at a node for its card; a strip under the tree shows what is next, with a
+  <code>Learn</code> button. Taking a node bursts it and a banner names it; choosing a path closes the other
+  before your eyes. Paragon points go into medallions, and the Skills tab's cards carry their pictures.
+  This is the first use of 063's burst and banner.</td></tr>
 </table>
 </div>
 
@@ -550,7 +556,7 @@ of them at once; talents make one hero different from another.</p>
 <p>Once a hero has earned its seven talent points (level 14), every level after gives a <strong>paragon
 point</strong> instead: the only place plain strength is bought. Each point adds 3% to one of three stats,
 with no limit: <strong>Power</strong> (damage and healing), <strong>Toughness</strong> (maximum health) or
-<strong>Quickness</strong> (attack speed). They are spent on the Talents tab. Buying training with gold
+<strong>Quickness</strong> (attack speed). They are spent on the Talents tab, on the stat's medallion. Buying training with gold
 (spec 029) is gone; a save from before gets that gold back.</p>
 
 <h3>How much talents are worth</h3>
@@ -709,19 +715,35 @@ window keeps its own:</p>
   <li><strong>Stats:</strong> Health, Damage, Armor, Attack speed, Crit chance, Range and, for the Cleric,
   Healing, each on its own line, with what raises it beside it in green, in words
   (<code>Damage 14   +15% Sharp Blades, +6% Power</code>).</li>
-  <li><strong>Talents:</strong> the whole tree, readable without pointing. At the top, the unspent points
-  (<code>2 talent points</code>) or the level that brings the next (<code>Next point at level 6</code>), and
-  <code>Reset</code> with its price. Then the three trunk nodes in a row and the two paths side by side under
-  their names. Every node shows its picture, its name, whether it is an action (with its cooldown) or a
-  passive, and its whole description beside it. A taken node is bright with a green tick; one that can be
-  taken now is framed in yellow and pulses; the nodes of a closed path go dark with the path's name struck
-  through, their words dimmed but still readable. Rest the mouse on a node to hear why it cannot be taken
-  yet (<code>Take Taunt first</code>). Click a glowing node to take it; the first node of a path asks first
-  (<code>Choose Berserker? This closes Guardian.</code>), and a reset asks at its price. Under the tree are
-  the paragon stats with a <code>+1</code> each (or <kbd>1</kbd> to <kbd>3</kbd>), or
-  <code>Paragon points come after level 14</code>.</li>
-  <li><strong>Skills:</strong> the class's microskills as cards: learned ones in white with what they do
-  and the side quests they answer, the ones to come dimmed with their level.</li>
+  <li><strong>Talents:</strong> the hero's tree, drawn as a tree of pictures (spec 064). At the top, the
+  unspent points in big letters (<code>2 points to spend</code>) or the level that brings the next
+  (<code>Next point at level 6</code>), and <code>Reset</code> with its price. The three trunk nodes run
+  down the middle, joined by arrows; under the last the line forks left and right into the two paths, four
+  nodes each, far apart. Each path has its own colour (its banner, its lines and a thin ring round its
+  nodes, and its name wherever the window says it), and its <strong>banner</strong> gives its name and one
+  line on what a hero on it becomes (<em>Guardian: holds the line and keeps the party standing</em>). A
+  node is a picture in a frame with its name under it: a square frame for an action, one with cut corners
+  for a passive. A taken node has a gold frame and the line into it lit in the path's colour; one that can
+  be taken now has a yellow frame that pulses; one not yet reachable is locked. Once a path is chosen the
+  other is closed: its banner greys out with a padlock and <code>Not chosen</code>, its lines go dark, and
+  its nodes can still be pointed at. Point at any node for its card: picture, name, <code>Action, every 8
+  s</code> or <code>Passive</code>, the whole description, and how it stands (<code>Click to learn</code>,
+  <code>Take Taunt first</code>, <code>No points: the next comes at level 9</code>, <code>Learned</code>,
+  <code>Guardian was not chosen</code>). A strip under the tree shows one node in full without pointing: the
+  one under the mouse, else the first that can be taken (with a <code>Learn</code> button), else the next on
+  the hero's way. Click a glowing node, or <code>Learn</code>, to take it: the node bursts, the line into it
+  lights and a banner drops in (<em>Knight learned Taunt</em>). The first node of a path asks first, showing
+  that path's banner and its four pictures (<code>Choose Berserker? This closes Guardian.</code>); choosing
+  says <em>Knight is now a Berserker</em> and the other path closes before your eyes. A reset asks at its
+  price. Once the hero has paragon points, three <strong>medallions</strong> sit under the tree, one per
+  stat, with its rank on it and its name and total under it (<code>+6% damage and healing</code>), and the
+  points waiting beside them; a click on one (or <kbd>1</kbd> to <kbd>3</kbd>) spends a point and it
+  bursts. Every tenth rank of a stat gets a banner (<em>Knight: Power 10, +30% damage and healing</em>).
+  The medallions sit below the window's first view: scroll down with the mouse wheel to reach them.</li>
+  <li><strong>Skills:</strong> the class's microskills as cards, each with its picture in a frame: learned
+  ones bright, in white with what they do and the side quests they answer; the ones to come dimmed, the
+  picture locked with its level under it (<code>Level 8</code>). Learning one gets a banner, and a burst on
+  its card while the window is open on Skills.</li>
 </ul>
 <p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 

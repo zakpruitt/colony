@@ -77,8 +77,9 @@ const DOING_COLOURS: Dictionary[String, StringName] = {
 var hero_id: int = -1
 ## The hero's class portrait, at twice its size; a skull while the hero is down.
 var portrait: TextureRect
-## The class (and path) line, in bold.
+## The class (and path) line, in bold, its path's name in the path's colour (spec 064 R1).
 var class_label: Label
+var path_tint: WordTint
 ## The tab buttons, in [enum Page] order; the open tab's is lit.
 var tab_buttons: Array[UiButton] = []
 ## The tags on the Talents and Skills tabs.
@@ -153,11 +154,15 @@ func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	advance(0.0)
 
 
-## The height the content needs on its tallest tab.
+## The height the content needs on its tallest tab (the Talents tab without its paragon
+## medallions, which scroll in when the room is short of them).
 func body_height() -> float:
 	var tallest: float = 0.0
 	for page_box: Control in _pages:
-		tallest = maxf(tallest, page_box.size.y)
+		var tall: float = page_box.size.y
+		if page_box == talents:
+			tall = talents.base_height()
+		tallest = maxf(tallest, tall)
 	return PAGE_Y + tallest
 
 
@@ -211,6 +216,11 @@ func advance(delta: float) -> void:
 	_health.advance(_health_goal, delta)
 	_xp.advance(_xp_goal, delta)
 	WindowText.set_text(class_label, HeroTalentsTab.title(hero))
+	var walked: String = HeroTalentsTab.path_name(hero)
+	var tints: Dictionary[String, StringName] = {}
+	if not walked.is_empty():
+		tints[walked] = PathColours.of(hero.class_id, hero.path())
+	path_tint.show_words(tints)
 	var role: String = ROLE_WORDS.get(hero.def().role, "")
 	_set_line(&"role", role)
 	_set_line(&"level", "Level %d" % hero.level)
@@ -402,6 +412,7 @@ func _build_header() -> void:
 	class_label = WindowText.label("Class", "", &"white", true)
 	class_label.position = Vector2(TEXT_X, 0)
 	_body.add_child(class_label)
+	path_tint = WordTint.over(class_label)
 	_add_line(&"level", &"yellow", Vector2(0, 0))
 	_add_line(&"role", &"steel", Vector2(TEXT_X, ROLE_Y))
 	_add_line(&"activity", &"silver", Vector2(0, ROLE_Y))
