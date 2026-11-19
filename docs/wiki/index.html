@@ -307,14 +307,17 @@ and try again:</p>
 and when it closes, and plays out the time it was closed (up to 8 hours) when it next starts. Sound is
 quiet by default; <kbd>M</kbd> mutes it and the game remembers. A new game opens the help window once.</p>
 <p><strong>The window.</strong> The first time, the game opens maximized, so the UI is drawn at twice
-the size and is easy to read. On a screen with less than 1920 by 1080 of free space (a 1080p screen with
-a taskbar, a laptop) it opens as a 1280 by 720 window instead, as it used to. <kbd>F11</kbd> switches to
-full screen (borderless, on the screen the window is on) and back to the window as it was. After that
-the game opens the way you left it: windowed, maximized or full screen, and a window at the size and
-place you gave it. That is kept in a small file of its own, <code>colony.window</code>, beside the save
-and the settings file, not in either; delete it to start over. If the remembered place is on a screen
-that is no longer there, the window keeps its size and opens in the middle of the screen. The
-screenshot tool and the tests never use the file and never maximize.</p>
+the size and is easy to read. That needs 1920 by 1080 of room inside the maximized window. On a screen
+that has that room only with nothing around it (a 1920 by 1080 screen, where the taskbar and the title
+bar take some), it opens in full screen instead. On a smaller screen (a laptop) it opens as a 1280 by
+720 window, as it used to, and remembers nothing until you change something.
+<kbd>F11</kbd> switches to full screen (borderless, on the screen the window is on) and back to the
+window as it was. After the first time the game opens the way you left it: windowed, maximized or
+full screen, and a window at the size and place you gave it. That is kept in a small file of its own,
+<code>colony.window</code>, beside the save and the settings file, not in either; delete it to start
+over. If the remembered place is on a screen that is no longer there, the window opens in the middle
+of the screen, and a remembered size bigger than the screen is cut down to it. The screenshot tool and
+the tests never use the file and never maximize.</p>
 
 <h2 id="game">2. What the game is</h2>
 <p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of four heroes

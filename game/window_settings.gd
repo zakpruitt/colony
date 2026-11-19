@@ -4,9 +4,10 @@ extends Node
 ## maximized, full screen) and, when windowed, its size and place, kept in a small JSON file of
 ## their own under [code]user://[/code], apart from the save and the other settings.
 ##
-## On a first run the window opens maximized if the screen has room for the UI at twice its
-## size ([method first_mode]); after that it opens as it was left. [kbd]F11[/kbd] switches
-## between full screen and the window as it was.
+## On a first run the window opens maximized if a maximized window on the screen has room for
+## the UI at twice its size, in full screen if only the bare screen has ([method first_mode]);
+## after that it opens as it was left. [kbd]F11[/kbd] switches between full screen and the
+## window as it was.
 ##
 ## Every decision is made here from plain values (a screen's size, the file, what the window was
 ## seen to be), so tests check them with no window. Only when [member window] is set, which
@@ -17,11 +18,17 @@ enum Mode { WINDOWED, MAXIMIZED, FULL_SCREEN }
 
 ## Where the window's settings live unless told otherwise.
 const DEFAULT_PATH: String = "user://colony.window"
+## Appended to the path for the file written before it is renamed into place, as the save does.
+const TEMP_SUFFIX: String = ".tmp"
 ## The command-line flag that leaves the window as the project opens it (the shot tool passes it).
 const DEFAULT_FLAG: String = "--window-default"
-## The least usable space a screen needs for a first run to open maximized: the UI's smallest
-## room at twice the size.
+## The room a first run wants inside the window: the UI's smallest room at twice the size.
 const LARGE_ENOUGH: Vector2i = Vector2i(1920, 1080)
+## The height a maximized window's frame (its title bar) is taken to have when the real window
+## cannot say: 23 pixels on Windows at 100%, more at larger text sizes.
+const FRAME_HEIGHT: int = 32
+## The least size a remembered window is given: a smaller one in the file is raised to it.
+const MIN_SIZE: Vector2i = Vector2i(640, 360)
 ## How long the window must hold still, in seconds, before a change of it is taken and saved: a
 ## resize or a move is then one write, not one per frame.
 const SETTLE_SECONDS: float = 0.5
@@ -48,13 +55,19 @@ var rect: Rect2i = Rect2i()
 var place_known: bool = false
 ## The real window this reads and changes, or null (tests): then it only decides and saves.
 var window: Window
+## How many times the file has been written by this object.
+var writes: int = 0
 
 var _path: String
 var _loaded: bool = false
+## True if the file gave [member rect] a place as well as a size.
+var _place_read: bool = false
 ## What the window was last seen to be, and for how long it has been so.
 var _seen_mode: Mode = Mode.WINDOWED
 var _seen_rect: Rect2i = Rect2i()
 var _still: float = 0.0
+## True once the window has been seen to hold still: what it was then is where it started.
+var _based: bool = false
 
 
 ## Window settings kept in the file at [param path].
@@ -71,7 +84,15 @@ func _ready() -> void:
 	var screens: Array[Rect2i] = []
 	for index: int in DisplayServer.get_screen_count():
 		screens.append(DisplayServer.screen_get_usable_rect(index))
-	decide(DisplayServer.screen_get_usable_rect(window.current_screen).size, screens)
+	var screen: int = window.current_screen
+	# The frame's height, measured on the window as it opens (windowed, with its title bar).
+	var frame: int = window.get_size_with_decorations().y - window.size.y
+	decide(
+		DisplayServer.screen_get_size(screen),
+		DisplayServer.screen_get_usable_rect(screen).size,
+		screens,
+		frame if frame > 0 else FRAME_HEIGHT
+	)
 	_apply(true)
 
 
@@ -82,7 +103,7 @@ func _process(delta: float) -> void:
 
 func _exit_tree() -> void:
 	if window != null:
-		_take(_seen_mode, _seen_rect)  # a change made just before closing
+		flush()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -119,23 +140,38 @@ static func for_game(host: Node, given: WindowSettings) -> WindowSettings:
 	return made
 
 
-## How the window opens on a first run on a screen with [param usable] pixels free: maximized
-## if that is at least [constant LARGE_ENOUGH], else windowed at the project's size.
-static func first_mode(usable: Vector2i) -> Mode:
-	if usable.x >= LARGE_ENOUGH.x and usable.y >= LARGE_ENOUGH.y:
+## How the window opens on a first run on a screen of [param screen] pixels with [param usable]
+## of them free (no taskbar), a maximized window's frame taking [param frame_height] of those:
+## maximized if what is left inside the frame is at least [constant LARGE_ENOUGH]; in full
+## screen if only the bare screen is (a 1920x1080 screen); else windowed at the project's size.
+static func first_mode(
+	screen: Vector2i, usable: Vector2i, frame_height: int = FRAME_HEIGHT
+) -> Mode:
+	if usable.x >= LARGE_ENOUGH.x and usable.y - frame_height >= LARGE_ENOUGH.y:
 		return Mode.MAXIMIZED
+	if screen.x >= LARGE_ENOUGH.x and screen.y >= LARGE_ENOUGH.y:
+		return Mode.FULL_SCREEN
 	return Mode.WINDOWED
 
 
-## True if a window at [param place] can be reached on one of [param screens]: at least
-## [constant GRIP] of its top edge is on it.
-static func on_a_screen(place: Rect2i, screens: Array[Rect2i]) -> bool:
-	var top := Rect2i(place.position, Vector2i(place.size.x, GRIP.y))
+## The one of [param screens] a window at [param place] lands on: the one most of its top edge
+## is on, the window taken to be no wider than the screen, and at least [constant GRIP] of it.
+## An empty rectangle if there is none: the window could not be reached.
+static func screen_of(place: Rect2i, screens: Array[Rect2i]) -> Rect2i:
+	var best := Rect2i()
+	var most: int = 0
 	for screen: Rect2i in screens:
+		var top := Rect2i(place.position, Vector2i(mini(place.size.x, screen.size.x), GRIP.y))
 		var shown: Rect2i = top.intersection(screen)
-		if shown.size.x >= GRIP.x and shown.size.y >= GRIP.y:
-			return true
-	return false
+		if shown.size.x >= GRIP.x and shown.size.y >= GRIP.y and shown.size.x > most:
+			best = screen
+			most = shown.size.x
+	return best
+
+
+## True if a window at [param place] can be reached on one of [param screens].
+static func on_a_screen(place: Rect2i, screens: Array[Rect2i]) -> bool:
+	return screen_of(place, screens).size != Vector2i.ZERO
 
 
 ## The file this keeps.
@@ -143,8 +179,10 @@ func file_path() -> String:
 	return _path
 
 
-## Reads the file. False, with nothing changed, if it is missing or cannot be understood: the
-## next [method decide] is then a first run's.
+## Reads the file. False, with nothing changed, if it is missing or cannot be understood (not
+## JSON, no known mode): the next [method decide] is then a first run's. A size smaller than
+## [constant MIN_SIZE] is raised to it; a size that cannot be read is no size, and a place that
+## cannot be read no place.
 func load_file() -> bool:
 	_loaded = false
 	if not FileAccess.file_exists(_path):
@@ -153,32 +191,47 @@ func load_file() -> bool:
 	if json.parse(FileAccess.get_file_as_string(_path)) != OK or not (json.data is Dictionary):
 		return false
 	var data: Dictionary = json.data
-	var read_mode: Variant = NAMES.find_key(data.get(MODE_KEY))
-	if read_mode == null:
+	var read_mode: int = _mode_named(data.get(MODE_KEY))
+	if read_mode < 0:
 		return false
-	var read_index: int = read_mode
-	mode = read_index as Mode
-	back = Mode.MAXIMIZED if data.get(BACK_KEY) == NAMES[Mode.MAXIMIZED] else Mode.WINDOWED
-	var size: Vector2i = _pair(data.get(SIZE_KEY))
-	rect = Rect2i(_pair(data.get(PLACE_KEY)), size) if size.x > 0 and size.y > 0 else Rect2i()
+	mode = read_mode as Mode
+	back = Mode.MAXIMIZED if _mode_named(data.get(BACK_KEY)) == Mode.MAXIMIZED else Mode.WINDOWED
+	var size: Variant = _pair(data.get(SIZE_KEY))
+	var place: Variant = _pair(data.get(PLACE_KEY))
+	rect = Rect2i()
+	_place_read = false
+	if size is Vector2i:
+		var read_size: Vector2i = size
+		rect.size = read_size.max(MIN_SIZE)
+		if place is Vector2i:
+			var read_place: Vector2i = place
+			rect.position = read_place
+			_place_read = true
 	_loaded = true
 	return true
 
 
-## Decides how the window opens on a screen with [param usable] pixels free, [param screens]
-## being every screen's usable part: as the file said if [method load_file] read one (its
-## place only if it is still [method on_a_screen]), else as [method first_mode] says.
-func decide(usable: Vector2i, screens: Array[Rect2i]) -> void:
+## Decides how the window opens on a screen of [param screen] pixels with [param usable] of
+## them free, [param screens] being every screen's usable part and [param frame_height] a
+## maximized window's frame: as the file said if [method load_file] read one, else as
+## [method first_mode] says. A remembered place is used only if it is still on a screen
+## ([method screen_of]), and a remembered size is cut down to the screen it lands on.
+func decide(
+	screen: Vector2i, usable: Vector2i, screens: Array[Rect2i], frame_height: int = FRAME_HEIGHT
+) -> void:
 	if not _loaded:
-		mode = first_mode(usable)
+		mode = first_mode(screen, usable, frame_height)
 		back = Mode.WINDOWED
 		rect = Rect2i()
-	place_known = rect.size != Vector2i.ZERO and on_a_screen(rect, screens)
-	if not place_known:
-		rect.size = rect.size.min(usable)
+		_place_read = false
+	var lands_on: Rect2i = screen_of(rect, screens) if _place_read else Rect2i()
+	place_known = lands_on.size != Vector2i.ZERO
+	if rect.size != Vector2i.ZERO:
+		rect.size = rect.size.min(lands_on.size if place_known else usable)
 	_seen_mode = mode
 	_seen_rect = rect
 	_still = 0.0
+	_based = false
 
 
 ## What [kbd]F11[/kbd] does: full screen, or from full screen the window as it was. Saved.
@@ -188,6 +241,8 @@ func toggle_full_screen() -> void:
 	else:
 		back = mode
 		mode = Mode.FULL_SCREEN
+	_seen_mode = mode  # so closing before the window is next looked at keeps the new mode
+	_still = 0.0
 	_apply(false)
 	save()
 
@@ -207,22 +262,41 @@ func observe(seen_mode: Mode, seen_rect: Rect2i, delta: float) -> void:
 		_take(seen_mode, seen_rect)
 
 
-## Writes the file. Returns true if it was written.
+## Takes what the window was last seen to be without waiting for it to hold still: for a
+## change made just before the game closes.
+func flush() -> void:
+	_take(_seen_mode, _seen_rect)
+
+
+## Writes the file: to a temporary file renamed into place, so a write cut short leaves the
+## old file or none, never half of one. Returns true if it was written.
 func save() -> bool:
 	var data: Dictionary = {MODE_KEY: NAMES[mode], BACK_KEY: NAMES[back]}
 	if rect.size != Vector2i.ZERO:
 		data[SIZE_KEY] = [rect.size.x, rect.size.y]
 		data[PLACE_KEY] = [rect.position.x, rect.position.y]
+	var temp_path: String = _path + TEMP_SUFFIX
 	DirAccess.make_dir_recursive_absolute(_path.get_base_dir())
-	var file: FileAccess = FileAccess.open(_path, FileAccess.WRITE)
+	var file: FileAccess = FileAccess.open(temp_path, FileAccess.WRITE)
 	if file == null:
 		return false
 	var stored: bool = file.store_string(JSON.stringify(data))
 	file.close()
-	return stored
+	if not stored:
+		DirAccess.remove_absolute(temp_path)
+		return false
+	if FileAccess.file_exists(_path):  # a rename does not replace a file on every system
+		DirAccess.remove_absolute(_path)
+	if DirAccess.rename_absolute(temp_path, _path) != OK:
+		DirAccess.remove_absolute(temp_path)
+		return false
+	writes += 1
+	return true
 
 
 ## Makes what the window was seen to be the remembered state, and saves if that changes it.
+## The first time a window with no remembered size is seen holding still, windowed as it was
+## decided, that is only where the project's window opened: taken, but not a change.
 func _take(seen_mode: Mode, seen_rect: Rect2i) -> void:
 	var changed: bool = false
 	if seen_mode != mode:
@@ -231,20 +305,33 @@ func _take(seen_mode: Mode, seen_rect: Rect2i) -> void:
 		mode = seen_mode
 		changed = true
 	if seen_mode == Mode.WINDOWED and seen_rect != rect:
+		var as_opened: bool = not _based and not changed and rect.size == Vector2i.ZERO
 		rect = seen_rect
 		place_known = true
-		changed = true
+		changed = changed or not as_opened
+	_based = true
 	if changed:
 		save()
 
 
-## Two whole numbers from a saved [param value], or zero for anything else.
-static func _pair(value: Variant) -> Vector2i:
+## The mode [param value] names in the file, or -1 if it is not a mode's name.
+static func _mode_named(value: Variant) -> int:
+	if not (value is String):
+		return -1
+	var found: Variant = NAMES.find_key(value)
+	if found == null:
+		return -1
+	var index: int = found
+	return index
+
+
+## Two whole numbers from a saved [param value] as a [Vector2i], or null for anything else.
+static func _pair(value: Variant) -> Variant:
 	if not (value is Array):
-		return Vector2i.ZERO
+		return null
 	var pair: Array = value
 	if pair.size() != 2 or not (pair[0] is float and pair[1] is float):
-		return Vector2i.ZERO
+		return null
 	var x: float = pair[0]
 	var y: float = pair[1]
 	return Vector2i(roundi(x), roundi(y))
