@@ -47,7 +47,7 @@ const FADE_STEP: float = 0.2
 const TIPS: Dictionary[Help, String] = {
 	Help.TALENTS: "Opens the Talents tab of a hero with talent points: new abilities to take.",
 	Help.TRAIN: "Opens this hero's Talents tab: paragon points make one hero stronger for good.",
-	Help.UPGRADE: "Opens the Shop: upgrades make the whole party stronger.",
+	Help.UPGRADE: "Opens the Camp: upgrades make the whole party stronger.",
 	Help.HOLD: "Orders the party to stay away from guardians and grow stronger first.",
 }
 const HOLDING_TIP: String = "The party stays away from guardians until Orders (O) sends it in."

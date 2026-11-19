@@ -522,7 +522,7 @@ func test_r9_help_row() -> void:
 			text = str(entry[1])
 	# Spec 058 shortened the row to fit the help window's column on one line, and spec 060 again
 	# (the sheet became hero windows, and Shift+Tab widened the key column); it still names both.
-	assert_eq(text, "Hero window or tally: change tab", "the Q E row")
+	assert_eq(text, "Hero window or Tally: change tab", "the Q E row")  # spec 068 R2: Tally
 
 
 ## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),

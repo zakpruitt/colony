@@ -64,6 +64,14 @@ incomplete, stop and report the question.
 - **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
   few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
   `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.
+- **The button bar's size is boxed in by its neighbours** (spec 068). At 960x540 it can be no wider than
+  317 UI pixels (a hero window's default place, the ticker's longest line) and at 1280x720 no wider than
+  518 nor taller than 28 (the fourth cascaded hero window, two hero windows side by side). After any change
+  to its size run `test --only=test_06` and `test_059`, both rooms. A `Button` with its icon over its text
+  counts the text's height twice: set `expand_icon` and give the height yourself (`UiButtonBar._shape`).
+  Windows are drawn over the bar's tags, and a hero window stands 4 pixels from the bar: whatever sits on a
+  button stays within 2 pixels of it. Headless Godot still calls `_draw`, so a test can read what a control
+  recorded there (`UiButton.cap_drawn`), though never a pixel.
 - **A view that reacts to events starts nothing for a stale one.** Check `World.is_recent(event)` and
   `World.catching_up()` before starting a move or an effect, and clear what is running when the world
   catches up; otherwise a stall or a fast-forward leaves things playing for events long past (spec 057).

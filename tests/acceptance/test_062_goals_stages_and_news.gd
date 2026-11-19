@@ -82,7 +82,7 @@ func test_r1_goals() -> void:
 		assert_true(hud.ladder.is_flashing(2), "%s: Reach flashes its stage" % what)
 		# The tooltip: how to get there, then what a click does.
 		assert_eq(_rest_on(main, view.rows[2]), view.tip(2), "%s: its tip" % what)
-		assert_string_contains(view.tip(2), "Click to open the shop.")
+		assert_string_contains(view.tip(2), "Click to open the Camp.")
 		# A click on the goals goes no further.
 		var heard: Array[Vector2] = []
 		_probe(main, heard)

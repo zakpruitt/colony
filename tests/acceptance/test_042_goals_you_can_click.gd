@@ -420,7 +420,7 @@ func test_r3_tooltip_says_so() -> void:
 	_gold_situation()
 	check.call()
 	var shop_action: String = seen.get("Buy", "")
-	assert_eq(shop_action, "Click to open the shop.", "the shop's")
+	assert_eq(shop_action, "Click to open the Camp.", "the shop's")
 	assert_true(str(seen.get("Train", "")).contains("talents"), "the training's: %s" % [seen])
 	assert_true(str(seen.get("Reach", "")).contains("ladder"), "the depth's: %s" % [seen])
 
@@ -431,7 +431,7 @@ func test_r3_tooltip_says_so() -> void:
 	var hero: Hero = _microskill_situation()
 	_situation(2, 2, 2)
 	check.call()
-	assert_true(str(seen.get("Beat", "")).contains("orders"), "the guardian's: %s" % [seen])
+	assert_true(str(seen.get("Beat", "")).contains("Orders"), "the guardian's: %s" % [seen])
 	var who: String = hero.def().display_name
 	assert_true(str(seen.get(who, "")).contains("skills"), "the microskill's: %s" % [seen])
 	for kind: String in ["Beat", "Reach", who, "Train", "Buy"]:

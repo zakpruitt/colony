@@ -472,7 +472,7 @@ func test_r6_somewhere_new() -> void:
 	assert_true(_map().has_mark(), "the map's button shows a mark")
 	var index: int = _hud.goals.lines().find("Visit The Claypits")
 	assert_gte(index, 0, "a goal appears: %s" % [_hud.goals.lines()])
-	assert_string_contains(_tip_goal(index), "map", "its tooltip says a click opens the map")
+	assert_string_contains(_tip_goal(index), "Map", "its tooltip says a click opens the map")
 
 	_hud.goals.press(index)
 	assert_true(_map().is_open(), "a click on the goal opens the map")
@@ -649,7 +649,7 @@ func test_r8_found_and_explained() -> void:
 	_map().close()
 	_hud.advance(STEP)
 	assert_string_contains(
-		_frame_tip(_hud.place_panel.area_button), "map", "the area's name says it opens the map"
+		_frame_tip(_hud.place_panel.area_button), "Map", "the area's name says it opens the map"
 	)
 
 	# Spec 059: a window on the UI layer, with a close button of its own (spec 058's test); where

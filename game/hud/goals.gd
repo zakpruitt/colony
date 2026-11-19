@@ -42,10 +42,10 @@ const GUARDIAN_WITHIN: int = 3
 const GUARDIAN_LEVEL_OVER_DEPTH: int = 4
 ## What a click on a goal of each kind does, for the kinds that open the same place every time.
 const CLICKS: Dictionary[Kind, String] = {
-	Kind.UPGRADE: "Click to open the shop.",
-	Kind.GUARDIAN: "Click to open the orders.",
+	Kind.UPGRADE: "Click to open the Camp.",
+	Kind.GUARDIAN: "Click to open the Orders.",
 	Kind.DEPTH: "Click to see it on the ladder.",
-	Kind.VISIT: "Click to open the area map.",
+	Kind.VISIT: "Click to open the Map.",
 }
 ## Seconds a finished goal shows its tick before the next takes its place.
 const CELEBRATE_SECONDS: float = 3.0
@@ -224,7 +224,7 @@ func press(index: int) -> void:
 
 
 ## What a click on the line at [param index] does, as the tooltip's second sentence
-## ([code]Click to open the shop.[/code]); "" for a finished goal or no goal.
+## ([code]Click to open the Camp.[/code]); "" for a finished goal or no goal.
 func action(index: int) -> String:
 	if index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
 		return ""
@@ -286,7 +286,7 @@ func applicable() -> Array[Goal]:
 				"Buy an upgrade",
 				-1.0,
 				"%s gold" % Hud.group_thousands(upgrade),
-				"Open the Shop (U) and spend gold on the whole party."
+				"Open the Camp (U) and spend gold on the whole party."
 			)
 		)
 	return found

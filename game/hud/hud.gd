@@ -85,9 +85,9 @@ const AUTO_TIP: String = (
 	"When on, the party goes a stage further each time it holds its target " + "long enough."
 )
 const SPEED_TIP: String = "How fast the game runs: click (or press F) for 1x, 2x or 4x."
-const GOLD_TIP: String = "Gold from fights, to spend in the Shop."
+const GOLD_TIP: String = "Gold from fights, to spend in the Camp."
 const BOSS_TIP: String = "A guardian holds the way on: beat it to go further."
-const AREA_TIP: String = "The area the party is in: click (or press W) for the map of every area."
+const AREA_TIP: String = "The area the party is in: click (or press W) to open the Map."
 
 ## The frame of the screen (spec 061): the room-sized control its pieces hang from.
 var screen_frame: Control

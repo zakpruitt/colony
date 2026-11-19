@@ -26,9 +26,24 @@ const BUTTON_PAD_X: int = 6
 const BUTTON_PAD_Y: int = 4
 ## A button's least height: its text line, the padding above and below and the edge.
 const BUTTON_HEIGHT: int = UiText.LINE_HEIGHT + 2 * (BUTTON_PAD_Y + 1)
+## A button of the button bar (spec 068): [constant BAR_PAD_X] by [constant BAR_PAD_Y] of padding
+## and its name in the plain weight, so six names and their keys fit the row, and [constant
+## BAR_ICON_GAP] between its icon and its name. The colours are every button's.
+const BAR_BUTTON: StringName = &"UiBarButton"
+const BAR_PAD_X: int = 4
+const BAR_PAD_Y: int = 3
+const BAR_ICON_GAP: int = 4
 ## Space inside a window's edge around its content, and inside its title bar.
 const WINDOW_PAD: int = 6
 const TITLE_PAD: int = 4
+## A button's box in each state: the state, its fill and its edge.
+const BUTTON_BOXES: Array[Array] = [
+	[&"normal", &"dusk", &"slate"],
+	[&"hover", &"slate", &"silver"],
+	[&"pressed", &"pine", &"green"],
+	[&"hover_pressed", &"forest", &"yellow"],
+	[&"disabled", &"night", &"dusk"],
+]
 
 static var _theme: Theme
 
@@ -72,13 +87,6 @@ static func _make() -> Theme:
 static func _buttons(made: Theme) -> void:
 	made.set_font(&"font", &"Button", UiText.font(true))
 	made.set_font_size(&"font_size", &"Button", UiText.SIZE)
-	made.set_stylebox(&"normal", &"Button", box(&"dusk", &"slate", BUTTON_PAD_X, BUTTON_PAD_Y))
-	made.set_stylebox(&"hover", &"Button", box(&"slate", &"silver", BUTTON_PAD_X, BUTTON_PAD_Y))
-	made.set_stylebox(&"pressed", &"Button", box(&"pine", &"green", BUTTON_PAD_X, BUTTON_PAD_Y))
-	made.set_stylebox(
-		&"hover_pressed", &"Button", box(&"forest", &"yellow", BUTTON_PAD_X, BUTTON_PAD_Y)
-	)
-	made.set_stylebox(&"disabled", &"Button", box(&"night", &"dusk", BUTTON_PAD_X, BUTTON_PAD_Y))
 	made.set_stylebox(&"focus", &"Button", StyleBoxEmpty.new())
 	made.set_color(&"font_color", &"Button", Palette.color(&"silver"))
 	made.set_color(&"font_hover_color", &"Button", Palette.color(&"white"))
@@ -87,6 +95,16 @@ static func _buttons(made: Theme) -> void:
 	made.set_color(&"font_focus_color", &"Button", Palette.color(&"silver"))
 	made.set_color(&"font_disabled_color", &"Button", Palette.color(&"slate"))
 	made.set_constant(&"h_separation", &"Button", 4)
+	made.set_type_variation(BAR_BUTTON, &"Button")
+	for state: Array in BUTTON_BOXES:
+		var look: StringName = state[0]
+		var fill: StringName = state[1]
+		var edge: StringName = state[2]
+		made.set_stylebox(look, &"Button", box(fill, edge, BUTTON_PAD_X, BUTTON_PAD_Y))
+		made.set_stylebox(look, BAR_BUTTON, box(fill, edge, BAR_PAD_X, BAR_PAD_Y))
+	made.set_constant(&"h_separation", BAR_BUTTON, BAR_ICON_GAP)
+	made.set_constant(&"icon_max_width", BAR_BUTTON, 16)
+	made.set_font(&"font", BAR_BUTTON, UiText.font())
 
 
 static func _windows(made: Theme) -> void:

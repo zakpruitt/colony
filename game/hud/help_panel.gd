@@ -11,22 +11,22 @@ extends VBoxContainer
 ## The keys the game responds to, in the order shown: each entry is [key label, what it does].
 ## A label is one or more keys split by spaces; [code]1-5[/code] is a run of number keys.
 const KEYS: Array[Array] = [
-	["H", "Show or hide this help"],
+	["H", "Open or close Help"],
 	["Esc", "Close the front window"],
 	["- +", "Target a stage back or further"],
 	["A", "Auto on or off: go on when it is safe"],
-	["U", "Open or close the Shop"],
-	["B", "Shop in front: auto-buy on or off"],
-	["1-5", "Shop in front: buy that upgrade"],
+	["U", "Open or close the Camp"],
+	["B", "Camp in front: auto-buy on or off"],
+	["1-5", "Camp in front: buy that upgrade"],
 	["1-3", "Talents tab: a paragon point to a stat"],
-	["Q E", "Hero window or tally: change tab"],
+	["Q E", "Hero window or Tally: change tab"],
 	["Tab", "Open the next hero's window"],
 	["Shift+Tab", "Close the front hero window"],
-	["J", "Open or close the journal"],
-	["O", "Open or close the party's orders"],
-	["T", "Open or close the party tally"],
+	["J", "Open or close the Journal"],
+	["O", "Open or close the Orders"],
+	["T", "Open or close the Tally"],
 	["L", "Show or hide the stage list"],
-	["W", "Open or close the area map"],
+	["W", "Open or close the Map"],
 	["G", "Show or hide the goals"],
 	["Z", "Zoom in or out"],
 	["F", "Game speed: 1x, 2x or 4x"],
@@ -38,11 +38,11 @@ const KEYS: Array[Array] = [
 const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
-	"Gold buys upgrades in the Shop: every fifth rank is a milestone.",
+	"Gold buys upgrades in the Camp: every fifth rank is a milestone.",
 	"It keeps going while the game is closed.",
 	"A hero's talent tree forks into two paths: choose one.",
 ]
-const TITLE: String = "How Colony works"
+const TITLE: String = "Help"
 const FOOTER: String = "Click a hero for details. Point at anything for a hint."
 ## Key labels that are not a key's own name, and the keys each stands for: [code]+[/code] is
 ## also the [kbd]=[/kbd] key it shares, and both have a twin on the keypad.

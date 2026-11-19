@@ -23,6 +23,10 @@ var title: String = "":
 		title = value
 		if title_label != null:
 			title_label.text = value
+## The one word for the window wherever it is named beside others (spec 068 R2): on its button on
+## the bar, in the help's key list and in tooltips ([code]Camp[/code] for a window titled
+## [code]Camp upgrades[/code]). Given where the window is made; "" for a window that has none.
+var short_name: String = ""
 ## What the window shows, under the title bar.
 var content: Control
 ## Where a new game puts the window, its top-left corner in UI pixels.
