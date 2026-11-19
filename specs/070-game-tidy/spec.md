@@ -1,9 +1,9 @@
 # 070 — Game tidy
 
-- **Status:** in-progress (approved 2026-11-19)
+- **Status:** landed (approved 2026-11-19)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** none
-- **Pull request:** —
+- **Pull request:** [#70](https://github.com/zakpruitt/colony/pull/70)
 
 ## Intent
 
