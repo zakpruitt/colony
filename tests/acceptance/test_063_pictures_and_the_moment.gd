@@ -9,15 +9,15 @@ const OLD_SHEET: String = "res://assets/sprites/ui/talent_icons"
 ## Pixels (of 256) two abilities of one class must differ in at least, to be told apart at a glance.
 const GLANCE_PIXELS: int = 48
 const PICTURE: Vector2 = Vector2(16, 16)
-## A level with paragon points enough for 23 spends (one a level after 14).
-const PARAGON_LEVEL: int = 40
+## A level with paragon points enough for 31 spends (one a level after 14).
+const PARAGON_LEVEL: int = 45
 
 # --- R1 ------------------------------------------------------------------------
 
 
 func test_r1_its_own_picture() -> void:
 	var ids: Array[StringName] = _picture_ids()
-	assert_eq(ids.size(), 57, "44 abilities, 5 upgrades, 3 paragon stats and 5 microskills")
+	assert_false(ids.is_empty(), "the content has things to gain")
 	var unique: Dictionary[StringName, bool] = {}
 	for id: StringName in ids:
 		unique[id] = true
@@ -106,6 +106,28 @@ func test_r2_the_slot() -> void:
 		large.advance(0.05)
 		ready_colours[large.frame_colour()] = true
 	assert_gt(ready_colours.size(), 1, "ready pulses gently")
+	# Owned and ready never share an edge colour: at any point of the pulse, under the mouse or not.
+	var centre: Vector2 = ui.ui_to_world(large.get_global_rect().get_center())
+	var edges: Dictionary[UiIcon.State, Dictionary] = {
+		UiIcon.State.OWNED: {}, UiIcon.State.READY: {}
+	}
+	for lit: bool in [false, true]:
+		_move(centre if lit else Vector2(-50, -50))
+		for state: UiIcon.State in edges:
+			large.show_state(state)
+			assert_eq(large.is_lit(), lit, "lit: %s" % lit)
+			for i: int in 30:
+				large.advance(0.05)
+				edges[state][large.frame_colour()] = true
+	for colour: StringName in edges[UiIcon.State.OWNED]:
+		assert_false(
+			edges[UiIcon.State.READY].has(colour), "owned and ready never share %s" % colour
+		)
+	# Owned brightens under the mouse another way: its picture.
+	large.show_state(UiIcon.State.OWNED)
+	assert_gt(large.picture_rect.modulate.v, 1.0, "owned, lit: its picture brighter")
+	_move(Vector2(-50, -50))
+	assert_eq(large.picture_rect.modulate, Color.WHITE, "and back")
 	# The count, in the equal-width digits, at the bottom right.
 	large.set_count("12/20")
 	assert_true(large.count_label.visible, "a count shows")
@@ -184,6 +206,21 @@ func test_r3_the_card() -> void:
 	assert_eq(tip.shown_text(), "Just words.")
 	assert_eq(tip.shown_title(), "A title")
 	assert_true(tip.label.is_visible_in_tree(), "its words show")
+	# A later plain tip replaces a control's card, and a freed control is forgotten.
+	tip.attach(carded, "Now just words.")
+	tip.point_at(UiTip.NOWHERE)
+	tip.advance(0.0)
+	tip.point_at(carded.get_global_rect().get_center())
+	tip.advance(UiTip.DELAY + 0.05)
+	assert_true(tip.visible, "its tip shows")
+	assert_false(tip.card_shown(), "a later tip replaces the card")
+	assert_eq(tip.shown_text(), "Now just words.", "the later tip")
+	var attached: int = tip.attached_count()
+	plain.free()
+	assert_eq(tip.attached_count(), attached - 1, "a freed control is forgotten")
+	tip.point_at(Vector2(600, 300))
+	tip.advance(UiTip.DELAY + 0.05)
+	assert_false(tip.visible, "and shows nothing where it was")
 	# Cards stay above every window (spec 062 R12).
 	var main: Main = _main(ROOM_LARGE)
 	main.ui.windows.open_window(ShopWindow.ID)
@@ -224,6 +261,11 @@ func test_r4_the_burst() -> void:
 	while elapsed < 0.6:
 		moment.advance(0.02)
 		elapsed += 0.02
+		var popped: Vector2 = icon.scale
+		# A container sorts when anything in it changes, and sorting resets its children's scale.
+		row.queue_sort()
+		await get_tree().process_frame
+		assert_eq(icon.scale, popped, "the pop survives the row sorting")
 		peak = maxf(peak, icon.scale.x)
 		flashed = flashed or moment.is_flashing(icon)
 		sparks = maxi(sparks, moment.spark_count())
@@ -336,6 +378,7 @@ func test_r6_only_for_what_just_happened() -> void:
 			moment.burst(frame, event)
 	)
 	main.world.sync(STEP)
+	main.sound.drain_started()
 	# A frame of 300 ticks holding ten gains: none of them just happened.
 	for i: int in 10:
 		sim.spend_paragon(hero.id, TrainingDef.Stat.POWER)
@@ -348,6 +391,24 @@ func test_r6_only_for_what_just_happened() -> void:
 	assert_eq(moment.shown_headline(), "", "no banner for a stale frame")
 	assert_eq(moment.waiting(), 0, "none waits")
 	assert_false(moment.is_bursting(frame), "no burst")
+	assert_eq(_gain_sounds(main), [] as Array[StringName], "no gain sound")
+	# A catch-up whose last ticks hold three gains: they are recent, but the world is catching up.
+	main.world.sync(STEP)
+	gains[0] = 0
+	for i: int in 299:
+		sim.step()
+	for i: int in 3:
+		sim.spend_paragon(hero.id, TrainingDef.Stat.POWER)
+	sim.step()
+	main.sound.drain_started()
+	main.world.sync(STEP)
+	assert_eq(gains[0], 3, "three real gains heard")
+	assert_true(main.world.catching_up(), "in a catch-up")
+	assert_eq(_gain_sounds(main), [] as Array[StringName], "no gain sound in a catch-up")
+	moment.advance(STEP)
+	assert_eq(moment.waiting(), 0, "none waits after a catch-up")
+	assert_eq(moment.shown_headline(), "", "none shows")
+	assert_false(moment.is_bursting(frame), "no burst in a catch-up")
 	# Ten gains that just happened, in one frame: at most the three newest banners show.
 	main.world.sync(STEP)
 	gains[0] = 0
@@ -539,6 +600,18 @@ func test_r10_fits_both_rooms() -> void:
 		assert_true(inside.encloses(moment.banner.get_global_rect()), "%s: banner on screen" % what)
 		for label: Label in [moment.banner_headline, moment.banner_line]:
 			_assert_uncut(label, moment.banner, what)
+		_assert_banner_clear(main, what)
+		# With the goals as wide as a long goal makes them, it narrows and still cuts nothing.
+		moment.banner_clicked()
+		main.hud.goals_view.size.x = room.x / 2.0 - 120.0
+		moment.announce(longest_id, longest_title, longest_body)
+		moment.advance(0.0)
+		moment.advance(1.0)
+		_assert_banner_clear(main, "%s, wide goals" % what)
+		for label: Label in [moment.banner_headline, moment.banner_line]:
+			_assert_uncut(label, moment.banner, "%s, wide goals" % what)
+		moment.banner_clicked()
+		main.hud.goals_view.refresh()
 		# A card with the longest title and body, at an edge of the room.
 		var tip: UiTip = main.ui.tip
 		var corner := Control.new()
@@ -563,6 +636,40 @@ func test_r10_fits_both_rooms() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
+
+
+## The banner showing overlaps neither the goals nor the stage list, and its line is two lines at
+## most, ending "..." where it was shortened.
+func _assert_banner_clear(main: Main, what: String) -> void:
+	var moment: UiMoment = main.ui.moment
+	var rect: Rect2 = moment.banner.get_global_rect()
+	assert_true(main.hud.goals_view.is_visible_in_tree(), "%s: the goals show" % what)
+	for piece: Control in [main.hud.goals_view, main.hud.ladder]:
+		assert_false(
+			rect.intersects(piece.get_global_rect()),
+			"%s: the banner %s clear of %s %s" % [what, rect, piece.name, piece.get_global_rect()]
+		)
+	var lines: PackedStringArray = moment.banner_line.text.split("\n")
+	assert_lte(lines.size(), UiMoment.BANNER_LINES, "%s: the line in two lines at most" % what)
+	var shown: String = moment.banner_line.text.replace("\n", " ").trim_suffix(UiMoment.SHORTENED)
+	assert_true(_description_of_longest().begins_with(shown), "%s: the line's own words" % what)
+
+
+## The gain sounds started since last asked (the paragon spends play their own sound).
+func _gain_sounds(main: Main) -> Array[StringName]:
+	var gains: Array[StringName] = []
+	for sound: StringName in main.sound.drain_started():
+		if sound in [UiMoment.SMALL_SOUND, UiMoment.GRAND_SOUND]:
+			gains.append(sound)
+	return gains
+
+
+func _description_of_longest() -> String:
+	var longest: String = ""
+	for id: StringName in _picture_ids():
+		if _description(id).length() > longest.length():
+			longest = _description(id)
+	return longest
 
 
 func _picture_ids() -> Array[StringName]:

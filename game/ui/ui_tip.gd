@@ -109,8 +109,11 @@ func _notification(what: int) -> void:
 
 
 ## Gives [param control] the tip [param text] (a String, or a Callable returning one, read as the
-## tip shows) under the bold [param title] ("" for none); a second call changes them.
+## tip shows) under the bold [param title] ("" for none); a second call changes them, and replaces
+## a card it was given. A control freed since it was given a tip is forgotten.
 func attach(control: Control, text: Variant, title: Variant = "") -> void:
+	_forget_freed()
+	_cards.erase(control)
 	if not _texts.has(control):
 		_order.append(control)
 		if not follows_mouse:
@@ -121,7 +124,7 @@ func attach(control: Control, text: Variant, title: Variant = "") -> void:
 
 
 ## Gives [param control] a card: [param card] is called as the tip shows and returns the
-## [UiTip.Card] to show. A second call changes it.
+## [UiTip.Card] to show. A second call changes it; a later [method attach] replaces it.
 func attach_card(control: Control, card: Callable) -> void:
 	attach(control, "")
 	_cards[control] = card
@@ -130,6 +133,12 @@ func attach_card(control: Control, card: Callable) -> void:
 ## True while the tip showing is a card.
 func card_shown() -> bool:
 	return visible and _card_box.visible
+
+
+## How many controls have a tip or a card (those freed since not counted).
+func attached_count() -> int:
+	_forget_freed()
+	return _order.size()
 
 
 ## The tip [param control] was given, or "".
@@ -161,6 +170,7 @@ func hovered() -> Control:
 ## none): the first visible control attached under it is hovered. A move onto another control
 ## starts the delay again; a move off every control hides the tip at once.
 func point_at(at: Vector2) -> void:
+	_forget_freed()
 	var found: Control = null
 	for control: Control in _order:
 		if (
@@ -188,6 +198,30 @@ func advance(delta: float) -> void:
 	_rested += delta
 	if _rested >= DELAY:
 		_show()
+
+
+## Drops every control freed since it was given a tip, so none is kept for good.
+func _forget_freed() -> void:
+	var kept: Array[Control] = []
+	for control: Variant in _order:
+		if is_instance_valid(control):
+			kept.append(control as Control)
+	if kept.size() == _order.size():
+		return
+	var texts: Dictionary[Control, Variant] = {}
+	var titles: Dictionary[Control, Variant] = {}
+	var cards: Dictionary[Control, Callable] = {}
+	for control: Control in kept:
+		texts[control] = _texts[control]
+		titles[control] = _titles[control]
+		if _cards.has(control):
+			cards[control] = _cards[control]
+	_order = kept
+	_texts = texts
+	_titles = titles
+	_cards = cards
+	if not is_instance_valid(_hovered):
+		_hovered = null
 
 
 func _show() -> void:

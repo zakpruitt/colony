@@ -7,9 +7,15 @@ extends Control
 ## [method burst] marks a gain on a control: for [constant BURST_SECONDS] its frame flashes white,
 ## a ring of sparks spreads from it and the control pops to [constant POP] times its size about its
 ## middle and settles, all drawn here in code and moving nothing in the layout (only the control's
-## [member Control.scale] changes, and comes back). [method announce] queues a banner that unrolls
-## at the top middle of the room, under the boss bar's place: the picture at three times its size,
-## a headline in bold and a line under it. It stays [constant BANNER_SECONDS], or until clicked.
+## [member Control.scale] changes, and comes back; a container that sorts its children resets
+## their scale, so the pop is put back each time the control's container sorts).
+##
+## [method announce] queues a banner that unrolls at the top middle of the room, under the boss
+## bar's place: the picture at three times its size, a headline in bold and a line under it. It
+## stays [constant BANNER_SECONDS], or until clicked. It is never wider than the room between the
+## middle and the nearest of [member keep_clear] (the goals and the stage list in a game): its line
+## wraps to at most two lines, the last shortened with "..." when it would run longer, and nothing
+## is cut.
 ## Banners wait their turn, at most [constant MAX_WAITING]; a newer one replaces the oldest
 ## waiting. One announced shows from the next [method advance], so of many announced at once only
 ## the newest that can wait are ever shown.
@@ -41,6 +47,10 @@ const BANNER_PICTURE: Vector2 = Vector2(48, 48)
 const BANNER_PAD: float = 8.0
 const BANNER_GAP: float = 10.0
 const BANNER_LINE_WIDTH: float = 460.0
+## The most lines the banner's line wraps to.
+const BANNER_LINES: int = 2
+## What ends a line shortened to fit.
+const SHORTENED: String = "..."
 ## The banner's top, in UI pixels: just under the top band of the frame of the screen, where the
 ## place panel, the boss bar and the purse stand.
 const BANNER_TOP: float = Hud.FRAME_TOP + PlacePanel.HEIGHT + Hud.FRAME_GAP
@@ -52,6 +62,8 @@ const GRAND_SOUND: StringName = &"gain_grand"
 var world: World
 ## Plays the sounds; null for silence.
 var sound: SoundPlayer
+## Controls on the UI layer the banner never overlaps (sideways: it narrows to stay between them).
+var keep_clear: Array[Control] = []
 ## The banner, its picture, its headline and its line.
 var banner: Panel
 var banner_picture: TextureRect
@@ -63,8 +75,9 @@ var _waiting: Array[Banner] = []
 var _shown: Banner
 var _shown_time: float = 0.0
 var _bursts_seen: int = 0
-## The banner's whole size, once unrolled.
+## The banner's whole size, once unrolled, and the widest it was let be when laid out.
 var _banner_full: Vector2 = Vector2.ZERO
+var _banner_room: float = -1.0
 
 
 func _init() -> void:
@@ -123,6 +136,9 @@ func burst(control: Control, event: SimEvent = null) -> void:
 		running.control = control
 		running.scale = control.scale
 		running.pivot = control.pivot_offset
+		running.container = control.get_parent() as Container
+		if running.container != null:
+			running.container.sort_children.connect(_on_sorted.bind(running))
 		_bursts.append(running)
 	running.time = 0.0
 	control.pivot_offset = control.size / 2.0
@@ -296,7 +312,16 @@ func _end(running: Burst) -> void:
 	if is_instance_valid(running.control):
 		running.control.scale = running.scale
 		running.control.pivot_offset = running.pivot
+	if is_instance_valid(running.container):
+		running.container.sort_children.disconnect(_on_sorted.bind(running))
 	_bursts.erase(running)
+
+
+## Puts [param running]'s pop back after its container sorted its children, which resets scale.
+func _on_sorted(running: Burst) -> void:
+	if is_instance_valid(running.control):
+		running.control.pivot_offset = running.control.size / 2.0
+		running.control.scale = running.scale * _pop(running.time)
 
 
 ## Drops every banner waiting and showing and ends every burst: the world is catching up.
@@ -313,10 +338,26 @@ func _show_banner(shown: Banner) -> void:
 	_shown = shown
 	_shown_time = 0.0
 	banner_picture.texture = UiIcon.picture(shown.picture_id)
-	WindowText.set_text(banner_headline, shown.headline)
-	var lines: Array[String] = WindowText.wrap(shown.line, BANNER_LINE_WIDTH)
-	WindowText.set_text(banner_line, "\n".join(PackedStringArray(lines)))
+	_lay_out_banner()
+	banner.visible = true
+	_place_banner()
+	if sound != null:
+		sound.play(GRAND_SOUND)
+
+
+## Lays the banner showing out to the room it has now ([method room_for_banner]): the headline and
+## the line wrapped to fit, the line to at most [constant BANNER_LINES] lines.
+func _lay_out_banner() -> void:
+	_banner_room = room_for_banner()
 	var words_x: float = BANNER_PAD + BANNER_PICTURE.x + BANNER_GAP
+	var width: float = minf(BANNER_LINE_WIDTH, _banner_room - words_x - BANNER_PAD)
+	WindowText.set_text(banner_headline, _shortened(_shown.headline, width, true))
+	var lines: Array[String] = WindowText.wrap(_shown.line, width)
+	if lines.size() > BANNER_LINES:
+		var rest: String = " ".join(PackedStringArray(lines.slice(BANNER_LINES - 1)))
+		lines.resize(BANNER_LINES - 1)
+		lines.append(_shortened(rest, width, false, true))
+	WindowText.set_text(banner_line, "\n".join(PackedStringArray(lines)))
 	var words: Vector2 = Vector2(
 		maxf(banner_headline.size.x, banner_line.size.x),
 		banner_headline.size.y + banner_line.size.y
@@ -326,10 +367,40 @@ func _show_banner(shown: Banner) -> void:
 	banner_headline.position = Vector2(words_x, words_y)
 	banner_line.position = Vector2(words_x, words_y + banner_headline.size.y)
 	_banner_full = Vector2(words_x + words.x + BANNER_PAD, inner_height + 2.0 * BANNER_PAD).ceil()
-	banner.visible = true
-	_place_banner()
-	if sound != null:
-		sound.play(GRAND_SOUND)
+
+
+## The widest the banner may be, centred in the room, in UI pixels: as far as the nearest of
+## [member keep_clear] on each side (a frame gap short of it) or the room's edge, twice the nearer.
+func room_for_banner() -> float:
+	var middle: float = size.x / 2.0
+	var half: float = middle - Hud.FRAME_EDGE
+	var to_here: Transform2D = get_global_transform().affine_inverse()
+	for control: Control in keep_clear:
+		if not is_instance_valid(control) or not control.is_visible_in_tree():
+			continue
+		var box: Rect2 = to_here * control.get_global_rect()
+		if box.end.x <= middle:
+			half = minf(half, middle - box.end.x - Hud.FRAME_GAP)
+		elif box.position.x >= middle:
+			half = minf(half, box.position.x - middle - Hud.FRAME_GAP)
+	return floorf(half) * 2.0 - 2.0
+
+
+## [param text] as it fits in [param width] UI pixels: whole, or cut at a word and ended with
+## [constant SHORTENED] ([param always_marked]: ended so even when it fits, for a line cut short).
+func _shortened(text: String, width: float, bold: bool, always_marked: bool = false) -> String:
+	if not always_marked and UiText.width(text, bold) <= width:
+		return text
+	var words: PackedStringArray = text.split(" ", false)
+	while words.size() > 1:
+		var tried: String = " ".join(words) + SHORTENED
+		if UiText.width(tried, bold) <= width:
+			return tried
+		words.resize(words.size() - 1)
+	var short: String = words[0] if not words.is_empty() else ""
+	while short.length() > 1 and UiText.width(short + SHORTENED, bold) > width:
+		short = short.left(short.length() - 1)
+	return short + SHORTENED
 
 
 func _hide_banner() -> void:
@@ -341,6 +412,8 @@ func _hide_banner() -> void:
 func _place_banner() -> void:
 	if _shown == null:
 		return
+	if room_for_banner() != _banner_room:
+		_lay_out_banner()
 	var full: Vector2 = _banner_full
 	var unrolled: float = clampf(_shown_time / UNROLL_SECONDS, 0.0, 1.0)
 	banner.position = Vector2(floorf((size.x - full.x) / 2.0), BANNER_TOP)
@@ -361,6 +434,8 @@ class Burst:
 	var time: float = 0.0
 	var scale: Vector2 = Vector2.ONE
 	var pivot: Vector2 = Vector2.ZERO
+	## The container the control is in, whose sorting puts the pop back; null for none.
+	var container: Container
 
 
 ## A banner waiting or showing.

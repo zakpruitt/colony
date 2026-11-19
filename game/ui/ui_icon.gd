@@ -6,11 +6,13 @@ extends Control
 ## bevelled frame; small, at its own size in a thin one.
 ##
 ## Four states, told apart by more than colour: [b]owned[/b] (full colour, a gold frame),
-## [b]ready[/b] (full colour, a yellow frame that pulses gently, stepping to amber and back),
+## [b]ready[/b] (full colour, a yellow frame that pulses gently, stepping to white and back),
 ## [b]locked[/b] (the picture dimmed, a plain frame) and [b]closed[/b] (the picture dark and barely
 ## there, a small padlock at the corner). The frame is square or has cut corners ([enum Shape]),
 ## can carry a short count at the bottom right in the UI font's equal-width digits, brightens
-## under the mouse and emits [signal clicked] on a left click.
+## under the mouse and emits [signal clicked] on a left click. Owned and ready never share an edge
+## colour, lit or not, at any point of the pulse: owned keeps its gold edge under the mouse and
+## brightens its picture and bevel instead.
 ##
 ## Its pulse runs in [method advance], which its owner calls every frame (as a talent node's is).
 
@@ -45,6 +47,8 @@ const PULSE_SECONDS: float = 1.2
 ## How much of the picture's colour shows when locked, and when closed.
 const LOCKED_TINT: Color = Color(0.5, 0.5, 0.5)
 const CLOSED_TINT: Color = Color(0.16, 0.16, 0.18)
+## The picture's colour under the mouse, owned or ready: a little brighter than its own.
+const LIT_TINT: Color = Color(1.3, 1.3, 1.3)
 ## The padlock, in 5x6 cells of one pixel (large: two), drawn at the bottom right of a closed slot:
 ## [code]#[/code] the steel body and shackle, [code]k[/code] its keyhole.
 const LOCK: Array[String] = [".###.", "#...#", "#####", "##k##", "##k##", "#####"]
@@ -174,16 +178,17 @@ func outline() -> PackedVector2Array:
 	)
 
 
-## The palette colour of the frame's edge now: amber when owned, yellow (amber on the pulse's dim
-## half) when ready, slate when locked, dusk when closed, each a step brighter under the mouse.
+## The palette colour of the frame's edge now: amber when owned (under the mouse too: its picture
+## and bevel brighten instead), yellow (white on the pulse's second half, and under the mouse) when
+## ready, slate when locked, dusk when closed, these two a step brighter under the mouse.
 func frame_colour() -> StringName:
 	match _state:
 		State.OWNED:
-			return &"yellow" if _lit else &"amber"
+			return &"amber"
 		State.READY:
 			if _lit:
 				return &"white"
-			return &"yellow" if _time < PULSE_SECONDS / 2.0 else &"amber"
+			return &"yellow" if _time < PULSE_SECONDS / 2.0 else &"white"
 		State.LOCKED:
 			return &"silver" if _lit else &"slate"
 	return &"slate" if _lit else &"dusk"
@@ -213,11 +218,11 @@ func _draw() -> void:
 	var dark: StringName = &"night"
 	match _state:
 		State.OWNED:
-			light = &"yellow"
+			light = &"white" if _lit else &"yellow"
 			dark = &"copper"
 		State.READY:
 			light = &"white" if frame_colour() == &"yellow" else &"yellow"
-			dark = &"amber"
+			dark = &"orange"
 		State.LOCKED:
 			light = &"steel"
 			dark = &"dusk"
@@ -322,7 +327,7 @@ func _set_lit(lit: bool) -> void:
 	if lit == _lit:
 		return
 	_lit = lit
-	queue_redraw()
+	_apply()
 
 
 ## Shows the state: the picture's colour, the padlock and the frame.
@@ -333,7 +338,7 @@ func _apply() -> void:
 		State.CLOSED:
 			picture_rect.modulate = CLOSED_TINT
 		_:
-			picture_rect.modulate = Color.WHITE
+			picture_rect.modulate = LIT_TINT if _lit else Color.WHITE
 	queue_redraw()
 	_over.queue_redraw()
 

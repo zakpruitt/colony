@@ -504,9 +504,11 @@ pieces above now, and they stay for their colours and marks.
   shows them all.
 - **The slot** (`UiIcon`) frames a picture: large, at 2x in a 2-pixel bevelled frame (36x36); small, at 1x in
   a 1-pixel frame (18x18). Owned: `amber` edge, `yellow`/`copper` bevel, full colour. Ready: `yellow` edge
-  stepping to `amber` and back every 1.2 s, full colour. Locked: `slate` edge, the picture dimmed by half.
+  stepping to `white` and back every 1.2 s, `white`/`orange` bevel, full colour. Locked: `slate` edge, the picture dimmed by half.
   Closed: `dusk` edge on `ink`, the picture barely there and a small `silver`/`steel` padlock at the bottom
-  right. Under the mouse the edge goes a step brighter. A frame is square or has its corners cut. A count
+  right. Under the mouse the edge goes a step brighter, except
+  owned's: it keeps its `amber` edge and brightens its picture and its bevel's light to `white`, so owned
+  and ready never share an edge colour. A frame is square or has its corners cut. A count
   sits at the bottom right in bold `white` with an `ink` shadow.
 - **The card** is a tooltip with the picture at 2x on the left and beside it the title in bold `white`, the
   kind in `steel`, the body in `silver` wrapped at 240 pixels and the stand in the caller's colour.
@@ -514,7 +516,8 @@ pieces above now, and they stay for their colours and marks.
   in a ring stepping `yellow`, `amber`, `orange`, and the control pops to 1.3 times and settles, 0.6 s in
   all. **The banner**: a `night` panel with an `amber` edge unrolling downward at the top middle under the
   top band, the picture at 3x in a `yellow`-edged `ink` box, the headline in bold `yellow` and the line in
-  `silver`; 2.5 s, or until clicked.
+  `silver`; 2.5 s, or until clicked. It is never wider than the room between the middle and the goals or
+  the stage list; its line wraps to two lines at most, the second ending `...` when cut short.
 
 ## Sound
 
