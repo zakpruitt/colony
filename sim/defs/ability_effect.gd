@@ -55,7 +55,7 @@ enum Status {
 }
 
 ## Statuses that help their bearer; the others hurt it.
-const HELPFUL: Array[Status] = [
+const _HELPFUL: Array[Status] = [
 	Status.TAUNTING,
 	Status.SHIELDED,
 	Status.MENDING,
@@ -104,7 +104,7 @@ func is_helpful() -> bool:
 		Does.HEAL, Does.REVIVE:
 			return true
 		Does.STATUS:
-			return status in HELPFUL
+			return status in _HELPFUL
 	return false
 
 

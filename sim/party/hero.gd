@@ -5,11 +5,11 @@ extends RefCounted
 ## [HeroClassDef], times the party's camp upgrades, times its paragon points; it fights with
 ## the abilities of its talents.
 
-## XP per level step: reaching level n takes (n - 1) * (XP_STEP * n - XP_DISCOUNT) in total.
-const XP_STEP: int = 25
+## XP per level step: reaching level n takes (n - 1) * (_XP_STEP * n - _XP_DISCOUNT) in total.
+const _XP_STEP: int = 25
 ## XP taken off each level step (spec 036): the first levels come quickly, the late ones cost
 ## nearly what they did.
-const XP_DISCOUNT: int = 30
+const _XP_DISCOUNT: int = 30
 ## Talent points a hero can earn: enough to fill a tree, its trunk and one path (spec 051).
 const TALENT_POINTS: int = 7
 ## A talent point comes at every level divisible by this.
@@ -59,7 +59,7 @@ func is_alive() -> bool:
 
 ## Total XP needed to be this level: (level - 1) * (25 * level - 30).
 static func xp_for_level(level_number: int) -> int:
-	return (level_number - 1) * (XP_STEP * level_number - XP_DISCOUNT)
+	return (level_number - 1) * (_XP_STEP * level_number - _XP_DISCOUNT)
 
 
 ## Adds XP and takes every level it pays for, healing by the health each level

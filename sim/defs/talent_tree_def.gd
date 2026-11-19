@@ -5,10 +5,10 @@ extends Resource
 ## .tres file per class under res://data/talents.
 
 ## Nodes in the trunk, and in each path.
-const TRUNK_LENGTH: int = 3
+const _TRUNK_LENGTH: int = 3
 const PATH_LENGTH: int = 4
 ## The longest a path's summary may be, in characters (spec 064 R4: one short line).
-const SUMMARY_LENGTH: int = 60
+const _SUMMARY_LENGTH: int = 60
 
 @export var class_id: StringName
 @export var trunk: Array[StringName] = []  # ability ids, in order
@@ -92,8 +92,8 @@ func validate() -> PackedStringArray:
 			problems.append(
 				"the %s already has a tree, %s: one tree a class" % [class_id, known.resource_path]
 			)
-	if trunk.size() != TRUNK_LENGTH:
-		problems.append("trunk has %d nodes, not %d" % [trunk.size(), TRUNK_LENGTH])
+	if trunk.size() != _TRUNK_LENGTH:
+		problems.append("trunk has %d nodes, not %d" % [trunk.size(), _TRUNK_LENGTH])
 	if path_names.size() != 2:
 		problems.append("path_names has %d names, not 2" % path_names.size())
 	for name_text: String in path_names:
@@ -104,9 +104,9 @@ func validate() -> PackedStringArray:
 	for summary: String in path_summaries:
 		if summary.strip_edges().is_empty():
 			problems.append("a path summary is empty")
-		elif summary.length() > SUMMARY_LENGTH:
+		elif summary.length() > _SUMMARY_LENGTH:
 			problems.append(
-				"the path summary '%s' is over %d characters" % [summary, SUMMARY_LENGTH]
+				"the path summary '%s' is over %d characters" % [summary, _SUMMARY_LENGTH]
 			)
 	for label: String in ["path_a", "path_b"]:
 		var nodes: Array[StringName] = path_a if label == "path_a" else path_b

@@ -33,26 +33,26 @@ const FIRST_MONSTER_ID: int = 100
 ## Monster ids are built from where the monster waits (see [method monster_id]): room for this many
 ## chambers on a level, visits to a chamber before its ids come round again, and monsters in one
 ## encounter.
-const CHAMBER_SPAN: int = 8
+const _CHAMBER_SPAN: int = 8
 const VISIT_SPAN: int = 64
-const SLOT_SPAN: int = 8
+const _SLOT_SPAN: int = 8
 ## Every level whose depth is a multiple of this has a guardian holding its shaft chamber.
 const GUARDIAN_EVERY: int = 5
 ## How long a beaten guardian's chamber stays empty, instead of RESPAWN_SECONDS.
 const GUARDIAN_RESPAWN_SECONDS: float = 1800.0
 
 ## Tiles between heroes walking in column.
-const HERO_SPACING: float = 1.0
+const _HERO_SPACING: float = 1.0
 ## How many monsters wait in a chamber of each kind, both ends included.
 const PLAIN_MONSTERS: Vector2i = Vector2i(2, 3)
 const DEN_MONSTERS: Vector2i = Vector2i(4, 5)
 const VAULT_MONSTERS: Vector2i = Vector2i(2, 3)
 ## Gold from a monster killed in a VAULT is multiplied by this.
-const VAULT_GOLD_FACTOR: int = 2
+const _VAULT_GOLD_FACTOR: int = 2
 ## Slack for comparing positions reached by adding up float steps.
-const EPSILON: float = 0.0001
+const _EPSILON: float = 0.0001
 ## The chance that a plain chamber holds a side quest instead of monsters, on each visit.
-const SIDE_QUEST_SHARE: float = 0.3
+const _SIDE_QUEST_SHARE: float = 0.3
 
 var state: State = State.TRAVELLING
 ## The area the party is in, or heading to while JOURNEYING (spec 049). The depths below are
@@ -273,7 +273,7 @@ func hero_position(hero_id: int) -> Vector2:
 			if fighter != null:
 				return Vector2(fighter.x, floor_y)
 		State.CLIMBING:
-			var lag: float = HERO_SPACING * rank * _climb_direction
+			var lag: float = _HERO_SPACING * rank * _climb_direction
 			var y: float = _climb_y - lag
 			if _climb_direction > 0:
 				y = maxf(y, _climb_from_y)
@@ -319,13 +319,13 @@ func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 
 ## The id of the monster in place [param slot] of the encounter on visit [param visit] to chamber
 ## [param chamber_index] at [param level_depth]:
-## [code]FIRST_MONSTER_ID + ((depth * CHAMBER_SPAN + chamber) * VISIT_SPAN + visit % VISIT_SPAN)
-## * SLOT_SPAN + slot[/code]. Only one visit to a chamber has monsters at a time, so ids are unique
+## [code]FIRST_MONSTER_ID + ((depth * _CHAMBER_SPAN + chamber) * VISIT_SPAN + visit % VISIT_SPAN)
+## * _SLOT_SPAN + slot[/code]. Only one visit to a chamber has monsters at a time, so ids are unique
 ## among the monsters that exist together; a chamber's ids come round again after VISIT_SPAN
 ## refills. Ids stay below 2^31 to depth 500,000.
 static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: int) -> int:
-	var spot: int = level_depth * CHAMBER_SPAN + chamber_index
-	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * SLOT_SPAN + slot
+	var spot: int = level_depth * _CHAMBER_SPAN + chamber_index
+	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * _SLOT_SPAN + slot
 
 
 ## The id of the guardian that holds that stage's way down in the area the party is in, or &"" if
@@ -543,7 +543,7 @@ func _travel() -> void:
 			if state != State.TRAVELLING:
 				return
 
-	if absf(x - goal) > EPSILON:
+	if absf(x - goal) > _EPSILON:
 		return
 	if holding:
 		_turn(-facing)
@@ -581,7 +581,7 @@ func _reset_trail() -> void:
 
 ## The column of the hero [param rank] places behind the anchor, retracing the anchor's last turn.
 func _formation_x(rank: int) -> float:
-	var lag: float = HERO_SPACING * rank
+	var lag: float = _HERO_SPACING * rank
 	var since_turn: float = _odometer - _turn_odometer
 	var hero_x: float = x - facing * lag
 	if _turn_facing != 0 and lag > since_turn:
@@ -726,7 +726,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 
 
 ## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
-## chamber that is not always empty and holds no guardian, with chance SIDE_QUEST_SHARE. Depends
+## chamber that is not always empty and holds no guardian, with chance _SIDE_QUEST_SHARE. Depends
 ## only on the seed, depth, chamber and visit.
 func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> StringName:
 	var level: LabyrinthLevel = _labyrinth.level(level_depth)
@@ -736,7 +736,7 @@ func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> String
 		return &""
 	var label: String = AreaTravel.label(_here.id)
 	var rng: SimRng = _rng.fork(label + "sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
-	if not rng.chance(SIDE_QUEST_SHARE):
+	if not rng.chance(_SIDE_QUEST_SHARE):
 		return &""
 	var ids: Array[StringName] = Content.side_quest_ids()
 	if ids.is_empty():
@@ -833,7 +833,7 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 		fighter.level = hero.level
 	var gold: int = _loot_rng.next_int(def.gold_min, def.gold_max)
 	if _labyrinth.level(_battle_key.x).chambers[_battle_key.y].kind == LabyrinthChamber.Kind.VAULT:
-		gold *= VAULT_GOLD_FACTOR
+		gold *= _VAULT_GOLD_FACTOR
 	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
@@ -929,7 +929,7 @@ func _heal_resting() -> bool:
 	var rate: float = REST_HEAL_PER_SECOND * _upgrade(UpgradeDef.Stat.REST_HEALING)
 	for hero: Hero in _party.heroes:
 		var full: int = hero.max_health()
-		var healed: int = floori(rate * full * seconds + EPSILON)
+		var healed: int = floori(rate * full * seconds + _EPSILON)
 		var start: int = _rest_start.get(hero.id, hero.health)
 		hero.health = mini(full, maxi(hero.health, start + healed))
 		if hero.health < full:

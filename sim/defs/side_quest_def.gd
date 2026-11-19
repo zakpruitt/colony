@@ -9,7 +9,7 @@ extends Resource
 enum Reward { GOLD, XP }
 
 ## The shortest and longest work a side quest may take, in seconds.
-const WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
+const _WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
 
 @export var id: StringName
 @export var display_name: String
@@ -62,11 +62,11 @@ func validate() -> PackedStringArray:
 		problems.append("microskill is empty")
 	elif Content.microskill(microskill) == null:
 		problems.append("microskill %s does not exist" % microskill)
-	if work_seconds < WORK_SECONDS_RANGE.x or work_seconds > WORK_SECONDS_RANGE.y:
+	if work_seconds < _WORK_SECONDS_RANGE.x or work_seconds > _WORK_SECONDS_RANGE.y:
 		problems.append(
 			(
 				"work_seconds %s is outside %s to %s"
-				% [work_seconds, WORK_SECONDS_RANGE.x, WORK_SECONDS_RANGE.y]
+				% [work_seconds, _WORK_SECONDS_RANGE.x, _WORK_SECONDS_RANGE.y]
 			)
 		)
 	if reward_factor <= 0.0:

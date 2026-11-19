@@ -14,7 +14,7 @@ const SAVE_VERSION: int = 8
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero (spec 051).
-const RESET_GOLD_PER_LEVEL: int = 100
+const _RESET_GOLD_PER_LEVEL: int = 100
 ## The largest whole number a JSON float holds exactly (2^53).
 const _LARGEST_WHOLE: int = 9_007_199_254_740_992
 ## The kinds of talent command waiting in [member _pending_talents].
@@ -170,7 +170,7 @@ func spend_paragon(hero_id: int, stat: TrainingDef.Stat) -> void:
 
 
 ## Asks for a fresh start for hero [param hero_id] at the next step (spec 051): for
-## [constant RESET_GOLD_PER_LEVEL] gold per level, every node it took is given back as an unspent
+## [constant _RESET_GOLD_PER_LEVEL] gold per level, every node it took is given back as an unspent
 ## talent point and both paths are open again, with [constant SimEvent.Kind.TALENTS_RESET].
 ## Paragon points stay. Nothing happens during a fight, without the gold, or with no node taken.
 func reset_talents(hero_id: int) -> void:
@@ -179,7 +179,7 @@ func reset_talents(hero_id: int) -> void:
 
 ## The gold a fresh start for [param hero] costs.
 static func reset_price(hero: Hero) -> int:
-	return RESET_GOLD_PER_LEVEL * hero.level
+	return _RESET_GOLD_PER_LEVEL * hero.level
 
 
 ## Turns auto-buy on or off, from the next step. While on, the camp buys the cheapest

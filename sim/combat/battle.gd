@@ -20,12 +20,12 @@ enum Result { ONGOING, HEROES_WON, MONSTERS_WON }
 enum Via { STRIKE, ACTION, PASSIVE, STATUS }
 
 const MAX_TICKS: int = 3000
-const PROJECTILE_SPEED: float = 12.0  # tiles per second
+const _PROJECTILE_SPEED: float = 12.0  # tiles per second
 const MELEE_REACH: float = 1.5  # strikes at or under this range land at once
-const HEAL_THRESHOLD: float = 0.8
+const _HEAL_THRESHOLD: float = 0.8
 ## A damage or heal roll is the base value times a number in this range.
-const ROLL_MIN: float = 0.85
-const ROLL_MAX: float = 1.15
+const _ROLL_MIN: float = 0.85
+const _ROLL_MAX: float = 1.15
 ## Slack for comparing positions that were reached by adding up float steps.
 const EPSILON: float = 0.0001
 const MIN_SPACING: float = 0.6  # tiles between two standing combatants of one side
@@ -187,10 +187,10 @@ func nearest_enemy(c: Combatant) -> Combatant:
 
 
 ## The ally a healer [param c] would heal now: the living one with the lowest share of health,
-## if it is below [constant HEAL_THRESHOLD]; or null.
+## if it is below [constant _HEAL_THRESHOLD]; or null.
 func hurt_ally(c: Combatant) -> Combatant:
 	var hurt: Combatant = null
-	var lowest: float = HEAL_THRESHOLD
+	var lowest: float = _HEAL_THRESHOLD
 	for ally: Combatant in allies_of(c):
 		if ally.is_alive() and ally.health_fraction() < lowest:
 			hurt = ally
@@ -517,7 +517,7 @@ func _strike(c: Combatant, target: Combatant) -> void:
 	if not is_heal and c.attack_range <= MELEE_REACH:
 		_apply(c, target, false)
 		return
-	var seconds: float = absf(target.x - c.x) / PROJECTILE_SPEED
+	var seconds: float = absf(target.x - c.x) / _PROJECTILE_SPEED
 	var flight: int = maxi(1, roundi(seconds * Simulation.TICKS_PER_SECOND))
 	_projectiles.append(BattleProjectile.new(c, target.id, tick + flight, is_heal))
 	record(SimEvent.Kind.PROJECTILE_LAUNCHED, c.id, target.id, flight, is_heal)
@@ -531,7 +531,7 @@ func _apply(source: Combatant, target: Combatant, is_heal: bool) -> void:
 		if untouchable(source, target) or (dodge != null and _rng.chance(dodge.amount)):
 			record(SimEvent.Kind.MISSED, source.id, target.id)
 			return
-	var roll: float = ROLL_MIN + _rng.next_float() * (ROLL_MAX - ROLL_MIN)
+	var roll: float = _ROLL_MIN + _rng.next_float() * (_ROLL_MAX - _ROLL_MIN)
 	if is_heal:
 		var healed: int = mini(roundi(source.heal_power * roll), target.max_health - target.health)
 		healed = maxi(healed, 0)

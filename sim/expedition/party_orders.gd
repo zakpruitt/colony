@@ -11,8 +11,8 @@ const GUARDIANS: int = 1
 const PACE_SAVED: Array[String] = ["cautious", "steady", "bold"]
 const GUARDIAN_SAVED: Array[String] = ["challenge", "hold"]
 ## The share of its health below which a hero makes the party rest after a fight, at each pace.
-const CAUTIOUS_REST_BELOW: float = 0.8
-const BOLD_REST_BELOW: float = 0.4
+const _CAUTIOUS_REST_BELOW: float = 0.8
+const _BOLD_REST_BELOW: float = 0.4
 
 
 ## The share of a hero's health below which the party rests after a fight at [param pace]. Steady
@@ -20,9 +20,9 @@ const BOLD_REST_BELOW: float = 0.4
 static func rest_below(pace: Expedition.Pace) -> float:
 	match pace:
 		Expedition.Pace.CAUTIOUS:
-			return CAUTIOUS_REST_BELOW
+			return _CAUTIOUS_REST_BELOW
 		Expedition.Pace.BOLD:
-			return BOLD_REST_BELOW
+			return _BOLD_REST_BELOW
 	return Expedition.REST_BELOW
 
 

@@ -6,11 +6,11 @@ extends RefCounted
 ## From this depth down every time here is the deep game's, unchanged.
 const DEEP_DEPTH: int = 10
 ## Seconds to hold depth 1 before it is stable, and every depth from DEEP_DEPTH down.
-const SURFACE_STABLE_SECONDS: float = 60.0
-const DEEP_STABLE_SECONDS: float = 600.0
+const _SURFACE_STABLE_SECONDS: float = 60.0
+const _DEEP_STABLE_SECONDS: float = 600.0
 ## Seconds a cleared chamber stays empty at depth 1; from DEEP_DEPTH down it is
 ## [constant Expedition.RESPAWN_SECONDS].
-const SURFACE_RESPAWN_SECONDS: float = 5.0
+const _SURFACE_RESPAWN_SECONDS: float = 5.0
 
 
 ## Seconds a depth must be held to become stable, when [member Expedition.stable_seconds] has not
@@ -18,7 +18,7 @@ const SURFACE_RESPAWN_SECONDS: float = 5.0
 ## depth from 60 at depth 1 to 600 at depth 10, then 600 at every depth below.
 static func stable_seconds_at(level_depth: int) -> float:
 	var step: float = clampf(float(level_depth - 1) / (DEEP_DEPTH - 1), 0.0, 1.0)
-	return SURFACE_STABLE_SECONDS * pow(DEEP_STABLE_SECONDS / SURFACE_STABLE_SECONDS, step)
+	return _SURFACE_STABLE_SECONDS * pow(_DEEP_STABLE_SECONDS / _SURFACE_STABLE_SECONDS, step)
 
 
 ## [method Expedition.seconds_to_stable] for [param run] at tick [param now]: its depth has been
@@ -44,11 +44,11 @@ static func push_left(run: Expedition, now: int, timers: Array[int]) -> float:
 
 
 ## Seconds a cleared chamber at [param level_depth] stays empty before monsters (or a side quest)
-## come back: from SURFACE_RESPAWN_SECONDS at depth 1, rising evenly to
+## come back: from _SURFACE_RESPAWN_SECONDS at depth 1, rising evenly to
 ## [constant Expedition.RESPAWN_SECONDS] at DEEP_DEPTH and staying there.
 static func respawn_seconds_at(level_depth: int) -> float:
 	var step: float = clampf(float(level_depth - 1) / (DEEP_DEPTH - 1), 0.0, 1.0)
-	return lerpf(SURFACE_RESPAWN_SECONDS, Expedition.RESPAWN_SECONDS, step)
+	return lerpf(_SURFACE_RESPAWN_SECONDS, Expedition.RESPAWN_SECONDS, step)
 
 
 ## Seconds before the chamber with record [param fill] refills once cleared: a beaten guardian's
