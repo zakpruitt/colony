@@ -8,6 +8,9 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 065 | [Camp upgrades you can see](065-camp-upgrades-you-can-see/spec.md) | M7 | provisional, waits for 063 | 017, 045, 052, 059, 063 |
+| 064 | [The talent tree as a tree, with paragon and skills](064-the-talent-tree-as-a-tree/spec.md) | M7 | provisional, waits for 063 | 028, 051, 055, 060, 063 |
+| 063 | [A picture for everything you gain, and the moment you gain it](063-pictures-and-the-moment/spec.md) | M7 | provisional, in progress | 017, 028, 051, 055, 058, 059, 060, 062 |
 | 062 | [Goals, the stage list and the news on the sharp layer](062-goals-stages-and-news/spec.md) | M7 | landed on dev, [#63](https://github.com/zakpruitt/colony/pull/63), provisional | 019, 027, 031, 033, 037, 041, 042, 043, 047, 053, 058 |
 | 061 | [The frame of the screen on the sharp layer](061-the-frame-of-the-screen/spec.md) | M7 | landed on dev, [#62](https://github.com/zakpruitt/colony/pull/62), provisional | 011, 024, 027, 030, 032, 039, 049, 052, 056, 058 |
 | 059 | [The shop, the area map and the tally as windows](059-shop-map-and-tally-windows/spec.md) | M7 | landed on dev, [#61](https://github.com/zakpruitt/colony/pull/61), provisional | 017, 022, 045, 052, 053, 056, 058 |
