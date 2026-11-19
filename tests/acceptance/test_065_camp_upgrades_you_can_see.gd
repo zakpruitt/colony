@@ -1,12 +1,11 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/065-camp-upgrades-you-can-see/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off and the UI layer laid out for a chosen
-## room (helpers in ui_layer_test.gd), puts the simulation where it wants it by hand, steps it a
-## tick at a time (the world and the HUD after each), and drives the shop with real clicks and
+## room (helpers in ui_layer_test_base.gd), puts the simulation where it wants it by hand, steps it
+## a tick at a time (the world and the HUD after each), and drives the shop with real clicks and
 ## keys, checking the simulation after each command.
 
-const STEP: float = 1.0 / 60.0
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
@@ -44,12 +43,8 @@ func _row(main: Main, id: StringName) -> ShopRow:
 
 
 func _open_shop(main: Main) -> void:
-	_key(KEY_U)
+	press(KEY_U)
 	main.hud.advance(STEP)
-
-
-func _click_on(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
 
 
 func _bold(label: Label) -> bool:
@@ -222,7 +217,7 @@ func test_r2_what_you_get_as_numbers() -> void:
 	assert_false(medicine.arrow_label.is_visible_in_tree(), "no arrow")
 	assert_eq(medicine.next_label.text, "Mastered", "with Mastered")
 	# A rank bought with its key moves the numbers on.
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 1, "1 bought a rank")
 	for i: int in 60:
@@ -305,7 +300,7 @@ func test_r4_what_is_missing() -> void:
 	)
 	# Pointing at the card shows a card tooltip.
 	var tip: UiTip = main.ui.tip
-	_move(main.ui.ui_to_world(armor.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(armor.get_global_rect().get_center()))
 	tip.advance(UiTip.DELAY + 0.05)
 	assert_eq(tip.hovered(), armor, "the mouse is on the card")
 	assert_true(tip.card_shown(), "a card tooltip")
@@ -319,7 +314,7 @@ func test_r4_what_is_missing() -> void:
 	var blades: ShopRow = _row(main, BLADES)
 	sim.upgrades.set_rank(BLADES, 3)
 	_frame(main, 0)
-	_move(main.ui.ui_to_world(blades.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(blades.get_global_rect().get_center()))
 	tip.advance(UiTip.DELAY + 0.05)
 	assert_true(tip.card_shown(), "a card for Sharp Blades")
 	assert_string_contains(
@@ -369,7 +364,7 @@ func test_r5_buying_is_a_moment() -> void:
 	assert_false(moment.is_bursting(blades.icon), "and the burst")
 	# By the key: the same.
 	bursts = moment.bursts_seen()
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 4, "1 bought rank 4")
 	assert_true(moment.is_bursting(blades.icon), "the key's purchase bursts too")
@@ -394,7 +389,7 @@ func test_r5_buying_is_a_moment() -> void:
 		_frame(main, 0)
 	# A stale purchase: asked for, then heard only after a frame of 300 ticks.
 	bursts = moment.bursts_seen()
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main, 300)
 	assert_eq(sim.upgrades.rank(BLADES), 6, "1 bought rank 6")
 	assert_eq(moment.bursts_seen(), bursts, "no burst for a stale purchase")
@@ -405,7 +400,7 @@ func test_r5_buying_is_a_moment() -> void:
 	_frame(main, 0)
 	for i: int in 299:
 		sim.step()
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_true(main.world.catching_up(), "setup: a catch-up")
 	assert_eq(sim.upgrades.rank(BLADES), 7, "1 bought rank 7")
@@ -413,7 +408,7 @@ func test_r5_buying_is_a_moment() -> void:
 	assert_eq(blades.flash(), 0.0, "nor a flash")
 	# A stall while the flash and the step run: the world catches up, and both stop at once.
 	_frame(main, 0)
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 8, "1 bought rank 8")
 	assert_true(blades.flash() > 0.0 and blades.stepping(), "setup: flashing and stepping")
@@ -426,8 +421,8 @@ func test_r5_buying_is_a_moment() -> void:
 	assert_eq(blades.now_label.text, "+40%", "showing the truth")
 	_frame(main, 0)
 	# Two ranks bought in one tick: the numbers step from where they were, two ranks below.
-	_key(KEY_1)
-	_key(KEY_1)
+	press(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 10, "two ranks, 9 and 10, in one tick")
 	var first: int = blades.now_label.text.trim_prefix("+").trim_suffix("%").to_int()
@@ -457,7 +452,7 @@ func _moment_is_the_players(main: Main) -> void:
 			_frame(main, 0)  # the last bursts end
 		var blades_rank: int = sim.upgrades.rank(BLADES)
 		var armor_rank: int = sim.upgrades.rank(ARMOR)
-		_key(KEY_1)
+		press(KEY_1)
 		if not each:
 			sim.party.gold = sim.upgrades.cost(ARMOR)  # the ask fails; auto-buy buys armour
 		_frame(main)
@@ -484,11 +479,11 @@ func test_r6_milestones() -> void:
 	_open_shop(main)
 	await _frames()
 	# The player's fourth rank: no banner. The fifth: a banner with the picture.
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 4, "rank 4")
 	assert_eq(_headlines(main, 3.0), [] as Array[String], "no banner for rank 4")
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 5, "rank 5")
 	moment.advance(0.0)
@@ -510,7 +505,7 @@ func test_r6_milestones() -> void:
 	# The top rank.
 	sim.upgrades.set_rank(BLADES, 19)
 	_frame(main, 0)
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 20, "the top rank")
 	moment.advance(0.0)
@@ -521,7 +516,7 @@ func test_r6_milestones() -> void:
 	sim.upgrades.set_rank(BLADES, 14)
 	_frame(main, 0)
 	var bursts: int = moment.bursts_seen()
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main, 300)
 	assert_eq(sim.upgrades.rank(BLADES), 15, "a stale rank 15")
 	assert_eq(_headlines(main, 3.0), [] as Array[String], "no banner for a stale purchase")
@@ -530,7 +525,7 @@ func test_r6_milestones() -> void:
 	_frame(main, 0)
 	for i: int in 299:
 		sim.step()
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_true(main.world.catching_up(), "setup: a catch-up")
 	assert_eq(sim.upgrades.rank(BLADES), 20, "the top rank, heard in a catch-up")
@@ -551,7 +546,7 @@ func test_r7_the_foot_and_the_keys() -> void:
 	var badge: UiBadge = main.ui.bar.badges[ShopWindow.ID]
 	assert_eq(badge.count, 2, "the bar button counts what the party can pay for")
 	assert_true(badge.is_visible_in_tree(), "while the shop is closed")
-	_key(KEY_3)
+	press(KEY_3)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(MEDICINE), 0, "3 buys nothing with the shop closed")
 	_open_shop(main)
@@ -561,28 +556,28 @@ func test_r7_the_foot_and_the_keys() -> void:
 	assert_eq(shop.auto_buy_button.text, "Auto-buy off", "the switch")
 	assert_true(shop.is_ancestor_of(shop.auto_buy_caption), "with its sentence")
 	assert_eq(shop.auto_buy_caption.text, ShopWindow.AUTO_BUY_LINE)
-	_key(KEY_3)
+	press(KEY_3)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(MEDICINE), 1, "3 buys while the shop is in front")
 	sim.party.gold = 10_000
 	for i: int in 5:
 		var id: StringName = Content.upgrade_ids()[i]
 		var rank: int = sim.upgrades.rank(id)
-		_key((KEY_1 + i) as Key)
+		press((KEY_1 + i) as Key)
 		_frame(main)
 		assert_eq(sim.upgrades.rank(id), rank + 1, "%d buys %s" % [i + 1, id])
 	_click_on(main, shop.auto_buy_button)
 	_frame(main)
 	assert_true(sim.auto_buy, "a click turns auto-buy on")
 	assert_true(shop.auto_buy_button.lit, "lit")
-	_key(KEY_B)
+	press(KEY_B)
 	_frame(main)
 	assert_false(sim.auto_buy, "B turns it off")
-	_key(KEY_J)
+	press(KEY_J)
 	assert_eq(main.ui.windows.front(), main.ui.windows.window(UiRoot.JOURNAL), "setup: behind")
 	var blades: int = sim.upgrades.rank(BLADES)
-	_key(KEY_1)
-	_key(KEY_B)
+	press(KEY_1)
+	press(KEY_B)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), blades, "1 buys nothing with the shop behind")
 	assert_false(sim.auto_buy, "nor does B switch")
@@ -633,7 +628,7 @@ func test_r8_nothing_lost() -> void:
 		if how == "by the button":
 			_click_on(main, armor.buy_button)
 		else:
-			_key(KEY_2)
+			press(KEY_2)
 		_frame(main)
 		assert_eq(sim.upgrades.rank(ARMOR), rank + 1, "buy_upgrade %s" % how)
 		assert_eq(sim.party.gold, gold - price, "%s: the gold paid" % how)
@@ -660,9 +655,9 @@ func test_r9_true_in_a_crowded_frame() -> void:
 				bought[0] += 1
 	)
 	# The player's purchases, then auto-buy's, all in one frame of 300 ticks.
-	_key(KEY_1)
-	_key(KEY_2)
-	_key(KEY_2)
+	press(KEY_1)
+	press(KEY_2)
+	press(KEY_2)
 	sim.set_auto_buy(true)
 	_frame(main, 300)
 	assert_gt(bought[0], 4, "setup: the player and auto-buy bought")

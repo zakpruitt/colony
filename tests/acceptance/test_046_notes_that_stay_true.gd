@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/046-notes-that-stay-true/spec.md, one per requirement (R10 is the
 ## amended tests of specs 041 and 045).
 ##
@@ -30,6 +30,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	if _hud != null and is_instance_valid(_hud) and _hud.defeat_note != null:
 		_hud.defeat_note.point_at(UiTip.NOWHERE)
 

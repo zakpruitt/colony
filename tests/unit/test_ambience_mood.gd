@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the light formula of spec 012 (AmbienceMood), which darkness.gdshader mirrors.
 
 

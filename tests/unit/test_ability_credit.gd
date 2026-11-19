@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## AbilityCredit (spec 056): what each blow and heal was, from the events alone and in their order.
 
 const KNIGHT: int = 1

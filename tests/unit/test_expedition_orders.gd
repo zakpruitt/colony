@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the party's orders (spec 035) below the acceptance tests: the plain rules in
 ## PartyOrders, and the Hold order on the way up, which the acceptance tests do not reach.
 
@@ -10,12 +10,6 @@ func _room(first: int, last: int) -> LabyrinthChamber:
 	var room := LabyrinthChamber.new()
 	room.rect = Rect2i(first, 0, last - first + 1, 4)
 	return room
-
-
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 func test_rest_below_each_pace() -> void:
@@ -66,7 +60,7 @@ func test_hold_on_the_way_up() -> void:
 	for order: Expedition.GuardianOrder in Expedition.GuardianOrder.values():
 		var sim := Simulation.new(SEED)
 		var e: Expedition = sim.expedition
-		_raise(sim, STRONG_LEVEL)
+		raise_party(sim, STRONG_LEVEL)
 		sim.set_auto_push(false)
 		sim.set_guardian_order(order)
 		sim.step()

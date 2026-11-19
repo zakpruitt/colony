@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/frame_062_test.gd"
+extends "res://tests/acceptance/frame_062_test_base.gd"
 ## Spec 063: a picture for everything a player can gain, the slot that shows one, the tooltip card,
 ## the burst and the banner that mark a gain, their sounds and the sheet that shows them all. The
 ## slot, card and banner are driven by real mouse events pushed into the viewport; R6 by real
@@ -112,7 +112,7 @@ func test_r2_the_slot() -> void:
 		UiIcon.State.OWNED: {}, UiIcon.State.READY: {}
 	}
 	for lit: bool in [false, true]:
-		_move(centre if lit else Vector2(-50, -50))
+		mouse_move(centre if lit else Vector2(-50, -50))
 		for state: UiIcon.State in edges:
 			large.show_state(state)
 			assert_eq(large.is_lit(), lit, "lit: %s" % lit)
@@ -126,7 +126,7 @@ func test_r2_the_slot() -> void:
 	# Owned brightens under the mouse another way: its picture.
 	large.show_state(UiIcon.State.OWNED)
 	assert_gt(large.picture_rect.modulate.v, 1.0, "owned, lit: its picture brighter")
-	_move(Vector2(-50, -50))
+	mouse_move(Vector2(-50, -50))
 	assert_eq(large.picture_rect.modulate, Color.WHITE, "and back")
 	# The count, in the equal-width digits, at the bottom right.
 	large.set_count("12/20")
@@ -142,15 +142,15 @@ func test_r2_the_slot() -> void:
 	# It brightens under the real mouse, and reports a left click.
 	large.show_state(UiIcon.State.LOCKED)
 	var plain: StringName = large.frame_colour()
-	_move(ui.ui_to_world(large.get_global_rect().get_center()))
+	mouse_move(ui.ui_to_world(large.get_global_rect().get_center()))
 	assert_true(large.is_lit(), "lit under the mouse")
 	assert_ne(large.frame_colour(), plain, "brighter")
 	watch_signals(large)
 	_click_ui(ui, large.get_global_rect().get_center())
 	assert_signal_emit_count(large, "clicked", 1, "a left click reports")
-	_button(ui.ui_to_world(large.get_global_rect().get_center()), true, MOUSE_BUTTON_RIGHT)
+	mouse_button(ui.ui_to_world(large.get_global_rect().get_center()), true, MOUSE_BUTTON_RIGHT)
 	assert_signal_emit_count(large, "clicked", 1, "a right click does not")
-	_move(Vector2(-50, -50))
+	mouse_move(Vector2(-50, -50))
 	assert_false(large.is_lit(), "unlit when the mouse leaves")
 
 
@@ -363,7 +363,7 @@ func test_r6_only_for_what_just_happened() -> void:
 	var moment: UiMoment = main.ui.moment
 	moment.set_process(false)
 	var sim: Simulation = main.simulation
-	_raise(main, PARAGON_LEVEL)
+	raise_party(main.simulation, PARAGON_LEVEL)
 	var hero: Hero = sim.party.heroes[0]
 	var frame: UiIcon = UiIcon.new(&"power")
 	frame.position = Vector2(300, 300)
@@ -458,7 +458,7 @@ func test_r6_only_for_what_just_happened() -> void:
 
 func test_r7_the_present_screens_show_the_pictures() -> void:
 	var main: Main = _main(ROOM_LARGE)
-	_raise(main, STRONG_LEVEL)
+	raise_party(main.simulation, STRONG_LEVEL)
 	var windows: HeroWindows = main.hud.hero_windows
 	for hero: Hero in main.simulation.party.heroes:
 		windows.open(hero.id)

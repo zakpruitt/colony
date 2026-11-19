@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/023-steady-monster-ids/spec.md, one per requirement.
 ##
 ## R4 is the existing suite. The others step seeded simulations directly; R5 drives a World as

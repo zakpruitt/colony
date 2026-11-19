@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## The help panel's key labels and the tooltip's placement at the screen's edges (spec 030).
 
 

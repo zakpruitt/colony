@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/005-expedition-loop/spec.md, one per requirement.
 ##
 ## These run the real simulation with the shipped data. Where a test needs a

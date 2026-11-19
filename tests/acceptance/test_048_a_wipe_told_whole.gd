@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/048-a-wipe-told-whole/spec.md, one per requirement (R7 is in
 ## test_038_rough_edges.gd, test_r3_heroes_at_the_guardian).
 ##

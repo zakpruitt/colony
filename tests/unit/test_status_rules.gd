@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the parts of spec 050's statuses the acceptance tests reach only through a
 ## battle: which amount is stronger, and what a fighter's statuses multiply.
 

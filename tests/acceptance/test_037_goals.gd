@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/037-goals/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -26,6 +26,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -122,15 +123,6 @@ func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 			return true
 	_hud.advance(STEP)
 	return false
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 func _emit(kind: SimEvent.Kind, amount: int, age: int = 0) -> void:
@@ -230,11 +222,11 @@ func test_r1_tracker() -> void:
 		)
 
 	# G hides and shows it.
-	_key(KEY_G)
+	press(KEY_G)
 	_hud.advance(STEP)
 	assert_false(goals.is_shown(), "G hides it")
 	assert_false(_hud.goals_view.is_visible_in_tree(), "not drawn")
-	_key(KEY_G)
+	press(KEY_G)
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "G shows it again")
 	assert_true(_hud.goals_view.is_visible_in_tree(), "drawn")
@@ -678,13 +670,13 @@ func test_r6_out_of_the_way() -> void:
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "and when the tally closes")
 	# Hidden by G, it stays hidden after the tally.
-	_key(KEY_G)
+	press(KEY_G)
 	_hud.tally.open()
 	_hud.advance(STEP)
 	_hud.tally.close()
 	_hud.advance(STEP)
 	assert_false(goals.is_shown(), "hidden by G stays hidden after the tally closes")
-	_key(KEY_G)
+	press(KEY_G)
 	_hud.advance(STEP)
 
 

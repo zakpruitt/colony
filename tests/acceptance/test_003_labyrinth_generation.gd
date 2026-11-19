@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/003-labyrinth-generation.
 
 const SEEDS: int = 50

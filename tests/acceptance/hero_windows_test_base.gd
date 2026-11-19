@@ -1,8 +1,7 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## What the acceptance tests of spec 060 (the hero windows) share: their constants and helpers, on
-## top of ui_layer_test.gd's. Kept apart so the tests' own file stays under gdlint's length.
+## top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays under gdlint's length.
 
-const STEP: float = 1.0 / 60.0
 const RICH: int = 1_000_000
 const LIMIT_TICKS: int = 30_000
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
@@ -18,11 +17,6 @@ func _hero(main: Main, class_id: StringName) -> Hero:
 		if hero.class_id == class_id:
 			return hero
 	return null
-
-
-func _level(hero: Hero, level: int) -> void:
-	hero.level = level
-	hero.xp = Hero.xp_for_level(level)
 
 
 ## The trunk and the first [param steps] nodes of path [param path] of [param class_id]'s tree.
@@ -42,24 +36,7 @@ func _frame_of(main: Main, hero: Hero) -> HeroFrameView:
 
 ## A real click on [param hero]'s frame, then a frame of the HUD.
 func _click_frame(main: Main, hero: Hero) -> void:
-	_click_world(Hud.on_screen(_frame_of(main, hero)).get_center())
-	main.hud.advance(STEP)
-
-
-## A real click on [param control], a control on the UI layer, then a frame of the HUD.
-func _click(main: Main, control: Control) -> void:
-	_click_ui(main.ui, control.get_global_rect().get_center())
-	main.hud.advance(STEP)
-
-
-func _press(main: Main, keycode: Key, shift: bool = false) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.shift_pressed = shift
-		event.pressed = pressed
-		get_viewport().push_input(event)
+	click(Hud.on_screen(_frame_of(main, hero)).get_center())
 	main.hud.advance(STEP)
 
 

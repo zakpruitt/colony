@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## The fighters, abilities and event helpers the tests of spec 050 share. It has no tests of
 ## its own; the acceptance tests and the unit tests of abilities extend it.
 ##
@@ -25,18 +25,11 @@ const ENUMS: Dictionary = {
 	"scale": AbilityEffect.Scale,
 }
 
-var _save_path: String = "user://test_050_ability_%d.tres" % OS.get_process_id()
+## A file to save an ability to (used by the tests that extend this).
+@warning_ignore("unused_private_class_variable")
+var _save_path: String = save_path("ability", "tres")
 
 # --- Helpers -----------------------------------------------------------------
-
-
-func after_each() -> void:
-	if FileAccess.file_exists(_save_path):
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(_save_path))
-
-
-func after_all() -> void:
-	after_each()
 
 
 func _hero_def(role: HeroClassDef.Role, overrides: Dictionary) -> HeroClassDef:

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 031: the away report tells the whole story. The replays here run an [AwayReplay] on a
 ## simulation loaded from a save held in memory, so no test reads or writes a save file.
 

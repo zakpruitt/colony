@@ -1,6 +1,6 @@
-extends "res://tests/acceptance/hero_windows_test.gd"
+extends "res://tests/acceptance/hero_windows_test_base.gd"
 ## What the acceptance tests of spec 064 (the talent tree as a tree) share: their constants and
-## helpers, on top of hero_windows_test.gd's. Kept apart so the tests' own file stays under
+## helpers, on top of hero_windows_test_base.gd's. Kept apart so the tests' own file stays under
 ## gdlint's length.
 
 const SEED_TICKS: int = 5
@@ -31,12 +31,12 @@ func _view(shown: HeroWindow) -> TalentTreeView:
 
 ## Moves the mouse onto [param control], a control on the UI layer, and lets a tooltip rest.
 func _point(main: Main, control: Control) -> void:
-	_move(main.ui.ui_to_world(control.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(control.get_global_rect().get_center()))
 	main.ui.tip.advance(UiTip.DELAY + 0.1)
 
 
 func _point_away(main: Main) -> void:
-	_move(Vector2(-1000, -1000))
+	mouse_move(Vector2(-1000, -1000))
 	main.ui.tip.advance(0.1)
 	main.hud.advance(STEP)
 
@@ -142,9 +142,9 @@ func _into_view(main: Main, shown: HeroWindow, control: Control) -> void:
 		if seen.encloses(control.get_global_rect()):
 			return
 		var at: Vector2 = main.ui.ui_to_world(seen.get_center())
-		_move(at)
-		_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
-		_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
+		mouse_move(at)
+		mouse_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
+		mouse_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
 		main.hud.advance(STEP)
 		await _frames()
 
@@ -162,7 +162,7 @@ func _stall(main: Main, ticks: int) -> void:
 ## checks the other starts closing with the line into the chosen node lit; returns the window.
 func _choose_now(main: Main, hero: Hero) -> HeroWindow:
 	var tree: TalentTreeDef = _tree(hero.class_id)
-	_level(hero, 8)
+	set_level_keeping_health(hero, 8)
 	hero.set_talents(tree.trunk)
 	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 	main.simulation.take_talent(hero.id, tree.path_a[0])

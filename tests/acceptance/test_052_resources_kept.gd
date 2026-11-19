@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/resources_052_case.gd"
+extends "res://tests/acceptance/resources_052_test_base.gd"
 ## Acceptance tests for specs/052-resources/spec.md, R9 to R12: what the save keeps, the
 ## headless comparison and determinism (R1 to R8 are in test_052_resources.gd).
 
@@ -139,7 +139,7 @@ func test_r11_still_deterministic() -> void:
 	var a := Simulation.new(5)
 	var b := Simulation.new(5)
 	for sim: Simulation in [a, b]:
-		_level(sim, STRONG_LEVEL)
+		set_party_level(sim, STRONG_LEVEL)
 		sim.set_auto_buy(true)
 	for i: int in 9000:
 		a.step()
@@ -182,7 +182,7 @@ func test_r11_still_deterministic() -> void:
 
 func test_r12_beaten_guardians_are_remembered() -> void:
 	var sim := Simulation.new(SEED)
-	_level(sim, STRONG_LEVEL)
+	set_party_level(sim, STRONG_LEVEL)
 	sim.expedition.stable_seconds = 2.0
 	sim.set_target_depth(5)
 	sim.set_auto_push(false)

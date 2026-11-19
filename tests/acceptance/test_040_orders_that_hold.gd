@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/040-orders-that-hold/spec.md, one per requirement. R4 lives in
 ## test_035_party_orders.gd (test_r8_status_and_journal) and R6 is the recorded-hash tests.
 
@@ -27,6 +27,7 @@ var _orders: OrdersPanel
 
 
 func after_each() -> void:
+	super()
 	_sim = null
 	_world = null
 	_fx = null
@@ -54,12 +55,6 @@ func _make_hud(sim: Simulation) -> void:
 	_orders.setup(_sim, null)
 
 
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
-
-
 func _fighting_guardian(sim: Simulation) -> bool:
 	var battle: Battle = sim.expedition.battle
 	if battle == null:
@@ -77,7 +72,7 @@ func _fighting_guardian(sim: Simulation) -> bool:
 func _partway_up_the_ladder(from: int, to: int, order: Expedition.GuardianOrder) -> Simulation:
 	var sim := Simulation.new(SEED)
 	var e: Expedition = sim.expedition
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	sim.set_auto_push(false)
 	sim.set_guardian_order(order)
 	sim.step()

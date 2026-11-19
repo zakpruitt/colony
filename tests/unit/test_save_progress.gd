@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for loading saved progress (Simulation.from_save, save_problems).
 
 

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## AwayReplay steps the real simulation for the time away and counts what happened; AwayStory
 ## words its report.
 

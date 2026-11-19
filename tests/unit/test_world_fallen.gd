@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the fallen party (spec 038) that the acceptance tests reach only indirectly: the
 ## cut to a far revival, a fallen hero
 ## after a won fight, the heroes' spacing at a guardian, and the camera's travel.

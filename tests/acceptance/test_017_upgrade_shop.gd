@@ -1,7 +1,6 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/017-upgrade-shop/spec.md, one per requirement.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 17
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
@@ -34,15 +33,6 @@ func before_each() -> void:
 	_ui.setup(_sim, _hud, null)
 	_ui.bar.set_process(false)
 	_hud.advance(0.0)
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 func _price(id: StringName) -> int:
@@ -83,14 +73,14 @@ func test_r1_button_and_keys_open_and_close() -> void:
 	assert_true(shop.is_visible_in_tree(), "and it shows")
 	shop_button.pressed.emit()
 	assert_false(shop.is_open(), "and closes it")
-	_key(KEY_U)
+	press(KEY_U)
 	assert_true(shop.is_open(), "U opens it")
-	_key(KEY_U)
+	press(KEY_U)
 	assert_false(shop.is_open(), "and closes it")
-	_key(KEY_U)
-	_key(KEY_ESCAPE)
+	press(KEY_U)
+	press(KEY_ESCAPE)
 	assert_false(shop.is_open(), "Esc closes it")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(shop.is_open(), "and does not open it")
 
 	var away := AwayWindow.new(AwayReport.new(), _sim.party)
@@ -195,7 +185,7 @@ func test_r3_lists_every_upgrade() -> void:
 			var where: String = "%s %s" % [label.name, label.get_global_rect()]
 			assert_true(rect.encloses(label.get_global_rect()), "%s inside the panel" % where)
 
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.hud.shop.open()
 	main.driver.advance(1_000_000)
@@ -278,7 +268,7 @@ func test_r5_buying() -> void:
 
 	var armor_price: int = _price(ARMOR)
 	var gold: int = _sim.party.gold
-	_key(KEY_2)
+	press(KEY_2)
 	_step()
 	assert_eq(_sim.upgrades.rank(ARMOR), 1, "the row's number key buys")
 	assert_eq(_sim.party.gold, gold - armor_price)
@@ -289,7 +279,7 @@ func test_r5_buying() -> void:
 	_hud.advance(0.016)
 	assert_true(blades.buy_button.disabled, "unaffordable")
 	blades.buy_button.pressed.emit()
-	_key(KEY_1)
+	press(KEY_1)
 	_sim.party.gold = 1000
 	_sim.step()
 	assert_eq(_sim.upgrades.rank(BLADES), 1, "a disabled button and its key send nothing")
@@ -344,36 +334,36 @@ func test_r7_keys() -> void:
 			_hud.shop.close()
 		var what: String = "open" if open else "closed"
 		var target: int = _sim.expedition.target_depth
-		_key(KEY_EQUAL)
+		press(KEY_EQUAL)
 		_sim.step()
 		assert_eq(_sim.expedition.target_depth, target + 1, "= works with the shop %s" % what)
-		_key(KEY_MINUS)
+		press(KEY_MINUS)
 		_sim.step()
 		assert_eq(_sim.expedition.target_depth, target, "- works with the shop %s" % what)
 		var auto: bool = _sim.expedition.auto_push
-		_key(KEY_A)
+		press(KEY_A)
 		assert_ne(_sim.expedition.auto_push, auto, "A works with the shop %s" % what)
 		var clock := Label.new()
 		_hud.clock_label = clock
 		add_child_autofree(clock)
 		clock.visible = false
-		_key(KEY_F3)
+		press(KEY_F3)
 		assert_true(clock.visible, "F3 works with the shop %s" % what)
 		_hud.clock_label = null
 		assert_not_null(_world.camera, "the world has its camera")
 		if _world.camera != null:
 			var zoom: int = _world.camera.zoom_level()
-			_key(KEY_Z)
+			press(KEY_Z)
 			assert_ne(_world.camera.zoom_level(), zoom, "Z zooms with the shop %s" % what)
-			_key(KEY_Z)
+			press(KEY_Z)
 			assert_eq(_world.camera.zoom_level(), zoom, "and Z zooms back")
 		assert_eq(_hud.shop.is_open(), open, "and the shop stays %s" % what)
 
 	_hud.shop.close()
-	_key(KEY_1)
+	press(KEY_1)
 	_sim.step()
 	assert_eq(_sim.upgrades.rank(BLADES), 0, "1 does nothing while the shop is closed")
 	_hud.shop.open()
-	_key(KEY_1)
+	press(KEY_1)
 	_sim.step()
 	assert_eq(_sim.upgrades.rank(BLADES), 1, "and buys while it is open")

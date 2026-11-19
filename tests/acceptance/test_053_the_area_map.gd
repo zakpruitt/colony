@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/053-the-area-map/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -24,7 +24,8 @@ var _ui: UiRoot
 
 
 func after_each() -> void:
-	_mouse(AWAY)
+	super()
+	mouse_move(AWAY)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -52,13 +53,6 @@ func _build_hud() -> void:
 	_ui.setup(_sim, _hud, null)
 
 
-func _level(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.level = level
-		hero.xp = Hero.xp_for_level(level)
-		hero.health = hero.max_health()
-
-
 ## A simulation in Mossy Hollow, safe at [param safe] and furthest at [param furthest].
 func _mossy(safe: int, furthest: int) -> void:
 	_sim = Simulation.new(SEED)
@@ -74,32 +68,9 @@ func _colour(label: Label) -> Color:
 	return label.get_theme_color(&"font_color")
 
 
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 func _click_at(at: Vector2) -> void:
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(AWAY)
+	click(at)
+	mouse_move(AWAY)
 
 
 ## Clicks [param control]; one on the UI layer (spec 059) once its window has laid out, through
@@ -273,7 +244,7 @@ func test_r3_sending_the_party() -> void:
 	_mossy(3, 5)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(2, 4)
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	_map().open()
 	_map().choose(CLAYPITS)
@@ -322,7 +293,7 @@ func test_r3_sending_the_party() -> void:
 func test_r4_the_warning_travels() -> void:
 	# Heroes of level 5, safe at Mossy Hollow 3, furthest 6.
 	_mossy(3, 6)
-	_level(5)
+	set_party_level(_sim, 5)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_build_hud()
 	_map().open()
@@ -347,7 +318,7 @@ func test_r4_the_warning_travels() -> void:
 	assert_eq(
 		_colour(_map().stage_label), colours[DepthLadder.Risk.REACHABLE], "level 6: within reach"
 	)
-	_level(2)
+	set_party_level(_sim, 2)
 	_hud.advance(STEP)
 	assert_eq(_colour(_map().stage_label), colours[DepthLadder.Risk.DANGEROUS], "for level 2")
 
@@ -366,7 +337,7 @@ func test_r4_the_warning_travels() -> void:
 func test_r4_warned_once_per_destination() -> void:
 	# Another area: a level-2 party sent to Claypits 2 (level 7) is warned once per change.
 	_mossy(1, 1)
-	_level(2)
+	set_party_level(_sim, 2)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(1, 3)
 	_build_hud()
@@ -391,7 +362,7 @@ func test_r4_warned_once_per_destination() -> void:
 
 	# The area the party is in: Mossy Hollow 4 is level 4, dangerous for level-1 heroes.
 	_mossy(1, 5)
-	_level(1)
+	set_party_level(_sim, 1)
 	_build_hud()
 	var here: String = "Target set to Mossy Hollow 4: dangerous for level 1 heroes"
 	_send(MOSSY, 4)
@@ -415,7 +386,7 @@ func _send(area: StringName, stage: int) -> void:
 
 func test_r5_on_the_way() -> void:
 	_mossy(1, 1)
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.open[CRYPT] = true
 	_build_hud()
@@ -457,7 +428,7 @@ func test_r5_on_the_way() -> void:
 func test_r6_somewhere_new() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	_hud.advance(STEP)
 	assert_false(_map().has_mark(), "no mark in a new game")
@@ -518,7 +489,7 @@ func test_r6_opened_before_this_session() -> void:
 func test_r6_opened_while_the_map_is_open() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	_map().open()
 	_hud.advance(STEP)
@@ -540,7 +511,7 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	# The Slime King's death, the journey and the arrival, all stepped before a single frame.
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	_world.sync(0.1)
 	_hud.advance(STEP)
@@ -581,7 +552,7 @@ func test_r7_a_frame_that_ends_on_the_road() -> void:
 	# in Mossy Hollow, where the guardian fell.
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	_level(STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	_world.sync(0.1)
 	_hud.advance(STEP)
@@ -620,12 +591,12 @@ func test_r8_found_and_explained() -> void:
 	for entry: Array in HelpPanel.KEYS:
 		listed = listed or str(entry[0]) == "W"
 	assert_true(listed, "W is in the help list")
-	_key(KEY_W)
+	press(KEY_W)
 	assert_true(_map().is_open(), "W opens the map")
-	_key(KEY_W)
+	press(KEY_W)
 	assert_false(_map().is_open(), "W closes it")
-	_key(KEY_W)
-	_key(KEY_ESCAPE)
+	press(KEY_W)
+	press(KEY_ESCAPE)
 	assert_false(_map().is_open(), "Esc closes it")
 	await _click(_hud.place_panel.area_button)
 	assert_true(_map().is_open(), "a click on the area's name opens it")

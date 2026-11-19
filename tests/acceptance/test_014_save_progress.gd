@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/014-save-progress/spec.md, one per requirement.
 ##
 ## The progress tests play the real simulation with the shipped data. To reach
@@ -21,17 +21,17 @@ const SAVE_FIELDS: Array[String] = [
 	"auto_push",
 ]
 
-var _paths: Array[String] = []
+## The files this test has asked [method ColonyTest.save_path] for, in order (it deletes them).
+var _paths: Array[String]:
+	get:
+		return _saved_paths.slice(_first_path)
+var _first_path: int = 0
 
 # --- Helpers -------------------------------------------------------------------
 
 
-func after_each() -> void:
-	for path: String in _paths:
-		for suffix: String in ["", ".tmp", ".bak"]:
-			if FileAccess.file_exists(path + suffix):
-				DirAccess.remove_absolute(path + suffix)
-	_paths.clear()
+func before_each() -> void:
+	_first_path = _saved_paths.size()
 
 
 ## A simulation after 20 minutes of play, quick to call a depth stable so it gets somewhere.
@@ -116,12 +116,6 @@ func _any_names(problems: PackedStringArray, field: String) -> bool:
 		if problem.contains(field):
 			return true
 	return false
-
-
-func _store_path(label: String) -> String:
-	var path: String = "user://test_014_%s_%d.save" % [label, OS.get_process_id()]
-	_paths.append(path)
-	return path
 
 
 func _write_text(path: String, text: String) -> void:
@@ -377,13 +371,13 @@ func test_r5_upgrade_is_a_pass_through() -> void:
 
 
 func test_r6_write_is_atomic_with_a_backup() -> void:
-	var path: String = _store_path("r6")
+	var path: String = save_path("r6")
 	var store := SaveStore.new(path)
 	var first: Dictionary = _valid()
 	assert_true(store.write(first), "first write succeeds")
 	assert_eq(_file_data(path), _through_json(first), "the file holds the data")
 	var leftovers: Array[String] = []
-	for file_name: String in DirAccess.get_files_at("user://"):
+	for file_name: String in DirAccess.get_files_at(path.get_base_dir()):
 		if file_name.begins_with(path.get_file()) and file_name != path.get_file():
 			leftovers.append(file_name)
 	assert_eq(leftovers, [] as Array[String], "no temporary file or backup after one write")
@@ -394,7 +388,7 @@ func test_r6_write_is_atomic_with_a_backup() -> void:
 	assert_eq(_file_data(path), _through_json(second))
 	assert_eq(_file_data(store.backup_path()), _through_json(first))
 	var files: Array[String] = []
-	for file_name: String in DirAccess.get_files_at("user://"):
+	for file_name: String in DirAccess.get_files_at(path.get_base_dir()):
 		if file_name.begins_with(path.get_file()):
 			files.append(file_name)
 	files.sort()
@@ -406,7 +400,7 @@ func test_r6_write_is_atomic_with_a_backup() -> void:
 
 
 func test_r7_read_falls_back() -> void:
-	var store := SaveStore.new(_store_path("r7"))
+	var store := SaveStore.new(save_path("r7"))
 	assert_eq(store.read(), {}, "missing: empty")
 
 	var first: Dictionary = _valid()
@@ -432,8 +426,8 @@ func test_r7_read_falls_back() -> void:
 
 
 func test_r8_store_uses_its_path() -> void:
-	var one := SaveStore.new(_store_path("r8a"))
-	var two := SaveStore.new(_store_path("r8b"))
+	var one := SaveStore.new(save_path("r8a"))
+	var two := SaveStore.new(save_path("r8b"))
 	var data_one: Dictionary = _valid()
 	var data_two: Dictionary = _valid()
 	data_two["gold"] = 5

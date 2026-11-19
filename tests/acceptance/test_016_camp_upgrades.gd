@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/016-camp-upgrades/spec.md, one per requirement.
 ## R8 (the headless sim command) is tested in tools/tests/test_016_sim_upgrades.py.
 
@@ -47,13 +47,9 @@ const EPSILON: float = 0.0001
 # --- Helpers -------------------------------------------------------------------
 
 
-## Steps [param sim] until [param done] holds (at most [param limit] ticks); false if it never did.
+## [method ColonyTest.step_until], at most 20,000 ticks unless told otherwise.
 func _step_until(sim: Simulation, done: Callable, limit: int = 20_000) -> bool:
-	for i: int in limit:
-		if done.call():
-			return true
-		sim.step()
-	return done.call()
+	return step_until(sim, done, limit)
 
 
 func _events_of(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:

@@ -1,8 +1,7 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/026-hero-sheet/spec.md, one per requirement. Since spec 060 the
 ## sheet is a window per hero on the UI layer ([HeroWindows]): these tests read the hero's window.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 26
 ## The UI layer's room these tests lay it out in (spec 058).
 const ROOM: Vector2i = Vector2i(1280, 720)
@@ -37,6 +36,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -62,15 +62,6 @@ func _make_hud(simulation: Simulation) -> Hud:
 	_ui.setup(simulation, made, null)
 	made.advance(0.0)
 	return made
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 ## A left click on [param frame], delivered as the GUI delivers one.
@@ -99,11 +90,7 @@ func _hero(index: int) -> Hero:
 
 ## Steps until the expedition is in [param wanted], at most [param limit] ticks.
 func _step_until(wanted: Expedition.State, limit: int = 20000) -> bool:
-	for i: int in limit:
-		if _sim.expedition.state == wanted:
-			return true
-		_sim.step()
-	return _sim.expedition.state == wanted
+	return step_until(_sim, func() -> bool: return _sim.expedition.state == wanted, limit)
 
 
 func _marked_ids() -> Array[int]:
@@ -157,11 +144,11 @@ func test_r1_opening_and_closing() -> void:
 	assert_true(second_window.is_open(), "clicking another frame opens that hero's window")
 	assert_true(first_window.is_open(), "beside the first")
 	assert_eq(_marked_ids(), [first.hero_id, second.hero_id] as Array[int], "both marked")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(second_window.is_open(), "Esc closes the front one")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(first_window.is_open(), "and again the next")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(), "and does not open one")
 
 	_click(second)
@@ -174,25 +161,25 @@ func test_r1_opening_and_closing() -> void:
 
 	var opened: Array[int] = []
 	for i: int in _sim.party.heroes.size():
-		_key(KEY_TAB)
+		press(KEY_TAB)
 		opened.append(_hero(i).id)
 		var told: String = "Tab %d: hero %d in front" % [i + 1, i + 1]
 		assert_eq(windows.front(), windows.window_of(_hero(i).id), told)
 		assert_eq(_marked_ids(), opened, "and marks its frame")
-	_key(KEY_TAB)
+	press(KEY_TAB)
 	assert_eq(windows.front(), windows.window_of(_hero(0).id), "after the last hero, the first")
 
 	# Specs 059 and 060: the shop is a window too, and opens beside the hero windows; Tab, with the
 	# shop in front, brings the next hero's window in front and leaves the shop open.
-	_key(KEY_U)
+	press(KEY_U)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
 	assert_true(windows.is_open(_hero(0).id), "beside the hero windows")
 	assert_eq(_hud.windows.front().content, _hud.shop, "in front")
-	_key(KEY_TAB)
+	press(KEY_TAB)
 	assert_eq(windows.front(), windows.window_of(_hero(1).id), "Tab: the next hero in front")
 	assert_true(_hud.shop.is_open(), "the shop stays open")
 
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.hud.hero_windows.open(main.simulation.party.heroes[0].id)
 	main.driver.advance(1_000_000)
@@ -528,7 +515,7 @@ func test_r7_it_fits() -> void:
 
 
 func test_r8_keys() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	var hud: Hud = main.hud
 	assert_not_null(hud.hero_windows, "the HUD has hero windows")
@@ -539,31 +526,31 @@ func test_r8_keys() -> void:
 	var sheet: HeroWindow = hud.hero_windows.window_of(hero_id)
 
 	var target: int = main.simulation.expedition.target_depth
-	_key(KEY_EQUAL)
+	press(KEY_EQUAL)
 	assert_eq(hud.place_panel.target_label.text, str(target + 1), "= raises the target")
-	_key(KEY_MINUS)
+	press(KEY_MINUS)
 	assert_eq(hud.place_panel.target_label.text, str(target), "- lowers it")
 	assert_true(sheet.is_open(), "the window stays open")
 
 	var auto: bool = main.simulation.expedition.auto_push
-	_key(KEY_A)
+	press(KEY_A)
 	assert_ne(main.simulation.expedition.auto_push, auto, "A switches auto-push")
-	_key(KEY_A)
+	press(KEY_A)
 	assert_eq(main.simulation.expedition.auto_push, auto, "and back")
 
 	var zoom: int = main.world.camera.zoom_level()
-	_key(KEY_Z)
+	press(KEY_Z)
 	assert_ne(main.world.camera.zoom_level(), zoom, "Z zooms")
-	_key(KEY_Z)
+	press(KEY_Z)
 
 	var muted: bool = main.sound.is_muted()
-	_key(KEY_M)
+	press(KEY_M)
 	assert_ne(main.sound.is_muted(), muted, "M mutes")
-	_key(KEY_M)
+	press(KEY_M)
 	assert_eq(main.sound.is_muted(), muted, "and unmutes")
 	assert_true(sheet.is_open(), "the window is still open")
 	assert_eq(hud.hero_windows.front(), sheet, "the same hero's")
 
-	_key(KEY_U)
+	press(KEY_U)
 	assert_true(hud.shop.is_open(), "U opens the shop")
 	assert_true(sheet.is_open(), "and the hero's window stays open beside it")

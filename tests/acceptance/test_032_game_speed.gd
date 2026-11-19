@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/032-game-speed/spec.md, one per requirement.
 ##
 ## Driver tests step a SimDriver by hand with SimDriver.advance, the way a frame does. Tests on
@@ -6,7 +6,6 @@ extends GutTest
 ## use a per-process file under user://, deleted after each test and after the last one: never
 ## the real save.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 1
 const SECOND: int = 1_000_000
 ## A 60 fps frame, in microseconds and in seconds.
@@ -19,25 +18,9 @@ const STRONG_LEVEL: int = 40
 ## Real time the R6 replays are away for, in seconds.
 const AWAY_SECONDS: float = 120.0
 
-var _path: String = "user://test_032_speed_%d.save" % OS.get_process_id()
-
-
-func after_each() -> void:
-	_delete_saves()
-
-
-## Also after the last test: a Main freed by GUT after `after_each` saves once more as it
-## leaves the tree.
-func after_all() -> void:
-	_delete_saves()
-
-
-func _delete_saves() -> void:
-	for base: String in [_path, _path + ".b"]:
-		for path: String in [base, base + SaveStore.BACKUP_SUFFIX, base + SaveStore.TEMP_SUFFIX]:
-			if FileAccess.file_exists(path):
-				DirAccess.remove_absolute(path)
-
+var _path: String = save_path()
+## A second save, for a second game played beside the first.
+var _path_b: String = save_path("b")
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -52,18 +35,9 @@ func _driver(speed: int) -> SimDriver:
 
 
 func _main() -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	return main
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 ## One event as plain values, to compare two runs.
@@ -124,17 +98,17 @@ func test_r1_three_speeds() -> void:
 
 	# The speed is not saved: a save written at 4x is the one written at 1x, and a Main made
 	# from it starts at 1x.
-	var fast: Main = MAIN_SCENE.instantiate()
+	var fast: Main = make_main()
 	fast.save_store = SaveStore.new(_path)
 	add_child_autofree(fast)
 	fast.set_speed(4)
 	fast.save_now()
-	var slow: Main = MAIN_SCENE.instantiate()
-	slow.save_store = SaveStore.new(_path + ".b")
+	var slow: Main = make_main()
+	slow.save_store = SaveStore.new(_path_b)
 	add_child_autofree(slow)
 	slow.save_now()
 	var fast_saved: Dictionary = SaveStore.new(_path).read()
-	var slow_saved: Dictionary = SaveStore.new(_path + ".b").read()
+	var slow_saved: Dictionary = SaveStore.new(_path_b).read()
 	assert_false(fast_saved.is_empty(), "the fast game saved")
 	fast_saved.erase(Main.SAVED_AT_KEY)
 	slow_saved.erase(Main.SAVED_AT_KEY)
@@ -142,7 +116,7 @@ func test_r1_three_speeds() -> void:
 	for key: Variant in fast_saved:
 		assert_false(str(key).contains("speed"), "no key %s" % key)
 	fast.free()
-	var again: Main = MAIN_SCENE.instantiate()
+	var again: Main = make_main()
 	again.save_store = SaveStore.new(_path)
 	add_child_autofree(again)
 	assert_eq(again.speed, 1, "a loaded game starts at 1x")
@@ -169,7 +143,7 @@ func test_r2_button_and_key() -> void:
 		assert_eq(button.text, labels[i], "and shows it")
 		assert_eq(button.lit, speeds[i] > 1, "lit only above 1x (%s)" % labels[i])
 	for i: int in 3:
-		_key(KEY_F)
+		press(KEY_F)
 		assert_eq(main.speed, speeds[i], "F cycles to %dx" % speeds[i])
 		assert_eq(button.text, labels[i], "and the button shows it")
 		assert_eq(button.lit, speeds[i] > 1, "lit only above 1x (%s)" % labels[i])
@@ -371,16 +345,16 @@ func test_r6_time_away_unaffected() -> void:
 	var totals: Array[int] = []
 	var summaries: Array[String] = []
 	for speed: int in [1, 4]:
-		var path: String = _path if speed == 1 else _path + ".b"
+		var path: String = _path if speed == 1 else _path_b
 		# Saved while at this speed (the stamp is ignored in favour of the override).
-		var played: Main = MAIN_SCENE.instantiate()
+		var played: Main = make_main()
 		played.save_store = SaveStore.new(path)
 		add_child_autofree(played)
 		played.set_speed(speed)
 		played.save_now()
 		played.free()
 
-		var back: Main = MAIN_SCENE.instantiate()
+		var back: Main = make_main()
 		back.save_store = SaveStore.new(path)
 		back.away_seconds_override = AWAY_SECONDS
 		add_child_autofree(back)
@@ -443,7 +417,7 @@ func test_r7_keys() -> void:
 		var shop_open: bool = hud.shop.is_open()
 		var sheet_open: bool = hud.hero_windows.is_open()
 		var journal_open: bool = windows.is_open(UiRoot.JOURNAL)
-		_key(KEY_F)
+		press(KEY_F)
 		sim.step()
 		assert_ne(main.speed, speed, "F works with %s open" % panel)
 		assert_eq(sim.expedition.target_depth, target, "F leaves the target (%s)" % panel)
@@ -455,30 +429,30 @@ func test_r7_keys() -> void:
 
 		# The other keys do what they did, and leave the speed alone.
 		speed = main.speed
-		_key(KEY_EQUAL)
+		press(KEY_EQUAL)
 		sim.step()
 		assert_eq(sim.expedition.target_depth, target + 1, "= still works (%s)" % panel)
-		_key(KEY_MINUS)
+		press(KEY_MINUS)
 		sim.step()
 		assert_eq(sim.expedition.target_depth, target, "- still works (%s)" % panel)
-		_key(KEY_A)
+		press(KEY_A)
 		assert_ne(sim.expedition.auto_push, auto, "A still works (%s)" % panel)
-		_key(KEY_A)
-		_key(KEY_Z)
+		press(KEY_A)
+		press(KEY_Z)
 		assert_ne(main.world.camera.zoom_level(), zoom, "Z still works (%s)" % panel)
-		_key(KEY_Z)
+		press(KEY_Z)
 		assert_eq(main.speed, speed, "none of them changes the speed (%s)" % panel)
 
 	hud.shop.close()
 	hud.hero_windows.close_all()
 	windows.close_window(UiRoot.JOURNAL)
-	_key(KEY_U)
+	press(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc still closes it")
-	_key(KEY_J)
+	press(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL), "J still opens the journal")
-	_key(KEY_J)
-	_key(KEY_TAB)
+	press(KEY_J)
+	press(KEY_TAB)
 	assert_true(hud.hero_windows.is_open(), "Tab still opens a hero window")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)

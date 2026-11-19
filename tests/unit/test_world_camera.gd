@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for WorldCamera details the acceptance test does not pin down.
 
 const STEP: float = 1.0 / 60.0

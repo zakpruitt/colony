@@ -1,4 +1,4 @@
-extends "res://tests/unit/lively_moves_rig.gd"
+extends "res://tests/unit/lively_moves_test_base.gd"
 ## Acceptance tests for specs/057-lively-moves/spec.md, one per requirement.
 ##
 ## They use spec 056's rig: a World on a seeded simulation with the CombatEffects that listen to
@@ -354,8 +354,6 @@ func _guardian_fight(path: int) -> void:
 	assert_gt(leaps, 0, "%s: a leap or dash on the guardian" % label)
 
 
-## The opaque pixels of a baked part, within its texture's region (as spec 038's tests read them).
-
 # --- R4 ------------------------------------------------------------------------
 
 
@@ -479,8 +477,6 @@ func test_r4_a_spell_shows_only_on_whom_it_reached() -> void:
 			assert_gt(box.size.y, 40.0, "and falls from high above its target")
 
 
-## Every particle of [param kind] is over fighter [param on], none over any of [param others].
-
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -559,8 +555,6 @@ func test_r5_ordinary_fighting_has_more_bounce() -> void:
 	assert_eq(watched, unwatched, "it ends on the same tick watched or not")
 	assert_eq(_sim.state_hash(), alone.state_hash(), "with the same state")
 
-
-## Plays an ordinary attack of [param sprite]: how far back it drew (x) and in it stepped (y).
 
 # --- R6 ------------------------------------------------------------------------
 

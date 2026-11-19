@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/004-combat-core/spec.md, one per requirement.
 ##
 ## Where exact numbers matter the tests build their own definitions, so

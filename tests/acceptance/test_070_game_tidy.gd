@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 070: the game's code is tidied, with nothing on screen changed. These tests read the
 ## scripts under game/ as text.
 

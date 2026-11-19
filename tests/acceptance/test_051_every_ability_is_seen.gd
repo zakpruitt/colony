@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance test for specs/051-talent-trees-and-paragon/spec.md, R14 (every ability is seen),
 ## added after the review of pull request 54. The other requirements are in
 ## test_051_talent_trees_and_paragon.gd.
@@ -20,12 +20,6 @@ const RESCUES: Array[StringName] = [
 ]
 const RESCUE_FIGHT: Array[StringName] = [&"ogre", &"ogre", &"ogre"]
 const RESCUE_LEVEL: int = 18
-
-
-## Raises [param hero] to [param level] and fills its health.
-func _level(hero: Hero, level: int) -> void:
-	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-	hero.health = hero.max_health()
 
 
 ## [param class_id]'s trunk, then path [param path] (0 or 1), as nodes in order.
@@ -86,7 +80,7 @@ func _used_in(
 	var party := Party.new()
 	var heroes: Array[Combatant] = []
 	for hero: Hero in party.heroes:
-		_level(hero, 14)
+		raise(hero, 14)
 		var path: int = paths[hero.class_id]
 		hero.set_talents(_full(hero.class_id, path))
 		heroes.append(hero.combatant())
@@ -158,7 +152,7 @@ func test_r14_bulwark_counts_other_allies() -> void:
 	var party := Party.new()
 	var heroes: Array[Combatant] = []
 	for hero: Hero in party.heroes:
-		_level(hero, 14)
+		raise(hero, 14)
 		if hero.class_id == &"knight":
 			hero.set_talents(_full(&"knight", 0))
 		heroes.append(hero.combatant())

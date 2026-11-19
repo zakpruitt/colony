@@ -5,8 +5,36 @@ description: Write, fix or read Colony's GUT tests (tests/unit, tests/acceptance
 
 # Headless tests in Colony
 
-Tests are GUT 9 scripts: `extends GutTest`, functions named `test_*`, in files named `test_*.gd` under `tests/`.
-The whole suite runs in one Godot boot.
+Tests are GUT 9 scripts: functions named `test_*`, in files named `test_*.gd` under `tests/`. The whole suite
+runs in one Godot boot.
+
+## Start from `ColonyTest`
+
+Every test script `extends ColonyTest` (`tests/colony_test.gd`, spec 071), directly or through a per-spec
+base; `tests/unit/test_colony_test.gd` fails on one that does not. It holds what the tests used to copy:
+
+| Helper | Does |
+|---|---|
+| `press(keycode, shift = false)` | presses and releases a key, pushed into the viewport |
+| `mouse_move(at, held = false)` | moves the mouse, in the world's 640x360 pixels |
+| `mouse_button(at, pressed, button = LEFT)` | one press or release |
+| `click(at, button = LEFT)` | moves there and clicks; the mouse stays (move it away yourself if a hover would get in the way) |
+| `raise(hero, level)` / `raise_party(simulation, level)` | gains a level's experience (levelling up as in play) and full health |
+| `set_level_keeping_health(hero, level)` | sets level and experience outright: no levelling up, health untouched |
+| `set_party_level(simulation, level)` | the same for the whole party, then full health |
+| `step_until(simulation, done, limit)` | steps until `done` is true, checking first; fails the test after `limit` ticks |
+| `make_main()` | the main scene, instantiated, not in the tree, no save store or settings |
+| `save_path(tag = "", extension = "save")` | a per-process file under `user://`, deleted with its `.bak` and `.tmp` after each test and after the last |
+
+**When a second test needs a helper, add it to `ColonyTest`; do not copy it** (copies of `_key` and
+`_mouse` are checked for). A helper that is one test's alone stays in that file. A copy that does something
+slightly different (another step order, a frame of the HUD after) is a local helper built on the shared one,
+not a change to the shared one. Do not name a local or a parameter after a `ColonyTest` method (`press`,
+`click`): it shadows it, a warning, so an error. A script that overrides `after_each` or `after_all` calls
+`super()` in it, or its `save_path` files are left behind. A constant named `MAIN_SCENE` is the base's.
+
+A spec whose tests share more than that gets a base of its own, named `*_test_base.gd` (GUT loads only
+`test_*.gd`, so a base named `test_…` is loaded as an empty test), that `extends ColonyTest`.
 
 ```
 python tools/dev.py test                  # all tests
@@ -146,19 +174,31 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - A control past the first view of a `ScrollContainer` (a hero window's paragon medallions, spec 064) cannot
   be clicked until it is scrolled into view, and the container learns how tall its content has grown only a
   frame later. Before a real click there, `await` a frame, then push wheel events over the scroll until its
-  rect encloses the control (`talent_tree_test.gd`'s `_into_view`).
+  rect encloses the control (`talent_tree_test_base.gd`'s `_into_view`).
 - A click that follows a click on something that changes under the mouse can miss: the strip under a talent
   tree shows the node under the mouse, so moving straight from a node to the strip's `Learn` finds the
   button hidden until the HUD's next frame. Move the mouse away and advance a frame first (`_point_away`).
 
 ## Files
 
-`user://` is one folder shared by every worktree on the machine. A test that writes there uses a per-process
-name and deletes it:
+`user://` is one folder shared by every worktree on the machine. A test that writes there takes its path from
+`ColonyTest.save_path`, which names it for the process and deletes it after each test and after the last one
+(a `Main` with a save store saves again when GUT frees it, after `after_each`):
 
 ```gdscript
-var path: String = "user://test_save_%d.dat" % OS.get_process_id()
+var _path: String = save_path()  # in test_032_game_speed.gd: user://test_032_game_speed_<pid>.save
+var _b: String = save_path("b", "settings")  # user://test_032_game_speed_b_<pid>.settings
 ```
+
+A test names no `user://` path of its own: the `harness` step fails on a `user://` string literal in a
+test script other than `colony_test.gd`, except in an assertion about a game class's `DEFAULT_PATH`.
+
+```gdscript
+assert_eq(SaveStore.DEFAULT_PATH, "user://colony.save")  # allowed: the game's own default
+```
+
+The `harness` step also fails on a test script that mentions `user://` with no `after_all` in it or a base
+it extends, and on a tracked `.gd` without its tracked `.gd.uid`.
 
 Code that must not raise engine errors on a missing or damaged file (and a test that checks one with
 `assert_engine_error_count(0)`) avoids two calls that print them: `JSON.parse_string` on text that is not JSON
@@ -192,10 +232,11 @@ by value, not with `assert_eq` against ints.
   repeated `if x.size() == 1:` guards. `tests/acceptance/test_005_expedition_loop.gd` sits at exactly 1000:
   an update there must not add lines. The cap counts for `sim/` too: `sim/expedition/expedition.gd` is near
   it, so put a new rule's arithmetic on its def (spec 025's `SideQuestDef.reward_at`), not in the expedition.
-  When a spec's tests outgrow one file, move the shared helpers into a script with no tests of its own
-  (spec 050's `tests/unit/test_ability_kit.gd`, which `extends GutTest`) and have each test file
-  `extends "res://tests/unit/test_ability_kit.gd"`. If GUT then says `Ignoring script ... because it does
-  not extend GutTest`, the script (or its parent) failed to parse: `check --only=compile` names the line.
+  When a spec's tests outgrow one file, move the helpers they share into a base with no tests of its own
+  (spec 050's `tests/unit/ability_kit_test_base.gd`, which `extends ColonyTest`) and have each test file
+  `extends "res://tests/unit/ability_kit_test_base.gd"`; a helper another spec could use goes on
+  `ColonyTest` instead. If GUT then says `Ignoring script ... because it does not extend GutTest`, the
+  script (or its parent) failed to parse: `check --only=compile` names the line.
 - To prove a test can fail, break the code with a change that still compiles: `if false:` is dead code, a
   warning, so the script stops loading and everything fails (or a `SceneTree` script hangs) for the wrong
   reason. Prefer `if <condition> and <something never true>:`.

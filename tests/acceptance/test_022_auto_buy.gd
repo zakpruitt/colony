@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/022-auto-buy/spec.md, one per requirement. Nothing here reads or
 ## writes a save file: saves are dictionaries passed through JSON in memory.
 
@@ -84,15 +84,6 @@ func _make_hud(sim: Simulation) -> void:
 	add_child_autofree(ui)
 	ui.setup(_sim, _hud, null)
 	_hud.advance(0.0)
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 ## Steps the simulation once and lets the world report its events, as a frame would.
@@ -302,7 +293,7 @@ func test_r6_toggle_in_the_shop() -> void:
 
 	# B does nothing with the shop closed.
 	assert_false(shop.is_open())
-	_key(KEY_B)
+	press(KEY_B)
 	await wait_physics_frames(2)
 	_frame()
 	assert_false(_sim.auto_buy, "B with the shop closed does nothing")
@@ -314,7 +305,7 @@ func test_r6_toggle_in_the_shop() -> void:
 	var rect: Rect2 = shop.window().get_global_rect()
 	assert_true(rect.encloses(toggle.get_global_rect()), "inside the panel")
 
-	_key(KEY_B)
+	press(KEY_B)
 	await wait_physics_frames(2)
 	_frame()
 	assert_true(_sim.auto_buy, "B turns it on")

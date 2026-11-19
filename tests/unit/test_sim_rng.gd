@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 
 const DRAWS: int = 64
 

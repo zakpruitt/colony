@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/036-a-livelier-start/spec.md, one per requirement: a new game is busy
 ## in its first half hour, and the deep game keeps its pace.
 ##
@@ -146,13 +146,12 @@ func _report(runs: Dictionary[int, Dictionary], keys: Array[String]) -> String:
 	return text
 
 
+## [method ColonyTest.step_until], at most 20,000 ticks, dropping the events as it goes.
 func _step_until(sim: Simulation, done: Callable, limit: int = 20_000) -> bool:
-	for i: int in limit:
-		if done.call():
-			return true
-		sim.step()
+	var drained: Callable = func() -> bool:
 		sim.drain_events()
-	return done.call()
+		return done.call()
+	return step_until(sim, drained, limit)
 
 
 # --- R1 ------------------------------------------------------------------------

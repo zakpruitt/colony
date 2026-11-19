@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for Expedition details the acceptance tests reach only indirectly.
 
 const SEED: int = 1234

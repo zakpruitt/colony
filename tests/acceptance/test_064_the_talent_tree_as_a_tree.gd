@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/talent_tree_test.gd"
+extends "res://tests/acceptance/talent_tree_test_base.gd"
 ## Acceptance tests for specs/064-the-talent-tree-as-a-tree/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its own processing off, laid out for a chosen room, and drives
@@ -15,7 +15,7 @@ func test_r1_the_shape() -> void:
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
 		var tree: TalentTreeDef = _tree(class_id)
-		_level(hero, 10)
+		set_level_keeping_health(hero, 10)
 		hero.set_talents(_walked(class_id, 1, 2))
 		var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 		var view: TalentTreeView = _view(shown)
@@ -100,7 +100,7 @@ func test_r1_the_shape() -> void:
 		_click_frame(main, hero)
 	# The question before a path names both, each in its colour.
 	var knight: Hero = _hero(main, &"knight")
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	knight.set_talents(_tree(&"knight").trunk)
 	var window: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	_click(main, window.talents.node(&"whirlwind").slot)
@@ -117,7 +117,7 @@ func test_r2_a_node_is_a_picture() -> void:
 	var main: Main = _game()
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
-		_level(hero, 1)
+		set_level_keeping_health(hero, 1)
 		var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 		var view: TalentTreeView = _view(shown)
 		var nodes: Array[TalentNode] = view.nodes()
@@ -184,7 +184,7 @@ func test_r3_the_states_read_at_a_glance() -> void:
 		var hero: Hero = _hero(main, class_id)
 		var tree: TalentTreeDef = _tree(class_id)
 		for path: int in 2:
-			_level(hero, 10)  # five points: the trunk, the path's first and one more
+			set_level_keeping_health(hero, 10)  # five points: the trunk, the path's first and one more
 			hero.set_talents(_walked(class_id, path, 1))
 			var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 			main.hud.advance(STEP)
@@ -234,7 +234,7 @@ func test_r3_the_states_read_at_a_glance() -> void:
 			_click_frame(main, hero)
 	# With no point, the next node is locked, not ready.
 	var knight: Hero = _hero(main, &"knight")
-	_level(knight, 1)
+	set_level_keeping_health(knight, 1)
 	knight.set_talents([] as Array[StringName])
 	var window: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	main.hud.advance(STEP)
@@ -302,7 +302,7 @@ func test_r5_pointing_tells_all() -> void:
 	var main: Main = _game()
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 2)
+	set_level_keeping_health(knight, 2)
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var view: TalentTreeView = _view(shown)
@@ -323,14 +323,14 @@ func test_r5_pointing_tells_all() -> void:
 	# How it stands, in words.
 	assert_eq(_stands(main, view, tree.trunk[0]), "Click to learn", "one to take")
 	assert_eq(_stands(main, view, tree.trunk[2]), "Take Taunt first", "further on")
-	_level(knight, 3)
+	set_level_keeping_health(knight, 3)
 	knight.set_talents([tree.trunk[0]] as Array[StringName])
 	main.hud.advance(STEP)
 	assert_eq(
 		_stands(main, view, tree.trunk[1]), "No points: the next comes at level 4", "no point"
 	)
 	assert_eq(_stands(main, view, tree.trunk[0]), "Learned", "taken")
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	knight.set_talents(_walked(&"knight", 1, 1))
 	main.hud.advance(STEP)
 	assert_eq(_stands(main, view, tree.path_a[1]), "Guardian was not chosen", "the other path")
@@ -356,7 +356,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	var main: Main = _game()
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 4)
+	set_level_keeping_health(knight, 4)
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
@@ -387,7 +387,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	# With nothing under the mouse: the first node it can take now.
 	check.call(tree.trunk[0], "Click to learn", true, "the first to take")
 	# The node under the mouse.
-	_move(main.ui.ui_to_world(view.node(tree.trunk[2]).slot.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(view.node(tree.trunk[2]).slot.get_global_rect().get_center()))
 	main.hud.advance(STEP)
 	check.call(tree.trunk[2], "Take Taunt first", false, "pointed at")
 	_point_away(main)
@@ -402,7 +402,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	# No point left: the first not yet taken on the hero's way, with no button.
 	check.call(tree.trunk[2], "No points: the next comes at level 6", false, "nothing to take")
 	# On a path: the next on it; Learn on a path's first node asks first.
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	knight.set_talents(tree.trunk)
 	main.hud.advance(STEP)
 	check.call(tree.path_a[0], "Click to learn", true, "the paths open")
@@ -412,7 +412,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	_tick(main)
 	assert_eq(knight.talents(), tree.trunk, "nothing taken")
 	knight.set_talents(_walked(&"knight", 1, 2))
-	_level(knight, 12)
+	set_level_keeping_health(knight, 12)
 	main.hud.advance(STEP)
 	check.call(tree.path_b[2], "Click to learn", true, "down the path")
 	# A node taken, one closed and a full tree's last: each framed as it stands, not as locked.
@@ -420,13 +420,13 @@ func test_r6_what_is_next_without_pointing() -> void:
 		tree.path_b[0]: UiIcon.State.OWNED, tree.path_a[1]: UiIcon.State.CLOSED
 	}
 	for id: StringName in framed:
-		_move(main.ui.ui_to_world(view.node(id).slot.get_global_rect().get_center()))
+		mouse_move(main.ui.ui_to_world(view.node(id).slot.get_global_rect().get_center()))
 		main.hud.advance(STEP)
 		assert_eq(strip.ability_id, id, "pointed at")
 		assert_eq(strip.slot.state(), framed[id], "%s framed as it stands" % id)
 	_point_away(main)
 	knight.set_talents(_walked(&"knight", 1, 4))
-	_level(knight, 15)
+	set_level_keeping_health(knight, 15)
 	main.hud.advance(STEP)
 	assert_eq(strip.ability_id, tree.path_b[3], "the full tree's last")
 	assert_eq(strip.slot.state(), UiIcon.State.OWNED, "framed as owned")
@@ -439,7 +439,7 @@ func test_r7_points() -> void:
 	var main: Main = _game()
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 4)
+	set_level_keeping_health(knight, 4)
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
@@ -476,7 +476,7 @@ func test_r7_points() -> void:
 	_tick(main)
 	assert_eq(knight.talents().size(), 2, "nothing reset")
 	# The question before a path shows that path's banner and its four pictures.
-	_level(knight, 8)
+	set_level_keeping_health(knight, 8)
 	knight.set_talents(tree.trunk)
 	main.hud.advance(STEP)
 	_click(main, tab.node(tree.path_b[0]).slot)
@@ -508,7 +508,7 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	var moment: UiMoment = main.ui.moment
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 10)
+	set_level_keeping_health(knight, 10)
 	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var view: TalentTreeView = _view(shown)
@@ -573,7 +573,7 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	assert_eq(_banner(main), "", "no banner")
 	# A path chosen in the past closes the other at once.
 	var mage: Hero = _hero(main, &"mage")
-	_level(mage, 8)
+	set_level_keeping_health(mage, 8)
 	mage.set_talents(_tree(&"mage").trunk)
 	var other: HeroWindow = _open(main, mage, HeroWindow.Page.TALENTS)
 	main.simulation.take_talent(mage.id, _tree(&"mage").path_a[0])
@@ -613,12 +613,12 @@ func test_r9_paragon() -> void:
 	var main: Main = _game()
 	var moment: UiMoment = main.ui.moment
 	var knight: Hero = _hero(main, &"knight")
-	_level(knight, 13)
+	set_level_keeping_health(knight, 13)
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
 	for cell: ParagonCell in tab.paragon_cells:
 		assert_false(cell.is_visible_in_tree(), "no medallion before paragon points")
-	_level(knight, PARAGON_LEVEL)
+	set_level_keeping_health(knight, PARAGON_LEVEL)
 	main.hud.advance(STEP)
 	assert_eq(tab.paragon_label.text, "3 paragon points", "the points waiting")
 	assert_true(tab.paragon_label.is_visible_in_tree(), "shown")
@@ -669,7 +669,7 @@ func test_r9_paragon() -> void:
 	assert_eq(toughness.total_label.text, "+3% maximum health")
 	# Every tenth rank gets a banner.
 	_clear_banners(main)
-	_level(knight, 40)
+	set_level_keeping_health(knight, 40)
 	for i: int in 8:
 		main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
 	_tick(main)
@@ -706,7 +706,7 @@ func test_r10_skills() -> void:
 	var moment: UiMoment = main.ui.moment
 	var rogue: Hero = _hero(main, &"rogue")
 	var def: HeroClassDef = rogue.def()
-	_level(rogue, 1)
+	set_level_keeping_health(rogue, 1)
 	var shown: HeroWindow = _open(main, rogue, HeroWindow.Page.SKILLS)
 	main.hud.advance(STEP)
 	for card: HeroSkillsTab.Card in shown.skills.cards:
@@ -763,7 +763,7 @@ func test_r10_skills() -> void:
 	var bursts: int = moment.bursts_seen()
 	var cleric: Hero = _hero(main, &"cleric")
 	var later: int = cleric.def().microskill_levels[cleric.def().microskill_levels.size() - 1]
-	_level(cleric, later - 1)
+	set_level_keeping_health(cleric, later - 1)
 	cleric.xp = Hero.xp_for_level(later) - 1
 	ticks = 0
 	while cleric.level < later and ticks < LIMIT_TICKS:
@@ -785,7 +785,7 @@ func test_r11_nothing_lost() -> void:
 	var sim: Simulation = main.simulation
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, PARAGON_LEVEL)
+	set_level_keeping_health(knight, PARAGON_LEVEL)
 	sim.party.gold = RICH
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
@@ -801,7 +801,7 @@ func test_r11_nothing_lost() -> void:
 	assert_eq(shown.talents_tag.count, HeroWindow.unspent(knight), "the tag still counts")
 	# A reset is never charged at a price the player did not read.
 	_click(main, tab.reset_button)
-	_level(knight, PARAGON_LEVEL + 1)
+	set_level_keeping_health(knight, PARAGON_LEVEL + 1)
 	main.hud.advance(STEP)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the question goes")
 	tab.confirm()
@@ -811,12 +811,12 @@ func test_r11_nothing_lost() -> void:
 	# still up, in the frame the price changed.
 	_click(main, tab.reset_button)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.RESET, "asked at the price shown")
-	_level(knight, PARAGON_LEVEL + 2)
+	set_level_keeping_health(knight, PARAGON_LEVEL + 2)
 	_click_ui(main.ui, tab.choose_button.get_global_rect().get_center())
 	_tick(main)
 	assert_eq(sim.party.gold, RICH, "answered at a price not read: nothing charged")
 	assert_eq(knight.talents(), tree.trunk, "and nothing reset")
-	_level(knight, PARAGON_LEVEL + 1)
+	set_level_keeping_health(knight, PARAGON_LEVEL + 1)
 	main.hud.advance(STEP)
 	_click(main, tab.reset_button)
 	_click(main, tab.choose_button)
@@ -829,7 +829,7 @@ func test_r11_nothing_lost() -> void:
 	var row: int = main.hud.goals.lines().find("Spend the Knight's talent points")
 	assert_gte(row, 0, "a goal: %s" % [main.hud.goals.lines()])
 	if row >= 0:
-		_click_world(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
+		click(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
 		main.hud.advance(STEP)
 		assert_true(main.hud.hero_windows.is_open(knight.id), "the goal opens the window")
 		assert_eq(_window(main, knight).page(), HeroWindow.Page.TALENTS, "on Talents")
@@ -853,10 +853,10 @@ func test_r12_true_in_a_crowded_frame() -> void:
 	var knight: Hero = _hero(main, &"knight")
 	var cleric: Hero = _hero(main, &"cleric")
 	var tree: TalentTreeDef = _tree(&"knight")
-	_level(knight, 15)  # the tree's points all earned, one paragon point
+	set_level_keeping_health(knight, 15)  # the tree's points all earned, one paragon point
 	knight.set_talents(tree.trunk)
 	knight.xp = Hero.xp_for_level(PARAGON_LEVEL) - 1
-	_level(cleric, 2)
+	set_level_keeping_health(cleric, 2)
 	cleric.xp = Hero.xp_for_level(4) - 1
 	# The cleric's window at the back changes only by its level-ups: no event of its own refreshes it.
 	var second: HeroWindow = _open(main, cleric, HeroWindow.Page.TALENTS)
@@ -925,7 +925,7 @@ func test_r13_fits_and_still_compares() -> void:
 			var tree: TalentTreeDef = _tree(class_id)
 			for path: int in 2:
 				var what: String = "%dx%d %s path %d" % [room.x, room.y, class_id, path]
-				_level(hero, 30)
+				set_level_keeping_health(hero, 30)
 				hero.set_talents(_walked(class_id, path, 2))
 				var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 				shown.place_at(shown.default_place, Vector2(room))
@@ -945,7 +945,7 @@ func test_r13_fits_and_still_compares() -> void:
 			# Two hero windows on Talents still sit side by side, the whole tree showing.
 			var heroes: Array[Hero] = main.simulation.party.heroes
 			for hero: Hero in heroes:
-				_level(hero, 10)
+				set_level_keeping_health(hero, 10)
 				hero.set_talents(_walked(hero.class_id, 0, 1))
 			var back: HeroWindow = _open(main, heroes[0], HeroWindow.Page.TALENTS)
 			var over: HeroWindow = _open(main, heroes[1], HeroWindow.Page.TALENTS)

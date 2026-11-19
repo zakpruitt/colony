@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/039-the-countdown-tells-the-truth/spec.md, one per requirement.
 ##
 ## The HUD tests build a World on a seeded simulation with the CombatEffects and the Hud on it,
@@ -56,6 +56,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -80,13 +81,6 @@ func _build(seed_value: int) -> void:
 	_hud.setup(_sim, _world, _fx)
 
 
-## Raises every hero of [param sim] to [param level], at full health.
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
-
-
 ## "m:ss" for [param seconds], rounded up, as the HUD writes a countdown.
 func _clock(seconds: float) -> String:
 	var whole: int = ceili(seconds)
@@ -105,7 +99,7 @@ func _tick() -> void:
 ## [param stable], target [param target], auto-push [param push], then steps once.
 func _situation(depth: int, deepest: int, stable: int, target: int, push: bool) -> void:
 	var e: Expedition = _sim.expedition
-	_raise(_sim, STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	e.depth = depth
 	e.x = _sim.labyrinth.level(depth).chambers[0].rect.position.x
 	e.deepest_depth = deepest
@@ -146,7 +140,7 @@ func _tick_target_rises(sim: Simulation, from: int) -> int:
 func test_r1_seconds_to_push() -> void:
 	for seed_value: int in [1, 2, 3]:
 		var sim := Simulation.new(seed_value)
-		_raise(sim, STRONG_LEVEL)
+		raise_party(sim, STRONG_LEVEL)
 		var e: Expedition = sim.expedition
 		# At depth 1 from the start, then at depth 2 once the party has arrived there.
 		for depth: int in [1, 2]:

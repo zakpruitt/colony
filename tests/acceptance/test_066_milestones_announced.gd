@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/frame_061_test.gd"
+extends "res://tests/acceptance/frame_061_test_base.gd"
 ## Acceptance tests for specs/066-milestones-announced/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its own processing off, laid out for a chosen room, and steps
@@ -79,7 +79,7 @@ func _slay_guardian(main: Main, stage: int = GUARDIAN_STAGE, level: int = STRONG
 			slain[0] = true
 	main.world.sim_event.connect(heard)
 	_before_guardian(main, stage)
-	_raise(main, level)
+	raise_party(main.simulation, level)
 	var met: bool = _frames_until(
 		main, func() -> bool: return GuardianSpacing.fighting_guardian(main.simulation) != null
 	)
@@ -348,7 +348,7 @@ func test_r5_a_new_safe_stage() -> void:
 	var moment: UiMoment = main.ui.moment
 	var panel: PlacePanel = main.hud.place_panel
 	var e: Expedition = main.simulation.expedition
-	_raise(main, STRONG_LEVEL)
+	raise_party(main.simulation, STRONG_LEVEL)
 	e.stable_seconds = 2.0
 	e.depth = 2
 	e.target_depth = 2
@@ -474,7 +474,7 @@ func test_r6_the_away_report_still_tells() -> void:
 	var data: Dictionary = played.to_save()
 	data[Main.SAVED_AT_KEY] = Time.get_unix_time_from_system()
 	assert_true(SaveStore.new(_save_path).write(data), "the test's save was written")
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.save_store = SaveStore.new(_save_path)
 	main.away_seconds_override = 900.0
 	add_child_autofree(main)
@@ -531,7 +531,7 @@ func test_r7_nothing_lost() -> void:
 	assert_has(ticker, "Knight reached level 6", "the ticker's line for the level")
 	assert_has(ticker, "The Knight has a talent point to spend", "and for the point")
 	# A new safe stage.
-	_raise(main, STRONG_LEVEL)
+	raise_party(main.simulation, STRONG_LEVEL)
 	e.stable_seconds = 2.0
 	e.depth = 2
 	e.target_depth = 2

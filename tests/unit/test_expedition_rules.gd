@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## More checks of spec 005's rules, here because the acceptance file is at gdlint's
 ## 1000-line limit: a level-up during a fight (R8), the battle limit and a wipe on
 ## depth 1 (R11), and a command given while the party is down (R13).

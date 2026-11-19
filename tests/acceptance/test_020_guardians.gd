@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/020-guardians/spec.md, one per requirement: a guardian, one huge
 ## monster, holds the way down on every fifth level.
 
@@ -35,13 +35,6 @@ func _ids(fighters: Array[Combatant]) -> Array[StringName]:
 	for c: Combatant in fighters:
 		ids.append(c.def_id)
 	return ids
-
-
-## Raises every hero to [param level], at full health.
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Puts the party on [param depth] in the tunnel just outside its shaft chamber, walking in,
@@ -179,7 +172,7 @@ func test_r2_guardian_holds_the_way_down() -> void:
 
 	# The party at depth 5 with a deeper target fights the guardian before it can climb.
 	var walker := Simulation.new(SEEDS[0])
-	_raise(walker, STRONG_LEVEL)
+	raise_party(walker, STRONG_LEVEL)
 	var shaft_room: LabyrinthChamber = _before_guardian(walker, 5)
 	var climbed_first: bool = false
 	var fought: bool = false
@@ -207,7 +200,7 @@ func test_r3_guardians_stay_beaten() -> void:
 	assert_eq(Expedition.GUARDIAN_RESPAWN_SECONDS, 1800.0)
 	var sim := Simulation.new(SEEDS[1])
 	var e: Expedition = sim.expedition
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	var shaft: LabyrinthChamber = _before_guardian(sim, 5)
 	var events: Array[SimEvent] = _run_until_end(sim, _ticks(120.0))
 	var won: bool = false
@@ -249,7 +242,7 @@ func test_r4_beating_one_pays() -> void:
 		)
 
 	var sim := Simulation.new(SEEDS[2])
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	_before_guardian(sim, 5)
 	var events: Array[SimEvent] = _run_until_end(sim, _ticks(120.0))
 	var guardian_id: int = -1

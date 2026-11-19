@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 013, monsters of the deeper bands: eight new monsters as data and sprites, met in
 ## the bands they live in, hard but fair at depth 12, and shown in the cast demo.
 

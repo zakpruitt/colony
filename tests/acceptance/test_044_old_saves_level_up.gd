@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/044-old-saves-level-up/spec.md, one per requirement.
 
 const SEED: int = 44

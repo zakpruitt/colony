@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 007, character sprites: the nine characters and how CharacterSprite animates them.
 ## R2's baker and lint side is tested in tools/tests/test_007_part_pivots.py.
 

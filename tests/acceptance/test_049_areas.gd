@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/049-areas/spec.md, one per requirement: the labyrinth is a set of
 ## areas, each with its own monsters, guardian and stages, and the party can be sent between them.
 
@@ -54,12 +54,6 @@ const JOURNEY_TICKS: int = 100
 const STRONG_LEVEL: int = 60
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Opens [param area] (as a beaten guardian would), sends the party there at [param stage] and
@@ -334,7 +328,7 @@ func test_r4_sent_elsewhere() -> void:
 
 	# During a fight: the party finishes it, then leaves.
 	var fighter := Simulation.new(5)
-	_raise(fighter, STRONG_LEVEL)
+	raise_party(fighter, STRONG_LEVEL)
 	fighter.set_auto_push(false)
 	fighter.expedition.travel.open[&"claypits"] = true
 	var guard: int = 0
@@ -417,7 +411,7 @@ func test_r4_leaves_rest_work_and_revival() -> void:
 	var worker: Simulation = null
 	for seed_value: int in range(1, 40):
 		var candidate := Simulation.new(seed_value)
-		_raise(candidate, STRONG_LEVEL)
+		raise_party(candidate, STRONG_LEVEL)
 		candidate.set_auto_push(false)
 		var none: Array[SimEvent] = []
 		if _until_state(candidate, Expedition.State.WORKING, 3000, none):
@@ -476,7 +470,7 @@ func test_r5_each_area_remembers() -> void:
 
 func test_r6_guardians_open_areas() -> void:
 	var sim := Simulation.new(2)
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	assert_false(sim.is_area_open(&"claypits"), "closed before")
 	assert_true(sim.is_area_open(&"mossy_hollow"), "the first area is open")
 	_before_guardian(sim, 5)
@@ -492,7 +486,7 @@ func test_r6_guardians_open_areas() -> void:
 	# Beaten again (a new visit refills the chamber): no second event.
 	_send(sim, &"claypits", 1)
 	_send(sim, &"mossy_hollow", 5)
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	_before_guardian(sim, 5)
 	var again: Array[SimEvent] = _run(sim, 3000)
 	assert_eq(_kinds(again, SimEvent.Kind.GUARDIAN_SLAIN).size(), 1, "beaten again")
@@ -827,7 +821,7 @@ func test_r9_old_deaths_spare_new_monsters() -> void:
 	var sim := Simulation.new(SEEDS[0])
 	var view: Array[Node] = _view(sim)
 	var world: World = view[0]
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	sim.expedition.travel.open[&"claypits"] = true
 	world.sync(0.1)
 	var guard: int = 0
@@ -867,7 +861,7 @@ func test_r9_one_frame_holds_the_journey() -> void:
 	var hud: Hud = view[2]
 	world.sync(0.1)
 	hud.advance(0.1)
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	_before_guardian(sim, 5)
 	world.sync(0.1)
 	hud.advance(0.1)

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 002, art foundation: Godot's side of the sprite pipeline.
 ## The palette, baking and the lint are tested in tools/tests/test_art.py.
 

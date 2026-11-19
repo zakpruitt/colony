@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/028-seeing-side-quests/spec.md, one per requirement.
 ##
 ## Most tests find a seed whose labyrinth has the side quest wanted on its first visit, put the
@@ -40,6 +40,7 @@ var _quest_at: Vector2i = Vector2i(0, -1)
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)

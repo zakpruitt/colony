@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/045-the-party-tally/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it (on a
@@ -8,7 +8,6 @@ extends GutTest
 ## sums made here. R5 also runs the main scene over a save of its own, under user://, named for
 ## this process, and deletes it.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 45
 const STEP: float = 1.0 / 60.0
 ## The longest a test waits for something to happen, in simulation ticks.
@@ -31,7 +30,7 @@ var _hud: Hud
 var _ui: UiRoot
 ## Every event the world has told of since the HUD was made, oldest first.
 var _events: Array[SimEvent] = []
-var _save_path: String = "user://test_045_tally_%d.save" % OS.get_process_id()
+var _save_path: String = save_path()
 
 
 func before_each() -> void:
@@ -40,21 +39,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	_mouse(Vector2(-1000, -1000))
-	_delete_files()
-
-
-## Also after the last test: a Main with a save store saves again when GUT frees it.
-func after_all() -> void:
-	_delete_files()
-
-
-func _delete_files() -> void:
-	for path: String in [
-		_save_path, _save_path + SaveStore.BACKUP_SUFFIX, _save_path + SaveStore.TEMP_SUFFIX
-	]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
+	super()
+	mouse_move(Vector2(-1000, -1000))
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -89,22 +75,6 @@ func _on_event(event: SimEvent) -> void:
 	_events.append(event)
 
 
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 ## Clicks the left button in the middle of [param control], as the window would. A control on
 ## the UI layer (spec 059) is found through the UI's scale.
 func _click(control: Control) -> void:
@@ -112,15 +82,8 @@ func _click(control: Control) -> void:
 	if _ui.frame.is_ancestor_of(control):
 		await get_tree().process_frame  # a window just opened lays out
 		at = _ui.ui_to_world(control.get_global_rect().get_center())
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(AWAY)
+	click(at)
+	mouse_move(AWAY)
 
 
 ## One frame: [param ticks] ticks of the simulation, then the world and the HUD.
@@ -152,12 +115,6 @@ func _count(kind: SimEvent.Kind) -> int:
 		if event.kind == kind:
 			count += 1
 	return count
-
-
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 func _is_hero(id: int) -> bool:
@@ -265,9 +222,9 @@ func test_r1_tally_panel() -> void:
 	if tally == null:
 		return
 	assert_false(tally.is_open(), "closed at first")
-	_key(KEY_T)
+	press(KEY_T)
 	assert_true(tally.is_open(), "T opens it")
-	_key(KEY_T)
+	press(KEY_T)
 	assert_false(tally.is_open(), "T closes it")
 	var tally_button: UiButton = _ui.bar.buttons[TallyWindow.ID]  # spec 059: on the bar
 	await _click(tally_button)
@@ -277,7 +234,7 @@ func test_r1_tally_panel() -> void:
 	await _click(tally_button)
 	assert_false(tally.is_open(), "the button closes it")
 	tally.open()
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(tally.is_open(), "Esc closes it")
 
 	# The heroes in party order, with the portraits the frames show.
@@ -308,7 +265,7 @@ func test_r1_tally_panel() -> void:
 	tally.open()
 	_hud.advance(STEP)
 	assert_true(_hud.hero_windows.is_open(hero), "the tally opening leaves a hero window open")
-	_key(KEY_U)
+	press(KEY_U)
 	_hud.advance(STEP)
 	assert_true(_hud.shop.is_open(), "U opens the shop")
 	assert_true(tally.is_open() and _hud.hero_windows.is_open(hero), "beside the tally and hero")
@@ -354,10 +311,10 @@ func test_r2_three_measures() -> void:
 			assert_true(event.amount >= 0, "a heal's amount is what was restored")
 	# Q and E move between the tabs, wrapping.
 	tally.set_measure(DAMAGE)
-	_key(KEY_E)
+	press(KEY_E)
 	assert_eq(tally.measure(), HEALING, "E: the next tab")
-	_key(KEY_Q)
-	_key(KEY_Q)
+	press(KEY_Q)
+	press(KEY_Q)
 	assert_eq(tally.measure(), TAKEN, "Q: the previous tab, wrapping")
 	assert_false(_hud.hero_windows.is_open(), "Q and E leave the hero windows alone")
 
@@ -451,7 +408,7 @@ func test_r3_two_spans() -> void:
 
 	# A guardian: named, and the current fight while it lasts.
 	_before_guardian(5)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	var guardian: String = Content.monster(_sim.expedition.guardian_of(5)).display_name
 	var meeting: Callable = func() -> bool:
 		return _fighting() and _sim.tick - _last_tick(SimEvent.Kind.ENCOUNTER_STARTED) >= 15
@@ -515,7 +472,7 @@ func test_r4_side_quests_count() -> void:
 	_hud.advance(STEP)
 	assert_eq(tally.rows().size(), _sim.party.heroes.size() + 1, "no quest lines before any")
 	# A party that can do every side quest walks the first depths until two are done.
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	var two: Callable = func() -> bool: return _count(SimEvent.Kind.SIDE_QUEST_DONE) >= 2
 	assert_true(_run_until(two, 10, 200000), "two side quests done")
 	_hud.advance(STEP)
@@ -582,7 +539,7 @@ func test_r5_nothing_from_time_away() -> void:
 	var data: Dictionary = played.to_save()
 	data[Main.SAVED_AT_KEY] = Time.get_unix_time_from_system()
 	assert_true(SaveStore.new(_save_path).write(data), "the test's save was written")
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.save_store = SaveStore.new(_save_path)
 	main.away_seconds_override = 600.0
 	# Time stands still once the replay ends: the driver is stopped as soon as it is made.

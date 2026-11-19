@@ -42,10 +42,13 @@ incomplete, stop and report the question.
   hold the history. This is for `sim/`, `game/` and `tools/`; a test still names the requirement it proves.
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
 - **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail first.
-- **Tests that write files** use a per-process name under `user://` and delete it: `user://` is shared by every
-  worktree on the machine. Delete in `after_all` as well as `after_each`: a `Main` with a save store saves
-  again when GUT frees it, which is after `after_each` has run.
-- **Commit the `.uid` file** Godot creates next to every new script.
+- **Tests extend `ColonyTest`** (`tests/colony_test.gd`): keys, clicks, raising heroes, stepping the sim,
+  `make_main()`. When a second test needs a helper, add it there instead of copying it.
+- **Tests that write files** take the path from `ColonyTest.save_path()`: per process, under `user://` (shared by
+  every worktree on the machine), deleted with its backups in `after_each` and in `after_all` (a `Main` with a
+  save store saves again when GUT frees it, which is after `after_each` has run). An override of either calls
+  `super()`. The `harness` check step fails on a test that mentions `user://` with no `after_all` in its chain.
+- **Commit the `.uid` file** Godot creates next to every new script (the `harness` step checks).
 - **Godot runs headless and through `tools/dev.py`**, which sets timeouts. Never kill Godot processes by name:
   other lanes are running their own.
 - **Commits** are Conventional Commits (`feat(sim): …`, `fix(save): …`), imperative, lowercase, with a body that
@@ -86,7 +89,7 @@ incomplete, stop and report the question.
 | What | Command |
 |---|---|
 | Everything CI runs | `python tools/dev.py check` |
-| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `art`, `compile`, `tests`, `data`, `boot`) |
+| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `harness`, `art`, `compile`, `tests`, `data`, `boot`) |
 | Tests only | `python tools/dev.py test [--only=<part of a script name>]` |
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |

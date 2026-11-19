@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 
 const SECOND: int = 1_000_000
 
@@ -10,6 +10,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	Engine.max_fps = _saved_max_fps
 
 

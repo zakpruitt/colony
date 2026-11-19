@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/069-sim-tidy/spec.md. R1 is the unedited suite and the lead's
 ## comparison of the sim JSON; R3, R6 and R7 are for the reviewer.
 

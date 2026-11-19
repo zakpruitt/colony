@@ -1,35 +1,19 @@
-extends GutTest
+extends ColonyTest
 ## The main scene loads and saves progress through its SaveStore, and leaves the
 ## real save alone when it is not given one.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
-
-var _path: String = "user://test_main_save_%d.save" % OS.get_process_id()
-
-
-func after_each() -> void:
-	for path: String in [_path, _path + SaveStore.BACKUP_SUFFIX, _path + SaveStore.TEMP_SUFFIX]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
-
-
-## Also after the last test: a Main freed by GUT after `after_each` saves once more as it
-## leaves the tree.
-func after_all() -> void:
-	for path: String in [_path, _path + SaveStore.BACKUP_SUFFIX, _path + SaveStore.TEMP_SUFFIX]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
+var _path: String = save_path()
 
 
 func _main_with_store() -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.save_store = SaveStore.new(_path)
 	add_child_autofree(main)
 	return main
 
 
 func test_a_run_without_a_store_neither_loads_nor_saves() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	assert_null(main.save_store, "tests are not a played game")
 	main.save_now()  # must do nothing and raise nothing
