@@ -1,111 +1,114 @@
 class_name ShopRow
 extends PanelContainer
-## One upgrade's row in the Shop window (spec 017, laid out afresh by spec 059 R2): its picture
-## (spec 063), then its number key
-## and its name in bold over what one rank gives, in a full sentence; its rank as
-## [code]3 / 20[/code] over a thin bar and the bonus it gives now; and one buy button with the
-## whole price: the gold, and from the rank that also costs the upgrade's resource (spec 052) that
-## price with the resource's icon. The button is in its normal state when the party can pay and
-## disabled when it cannot, and then the line under the sentence says what is missing
-## ([code]Needs 12 more clay, from The Claypits[/code]). At the top rank it reads
-## [code]Max[/code].
+## One upgrade's card in the Shop window (spec 017, laid out by spec 059 R2, made a card by spec
+## 065). At its left the upgrade's picture in a large [UiIcon] (spec 063) with the rank as its
+## count: ready (a pulsing yellow frame) when the party can pay, locked when it cannot, owned in
+## gold for good at the top rank. Beside it the number key and the name in bold with the rank in
+## words at the end of the line ([code]3 / 20[/code]), under them the ranks as [ShopPips] across
+## the whole text column, and one buy button with the whole price: the
+## gold, and from the rank that also costs the upgrade's resource (spec 052) that price with the
+## resource's icon; at the top rank it reads [code]Max[/code]. Under those, what the upgrade gives
+## now and what the next rank gives, side by side with an arrow, the gain in green
+## ([code]Damage and healing  +15%  >  +20%[/code]; at the top rank the total with
+## [code]Mastered[/code]); and across the card's foot, while the party cannot pay, what is missing
+## in words ([code]Needs 12 more clay, from The Claypits[/code]).
 ##
-## [method refresh] reads everything from the simulation every frame; the row keeps no copy of a
-## rank or a price. A purchase, by the player or by auto-buy, flashes the row.
+## [method refresh] reads everything from the simulation every frame; the card keeps no copy of a
+## rank or a price. A purchase heard fresh fills its pip with a flash ([method start_flash]); the
+## player's own also steps the numbers to their new values ([method start_step]) while the shop
+## bursts the icon. Pointing at the card shows a card tooltip ([method card]).
 
-## Seconds a row flashes after a purchase.
-const FLASH_SECONDS: float = 0.5
-## UI pixels: the gap between the text and the button, and the rank bar's width and height.
+## Seconds the numbers take to step to their new values after the player's purchase.
+const STEP_SECONDS: float = 0.3
+## UI pixels: the gap between the picture, the text and the button, and the space between the
+## parts of the numbers' line.
 const GAP: int = 6
-const BAR_WIDTH: int = 48
-const BAR_HEIGHT: int = 5
-## Space between the row's edge and what it holds, as the flash's box has it.
+const NUMBERS_GAP: int = 6
+## Space between the card's edge and what it holds.
 const PAD: int = 3
+## The words after the total at the top rank.
+const MASTERED: String = "Mastered"
 
-## The upgrade this row shows.
+## The upgrade this card shows.
 var id: StringName
+## The picture in its framed slot, the rank as its count.
+var icon: UiIcon
+## The picture inside [member icon] (spec 063's tests read it).
+var picture: TextureRect
 var key_label: Label
 var name_label: Label
-## What one rank gives: "Each rank gives +5% damage and healing."
-var description_label: Label
+## The ranks as pips, under the name, and the rank in words beside them: "3 / 20".
+var pips: ShopPips
+var rank_label: Label
+## What the upgrade raises ("Damage and healing"), what it gives now ("+15%"), the arrow and what
+## the next rank gives ("+20%", or "Mastered" at the top rank).
+var gives_label: Label
+var now_label: Label
+var arrow_label: Label
+var next_label: Label
 ## What is missing while the party cannot pay: "Needs 12 more clay, from The Claypits"; "" else.
 var needs_label: Label
-var rank_label: Label
-var rank_bar: UiBar
-## The bonus all ranks bought give now: "+15% now".
-var bonus_label: Label
 ## Buys the next rank: its text is the whole price, its icon the resource's from that rank on.
 var buy_button: UiButton
-## The upgrade's own picture, at its own size before its number key.
-var picture: TextureRect
 
-var _flash: float = 0.0
 var _affordable: bool = false
-var _flash_bright: bool = false
+## The numbers stepping: the rank they step from, and the seconds of the step left.
+var _step_from: int = 0
+var _step: float = 0.0
 
 
-## A row for upgrade [param upgrade_id], the [param index]th in the shop (0-based). Its number key
-## and name, the sentence and the rank line stand in a column beside the buy button; the line of
-## what is missing runs under both, so the longest fits.
+## A card for upgrade [param upgrade_id], the [param index]th in the shop (0-based).
 func _init(upgrade_id: StringName, index: int) -> void:
 	id = upgrade_id
 	name = "Row%d" % (index + 1)
 	mouse_filter = Control.MOUSE_FILTER_PASS
-	add_theme_stylebox_override(&"panel", _box(&""))
+	var empty := StyleBoxEmpty.new()
+	empty.set_content_margin_all(PAD)
+	add_theme_stylebox_override(&"panel", empty)
 	var def: UpgradeDef = Content.upgrade(upgrade_id)
-	var whole := VBoxContainer.new()
-	whole.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# No gaps between the lines (spec 063): the picture makes the name's line 3 pixels taller than
-	# the text's 13, and the three gaps give them back, so the row keeps its height.
-	whole.add_theme_constant_override(&"separation", 0)
-	add_child(whole)
-	var top := HBoxContainer.new()
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_theme_constant_override(&"separation", GAP)
-	whole.add_child(top)
-	var text := _column(top, 0)
+	var whole := _box(self, true, 0)
+	var top := _box(whole, false, GAP)
+	icon = UiIcon.new(upgrade_id)
+	icon.mouse_filter = Control.MOUSE_FILTER_PASS  # pointing at it points at the card
+	icon.mouse_default_cursor_shape = Control.CURSOR_ARROW
+	icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	top.add_child(icon)
+	picture = icon.picture_rect
+	var right := _box(top, true, 0)
+	var upper := _box(right, false, GAP)
+	var text := _box(upper, true, 0)
 	text.custom_minimum_size.x = text_width()
-	var head := HBoxContainer.new()
-	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	head.add_theme_constant_override(&"separation", 4)
-	text.add_child(head)
-	picture = TextureRect.new()
-	picture.name = "Picture"
-	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	picture.stretch_mode = TextureRect.STRETCH_SCALE
-	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	picture.custom_minimum_size = UiIcon.PICTURE_SIZE
-	picture.texture = UiIcon.picture(upgrade_id)
-	head.add_child(picture)
+	# The name line ends with the rank in words at the column's right edge, so the pips under it
+	# have the whole column.
+	var head := _box(text, false, 4)
 	key_label = _line(head, "Key", str(index + 1), &"slate", true)
 	name_label = _line(head, "Name", def.display_name, &"white", true)
-	description_label = _line(text, "Description", sentence(def), &"silver")
-	var rank := HBoxContainer.new()
-	rank.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	rank.add_theme_constant_override(&"separation", 5)
-	text.add_child(rank)
-	rank_label = _line(rank, "Rank", "", &"white")
-	rank_label.custom_minimum_size.x = UiText.width("%d / %d" % [def.max_rank, def.max_rank])
-	rank_bar = UiBar.new(&"green", &"forest", BAR_HEIGHT)
-	rank_bar.custom_minimum_size.x = BAR_WIDTH
-	rank_bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	rank.add_child(rank_bar)
-	bonus_label = _line(rank, "Bonus", "", &"green")
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rank_label = _line(head, "Rank", "", &"steel")
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var rank := _box(text, false, 0)
+	rank.custom_minimum_size.y = UiText.LINE_HEIGHT
+	pips = ShopPips.new()
+	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pips.show_ranks(0, def.max_rank)
+	rank.add_child(pips)
 	# The button keeps one width whatever its price: a UiButton sizes itself, its holder does not.
-	var holder := VBoxContainer.new()
-	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var holder := _box(upper, true, 0)
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
 	holder.custom_minimum_size.x = button_width()
-	top.add_child(holder)
 	buy_button = UiButton.new("")
 	buy_button.name = "Buy"
 	buy_button.toggle_mode = false
 	buy_button.icon_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	buy_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 	holder.add_child(buy_button)
+	var numbers := _box(right, false, NUMBERS_GAP)
+	gives_label = _line(numbers, "Gives", def.gives, &"silver")
+	now_label = _line(numbers, "Now", "", &"white", true)
+	arrow_label = _line(numbers, "Arrow", ">", &"slate")
+	next_label = _line(numbers, "Next", "", &"green", true)
 	needs_label = _line(whole, "Needs", "", &"orange")
-	needs_label.custom_minimum_size.y = UiText.LINE_HEIGHT  # kept, so the row never jumps
+	needs_label.custom_minimum_size.y = UiText.LINE_HEIGHT  # kept, so the card never jumps
 
 
 ## What one rank of [param def] gives, as a sentence: "Each rank gives +5% damage and healing."
@@ -113,22 +116,45 @@ static func sentence(def: UpgradeDef) -> String:
 	return "Each rank gives %s." % def.description
 
 
-## The text column's width: the widest name and sentence the shop can show, and room for the
-## line of what is missing under the text and the button together, so no row's text is ever cut.
+## What [param rank] ranks of [param def] give, in whole percent: "+15%".
+static func percent(def: UpgradeDef, rank: int) -> String:
+	return "+%d%%" % roundi(rank * def.per_rank * 100.0)
+
+
+## The banner's headline for rank [param rank] of [param def] (spec 065 R6): "Sharp Blades, rank
+## 5", or "Sharp Blades mastered" at the top rank.
+static func milestone_headline(def: UpgradeDef, rank: int) -> String:
+	if rank >= def.max_rank:
+		return "%s mastered" % def.display_name
+	return "%s, rank %d" % [def.display_name, rank]
+
+
+## The banner's line under it: what all [param rank] ranks give, "+25% damage and healing".
+static func milestone_line(def: UpgradeDef, rank: int) -> String:
+	return "%s %s" % [percent(def, rank), def.gives.to_lower()]
+
+
+## True when rank [param rank] of [param def] is a milestone: every fifth rank, and the top one.
+static func is_milestone(def: UpgradeDef, rank: int) -> bool:
+	return rank > 0 and (rank % 5 == 0 or rank >= def.max_rank)
+
+
+## The text column's width beside the picture: the widest name line and pips line the shop can
+## show, and room for the line of what is missing across the whole card, so nothing is cut.
 static func text_width() -> int:
 	var widest: int = 0
 	var needs: int = 0
 	for upgrade: StringName in Content.upgrade_ids():
 		var def: UpgradeDef = Content.upgrade(upgrade)
-		var shown: int = int(UiIcon.PICTURE_SIZE.x) + 4  # the picture before the key
-		widest = maxi(
-			widest, shown + UiText.width("5", true) + 4 + UiText.width(def.display_name, true)
-		)
-		widest = maxi(widest, UiText.width(sentence(def)))
+		var ranks: String = "%d / %d" % [def.max_rank, def.max_rank]
+		var head: int = UiText.width("5", true) + UiText.width(def.display_name, true)
+		widest = maxi(widest, head + 4 + 4 + UiText.width(ranks))
+		widest = maxi(widest, ShopPips.width_for(def.max_rank))
 		var most: int = def.cost_at(def.max_rank - 1)
 		var resource: int = def.resource_cost_at(def.max_rank - 1)
 		needs = maxi(needs, UiText.width(needs_for(def, most, resource)))
-	return maxi(widest, needs - GAP - button_width())
+	var beside: int = int(UiIcon.PICTURE_SIZE.x * 2 + UiIcon.LARGE_FRAME * 2) + GAP
+	return maxi(widest, needs - beside - GAP - button_width())
 
 
 ## The buy button's width: room for its dearest price.
@@ -169,18 +195,26 @@ static func needs_for(def: UpgradeDef, gold: int, resource: int) -> String:
 	return text
 
 
-## Brings the row up to date with [param upgrades] and what [param party] holds, and runs its
-## flash down by [param delta] seconds.
+## Brings the card up to date with [param upgrades] and what [param party] holds, and runs its
+## flash, its pulse and its stepping numbers on by [param delta] seconds.
 func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	var def: UpgradeDef = Content.upgrade(id)
 	var rank: int = upgrades.rank(id)
 	var price: int = upgrades.cost(id)
 	var needed: int = upgrades.resource_cost(id)
-	_affordable = upgrades.can_pay(id, party)
-	_set_text(rank_label, "%d / %d" % [rank, def.max_rank])
-	rank_bar.fraction = float(rank) / maxf(def.max_rank, 1)
-	_set_text(bonus_label, "+%d%% now" % roundi(rank * def.per_rank * 100.0))
 	var maxed: bool = price < 0
+	_affordable = upgrades.can_pay(id, party)
+	if maxed:
+		icon.show_state(UiIcon.State.OWNED)
+	else:
+		icon.show_state(UiIcon.State.READY if _affordable else UiIcon.State.LOCKED)
+	if icon.count_label.text != str(rank) or not icon.count_label.visible:
+		icon.set_count(str(rank))
+	icon.advance(delta)
+	pips.show_ranks(rank, def.max_rank)
+	pips.advance(delta)
+	_set_text(rank_label, "%d / %d" % [rank, def.max_rank])
+	_show_numbers(def, rank, delta)
 	var text: String = "Max" if maxed else price_text(price, needed)
 	if buy_button.text != text:
 		buy_button.text = text
@@ -189,29 +223,38 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	var short_gold: int = maxi(price - party.gold, 0) if not maxed else 0
 	var short_resource: int = maxi(needed - party.resource(def.resource), 0) if not maxed else 0
 	_set_text(needs_label, needs_for(def, short_gold, short_resource))
-	if _flash > 0.0:
-		_flash = maxf(_flash - delta, 0.0)
-	var bright: bool = _flash > FLASH_SECONDS / 2.0
-	if _flash_bright != bright or (_flash == 0.0 and get_theme_stylebox(&"panel") is StyleBoxFlat):
-		_flash_bright = bright
-		add_theme_stylebox_override(
-			&"panel", _box(&"" if _flash <= 0.0 else (&"bright" if bright else &"dim"))
-		)
 	rank_label.add_theme_color_override(
-		&"font_color", Palette.color(&"yellow" if _flash > 0.0 else &"white")
+		&"font_color", Palette.color(&"yellow" if flash() > 0.0 else &"steel")
 	)
 
 
-## Starts the row's flash: the upgrade was just bought.
-func start_flash() -> void:
-	_flash = FLASH_SECONDS
-	_flash_bright = true
-	add_theme_stylebox_override(&"panel", _box(&"bright"))
+## Fills the pip of rank [param rank] (1-based) with a flash: that rank was just bought.
+func start_flash(rank: int) -> void:
+	pips.flash_pip(rank - 1)
 
 
-## Seconds of the row's flash left; 0 when still.
+## Steps the numbers from what [param from_rank] ranks gave to what the ranks now give, over
+## [constant STEP_SECONDS]: the player just bought a rank. While the numbers already step, they
+## keep stepping from the earlier rank (two ranks bought in one frame step from two below).
+func start_step(from_rank: int) -> void:
+	_step_from = mini(_step_from, from_rank) if _step > 0.0 else from_rank
+	_step = STEP_SECONDS
+
+
+## Stops the flash and the stepping at once (the world caught up).
+func stop() -> void:
+	pips.stop_flash()
+	_step = 0.0
+
+
+## True while the numbers step to their new values.
+func stepping() -> bool:
+	return _step > 0.0
+
+
+## Seconds of the card's flash left; 0 when still.
 func flash() -> float:
-	return _flash
+	return pips.flash_left()
 
 
 ## True when the party can pay for the next rank: its gold and its resource.
@@ -219,9 +262,23 @@ func affordable() -> bool:
 	return _affordable
 
 
-## The row's tooltip (spec 052 R5): the next rank's prices, then where its resource comes from and,
-## if that area is closed, how it is opened. [code]Rank 4: 91 gold and 4 clay. Clay comes from
-## the Claypits: beat the Slime King in Mossy Hollow to open it.[/code]
+## The card's tooltip (spec 065 R4): its picture, its name, the kind and rank, the next rank's
+## prices and where the resource comes from ([method tip_text]), and what one rank gives.
+func card(simulation: Simulation) -> UiTip.Card:
+	var def: UpgradeDef = Content.upgrade(id)
+	var made := UiTip.Card.new()
+	made.picture_id = id
+	made.title = def.display_name
+	made.kind = "Camp upgrade, rank %d of %d" % [simulation.upgrades.rank(id), def.max_rank]
+	made.body = tip_text(simulation)
+	made.stand = sentence(def)
+	made.stand_colour = &"green"
+	return made
+
+
+## The next rank's prices, then where its resource comes from and, if that area is closed, how
+## it is opened (spec 052 R5). [code]Rank 4: 91 gold and 4 clay. Clay comes from the Claypits:
+## beat the Slime King in Mossy Hollow to open it.[/code]
 func tip_text(simulation: Simulation) -> String:
 	var def: UpgradeDef = Content.upgrade(id)
 	var rank: int = simulation.upgrades.rank(id)
@@ -248,23 +305,40 @@ func tip_text(simulation: Simulation) -> String:
 	)
 
 
-## The row's background: none at rest, then a bright and a dim box as it flashes.
-func _box(state: StringName) -> StyleBox:
-	match state:
-		&"bright":
-			return UiTheme.box(&"forest", &"green", PAD - 1, PAD - 1)
-		&"dim":
-			return UiTheme.box(&"dusk", &"slate", PAD - 1, PAD - 1)
-	var empty := StyleBoxEmpty.new()
-	empty.set_content_margin_all(PAD)
-	return empty
+## Shows what the upgrade gives now and at the next rank; while stepping, the numbers count from
+## [member _step_from]'s toward [param rank]'s, the total in yellow.
+func _show_numbers(def: UpgradeDef, rank: int, delta: float) -> void:
+	if _step > 0.0:
+		_step = maxf(_step - delta, 0.0)
+	var shown: float = float(rank)
+	if _step > 0.0 and _step_from < rank:
+		shown = lerpf(float(_step_from), float(rank), 1.0 - _step / STEP_SECONDS)
+	var now: String = "+%d%%" % roundi(shown * def.per_rank * 100.0)
+	_set_text(now_label, now)
+	now_label.add_theme_color_override(
+		&"font_color", Palette.color(&"yellow" if _step > 0.0 else &"white")
+	)
+	var top: bool = rank >= def.max_rank
+	arrow_label.visible = not top
+	if top:
+		_set_text(next_label, MASTERED)
+		next_label.add_theme_color_override(&"font_color", Palette.color(&"yellow"))
+		return
+	_set_text(next_label, "+%d%%" % roundi((shown + 1.0) * def.per_rank * 100.0))
+	next_label.add_theme_color_override(&"font_color", Palette.color(&"green"))
 
 
-func _column(row: HBoxContainer, separation: int) -> VBoxContainer:
-	var made := VBoxContainer.new()
+## A box container in [param parent]: a column ([param column]) or a row, its children
+## [param separation] apart, never taking the mouse.
+func _box(parent: Control, column: bool, separation: int) -> BoxContainer:
+	var made: BoxContainer
+	if column:
+		made = VBoxContainer.new()
+	else:
+		made = HBoxContainer.new()
 	made.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	made.add_theme_constant_override(&"separation", separation)
-	row.add_child(made)
+	parent.add_child(made)
 	return made
 
 

@@ -38,7 +38,7 @@ const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
 	"When a stage turns stable (safe), it heads one further.",
 	"A wipe sends it back to the last safe stage.",
-	"Gold buys upgrades in the Shop.",
+	"Gold buys upgrades in the Shop: every fifth rank is a milestone.",
 	"It keeps going while the game is closed.",
 ]
 const TITLE: String = "How Colony works"

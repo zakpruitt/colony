@@ -82,7 +82,7 @@ const CAPTIONS: Dictionary[StringName, String] = {
 	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
 	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
 	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
-	&"shop": "THE SHOP WINDOW: AN UPGRADE BOUGHT",
+	&"shop": "THE SHOP WINDOW: A FIFTH RANK BOUGHT",
 	&"area_map": "THE AREA MAP: WHERE THE PARTY CAN GO",
 	&"journey": "A JOURNEY TO THE CLAYPITS",
 	&"four_areas": "THE FOUR AREAS",
@@ -115,7 +115,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"quest_missed": 1.0,
 	&"tripwire_sprung": 1.0,
 	&"microskill_learned": 1.0,
-	&"shop": 1.5,
+	&"shop": 2.5,
 	&"area_map": 1.5,
 	&"journey": 1.2,
 	&"four_areas": 0.2,
@@ -175,6 +175,9 @@ const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
 const NEW_AREA: StringName = &"claypits"
 ## Spec 059: the gold the shop moment gives the party, enough for a few ranks.
 const SHOP_GOLD: int = 300
+## Spec 065: the upgrade the shop moment buys, and the rank it reaches, a milestone with a banner.
+const SHOP_UPGRADE: StringName = &"sharp_blades"
+const SHOP_RANK: int = 5
 ## Spec 056: each class's moment, the path its hero takes there (the one whose actions look most
 ## unlike the trunk's), the heroes' level (every talent point earned), the stage of the fight and
 ## how many times their health the monsters have, so the hero's actions are seen.
@@ -427,9 +430,13 @@ func _begin(current: StringName) -> void:
 				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 			_cut_to_quest(QUEST_OF[current])
 		&"shop":
-			# Spec 059: the shop's window, gold for a few ranks, and the first row bought.
+			# Spec 059: the shop's window, gold for a few ranks, and the first row bought. Spec 065:
+			# it is Sharp Blades' fifth rank, so the card bursts and a banner drops in.
 			_settle_now()
 			sim.party.gold = SHOP_GOLD
+			sim.upgrades.set_rank(SHOP_UPGRADE, SHOP_RANK - 1)
+			var bones: StringName = Content.upgrade(SHOP_UPGRADE).resource
+			sim.party.set_resource(bones, sim.upgrades.resource_cost(SHOP_UPGRADE))
 			main.hud.shop.open()
 			main.hud.shop.buy_row(0)
 		&"area_map":
@@ -623,7 +630,8 @@ func _on_sim_event(event: SimEvent) -> void:
 			if event.kind == SimEvent.Kind.PARTY_REVIVED:
 				_see()
 		&"shop":
-			if event.kind == SimEvent.Kind.UPGRADE_BOUGHT and main.hud.shop.is_open():
+			var bought: bool = event.kind == SimEvent.Kind.UPGRADE_BOUGHT
+			if bought and main.hud.shop.is_open() and event.amount == SHOP_RANK:
 				_see()
 		&"depth_stable":
 			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:

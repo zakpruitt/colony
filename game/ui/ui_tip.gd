@@ -130,6 +130,13 @@ func attach_card(control: Control, card: Callable) -> void:
 	_cards[control] = card
 
 
+## The card [param control] was given (spec 065), made now; null when it has none.
+func card_for(control: Control) -> Card:
+	if not _cards.has(control):
+		return null
+	return _cards[control].call() as Card
+
+
 ## True while the tip showing is a card.
 func card_shown() -> bool:
 	return visible and _card_box.visible

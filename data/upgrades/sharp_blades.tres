@@ -16,3 +16,4 @@ max_rank = 20
 resource = &"old_bones"
 resource_from_rank = 3
 resource_base = 4
+gives = "Damage and healing"
