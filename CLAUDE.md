@@ -57,6 +57,10 @@ incomplete, stop and report the question.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
+- **The game's window is `WindowSettings`' business** (spec 067): a played game opens maximized and
+  remembers its window in `user://colony.window`; tests, `shot` and headless runs get none
+  (`Main.window_settings` is null). To run the real game windowed without it, pass `-- --window-default`;
+  a test that wants one gives `Main` a `WindowSettings.new(<its own path>)` and leaves `window` null.
 - **`World.effects_layer` holds only passing effects.** Specs 010 and 024 check it has no children after a
   few quiet seconds, so a node that stays (marks, overlays) goes beside it in the `World`, at
   `World.EFFECTS_Z` with `z_as_relative = false`, not inside it.
@@ -82,7 +86,7 @@ incomplete, stop and report the question.
 | Lint the sounds (missing, stale, over 1.2 s, peak above -3 dB) | `python tools/sfx.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
 | Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents]` |
-| Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=95` |
+| Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=110` |
 | Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 
 ## Looking at the game

@@ -431,6 +431,21 @@ func _check_entry(main: Main, label: String) -> void:
 				_key(code)
 				assert_ne(main.speed, speed, "%s changes the game speed" % what)
 				main.set_speed(speed)
+			"F11":
+				# Spec 067: a played game has window settings; here a file of this test's own, and
+				# no window to change.
+				var path: String = "user://test_030_window_%d.window" % OS.get_process_id()
+				var kept := WindowSettings.new(path)
+				main.window_settings = kept
+				main.add_child(kept)
+				var mode: WindowSettings.Mode = kept.mode
+				_key(code)
+				assert_ne(kept.mode, mode, "%s goes full screen" % what)
+				_key(code)
+				assert_eq(kept.mode, mode, "%s and back" % what)
+				kept.queue_free()
+				main.window_settings = null
+				DirAccess.remove_absolute(path)
 			"F3":
 				var shown_clock: bool = hud.clock_label.visible
 				_key(code)

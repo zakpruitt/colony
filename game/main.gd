@@ -68,6 +68,9 @@ var sound: SoundPlayer
 ## tests, screenshots and headless runs, which then never open help by themselves. Set it before
 ## the scene enters the tree to choose the file; a played game uses the default one.
 var settings: SoundSettings
+## How the window opens and what F11 does (spec 067). Null means the window is left alone: tests,
+## screenshots and headless runs. Set it before the scene enters the tree to choose the file.
+var window_settings: WindowSettings
 ## How many times real time the game runs (spec 032): one of [constant SPEEDS]. A way of
 ## watching, not a rule: never saved, 1 in every new session, and time away is counted at 1x.
 ## Read-only outside the class: assigning it goes through [method set_speed].
@@ -91,6 +94,7 @@ func _ready() -> void:
 	world_viewport = $WorldView/WorldViewport
 	ui = UiRoot.new()
 	add_child(ui)
+	window_settings = WindowSettings.for_game(self, window_settings)
 	if save_store == null and _is_played():
 		save_store = SaveStore.new()
 	if settings == null and _is_played():

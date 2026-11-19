@@ -42,6 +42,20 @@ The picture is drawn in two layers, each in its own pixels.
   the world keep their 640x360 coordinates (tests push mouse events there), while drawing is at
   the window's size. The UI layer's transform is `ui_scale / world_scale`; `UiRoot.world_to_ui()` and
   `ui_to_world()` convert. Other scenes (the gallery, the showcase) keep the project's viewport mode.
+- **The game's window** (spec 067, `WindowSettings`, `game/window_settings.gd`): a node `Main` holds
+  (`Main.window_settings`, made by `WindowSettings.for_game`) only in a game someone plays: not headless,
+  not run by a script (`-s`: the tests, the shot tool), not told `--window-default`. On a first run
+  (`first_mode`) it maximizes the window if 1920x1080 fits inside a maximized window's frame (the usable
+  height less the frame's, measured on the window as it opens), goes full screen if only the bare screen
+  has that room (a 1920x1080 screen), else leaves the project's 1280x720 and writes nothing; `F11` is
+  full screen and back; and the mode, with the windowed size and place, is kept in `user://colony.window`
+  (its own file, not the save or the settings; written to a temporary file and renamed, as the save is)
+  once a change has held for half a second (`observe`) or as the game closes (`flush`), and read at the
+  next start (`decide`; a place off every screen is dropped, a size is cut down to the screen it lands
+  on and raised to at least 640x360). Every decision is a plain function of a screen's size and the file; only with
+  `WindowSettings.window` set is a real window read or changed, so a test names a file of its own and
+  leaves `window` null. `UiRoot` refits on every change of the window's size, and a window held by the
+  mouse stays in the hand through it (`UiRoot._held`).
 - **Windows** (`UiWindow`, `UiWindows`): a title bar to drag by and a close button, any number open, a
   click raises one, `Esc` closes the front one, the title bar never leaves
   the room. Which are open, and the places of those the player dragged (`placed`), live in the settings
