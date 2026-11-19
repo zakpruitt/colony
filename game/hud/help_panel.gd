@@ -31,6 +31,7 @@ const KEYS: Array[Array] = [
 	["Z", "Zoom in or out"],
 	["F", "Game speed: 1x, 2x or 4x"],
 	["M", "Sound on or off"],
+	["F11", "Full screen on or off"],
 	["F3", "Show the clock (for testing)"],
 ]
 ## What the game is about, one short line each.
