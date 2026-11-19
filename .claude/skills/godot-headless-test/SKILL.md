@@ -194,6 +194,10 @@ by value, not with `assert_eq` against ints.
   (a deeper depth, a level that learns a microskill); the finished goal holds its row for 3 s. Advance the
   HUD a frame, then past `Goals.CELEBRATE_SECONDS`, before reading `goals.lines()`.
 - `[tests] FAIL`: GUT prints the failing assertion with its file and line above the summary.
+- A failing `assert_string_contains(wiki, phrase)` prints the whole text it searched, twice, and `dev.py
+  test` shows only the last 400 lines of output: one such failure on the wiki pushes every other failure,
+  and the test names, out of view. Look for a phrase in a long text with
+  `assert_true(text.contains(phrase), "...: %s" % phrase)` (spec 065).
 - `[Failed]: Unexpected Errors ... at line -1` with no message: a `SCRIPT ERROR` (often a parse error in a
   script the test loads, or a freed object touched) that `dev.py test` cut from what it shows. Run GUT
   yourself to see it: `godot_console --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit
