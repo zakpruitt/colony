@@ -45,6 +45,11 @@ var bar: UiButtonBar
 ## A window per hero (spec 060), made by [method setup] when there is a HUD.
 var hero_windows: HeroWindows
 
+## The tooltip the windows and the button bar share, made by [method setup].
+var tip: UiTip
+## The moment a gain is marked (spec 063), above the windows, made by [method setup].
+var moment: UiMoment
+
 ## The HUD whose frame of the screen (spec 061) is on this layer, or null.
 var _hud: Hud
 ## The report after time away while it is up (spec 062 R5).
@@ -114,7 +119,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	frame.add_child(windows)  # over the bar
 	windows.fit_room(_room)
 	var icons: PixelSheet = PixelSheet.load_sheet(ICONS_PATH)
-	var tip := UiTip.new()  # the orders' choices share the bar's look of tooltip
+	tip = UiTip.new()  # the orders' choices share the bar's look of tooltip
 	var help := UiWindow.new(HELP, HelpPanel.TITLE, HelpPanel.new(), "H", KEY_H)
 	var view := JournalView.new()
 	var journal := UiWindow.new(JOURNAL, "Journal", view, "J", KEY_J)
@@ -134,6 +139,9 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		frame.add_child(hero_windows)
 		hero_windows.setup(simulation, self, tip)
 		hud.hero_windows = hero_windows
+	moment = UiMoment.new()  # spec 063: over the windows, under the tips and the defeat note
+	frame.add_child(moment)
+	moment.fit_room(_room)
 	place_defaults()
 	for made: UiWindow in made_here:
 		made.place_at(made.default_place, Vector2(_room))
@@ -162,8 +170,8 @@ func show_away(report: AwayReport, party: Party) -> AwayWindow:
 
 ## Spec 059: the shop, the area map and the tally, which [param hud] made so they hear the
 ## simulation from the start, each put in a window of its own with its icon and its key, and
-## given [param tip] for its tooltips. None without a HUD.
-func _management_windows(hud: Hud, icons: PixelSheet, tip: UiTip) -> Array[UiWindow]:
+## given [param shared] for its tooltips. None without a HUD.
+func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[UiWindow]:
 	var made: Array[UiWindow] = []
 	if hud == null or hud.shop == null or hud.area_map == null or hud.tally == null:
 		return made
@@ -178,9 +186,9 @@ func _management_windows(hud: Hud, icons: PixelSheet, tip: UiTip) -> Array[UiWin
 	)
 	for each: UiWindow in made:
 		each.icon = icons.part(each.window_id) if icons != null else null
-	hud.shop.add_tips(tip)
-	hud.area_map.add_tips(tip)
-	hud.tally.add_tips(tip)
+	hud.shop.add_tips(shared)
+	hud.area_map.add_tips(shared)
+	hud.tally.add_tips(shared)
 	return made
 
 
@@ -318,6 +326,8 @@ func _apply() -> void:
 		windows.fit_room(_room)
 	if bar != null:
 		bar.fit_room(_room)
+	if moment != null:
+		moment.fit_room(_room)
 	if _hud != null:
 		_hud.fit_frame(_room)
 	if is_instance_valid(_away) and not _away.is_queued_for_deletion():

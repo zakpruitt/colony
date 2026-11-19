@@ -27,7 +27,6 @@ id = &"rallying_cry"
 display_name = "Rallying Cry"
 description = "With an ally below 60%: shields every ally (10% of health) and mends them for 8 s. Every 30 s."
 move = &"shout"
-picture = &"rally"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 30.0

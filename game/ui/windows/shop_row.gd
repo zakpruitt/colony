@@ -1,6 +1,7 @@
 class_name ShopRow
 extends PanelContainer
-## One upgrade's row in the Shop window (spec 017, laid out afresh by spec 059 R2): its number key
+## One upgrade's row in the Shop window (spec 017, laid out afresh by spec 059 R2): its picture
+## (spec 063), then its number key
 ## and its name in bold over what one rank gives, in a full sentence; its rank as
 ## [code]3 / 20[/code] over a thin bar and the bonus it gives now; and one buy button with the
 ## whole price: the gold, and from the rank that also costs the upgrade's resource (spec 052) that
@@ -35,6 +36,8 @@ var rank_bar: UiBar
 var bonus_label: Label
 ## Buys the next rank: its text is the whole price, its icon the resource's from that rank on.
 var buy_button: UiButton
+## The upgrade's own picture, at its own size before its number key.
+var picture: TextureRect
 
 var _flash: float = 0.0
 var _affordable: bool = false
@@ -52,18 +55,29 @@ func _init(upgrade_id: StringName, index: int) -> void:
 	var def: UpgradeDef = Content.upgrade(upgrade_id)
 	var whole := VBoxContainer.new()
 	whole.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	whole.add_theme_constant_override(&"separation", 1)
+	# No gaps between the lines (spec 063): the picture makes the name's line 3 pixels taller than
+	# the text's 13, and the three gaps give them back, so the row keeps its height.
+	whole.add_theme_constant_override(&"separation", 0)
 	add_child(whole)
 	var top := HBoxContainer.new()
 	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_theme_constant_override(&"separation", GAP)
 	whole.add_child(top)
-	var text := _column(top, 1)
+	var text := _column(top, 0)
 	text.custom_minimum_size.x = text_width()
 	var head := HBoxContainer.new()
 	head.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	head.add_theme_constant_override(&"separation", 4)
 	text.add_child(head)
+	picture = TextureRect.new()
+	picture.name = "Picture"
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_SCALE
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.custom_minimum_size = UiIcon.PICTURE_SIZE
+	picture.texture = UiIcon.picture(upgrade_id)
+	head.add_child(picture)
 	key_label = _line(head, "Key", str(index + 1), &"slate", true)
 	name_label = _line(head, "Name", def.display_name, &"white", true)
 	description_label = _line(text, "Description", sentence(def), &"silver")
@@ -106,7 +120,10 @@ static func text_width() -> int:
 	var needs: int = 0
 	for upgrade: StringName in Content.upgrade_ids():
 		var def: UpgradeDef = Content.upgrade(upgrade)
-		widest = maxi(widest, UiText.width("5", true) + 4 + UiText.width(def.display_name, true))
+		var shown: int = int(UiIcon.PICTURE_SIZE.x) + 4  # the picture before the key
+		widest = maxi(
+			widest, shown + UiText.width("5", true) + 4 + UiText.width(def.display_name, true)
+		)
 		widest = maxi(widest, UiText.width(sentence(def)))
 		var most: int = def.cost_at(def.max_rank - 1)
 		var resource: int = def.resource_cost_at(def.max_rank - 1)

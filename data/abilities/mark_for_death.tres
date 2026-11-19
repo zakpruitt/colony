@@ -17,7 +17,6 @@ id = &"mark_for_death"
 display_name = "Mark for Death"
 description = "The weakest enemy takes 30% more damage for 6 s. Every 12 s."
 move = &"throw"
-picture = &"shadow"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 12.0

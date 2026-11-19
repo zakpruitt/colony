@@ -17,7 +17,6 @@ id = &"smoke_step"
 display_name = "Smoke Step"
 description = "When hit, a 25% chance to dodge half of all strikes for 3 s."
 move = &"flourish"
-picture = &"shadow"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 4

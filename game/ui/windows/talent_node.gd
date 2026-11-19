@@ -1,7 +1,7 @@
 class_name TalentNode
 extends Control
 ## One node of a hero's talent tree on a hero window's Talents tab (spec 055, moved onto the UI
-## layer by spec 060): its ability's picture (its [member AbilityDef.picture]) in a small box, and
+## layer by spec 060): its ability's own picture (spec 063, [method UiIcon.picture]) in a box, and
 ## beside it the ability's name, whether it is an action or a passive, and its whole one-line
 ## description, wrapped to the node's width and never cut, so the tree reads without pointing.
 ## [method show_state] says how it stands for the hero, and the node draws it: taken is bright with
@@ -18,23 +18,19 @@ signal clicked(ability_id: StringName)
 ## How a node stands for the hero.
 enum State { TAKEN, AVAILABLE, LOCKED, CLOSED }
 
-## The picture's box: the 12x12 picture at twice its size inside a 1-pixel border.
-const BOX: Vector2 = Vector2(26, 26)
+## The picture's box: the 16x16 picture at twice its size inside a 1-pixel border.
+const BOX: Vector2 = Vector2(34, 34)
 const PICTURE_SCALE: float = 2.0
 ## Where the words start, right of the box, and the gap between the name and its kind.
-const TEXT_X: float = 32.0
+const TEXT_X: float = 40.0
 const KIND_GAP: float = 8.0
 ## Seconds of one pulse of a node that can be taken, bright half then dim half.
 const PULSE_SECONDS: float = 1.0
-## The sheet of pictures, one 12x12 part per [constant AbilityDef.PICTURES] entry.
-const ICONS_PATH: String = "res://assets/sprites/ui/talent_icons.png"
 ## The colour of a closed node's words, and of anything else dimmed on a hero window: readable,
 ## but plainly not in play.
 const DIM: StringName = &"steel"
 ## A tick in 5x4 cells, each 2x2 pixels, drawn in code at the box's bottom right.
 const TICK: Array[String] = ["....#", "...#.", "#.#..", ".#..."]
-
-static var _sheet: PixelSheet
 
 ## The ability this node stands for.
 var ability_id: StringName
@@ -68,7 +64,7 @@ func _init(id: StringName, on_path: int, width: float) -> void:
 	icon.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	icon.position = Vector2(1, 1)
 	icon.size = BOX - Vector2(2, 2)
-	icon.texture = TalentNode.picture(id)
+	icon.texture = UiIcon.picture(id)
 	add_child(icon)
 	var ability: AbilityDef = Content.ability(id)
 	var title: String = ability.display_name if ability != null else String(id)
@@ -80,15 +76,6 @@ func _init(id: StringName, on_path: int, width: float) -> void:
 	add_child(description_label)
 	_lay_out(width, ability.description if ability != null else "")
 	_apply()
-
-
-## The picture of ability [param id]'s kind, as its data names it.
-static func picture(id: StringName) -> Texture2D:
-	if _sheet == null:
-		_sheet = PixelSheet.load_sheet(ICONS_PATH)
-	var ability: AbilityDef = Content.ability(id)
-	var kind: StringName = ability.picture if ability != null else AbilityDef.PICTURES[0]
-	return _sheet.part(kind) if _sheet.has_part(kind) else null
 
 
 ## Sets how the node stands, and whether it pulses (it can be taken now and the hero has a point).
@@ -170,7 +157,7 @@ func _draw() -> void:
 	draw_rect(Rect2(1, 1, BOX.x - 2.0, 1), Palette.color(bevel))
 	draw_rect(Rect2(1, 1, 1, BOX.y - 2.0), Palette.color(bevel))
 	if _state == State.CLOSED:
-		draw_rect(Rect2(8, 12, 10, 2), Palette.color(&"night"))  # a dash where the picture was
+		draw_rect(Rect2(11, 16, 12, 2), Palette.color(&"night"))  # a dash where the picture was
 	if is_ticked():
 		var at := Vector2(BOX.x - 11.0, BOX.y - 10.0)
 		for y: int in TICK.size():

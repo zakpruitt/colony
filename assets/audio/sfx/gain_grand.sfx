@@ -1,0 +1,53 @@
+# A grand gain (spec 063): a banner drops in. A short fanfare: two quick notes up to a held chord
+# of square and triangle, with a sparkle on top, falling quietly away.
+[one]
+wave = square
+duty = 0.25
+pitch = 392
+length = 0.08
+volume = 0.2
+release = 0.02
+
+[two]
+wave = square
+duty = 0.25
+start = 0.08
+pitch = 523
+length = 0.08
+volume = 0.2
+release = 0.02
+
+[root]
+wave = square
+duty = 0.25
+start = 0.16
+pitch = 659
+length = 0.5
+volume = 0.18
+release = 0.35
+
+[third]
+wave = triangle
+start = 0.16
+pitch = 784
+length = 0.5
+volume = 0.16
+release = 0.35
+
+[fifth]
+wave = triangle
+start = 0.16
+pitch = 1047
+length = 0.5
+volume = 0.12
+release = 0.35
+
+[sparkle]
+wave = square
+duty = 0.125
+start = 0.2
+pitch = 2093
+slide = 2637
+length = 0.3
+volume = 0.06
+release = 0.25

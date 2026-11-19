@@ -5,8 +5,9 @@ extends Control
 ## what it does, and which side quests it answers; one still to come is dimmed, with the level it
 ## comes at. Read from the simulation at each [method refresh].
 
-## UI pixels between two cards.
+## UI pixels between two cards, and between a card's picture and its words.
 const CARD_GAP: float = 10.0
+const PICTURE_GAP: float = 6.0
 
 ## The cards, in the class's order.
 var cards: Array[Card] = []
@@ -61,8 +62,9 @@ func lines() -> Array[String]:
 	return made
 
 
-## One microskill's card: its name, what it does (or the level it comes at), and the side quests
-## it answers, the words wrapped to the card's width.
+## One microskill's card: its picture (spec 063) at twice its size, and beside it its name, what
+## it does (or the level it comes at), and the side quests it answers, the words wrapped to the
+## card's width. A microskill still to come has its picture dimmed.
 class Card:
 	extends Control
 
@@ -74,19 +76,36 @@ class Card:
 	var name_label: Label
 	var text_label: Label
 	var answers_label: Label
+	## The microskill's own picture, at the card's left.
+	var picture: TextureRect
 
 	var _width: float = 0.0
+	## Where the words start, right of the picture.
+	var _words_x: float = 0.0
 
 	func _init(shown: MicroskillDef, at_level: int, width: float) -> void:
 		skill = shown
 		level = at_level
-		_width = width
 		name = "Card_%s" % shown.id
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
+		picture = TextureRect.new()
+		picture.name = "Picture"
+		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		picture.stretch_mode = TextureRect.STRETCH_SCALE
+		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+		picture.custom_minimum_size = UiIcon.PICTURE_SIZE * 2.0
+		picture.size = UiIcon.PICTURE_SIZE * 2.0
+		picture.texture = UiIcon.picture(shown.id)
+		add_child(picture)
+		_words_x = picture.size.x + PICTURE_GAP
+		_width = width - _words_x
+		width = _width
 		name_label = WindowText.label("Name", shown.display_name, &"white", true)
+		name_label.position = Vector2(_words_x, 0)
 		add_child(name_label)
 		text_label = WindowText.label("Text", "", &"silver")
-		text_label.position = Vector2(0, UiText.LINE_HEIGHT)
+		text_label.position = Vector2(_words_x, UiText.LINE_HEIGHT)
 		add_child(text_label)
 		answers_label = WindowText.label("Answers", "", &"green")
 		add_child(answers_label)
@@ -114,11 +133,12 @@ class Card:
 		var lines: Array[String] = WindowText.wrap(text, _width)
 		text_label.text = "\n".join(PackedStringArray(lines))
 		text_label.size = Vector2(_width, lines.size() * UiText.LINE_HEIGHT)
-		answers_label.position = Vector2(0, text_label.position.y + text_label.size.y)
+		answers_label.position = Vector2(_words_x, text_label.position.y + text_label.size.y)
 		var bottom: float = answers_label.position.y
 		if answers_label.visible:
 			bottom += answers_label.size.y
-		size = Vector2(_width, bottom)
+		size = Vector2(_words_x + _width, maxf(bottom, picture.size.y))
+		picture.modulate = Color.WHITE if has else UiIcon.LOCKED_TINT
 		var dim: Color = Palette.color(TalentNode.DIM)
 		name_label.add_theme_color_override(&"font_color", Palette.color(&"white") if has else dim)
 		text_label.add_theme_color_override(&"font_color", Palette.color(&"silver") if has else dim)

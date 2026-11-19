@@ -271,17 +271,12 @@ func test_r1_the_tree_is_drawn() -> void:
 		var right: TalentNode = view.path_nodes[1][0]
 		assert_eq(left.position.y, right.position.y, "%s: side by side" % class_id)
 		assert_gt(right.position.x, left.get_rect().end.x, "%s: the second to the right" % class_id)
-		# Each node: a picture of its kind and its ability's name.
+		# Each node: its ability's own picture (spec 063) and its ability's name.
 		for node: TalentNode in view.nodes():
 			var ability: AbilityDef = Content.ability(node.ability_id)
 			assert_eq(node.name_label.text, ability.display_name, "%s's name" % node.ability_id)
-			assert_not_null(node.icon.texture, "%s has a picture" % node.ability_id)
-			assert_eq(node.icon.size, Vector2(24, 24), "a 12x12 picture at twice its size")
-			assert_has(
-				["strike", "guard", "heal", "fire", "frost", "shadow", "light", "rally"],
-				String(Content.ability(node.ability_id).picture),
-				"%s's picture is one of the eight kinds" % node.ability_id
-			)
+			assert_eq(node.icon.texture, UiIcon.picture(node.ability_id), "%s" % node.ability_id)
+			assert_eq(node.icon.size, Vector2(32, 32), "a 16x16 picture at twice its size")
 		# Joined by lines: each node to the next in its order, the trunk to both paths.
 		var joined: Dictionary[String, bool] = {}
 		for join: Array in view.joins():

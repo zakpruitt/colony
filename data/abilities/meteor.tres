@@ -16,7 +16,6 @@ id = &"meteor"
 display_name = "Meteor"
 description = "Drops a meteor on the furthest enemy: 3x damage to it and those beside it. Every 15 s."
 move = &"channel"
-picture = &"fire"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 15.0

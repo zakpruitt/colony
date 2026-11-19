@@ -384,7 +384,8 @@ pieces above now, and they stay for their colours and marks.
   in `yellow` (or when the next comes, in `steel`) over the tree, with `Reset <price>` at the right and, when it
   is greyed, why in `slate` beside it. The trunk's three nodes in a row, then the two paths side by side under
   their names, four nodes each in a column, joined by 1-pixel lines (`silver` between taken nodes, `slate`
-  otherwise, `dusk` into a closed path). A node is a 14x14 box holding a 12x12 picture of its kind, its
+  otherwise, `dusk` into a closed path). A node is a box holding its ability's own picture (since spec 063 a
+  16x16 picture at 2x in a 34x34 box), its
   ability's name beside it: taken is a `pine` box with a `green` edge, a small `green` tick and the name in
   `white`; one that can be taken now has a `yellow` edge stepping to `amber` once a second and its name in
   `yellow`; a plain one has a `dusk` edge and a `steel` name; a closed one is an `ink` box with no picture and
@@ -493,11 +494,30 @@ pieces above now, and they stay for their colours and marks.
   (embers), each drawn with an `ink` edge so it reads on any panel. They stand beside the gold with their count
   in `white`, on the shop's rows (the price `white`, `slate` while the party has too little) and the area map,
   and rise from a monster that drops one. A new resource needs a part named for its id.
-- **Talent pictures** (spec 055) are 12x12 parts of `assets/sprites/ui/talent_icons.px`, one per kind of
-  ability, not one per ability: `strike` (a sword), `guard` (a shield), `heal` (a green cross), `fire` (a
-  flame), `frost` (an ice crystal), `shadow` (a crescent), `light` (a four-pointed spark) and `rally` (a red
-  banner), each with an `ink` edge. `TalentNode.KINDS` gives each ability its kind; a new ability needs a
-  line there (it shows `strike` until it has one). Placeholder art.
+- **Pictures** (spec 063, replacing spec 055's eight shared talent pictures) are 16x16 parts of
+  `assets/sprites/ui/pictures_<group>.px` (category `ui`; groups `knight`, `rogue`, `mage`, `cleric`,
+  `upgrades`, `paragon`, `skills`), one per thing a player can gain, named for its id and found by it
+  (`UiIcon.picture(id)`). Each shows what the thing is or does, with an `ink` edge round every shape and
+  light from the top-left; the abilities of one class differ in shape and colour so none is mistaken for
+  another at a glance. New content needs a part named for its id (spec 063's R1 test fails without one).
+  Placeholder art. `python tools/dev.py shot --scene=res://game/ui/picture_specimen.tscn --name=pictures`
+  shows them all.
+- **The slot** (`UiIcon`) frames a picture: large, at 2x in a 2-pixel bevelled frame (36x36); small, at 1x in
+  a 1-pixel frame (18x18). Owned: `amber` edge, `yellow`/`copper` bevel, full colour. Ready: `yellow` edge
+  stepping to `white` and back every 1.2 s, `white`/`orange` bevel, full colour. Locked: `slate` edge, the picture dimmed by half.
+  Closed: `dusk` edge on `ink`, the picture barely there and a small `silver`/`steel` padlock at the bottom
+  right. Under the mouse the edge goes a step brighter, except
+  owned's: it keeps its `amber` edge and brightens its picture and its bevel's light to `white`, so owned
+  and ready never share an edge colour. A frame is square or has its corners cut. A count
+  sits at the bottom right in bold `white` with an `ink` shadow.
+- **The card** is a tooltip with the picture at 2x on the left and beside it the title in bold `white`, the
+  kind in `steel`, the body in `silver` wrapped at 240 pixels and the stand in the caller's colour.
+- **The burst**: the control's frame flashes `white` then `silver`, twelve 3x3 sparks with `ink` edges spread
+  in a ring stepping `yellow`, `amber`, `orange`, and the control pops to 1.3 times and settles, 0.6 s in
+  all. **The banner**: a `night` panel with an `amber` edge unrolling downward at the top middle under the
+  top band, the picture at 3x in a `yellow`-edged `ink` box, the headline in bold `yellow` and the line in
+  `silver`; 2.5 s, or until clicked. It is never wider than the room between the middle and the goals or
+  the stage list; its line wraps to two lines at most, the second ending `...` when cut short.
 
 ## Sound
 
@@ -516,6 +536,8 @@ the docstring of `tools/sfx.py`: one or more `[part]`s, each a wave (`square`, `
   click: every part rises from silence and falls back to it.
 - **Shape matches the moment.** A coin is bright and short, a level up and a revival rise, a wipe and a hero's
   death fall, hits are thumps with a crack of noise (a crit heavier, with a ring), a hero's hurt is duller.
+- **Gains** (spec 063): `gain_small` (a twinkle rising a fifth) plays with a burst, `gain_grand` (two quick
+  notes up to a held chord with a sparkle) with a banner; neither starts twice within 0.15 s.
 - **Quiet in the game.** Everything plays on the `SFX` bus at -12 dB; `M` mutes it. The player
   (`game/audio/sound_player.gd`) never starts the same sound twice within 0.05 s, plays at most 8 at once and
   varies each start's pitch a little.

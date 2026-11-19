@@ -203,6 +203,9 @@ func _start_play() -> void:
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	ui.setup(simulation, hud, settings)
+	ui.moment.world = world  # spec 063: moments only for what just happened, with their sounds
+	ui.moment.sound = sound
+	ui.moment.keep_clear = [hud.goals_view, hud.ladder] as Array[Control]
 	ui.windows.open_waiting()  # spec 062 R5: under the away report, when there is one
 	_welcome()
 

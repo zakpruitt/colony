@@ -18,7 +18,6 @@ id = &"ignite"
 display_name = "Ignite"
 description = "Hits have a 50% chance to set the enemy burning for 3 s."
 move = &"flourish"
-picture = &"fire"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 1

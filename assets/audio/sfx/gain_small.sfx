@@ -1,0 +1,28 @@
+# A small gain (spec 063): a burst on something just gained. A bright twinkle rising a fifth,
+# with a soft shimmer of noise under it.
+[ping]
+wave = square
+duty = 0.125
+pitch = 1319
+length = 0.06
+volume = 0.18
+attack = 0.002
+release = 0.02
+
+[pong]
+wave = square
+duty = 0.125
+start = 0.05
+pitch = 1976
+slide = 2349
+length = 0.14
+volume = 0.18
+release = 0.1
+
+[shimmer]
+wave = triangle
+start = 0.05
+pitch = 3136
+length = 0.12
+volume = 0.06
+release = 0.1
