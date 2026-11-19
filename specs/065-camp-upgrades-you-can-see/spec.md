@@ -1,9 +1,9 @@
 # 065 — Camp upgrades you can see
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 017, 045, 052, 059, 063
-- **Pull request:** —
+- **Pull request:** [#65](https://github.com/zakpruitt/colony/pull/65)
 
 ## Intent
 
