@@ -252,7 +252,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	goals.setup(simulation, world)
 	# The tally and the area map are the content of windows on the UI layer, which [UiRoot] makes.
 	tally = TallyWindow.new()
-	tally.setup(simulation, world, self)
+	tally.setup(simulation, world)
 	area_map = AreaMapWindow.new()
 	area_map.setup(simulation, world, self)
 	_build_news()
@@ -593,7 +593,7 @@ func _countdown_tip() -> String:
 ## on the bar).
 func _build_shop() -> void:
 	shop = ShopWindow.new()
-	shop.setup(_simulation, _world, self)
+	shop.setup(_simulation, _world)
 
 
 ## Shows the game's speed on the purse's speed button: its label, lit above 1x.

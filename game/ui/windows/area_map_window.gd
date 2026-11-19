@@ -50,6 +50,8 @@ var news: AreaNews
 var tip: UiTip
 
 var _simulation: Simulation
+## The HUD that made it, whose ladder and journal Go speaks to; null for a window on its own.
+var _hud: Hud
 var _chooser: HBoxContainer
 var _chosen: StringName = &""
 var _stage: int = 0

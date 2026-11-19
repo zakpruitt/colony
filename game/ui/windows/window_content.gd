@@ -9,9 +9,6 @@ extends VBoxContainer
 ## it closes the "While you were away" report (but not as it opens under the report, left open
 ## last session), and [method _shown] lets it bring itself up to date.
 
-## The HUD that made it, or null. Only the windows built on this one read it.
-@warning_ignore("unused_private_class_variable")
-var _hud: Hud
 ## True from the content's opening to its closing, so [method _shown] runs once per opening.
 var _was_open: bool = false
 

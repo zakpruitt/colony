@@ -270,7 +270,7 @@ func flush() -> void:
 
 
 ## Writes the file: to a temporary file renamed into place, so a write cut short leaves the
-## old file or none, never half of one. Returns true if it was written.
+## file before it or none, never half of one. Returns true if it was written.
 func save() -> bool:
 	var data: Dictionary = {MODE_KEY: NAMES[mode], BACK_KEY: NAMES[back]}
 	if rect.size != Vector2i.ZERO:

@@ -59,10 +59,9 @@ func _init() -> void:
 
 
 ## Call once, before the first advance. [param world] may be null (no flashes then).
-func setup(simulation: Simulation, world: World, hud: Hud) -> void:
+func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
 	_world = world
-	_hud = hud
 	var ids: Array[StringName] = Content.upgrade_ids()
 	for i: int in ids.size():
 		if i > 0:

@@ -104,7 +104,8 @@ const HIT_SQUASH_TIME: float = 0.14
 const HIT_SQUASH: float = 0.18
 
 # Death.
-## Seconds of the whole collapse (under the spec's 0.4), and of the pop that starts it.
+## Seconds of the whole collapse (under 0.4, so a death reads as quick), and of the pop that
+## starts it.
 const DEATH_TIME: float = 0.34
 const DEATH_POP_TIME: float = 0.07
 

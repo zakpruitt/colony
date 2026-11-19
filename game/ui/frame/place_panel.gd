@@ -93,6 +93,8 @@ func show_place(
 ) -> void:
 	if area_button.text != area:
 		area_button.text = area
+	# Sized at 1x here; the label stays big enough at its 2x font because a Control never shrinks
+	# below its minimum size.
 	WindowText.set_text(stage_label, str(stage))
 	stage_label.add_theme_color_override(&"font_color", Palette.color(stage_colour))
 	WindowText.set_text(safe_label, "Safe %d" % safe)

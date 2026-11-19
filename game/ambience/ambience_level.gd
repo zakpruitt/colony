@@ -19,7 +19,7 @@ const NODES: int = 2
 const GLOW_Z: int = 101
 
 # Torches.
-## One torch per this many tiles of chamber width (spec: one per 6 to 8), and at least one.
+## One torch per this many tiles of chamber width, so one per 6 to 8 tiles, and at least one.
 const TORCH_SPACING: float = 7.0
 ## The torch's tile is this many rows above the floor row, so its bracket ends a tile above the
 ## floor and its flame is just over the heads of the party.
@@ -50,7 +50,8 @@ const MAX_PLAIN_PROPS: int = 3
 
 # Buried details.
 ## The earth is cut into cells this many tiles wide and tall, and each holds at most one buried
-## thing, so they are spread evenly: about one per 40 buried tiles (spec: one per 30 to 60).
+## thing, so they are spread evenly: about one per 40 buried tiles, and between one per 30 and
+## one per 60.
 const DETAIL_CELL: Vector2i = Vector2i(10, 8)
 ## Tries at finding a buried tile in a cell before leaving it empty.
 const DETAIL_TRIES: int = 8

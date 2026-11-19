@@ -49,7 +49,7 @@ const LOOK_AHEAD: float = 3.0 * TILE
 const LOOK_ABOVE: float = 3.0 * TILE
 ## A sprite's pivot pixel is the bottom row of its feet, drawn just below the node's position.
 ## The characters are lifted by that one row, so feet stand on the floor line instead of sinking
-## one pixel into it, while every position (and [method feet_position]) keeps the spec's pixel.
+## one pixel into it, while every position (and [method feet_position]) is the floor pixel itself.
 const FEET_LIFT: Vector2 = Vector2(0, -1)
 ## The effects layer's absolute z: over the ambience's darkness and glow.
 const EFFECTS_Z: int = 110
@@ -92,8 +92,8 @@ var _waiting: Dictionary[int, bool] = {}
 ## Monsters that have died, with the depth they died on: never shown again. Forgotten when that
 ## level is freed, as its dead are never asked about again.
 var _gone: Dictionary[int, int] = {}
-## The combatant each of those was. A chamber refilled often enough hands its ids out again (spec
-## 023), to new combatants: a monster is only kept hidden while it is the very one that died.
+## The combatant each of those was. A chamber refilled often enough hands its ids out again, to
+## new combatants: a monster is only kept hidden while it is the very one that died.
 var _gone_as: Dictionary[int, Combatant] = {}
 ## Attacks winding up: attacker id to Vector2i(target id, the tick it strikes on).
 var _windups: Dictionary[int, Vector2i] = {}

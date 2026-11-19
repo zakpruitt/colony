@@ -114,9 +114,8 @@ func _init() -> void:
 
 
 ## Call once, before the first advance. [param world] may be null (nothing is counted then).
-func setup(simulation: Simulation, world: World, hud: Hud) -> void:
+func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
-	_hud = hud
 	_start_tick = simulation.tick
 	_area = simulation.expedition.place
 	_depth = simulation.expedition.depth
