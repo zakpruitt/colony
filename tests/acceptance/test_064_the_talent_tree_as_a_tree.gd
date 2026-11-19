@@ -86,10 +86,7 @@ func test_r1_the_shape() -> void:
 		var second: StringName = view.path_colour(1)
 		assert_ne(first, second, "%s: two colours" % class_id)
 		for colour: StringName in [first, second]:
-			assert_false(
-				[&"amber", &"yellow", &"white", &"slate", &"dusk", &"ink"].has(colour),
-				"%s: a path colour is not a state's" % colour
-			)
+			_check_not_a_state(colour)
 		assert_eq(
 			view.path_colour(1), PathColours.of(class_id, 1), "a view table by class and path"
 		)
@@ -383,6 +380,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 		)
 		assert_eq(strip.stand_label.text, stand, "%s: how it stands" % what)
 		assert_eq(strip.learn_button.is_visible_in_tree(), learn, "%s: Learn button" % what)
+		assert_eq(strip.slot.state(), view.node(id).slot.state(), "%s: framed as its node" % what)
 		var box: Rect2 = shown.get_global_rect()
 		for label: Label in [strip.name_label, strip.kind_label, strip.description_label]:
 			assert_true(box.encloses(_text_rect(label)), "%s: %s inside" % [what, label.name])
@@ -417,6 +415,21 @@ func test_r6_what_is_next_without_pointing() -> void:
 	_level(knight, 12)
 	main.hud.advance(STEP)
 	check.call(tree.path_b[2], "Click to learn", true, "down the path")
+	# A node taken, one closed and a full tree's last: each framed as it stands, not as locked.
+	var framed: Dictionary[StringName, UiIcon.State] = {
+		tree.path_b[0]: UiIcon.State.OWNED, tree.path_a[1]: UiIcon.State.CLOSED
+	}
+	for id: StringName in framed:
+		_move(main.ui.ui_to_world(view.node(id).slot.get_global_rect().get_center()))
+		main.hud.advance(STEP)
+		assert_eq(strip.ability_id, id, "pointed at")
+		assert_eq(strip.slot.state(), framed[id], "%s framed as it stands" % id)
+	_point_away(main)
+	knight.set_talents(_walked(&"knight", 1, 4))
+	_level(knight, 15)
+	main.hud.advance(STEP)
+	assert_eq(strip.ability_id, tree.path_b[3], "the full tree's last")
+	assert_eq(strip.slot.state(), UiIcon.State.OWNED, "framed as owned")
 
 
 # --- R7 ------------------------------------------------------------------------
@@ -573,6 +586,24 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 		assert_eq(_view(other).node(id).slot.state(), UiIcon.State.CLOSED, "%s closed" % id)
 	assert_eq(_banner(main), "", "no banner for it")
 	assert_eq(moment.bursts_seen(), bursts, "nor a burst")
+	# A window closed while its path closes plays nothing more when it opens again later.
+	var rogue: Hero = _hero(main, &"rogue")
+	var closed: HeroWindow = _choose_now(main, rogue)
+	closed.close()
+	main.hud.advance(STEP)
+	for i: int in STALE_TICKS:
+		main.simulation.step()
+	main.hud.hero_windows.open(rogue.id)
+	main.hud.advance(STEP)
+	assert_false(_view(closed).is_closing(), "no closing for a choice long past")
+	assert_false(_view(closed).is_lit(_tree(&"rogue").path_a[0]), "nor a line lit")
+	# As the world catches up, what was playing stops.
+	_tick(main)  # the world level with the simulation again
+	var cleric: Hero = _hero(main, &"cleric")
+	var caught: HeroWindow = _choose_now(main, cleric)
+	_stall(main, STALE_TICKS)
+	assert_false(_view(caught).is_closing(), "the closing stops as the world catches up")
+	assert_false(_view(caught).is_lit(_tree(&"cleric").path_a[0]), "and the lit line")
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -653,6 +684,18 @@ func test_r9_paragon() -> void:
 	_click(main, power.medallion)
 	_tick(main)
 	assert_eq(_banner(main), "", "the eleventh: none")
+	# A point spent long ago, or heard as the world catches up, flashes nothing.
+	main.hud.advance(ParagonCell.FLASH_SECONDS)
+	assert_eq(power.flash(), 0.0, "at rest")
+	main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
+	_stall(main, STALE_TICKS)
+	assert_eq(power.flash(), 0.0, "no flash for a point spent long ago")
+	for i: int in STALE_TICKS:
+		main.simulation.step()
+	main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
+	_stall(main, 1)
+	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 13, "both spent")
+	assert_eq(power.flash(), 0.0, "nor for one heard as the world catches up")
 
 
 # --- R10 -----------------------------------------------------------------------
@@ -764,6 +807,17 @@ func test_r11_nothing_lost() -> void:
 	tab.confirm()
 	_tick(main)
 	assert_eq(sim.party.gold, RICH, "nothing charged")
+	# Nor when the answer comes before the tab has looked again: the click lands on the question
+	# still up, in the frame the price changed.
+	_click(main, tab.reset_button)
+	assert_eq(tab.asking(), HeroTalentsTab.Asking.RESET, "asked at the price shown")
+	_level(knight, PARAGON_LEVEL + 2)
+	_click_ui(main.ui, tab.choose_button.get_global_rect().get_center())
+	_tick(main)
+	assert_eq(sim.party.gold, RICH, "answered at a price not read: nothing charged")
+	assert_eq(knight.talents(), tree.trunk, "and nothing reset")
+	_level(knight, PARAGON_LEVEL + 1)
+	main.hud.advance(STEP)
 	_click(main, tab.reset_button)
 	_click(main, tab.choose_button)
 	_tick(main)
@@ -779,6 +833,15 @@ func test_r11_nothing_lost() -> void:
 		main.hud.advance(STEP)
 		assert_true(main.hud.hero_windows.is_open(knight.id), "the goal opens the window")
 		assert_eq(_window(main, knight).page(), HeroWindow.Page.TALENTS, "on Talents")
+	# The defeat note's button opens a hero with points to spend on Talents, whatever tab it had.
+	_click(main, shown.tab_buttons[HeroWindow.Page.STATS])
+	main.hud.hero_windows.close_all()
+	assert_true(_answer_defeat(main, "Spend talent points"), "the note offers it after a wipe")
+	var opened: HeroWindow = main.hud.hero_windows.front()
+	assert_not_null(opened, "the note opens a hero window")
+	if opened != null:
+		assert_eq(opened.hero_id, knight.id, "the hero with points to spend")
+		assert_eq(opened.page(), HeroWindow.Page.TALENTS, "on Talents")
 
 
 # --- R12 -----------------------------------------------------------------------
@@ -795,9 +858,11 @@ func test_r12_true_in_a_crowded_frame() -> void:
 	knight.xp = Hero.xp_for_level(PARAGON_LEVEL) - 1
 	_level(cleric, 2)
 	cleric.xp = Hero.xp_for_level(4) - 1
-	var first: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
+	# The cleric's window at the back changes only by its level-ups: no event of its own refreshes it.
 	var second: HeroWindow = _open(main, cleric, HeroWindow.Page.TALENTS)
+	var first: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	main.hud.advance(STEP)
+	assert_eq(main.hud.hero_windows.front(), first, "the knight's in front")
 	# Level-ups, a node taken and paragon spent, all in one frame of 300 ticks.
 	sim.take_talent(knight.id, tree.path_b[0])
 	sim.spend_paragon(knight.id, TrainingDef.Stat.QUICKNESS)

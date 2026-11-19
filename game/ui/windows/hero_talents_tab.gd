@@ -593,10 +593,12 @@ func _refresh_strip(hero: Hero, delta: float) -> void:
 				break
 	if shown == &"":
 		shown = _next_on_the_way(hero)
+	var showing: TalentNode = tree.node(shown)
 	strip.show_node(
 		shown,
 		standing(hero, shown),
 		standing_colour(hero, shown),
+		showing.slot.state() if showing != null else UiIcon.State.LOCKED,
 		hero.can_take(shown) and is_visible_in_tree()
 	)
 	strip.advance(delta)

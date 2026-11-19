@@ -147,3 +147,67 @@ func _into_view(main: Main, shown: HeroWindow, control: Control) -> void:
 		_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
 		main.hud.advance(STEP)
 		await _frames()
+
+
+## Steps the simulation [param ticks] times in one frame, then syncs the world and the HUD once: a
+## stall the world catches up on when [param ticks] is more than a few.
+func _stall(main: Main, ticks: int) -> void:
+	for i: int in ticks:
+		main.simulation.step()
+	main.world.sync(STEP)
+	main.hud.advance(STEP)
+
+
+## Opens [param hero]'s window on Talents with its trunk taken, has it choose its first path now and
+## checks the other starts closing with the line into the chosen node lit; returns the window.
+func _choose_now(main: Main, hero: Hero) -> HeroWindow:
+	var tree: TalentTreeDef = _tree(hero.class_id)
+	_level(hero, 8)
+	hero.set_talents(tree.trunk)
+	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
+	main.simulation.take_talent(hero.id, tree.path_a[0])
+	_tick(main)
+	assert_true(_view(shown).is_closing(), "%s: the other path closing" % hero.class_id)
+	assert_true(_view(shown).is_lit(tree.path_a[0]), "%s: the line lit" % hero.class_id)
+	return shown
+
+
+## Fails when palette colour [param colour] is one a state uses: the frames' gold, yellow, white and
+## greys, the green of what is learned and of the paragon totals, the lit trunk's sand.
+func _check_not_a_state(colour: StringName) -> void:
+	var states: Array[StringName] = [
+		&"amber",
+		&"yellow",
+		&"white",
+		&"silver",
+		&"steel",
+		&"slate",
+		&"dusk",
+		&"night",
+		&"ink",
+		&"green",
+		&"sand"
+	]
+	for state: StringName in states:
+		assert_ne(
+			Palette.color(colour), Palette.color(state), "%s is %s, a state's" % [colour, state]
+		)
+
+
+## Loses the party's next fight and clicks the defeat note's button reading [param text]; false
+## when no fight came, the party did not fall, or the note has no such button.
+func _answer_defeat(main: Main, text: String) -> bool:
+	var battle: Battle = _fight(main)
+	if battle == null:
+		return false
+	for fighter: Combatant in battle.heroes:
+		fighter.health = 0
+	var ticks: int = 0
+	while main.simulation.expedition.state != Expedition.State.REVIVING and ticks < LIMIT_TICKS:
+		_tick(main)
+		ticks += 1
+	var at: int = main.hud.defeat_note.suggestions().find(text)
+	if at < 0:
+		return false
+	_click(main, main.hud.defeat_note.buttons[at])
+	return true

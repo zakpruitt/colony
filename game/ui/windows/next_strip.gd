@@ -46,9 +46,12 @@ func _init(width: float, ids: Array[StringName]) -> void:
 	custom_minimum_size = size
 
 
-## Shows node [param id] standing as [param stand] in the palette colour [param stand_colour], with
+## Shows node [param id] standing as [param stand] in the palette colour [param stand_colour], its
+## picture framed as the node is in the tree ([param state]: owned, ready, locked or closed), with
 ## the [code]Learn[/code] button when [param learnable]; &"" shows nothing.
-func show_node(id: StringName, stand: String, stand_colour: StringName, learnable: bool) -> void:
+func show_node(
+	id: StringName, stand: String, stand_colour: StringName, state: UiIcon.State, learnable: bool
+) -> void:
 	ability_id = id
 	var ability: AbilityDef = Content.ability(id) if id != &"" else null
 	for each: StringName in _slots:
@@ -60,7 +63,7 @@ func show_node(id: StringName, stand: String, stand_colour: StringName, learnabl
 		slot = null
 		return
 	slot = _slot_of(id, ability)
-	slot.show_state(UiIcon.State.READY if learnable else UiIcon.State.LOCKED)
+	slot.show_state(state)
 	var words_x: float = TalentNode.SLOT.x + GAP
 	WindowText.set_text(name_label, ability.display_name)
 	WindowText.set_text(kind_label, HeroTalentsTab.kind_text(id))

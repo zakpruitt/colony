@@ -208,6 +208,14 @@ func is_closing() -> bool:
 	return _closing >= 0
 
 
+## Drops the flashes and the closing under way, finished at once: the window closed, or the world
+## is catching up, and nothing plays later for an event long past.
+func stop() -> void:
+	_flashes.clear()
+	_finish_closing()
+	queue_redraw()
+
+
 ## The lines that join the nodes, each [Rect2, the nodes it joins]: down the trunk, the fork's stub
 ## under the last trunk node, its line across to each path and down into each path's first node,
 ## then down each path. Every line is beside the names, never through them.

@@ -891,7 +891,7 @@ func _advance_shop(delta: float) -> void:
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	if event.kind == SimEvent.Kind.PARAGON_SPENT and hero_windows != null:
+	if event.kind == SimEvent.Kind.PARAGON_SPENT and hero_windows != null and _fresh(event):
 		hero_windows.flash_paragon(event.source_id, event.target_id)
 	if event.kind == SimEvent.Kind.UPGRADE_BOUGHT:
 		# The purchase spent gold: the count drops to the real gold at once.
@@ -909,6 +909,11 @@ func _on_sim_event(event: SimEvent) -> void:
 			frame.hit()
 		SimEvent.Kind.LEVEL_UP:
 			frame.level_up()
+
+
+## True when [param event] may start a flash: it is recent and the world is not catching up.
+func _fresh(event: SimEvent) -> bool:
+	return _world == null or (_world.is_recent(event) and not _world.catching_up())
 
 
 func _on_coin_collected(amount: int) -> void:

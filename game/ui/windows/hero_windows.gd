@@ -135,12 +135,22 @@ func _set_heights(height: float) -> void:
 		_windows[hero_id].set_body_height(height)
 
 
-## Brings every open window up to date with the simulation. The HUD calls it every frame.
+## Brings every open window up to date with the simulation. The HUD calls it every frame. While
+## the world catches up, every tree drops what it was playing for the events before (spec 057).
 func advance(delta: float) -> void:
+	var settling: bool = _catching_up()
 	for hero_id: int in _ids:
 		var shown: HeroWindow = _windows[hero_id]
+		if settling:
+			shown.talents.tree_view().stop()
 		if shown.is_open():
 			shown.advance(delta)
+
+
+## True while the world catches up on a stall: nothing plays for the events it brings.
+func _catching_up() -> bool:
+	var moment: UiMoment = _ui.moment if _ui != null else null
+	return moment != null and moment.world != null and moment.world.catching_up()
 
 
 ## The window of hero [param hero_id], or null.
@@ -308,7 +318,8 @@ func _on_paragon(event: SimEvent, moment: UiMoment) -> void:
 	if hero == null or event.target_id < 0 or event.target_id >= ids.size():
 		return
 	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
-	if shown != null and event.target_id < shown.talents.paragon_cells.size():
+	var cells: int = shown.talents.paragon_cells.size() if shown != null else 0
+	if event.target_id < cells and moment.may_start(event):
 		shown.advance(0.0)  # the count up before it bursts
 		moment.burst(shown.talents.paragon_cells[event.target_id].medallion, event)
 	var rank: int = event.amount
@@ -328,7 +339,7 @@ func _on_microskill(event: SimEvent, moment: UiMoment) -> void:
 		return
 	var skill: MicroskillDef = Content.microskill(ids[event.target_id])
 	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.SKILLS)
-	if shown != null:
+	if shown != null and moment.may_start(event):
 		shown.advance(0.0)
 		for card: HeroSkillsTab.Card in shown.skills.cards:
 			if card.skill == skill:

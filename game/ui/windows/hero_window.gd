@@ -544,6 +544,7 @@ func _draw_body() -> void:
 ## not easing from where they were when it closed.
 func _on_open_changed(_window: UiWindow) -> void:
 	if not is_open():
+		talents.tree_view().stop()  # nothing left to play when it opens again
 		return
 	settle()
 	advance(0.0)
