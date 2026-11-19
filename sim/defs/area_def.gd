@@ -1,6 +1,6 @@
 class_name AreaDef
 extends Resource
-## A place in the labyrinth the party can work in (spec 049): its own monsters and guardian, and
+## A place in the labyrinth the party can work in: its own monsters and guardian, and
 ## stages that get harder from [member base_level]. One .tres file per area under res://data/areas.
 
 @export var id: StringName
@@ -20,7 +20,7 @@ extends Resource
 @export var guardian_stage: int
 ## The area whose guardian must be beaten to open this one; &"" for an area open from the start.
 @export var opened_by: StringName
-## The resource its monsters drop (spec 052), a [ResourceDef] id.
+## The resource its monsters drop, a [ResourceDef] id.
 @export var resource: StringName
 
 
@@ -31,11 +31,7 @@ func level_at(stage: int) -> int:
 
 ## One line per problem; empty when the area is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if id.is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(id, display_name)
 	if order < 1:
 		problems.append("order %d is below 1" % order)
 	if base_level < 1:

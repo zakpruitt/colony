@@ -1,6 +1,6 @@
 class_name AreaTravel
 extends RefCounted
-## The areas as the expedition keeps them (spec 049): which are open, the safe and furthest stage
+## The areas as the expedition keeps them: which are open, the safe and furthest stage
 ## of each area the party is not in, each area's labyrinth, and a journey asked for or under way.
 ## Kept apart from [Expedition] so its file stays under gdlint's 1000 lines.
 
@@ -13,7 +13,7 @@ var open: Dictionary[StringName, bool] = {}
 ## area it is in keeps them in [member Expedition.last_stable_depth] and
 ## [member Expedition.deepest_depth].
 var stages: Dictionary[StringName, Vector2i] = {}
-## Areas whose guardian the party has beaten at least once (spec 052 R12), by id.
+## Areas whose guardian the party has beaten at least once, by id.
 var guardians_beaten: Dictionary[StringName, bool] = {}
 ## A destination asked for by a command, taken up once the party is free to go; &"" when none.
 var pending_area: StringName = &""
@@ -22,7 +22,7 @@ var pending_stage: int = 0
 var stage: int = 0
 var arrive_tick: int = 0
 ## True once a target was chosen during the journey: that target, not [member stage], is the
-## target on arrival (spec 049 R4 as amended).
+## target on arrival.
 var target_chosen: bool = false
 
 var _labyrinths: Dictionary[StringName, Labyrinth] = {}
@@ -40,7 +40,7 @@ func _init(first: Labyrinth) -> void:
 
 
 ## Asks to send the party to [param stage] (1 or more) of area [param id]. Whether the area is open
-## is judged now (spec 049 R4 as amended): a closed one is ignored. The party goes once it is free
+## is judged now: a closed one is ignored. The party goes once it is free
 ## (after any fight or side quest, and up from a wipe); on its way, it turns to the new destination
 ## and starts the journey again.
 func ask(id: StringName, stage_asked: int) -> void:
@@ -98,9 +98,9 @@ func hash_parts() -> Array:
 			kept.append([id, stages[id]])
 	var parts: Array = [open_ids(), kept, pending_area, pending_stage, stage, arrive_tick]
 	if target_chosen:
-		parts.append(true)  # only then, so runs without a journey hash as they did
+		parts.append(true)  # only when set, to keep the hash of a run without a journey
 	if not guardians_beaten.is_empty():
-		# Spec 052: only then, so runs that beat no guardian hash as they did.
+		# Only when one is beaten, to keep the hash of a run that beats no guardian.
 		var ids: Array[StringName] = []
 		for id: StringName in Content.area_ids():
 			if guardians_beaten.has(id):
@@ -146,8 +146,8 @@ func arrival_target(run: Expedition) -> int:
 
 ## [param run] leaves for the destination asked for: a rest it leaves ends (REST_ENDED), and it is
 ## on its way from this tick, standing where it was until it arrives. The journey is a rest: fallen
-## heroes stand and everyone heals as [constant JOURNEY_SECONDS] of resting would (spec 049 R4 as
-## amended). A new destination asked for on the way turns it there and starts the journey again.
+## heroes stand and everyone heals as [constant JOURNEY_SECONDS] of resting would. A new
+## destination asked for on the way turns it there and starts the journey again.
 func depart(run: Expedition) -> void:
 	if run.state == Expedition.State.RESTING:
 		run._emit(SimEvent.Kind.REST_ENDED)
@@ -175,7 +175,7 @@ func journey(run: Expedition) -> void:
 		arrive(run)
 
 
-## [param run] arrives, alive and as hurt as it was, at the start of the stage asked for (or the
+## [param run] arrives, alive and its health unchanged, at the start of the stage asked for (or the
 ## area's safe stage, if that is nearer), with the stage asked for as its target.
 func arrive(run: Expedition) -> void:
 	var wanted: int = stage

@@ -14,8 +14,9 @@ static func column(labyrinth: Labyrinth, level_depth: int) -> float:
 	var level: LabyrinthLevel = labyrinth.level(1)
 	for room: LabyrinthChamber in level.chambers:
 		if room.kind == LabyrinthChamber.Kind.START:
-			return (room.rect.position.x + room.rect.end.x - 1) / 2.0
-	return level.chambers[0].rect.position.x
+			var floor_span: Vector2i = room.floor_columns()
+			return (floor_span.x + floor_span.y) / 2.0
+	return level.chambers[0].floor_columns().x
 
 
 ## The way a party placed at [param at_column] faces: into the level, 1 right or -1 left.

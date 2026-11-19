@@ -7,7 +7,7 @@ extends RefCounted
 
 ## The id of the guardian that holds stage [param stage] of [param area], or &"" if the stage has
 ## none: the area's guardian at its [member AreaDef.guardian_stage] and every
-## [constant Expedition.GUARDIAN_EVERY] stages after it (spec 049).
+## [constant Expedition.GUARDIAN_EVERY] stages after it.
 static func guardian_at(area: AreaDef, stage: int) -> StringName:
 	if area == null or stage < area.guardian_stage:
 		return &""
@@ -39,9 +39,8 @@ static func roll(
 		count_range = Expedition.VAULT_MONSTERS
 	var count: int = rng.next_int(count_range.x, count_range.y)
 
-	# The area's monsters that have appeared, in content order, each as likely as its base level
-	# (as each was as likely as its shallowest depth before spec 049, so Mossy Hollow's first
-	# stage rolls exactly as depth 1 did): the stronger kinds are favoured.
+	# The area's monsters that have appeared, in content order, each as likely as its base level:
+	# the stronger kinds are favoured.
 	var appeared: Dictionary[StringName, bool] = {}
 	for i: int in mini(area.monsters.size(), area.monster_stages.size()):
 		if area.monster_stages[i] <= stage:
@@ -71,8 +70,8 @@ static func roll(
 
 ## Stands waiting monsters evenly over the middle half of the chamber's floor.
 static func spread(monsters: Array[Combatant], room: LabyrinthChamber) -> void:
-	var left: float = room.rect.position.x
-	var right: float = room.rect.end.x - 1
+	var left: float = room.floor_columns().x
+	var right: float = room.floor_columns().y
 	var quarter: float = (right - left) / 4.0
 	for i: int in monsters.size():
 		var share: float = (i + 0.5) / monsters.size()

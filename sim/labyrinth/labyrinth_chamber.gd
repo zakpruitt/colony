@@ -9,3 +9,8 @@ var index: int
 var kind: Kind
 ## Open space in world tiles. rect.end.y - 1 is the floor row.
 var rect: Rect2i
+
+
+## The first (x) and last (y) open column of the chamber's floor.
+func floor_columns() -> Vector2i:
+	return Vector2i(rect.position.x, rect.end.x - 1)

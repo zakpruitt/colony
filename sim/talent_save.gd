@@ -1,15 +1,15 @@
 class_name TalentSave
 extends RefCounted
 ## How each hero's talents and paragon points are saved, checked and brought forward from a
-## version 6 save (spec 051), kept apart from [Simulation] as [AreaSave] is.
+## version 6 save, kept apart from [Simulation] as [AreaSave] is.
 ##
 ## A saved hero carries "talents" (its nodes, in the order taken) and "paragon" (a dictionary
 ## of [TrainingDef] id to the points spent in that stat). Unspent points are not saved: they are
 ## what the hero's level earns less what it spent.
 
-## What spec 029's gold training cost, by training id: [base cost, growth per rank, maximum
+## What a version 6 save's gold training cost, by training id: [base cost, growth per rank, maximum
 ## rank]. Only a version 6 save needs them, to give the gold back.
-const OLD_TRAINING_PRICES: Dictionary[String, Array] = {
+const _OLD_TRAINING_PRICES: Dictionary[String, Array] = {
 	"power": [40, 1.35, 20],
 	"toughness": [35, 1.35, 20],
 	"quickness": [45, 1.5, 10],
@@ -82,18 +82,18 @@ static func upgrade_6_to_7(data: Dictionary) -> Dictionary:
 	return data
 
 
-## The gold spec 029 took for the ranks in [param training], or -1 if they cannot be read.
+## The gold a version 6 save paid for the ranks in [param training], or -1 if they cannot be read.
 static func _paid_for(training: Variant) -> int:
 	if not (training is Dictionary):
 		return -1
 	var ranks: Dictionary = training
 	var paid: int = 0
 	for key: Variant in ranks:
-		if typeof(key) != TYPE_STRING or not OLD_TRAINING_PRICES.has(key as String):
+		if typeof(key) != TYPE_STRING or not _OLD_TRAINING_PRICES.has(key as String):
 			return -1
 		if not Simulation._is_whole(ranks[key]):
 			return -1
-		var price: Array = OLD_TRAINING_PRICES[key as String]
+		var price: Array = _OLD_TRAINING_PRICES[key as String]
 		var rank: int = Simulation._whole(ranks[key])
 		var top: int = price[2]
 		if rank < 0 or rank > top:

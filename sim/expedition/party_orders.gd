@@ -1,6 +1,6 @@
 class_name PartyOrders
 extends RefCounted
-## The rules and names of the party's standing orders (spec 035), kept apart from [Expedition],
+## The rules and names of the party's standing orders, kept apart from [Expedition],
 ## which holds the orders themselves ([member Expedition.pace], [member Expedition.guardian_order]).
 ## Plain functions; nothing here keeps state.
 
@@ -11,23 +11,23 @@ const GUARDIANS: int = 1
 const PACE_SAVED: Array[String] = ["cautious", "steady", "bold"]
 const GUARDIAN_SAVED: Array[String] = ["challenge", "hold"]
 ## The share of its health below which a hero makes the party rest after a fight, at each pace.
-const CAUTIOUS_REST_BELOW: float = 0.8
-const BOLD_REST_BELOW: float = 0.4
+const _CAUTIOUS_REST_BELOW: float = 0.8
+const _BOLD_REST_BELOW: float = 0.4
 
 
 ## The share of a hero's health below which the party rests after a fight at [param pace]. Steady
-## is [constant Expedition.REST_BELOW], the rule from before orders.
+## is [constant Expedition.REST_BELOW].
 static func rest_below(pace: Expedition.Pace) -> float:
 	match pace:
 		Expedition.Pace.CAUTIOUS:
-			return CAUTIOUS_REST_BELOW
+			return _CAUTIOUS_REST_BELOW
 		Expedition.Pace.BOLD:
-			return BOLD_REST_BELOW
+			return _BOLD_REST_BELOW
 	return Expedition.REST_BELOW
 
 
 ## True if the party must rest after a fight at [param pace]: any of [param heroes] is down or
-## below its own share of its own maximum health (spec 040 R3: per hero, not the party's total).
+## below its own share of its own maximum health (per hero, not the party's total).
 static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
 	for hero: Hero in heroes:
 		if not hero.is_alive() or hero.health < rest_below(pace) * hero.max_health():
@@ -40,8 +40,8 @@ static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
 static func short_of(room: LabyrinthChamber, from: float, goal: float) -> float:
 	if room == null:
 		return goal
-	var first: float = room.rect.position.x
-	var last: float = room.rect.end.x - 1
+	var first: float = room.floor_columns().x
+	var last: float = room.floor_columns().y
 	if goal > from and from < first and goal > first - 1.0:
 		return first - 1.0
 	if goal < from and from > last and goal < last + 1.0:

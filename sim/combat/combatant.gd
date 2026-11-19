@@ -42,8 +42,9 @@ var strike_tick: int = -1
 ## Set by the battle: the first tick a new attack may start on.
 var ready_tick: int = 0
 
-## Spec 050: what this fighter does beyond its strike, in the order it considers them.
-var abilities: Array[AbilityDef] = []  # empty for everyone today
+## What this fighter does beyond its strike, in the order it considers them: a hero's talents,
+## the newest first; empty for a monster.
+var abilities: Array[AbilityDef] = []
 ## Set by the battle: the action being wound up, or null for an ordinary strike.
 var pending_action: AbilityDef = null
 ## Set by the battle: the id of the action this fighter is walking or waiting to use, whose
@@ -107,9 +108,9 @@ static func from_monster(def: MonsterDef, depth: int, combatant_id: int) -> Comb
 	return c
 
 
-## Seconds of game time as a whole number of ticks, at least 1.
-static func seconds_to_ticks(seconds: float) -> int:
-	return maxi(1, roundi(seconds * Simulation.TICKS_PER_SECOND))
+## Seconds of game time as the nearest whole number of ticks, at least [param least].
+static func seconds_to_ticks(seconds: float, least: int = 1) -> int:
+	return maxi(least, roundi(seconds * Simulation.TICKS_PER_SECOND))
 
 
 ## True until health reaches 0.
@@ -167,7 +168,7 @@ func reset_abilities() -> void:
 	action_ready_tick.clear()
 	for ability: AbilityDef in abilities:
 		if ability.is_action():
-			var wait: int = roundi(ability.cooldown * Simulation.TICKS_PER_SECOND)
+			var wait: int = seconds_to_ticks(ability.cooldown, 0)
 			action_ready_tick[ability.id] = 0 if ability.ready_at_start else wait
 
 

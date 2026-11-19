@@ -9,7 +9,7 @@ extends Resource
 enum Reward { GOLD, XP }
 
 ## The shortest and longest work a side quest may take, in seconds.
-const WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
+const _WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
 
 @export var id: StringName
 @export var display_name: String
@@ -32,7 +32,7 @@ func reward_at(level_depth: int) -> int:
 
 ## What one kill at [param level_depth] is worth on average, as Vector2(gold, XP): each monster
 ## (not a guardian) whose [member MonsterDef.base_level] is at most that depth, weighted by that
-## level: the worth of a kill at that depth before spec 049's areas, so rewards stay as they were.
+## level. It reads every monster, not an area's, so a reward depends on the depth alone.
 static func kill_value(level_depth: int) -> Vector2:
 	var gold: float = 0.0
 	var xp: float = 0.0
@@ -51,22 +51,18 @@ static func kill_value(level_depth: int) -> Vector2:
 
 ## One line per problem; empty when the side quest is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if String(id).is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
-	if description.is_empty():
-		problems.append("description is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(
+		id, display_name, description, "description"
+	)
 	if String(microskill).is_empty():
 		problems.append("microskill is empty")
 	elif Content.microskill(microskill) == null:
 		problems.append("microskill %s does not exist" % microskill)
-	if work_seconds < WORK_SECONDS_RANGE.x or work_seconds > WORK_SECONDS_RANGE.y:
+	if work_seconds < _WORK_SECONDS_RANGE.x or work_seconds > _WORK_SECONDS_RANGE.y:
 		problems.append(
 			(
 				"work_seconds %s is outside %s to %s"
-				% [work_seconds, WORK_SECONDS_RANGE.x, WORK_SECONDS_RANGE.y]
+				% [work_seconds, _WORK_SECONDS_RANGE.x, _WORK_SECONDS_RANGE.y]
 			)
 		)
 	if reward_factor <= 0.0:

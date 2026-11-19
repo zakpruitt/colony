@@ -4,19 +4,19 @@ extends RefCounted
 ## climbing between levels, fights, rewards, rest, and falling back after a wipe.
 ##
 ## Positions are world tiles, x right and y down. A column [code]c[/code] is the
-## position [code]x = c[/code]; a chamber's floor runs from its first open column
-## ([code]rect.position.x[/code]) to its last ([code]rect.end.x - 1[/code]). Feet
-## stand on the level's floor row ([member LabyrinthLevel.floor_y]).
+## position [code]x = c[/code]; a chamber's floor runs from its first open column to its last
+## ([method LabyrinthChamber.floor_columns]). Feet stand on the level's floor row
+## ([member LabyrinthLevel.floor_y]).
 ##
-## Some plain chambers hold a side quest instead of monsters (spec 025): a hero with its
+## Some plain chambers hold a side quest instead of monsters: a hero with its
 ## microskill does it while the party stands WORKING, and without one the party walks past.
 ##
 ## Every change worth showing is reported as a [SimEvent] stamped with the
 ## simulation tick; [method drain_events] hands them over once.
 
-## JOURNEYING: on the way to another area (spec 049), standing where it left until it arrives.
+## JOURNEYING: on the way to another area, standing where it left until it arrives.
 enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING, JOURNEYING }
-## The party's orders (spec 035): how hurt it may be before it rests after a fight (see
+## The party's orders: how hurt it may be before it rests after a fight (see
 ## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
 enum Pace { CAUTIOUS, STEADY, BOLD }
 enum GuardianOrder { CHALLENGE, HOLD }
@@ -33,29 +33,29 @@ const FIRST_MONSTER_ID: int = 100
 ## Monster ids are built from where the monster waits (see [method monster_id]): room for this many
 ## chambers on a level, visits to a chamber before its ids come round again, and monsters in one
 ## encounter.
-const CHAMBER_SPAN: int = 8
+const _CHAMBER_SPAN: int = 8
 const VISIT_SPAN: int = 64
-const SLOT_SPAN: int = 8
+const _SLOT_SPAN: int = 8
 ## Every level whose depth is a multiple of this has a guardian holding its shaft chamber.
 const GUARDIAN_EVERY: int = 5
 ## How long a beaten guardian's chamber stays empty, instead of RESPAWN_SECONDS.
 const GUARDIAN_RESPAWN_SECONDS: float = 1800.0
 
 ## Tiles between heroes walking in column.
-const HERO_SPACING: float = 1.0
+const _HERO_SPACING: float = 1.0
 ## How many monsters wait in a chamber of each kind, both ends included.
 const PLAIN_MONSTERS: Vector2i = Vector2i(2, 3)
 const DEN_MONSTERS: Vector2i = Vector2i(4, 5)
 const VAULT_MONSTERS: Vector2i = Vector2i(2, 3)
 ## Gold from a monster killed in a VAULT is multiplied by this.
-const VAULT_GOLD_FACTOR: int = 2
+const _VAULT_GOLD_FACTOR: int = 2
 ## Slack for comparing positions reached by adding up float steps.
-const EPSILON: float = 0.0001
+const _EPSILON: float = 0.0001
 ## The chance that a plain chamber holds a side quest instead of monsters, on each visit.
-const SIDE_QUEST_SHARE: float = 0.3
+const _SIDE_QUEST_SHARE: float = 0.3
 
 var state: State = State.TRAVELLING
-## The area the party is in, or heading to while JOURNEYING (spec 049). The depths below are
+## The area the party is in, or heading to while JOURNEYING. The depths below are
 ## stages of the area it is in.
 var area: StringName
 var depth: int = 1
@@ -72,17 +72,16 @@ var stable_seconds: float:
 	get:
 		if _stable_set >= 0.0:
 			return _stable_set
-		# Spec 049 R2 as amended: by the stage number, not its level, so every area's first
-		# stage is safe in a minute.
+		# By the stage number, not its level, so every area's first stage is safe in a minute.
 		return DepthTiming.stable_seconds_at(depth)
 	set(value):
 		_stable_set = value
 ## The fight in progress, or null.
 var battle: Battle
-## The orders (spec 035). Read-only outside the class: see [method command_pace].
+## The orders. Read-only outside the class: see [method command_pace].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
-## While the party is down, the tick it revives on (spec 048). Read-only outside the class.
+## While the party is down, the tick it revives on. Read-only outside the class.
 var revive_tick: int:
 	get:
 		return _revive_tick
@@ -92,17 +91,17 @@ var labyrinth: Labyrinth:
 		return _labyrinth
 
 ## The area whose labyrinth the party stands in: [member area], except while JOURNEYING, when it
-## is the area being left (spec 049). Read-only.
+## is the area being left. Read-only.
 var place: StringName:
 	get:
 		return _here.id
-## The areas' state (spec 049). Read-only outside the class.
+## The areas' state. Read-only outside the class.
 var travel: AreaTravel:
 	get:
 		return _areas
 
 var _labyrinth: Labyrinth
-## The area of [member _labyrinth], where the party is (spec 049), and the areas' other state.
+## The area of [member _labyrinth], where the party is, and the areas' other state.
 var _here: AreaDef
 var _areas: AreaTravel
 var _party: Party
@@ -174,13 +173,10 @@ func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
 	area = _here.id
 	_areas = AreaTravel.new(first_labyrinth)
 	var level: LabyrinthLevel = _labyrinth.level(1)
-	var start: LabyrinthChamber = level.chambers[0]
-	for room: LabyrinthChamber in level.chambers:
-		if room.kind == LabyrinthChamber.Kind.START:
-			start = room
-	x = (start.rect.position.x + start.rect.end.x - 1) / 2.0
+	# The middle of the START chamber, by Arrival's rule so revival and loading agree with it.
+	x = Arrival.column(_labyrinth, 1)
 	facing = 1 if level.shaft_down.position.x >= x else -1
-	_entered_key = Vector2i(1, start.index)
+	_entered_key = Vector2i(1, level.chamber_at(floori(x)).index)
 
 
 ## Advances the expedition to simulation tick [param tick].
@@ -213,7 +209,7 @@ func command_target_depth(new_depth: int) -> void:
 	_pending_target = maxi(new_depth, 1)
 
 
-## Asks for a new pace or guardian order (spec 035); each applies from the next tick, even while
+## Asks for a new pace or guardian order; each applies from the next tick, even while
 ## the party is down, and an unknown value is ignored.
 func command_pace(new_pace: Pace) -> void:
 	_pending_pace = new_pace
@@ -273,7 +269,7 @@ func hero_position(hero_id: int) -> Vector2:
 			if fighter != null:
 				return Vector2(fighter.x, floor_y)
 		State.CLIMBING:
-			var lag: float = HERO_SPACING * rank * _climb_direction
+			var lag: float = _HERO_SPACING * rank * _climb_direction
 			var y: float = _climb_y - lag
 			if _climb_direction > 0:
 				y = maxf(y, _climb_from_y)
@@ -319,13 +315,13 @@ func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 
 ## The id of the monster in place [param slot] of the encounter on visit [param visit] to chamber
 ## [param chamber_index] at [param level_depth]:
-## [code]FIRST_MONSTER_ID + ((depth * CHAMBER_SPAN + chamber) * VISIT_SPAN + visit % VISIT_SPAN)
-## * SLOT_SPAN + slot[/code]. Only one visit to a chamber has monsters at a time, so ids are unique
-## among the monsters that exist together; a chamber's ids come round again after VISIT_SPAN
-## refills. Ids stay below 2^31 to depth 500,000.
+## [code]FIRST_MONSTER_ID + ((depth * 8 + chamber) * VISIT_SPAN + visit % VISIT_SPAN) * 8
+## + slot[/code] (room for 8 chambers on a level and 8 monsters in an encounter). Only one visit
+## to a chamber has monsters at a time, so ids are unique among the monsters that exist together;
+## a chamber's ids come round again after VISIT_SPAN refills. Ids stay below 2^31 to depth 500,000.
 static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: int) -> int:
-	var spot: int = level_depth * CHAMBER_SPAN + chamber_index
-	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * SLOT_SPAN + slot
+	var spot: int = level_depth * _CHAMBER_SPAN + chamber_index
+	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * _SLOT_SPAN + slot
 
 
 ## The id of the guardian that holds that stage's way down in the area the party is in, or &"" if
@@ -348,7 +344,7 @@ func revival_place() -> Vector3:
 	return Vector3(column, last_stable_depth, Arrival.facing(column))
 
 
-## Seconds until auto-push raises the target depth (spec 039); 0.0 when it is off or the party is
+## Seconds until auto-push raises the target depth; 0.0 when it is off or the party is
 ## not at its target. Reading it changes nothing.
 func seconds_to_push() -> float:
 	if state == State.JOURNEYING:
@@ -436,7 +432,7 @@ func hash_parts() -> Array:
 		parts.append(
 			[battle.tick, battle.result(), _combatant_parts(battle.heroes + battle.monsters)]
 		)
-	# With the orders at their defaults and none asked for, the hash is what it was before them.
+	# Only when off their defaults or asked for, to keep the hash of a run without orders.
 	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
 	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:
 		parts.append(["orders", pace, guardian_order, _pending_pace, _pending_guardian_order])
@@ -458,7 +454,7 @@ func _apply_commands() -> void:
 	var wanted: int = _pending_target
 	_pending_target = 0
 	_set_target(wanted)
-	# Chosen on the way to another area: the target there (spec 049 R4 as amended).
+	# Chosen on the way to another area: the target there.
 	_areas.target_chosen = _areas.target_chosen or state == State.JOURNEYING
 
 
@@ -494,7 +490,7 @@ func _count_time() -> void:
 	if target_depth != _timer_target:
 		_timer_target = target_depth
 		_target_since = _tick - 1
-	var needed: int = roundi(stable_seconds * Simulation.TICKS_PER_SECOND)
+	var needed: int = Combatant.seconds_to_ticks(stable_seconds, 0)
 	if _tick - _depth_since >= needed and depth > last_stable_depth:
 		last_stable_depth = depth
 		_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, depth)
@@ -523,9 +519,9 @@ func _travel() -> void:
 	elif depth > target_depth and not holding:
 		goal = _shaft_middle(depth - 1)
 	elif facing > 0:
-		goal = level.chambers[level.chambers.size() - 1].rect.end.x - 1
+		goal = level.chambers[level.chambers.size() - 1].floor_columns().y
 	else:
-		goal = level.chambers[0].rect.position.x
+		goal = level.chambers[0].floor_columns().x
 	if guardian_order == GuardianOrder.HOLD and _guardian_alive(depth):
 		goal = PartyOrders.short_of(level.shaft_chamber(), x, goal)
 	_walk_toward(goal)
@@ -543,7 +539,7 @@ func _travel() -> void:
 			if state != State.TRAVELLING:
 				return
 
-	if absf(x - goal) > EPSILON:
+	if absf(x - goal) > _EPSILON:
 		return
 	if holding:
 		_turn(-facing)
@@ -581,14 +577,14 @@ func _reset_trail() -> void:
 
 ## The column of the hero [param rank] places behind the anchor, retracing the anchor's last turn.
 func _formation_x(rank: int) -> float:
-	var lag: float = HERO_SPACING * rank
+	var lag: float = _HERO_SPACING * rank
 	var since_turn: float = _odometer - _turn_odometer
 	var hero_x: float = x - facing * lag
 	if _turn_facing != 0 and lag > since_turn:
 		hero_x = _turn_x - _turn_facing * (lag - since_turn)
 	var level: LabyrinthLevel = _labyrinth.level(depth)
-	var first: float = level.chambers[0].rect.position.x
-	var last: float = level.chambers[level.chambers.size() - 1].rect.end.x - 1
+	var first: float = level.chambers[0].floor_columns().x
+	var last: float = level.chambers[level.chambers.size() - 1].floor_columns().y
 	return clampf(hero_x, first, last)
 
 
@@ -714,7 +710,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
-		fill = ChamberState.new(level_depth)  # refills by the stage number (spec 049 R2)
+		fill = ChamberState.new(level_depth)  # refills by the stage number
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
@@ -726,7 +722,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 
 
 ## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
-## chamber that is not always empty and holds no guardian, with chance SIDE_QUEST_SHARE. Depends
+## chamber that is not always empty and holds no guardian, with a 30% chance. Depends
 ## only on the seed, depth, chamber and visit.
 func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> StringName:
 	var level: LabyrinthLevel = _labyrinth.level(level_depth)
@@ -736,7 +732,7 @@ func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> String
 		return &""
 	var label: String = AreaTravel.label(_here.id)
 	var rng: SimRng = _rng.fork(label + "sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
-	if not rng.chance(SIDE_QUEST_SHARE):
+	if not rng.chance(_SIDE_QUEST_SHARE):
 		return &""
 	var ids: Array[StringName] = Content.side_quest_ids()
 	if ids.is_empty():
@@ -766,8 +762,8 @@ func _start_battle(room: LabyrinthChamber) -> void:
 	battle = Battle.new(
 		heroes,
 		fill.monsters,
-		room.rect.position.x,
-		room.rect.end.x - 1,
+		room.floor_columns().x,
+		room.floor_columns().y,
 		facing > 0,
 		_rng.fork("battle/%d" % _battle_count)
 	)
@@ -795,7 +791,7 @@ func _fight() -> void:
 	if battle.result() == Battle.Result.MONSTERS_WON and not alive.is_empty():
 		overwhelmed = true
 	if overwhelmed and battle.result() != Battle.Result.HEROES_WON:
-		# Spec 051 R13: every status ends with its event before the heroes fall.
+		# Every status ends with its event before the heroes fall.
 		battle.end()
 		for event: SimEvent in battle.drain_events():
 			event.tick = _tick
@@ -833,13 +829,13 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 		fighter.level = hero.level
 	var gold: int = _loot_rng.next_int(def.gold_min, def.gold_max)
 	if _labyrinth.level(_battle_key.x).chambers[_battle_key.y].kind == LabyrinthChamber.Kind.VAULT:
-		gold *= VAULT_GOLD_FACTOR
+		gold *= _VAULT_GOLD_FACTOR
 	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
-	ResourceDrops.on_kill(self, dead, def)  # spec 052
+	ResourceDrops.on_kill(self, dead, def)
 	if def.guardian:
-		_areas.guardians_beaten[_here.id] = true  # spec 052 R12
+		_areas.guardians_beaten[_here.id] = true
 		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
 		if _battle_key.x == _here.guardian_stage:
 			for opened: StringName in _areas.open_after(_here.id):
@@ -929,7 +925,7 @@ func _heal_resting() -> bool:
 	var rate: float = REST_HEAL_PER_SECOND * _upgrade(UpgradeDef.Stat.REST_HEALING)
 	for hero: Hero in _party.heroes:
 		var full: int = hero.max_health()
-		var healed: int = floori(rate * full * seconds + EPSILON)
+		var healed: int = floori(rate * full * seconds + _EPSILON)
 		var start: int = _rest_start.get(hero.id, hero.health)
 		hero.health = mini(full, maxi(hero.health, start + healed))
 		if hero.health < full:

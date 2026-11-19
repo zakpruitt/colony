@@ -5,16 +5,16 @@ extends RefCounted
 ## Each definition is a .tres file named after its id. The folders are read
 ## once, on the first request.
 
-const HEROES_DIR: String = "res://data/heroes"
-const MONSTERS_DIR: String = "res://data/monsters"
-const UPGRADES_DIR: String = "res://data/upgrades"
-const TRAINING_DIR: String = "res://data/training"
-const MICROSKILLS_DIR: String = "res://data/microskills"
-const SIDE_QUESTS_DIR: String = "res://data/sidequests"
-const AREAS_DIR: String = "res://data/areas"
+const _HEROES_DIR: String = "res://data/heroes"
+const _MONSTERS_DIR: String = "res://data/monsters"
+const _UPGRADES_DIR: String = "res://data/upgrades"
+const _TRAINING_DIR: String = "res://data/training"
+const _MICROSKILLS_DIR: String = "res://data/microskills"
+const _SIDE_QUESTS_DIR: String = "res://data/sidequests"
+const _AREAS_DIR: String = "res://data/areas"
 const ABILITIES_DIR: String = "res://data/abilities"
-const TALENTS_DIR: String = "res://data/talents"
-const RESOURCES_DIR: String = "res://data/resources"
+const _TALENTS_DIR: String = "res://data/talents"
+const _RESOURCES_DIR: String = "res://data/resources"
 
 static var _heroes: Dictionary[StringName, HeroClassDef] = {}
 static var _monsters: Dictionary[StringName, MonsterDef] = {}
@@ -69,7 +69,7 @@ static func upgrade_ids() -> Array[StringName]:
 	return _upgrade_ids.duplicate()
 
 
-## The hero training with this id (spec 029), or null if there is none.
+## The paragon stat with this id, or null if there is none.
 static func training(id: StringName) -> TrainingDef:
 	_load()
 	return _training.get(id, null)
@@ -105,7 +105,7 @@ static func side_quest_ids() -> Array[StringName]:
 	return _sorted(_side_quests.keys())
 
 
-## The area with this id (spec 049), or null if there is none.
+## The area with this id, or null if there is none.
 static func area(id: StringName) -> AreaDef:
 	_load()
 	return _areas.get(id, null)
@@ -117,7 +117,7 @@ static func area_ids() -> Array[StringName]:
 	return _area_ids.duplicate()
 
 
-## The ability with this id (spec 050), or null if there is none.
+## The ability with this id, or null if there is none.
 static func ability(id: StringName) -> AbilityDef:
 	_load()
 	return _abilities.get(id, null)
@@ -129,13 +129,13 @@ static func ability_ids() -> Array[StringName]:
 	return _sorted(_abilities.keys())
 
 
-## The talent tree of hero class [param class_id] (spec 051), or null if it has none.
+## The talent tree of hero class [param class_id], or null if it has none.
 static func talent_tree(class_id: StringName) -> TalentTreeDef:
 	_load()
 	return _talent_trees.get(class_id, null)
 
 
-## The resource with this id (spec 052), or null if there is none.
+## The resource with this id, or null if there is none.
 static func resource_def(id: StringName) -> ResourceDef:
 	_load()
 	return _resources.get(id, null)
@@ -159,39 +159,39 @@ static func _load() -> void:
 	if _loaded:
 		return
 	_loaded = true
-	for resource: Resource in _resources_in(HEROES_DIR):
+	for resource: Resource in _resources_in(_HEROES_DIR):
 		var hero: HeroClassDef = resource as HeroClassDef
 		if hero == null:
 			push_error("Content: %s is not a HeroClassDef" % resource.resource_path)
 			continue
 		_heroes[hero.id] = hero
-	for resource: Resource in _resources_in(MONSTERS_DIR):
+	for resource: Resource in _resources_in(_MONSTERS_DIR):
 		var def: MonsterDef = resource as MonsterDef
 		if def == null:
 			push_error("Content: %s is not a MonsterDef" % resource.resource_path)
 			continue
 		_monsters[def.id] = def
-	for resource: Resource in _resources_in(UPGRADES_DIR):
+	for resource: Resource in _resources_in(_UPGRADES_DIR):
 		var upgrade_def: UpgradeDef = resource as UpgradeDef
 		if upgrade_def == null:
 			push_error("Content: %s is not an UpgradeDef" % resource.resource_path)
 			continue
 		_upgrades[upgrade_def.id] = upgrade_def
 	_upgrade_ids = _sorted(_upgrades.keys())
-	for resource: Resource in _resources_in(MICROSKILLS_DIR):
+	for resource: Resource in _resources_in(_MICROSKILLS_DIR):
 		var skill: MicroskillDef = resource as MicroskillDef
 		if skill == null:
 			push_error("Content: %s is not a MicroskillDef" % resource.resource_path)
 			continue
 		_microskills[skill.id] = skill
-	for resource: Resource in _resources_in(SIDE_QUESTS_DIR):
+	for resource: Resource in _resources_in(_SIDE_QUESTS_DIR):
 		var quest: SideQuestDef = resource as SideQuestDef
 		if quest == null:
 			push_error("Content: %s is not a SideQuestDef" % resource.resource_path)
 			continue
 		_side_quests[quest.id] = quest
 	_upgrade_ids.sort_custom(_before_in_shop)
-	for resource: Resource in _resources_in(TRAINING_DIR):
+	for resource: Resource in _resources_in(_TRAINING_DIR):
 		var training_def: TrainingDef = resource as TrainingDef
 		if training_def == null:
 			push_error("Content: %s is not a TrainingDef" % resource.resource_path)
@@ -199,7 +199,7 @@ static func _load() -> void:
 		_training[training_def.id] = training_def
 	_training_ids = _sorted(_training.keys())
 	_training_ids.sort_custom(_before_on_sheet)
-	for resource: Resource in _resources_in(AREAS_DIR):
+	for resource: Resource in _resources_in(_AREAS_DIR):
 		var area_def: AreaDef = resource as AreaDef
 		if area_def == null:
 			push_error("Content: %s is not an AreaDef" % resource.resource_path)
@@ -213,7 +213,7 @@ static func _load() -> void:
 			push_error("Content: %s is not an AbilityDef" % resource.resource_path)
 			continue
 		_abilities[ability_def.id] = ability_def
-	for resource: Resource in _resources_in(TALENTS_DIR):
+	for resource: Resource in _resources_in(_TALENTS_DIR):
 		var tree: TalentTreeDef = resource as TalentTreeDef
 		if tree == null:
 			push_error("Content: %s is not a TalentTreeDef" % resource.resource_path)
@@ -229,7 +229,7 @@ static func _load() -> void:
 			)
 			continue
 		_talent_trees[tree.class_id] = tree
-	for resource: Resource in _resources_in(RESOURCES_DIR):
+	for resource: Resource in _resources_in(_RESOURCES_DIR):
 		var resource_made: ResourceDef = resource as ResourceDef
 		if resource_made == null:
 			push_error("Content: %s is not a ResourceDef" % resource.resource_path)

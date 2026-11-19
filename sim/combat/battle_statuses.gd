@@ -1,10 +1,10 @@
 class_name BattleStatuses
 extends RefCounted
-## The rules of statuses in a battle (spec 050): putting one on, its work each second, and its
+## The rules of statuses in a battle: putting one on, its work each second, and its
 ## end. Stateless: everything lives on the [Combatant]s and the [Battle] passed in.
 
 ## Statuses that do something each second.
-const PULSING: Array[AbilityEffect.Status] = [
+const _PULSING: Array[AbilityEffect.Status] = [
 	AbilityEffect.Status.BURNING,
 	AbilityEffect.Status.BLEEDING,
 	AbilityEffect.Status.MENDING,
@@ -59,7 +59,7 @@ static func pulse(battle: Battle) -> void:
 			var status: CombatStatus = c.statuses.get(kind, null)
 			if status == null or not c.is_alive():
 				continue
-			if kind in PULSING and battle.tick >= status.pulse_tick:
+			if kind in _PULSING and battle.tick >= status.pulse_tick:
 				if status.pulse_tick <= status.end_tick:
 					status.pulse_tick += Simulation.TICKS_PER_SECOND
 					_work(battle, c, status)

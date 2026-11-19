@@ -1,7 +1,7 @@
 class_name MonsterDef
 extends Resource
 ## A monster: the numbers it fights with at [member base_level] and what it is worth. Where it
-## lives is the areas' to say ([AreaDef], spec 049). One .tres file per monster under
+## lives is the areas' to say ([AreaDef]). One .tres file per monster under
 ## res://data/monsters.
 
 enum Size { SMALL, LARGE, BOSS }
@@ -10,8 +10,7 @@ enum Size { SMALL, LARGE, BOSS }
 @export var display_name: String
 @export var size: Size
 ## The level its numbers are for: met at a higher level it is stronger by
-## [constant Combatant.DEPTH_GROWTH] a level, and never weaker below it. (It was the shallowest
-## depth the monster appeared on before spec 049, so the strengths are those depths gave.)
+## [constant Combatant.DEPTH_GROWTH] a level, and never weaker below it.
 @export var base_level: int
 @export var max_health: int
 @export var damage: int

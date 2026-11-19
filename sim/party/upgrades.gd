@@ -20,7 +20,7 @@ func cost(id: StringName) -> int:
 	return def.cost_at(rank(id))
 
 
-## The resource the next rank of [param id] costs beside its gold (spec 052): 0 when it costs gold
+## The resource the next rank of [param id] costs beside its gold: 0 when it costs gold
 ## alone, -1 at the maximum or unknown.
 func resource_cost(id: StringName) -> int:
 	var def: UpgradeDef = Content.upgrade(id)
@@ -68,7 +68,7 @@ func set_rank(id: StringName, new_rank: int) -> void:
 		_ranks[id] = clamped
 
 
-## The id of the cheapest next rank, in gold, that [param party] can pay both prices of (spec 052),
+## The id of the cheapest next rank, in gold, that [param party] can pay both prices of,
 ## earlier in the shop on a tie; &"" when none.
 func cheapest_affordable(party: Party) -> StringName:
 	var best: StringName = &""

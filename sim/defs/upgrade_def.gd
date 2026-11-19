@@ -16,7 +16,7 @@ enum Stat { DAMAGE, HEALTH, REST_HEALING, TRAVEL_SPEED, GOLD }
 @export var base_cost: int
 @export var cost_growth: float
 @export var max_rank: int
-## The resource the later ranks also cost (spec 052), a [ResourceDef] id.
+## The resource the later ranks also cost, a [ResourceDef] id.
 @export var resource: StringName
 ## The first rank (counting from 0) that also costs the resource: the ranks before it cost gold
 ## alone.
@@ -24,7 +24,7 @@ enum Stat { DAMAGE, HEALTH, REST_HEALING, TRAVEL_SPEED, GOLD }
 ## The resource rank [member resource_from_rank] costs; each later rank costs [member cost_growth]
 ## times the one before, as the gold does.
 @export var resource_base: int
-## What the upgrade raises, in a few words for the shop's line of numbers (spec 065):
+## What the upgrade raises, in a few words for the shop's line of numbers:
 ## "Damage and healing". A view hint: no rule reads it.
 @export var gives: String
 
@@ -50,13 +50,9 @@ func resource_cost_at(rank: int) -> int:
 
 ## One line per problem; empty when the upgrade is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if String(id).is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
-	if description.is_empty():
-		problems.append("description is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(
+		id, display_name, description, "description"
+	)
 	if gives.is_empty():
 		problems.append("gives is empty")
 	if per_rank <= 0.0:

@@ -5,7 +5,7 @@ extends RefCounted
 
 ## How many times the chamber has refilled: 0 for its first monsters.
 var visit: int = 0
-## The depth of the chamber's level, given when the record is made (spec 044): its refill time
+## The depth of the chamber's level, given when the record is made: its refill time
 ## depends on it.
 var depth: int
 ## True for a guardian's chamber, which stays empty longer once beaten.

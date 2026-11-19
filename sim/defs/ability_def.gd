@@ -1,6 +1,6 @@
 class_name AbilityDef
 extends Resource
-## Something a fighter does in battle beyond its ordinary strike (spec 050): an action with a
+## Something a fighter does in battle beyond its ordinary strike: an action with a
 ## cooldown, or a passive that answers to what happens in the fight. Either has one or more
 ## [AbilityEffect]s, applied in order. One .tres file per ability under res://data/abilities.
 
@@ -18,7 +18,7 @@ enum Condition {
 	## an enemy within [member condition_tiles] of the fighter; it does not walk to make it true
 	ENEMY_WITHIN,
 	TARGET_BELOW,  ## the one it aims at below [member condition_share] of health
-	## a living ally other than the fighter below [member condition_share] of health (spec 051)
+	## a living ally other than the fighter below [member condition_share] of health
 	OTHER_ALLY_BELOW,
 }
 
@@ -34,8 +34,8 @@ enum Trigger {
 	EVERY_NTH_STRIKE,  ## every [member trigger_every]th ordinary strike; target: the one struck
 }
 
-## Spec 057: the moves a fighter's body can perform for an ability, the one set that the data
-## check and the view both read. Each is acted out in game/entities/character_moves.gd.
+## The moves a fighter's body can perform for an ability, the one set that the data check and
+## the view both read. Each is acted out in game/entities/character_moves.gd.
 const MOVES: Array[StringName] = [
 	&"leap",  ## jumps in an arc and comes down on the blow
 	&"spin",  ## turns round with the weapon out
@@ -52,7 +52,7 @@ const MOVES: Array[StringName] = [
 @export var id: StringName
 @export var display_name: String
 @export var description: String  # one line
-## Spec 057: how the fighter's body acts it out, one of [constant MOVES]. A view hint only: no
+## How the fighter's body acts it out, one of [constant MOVES]. A view hint only: no
 ## rule reads it and the state hash does not include it.
 @export var move: StringName
 @export var kind: Kind = Kind.ACTION
@@ -105,13 +105,9 @@ func aims_at_ally() -> bool:
 
 ## One line per problem; empty when the ability can do something.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if String(id).is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
-	if description.is_empty():
-		problems.append("description is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(
+		id, display_name, description, "description"
+	)
 	if String(move).is_empty():
 		problems.append("move is empty")
 	elif not MOVES.has(move):

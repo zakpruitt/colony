@@ -1,6 +1,6 @@
 class_name Party
 extends RefCounted
-## The heroes on the expedition, and the gold and resources (spec 052) they carry.
+## The heroes on the expedition, and the gold and resources they carry.
 
 ## The classes a new party is made of, in formation order (tank first). Hero ids are 1, 2, ...
 const STARTING_CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
@@ -75,14 +75,14 @@ func hash_parts() -> Array:
 	var parts: Array = [gold]
 	for h: Hero in heroes:
 		var hero_parts: Array = [h.id, h.class_id, h.level, h.xp, h.health]
-		# With no talents and no paragon points, a hero hashes as it did before them (spec 051).
+		# Only when grown, to keep the hash of a hero with no talents or paragon points.
 		if h.has_grown():
 			var ranks: Array = []
 			for stat: int in TrainingDef.Stat.values():
 				ranks.append(h.paragon_rank(stat as TrainingDef.Stat))
 			hero_parts.append([h.talents(), ranks])
 		parts.append(hero_parts)
-	# With no resource held, the party hashes as it did before them (spec 052).
+	# Only when held, to keep the hash of a party with no resources.
 	if has_resources():
 		var held: Array = []
 		for id: StringName in Content.resource_ids():
