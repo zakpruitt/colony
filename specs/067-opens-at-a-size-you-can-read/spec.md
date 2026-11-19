@@ -14,14 +14,17 @@ remember what the player chose instead.
 
 ## Requirements
 
-- **R1. Opens large.** On first run the window opens maximized on the screen it starts on. On a screen
-  too small for the UI's smallest room at twice the size (less than 1920x1080 of usable space) it opens
-  as it does today.
+- **R1. Opens large.** On first run the window opens maximized on the screen it starts on, when a
+  maximized window there has room for the UI's smallest room at twice the size (1920x1080 inside the
+  window's frame). On a screen that has that room only without a frame (a 1920x1080 screen) it opens in
+  full screen. On a smaller screen it opens as it does today, and that first run writes no settings
+  file: a later start on a larger screen is still a first run.
 - **R2. Full screen.** `F11` switches between full screen (borderless, on the current screen) and the
   window as it was; the help lists it.
 - **R3. Remembered.** The window's mode (windowed, maximized, full screen), and its size and place when
   windowed, are saved when they change and restored on the next start, in a settings file of their own
-  under `user://`, not in the save. A remembered place that is off every screen now is ignored.
+  under `user://`, not in the save. A remembered place that is off every screen now is ignored, and
+  a remembered size larger than the screen it lands on is cut down to it.
 - **R4. The UI follows.** After any change of the window's size the UI layer picks its scale and room
   as spec 058 rules, windows stay inside the room, and nothing is cut; changing size mid-drag or with
   windows open breaks nothing.
