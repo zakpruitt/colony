@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 069 | [Sim tidy](069-sim-tidy/spec.md) | M8 | landed on dev, [#72](https://github.com/zakpruitt/colony/pull/72) | — |
 | 070 | [Game tidy](070-game-tidy/spec.md) | M8 | landed on dev, [#70](https://github.com/zakpruitt/colony/pull/70) | — |
 | 068 | [A button bar that says what it opens](068-a-button-bar-that-says-what-it-opens/spec.md) | M7 | landed on dev, [#69](https://github.com/zakpruitt/colony/pull/69), provisional | 058, 059, 062 |
 | 066 | [The run's milestones, announced](066-milestones-announced/spec.md) | M7 | landed on dev, [#68](https://github.com/zakpruitt/colony/pull/68), provisional | 019, 049, 061, 062, 063 |
@@ -86,8 +87,7 @@ State hashes and old saves stay as they are throughout. New rows go in this tabl
 
 | Spec | Status | Depends on |
 |---|---|---|
-| 069 | [Sim tidy](069-sim-tidy/spec.md): in-progress | — |
-| 071 | [A shared test base](071-shared-test-base/spec.md): in-progress, lands after 069 and 070 | — |
+| 071 | [A shared test base](071-shared-test-base/spec.md): in-progress, rebasing onto 069 and 070 | — |
 | 072 | [One content table, and less work per tick](072-content-registry-and-sim-hot-paths/spec.md): draft | 069 |
 | 074 | [One list of windows, one list of keys](074-one-list-of-windows-and-keys/spec.md): draft | 070, 071 |
 | 076 | [One pool for effects, one gate for old events](076-one-pool-for-effects/spec.md): draft | 070, 071 |
