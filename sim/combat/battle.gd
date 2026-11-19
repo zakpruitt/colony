@@ -186,7 +186,7 @@ func nearest_enemy(c: Combatant) -> Combatant:
 
 
 ## The ally a healer [param c] would heal now: the living one with the lowest share of health,
-## if it is below [constant _HEAL_THRESHOLD]; or null.
+## if it is below 80%; or null.
 func hurt_ally(c: Combatant) -> Combatant:
 	var hurt: Combatant = null
 	var lowest: float = _HEAL_THRESHOLD

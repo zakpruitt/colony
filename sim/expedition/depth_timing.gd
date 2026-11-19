@@ -3,7 +3,7 @@ extends RefCounted
 ## How long things take on a depth: quick near the surface, so a new game is busy, and
 ## the deep game's slow pace from [constant DEEP_DEPTH] down.
 
-## From this depth down every time here is the deep game's, unchanged.
+## From this depth down every time here is the deep game's.
 const DEEP_DEPTH: int = 10
 ## Seconds to hold depth 1 before it is stable, and every depth from DEEP_DEPTH down.
 const _SURFACE_STABLE_SECONDS: float = 60.0
@@ -44,7 +44,7 @@ static func push_left(run: Expedition, now: int, timers: Array[int]) -> float:
 
 
 ## Seconds a cleared chamber at [param level_depth] stays empty before monsters (or a side quest)
-## come back: from _SURFACE_RESPAWN_SECONDS at depth 1, rising evenly to
+## come back: from 5 seconds at depth 1, rising evenly to
 ## [constant Expedition.RESPAWN_SECONDS] at DEEP_DEPTH and staying there.
 static func respawn_seconds_at(level_depth: int) -> float:
 	var step: float = clampf(float(level_depth - 1) / (DEEP_DEPTH - 1), 0.0, 1.0)

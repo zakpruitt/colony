@@ -173,6 +173,7 @@ func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
 	area = _here.id
 	_areas = AreaTravel.new(first_labyrinth)
 	var level: LabyrinthLevel = _labyrinth.level(1)
+	# The middle of the START chamber, by Arrival's rule so revival and loading agree with it.
 	x = Arrival.column(_labyrinth, 1)
 	facing = 1 if level.shaft_down.position.x >= x else -1
 	_entered_key = Vector2i(1, level.chamber_at(floori(x)).index)
@@ -314,10 +315,10 @@ func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 
 ## The id of the monster in place [param slot] of the encounter on visit [param visit] to chamber
 ## [param chamber_index] at [param level_depth]:
-## [code]FIRST_MONSTER_ID + ((depth * _CHAMBER_SPAN + chamber) * VISIT_SPAN + visit % VISIT_SPAN)
-## * _SLOT_SPAN + slot[/code]. Only one visit to a chamber has monsters at a time, so ids are unique
-## among the monsters that exist together; a chamber's ids come round again after VISIT_SPAN
-## refills. Ids stay below 2^31 to depth 500,000.
+## [code]FIRST_MONSTER_ID + ((depth * 8 + chamber) * VISIT_SPAN + visit % VISIT_SPAN) * 8
+## + slot[/code] (room for 8 chambers on a level and 8 monsters in an encounter). Only one visit
+## to a chamber has monsters at a time, so ids are unique among the monsters that exist together;
+## a chamber's ids come round again after VISIT_SPAN refills. Ids stay below 2^31 to depth 500,000.
 static func monster_id(level_depth: int, chamber_index: int, visit: int, slot: int) -> int:
 	var spot: int = level_depth * _CHAMBER_SPAN + chamber_index
 	return FIRST_MONSTER_ID + (spot * VISIT_SPAN + visit % VISIT_SPAN) * _SLOT_SPAN + slot
@@ -721,7 +722,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 
 
 ## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
-## chamber that is not always empty and holds no guardian, with chance _SIDE_QUEST_SHARE. Depends
+## chamber that is not always empty and holds no guardian, with a 30% chance. Depends
 ## only on the seed, depth, chamber and visit.
 func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> StringName:
 	var level: LabyrinthLevel = _labyrinth.level(level_depth)
