@@ -31,11 +31,7 @@ func level_at(stage: int) -> int:
 
 ## One line per problem; empty when the area is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if id.is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(id, display_name)
 	if order < 1:
 		problems.append("order %d is below 1" % order)
 	if base_level < 1:

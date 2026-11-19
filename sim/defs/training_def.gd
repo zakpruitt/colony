@@ -17,13 +17,9 @@ enum Stat { POWER, TOUGHNESS, QUICKNESS }
 
 ## One line per problem; empty when the stat is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if String(id).is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
-	if description.is_empty():
-		problems.append("description is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(
+		id, display_name, description, "description"
+	)
 	if per_rank <= 0.0:
 		problems.append("per_rank %s is not above 0" % per_rank)
 	return problems

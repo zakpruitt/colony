@@ -11,11 +11,5 @@ extends Resource
 
 ## One line per problem; empty when the resource is usable.
 func validate() -> PackedStringArray:
-	var problems := PackedStringArray()
-	if String(id).is_empty():
-		problems.append("id is empty")
-	if display_name.is_empty():
-		problems.append("display_name is empty")
-	if plural.is_empty():
-		problems.append("plural is empty")
+	var problems: PackedStringArray = DefChecks.naming_problems(id, display_name, plural, "plural")
 	return problems
