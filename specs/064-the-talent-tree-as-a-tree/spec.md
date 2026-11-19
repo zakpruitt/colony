@@ -1,9 +1,9 @@
 # 064 — The talent tree as a tree, with paragon and skills
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 028, 051, 055, 060, 063
-- **Pull request:** —
+- **Pull request:** [#66](https://github.com/zakpruitt/colony/pull/66)
 
 ## Intent
 
