@@ -597,8 +597,14 @@ func test_r7_a_button_bar() -> void:
 		var tip: String = bar.tip.text_for(button)
 		assert_string_contains(tip, window.title, "%s: its name in the tooltip" % id)
 		assert_string_contains(tip, "(%s)" % window.key_hint, "%s: and its key" % id)
-		assert_eq(button.key_hint, window.key_hint, "%s: the key shown on the button (R4)" % id)
-		assert_gte(button.size.x, button.hinted_width(), "%s: room for the icon and the key" % id)
+		# Spec 068 R4: at 960x540 the row has no room for the keys beside the names, so a button
+		# is its icon over its name and the tooltip alone names the key.
+		var shown_key: String = window.key_hint if bar.shows_keys else ""
+		var least: float = (
+			float(button.hinted_width()) if bar.shows_keys else button.get_minimum_size().x
+		)
+		assert_eq(button.key_hint, shown_key, "%s: the key shown on the button (R4)" % id)
+		assert_gte(button.size.x, least, "%s: room for the icon, the name and the key" % id)
 		assert_false(button.lit, "%s: dark while closed" % id)
 		_click_ui(ui, button.get_global_rect().get_center())
 		assert_true(window.is_open(), "%s: a click opens it" % id)

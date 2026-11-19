@@ -213,6 +213,9 @@ showcase's leftovers, not the game.</p>
   <code>Learn</code> button. Taking a node bursts it and a banner names it; choosing a path closes the other
   before your eyes. Paragon points go into medallions, and the Skills tab's cards carry their pictures.
   </td></tr>
+  <tr><td>068 A button bar that says what it opens</td><td>Every button on the button bar shows its
+  window's name beside its picture, and its key in a small key cap: Help, Journal, Orders, Camp, Map and
+  Tally, then Reset. The help's key list and the tooltips use the same words.</td></tr>
   <tr><td>065 Camp upgrades you can see</td><td>Each upgrade in the shop is a card: its picture in a
   framed slot with the rank on it, pips for the ranks, and what it gives now beside what the next rank
   gives (<code>Damage and healing  +15%  &gt;  +20%</code>). Buying a rank bursts the picture and fills its
@@ -600,7 +603,7 @@ after a defeat is drawn over every window.</p>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off; <em>Holding</em> at a guardian the party is told to wait for.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each a button with a bar or a price (and a small <code>&gt;</code> when it can be done now); click one to go where it is done.</td></tr>
   <tr><td>Top right</td><td>The purse, with the speed</td><td>The speed button (<em>1x</em>, <em>2x</em>, <em>4x</em>; lit when faster than 1x, <kbd>F</kbd>), then the gold with its coin, counting up as coins arrive. Each resource the party holds has an icon and a count, on a second row when there are many. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
-  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders, the shop, the area map, the tally; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for its name and key. The Shop button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button puts every window back in its place.</td></tr>
+  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A button per window that says what it opens: its picture, its name and its key in a small key cap (<strong>Help</strong> <kbd>H</kbd>, <strong>Journal</strong> <kbd>J</kbd>, <strong>Orders</strong> <kbd>O</kbd>, <strong>Camp</strong> <kbd>U</kbd> for the camp upgrades, <strong>Map</strong> <kbd>W</kbd>, <strong>Tally</strong> <kbd>T</kbd>; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for what its window is for. In the UI's smallest room (a 1920 by 1080 window) each button is its picture over its name and the keys are left to the tooltips, so every name fits in the one row. The Camp button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button, <strong>Reset</strong>, puts every window back in its place.</td></tr>
   <tr><td>Right edge, under the purse</td><td>The stage list (<kbd>L</kbd>)</td><td>Twelve stages of this area, headed by the area's name, each guardian's name beside its stage.</td></tr>
   <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. Click a frame to open its window.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds; click it to open the journal.</td></tr>
@@ -617,7 +620,7 @@ after a defeat is drawn over every window.</p>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
   <tr><td><kbd>W</kbd></td><td>Open or close the area map window (a click on the area's name, or its button on the button bar, does the same)</td></tr>
-  <tr><td><kbd>U</kbd></td><td>Open or close the shop window (or its button on the button bar)</td></tr>
+  <tr><td><kbd>U</kbd></td><td>Open or close the camp upgrades, the shop (or the Camp button on the button bar)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is the front window</td></tr>
   <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is the front window</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the next hero's window and bring it to the front, whatever is in front; the others stay open</td></tr>
@@ -750,7 +753,7 @@ window keeps its own:</p>
 </ul>
 <p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
-<h3>The Shop window (<kbd>U</kbd>)</h3>
+<h3>The Shop window: camp upgrades (<kbd>U</kbd>, the Camp button)</h3>
 <p>One card per camp upgrade; the game keeps running behind it. A card shows the upgrade's picture in a
 framed slot with its rank in the corner: the frame pulses yellow when the party can pay for the next rank,
 is plain and dimmed when it cannot, and turns gold for good at the top rank. Beside the picture are the
@@ -763,7 +766,7 @@ it cannot, it is greyed and a line in orange says what is missing (<em>Needs 12 
 Claypits</em>). At the top rank it reads <code>Max</code>. Rest the mouse on a card for a card of its own:
 the picture, both prices of the next rank, where the resource comes from and, if that area is closed, how
 to open it, and what one rank gives. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a sentence
-saying what it does. While the shop is closed, its button on the button bar carries an amber tag counting
+saying what it does. While the shop is closed, the Camp button on the button bar carries an amber tag counting
 the upgrades the party can pay for.</p>
 <p><strong>Buying.</strong> When you buy a rank (its button or its key) the picture bursts with sparks, the
 new pip fills with a flash and the numbers count up to their new values. A rank auto-buy bought just

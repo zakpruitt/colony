@@ -13,7 +13,7 @@ const OLD_TIPS: Dictionary[String, String] = {
 	"plus": "Set the target one stage further.",
 	"auto": "When on, the party goes a stage further each time it holds its target long enough.",
 	"speed": "How fast the game runs: click (or press F) for 1x, 2x or 4x.",
-	"gold": "Gold from fights, to spend in the Shop.",
+	"gold": "Gold from fights, to spend in the Camp.",  # spec 068 R2: the shop is the Camp
 	"area": "The area the party is in: click (or press W) for the map of every area.",
 }
 

@@ -773,9 +773,10 @@ func test_r11_help_wiki_and_showcase() -> void:
 	var keys: Dictionary[String, String] = {}
 	for entry: Array in HelpPanel.KEYS:
 		keys[str(entry[0])] = str(entry[1])
-	assert_string_contains(str(keys.get("U", "")), "Shop", "U opens the shop")
-	assert_string_contains(str(keys.get("1-5", "")), "Shop", "1-5 buy in it")
-	assert_string_contains(str(keys.get("B", "")), "Shop", "B switches auto-buy")
+	# Spec 068 R2: the help calls the shop what its button does, the Camp.
+	assert_string_contains(str(keys.get("U", "")), "Camp", "U opens the shop")
+	assert_string_contains(str(keys.get("1-5", "")), "Camp", "1-5 buy in it")
+	assert_string_contains(str(keys.get("B", "")), "Camp", "B switches auto-buy")
 	var help: String = "\n".join(PackedStringArray(HelpPanel.IDEA))
 	assert_string_contains(help, "fifth rank", "help tells of the milestones")
 	var wiki: String = FileAccess.get_file_as_string(WIKI)

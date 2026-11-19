@@ -327,9 +327,14 @@ have four looks: `dusk` with a `slate` edge, `slate` with a `silver` edge under 
 `green` edge when pressed or lit (text one pixel lower), `night` when disabled; at least 4 UI pixels of
 padding round the text and 20 or more tall; a key hint (`Shop  U`) in `steel` after the text. Tooltips are
 one sentence, `white` on `ink` with a `steel` edge. The button bar sits at the bottom right just above the
-hero frames: a 28x28 button per window with a 16x16 icon (`assets/sprites/ui/window_icons.px`), then one
-that puts the windows back. A button's marker (`UiBadge`) is an `amber`
-tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner, on the bar's own
+hero frames: a button per window, 28 tall, with a 16x16 icon (`assets/sprites/ui/window_icons.px`), the
+window's one-word name in the plain weight (with 4 pixels of padding, so the row fits) and its key in a key cap (an `ink` box with a `steel` edge, two pixels of
+it below, the letter in `silver`; `white` on a `silver` edge under the mouse), then `Reset`, which puts
+the windows back (spec 068). Where the row is short of room (960x540) the keys are left to the tooltips
+and each button is its icon over its name, 38 tall. A bar button's tooltip is
+`<title> (<key>): <what the window is for>.` A button's marker (`UiBadge`) is an `amber`
+tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner (on its edge, never
+on its icon, name or key), on the bar's own
 layer: over the bar, under every window (spec 062).
 
 **The management windows (spec 059).** The shop, the area map and the tally are windows. Their numbers and

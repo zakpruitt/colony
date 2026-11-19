@@ -50,6 +50,14 @@ The picture is drawn in two layers, each in its own pixels.
   saved open open as the game starts, under the away report if there is one (`UiWindows.open_waiting`). `UiButtonBar` holds a button
   per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
   upgrades, the map's newly opened areas); a window with `on_bar` false (a hero window) has no button.
+  Each button says what it opens (spec 068): the window's icon, its `UiWindow.short_name` (one word per
+  window, from `UiButtonBar.NAMES`, the same in the help's key list and in tooltips: the shop, titled
+  `Camp upgrades`, is `Camp`) and its key in a key cap (`UiButton.key_cap`). `UiButtonBar.fit_room` picks
+  the row's form: icon, name and key side by side where that leaves `LEFT_ROOM` at the bar's left
+  (1280x720); else (960x540, where a hero window's default place and the ticker's longest line need that
+  room) the keys are dropped (`shows_keys`) and each button is its icon over its name
+  (`UiTheme.BAR_BUTTON`). A change to the bar's width or height moves what stands beside it: run specs
+  060 and 062's tests.
   A window refits when its content's minimum size changes. Help, the journal, the orders, the shop, the
   area map, the tally, the hero windows and the away report (`AwayWindow`, spec 062: not on the bar,
   centred, closed only by its button, `Esc` or its own 12 seconds) are windows. `UiTip` and `DefeatNote`
