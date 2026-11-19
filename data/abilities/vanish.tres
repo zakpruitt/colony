@@ -26,7 +26,6 @@ id = &"vanish"
 display_name = "Vanish"
 description = "Once a fight, below 30% health: cannot be hit for 4 s, and mends."
 move = &"flourish"
-picture = &"shadow"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 trigger = 5

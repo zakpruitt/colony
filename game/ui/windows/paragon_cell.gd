@@ -1,8 +1,8 @@
 class_name ParagonCell
 extends Control
 ## One paragon stat under a hero's talent tree (spec 055 R7, on the UI layer by spec 060): a
-## [code]+1[/code] button, the stat's name and the bonus its points give so far. [method refresh]
-## reads the hero each frame.
+## [code]+1[/code] button, the stat's picture (spec 063), its name and the bonus its points give
+## so far. [method refresh] reads the hero each frame.
 
 ## UI pixels between the button and the name, and between the name and the bonus.
 const GAP: float = 5.0
@@ -16,6 +16,8 @@ var id: StringName
 var buy_button: UiButton
 var name_label: Label
 var rank_label: Label
+## The stat's own picture, at its own size, between the button and the name (spec 063).
+var picture: TextureRect
 
 var _flash: float = 0.0
 var _rank: int = 0
@@ -30,9 +32,22 @@ func _init(training_id: StringName, index: int) -> void:
 	add_child(buy_button)
 	var def: TrainingDef = Content.training(training_id)
 	var middle: float = floorf((UiTheme.BUTTON_HEIGHT - UiText.LINE_HEIGHT) / 2.0)
+	picture = TextureRect.new()
+	picture.name = "Picture"
+	picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	picture.stretch_mode = TextureRect.STRETCH_SCALE
+	picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
+	picture.custom_minimum_size = UiIcon.PICTURE_SIZE
+	picture.size = UiIcon.PICTURE_SIZE
+	picture.texture = UiIcon.picture(training_id)
+	picture.position = Vector2(
+		buy_button.size.x + GAP, floorf((UiTheme.BUTTON_HEIGHT - UiIcon.PICTURE_SIZE.y) / 2.0)
+	)
+	add_child(picture)
 	name_label = WindowText.label("Name", def.display_name, &"white")
 	name_label.mouse_filter = Control.MOUSE_FILTER_PASS  # for its tooltip
-	name_label.position = Vector2(buy_button.size.x + GAP, middle)
+	name_label.position = Vector2(picture.position.x + UiIcon.PICTURE_SIZE.x + GAP, middle)
 	add_child(name_label)
 	rank_label = WindowText.label("Rank", "", &"green")
 	rank_label.mouse_filter = Control.MOUSE_FILTER_PASS

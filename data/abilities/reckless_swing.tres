@@ -17,7 +17,6 @@ id = &"reckless_swing"
 display_name = "Reckless Swing"
 description = "Every fourth strike hits double and heals the knight for half of it."
 move = &"heavy_swing"
-picture = &"strike"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 7

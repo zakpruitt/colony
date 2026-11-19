@@ -26,7 +26,6 @@ id = &"blizzard"
 display_name = "Blizzard"
 description = "Every enemy is slowed and frostbitten, taking damage each second, for 6 s. Every 25 s."
 move = &"channel"
-picture = &"frost"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 25.0

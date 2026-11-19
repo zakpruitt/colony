@@ -1,28 +1,17 @@
 extends GutTest
-## Unit tests for the talent tree's small pieces (spec 055): every node has a picture of its kind,
-## and the text helpers the Talents tab is built from. Since spec 060 the kind is the ability's
-## own [member AbilityDef.picture] and the tab is [HeroTalentsTab] in a hero window.
-
-const KIND_NAMES: Array[StringName] = [
-	&"strike", &"guard", &"heal", &"fire", &"frost", &"shadow", &"light", &"rally"
-]
+## Unit tests for the talent tree's small pieces (spec 055): every node has a picture, and the text
+## helpers the Talents tab is built from. Since spec 060 the tab is [HeroTalentsTab] in a hero
+## window, and since spec 063 each ability has a picture of its own ([method UiIcon.picture]).
 
 
-func test_every_tree_node_has_a_kind_with_a_picture() -> void:
-	var sheet: PixelSheet = PixelSheet.load_sheet(TalentNode.ICONS_PATH)
-	for kind: StringName in KIND_NAMES:
-		assert_true(sheet.has_part(kind), "the sheet draws %s" % kind)
-		assert_eq(sheet.part(kind).get_size(), Vector2(12, 12), "%s is 12x12" % kind)
+func test_every_tree_node_has_a_picture() -> void:
 	for class_id: StringName in Content.hero_class_ids():
 		var tree: TalentTreeDef = Content.talent_tree(class_id)
 		var ids: Array[StringName] = tree.trunk.duplicate()
 		ids.append_array(tree.path_a)
 		ids.append_array(tree.path_b)
 		for id: StringName in ids:
-			assert_has(
-				KIND_NAMES, Content.ability(id).picture, "%s's kind is one of the eight" % id
-			)
-			assert_not_null(TalentNode.picture(id), "%s has a picture" % id)
+			assert_not_null(UiIcon.picture(id), "%s has a picture" % id)
 
 
 func test_wrap_words_keeps_every_line_inside_the_width() -> void:

@@ -34,11 +34,16 @@ const SOUNDS: Array[StringName] = [
 	&"ui_buy",
 	&"guardian_appears",
 	&"guardian_slain",
+	&"gain_small",
+	&"gain_grand",
 ]
 ## The most sounds playing at once.
 const MAX_VOICES: int = 8
 ## The least time, in seconds, between two starts of the same sound.
 const REPEAT_SECONDS: float = 0.05
+## Sounds kept further apart than that (spec 063 R8): a gain's burst and banner, at most once in
+## 0.15 s however many gains arrive together.
+const SPACED: Dictionary[StringName, float] = {&"gain_small": 0.15, &"gain_grand": 0.15}
 ## How far a start's pitch may stray from the sound's own, either way, as a share (under 6%).
 const PITCH_SPREAD: float = 0.05
 ## How much quieter than its own the click of each swing at a side quest is, in dB (spec 028).
@@ -122,7 +127,8 @@ func play(sound: StringName, volume_db: float = 0.0) -> bool:
 	if not _streams.has(sound):
 		return false
 	var last: float = _last_start.get(sound, -INF)
-	if _now - last < REPEAT_SECONDS:
+	var gap: float = SPACED.get(sound, REPEAT_SECONDS)
+	if _now - last < gap:
 		return false
 	var free: int = -1
 	for i: int in _voices.size():

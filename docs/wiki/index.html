@@ -201,6 +201,13 @@ showcase's leftovers, not the game.</p>
   <tr><td>060 Hero windows</td><td>Each hero's sheet is its own window: open two or all four at once and
   compare them side by side. Every talent's picture, name and description shows in the tree without
   pointing; stats say what raises them.</td></tr>
+  <tr><td>063 Pictures and the moment</td><td>Every ability, camp upgrade, paragon stat and microskill has a
+  picture of its own (57 of them, placeholders): a ball of fire for Fireball, a cracked shield for Last
+  Stand, a fat purse for Fat Purse. They show on the talent tree, the paragon row, the skill cards and the
+  shop. Also built, for the next two specs to use: a framed slot showing a picture owned, ready, locked or
+  closed; a tooltip card with the picture; a burst of sparks when something is gained, and a banner that
+  drops in at the top with a fanfare. Nothing uses the burst and banner yet; 064 and 065 decide when they
+  play.</td></tr>
 </table>
 </div>
 
@@ -261,8 +268,9 @@ showcase's leftovers, not the game.</p>
   <li>A resource icon near a bar may hop a few pixels when it starts flying to the counter.</li>
   <li>The headless run (<code>dev.py sim</code>) never travels by itself, so numbers for the later areas
   come from runs started there.</li>
-  <li>Talent pictures are one plain icon per kind of ability, so many nodes share one. All art stays
-  placeholder by decision.</li>
+  <li>Every ability, upgrade, paragon stat and microskill has its own picture now (spec 063). They are
+  placeholders Zak may redraw: see them all with the pictures sheet (section on commands). Can you tell what
+  each is without its name?</li>
   <li>In the tally, damage by ability is worked out from the order of events; a hero's total is exact,
   the split between abilities could be off in rare cases.</li>
   <li>A frame holding two arrivals in different areas (a long return from time away) may draw the events
@@ -943,6 +951,7 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>See every sprite (the gallery)</td><td><code>godot --path . res://game/art/gallery.tscn</code></td></tr>
   <tr><td>Watch the cast demo (every character breathing, walking, attacking, hit and dying)</td><td><code>godot --path . res://game/entities/character_demo.tscn</code></td></tr>
   <tr><td>See the fonts: the UI font, its bold and the old pixel font</td><td><code>godot --path . res://game/ui/font_specimen.tscn</code></td></tr>
+  <tr><td>See every picture (abilities by class, upgrades, paragon, skills) in all four states, with a burst and a banner</td><td><code>godot --path . res://game/ui/picture_specimen.tscn</code></td></tr>
 </table>
 </div>
 <h3>Options of the headless run</h3>

@@ -367,14 +367,11 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 						node.description_label.size.x + 1.0,
 						"%s: wrapped" % named
 					)
-				# The picture, from the data.
-				assert_has(
-					AbilityDef.PICTURES, ability.picture, "%s: a picture of its kind" % named
-				)
+				# The picture: the ability's own (spec 063).
 				var state: TalentNode.State = node.state()
 				if state != TalentNode.State.CLOSED:
 					assert_true(node.icon.is_visible_in_tree(), "%s: the picture shows" % named)
-					assert_eq(node.icon.texture, TalentNode.picture(node.ability_id), named)
+					assert_eq(node.icon.texture, UiIcon.picture(node.ability_id), named)
 			# The four states.
 			for id: StringName in class_tree.trunk:
 				assert_eq(_state_name(view.state_of(id)), "TAKEN", "%s: %s taken" % [what, id])
@@ -396,12 +393,8 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 				)
 			assert_true(view.is_closed(1 - path), "%s: the other path closed" % what)
 			_click_frame(main, hero)
-	# The picture is data the check validates.
-	var copy: AbilityDef = Content.ability(&"taunt").duplicate() as AbilityDef
-	copy.picture = &""
-	assert_has(copy.validate(), "picture is empty", "a missing picture is refused")
-	copy.picture = &"moon"
-	assert_eq(copy.validate().size(), 1, "so is one not of the eight")
+	# Spec 063: the picture is the ability's own, found by its id; no field names it.
+	assert_true(UiIcon.has_picture(&"taunt"), "taunt has its own picture")
 	# The commands, as spec 055 had them, on the front window's Talents tab.
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = Content.talent_tree(&"knight")

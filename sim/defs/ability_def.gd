@@ -49,21 +49,12 @@ const MOVES: Array[StringName] = [
 	&"prayer",  ## head bowed, then arms raised
 	&"flourish",  ## a short hop and flick that does not stop what the fighter is doing
 ]
-## Spec 060: the pictures a talent node can show, one per kind of ability, each a part of
-## assets/sprites/ui/talent_icons.px.
-const PICTURES: Array[StringName] = [
-	&"strike", &"guard", &"heal", &"fire", &"frost", &"shadow", &"light", &"rally"
-]
-
 @export var id: StringName
 @export var display_name: String
 @export var description: String  # one line
 ## Spec 057: how the fighter's body acts it out, one of [constant MOVES]. A view hint only: no
 ## rule reads it and the state hash does not include it.
 @export var move: StringName
-## Spec 060: the picture its talent node shows, one of [constant PICTURES]. A view hint only: no
-## rule reads it and the state hash does not include it.
-@export var picture: StringName
 @export var kind: Kind = Kind.ACTION
 @export var effects: Array[AbilityEffect] = []
 
@@ -125,10 +116,6 @@ func validate() -> PackedStringArray:
 		problems.append("move is empty")
 	elif not MOVES.has(move):
 		problems.append("move %s is not one of %s" % [move, MOVES])
-	if String(picture).is_empty():
-		problems.append("picture is empty")
-	elif not PICTURES.has(picture):
-		problems.append("picture %s is not one of %s" % [picture, PICTURES])
 	problems.append_array(_action_problems() if is_action() else _passive_problems())
 	if effects.is_empty():
 		problems.append("it has no effects")

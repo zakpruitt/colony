@@ -15,7 +15,6 @@ id = &"fan_of_knives"
 display_name = "Fan of Knives"
 description = "Strikes every enemy for 0.8x damage. Every 8 s."
 move = &"throw"
-picture = &"strike"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 8.0

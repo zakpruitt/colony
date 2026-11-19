@@ -18,7 +18,6 @@ id = &"deep_freeze"
 display_name = "Deep Freeze"
 description = "Stuns the target and enemies beside it for 2 s. Every 18 s."
 move = &"cast"
-picture = &"frost"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 18.0

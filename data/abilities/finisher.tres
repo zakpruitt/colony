@@ -15,7 +15,6 @@ id = &"finisher"
 display_name = "Finisher"
 description = "Strikes an enemy below 25% health for double damage. Every 5 s."
 move = &"leap"
-picture = &"strike"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 cooldown = 5.0

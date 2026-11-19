@@ -99,8 +99,20 @@ The picture is drawn in two layers, each in its own pixels.
   sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
   its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
   `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A
-  node's picture is its ability's `AbilityDef.picture` (one of `AbilityDef.PICTURES`, a view hint the
-  data check validates and the state hash leaves out), drawn from `assets/sprites/ui/talent_icons.png`.
+  node's picture is its ability's own (spec 063, below).
+- **Pictures and the moment** (spec 063, `game/ui/`): every ability, upgrade, paragon stat and microskill
+  has a 16x16 picture, a part named for its id in one of `assets/sprites/ui/pictures_<group>.png`;
+  `UiIcon.picture(id)` finds it, and no rule or data field names it. `UiIcon` is the framed slot (owned,
+  ready, locked, closed; square or cut; a count; lit under the mouse; `clicked`), its pulse run by its
+  owner's `advance`. `UiTip.attach_card` gives a control a card (`UiTip.Card`: picture, title, kind, body,
+  stand) in place of a plain tip. `UiMoment` (`UiRoot.moment`, made by `UiRoot.setup` after the windows, so
+  over them and under the tips and the defeat note) marks a gain: `burst(control)` pops the control by its
+  `scale` about its middle (nothing in the layout moves) under a flash and a ring of sparks it draws itself;
+  `announce(...)` queues a banner (at most three wait; the newest win) that shows from its next `advance`
+  under the top band. `Main` gives it the world and the sound player: both take an optional `SimEvent`
+  and start nothing for one that is not recent or while the world catches up, and a catch-up drops what
+  waits and what runs. Which gains get one is for specs 064 and 065. `PictureSpecimen`
+  (`game/ui/picture_specimen.tscn`) shows every picture in every state.
 
 ## Time
 

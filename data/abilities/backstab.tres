@@ -24,7 +24,6 @@ id = &"backstab"
 display_name = "Backstab"
 description = "Strikes the furthest enemy for 3x damage and leaves it bleeding for 4 s. Every 8 s."
 move = &"dash"
-picture = &"strike"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
 cooldown = 8.0

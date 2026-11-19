@@ -15,7 +15,6 @@ id = &"chain_spark"
 display_name = "Chain Spark"
 description = "A critical hit also strikes every enemy for 0.3x damage."
 move = &"flourish"
-picture = &"light"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 2
