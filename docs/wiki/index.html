@@ -160,9 +160,9 @@ earned, unspent.</p>
   closes the other path.</li>
   <li><strong>Beat the Slime King</strong> on Mossy Hollow 5. With talents and upgrades it usually falls
   at the first try, about nine minutes in.</li>
-  <li><strong>Open the map</strong> (<kbd>W</kbd>, or click the area's name) and send the party to the
+  <li><strong>Open the Map</strong> (<kbd>W</kbd>, or click the area's name) and send the party to the
   Claypits. It has its own monsters, its own look and its own resource, clay.</li>
-  <li><strong>Open the shop</strong> (<kbd>U</kbd>). Past rank 3 an upgrade costs a resource as well as
+  <li><strong>Open the Camp</strong> (<kbd>U</kbd>), the camp upgrades. Past rank 3 an upgrade costs a resource as well as
   gold; the row says which and where it comes from.</li>
 </ol>
 <p>To see every moment in about ninety seconds, labelled, including the map, the four areas, each class's
@@ -204,7 +204,7 @@ showcase's leftovers, not the game.</p>
   <tr><td>063 Pictures and the moment</td><td>Every ability, camp upgrade, paragon stat and microskill has a
   picture of its own (57 of them, placeholders): a ball of fire for Fireball, a cracked shield for Last
   Stand, a fat purse for Fat Purse. They show on the talent tree, the paragon row, the skill cards and the
-  shop. Also built, for the next two specs to use: a framed slot showing a picture owned, ready, locked or
+  Camp window. Also built, for the next two specs to use: a framed slot showing a picture owned, ready, locked or
   closed; a tooltip card with the picture; a burst of sparks when something is gained, and a banner that
   drops in at the top with a fanfare. 064 and 065 decide when they play.</td></tr>
   <tr><td>064 The talent tree as a tree</td><td>The Talents tab is a tree of pictures: the trunk runs down the
@@ -215,8 +215,8 @@ showcase's leftovers, not the game.</p>
   </td></tr>
   <tr><td>068 A button bar that says what it opens</td><td>Every button on the button bar shows its
   window's name beside its picture, and its key in a small key cap: Help, Journal, Orders, Camp, Map and
-  Tally, then Reset. The help's key list and the tooltips use the same words.</td></tr>
-  <tr><td>065 Camp upgrades you can see</td><td>Each upgrade in the shop is a card: its picture in a
+  Tally, then Reset. The help, the goals, the notes and the tooltips use the same words.</td></tr>
+  <tr><td>065 Camp upgrades you can see</td><td>Each upgrade in the Camp window is a card: its picture in a
   framed slot with the rank on it, pips for the ranks, and what it gives now beside what the next rank
   gives (<code>Damage and healing  +15%  &gt;  +20%</code>). Buying a rank bursts the picture and fills its
   pip with a flash; every fifth rank, and the last, drops a banner.</td></tr>
@@ -463,7 +463,7 @@ first three ranks cost gold alone; from the fourth, each rank also costs the upg
   <tr><td>Fat Purse</td><td>+5% gold from kills</td><td>20</td><td>Embers (Ember Deep)</td></tr>
 </table>
 </div>
-<p>Ranks add up: rank 3 of Sharp Blades is +15%. <strong>Auto-buy</strong> (a switch in the shop, off in a
+<p>Ranks add up: rank 3 of Sharp Blades is +15%. <strong>Auto-buy</strong> (a switch in the Camp window, off in a
 new game) buys the cheapest upgrade the party can pay for once a second of game time, never a rank whose
 resource it lacks, and keeps buying while the game is closed.</p>
 
@@ -612,7 +612,7 @@ the edges. The world's picture is 640 by 360 pixels, scaled up by a whole number
 descenders, numbers all one width, and <em>1 l I</em>, <em>0 O</em>, <em>5 S</em> drawn apart. The
 <em>frame of the screen</em> is on it: the place panel, the countdown, the purse, the boss bar and the
 hero frames, with their tooltips (a bold title, then a sentence or two, after the mouse rests 0.4 s).
-Help, the journal, the orders, the shop, the area map, the party tally, the hero windows and the "While
+Help, the Journal, the Orders, the Camp, the Map, the Tally, the hero windows and the "While
 you were away" report are on it too, as windows, and so are the goals, the stage list, the ticker, the
 note after a defeat and the <code>Catching up...</code> bar. The world's own coarse font is left only for
 what belongs to the world: names and numbers over the fighters, banners like <code>WIPED</code>, and the
@@ -623,11 +623,11 @@ after a defeat is drawn over every window.</p>
 <div class="table-wrap">
 <table>
   <tr><th>Where</th><th>What</th><th>Says</th></tr>
-  <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) beside the stage in big numbers; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and under them a line for what the party is doing, with <em>Safe 3</em> (the stage a wipe sends the party back to; it bursts with sparks and steps up in yellow when a further stage becomes safe) at its right: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
+  <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the Map) beside the stage in big numbers; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and under them a line for what the party is doing, with <em>Safe 3</em> (the stage a wipe sends the party back to; it bursts with sparks and steps up in yellow when a further stage becomes safe) at its right: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off; <em>Holding</em> at a guardian the party is told to wait for.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each a button with a bar or a price (and a small <code>&gt;</code> when it can be done now); click one to go where it is done.</td></tr>
   <tr><td>Top right</td><td>The purse, with the speed</td><td>The speed button (<em>1x</em>, <em>2x</em>, <em>4x</em>; lit when faster than 1x, <kbd>F</kbd>), then the gold with its coin, counting up as coins arrive. Each resource the party holds has an icon and a count, on a second row when there are many. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
-  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A button per window that says what it opens: its picture, its name and its key in a small key cap (<strong>Help</strong> <kbd>H</kbd>, <strong>Journal</strong> <kbd>J</kbd>, <strong>Orders</strong> <kbd>O</kbd>, <strong>Camp</strong> <kbd>U</kbd> for the camp upgrades, <strong>Map</strong> <kbd>W</kbd>, <strong>Tally</strong> <kbd>T</kbd>; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for what its window is for. In the UI's smallest room (a 1920 by 1080 window) each button is its picture over its name and the keys are left to the tooltips, so every name fits in the one row. The Camp button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button, <strong>Reset</strong>, puts every window back in its place.</td></tr>
+  <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A button per window that says what it opens: its picture, its name and its key in a small key cap (<strong>Help</strong> <kbd>H</kbd>, <strong>Journal</strong> <kbd>J</kbd>, <strong>Orders</strong> <kbd>O</kbd>, <strong>Camp</strong> <kbd>U</kbd> for the camp upgrades, <strong>Map</strong> <kbd>W</kbd>, <strong>Tally</strong> <kbd>T</kbd>; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for what its window is for. In the UI's smallest room (a 1920 by 1080 window) each button is its picture over its name, with its key in a smaller key cap at its top right corner, so every name fits in the one row. The Camp button carries an amber tag on the corner of its picture counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button, <strong>Reset</strong>, puts every window back in its place.</td></tr>
   <tr><td>Right edge, under the purse</td><td>The stage list (<kbd>L</kbd>)</td><td>Twelve stages of this area, headed by the area's name, each guardian's name beside its stage.</td></tr>
   <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. When the hero gains a level the whole frame bursts with sparks and the level number steps up in yellow for a moment; when that level brings a talent point the tag pulses three times, so you see which hero has something to spend. Click a frame to open its window.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds; click it to open the journal.</td></tr>
@@ -639,21 +639,21 @@ after a defeat is drawn over every window.</p>
 <div class="table-wrap">
 <table>
   <tr><th>Key</th><th>Does</th></tr>
-  <tr><td><kbd>H</kbd></td><td>Open or close the help window (its button on the button bar does the same)</td></tr>
+  <tr><td><kbd>H</kbd></td><td>Open or close the Help window (its button on the button bar does the same)</td></tr>
   <tr><td><kbd>Esc</kbd></td><td>Close the front window</td></tr>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
-  <tr><td><kbd>W</kbd></td><td>Open or close the area map window (a click on the area's name, or its button on the button bar, does the same)</td></tr>
-  <tr><td><kbd>U</kbd></td><td>Open or close the camp upgrades, the shop (or the Camp button on the button bar)</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the shop is the front window</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the shop is the front window</td></tr>
+  <tr><td><kbd>W</kbd></td><td>Open or close the Map window, the area map (a click on the area's name, or its button on the button bar, does the same)</td></tr>
+  <tr><td><kbd>U</kbd></td><td>Open or close the Camp window, the camp upgrades (or the Camp button on the button bar)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the Camp window is the front window</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the Camp window is the front window</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the next hero's window and bring it to the front, whatever is in front; the others stay open</td></tr>
   <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Close the front window, when it is a hero window</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window: a hero window's (Stats, Talents, Skills) or the tally's (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window: a hero window's (Stats, Talents, Skills) or the Tally window's (Damage, Healing, Taken)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, when the front window is a hero window on its Talents tab</td></tr>
-  <tr><td><kbd>O</kbd></td><td>Open or close the party's orders</td></tr>
-  <tr><td><kbd>T</kbd></td><td>Open or close the party tally</td></tr>
-  <tr><td><kbd>J</kbd></td><td>Open or close the journal</td></tr>
+  <tr><td><kbd>O</kbd></td><td>Open or close the Orders window, the party's orders</td></tr>
+  <tr><td><kbd>T</kbd></td><td>Open or close the Tally window, the party tally</td></tr>
+  <tr><td><kbd>J</kbd></td><td>Open or close the Journal window</td></tr>
   <tr><td><kbd>L</kbd></td><td>Hide or show the stage list</td></tr>
   <tr><td><kbd>G</kbd></td><td>Hide or show the goals</td></tr>
   <tr><td><kbd>F</kbd></td><td>Game speed: 1x, 2x, 4x, then back to 1x</td></tr>
@@ -666,8 +666,8 @@ after a defeat is drawn over every window.</p>
 <p>Rest the mouse on any part of the HUD for 0.4 seconds and a small box explains it in one sentence.</p>
 
 <h3>Windows</h3>
-<p>Help (<kbd>H</kbd>), the journal (<kbd>J</kbd>), the party's orders (<kbd>O</kbd>), the shop
-(<kbd>U</kbd>), the area map (<kbd>W</kbd>), the party tally (<kbd>T</kbd>) and each hero's window
+<p>Help (<kbd>H</kbd>), the Journal (<kbd>J</kbd>), the Orders (<kbd>O</kbd>), the Camp
+(<kbd>U</kbd>), the Map (<kbd>W</kbd>), the Tally (<kbd>T</kbd>) and each hero's window
 (click its frame) are windows on the UI layer. Each has a title bar with its name and a close button. Drag a window by its title bar to put it
 anywhere; it can hang off an edge, but its title bar always stays on screen, and if the game's window
 shrinks a window is moved wholly back on screen. Click anywhere on a window to bring it to the front.
@@ -678,11 +678,11 @@ one you dragged is, in the settings file beside the sound setting (not in the sa
 moved sits in its usual place for the size the game's window has. Windows left open open again as the
 game starts, under the "While you were away" report, and the last button on the button bar puts them all back where a
 new game has them.</p>
-<p>The tally stands at the top left, the shop at the top right and the map between them, so the three can
+<p>The Tally stands at the top left, the Camp at the top right and the Map between them, so the three can
 be open together without covering each other or the hero frames. Any window can stay open beside any
 other. The keys a window answers to work only while it is the front window (the last one opened or
-clicked): <kbd>1</kbd> to <kbd>5</kbd> and <kbd>B</kbd> for the shop, <kbd>1</kbd> to <kbd>3</kbd>
-for a hero window on its Talents tab, <kbd>Q</kbd> <kbd>E</kbd> for a hero window or the tally.
+clicked): <kbd>1</kbd> to <kbd>5</kbd> and <kbd>B</kbd> for the Camp, <kbd>1</kbd> to <kbd>3</kbd>
+for a hero window on its Talents tab, <kbd>Q</kbd> <kbd>E</kbd> for a hero window or the Tally.
 <kbd>Esc</kbd> closes the front window.</p>
 
 <h3>The Area map window (<kbd>W</kbd>)</h3>
@@ -698,7 +698,7 @@ to one past the furthest, coloured blue, orange or red with the word beside it (
 will do: <em>Travel to The Claypits 3</em>, or for the area the party is in <em>Set target: stage 4</em>.
 A dangerous choice is warned of in the journal. When a guardian opens a new area, the journal says so, a
 goal <em>Visit The Claypits</em> appears and the Map button on the button bar carries a mark until you
-open the map. A click on the area's name at the top left opens it too.</p>
+open the Map. A click on the area's name at the top left opens it too.</p>
 
 <h3>The stage list (<kbd>L</kbd>)</h3>
 <p>A list of twelve stages down the right edge, under the purse, headed by the area's name. A white
@@ -708,7 +708,7 @@ each guardian's stage, the name struck through once beaten. Each stage's number 
 coloured for this party, from its lowest hero's level: blue is safe, orange within reach, red dangerous
 (a rough guide, not a promise). Click a stage to make it the target; rest the mouse on one for a line in
 words (for a stage within reach or dangerous it says so; a safe stage needs no warning). The mouse wheel
-scrolls it; a small arrow brings it back to the party. It hides while the shop is open.</p>
+scrolls it; a small arrow brings it back to the party.</p>
 
 <h3>Goals (<kbd>G</kbd>)</h3>
 <p>Up to three things to look forward to, the first that apply of: <em>Beat the Slime King</em> (with the
@@ -716,7 +716,7 @@ party's lowest level against the level it is balanced for), <em>Reach Mossy Holl
 Auto's next move), <em>Visit The Claypits</em> (a newly opened area), <em>Spend the Knight's talent
 points</em>, <em>Rogue learns Trapspotter at level 6</em>, a hero's paragon points to spend, and <em>Buy
 an upgrade</em> (when the party can pay its gold and its resource). Each line is a button that opens the
-place where it is done: the shop, a hero's tab, the orders, the map or the stage list. A goal done flashes
+place where it is done: the Camp, a hero's tab, the Orders, the Map or the stage list. A goal done flashes
 green with a tick and the journal gets a line. Goals give no reward: they are a signpost.</p>
 
 <h3>Hero windows (click a frame, or <kbd>Tab</kbd>)</h3>
@@ -726,8 +726,8 @@ green with a tick and the journal gets a line. Goals give no reward: they are a 
 every hero whose window is open has a yellow edge. Like every window, a hero window can be dragged by its
 title bar, and one you dragged is remembered where you left it. The keys of a hero window (<kbd>Q</kbd>,
 <kbd>E</kbd>, <kbd>1</kbd> to <kbd>3</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd>) work only while it is the
-front window; click anywhere on one to bring it to the front. Until the shop is a window too, a hero
-window and the shop are never open together: opening one closes the other.</p>
+front window; click anywhere on one to bring it to the front. A hero window and the Camp
+window can be open side by side.</p>
 <p><strong>Comparing.</strong> A hero window you never dragged takes its place as it opens, by what is
 already open rather than by which hero it is. With 1280 by 720 of UI room the first goes in the left
 column under the top bar and the next in the right column, side by side, clear of the hero frames and the
@@ -778,7 +778,7 @@ window keeps its own:</p>
 </ul>
 <p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
-<h3>The Shop window: camp upgrades (<kbd>U</kbd>, the Camp button)</h3>
+<h3>The Camp window: camp upgrades (<kbd>U</kbd>, the Camp button)</h3>
 <p>One card per camp upgrade; the game keeps running behind it. A card shows the upgrade's picture in a
 framed slot with its rank in the corner: the frame pulses yellow when the party can pay for the next rank,
 is plain and dimmed when it cannot, and turns gold for good at the top rank. Beside the picture are the
@@ -791,7 +791,7 @@ it cannot, it is greyed and a line in orange says what is missing (<em>Needs 12 
 Claypits</em>). At the top rank it reads <code>Max</code>. Rest the mouse on a card for a card of its own:
 the picture, both prices of the next rank, where the resource comes from and, if that area is closed, how
 to open it, and what one rank gives. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a sentence
-saying what it does. While the shop is closed, the Camp button on the button bar carries an amber tag counting
+saying what it does. While the Camp window is closed, the Camp button on the button bar carries an amber tag counting
 the upgrades the party can pay for.</p>
 <p><strong>Buying.</strong> When you buy a rank (its button or its key) the picture bursts with sparks, the
 new pip fills with a flash and the numbers count up to their new values. A rank auto-buy bought just
@@ -1087,10 +1087,10 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag built">Built</span></td></tr>
   <tr><td>M2</td><td>Heroes and monsters that move and fight on their own</td><td><span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, the fallback after a wipe, saving, camp upgrades, guardians, auto-buy</td><td><span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M4</td><td>The party of four, the HUD, the shop, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>The party of four, the HUD, the camp upgrades, the hero sheet, orders, side quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the stage list, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
-  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font; windows you can drag, stack and close (help, the journal, the orders, the shop, the area map, the tally, the hero windows and the away report); the frame of the screen (place panel, countdown, purse, boss bar, hero frames); and the goals, the stage list, the ticker, the note after a defeat and the catching-up bar</td><td><span class="tag built">Built</span>, on <code>dev</code></td></tr>
+  <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font; windows you can drag, stack and close (Help, the Journal, the Orders, the Camp, the Map, the Tally, the hero windows and the away report); the frame of the screen (place panel, countdown, purse, boss bar, hero frames); and the goals, the stage list, the ticker, the note after a defeat and the catching-up bar</td><td><span class="tag built">Built</span>, on <code>dev</code></td></tr>
 </table>
 </div>
 <p>Everything from spec 002 on is provisional until Zak has played it. Nothing of this round is on

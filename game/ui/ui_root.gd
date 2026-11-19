@@ -125,6 +125,10 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	var journal := UiWindow.new(JOURNAL, "Journal", view, "J", KEY_J)
 	var panel := OrdersPanel.new()
 	var orders := UiWindow.new(ORDERS, OrdersPanel.TITLE, panel, "O", KEY_O)
+	# Spec 068 R2: the one word for each window, on its button and wherever else it is named.
+	help.short_name = "Help"
+	journal.short_name = "Journal"
+	orders.short_name = "Orders"
 	for made: UiWindow in [help, journal, orders]:
 		made.icon = icons.part(made.window_id) if icons != null else null
 	if hud != null and hud.journal != null:
@@ -184,6 +188,9 @@ func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[Ui
 	made.append(
 		UiWindow.new(TallyWindow.ID, TallyWindow.TITLE, hud.tally, TallyWindow.HOTKEY, KEY_T)
 	)
+	made[0].short_name = "Camp"  # spec 068 R2
+	made[1].short_name = "Map"
+	made[2].short_name = "Tally"
 	for each: UiWindow in made:
 		each.icon = icons.part(each.window_id) if icons != null else null
 	hud.shop.add_tips(shared)

@@ -577,52 +577,58 @@ func test_r6_remembered() -> void:
 
 
 func test_r7_a_button_bar() -> void:
-	var main: Main = _main(ROOM_SMALL)
-	var ui: UiRoot = main.ui
-	var bar: UiButtonBar = ui.bar
-	await _frames()
-	assert_eq(bar.buttons.keys(), _bar_ids(ui.windows), "one button per window, in order")
-	# At the bottom right, above the hero frames' line.
-	var rect: Rect2 = bar.get_global_rect()
-	var frames_top: float = main.hud.frames[0].get_global_rect().position.y
-	assert_lte(rect.end.y, frames_top, "above the frames' line")
-	assert_gt(rect.end.y, frames_top - 16.0, "just above")
-	assert_lte(rect.end.x, float(ui.room().x), "on screen")
-	assert_gt(rect.position.x, ui.room().x / 2.0, "at the right")
-	for id: StringName in bar.buttons:
-		var button: UiButton = bar.buttons[id]
-		var window: UiWindow = ui.windows.window(id)
-		assert_not_null(button.icon, "%s: a small icon" % id)
-		assert_eq(button.icon.get_size(), Vector2(16, 16), "%s: 16x16" % id)
-		var tip: String = bar.tip.text_for(button)
-		assert_string_contains(tip, window.title, "%s: its name in the tooltip" % id)
-		assert_string_contains(tip, "(%s)" % window.key_hint, "%s: and its key" % id)
-		# Spec 068 R4: at 960x540 the row has no room for the keys beside the names, so a button
-		# is its icon over its name and the tooltip alone names the key.
-		var shown_key: String = window.key_hint if bar.shows_keys else ""
-		var least: float = (
-			float(button.hinted_width()) if bar.shows_keys else button.get_minimum_size().x
+	# Spec 068: at both rooms, since the bar has a form for each and shows the key in both.
+	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
+		var main: Main = _main(room)
+		var ui: UiRoot = main.ui
+		var bar: UiButtonBar = ui.bar
+		await _frames()
+		assert_eq(bar.buttons.keys(), _bar_ids(ui.windows), "one button per window, in order")
+		# At the bottom right, above the hero frames' line.
+		var rect: Rect2 = bar.get_global_rect()
+		var frames_top: float = main.hud.frames[0].get_global_rect().position.y
+		assert_lte(rect.end.y, frames_top, "%s: above the frames' line" % room)
+		assert_gt(rect.end.y, frames_top - 16.0, "%s: just above" % room)
+		assert_lte(rect.end.x, float(ui.room().x), "%s: on screen" % room)
+		assert_gt(rect.position.x, ui.room().x / 2.0, "%s: at the right" % room)
+		for id: StringName in bar.buttons:
+			var button: UiButton = bar.buttons[id]
+			var window: UiWindow = ui.windows.window(id)
+			var named: String = "%s: %s" % [room, id]
+			assert_not_null(button.icon, "%s: a small icon" % named)
+			assert_eq(button.icon.get_size(), Vector2(16, 16), "%s: 16x16" % named)
+			var tip: String = bar.tip.text_for(button)
+			assert_string_contains(tip, window.title, "%s: its name in the tooltip" % named)
+			assert_string_contains(tip, "(%s)" % window.key_hint, "%s: and its key" % named)
+			assert_eq(button.key_hint, window.key_hint, "%s: the key shown on the button" % named)
+			assert_true(button.key_rect().has_area(), "%s: which has a place on it" % named)
+			assert_true(
+				Rect2(Vector2.ZERO, button.size).encloses(button.key_rect()),
+				"%s: inside the button" % named
+			)
+			assert_gte(
+				button.size.x, button.hinted_width(), "%s: room for the icon and the key" % named
+			)
+			assert_false(button.lit, "%s: dark while closed" % named)
+			_click_ui(ui, button.get_global_rect().get_center())
+			assert_true(window.is_open(), "%s: a click opens it" % named)
+			bar.refresh()
+			assert_true(button.lit, "%s: lit while open" % named)
+			assert_true(button.button_pressed, "%s: drawn lit" % named)
+			_click_ui(ui, button.get_global_rect().get_center())
+			assert_false(window.is_open(), "%s: and closes it" % named)
+			bar.refresh()
+			assert_false(button.lit, "%s: dark again" % named)
+		# The tooltip shows after a rest.
+		var help_button: UiButton = bar.buttons[UiRoot.HELP]
+		_move(ui.ui_to_world(help_button.get_global_rect().get_center()))
+		bar.tip.advance(UiTip.DELAY + 0.05)
+		assert_eq(bar.tip.shown_text(), bar.tip.text_for(help_button), "the tooltip shows")
+		assert_true(
+			Rect2(Vector2.ZERO, Vector2(ui.room())).encloses(bar.tip.get_global_rect()), "on screen"
 		)
-		assert_eq(button.key_hint, shown_key, "%s: the key shown on the button (R4)" % id)
-		assert_gte(button.size.x, least, "%s: room for the icon, the name and the key" % id)
-		assert_false(button.lit, "%s: dark while closed" % id)
-		_click_ui(ui, button.get_global_rect().get_center())
-		assert_true(window.is_open(), "%s: a click opens it" % id)
-		bar.refresh()
-		assert_true(button.lit, "%s: lit while open" % id)
-		assert_true(button.button_pressed, "%s: drawn lit" % id)
-		_click_ui(ui, button.get_global_rect().get_center())
-		assert_false(window.is_open(), "%s: and closes it" % id)
-		bar.refresh()
-		assert_false(button.lit, "%s: dark again" % id)
-	# The tooltip shows after a rest.
-	var help_button: UiButton = bar.buttons[UiRoot.HELP]
-	_move(ui.ui_to_world(help_button.get_global_rect().get_center()))
-	bar.tip.advance(UiTip.DELAY + 0.05)
-	assert_eq(bar.tip.shown_text(), bar.tip.text_for(help_button), "the tooltip shows")
-	assert_true(
-		Rect2(Vector2.ZERO, Vector2(ui.room())).encloses(bar.tip.get_global_rect()), "on screen"
-	)
+		_move(Vector2(-10, -10))
+		main.free()
 
 
 # --- R8 ------------------------------------------------------------------------

@@ -328,13 +328,16 @@ have four looks: `dusk` with a `slate` edge, `slate` with a `silver` edge under 
 padding round the text and 20 or more tall; a key hint (`Shop  U`) in `steel` after the text. Tooltips are
 one sentence, `white` on `ink` with a `steel` edge. The button bar sits at the bottom right just above the
 hero frames: a button per window, 28 tall, with a 16x16 icon (`assets/sprites/ui/window_icons.px`), the
-window's one-word name in the plain weight (with 4 pixels of padding, so the row fits) and its key in a key cap (an `ink` box with a `steel` edge, two pixels of
-it below, the letter in `silver`; `white` on a `silver` edge under the mouse), then `Reset`, which puts
-the windows back (spec 068). Where the row is short of room (960x540) the keys are left to the tooltips
-and each button is its icon over its name, 38 tall. A bar button's tooltip is
+window's one-word name in the plain weight and its key in a key cap (an `ink` box with a `steel` edge, two
+pixels of it below, the letter in `silver`; `white` on a `silver` edge under the mouse), then `Reset`,
+which puts the windows back (spec 068). A bar button has less padding than other buttons, 4 pixels at the
+sides and 3 above and below, and 2 between buttons, so the row fits. Where the row is short of room
+(960x540) each button is its icon over its name, 38 tall, with the key in a smaller cap (one pixel of
+`ink` round the letter) on the button's top right corner, over its edge. A bar button's tooltip is
 `<title> (<key>): <what the window is for>.` A button's marker (`UiBadge`) is an `amber`
-tag with a bold `ink` number, pulsing to `orange`, over the button's top-right corner (on its edge, never
-on its icon, name or key), on the bar's own
+tag with a bold `ink` number, pulsing to `orange`, on the top left corner of the button's icon, reaching
+no more than 2 pixels outside the button (so never onto the next button, nor under a window standing
+beside the bar) and never on its name or key, on the bar's own
 layer: over the bar, under every window (spec 062).
 
 **The management windows (spec 059).** The shop, the area map and the tally are windows. Their numbers and

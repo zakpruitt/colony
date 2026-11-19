@@ -777,7 +777,7 @@ func test_r9_help_wiki_and_showcase() -> void:
 	assert_string_contains(_does(keys, "B"), "Camp", "B is auto-buy in the shop")
 	assert_string_contains(_does(keys, "Q E"), "Tally", "Q and E the tally's tabs")
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
-	for phrase: String in ["Shop window", "Area map window", "Party tally window"]:
+	for phrase: String in ["Camp window", "Area map window", "Party tally window"]:
 		assert_string_contains(wiki, phrase, "the wiki describes the %s" % phrase)
 	for pair: Array in [[&"shop", &"shop"], [&"area_map", &"map"]]:
 		var moment: StringName = pair[0]

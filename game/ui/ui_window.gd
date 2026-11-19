@@ -25,7 +25,7 @@ var title: String = "":
 			title_label.text = value
 ## The one word for the window wherever it is named beside others (spec 068 R2): on its button on
 ## the bar, in the help's key list and in tooltips ([code]Camp[/code] for a window titled
-## [code]Camp upgrades[/code]). [UiButtonBar] gives it; "" for a window that has none.
+## [code]Camp upgrades[/code]). Given where the window is made; "" for a window that has none.
 var short_name: String = ""
 ## What the window shows, under the title bar.
 var content: Control
