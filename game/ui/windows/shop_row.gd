@@ -3,8 +3,9 @@ extends PanelContainer
 ## One upgrade's card in the Shop window (spec 017, laid out by spec 059 R2, made a card by spec
 ## 065). At its left the upgrade's picture in a large [UiIcon] (spec 063) with the rank as its
 ## count: ready (a pulsing yellow frame) when the party can pay, locked when it cannot, owned in
-## gold for good at the top rank. Beside it the number key and the name in bold, under them the
-## ranks as [ShopPips] with [code]3 / 20[/code], and one buy button with the whole price: the
+## gold for good at the top rank. Beside it the number key and the name in bold with the rank in
+## words at the end of the line ([code]3 / 20[/code]), under them the ranks as [ShopPips] across
+## the whole text column, and one buy button with the whole price: the
 ## gold, and from the rank that also costs the upgrade's resource (spec 052) that price with the
 ## resource's icon; at the top rank it reads [code]Max[/code]. Under those, what the upgrade gives
 ## now and what the next rank gives, side by side with an arrow, the gain in green
@@ -77,15 +78,20 @@ func _init(upgrade_id: StringName, index: int) -> void:
 	var upper := _box(right, false, GAP)
 	var text := _box(upper, true, 0)
 	text.custom_minimum_size.x = text_width()
+	# The name line ends with the rank in words at the column's right edge, so the pips under it
+	# have the whole column.
 	var head := _box(text, false, 4)
 	key_label = _line(head, "Key", str(index + 1), &"slate", true)
 	name_label = _line(head, "Name", def.display_name, &"white", true)
-	var rank := _box(text, false, 5)
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rank_label = _line(head, "Rank", "", &"steel")
+	rank_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	var rank := _box(text, false, 0)
+	rank.custom_minimum_size.y = UiText.LINE_HEIGHT
 	pips = ShopPips.new()
 	pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pips.show_ranks(0, def.max_rank)
 	rank.add_child(pips)
-	rank_label = _line(rank, "Rank", "", &"steel")
 	# The button keeps one width whatever its price: a UiButton sizes itself, its holder does not.
 	var holder := _box(upper, true, 0)
 	holder.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -140,9 +146,10 @@ static func text_width() -> int:
 	var needs: int = 0
 	for upgrade: StringName in Content.upgrade_ids():
 		var def: UpgradeDef = Content.upgrade(upgrade)
-		widest = maxi(widest, UiText.width("5", true) + 4 + UiText.width(def.display_name, true))
 		var ranks: String = "%d / %d" % [def.max_rank, def.max_rank]
-		widest = maxi(widest, ShopPips.width_for(def.max_rank) + 5 + UiText.width(ranks))
+		var head: int = UiText.width("5", true) + UiText.width(def.display_name, true)
+		widest = maxi(widest, head + 4 + 4 + UiText.width(ranks))
+		widest = maxi(widest, ShopPips.width_for(def.max_rank))
 		var most: int = def.cost_at(def.max_rank - 1)
 		var resource: int = def.resource_cost_at(def.max_rank - 1)
 		needs = maxi(needs, UiText.width(needs_for(def, most, resource)))
@@ -227,9 +234,10 @@ func start_flash(rank: int) -> void:
 
 
 ## Steps the numbers from what [param from_rank] ranks gave to what the ranks now give, over
-## [constant STEP_SECONDS]: the player just bought a rank.
+## [constant STEP_SECONDS]: the player just bought a rank. While the numbers already step, they
+## keep stepping from the earlier rank (two ranks bought in one frame step from two below).
 func start_step(from_rank: int) -> void:
-	_step_from = from_rank
+	_step_from = mini(_step_from, from_rank) if _step > 0.0 else from_rank
 	_step = STEP_SECONDS
 
 

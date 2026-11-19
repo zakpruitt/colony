@@ -411,6 +411,64 @@ func test_r5_buying_is_a_moment() -> void:
 	assert_eq(sim.upgrades.rank(BLADES), 7, "1 bought rank 7")
 	assert_eq(moment.bursts_seen(), bursts, "no burst in a catch-up")
 	assert_eq(blades.flash(), 0.0, "nor a flash")
+	# A stall while the flash and the step run: the world catches up, and both stop at once.
+	_frame(main, 0)
+	_key(KEY_1)
+	_frame(main)
+	assert_eq(sim.upgrades.rank(BLADES), 8, "1 bought rank 8")
+	assert_true(blades.flash() > 0.0 and blades.stepping(), "setup: flashing and stepping")
+	for i: int in 300:
+		sim.step()
+	_frame(main, 0)
+	assert_true(main.world.catching_up(), "setup: a stall")
+	assert_eq(blades.flash(), 0.0, "the flash stops when the world catches up")
+	assert_false(blades.stepping(), "and the numbers stop stepping")
+	assert_eq(blades.now_label.text, "+40%", "showing the truth")
+	_frame(main, 0)
+	# Two ranks bought in one tick: the numbers step from where they were, two ranks below.
+	_key(KEY_1)
+	_key(KEY_1)
+	_frame(main)
+	assert_eq(sim.upgrades.rank(BLADES), 10, "two ranks, 9 and 10, in one tick")
+	var first: int = blades.now_label.text.trim_prefix("+").trim_suffix("%").to_int()
+	assert_lt(first, 45, "stepping from rank 8, not rank 9: +%d%%" % first)
+	for i: int in 60:
+		_frame(main, 0)
+	assert_eq(blades.now_label.text, "+50%", "to +50%")
+	_moment_is_the_players(main)
+
+
+## The player's purchase and auto-buy's in one tick, and an ask that failed on the tick auto-buy
+## bought another upgrade: only what the player bought bursts.
+func _moment_is_the_players(main: Main) -> void:
+	var sim: Simulation = main.simulation
+	var moment: UiMoment = main.ui.moment
+	var blades: ShopRow = _row(main, BLADES)
+	var armor: ShopRow = _row(main, ARMOR)
+	sim.upgrades.set_rank(ARMOR, 0)  # 30 gold, the cheapest: auto-buy's
+	sim.party.gold = 100_000
+	sim.set_auto_buy(true)
+	var every: int = roundi(Simulation.AUTO_BUY_SECONDS * Simulation.TICKS_PER_SECOND)
+	for each: bool in [true, false]:
+		_frame(main)
+		while (sim.tick + 1) % every != 0:  # the next tick is one auto-buy buys on
+			_frame(main)
+		for i: int in 60:
+			_frame(main, 0)  # the last bursts end
+		var blades_rank: int = sim.upgrades.rank(BLADES)
+		var armor_rank: int = sim.upgrades.rank(ARMOR)
+		_key(KEY_1)
+		if not each:
+			sim.party.gold = sim.upgrades.cost(ARMOR)  # the ask fails; auto-buy buys armour
+		_frame(main)
+		var what: String = "both bought" if each else "the ask failed"
+		assert_eq(sim.upgrades.rank(ARMOR), armor_rank + 1, "%s: auto-buy bought armour" % what)
+		assert_eq(sim.upgrades.rank(BLADES), blades_rank + (1 if each else 0), what)
+		assert_eq(moment.is_bursting(blades.icon), each, "%s: blades bursts if bought" % what)
+		assert_false(moment.is_bursting(armor.icon), "%s: auto-buy's armour does not" % what)
+		assert_gt(armor.flash(), 0.0, "%s: its pip flashes" % what)
+		sim.party.gold = 100_000
+	sim.set_auto_buy(false)
 
 
 # --- R6 ------------------------------------------------------------------------
