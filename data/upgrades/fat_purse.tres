@@ -16,3 +16,4 @@ max_rank = 20
 resource = &"embers"
 resource_from_rank = 3
 resource_base = 4
+gives = "Gold from kills"

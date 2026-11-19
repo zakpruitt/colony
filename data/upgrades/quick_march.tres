@@ -16,3 +16,4 @@ max_rank = 10
 resource = &"glowcaps"
 resource_from_rank = 3
 resource_base = 5
+gives = "Travel speed"

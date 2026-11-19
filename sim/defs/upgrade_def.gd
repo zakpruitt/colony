@@ -24,6 +24,9 @@ enum Stat { DAMAGE, HEALTH, REST_HEALING, TRAVEL_SPEED, GOLD }
 ## The resource rank [member resource_from_rank] costs; each later rank costs [member cost_growth]
 ## times the one before, as the gold does.
 @export var resource_base: int
+## What the upgrade raises, in a few words for the shop's line of numbers (spec 065):
+## "Damage and healing". A view hint: no rule reads it.
+@export var gives: String
 
 
 ## The price of rank [param rank] + 1, or -1 when [param rank] is the maximum or beyond.
@@ -54,6 +57,8 @@ func validate() -> PackedStringArray:
 		problems.append("display_name is empty")
 	if description.is_empty():
 		problems.append("description is empty")
+	if gives.is_empty():
+		problems.append("gives is empty")
 	if per_rank <= 0.0:
 		problems.append("per_rank %s is not above 0" % per_rank)
 	if base_cost < 1:
