@@ -77,11 +77,14 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### In progress (2026-11-18)
+### In progress (2026-11-19)
 
-Zak asked for more movement in fights (heroes that leap, spin and cast, and spells you can see) and for a
-UI overhaul: a sharper UI layer, a font made for reading, and windows that open side by side as in WoW.
-New rows go in this table.
+Zak asked for a cleanup: a codebase that is clean, idiomatic and easy to extend. It runs in rounds of
+"no behaviour change" specs: tidy (069 to 071), then structure (072, 074 to 076), then a fresh survey.
+State hashes and old saves stay as they are throughout. New rows go in this table.
 
 | Spec | Status | Depends on |
 |---|---|---|
+| 069 | [Sim tidy](069-sim-tidy/spec.md): in-progress | — |
+| 070 | [Game tidy](070-game-tidy/spec.md): in-progress | — |
+| 071 | [A shared test base](071-shared-test-base/spec.md): in-progress, lands after 069 and 070 | — |
