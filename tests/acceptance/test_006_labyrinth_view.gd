@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/006-labyrinth-view.
 
 const H: int = Labyrinth.LEVEL_HEIGHT

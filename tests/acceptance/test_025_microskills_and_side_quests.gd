@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/025-microskills-and-side-quests/spec.md, one per requirement.
 ##
 ## Most tests find a seed whose labyrinth has the side quest wanted on its first visit, put the

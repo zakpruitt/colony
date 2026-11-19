@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## The fixture both of spec 052's acceptance test files extend: its constants, the HUD built
 ## on a seeded simulation, and the helpers they share. It holds no tests itself.
 ##
@@ -62,7 +62,8 @@ var _heard: Array[SimEvent] = []
 
 
 func after_each() -> void:
-	_mouse(AWAY)
+	super()
+	mouse_move(AWAY)
 	_heard.clear()
 
 
@@ -102,22 +103,8 @@ func _frame(ticks: int = 1, delta: float = STEP) -> void:
 	_ui.bar.advance(delta)
 
 
-func _level(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.level = level
-		hero.xp = Hero.xp_for_level(level)
-		hero.health = hero.max_health()
-
-
 func _index(id: StringName) -> int:
 	return Content.resource_ids().find(id)
-
-
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
 
 
 ## The tooltip shown after resting the mouse on [param control]: the UI layer's for a control in
@@ -182,7 +169,7 @@ func _drop_share(watched: Dictionary, size: MonsterDef.Size) -> Vector2i:
 ## A party at [param level] sent to the Claypits (opened by hand), arrived and standing there.
 func _in_claypits(level: int) -> Simulation:
 	var sim := Simulation.new(SEED)
-	_level(sim, level)
+	set_party_level(sim, level)
 	sim.expedition.travel.open[CLAYPITS] = true
 	sim.set_destination(CLAYPITS, 1)
 	for i: int in 400:

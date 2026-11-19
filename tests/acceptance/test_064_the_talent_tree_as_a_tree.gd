@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/talent_tree_test.gd"
+extends "res://tests/acceptance/talent_tree_test_base.gd"
 ## Acceptance tests for specs/064-the-talent-tree-as-a-tree/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its own processing off, laid out for a chosen room, and drives
@@ -387,7 +387,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	# With nothing under the mouse: the first node it can take now.
 	check.call(tree.trunk[0], "Click to learn", true, "the first to take")
 	# The node under the mouse.
-	_move(main.ui.ui_to_world(view.node(tree.trunk[2]).slot.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(view.node(tree.trunk[2]).slot.get_global_rect().get_center()))
 	main.hud.advance(STEP)
 	check.call(tree.trunk[2], "Take Taunt first", false, "pointed at")
 	_point_away(main)
@@ -420,7 +420,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 		tree.path_b[0]: UiIcon.State.OWNED, tree.path_a[1]: UiIcon.State.CLOSED
 	}
 	for id: StringName in framed:
-		_move(main.ui.ui_to_world(view.node(id).slot.get_global_rect().get_center()))
+		mouse_move(main.ui.ui_to_world(view.node(id).slot.get_global_rect().get_center()))
 		main.hud.advance(STEP)
 		assert_eq(strip.ability_id, id, "pointed at")
 		assert_eq(strip.slot.state(), framed[id], "%s framed as it stands" % id)
@@ -829,7 +829,7 @@ func test_r11_nothing_lost() -> void:
 	var row: int = main.hud.goals.lines().find("Spend the Knight's talent points")
 	assert_gte(row, 0, "a goal: %s" % [main.hud.goals.lines()])
 	if row >= 0:
-		_click_world(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
+		click(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
 		main.hud.advance(STEP)
 		assert_true(main.hud.hero_windows.is_open(knight.id), "the goal opens the window")
 		assert_eq(_window(main, knight).page(), HeroWindow.Page.TALENTS, "on Talents")

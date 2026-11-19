@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## SimDriver above 1x (spec 032): the extra ticks a speed adds are best effort and never kept.
 
 const MS: int = 1_000

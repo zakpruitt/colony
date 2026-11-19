@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/024-guardian-fights/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation, with the CombatEffects, the Hud (and its
@@ -16,7 +16,7 @@ const SLIME_KING_SHEET: String = "res://assets/sprites/monsters/slime_king.png"
 ## The longest a test waits for a fight to start or end, in simulation ticks.
 const FIGHT_TICKS: int = 3000
 
-var _settings_path: String = "user://test_024_sound_%d.settings" % OS.get_process_id()
+var _settings_path: String = save_path("", "settings")
 var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
@@ -50,19 +50,7 @@ func before_each() -> void:
 	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
 
 
-func after_each() -> void:
-	if FileAccess.file_exists(_settings_path):
-		DirAccess.remove_absolute(_settings_path)
-
-
 # --- Helpers -------------------------------------------------------------------
-
-
-## Raises every hero to [param level], at full health.
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Puts the party on the guardian's depth just outside its chamber, walking in, no auto-push.
@@ -134,7 +122,7 @@ func _guardian_events(kind: SimEvent.Kind) -> Array[SimEvent]:
 
 ## Starts the fight with the Slime King with a strong party; true once it has begun.
 func _start_guardian_fight(level: int = STRONG_LEVEL) -> bool:
-	_raise(level)
+	raise_party(_sim, level)
 	_before_guardian()
 	return _play_until(SimEvent.Kind.ENCOUNTER_STARTED)
 

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/047-a-ladder-that-points-true/spec.md, one per requirement (R7 is in
 ## test_043_a_ladder_that_warns.gd, test_r3_dangerous_click).
 ##
@@ -190,11 +190,11 @@ func test_r2_goes_back_to_following() -> void:
 	assert_false(ladder.is_following(), "setup: scrolled away")
 
 	# A press on the ladder dragged off it: the GUI keeps sending it the motion, from outside.
-	var press := InputEventMouseButton.new()
-	press.button_index = MOUSE_BUTTON_LEFT
-	press.pressed = true
-	press.position = Vector2(-1.0, -1.0)  # off any rung, so the press sets no target
-	ladder._gui_input(press)
+	var button_press := InputEventMouseButton.new()
+	button_press.button_index = MOUSE_BUTTON_LEFT
+	button_press.pressed = true
+	button_press.position = Vector2(-1.0, -1.0)  # off any rung, so the press sets no target
+	ladder._gui_input(button_press)
 	_leaves()
 	var outside: Array[Vector2] = [
 		Vector2(-30.0, 40.0), Vector2(-120.0, 60.0), Vector2(200.0, -50.0), Vector2(-5.0, 500.0)

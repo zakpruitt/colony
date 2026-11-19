@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/015-standing-room/spec.md, one per requirement.
 ##
 ## R5 is the existing suite: it passes with its numbers unchanged.

@@ -1,8 +1,8 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/068-a-button-bar-that-says-what-it-opens/spec.md, one per
 ## requirement. Each runs the main scene laid out for a room ([method UiRoot.set_room_for_test]),
 ## measures the bar's rectangles there and drives it with real clicks and keys (the helpers are in
-## ui_layer_test.gd).
+## ui_layer_test_base.gd).
 
 const ROOMS: Array[Vector2i] = [ROOM_SMALL, ROOM_LARGE]
 ## The word each window's button says (R1), in the bar's order.
@@ -306,7 +306,7 @@ func test_r3_reads_lit_tagged_and_disabled() -> void:
 			told[about] = id
 		# The tooltip shows after a rest on the button.
 		var help: UiButton = bar.buttons[&"help"]
-		_move(ui.ui_to_world(help.get_global_rect().get_center()))
+		mouse_move(ui.ui_to_world(help.get_global_rect().get_center()))
 		bar.tip.advance(UiTip.DELAY + 0.05)
 		assert_eq(bar.tip.shown_text(), bar.tip.text_for(help), "%s: the tooltip shows" % room)
 		# Disabled: the name stays, in a colour that shows on the sunken face.
@@ -315,7 +315,7 @@ func test_r3_reads_lit_tagged_and_disabled() -> void:
 		assert_eq(help.text, "Help", "%s: a disabled button keeps its name" % room)
 		assert_ne(help.get_theme_color(&"font_disabled_color"), off.bg_color, "%s: readable" % room)
 		assert_ne(off.bg_color, rest_of(help).bg_color, "%s: and told apart" % room)
-		_move(Vector2(-10, -10))
+		mouse_move(Vector2(-10, -10))
 		main.free()
 
 
@@ -509,9 +509,9 @@ func test_r5_nothing_lost() -> void:
 			assert_true(window.is_open(), "%s: a click on its tag opens it" % named)
 			_click_ui(ui, button.get_global_rect().get_center())
 			assert_false(window.is_open(), "%s: and closes it" % named)
-			_key(window.keycode)
+			press(window.keycode)
 			assert_true(window.is_open(), "%s: its key opens it" % named)
-			_key(window.keycode)
+			press(window.keycode)
 			assert_false(window.is_open(), "%s: and closes it" % named)
 		# The reset button puts a dragged window back.
 		var journal: UiWindow = ui.windows.window(&"journal")
@@ -529,7 +529,7 @@ func test_r5_nothing_lost() -> void:
 		assert_lt(bar.tag_layer.get_index(), ui.windows.get_index(), "%s: under the windows" % room)
 		for id: StringName in NAMES:
 			assert_eq(bar.badges[id].get_parent(), bar.tag_layer, "%s: %s's tag on it" % [room, id])
-		_move(Vector2(-10, -10))
+		mouse_move(Vector2(-10, -10))
 		main.free()
 
 

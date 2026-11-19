@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/021-sound-effects/spec.md, one per requirement (R1 is in Python:
 ## tools/tests/test_021_sound_effects.py).
 ##
@@ -8,7 +8,6 @@ extends GutTest
 ## moves only in _process, so a test steps it exactly. Every player here is given a settings file
 ## on a per-process path under user://, deleted after each test: never the real one.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 1
 const KNIGHT: int = 1
 const SOUNDS: Array[StringName] = [
@@ -28,8 +27,8 @@ const SOUNDS: Array[StringName] = [
 	&"ui_buy",
 ]
 
-var _settings_path: String = "user://test_021_sound_%d.settings" % OS.get_process_id()
-var _save_path: String = "user://test_021_sound_%d.save" % OS.get_process_id()
+var _settings_path: String = save_path("", "settings")
+var _save_path: String = save_path()
 var _sim: Simulation
 var _world: World
 var _fx: CombatEffects
@@ -50,30 +49,10 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
-	for path: String in [
-		_settings_path,
-		_save_path,
-		_save_path + SaveStore.BACKUP_SUFFIX,
-		_save_path + SaveStore.TEMP_SUFFIX,
-	]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
-
-
-## Also after the last test: a Main freed by GUT after `after_each` saves once more as it
-## leaves the tree.
-func after_all() -> void:
-	for path: String in [
-		_settings_path,
-		_save_path,
-		_save_path + SaveStore.BACKUP_SUFFIX,
-		_save_path + SaveStore.TEMP_SUFFIX,
-	]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -253,10 +232,10 @@ func test_r5_quiet_and_mutable() -> void:
 			assert_eq(voice.bus, &"SFX", "every voice plays on the SFX bus")
 	assert_false(_sound.is_muted(), "not muted to begin with")
 
-	var press := InputEventKey.new()
-	press.keycode = KEY_M
-	press.pressed = true
-	_sound._unhandled_input(press)
+	var key_press := InputEventKey.new()
+	key_press.keycode = KEY_M
+	key_press.pressed = true
+	_sound._unhandled_input(key_press)
 	assert_true(_sound.is_muted(), "M mutes")
 	assert_true(AudioServer.is_bus_mute(bus), "the SFX bus is muted")
 	assert_true(FileAccess.file_exists(_settings_path), "the choice is written to the test's file")
@@ -266,11 +245,11 @@ func test_r5_quiet_and_mutable() -> void:
 	var second: SoundPlayer = _player()
 	assert_true(second.is_muted(), "a second player given the same file starts muted")
 
-	_sound._unhandled_input(press)
+	_sound._unhandled_input(key_press)
 	assert_false(_sound.is_muted(), "M again unmutes")
 	assert_false(SoundSettings.new(_settings_path).muted(), "and that is kept too")
 
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	assert_not_null(main.sound, "the main scene makes a player")
 	assert_null(main.sound.settings, "a test run has no settings file: the real one is untouched")
@@ -287,7 +266,7 @@ func test_r6_silent_while_catching_up() -> void:
 	var data: Dictionary = sim.to_save()
 	data[Main.SAVED_AT_KEY] = Time.get_unix_time_from_system()
 	assert_true(SaveStore.new(_save_path).write(data), "the test's save was written")
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.save_store = SaveStore.new(_save_path)
 	main.away_seconds_override = 1200.0
 	add_child_autofree(main)

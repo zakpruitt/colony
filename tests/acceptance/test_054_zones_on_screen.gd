@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/054-zones-on-screen/spec.md, one per requirement. R9 is also in
 ## test_018_seeing_the_loop.gd (test_r2_showcase_plays_every_moment), which plays every moment.
 ##
@@ -14,7 +14,6 @@ const HERO_IDS: Array[int] = [1, 2, 3, 4]
 const KNIGHT: int = 1
 ## The longest any wait here lasts, in simulation ticks (five minutes).
 const LIMIT_TICKS: int = 3000
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 ## A stage's band of world pixels, top to bottom.
 const BAND_PIXELS: float = Labyrinth.LEVEL_HEIGHT * TILE
 ## The words nothing on screen may say (R6), as whole words or their start.
@@ -268,7 +267,7 @@ func test_r2_a_short_crossing() -> void:
 	assert_lt(climb_frames[4] * 3, climb_frames[1], "at 4x the crossing is shorter")
 
 	# In the real game: the HUD has the veil, shown and dark over the whole screen in a crossing.
-	var main: Main = MAIN_SCENE.instantiate() as Main
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.driver.set_process(false)
 	main.world.set_process(false)
@@ -581,7 +580,7 @@ func test_r6_nothing_says_down() -> void:
 	assert_eq(found, PackedStringArray(), "texts the player can see that say down")
 
 	# What the HUD shows as the party goes on, comes back and is wiped.
-	var main: Main = MAIN_SCENE.instantiate() as Main
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.driver.set_process(false)
 	main.world.set_process(false)
@@ -614,7 +613,7 @@ func test_r6_nothing_says_down() -> void:
 ## leave by and hides in a crossing, and the ladder's party marker moves a whole rung when the
 ## stage changes instead of sliding by the climb's height.
 func test_r6_the_marker_and_the_ladder() -> void:
-	var main: Main = MAIN_SCENE.instantiate() as Main
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.driver.set_process(false)
 	main.world.set_process(false)

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## The one risk rule (spec 043, shared by spec 053): the depth ladder and the area map both judge
 ## a stage through StageRisk, so the two cannot drift.
 

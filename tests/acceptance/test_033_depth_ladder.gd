@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/033-depth-ladder/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -51,13 +51,6 @@ func _build_hud() -> void:
 
 func _ladder() -> StageList:
 	return _hud.ladder
-
-
-## Raises every hero to [param level], at full health.
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Puts the party on [param depth] in the tunnel just outside its shaft chamber, walking in,
@@ -131,15 +124,6 @@ func _hover_at(at: Vector2) -> void:
 	var event := InputEventMouseMotion.new()
 	event.position = at
 	_ladder()._gui_input(event)
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 func _frames_top() -> float:
@@ -231,7 +215,7 @@ func test_r2_rungs_say_what_they_are() -> void:
 		assert_false(_has(depth, &"guardian"), "no guardian at depth %d" % depth)
 
 	# A guardian before, during and after the fight that beats it.
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	var hash_before: int = _sim.state_hash()
 	_hud.advance(STEP)
@@ -324,7 +308,7 @@ func test_r4_hover_says_it() -> void:
 	)
 
 	# The guardian beaten.
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	var won: bool = false
 	for i: int in LIMIT_TICKS:
@@ -376,7 +360,7 @@ func test_r5_it_can_be_hidden() -> void:
 		return
 	assert_true(ladder.is_shown(), "shown at start")
 	_situation(3, 3, 3, 3)
-	_key(KEY_L)
+	press(KEY_L)
 	_hud.advance(STEP)
 	assert_false(ladder.is_shown(), "L hides it")
 	assert_false(ladder.is_visible_in_tree(), "it is not drawn")
@@ -385,7 +369,7 @@ func test_r5_it_can_be_hidden() -> void:
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 3, "hidden, it takes no clicks")
-	_key(KEY_L)
+	press(KEY_L)
 	_hud.advance(STEP)
 	assert_true(ladder.is_shown(), "L shows it again")
 	ladder.click_depth(6)
@@ -423,7 +407,7 @@ func test_r6_stays_out_of_the_way() -> void:
 	assert_false(rect.intersects(strip), "clear of the ticker's whole strip")
 
 	# The boss bar, during a guardian fight.
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_before_guardian(5)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a guardian fight")
@@ -438,7 +422,7 @@ func test_r6_stays_out_of_the_way() -> void:
 	_hud.advance(STEP)
 	assert_true(ladder.is_shown(), "and when it closes")
 	# Hidden by L, it stays hidden after the shop.
-	_key(KEY_L)
+	press(KEY_L)
 	_hud.shop.open()
 	_hud.advance(STEP)
 	_hud.shop.close()

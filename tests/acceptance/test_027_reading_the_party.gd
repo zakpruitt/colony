@@ -1,11 +1,10 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/027-reading-the-party/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it, every
 ## _process turned off, and step the simulation by hand. R6 and R7 also run the main scene, to see
 ## the game going on and every key reaching its owner.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 1
 const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
@@ -42,19 +41,13 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, _was_muted)
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-## Raises every hero to [param level], at full health.
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Steps the simulation until [param done] returns true (true), or the limit (false). The HUD and
@@ -97,7 +90,7 @@ func _before_guardian(depth: int) -> void:
 
 ## Takes a strong party down to depth 2, auto-push off, and leaves it travelling there.
 func _down_to_two() -> bool:
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_auto_push(false)
 	_sim.set_target_depth(2)
 	return _step_until(_at_depth(2))
@@ -115,20 +108,11 @@ func _emit(kind: SimEvent.Kind, source: int, target: int, amount: int, age: int 
 	_world.sim_event.emit(SimEvent.new(kind, _sim.tick - age, source, target, amount))
 
 
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
 ## Runs the main scene; the test's own world and HUD stop taking keys.
 func _start_main() -> Main:
 	_world.process_mode = Node.PROCESS_MODE_DISABLED
 	_hud.process_mode = Node.PROCESS_MODE_DISABLED
-	_main = MAIN_SCENE.instantiate()
+	_main = make_main()
 	add_child_autofree(_main)
 	return _main
 
@@ -169,7 +153,7 @@ func test_r1_status_line() -> void:
 	assert_eq(_hud.status_text(), "Hunting on stage 1", "travelling at the target depth")
 	assert_eq(_hud.place_panel.status_label.text, _hud.status_text(), "the panel shows the line")
 
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_auto_push(false)
 	_sim.set_target_depth(2)
 	_sim.step()
@@ -221,7 +205,7 @@ func test_r1_status_line() -> void:
 	# A guardian, once the party is back on its feet.
 	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING)), "the party revives")
 	_before_guardian(5)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
 	assert_eq(_hud.status_text(), "Fighting the Slime King", "fighting a guardian")
 
@@ -229,7 +213,7 @@ func test_r1_status_line() -> void:
 func test_r1_status_line_working() -> void:
 	# Spec 025's side quests: the party stops to work, and the line names the quest.
 	var e: Expedition = _sim.expedition
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_auto_push(false)
 	var found: bool = false
 	for depth: int in range(1, 6):
@@ -270,7 +254,7 @@ func test_r1_status_line_fits() -> void:
 	var depth: int = Expedition.GUARDIAN_EVERY
 	assert_eq(_sim.expedition.guardian_of(depth), longest, "it guards its own area's stage 5")
 	_before_guardian(depth)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
 	_sim.expedition.target_depth = depth
 	_sim.set_auto_push(true)
@@ -468,7 +452,7 @@ func test_r3_journal() -> void:
 func test_r4_frames_show_who_is_down() -> void:
 	var frames: Array[HeroFrameView] = _hud.frames
 	assert_eq(frames.size(), 4)
-	_raise(5)
+	raise_party(_sim, 5)
 	_hud.advance(0.0)
 	var knight: Hero = _sim.party.hero(KNIGHT)
 	knight.health = 0
@@ -502,7 +486,7 @@ func test_r5_marker() -> void:
 	_world.sync(0.0)
 	assert_false(marker.visible, "hidden at the target depth")
 
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_auto_push(false)
 	_sim.set_target_depth(2)
 	_sim.step()
@@ -539,7 +523,7 @@ func test_r5_marker() -> void:
 
 func test_r6_it_fits() -> void:
 	_before_guardian(5)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a guardian fight")
 	_hud.advance(0.0)
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
@@ -594,33 +578,33 @@ func test_r7_keys() -> void:
 	var sim: Simulation = main.simulation
 	var windows: UiWindows = main.ui.windows
 	main.hud.advance(0.0)
-	_key(KEY_J)
+	press(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL), "J opens the journal")
 
 	var target: int = sim.expedition.target_depth
-	_key(KEY_EQUAL)
+	press(KEY_EQUAL)
 	sim.step()
 	assert_eq(sim.expedition.target_depth, target + 1, "= raises the target")
-	_key(KEY_MINUS)
+	press(KEY_MINUS)
 	sim.step()
 	assert_eq(sim.expedition.target_depth, target, "- lowers it")
 	var auto: bool = sim.expedition.auto_push
-	_key(KEY_A)
+	press(KEY_A)
 	assert_ne(sim.expedition.auto_push, auto, "A switches auto-push")
 	var zoom: int = main.world.camera.zoom_level()
-	_key(KEY_Z)
+	press(KEY_Z)
 	assert_ne(main.world.camera.zoom_level(), zoom, "Z zooms")
 	var muted: bool = main.sound.is_muted()
-	_key(KEY_M)
+	press(KEY_M)
 	assert_ne(main.sound.is_muted(), muted, "M mutes")
 	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal stays open through them all")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.JOURNAL), "Esc closes it")
 	main.hud.hero_windows.open(KNIGHT)  # spec 060: a hero's sheet is its window
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(main.hud.hero_windows.is_open(KNIGHT), "Esc closes a hero window too")
-	_key(KEY_J)
+	press(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL))
-	_key(KEY_U)
+	press(KEY_U)
 	main.hud.advance(0.0)
 	assert_true(main.hud.shop.is_open(), "U opens the shop")

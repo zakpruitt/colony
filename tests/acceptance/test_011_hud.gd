@@ -1,7 +1,6 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/011-hud/spec.md, one per requirement.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 11
 const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
@@ -39,15 +38,6 @@ func _emit(kind: SimEvent.Kind, target: int, amount: int = 0) -> void:
 
 func _set_health(hero: Hero, fraction: float) -> void:
 	hero.health = roundi(hero.max_health() * fraction)
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 func _steps(count: int) -> void:
@@ -285,11 +275,11 @@ func test_r6_target_depth_control() -> void:
 	assert_eq(expedition.target_depth, 1, "never below 1")
 	assert_eq(_hud.place_panel.target_label.text, "1")
 
-	_key(KEY_EQUAL)
+	press(KEY_EQUAL)
 	_steps(1)
 	_hud.advance(0.016)
 	assert_eq(expedition.target_depth, 2, "= raises it")
-	_key(KEY_MINUS)
+	press(KEY_MINUS)
 	_steps(1)
 	_hud.advance(0.016)
 	assert_eq(expedition.target_depth, 1, "- lowers it")
@@ -301,7 +291,7 @@ func test_r6_target_depth_control() -> void:
 	assert_true(expedition.auto_push, "Auto turns auto-push on")
 	assert_true(_hud.auto_on(), "shown on")
 	var on_text: String = _hud.place_panel.auto_button.text
-	_key(KEY_A)
+	press(KEY_A)
 	_hud.advance(0.016)
 	assert_false(expedition.auto_push, "A turns it off")
 	assert_false(_hud.auto_on(), "shown off")
@@ -319,12 +309,12 @@ func test_r6_target_depth_control() -> void:
 
 
 func test_r7_dev_clock_hidden_until_f3() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	var clock: Label = main.get_node("HUD/ClockLabel")
 	assert_false(clock.is_visible_in_tree(), "hidden by default")
 	main.hud.advance(0.016)
-	_key(KEY_F3)
+	press(KEY_F3)
 	assert_true(clock.is_visible_in_tree(), "F3 shows it")
 	main.driver.advance(2_500_000)
 	main.driver.advance(0)
@@ -338,7 +328,7 @@ func test_r7_dev_clock_hidden_until_f3() -> void:
 	assert_lte(rect.end.x, SCREEN.x)
 	assert_lte(rect.end.y, SCREEN.y)
 	assert_ne(clock.get_theme_color(&"font_color"), Palette.color(&"white"), "in a dim colour")
-	_key(KEY_F3)
+	press(KEY_F3)
 	assert_false(clock.is_visible_in_tree(), "F3 hides it again")
 
 

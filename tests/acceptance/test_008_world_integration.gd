@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/008-world-integration/spec.md, one per requirement.
 ##
 ## Each test builds a World (or Main) on a seeded simulation, steps the simulation directly and
@@ -6,7 +6,6 @@ extends GutTest
 ## a second. Where a test needs to see what a sprite was asked to do it reads the sprite's own
 ## animation state (_walking, _facing, _attack_time, ...): CharacterSprite has no getters for it.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
 const FRAMES_PER_TICK: int = 6
@@ -143,7 +142,7 @@ func _event(
 
 
 func test_r1_main_scene_shows_the_world() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	assert_not_null(main.world, "the main scene has a world")
 	assert_not_null(main.hud_layer, "the main scene has a HUD layer")
@@ -690,7 +689,7 @@ func test_r9_camera_and_focus_follow_the_party() -> void:
 
 
 func test_r10_layers_exist() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	var world: World = main.world
 	assert_not_null(world, "the main scene has a world")

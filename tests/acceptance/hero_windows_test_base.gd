@@ -1,6 +1,6 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## What the acceptance tests of spec 060 (the hero windows) share: their constants and helpers, on
-## top of ui_layer_test.gd's. Kept apart so the tests' own file stays under gdlint's length.
+## top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays under gdlint's length.
 
 const STEP: float = 1.0 / 60.0
 const RICH: int = 1_000_000
@@ -42,7 +42,7 @@ func _frame_of(main: Main, hero: Hero) -> HeroFrameView:
 
 ## A real click on [param hero]'s frame, then a frame of the HUD.
 func _click_frame(main: Main, hero: Hero) -> void:
-	_click_world(Hud.on_screen(_frame_of(main, hero)).get_center())
+	click(Hud.on_screen(_frame_of(main, hero)).get_center())
 	main.hud.advance(STEP)
 
 
@@ -52,14 +52,9 @@ func _click(main: Main, control: Control) -> void:
 	main.hud.advance(STEP)
 
 
+## [method ColonyTest.press], then a frame of the HUD.
 func _press(main: Main, keycode: Key, shift: bool = false) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.shift_pressed = shift
-		event.pressed = pressed
-		get_viewport().push_input(event)
+	press(keycode, shift)
 	main.hud.advance(STEP)
 
 

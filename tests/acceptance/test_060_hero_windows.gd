@@ -1,10 +1,10 @@
-extends "res://tests/acceptance/hero_windows_test.gd"
+extends "res://tests/acceptance/hero_windows_test_base.gd"
 ## Acceptance tests for specs/060-hero-windows/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## and drives the hero windows with real clicks and keys pushed into the viewport (the helpers are
-## in hero_windows_test.gd and ui_layer_test.gd); the simulation is stepped after each command and
-## checked.
+## in hero_windows_test_base.gd and ui_layer_test_base.gd); the simulation is stepped after each
+## command and checked.
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -598,8 +598,8 @@ func test_r7_compare() -> void:
 	assert_true(bar.is_visible_in_tree(), "960x540: with its scroll bar")
 	var lowest: TalentNode = front.talents.tree_view().path_nodes[0][3]
 	var at: Vector2 = small.ui.ui_to_world(view.get_center())
-	_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
-	_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
+	mouse_button(at, true, MOUSE_BUTTON_WHEEL_DOWN)
+	mouse_button(at, false, MOUSE_BUTTON_WHEEL_DOWN)
 	assert_gt(front.scroll.scroll_vertical, 0, "960x540: the wheel scrolls it")
 	front.scroll.scroll_vertical = int(bar.max_value)
 	await _frames()
@@ -671,7 +671,7 @@ func test_r8_nothing_lost() -> void:
 	var row: int = main.hud.goals.lines().find("Spend the Knight's talent points")
 	assert_gte(row, 0, "a goal: %s" % [main.hud.goals.lines()])
 	if row >= 0:
-		_click_world(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
+		click(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
 		main.hud.advance(STEP)
 		assert_true(main.hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
 		assert_eq(_window(main, knight).page(), HeroWindow.Page.TALENTS, "on its Talents tab")

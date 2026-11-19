@@ -1,4 +1,4 @@
-extends "res://tests/unit/test_ability_kit.gd"
+extends "res://tests/unit/ability_kit_test_base.gd"
 ## The faults the review of pull request 50 found in spec 050's battle rules, each pinned here.
 
 

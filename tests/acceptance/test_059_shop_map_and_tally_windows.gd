@@ -1,10 +1,10 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/059-shop-map-and-tally-windows/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## puts the simulation where it wants it by hand and steps it a tick at a time (the world and the
 ## HUD after each), and drives the three windows with real keys and clicks (helpers in
-## ui_layer_test.gd), checking the simulation after each command.
+## ui_layer_test_base.gd), checking the simulation after each command.
 
 const STEP: float = 1.0 / 60.0
 const LIMIT_TICKS: int = 30000
@@ -61,13 +61,6 @@ func _count(kind: SimEvent.Kind) -> int:
 		if event.kind == kind:
 			count += 1
 	return count
-
-
-func _level(main: Main, level: int) -> void:
-	for hero: Hero in main.simulation.party.heroes:
-		hero.level = level
-		hero.xp = Hero.xp_for_level(level)
-		hero.health = hero.max_health()
 
 
 ## The texts a window shows, top to bottom: every visible label's and button's text, in tree
@@ -132,7 +125,7 @@ func test_r1_three_windows() -> void:
 
 	# The keys open them, all six together.
 	for code: Key in [KEY_U, KEY_W, KEY_T, KEY_H, KEY_J, KEY_O]:
-		_key(code)
+		press(code)
 	for id: StringName in IDS + [UiRoot.HELP, UiRoot.JOURNAL, UiRoot.ORDERS]:
 		assert_true(ui.windows.is_open(id), "%s is open with the other five" % id)
 	await _frames()
@@ -144,13 +137,13 @@ func test_r1_three_windows() -> void:
 		assert_true(ui.windows.is_open(id), "and opens it")
 	# Esc closes the front one only.
 	ui.windows.raise(_window(main, &"tally"))
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(ui.windows.is_open(&"tally"), "Esc closes the front window")
 	assert_true(ui.windows.is_open(&"shop"), "and only that")
 	# The area's name still opens the map.
 	ui.windows.close_window(&"map")
 	await _frames()
-	_click_world(Hud.on_screen(hud.place_panel.area_button).get_center())
+	click(Hud.on_screen(hud.place_panel.area_button).get_center())
 	assert_true(ui.windows.is_open(&"map"), "a click on the area's name opens the map")
 
 
@@ -165,7 +158,7 @@ func test_r2_the_shop_reads_at_a_glance() -> void:
 	sim.upgrades.set_rank(ARMOR, 3)
 	sim.upgrades.set_rank(MEDICINE, Content.upgrade(MEDICINE).max_rank)
 	sim.party.set_resource(&"clay", 1)
-	_key(KEY_U)
+	press(KEY_U)
 	main.hud.advance(STEP)
 	await _frames()
 	assert_true(shop.is_open(), "U opens the shop")
@@ -219,17 +212,17 @@ func test_r2_the_shop_reads_at_a_glance() -> void:
 	_frame(main)
 	assert_true(sim.auto_buy, "the switch turns auto-buy on")
 	assert_true(shop.auto_buy_button.lit, "and is lit")
-	_key(KEY_B)
+	press(KEY_B)
 	_frame(main)
 	assert_false(sim.auto_buy, "B turns it off while the shop is in front")
-	_key(KEY_1)
+	press(KEY_1)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 2, "1 buys while the shop is in front")
 	# Behind another window the keys go elsewhere.
-	_key(KEY_J)
+	press(KEY_J)
 	assert_eq(main.ui.windows.front(), _window(main, UiRoot.JOURNAL), "setup: the journal in front")
-	_key(KEY_1)
-	_key(KEY_B)
+	press(KEY_1)
+	press(KEY_B)
 	_frame(main)
 	assert_eq(sim.upgrades.rank(BLADES), 2, "1 buys nothing with the shop behind")
 	assert_false(sim.auto_buy, "nor does B switch")
@@ -242,7 +235,7 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	var main: Main = _start(ROOM_LARGE)
 	var sim: Simulation = main.simulation
 	var e: Expedition = sim.expedition
-	_level(main, STRONG_LEVEL)
+	set_party_level(main.simulation, STRONG_LEVEL)
 	e.last_stable_depth = 3
 	e.deepest_depth = 5
 	e.travel.open[CLAYPITS] = true
@@ -250,7 +243,7 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	e.travel.guardians_beaten[MOSSY] = true
 	sim.party.set_resource(&"clay", 12)
 	var map: AreaMapWindow = main.hud.area_map
-	_key(KEY_W)
+	press(KEY_W)
 	main.hud.advance(STEP)
 	await _frames()
 	assert_true(map.is_open(), "W opens the map")
@@ -307,7 +300,7 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	assert_eq(e.state, Expedition.State.JOURNEYING, "Go sends the party")
 	assert_eq(e.area, CLAYPITS, "to the Claypits")
 	assert_eq(e.travel.stage, 3, "stage 3")
-	_key(KEY_W)
+	press(KEY_W)
 	main.hud.advance(STEP)
 	assert_eq(clay.tag_label.text, "On the way, 10 s", "on the way, with the seconds left")
 
@@ -341,7 +334,7 @@ func test_r4_the_tally_reads_at_a_glance() -> void:
 		if _count(SimEvent.Kind.ENCOUNTER_ENDED) >= 2 and healed and not fighting:
 			break
 	assert_gte(_count(SimEvent.Kind.ENCOUNTER_ENDED), 2, "setup: two fights")
-	_key(KEY_T)
+	press(KEY_T)
 	main.hud.advance(STEP)
 	await _frames()
 	assert_true(tally.is_open(), "T opens the tally")
@@ -411,13 +404,13 @@ func test_r4_the_tally_reads_at_a_glance() -> void:
 	if tally.ability_lines.size() == count:
 		assert_eq(tally.ability_lines, kept, "a fight's new numbers keep the lines")
 	# Q and E change tab while the tally is in front, and only then.
-	_key(KEY_E)
+	press(KEY_E)
 	assert_eq(tally.measure(), Tally.Measure.HEALING, "E: the next tab")
-	_key(KEY_Q)
-	_key(KEY_Q)
+	press(KEY_Q)
+	press(KEY_Q)
 	assert_eq(tally.measure(), Tally.Measure.TAKEN, "Q: the previous, wrapping")
-	_key(KEY_J)
-	_key(KEY_E)
+	press(KEY_J)
+	press(KEY_E)
 	assert_eq(tally.measure(), Tally.Measure.TAKEN, "E does nothing with the journal in front")
 
 
@@ -428,12 +421,12 @@ func test_r5_nothing_lost() -> void:
 	var main: Main = _start(ROOM_LARGE)
 	var sim: Simulation = main.simulation
 	var hud: Hud = main.hud
-	_level(main, 2)
+	set_party_level(main.simulation, 2)
 	sim.party.gold = 10_000
 	sim.expedition.travel.open[CLAYPITS] = true
 	sim.expedition.travel.stages[CLAYPITS] = Vector2i(1, 3)
 	for code: Key in [KEY_U, KEY_W, KEY_T]:
-		_key(code)
+		press(code)
 	hud.advance(STEP)
 	await _frames()
 	# The shop: a row's button and its key buy, both prices of a rank that costs a resource too
@@ -455,7 +448,7 @@ func test_r5_nothing_lost() -> void:
 		if how == "by the button":
 			_click_on(main, hud.shop.rows[armor].buy_button)
 		else:
-			_key(KEY_2)
+			press(KEY_2)
 		_frame(main)
 		assert_eq(sim.upgrades.rank(ARMOR), rank + 1, "buy_upgrade %s" % how)
 		assert_eq(sim.party.gold, gold - price, "%s: the gold paid" % how)
@@ -515,11 +508,11 @@ func test_r6_the_amber_tag_survives() -> void:
 	var pulse: float = bar.badges[&"shop"].pulse()
 	bar.advance(0.3)
 	assert_ne(bar.badges[&"shop"].pulse(), pulse, "and it pulses")
-	_key(KEY_U)
+	press(KEY_U)
 	main.hud.advance(STEP)
 	bar.advance(STEP)
 	assert_false(bar.badges[&"shop"].visible, "not while the shop is open")
-	_key(KEY_U)
+	press(KEY_U)
 
 	# A new area: the Map button's mark, until the map is opened.
 	assert_false(bar.badges[&"map"].visible, "no mark in a new game")
@@ -530,9 +523,9 @@ func test_r6_the_amber_tag_survives() -> void:
 	bar.advance(STEP)
 	assert_true(bar.badges[&"map"].is_visible_in_tree(), "the Map button carries the mark")
 	assert_true(main.hud.area_map.has_mark())
-	_key(KEY_W)
+	press(KEY_W)
 	main.hud.advance(STEP)
-	_key(KEY_W)
+	press(KEY_W)
 	main.hud.advance(STEP)
 	bar.advance(STEP)
 	assert_false(bar.badges[&"map"].visible, "gone once the map was opened")
@@ -555,7 +548,7 @@ func _crowd_ready(main: Main) -> void:
 	main.hud.tally.open_hero(sim.party.heroes[0].id)
 	# Strong heroes, sent up and down the stages, so a frame of 300 ticks often holds a fight
 	# and then a move to another stage: the last fight is heard after the party has gone on.
-	_level(main, 12)
+	set_party_level(main.simulation, 12)
 	sim.set_auto_push(false)
 	main.hud.advance(STEP)
 

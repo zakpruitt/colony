@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 
 
 func test_tick_length_is_a_tenth_of_a_second() -> void:

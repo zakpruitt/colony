@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Spec 053's showcase moments stand on their own: each can be started with skip_to and shows
 ## what it is about well before the showcase gives up on it.
 

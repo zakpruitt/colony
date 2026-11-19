@@ -1,18 +1,13 @@
-extends GutTest
+extends ColonyTest
 ## Spec 019: progress while you were away. Every test gives Main a SaveStore on a per-process
 ## path (never the real save) and sets away_seconds_override, so none depends on the real clock.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 ## Ticks the saved game has already played before it was saved.
 const PLAYED_TICKS: int = 3000
 
-var _path: String = "user://test_019_away_%d.save" % OS.get_process_id()
-
-
-func after_each() -> void:
-	for path: String in [_path, _path + SaveStore.BACKUP_SUFFIX, _path + SaveStore.TEMP_SUFFIX]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
+## Deleted with its backup after each test and after the last one (ColonyTest): a Main freed by
+## GUT after after_each saves once more as it leaves the tree.
+var _path: String = save_path()
 
 
 ## Writes a stamped save of a game that has played [constant PLAYED_TICKS] ticks.
@@ -29,7 +24,7 @@ func _write_save(stamped: bool = true) -> Dictionary:
 
 
 func _main(away: float, store: bool = true) -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	if store:
 		main.save_store = SaveStore.new(_path)
 	main.away_seconds_override = away

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the defeat note's wording (spec 041): the monsters that beat the party, grouped
 ## by name.
 

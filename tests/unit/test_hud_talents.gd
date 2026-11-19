@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the talent tree's small pieces (spec 055): every node has a picture, and the text
 ## helpers the Talents tab is built from. Since spec 060 the tab is [HeroTalentsTab] in a hero
 ## window, and since spec 063 each ability has a picture of its own ([method UiIcon.picture]).

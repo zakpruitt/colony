@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/051-talent-trees-and-paragon/spec.md, one per requirement (R11 has
 ## one test for the headless comparison and one per class for its paths). Spec 029's tests of gold
 ## training were removed with it; the tests of the hero sheet, goals, defeat note and help that
@@ -54,12 +54,6 @@ const LIMIT_TICKS: int = 900
 const KING_LIMIT_MINUTES: float = 60.0
 
 # --- Helpers -------------------------------------------------------------------
-
-
-## Raises [param hero] to [param level] and fills its health.
-func _level(hero: Hero, level: int) -> void:
-	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-	hero.health = hero.max_health()
 
 
 func _tree(class_id: StringName) -> TalentTreeDef:
@@ -209,7 +203,7 @@ func test_r2_points_from_levels() -> void:
 	var hero := Hero.new(1, Content.hero_class(&"knight"))
 	var expected: Array[int] = [0, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 7, 7, 7]
 	for level: int in range(1, 21):
-		_level(hero, level)
+		raise(hero, level)
 		assert_eq(hero.level, level)
 		assert_eq(hero.talent_points(), expected[level - 1], "level %d" % level)
 	assert_eq(Hero.TALENT_POINTS, 7, "seven fill a tree: three trunk nodes and one path of four")
@@ -273,7 +267,7 @@ func test_r3_spending() -> void:
 	_take(sim, knight, tree.trunk[0])
 	assert_eq(knight.talents(), [] as Array[StringName], "nothing without a point")
 
-	_level(knight, 14)
+	raise(knight, 14)
 	assert_eq(knight.talent_points(), 7)
 	var illegal: Array[StringName] = [
 		tree.trunk[1], tree.trunk[2], tree.path_a[0], tree.path_b[0], &"backstab", &"no_such_node"
@@ -300,13 +294,13 @@ func test_r3_spending() -> void:
 		_take(sim, knight, tree.trunk[0])
 		assert_eq(knight.talents(), taken, "a node taken already is not taken again")
 	assert_eq(knight.talent_points(), 0, "the tree is full")
-	_level(knight, 30)
+	raise(knight, 30)
 	assert_eq(knight.talent_points(), 0, "levels after 14 bring no talent point")
 	_take(sim, knight, tree.path_b[0])
 	assert_eq(knight.talents(), taken, "a full tree takes nothing")
 	# A hero with one point takes one node.
 	var rogue: Hero = sim.party.heroes[1]
-	_level(rogue, 2)
+	raise(rogue, 2)
 	_take(sim, rogue, &"backstab")
 	_take(sim, rogue, &"smoke_step")
 	assert_eq(rogue.talents(), [&"backstab"] as Array[StringName], "one point, one node")
@@ -325,7 +319,7 @@ func test_r4_one_path() -> void:
 			var sim := Simulation.new(SEED)
 			var hero: Hero = sim.party.heroes[CLASSES.find(class_id)]
 			var tree: TalentTreeDef = _tree(class_id)
-			_level(hero, 14)
+			raise(hero, 14)
 			for node: StringName in tree.trunk:
 				_take(sim, hero, node)
 			assert_eq(hero.path(), -1, "%s: no path yet" % class_id)
@@ -352,7 +346,7 @@ func test_r4_one_path() -> void:
 func test_r5_abilities_take_effect() -> void:
 	for class_id: StringName in CLASSES:
 		var hero := Hero.new(1, Content.hero_class(class_id))
-		_level(hero, 14)
+		raise(hero, 14)
 		assert_eq(hero.combatant().abilities.size(), 0, "%s: no nodes, no abilities" % class_id)
 		for path: int in 2:
 			var nodes: Array[StringName] = _full(class_id, path)
@@ -372,7 +366,7 @@ func test_r5_abilities_take_effect() -> void:
 	var made: Array[Combatant] = []
 	var plain: Array[Combatant] = []
 	for hero: Hero in party.heroes:
-		_level(hero, 6)
+		raise(hero, 6)
 		made.append(hero.combatant())
 		plain.append(Combatant.from_hero(hero.def(), hero.level, hero.id))
 	var lines: Array[PackedStringArray] = []
@@ -393,7 +387,7 @@ func test_r5_abilities_take_effect() -> void:
 	# From the next fight on: a node taken during a fight changes that fight in nothing.
 	var sim := Simulation.new(SEED)
 	var knight: Hero = sim.party.heroes[0]
-	_level(knight, 2)
+	raise(knight, 2)
 	var fighting: bool = false
 	for i: int in 3000:
 		sim.step()
@@ -429,15 +423,15 @@ func test_r6_paragon() -> void:
 	var mage: Hero = sim.party.heroes[2]
 	var cleric: Hero = sim.party.heroes[3]
 	for level: int in [1, 13, 14, 15, 16, 20, 40]:
-		_level(mage, level)
+		raise(mage, level)
 		assert_eq(mage.paragon_points(), maxi(level - 14, 0), "level %d" % level)
 	# The three stats, 3% a point, with no limit.
-	_level(cleric, 14)
+	raise(cleric, 14)
 	var base: Combatant = cleric.combatant()
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.step()
 	assert_eq(cleric.paragon_rank(TrainingDef.Stat.POWER), 0, "no point, nothing spent")
-	_level(cleric, 14 + 33)
+	raise(cleric, 14 + 33)
 	assert_eq(cleric.paragon_points(), 33)
 	var ids: Array[StringName] = Content.training_ids()
 	var stats: Array[TrainingDef.Stat] = [
@@ -482,7 +476,7 @@ func test_r6_paragon() -> void:
 	# A point spent mid-fight changes the fighter at once.
 	var fresh := Simulation.new(SEED)
 	var knight: Hero = fresh.party.heroes[0]
-	_level(knight, 22)
+	raise(knight, 22)
 	for i: int in 3000:
 		if fresh.expedition.battle != null:
 			break
@@ -531,6 +525,7 @@ func _hud_over(sim: Simulation) -> Hud:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -540,7 +535,7 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	var sim := Simulation.new(SEED)
 	var hud: Hud = _hud_over(sim)
 	var rogue: Hero = sim.party.heroes[1]
-	_level(rogue, 17)
+	raise(rogue, 17)
 	rogue.set_talents([&"backstab", &"smoke_step"] as Array[StringName])
 	hud.hero_windows.open(rogue.id, HeroWindow.Page.TALENTS)
 	var sheet: HeroWindow = hud.hero_windows.window_of(rogue.id)
@@ -588,7 +583,7 @@ func test_r6_the_sheet_shows_the_points() -> void:
 func test_r7_fresh_start() -> void:
 	var sim := Simulation.new(SEED)
 	var knight: Hero = sim.party.heroes[0]
-	_level(knight, 16)
+	raise(knight, 16)
 	for node: StringName in _full(&"knight", 1):
 		sim.take_talent(knight.id, node)
 	sim.spend_paragon(knight.id, TrainingDef.Stat.TOUGHNESS)
@@ -709,8 +704,8 @@ func test_r9_saves() -> void:
 	var sim := Simulation.new(SEED)
 	var mage: Hero = sim.party.heroes[2]
 	var rogue: Hero = sim.party.heroes[1]
-	_level(mage, 18)
-	_level(rogue, 6)
+	raise(mage, 18)
+	raise(rogue, 6)
 	for node: StringName in _full(&"mage", 1):
 		sim.take_talent(mage.id, node)
 	sim.take_talent(rogue.id, &"backstab")
@@ -784,7 +779,7 @@ func test_r10_auto_buy() -> void:
 	var sim := Simulation.new(SEED)
 	sim.set_auto_buy(true)
 	for hero: Hero in sim.party.heroes:
-		_level(hero, 15)
+		raise(hero, 15)
 	sim.party.gold = 1_000_000
 	var bought: int = 0
 	for i: int in 20 * 60 * Simulation.TICKS_PER_SECOND:
@@ -849,7 +844,7 @@ func _path_wins(class_id: StringName, path: int) -> int:
 		var party := Party.new()
 		var heroes: Array[Combatant] = []
 		for hero: Hero in party.heroes:
-			_level(hero, 14)
+			raise(hero, 14)
 			if hero.class_id == class_id:
 				hero.set_talents(_full(class_id, path))
 			heroes.append(hero.combatant())

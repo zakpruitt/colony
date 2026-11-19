@@ -1,7 +1,7 @@
-extends "res://tests/acceptance/frame_061_test.gd"
+extends "res://tests/acceptance/frame_061_test_base.gd"
 ## What the acceptance tests of spec 062 (goals, stages and news on the sharp layer) share, on top
-## of frame_061_test.gd's: situations, the draw order and a probe for clicks that go through. Kept
-## apart so the tests' own file stays under gdlint's length.
+## of frame_061_test_base.gd's: situations, the draw order and a probe for clicks that go through.
+## Kept apart so the tests' own file stays under gdlint's length.
 
 const RICH: int = 1_000_000
 const GOAL_LEVEL: int = 40
@@ -9,25 +9,8 @@ const GUARDIAN_DEPTH: int = 5
 ## Where the mouse rests when it is on nothing, in the world's screen pixels.
 const NOWHERE_WORLD: Vector2 = Vector2(-50, -50)
 
-var _away_save: String = "user://test_062_away_%d.save" % OS.get_process_id()
-var _away_settings: String = "user://test_062_away_%d.settings" % OS.get_process_id()
-
-
-func after_each() -> void:
-	super.after_each()
-	_delete_away_files()
-
-
-func after_all() -> void:
-	super.after_all()
-	_delete_away_files()
-
-
-func _delete_away_files() -> void:
-	for path: String in [_away_save, _away_settings]:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
-
+var _away_save: String = save_path("away")
+var _away_settings: String = save_path("away", "settings")
 
 # --- Situations ----------------------------------------------------------------
 
@@ -106,7 +89,7 @@ func _away_files(main_room: Vector2i) -> SoundSettings:
 
 ## A main scene loading the save after [param seconds] away, with [param settings].
 func _main_after_away(seconds: float, settings: SoundSettings) -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.settings = settings
 	main.save_store = SaveStore.new(_away_save)
 	main.away_seconds_override = seconds
@@ -176,9 +159,9 @@ func _probe(main: Main, heard: Array[Vector2]) -> Control:
 	probe.mouse_filter = Control.MOUSE_FILTER_STOP
 	probe.gui_input.connect(
 		func(event: InputEvent) -> void:
-			var press: InputEventMouseButton = event as InputEventMouseButton
-			if press != null and press.pressed:
-				heard.append(press.position)
+			var button_press: InputEventMouseButton = event as InputEventMouseButton
+			if button_press != null and button_press.pressed:
+				heard.append(button_press.position)
 	)
 	main.hud.add_child(probe)
 	return probe
@@ -186,9 +169,9 @@ func _probe(main: Main, heard: Array[Vector2]) -> Control:
 
 ## Rests the real mouse on [param at] (UI pixels) and runs the HUD on by [param seconds].
 func _rest_at(main: Main, at: Vector2, seconds: float) -> void:
-	_move(NOWHERE_WORLD)
+	mouse_move(NOWHERE_WORLD)
 	main.hud.advance(STEP)
-	_move(main.ui.ui_to_world(at))
+	mouse_move(main.ui.ui_to_world(at))
 	main.hud.advance(seconds)
 
 

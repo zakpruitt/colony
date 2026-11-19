@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for LabyrinthView and LabyrinthTiles: which art goes where.
 
 

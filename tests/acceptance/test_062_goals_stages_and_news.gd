@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/frame_062_test.gd"
+extends "res://tests/acceptance/frame_062_test_base.gd"
 ## Spec 062: the goals, the stage list, the ticker, the note after a defeat, the report after time
 ## away and the catching-up bar on the sharp layer, and the old HUD layer gone. Driven by real
 ## clicks, keys and wheel events pushed into the viewport, at both rooms.
@@ -203,10 +203,10 @@ func test_r2_stage_list() -> void:
 		_assert_drawn(list, &"party_frame", 1, "%s: the party's stays" % what)
 		# The wheel scrolls; the arrow returns to the party.
 		var middle: Vector2 = main.ui.ui_to_world(_row_at(list, 4))
-		_move(middle)
+		mouse_move(middle)
 		for i: int in 3:
-			_button(middle, true, MOUSE_BUTTON_WHEEL_DOWN)
-			_button(middle, false, MOUSE_BUTTON_WHEEL_DOWN)
+			mouse_button(middle, true, MOUSE_BUTTON_WHEEL_DOWN)
+			mouse_button(middle, false, MOUSE_BUTTON_WHEEL_DOWN)
 		hud.advance(STEP)
 		assert_false(list.is_following(), "%s: the wheel scrolls away" % what)
 		assert_eq(list.first_depth(), 4, "%s: three rows down" % what)
@@ -216,7 +216,7 @@ func test_r2_stage_list() -> void:
 		hud.advance(STEP)
 		assert_true(list.is_following(), "%s: the arrow returns to the party" % what)
 		# A guardian beaten: its name struck through.
-		_move(NOWHERE_WORLD)
+		mouse_move(NOWHERE_WORLD)
 		assert_true(_guardian_fight(main), "%s: a guardian fight" % what)
 		assert_true(
 			_until(main, func() -> bool: return list.ladder.guardian_beaten(GUARDIAN_DEPTH)),
@@ -447,16 +447,16 @@ func test_r5_away_report_window() -> void:
 			assert_almost_eq(label_end, right, 0.5, "%s: one column" % what)
 		_assert_not_cut(report, "%s report" % what)
 		# Not by itself while the mouse is on it.
-		_move(main.ui.ui_to_world(report.get_global_rect().get_center()))
+		mouse_move(main.ui.ui_to_world(report.get_global_rect().get_center()))
 		report.advance(AwayWindow.SHOW_SECONDS + 1.0)
 		assert_true(report.is_open(), "%s: it stays while the mouse is on it" % what)
 		# Nor by a click elsewhere or a key other than Esc.
-		_click_world(main.ui.ui_to_world(Vector2(room.x * 0.3, room.y * 0.78)))  # the world
-		_key(KEY_SPACE)
+		click(main.ui.ui_to_world(Vector2(room.x * 0.3, room.y * 0.78)))  # the world
+		press(KEY_SPACE)
 		await _frames()
 		assert_true(report.is_open(), "%s: a stray click or key leaves it" % what)
 		# Esc closes it.
-		_key(KEY_ESCAPE)
+		press(KEY_ESCAPE)
 		await _frames()
 		assert_false(is_instance_valid(report) and report.is_open(), "%s: Esc closes it" % what)
 		assert_true(journal.is_open(), "%s: the journal stays" % what)
@@ -469,7 +469,7 @@ func test_r5_away_report_window() -> void:
 		)
 		# And with the mouse off it, it goes by itself.
 		var timed: AwayWindow = main.ui.show_away(main.away_report, main.simulation.party)
-		_move(NOWHERE_WORLD)
+		mouse_move(NOWHERE_WORLD)
 		timed.advance(AwayWindow.SHOW_SECONDS - 0.5)
 		assert_true(timed.is_open(), "%s: up before 12 s" % what)
 		timed.advance(1.0)
@@ -613,7 +613,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var hud: Hud = main.hud
 	var sim: Simulation = main.simulation
-	_raise(main, 6)
+	raise_party(main.simulation, 6)
 	sim.set_auto_push(true)
 	assert_true(_fight(main), "a fight")
 	for i: int in 300:
@@ -690,7 +690,7 @@ func test_r10_fits_both_rooms() -> void:
 		# The widest goals the data makes (a talent goal with its count and >, wider than the
 		# panel's least width), and the widest line the ticker shows.
 		main.simulation.party.gold = RICH
-		_raise(main, GOAL_LEVEL)  # points unspent
+		raise_party(main.simulation, GOAL_LEVEL)  # points unspent
 		_situation(main, 1, 1, 1)
 		hud.journal.announce(WIDEST_TICKER)
 		hud.advance(STEP)

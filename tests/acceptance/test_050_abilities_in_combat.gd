@@ -1,6 +1,6 @@
-extends "res://tests/unit/test_ability_kit.gd"
+extends "res://tests/unit/ability_kit_test_base.gd"
 ## Acceptance tests for specs/050-abilities-in-combat/spec.md, one per requirement. The
-## fighters, abilities and helpers they build with are in tests/unit/test_ability_kit.gd.
+## fighters, abilities and helpers they build with are in tests/unit/ability_kit_test_base.gd.
 
 ## Every event of [method _plain_battle] with SEED, recorded on dev before this spec changed
 ## any battle code: kind, tick, source, target, amount, flag; " | " between events.

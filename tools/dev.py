@@ -223,6 +223,74 @@ def step_boundary() -> str:
     return f"{len(files)} sim scripts"
 
 
+def tracked_files(pattern: str, root: Path = ROOT) -> list[str]:
+    """The files git tracks under [root] matching [pattern], as posix paths relative to it."""
+    code, output = run(["git", "-C", str(root), "ls-files", "--", pattern], timeout=60)
+    if code != 0:
+        raise StepFailed(f"git ls-files failed (exit {code})\n{tail(output)}")
+    return sorted(line.strip() for line in output.splitlines() if line.strip())
+
+
+def script_parent(text: str, scripts: dict[str, str]) -> str | None:
+    """The script (a res:// relative path) that a GDScript's `extends` names, if it is one of ours."""
+    match = re.search(r"^extends\s+(\S+)", text, re.MULTILINE)
+    if not match:
+        return None
+    parent = match.group(1)
+    if parent.startswith('"res://'):
+        return parent.strip('"')[len("res://") :]
+    return scripts.get(parent)
+
+
+def harness_problems(root: Path = ROOT) -> list[str]:
+    """Two of the written rules (spec 071) as checks, on the files git tracks under [root].
+
+    A test script that mentions user:// cleans up in after_all, itself or in a base it extends
+    (a Main freed by GUT saves again after after_each). Every tracked .gd has its .gd.uid.
+    """
+    problems: list[str] = []
+    scripts = tracked_files("*.gd", root)
+    uids = set(tracked_files("*.gd.uid", root))
+    for script in scripts:
+        if script + ".uid" not in uids:
+            name = Path(script).name
+            problems.append(f"{script}: no {name}.uid beside it; commit the one Godot made")
+    texts = {
+        script: (root / script).read_text(encoding="utf-8")
+        for script in scripts
+        if (root / script).is_file()
+    }
+    class_names: dict[str, str] = {}
+    for script, text in texts.items():
+        match = re.search(r"^class_name\s+(\w+)", text, re.MULTILINE)
+        if match:
+            class_names[match.group(1)] = script
+    for script, text in texts.items():
+        if not script.startswith("tests/") or "user://" not in text:
+            continue
+        current: str | None = script
+        seen: set[str] = set()
+        cleans = False
+        while current is not None and current in texts and current not in seen:
+            seen.add(current)
+            if re.search(r"^func after_all\(", texts[current], re.MULTILINE):
+                cleans = True
+                break
+            current = script_parent(texts[current], class_names)
+        if not cleans:
+            problems.append(
+                f"{script}: mentions user:// but neither it nor a base it extends defines after_all"
+            )
+    return problems
+
+
+def step_harness() -> str:
+    problems = harness_problems()
+    if problems:
+        raise StepFailed("\n".join(problems))
+    return "tests clean up, every script has its uid"
+
+
 def step_art() -> str:
     """The art pipeline's own tests, then the art and sound lints (specs 002, 021)."""
     python = sys.executable or "python"
@@ -299,6 +367,7 @@ def last_line(output: str, prefix: str) -> str:
 STEPS: dict[str, Callable[[], str]] = {
     "format": step_format,
     "boundary": step_boundary,
+    "harness": step_harness,
     "art": step_art,
     "compile": step_compile,
     "tests": step_tests,

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/010-combat-effects/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation and the CombatEffects that listens to it, with

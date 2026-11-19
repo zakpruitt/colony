@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/035-party-orders/spec.md, one per requirement.
 ##
 ## The HUD tests build a World on a seeded simulation with the CombatEffects and the Hud on it,
@@ -59,7 +59,6 @@ const RECORDED_HASHES: Dictionary = {
 		2633392922,
 	],
 }
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 1
 const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
@@ -90,6 +89,7 @@ var _main: Main
 
 
 func after_each() -> void:
+	super()
 	_sim = null
 	_world = null
 	_fx = null
@@ -101,7 +101,7 @@ func after_each() -> void:
 ## Runs the main scene with its processing off, laid out for the smallest UI room, and points the
 ## tests' simulation, world and HUD at its own.
 func _make_main() -> Main:
-	_main = MAIN_SCENE.instantiate()
+	_main = make_main()
 	add_child_autofree(_main)
 	_main.driver.set_process(false)
 	_main.world.set_process(false)
@@ -141,22 +141,6 @@ func _tick() -> void:
 	_hud.advance(0.0)
 
 
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
 	var found: Array[SimEvent] = []
 	for event: SimEvent in events:
@@ -176,12 +160,6 @@ func _any_names(problems: PackedStringArray, field: String) -> bool:
 		if problem.contains(field):
 			return true
 	return false
-
-
-func _raise(sim: Simulation, level: int) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 func _populated(sim: Simulation, depth: int) -> int:
@@ -303,7 +281,7 @@ func test_r2_guardians() -> void:
 	var sim := Simulation.new(SEED)
 	var e: Expedition = sim.expedition
 	assert_eq(e.guardian_order, CHALLENGE, "Challenge by default")
-	_raise(sim, STRONG_LEVEL)
+	raise_party(sim, STRONG_LEVEL)
 	e.stable_seconds = 60.0
 	sim.set_guardian_order(HOLD)
 	sim.step()
@@ -630,14 +608,14 @@ func test_r7_orders_panel() -> void:
 	assert_true(button.lit, "the button is lit while open")
 	button.pressed.emit()
 	assert_false(windows.is_open(UiRoot.ORDERS), "and closes it")
-	_key(KEY_O)
+	press(KEY_O)
 	assert_true(windows.is_open(UiRoot.ORDERS), "O opens it")
-	_key(KEY_O)
+	press(KEY_O)
 	assert_false(windows.is_open(UiRoot.ORDERS), "O closes it")
-	_key(KEY_O)
-	_key(KEY_ESCAPE)
+	press(KEY_O)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.ORDERS), "Esc closes it")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.ORDERS), "and does not open it")
 
 	# A row per order: its name, the current choice explained, a button per choice.
@@ -707,7 +685,7 @@ func test_r7_orders_panel() -> void:
 	for what: String in others:
 		var keycode: Key = others[what][0]
 		var other_open: Callable = others[what][1]
-		_key(keycode)
+		press(keycode)
 		_hud.advance(0.0)
 		var was_open: bool = other_open.call()
 		assert_true(was_open, "%s opens" % what)
@@ -728,7 +706,7 @@ func test_r7_orders_panel() -> void:
 
 func test_r8_status_and_journal() -> void:
 	_make_hud(Simulation.new(SEED))
-	_raise(_sim, STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_guardian_order(HOLD)
 	_tick()
 	_before_guardian(_sim, GUARDIAN_DEPTH, 3.0)
@@ -900,7 +878,7 @@ func test_r10_it_fits() -> void:
 	_tick()
 	await _check_fits("with the longest lines")
 	_orders.choose(1, CHALLENGE)
-	_raise(_sim, STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_before_guardian(_sim, GUARDIAN_DEPTH)
 	var fighting: bool = false
 	for i: int in 600:

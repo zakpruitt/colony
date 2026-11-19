@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/034-hero-sheet-tabs/spec.md, one per requirement. R8 is the existing
 ## suite (specs 026, 028 and 029) passing. Since spec 060 the sheet is a window per hero on the UI
 ## layer ([HeroWindow]), each keeping its own tab: these tests read the hero's window.
@@ -26,6 +26,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -83,15 +84,6 @@ func _rank(hero: Hero, id: StringName) -> int:
 
 func _hero(index: int) -> Hero:
 	return _sim.party.heroes[index]
-
-
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
 
 
 ## A click on [param button], as the other HUD tests make one: its pressed signal. A hidden
@@ -279,37 +271,37 @@ func test_r4_easy_to_reach() -> void:
 	assert_eq(sheet.page(), HeroWindow.Page.STATS, "clicking Stats opens it")
 
 	# E is next and Q is previous, wrapping.
-	_key(KEY_E)
+	press(KEY_E)
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "E: Stats to Talents")
-	_key(KEY_E)
+	press(KEY_E)
 	assert_eq(sheet.page(), HeroWindow.Page.SKILLS, "E: Talents to Skills")
-	_key(KEY_E)
+	press(KEY_E)
 	assert_eq(sheet.page(), HeroWindow.Page.STATS, "E wraps: Skills to Stats")
-	_key(KEY_Q)
+	press(KEY_Q)
 	assert_eq(sheet.page(), HeroWindow.Page.SKILLS, "Q wraps: Stats to Skills")
-	_key(KEY_Q)
+	press(KEY_Q)
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "Q: Skills to Talents")
 	sheet.next_page()
 	sheet.previous_page()
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "next then previous comes back")
 
 	# Spec 060 R3: each hero's window keeps its own tab; Q and E change the front one's.
-	_key(KEY_TAB)
+	press(KEY_TAB)
 	var next: HeroWindow = windows.window_of(_hero(1).id)
 	assert_eq(windows.front(), next, "Tab opens the next hero's window")
 	assert_eq(next.page(), HeroWindow.Page.STATS, "on its own tab")
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "the first keeps its own")
-	_key(KEY_ESCAPE)
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(), "Esc closes them")
-	_key(KEY_E)
-	_key(KEY_Q)
-	_key(KEY_Q)
+	press(KEY_E)
+	press(KEY_Q)
+	press(KEY_Q)
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "Q and E do nothing while closed")
 	sheet = _open(_hero(0).id)
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "reopened on Talents")
 	sheet.close_button.pressed.emit()
-	_key(KEY_TAB)
+	press(KEY_TAB)
 	assert_true(sheet.is_open(), "Tab reopens it")
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "still on Talents")
 
@@ -434,9 +426,9 @@ func test_r7_number_keys() -> void:
 	for page: HeroWindow.Page in [HeroWindow.Page.STATS, HeroWindow.Page.SKILLS]:
 		sheet.open_page(page)
 		_hud.advance(0.016)
-		_key(KEY_1)
-		_key(KEY_2)
-		_key(KEY_3)
+		press(KEY_1)
+		press(KEY_2)
+		press(KEY_3)
 		sheet.train_row(0)
 		_sim.step()
 		for id: StringName in Content.training_ids():
@@ -447,7 +439,7 @@ func test_r7_number_keys() -> void:
 	var ids: Array[StringName] = Content.training_ids()
 	var codes: Array[Key] = [KEY_1, KEY_2, KEY_3]
 	for i: int in 3:
-		_key(codes[i])
+		press(codes[i])
 		_sim.step()
 		assert_eq(_rank(rogue, ids[i]), 1, "%d trains %s on Talents" % [i + 1, ids[i]])
 

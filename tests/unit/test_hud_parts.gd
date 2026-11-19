@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for the HUD's small pieces: the gold format and the eased bar value.
 
 

@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## The rig of spec 056's acceptance tests (tests/acceptance/test_056_abilities_on_screen.gd): a
 ## World on a seeded simulation, the CombatEffects that listen to it and, where asked, the Hud;
 ## and the helpers that feed them events and measure what shows. Not a test script itself.
@@ -52,7 +52,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	_mouse(Vector2(-1000, -1000))
+	super()
+	mouse_move(Vector2(-1000, -1000))
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -222,23 +223,9 @@ func _find_fight(monsters: int, ticks: int = 1, sync: bool = true, tougher: int 
 	return false
 
 
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 func _click_at(at: Vector2) -> void:
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(Vector2(320, 200))
+	click(at)
+	mouse_move(Vector2(320, 200))
 
 
 ## One real frame of play at the world's speed: the simulation steps as many ticks as it owes.

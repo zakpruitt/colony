@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/042-goals-you-can-click/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, and
@@ -28,7 +28,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	_mouse(Vector2(-1000, -1000))
+	super()
+	mouse_move(Vector2(-1000, -1000))
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -132,34 +133,10 @@ func _line_starting(start: String) -> int:
 	return -1
 
 
-func _key(keycode: Key) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-## Moves the mouse to [param at], in screen pixels, as the window would.
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 ## Clicks the left button at [param at], in screen pixels, as the window would.
 func _click_at(at: Vector2) -> void:
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(AWAY)
+	click(at)
+	mouse_move(AWAY)
 
 
 ## Clicks the middle of goal line [param index].
@@ -173,7 +150,7 @@ func _close_all() -> void:
 	for id: StringName in _ui.windows.ids():  # the hero windows too (spec 060)
 		_ui.windows.close_window(id)
 	if not _hud.ladder.is_shown():
-		_key(KEY_L)
+		press(KEY_L)
 	_hud.advance(STEP)
 
 
@@ -281,7 +258,7 @@ func test_r1_click_a_goal() -> void:
 		_close_all()
 		_hud.advance(2.0)
 		assert_false(ladder.is_flashing(3), "no flash before")
-		_key(KEY_L)
+		press(KEY_L)
 		_hud.advance(STEP)
 		assert_false(ladder.is_shown(), "L hid the ladder")
 		_do(how, depth)
@@ -312,7 +289,7 @@ func test_r1_click_a_goal() -> void:
 	_hud.advance(STEP)
 	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "the depth goal shows its tick")
-	_key(KEY_L)
+	press(KEY_L)
 	_hud.advance(STEP)
 	for how: String in ["press", "mouse"]:
 		_do(how, done)
@@ -335,7 +312,7 @@ func test_r2_looks_clickable() -> void:
 
 	# The highlight under the mouse, on that line only.
 	for i: int in lines.size():
-		_mouse(Hud.on_screen(_hud.goals_view.rows[i]).get_center())
+		mouse_move(Hud.on_screen(_hud.goals_view.rows[i]).get_center())
 		_hud.advance(STEP)
 		for j: int in lines.size():
 			assert_eq(
@@ -343,7 +320,7 @@ func test_r2_looks_clickable() -> void:
 				i == j,
 				"mouse on %s: %s lit" % [lines[i], lines[j]]
 			)
-	_mouse(AWAY)
+	mouse_move(AWAY)
 	_hud.advance(STEP)
 	for j: int in lines.size():
 		assert_false(_hud.goals_view.rows[j].is_highlighted(), "mouse away: %s not lit" % lines[j])
@@ -378,7 +355,7 @@ func test_r2_looks_clickable() -> void:
 	_hud.advance(STEP)
 	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
-	_mouse(Hud.on_screen(_hud.goals_view.rows[done]).get_center())
+	mouse_move(Hud.on_screen(_hud.goals_view.rows[done]).get_center())
 	_hud.advance(STEP)
 	assert_false(_hud.goals_view.rows[done].is_highlighted(), "a finished goal is not lit")
 

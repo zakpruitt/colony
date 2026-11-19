@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/014-save-progress/spec.md, one per requirement.
 ##
 ## The progress tests play the real simulation with the shipped data. To reach
@@ -26,11 +26,10 @@ var _paths: Array[String] = []
 # --- Helpers -------------------------------------------------------------------
 
 
+## The files of [member _paths] go with their backups and temporary files (ColonyTest's
+## [method ColonyTest.save_path]).
 func after_each() -> void:
-	for path: String in _paths:
-		for suffix: String in ["", ".tmp", ".bak"]:
-			if FileAccess.file_exists(path + suffix):
-				DirAccess.remove_absolute(path + suffix)
+	super()
 	_paths.clear()
 
 
@@ -119,7 +118,7 @@ func _any_names(problems: PackedStringArray, field: String) -> bool:
 
 
 func _store_path(label: String) -> String:
-	var path: String = "user://test_014_%s_%d.save" % [label, OS.get_process_id()]
+	var path: String = save_path(label)
 	_paths.append(path)
 	return path
 

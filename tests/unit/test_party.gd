@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for Hero and Party (spec 005).
 
 

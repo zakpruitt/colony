@@ -1,10 +1,9 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/001-sim-clock/spec.md, one per requirement.
 
 const SEED: int = 1234
 const MS: int = 1_000
 const SECOND: int = 1_000_000
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 
 var _saved_max_fps: int
 
@@ -14,6 +13,7 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	Engine.max_fps = _saved_max_fps
 
 
@@ -151,7 +151,7 @@ func test_r6_focus_loss_throttles_rendering_only() -> void:
 
 
 func test_r7_main_scene_shows_the_clock() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	var label: Label = main.get_node("HUD/ClockLabel")
 	assert_not_null(main.driver, "the main scene has a driver")

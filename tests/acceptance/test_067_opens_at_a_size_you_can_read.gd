@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/067-opens-at-a-size-you-can-read/spec.md, one per requirement.
 ##
 ## A headless run has no real window to maximize, so what [WindowSettings] decides is tested
@@ -35,7 +35,7 @@ const SIZES: Array[Vector2i] = [
 	Vector2i(900, 500),
 ]
 
-var _window_path: String = "user://test_067_window_%d.window" % OS.get_process_id()
+var _window_path: String = save_path("window", "window")
 var _real_size: Vector2i
 
 
@@ -45,13 +45,11 @@ func before_all() -> void:
 
 func after_each() -> void:
 	super.after_each()
-	_delete_window_file()
 	get_window().size = _real_size
 
 
 func after_all() -> void:
 	super.after_all()
-	_delete_window_file()
 	get_window().size = _real_size
 
 
@@ -190,15 +188,15 @@ func test_r2_full_screen() -> void:
 	assert_eq(reopened.mode, full, "and the file says so")
 
 	# The key itself, in a game that has window settings (a file of this test's own, no window).
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	var own: WindowSettings = WindowSettings.new(_window_path)
 	main.window_settings = own
 	add_child_autofree(main)
 	var before: WindowSettings.Mode = own.mode
 	var real: Window.Mode = get_window().mode
-	_key(KEY_F11)
+	press(KEY_F11)
 	assert_ne(own.mode, before, "F11 in the game: full screen or back")
-	_key(KEY_F11)
+	press(KEY_F11)
 	assert_eq(own.mode, before, "F11 again: as it was")
 	assert_eq(get_window().mode, real, "the test's own window was left alone")
 
@@ -381,7 +379,7 @@ func _check_fits(main: Main, size: Vector2i, what: String) -> void:
 
 
 func test_r4_the_ui_follows() -> void:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.driver.set_process(false)
 	main.hud_layer.layer = 129
@@ -413,9 +411,9 @@ func test_r4_the_ui_follows() -> void:
 	var help: UiWindow = windows.window(UiRoot.HELP)
 	windows.raise(help)
 	var grip: Vector2 = help.title_bar.get_global_rect().position + Vector2(12, 6)
-	_move(ui.ui_to_world(grip))
-	_button(ui.ui_to_world(grip), true)
-	_move(ui.ui_to_world(grip + Vector2(-60, 40)), true)
+	mouse_move(ui.ui_to_world(grip))
+	mouse_button(ui.ui_to_world(grip), true)
+	mouse_move(ui.ui_to_world(grip + Vector2(-60, 40)), true)
 	assert_true(help.is_dragging(), "set up: help is being dragged")
 	var held: Vector2 = help.position
 	for size: Vector2i in [Vector2i(3440, 1361), Vector2i(1280, 720), Vector2i(3440, 1440)]:
@@ -426,9 +424,9 @@ func test_r4_the_ui_follows() -> void:
 	get_window().size = Vector2i(1920, 1080)
 	await _frames()
 	assert_eq(help.position, held, "back at the size it was held in: where it was held")
-	_move(ui.ui_to_world(grip + Vector2(-160, 90)), true)
+	mouse_move(ui.ui_to_world(grip + Vector2(-160, 90)), true)
 	assert_eq(help.position, held + Vector2(-100, 50), "the drag goes on from there")
-	_button(ui.ui_to_world(grip + Vector2(-160, 90)), false)
+	mouse_button(ui.ui_to_world(grip + Vector2(-160, 90)), false)
 	assert_false(help.is_dragging(), "and ends")
 	assert_true(help.placed, "placed where it was dropped")
 	_check_fits(main, Vector2i(1920, 1080), "after the drag")
@@ -438,9 +436,9 @@ func test_r4_the_ui_follows() -> void:
 	await _frames()
 	var middle: Vector2 = away.position
 	var hold: Vector2 = away.title_bar.get_global_rect().position + Vector2(12, 6)
-	_move(ui.ui_to_world(hold))
-	_button(ui.ui_to_world(hold), true)
-	_move(ui.ui_to_world(hold + Vector2(-90, -40)), true)
+	mouse_move(ui.ui_to_world(hold))
+	mouse_button(ui.ui_to_world(hold), true)
+	mouse_move(ui.ui_to_world(hold + Vector2(-90, -40)), true)
 	assert_true(away.is_dragging(), "set up: the away report is being dragged")
 	var away_held: Vector2 = away.position
 	assert_ne(away_held, middle, "set up: away from the middle")
@@ -449,7 +447,7 @@ func test_r4_the_ui_follows() -> void:
 		await _frames()
 		assert_true(away.is_dragging(), "%s: the away report is still held" % size)
 		assert_eq(away.position, away_held, "%s: and where it was held" % size)
-	_button(ui.ui_to_world(hold + Vector2(-90, -40)), false)
+	mouse_button(ui.ui_to_world(hold + Vector2(-90, -40)), false)
 	assert_true(away.placed, "dropped there")
 	assert_engine_error_count(0)
 
@@ -478,10 +476,10 @@ func test_r5_tools_are_unchanged() -> void:
 	var existed: bool = FileAccess.file_exists(real)
 	var stamp: int = FileAccess.get_modified_time(real) if existed else 0
 	var mode: Window.Mode = get_window().mode
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	assert_null(main.window_settings, "a test's game has no window settings")
-	_key(KEY_F11)
+	press(KEY_F11)
 	await _frames()
 	assert_eq(get_window().mode, mode, "the window's mode is as it was")
 	main.free()
@@ -491,13 +489,13 @@ func test_r5_tools_are_unchanged() -> void:
 
 	# A test that names a file of its own gets it used, and still no real window is touched.
 	var own: WindowSettings = WindowSettings.new(_window_path)
-	var named: Main = MAIN_SCENE.instantiate()
+	var named: Main = make_main()
 	named.window_settings = own
 	add_child_autofree(named)
 	assert_eq(named.window_settings, own, "the test's own settings are kept")
 	assert_true(own.is_inside_tree(), "and held by the game")
 	assert_null(own.window, "with no real window to change")
-	_key(KEY_F11)
+	press(KEY_F11)
 	assert_true(FileAccess.file_exists(_window_path), "written to the test's own file")
 	assert_eq(get_window().mode, mode, "the window's mode is as it was")
 	assert_eq(FileAccess.file_exists(real), existed, "the real file still untouched")

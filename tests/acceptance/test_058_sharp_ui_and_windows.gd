@@ -1,10 +1,10 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, one per requirement (more for R5
 ## to R8, beside the old HUD, are in test_058_windows_beside_the_old_hud.gd).
 ##
 ## Most tests run the main scene with its processing turned off and step it by hand, the UI layer
 ## laid out for a chosen room ([method UiRoot.set_room_for_test]); the helpers are in
-## ui_layer_test.gd.
+## ui_layer_test_base.gd.
 
 const SPECIMEN: PackedScene = preload("res://game/ui/font_specimen.tscn")
 ## The window sizes R1 lists: each with its world scale, its UI scale and its room.
@@ -147,7 +147,7 @@ func test_r1_two_layers() -> void:
 
 	# Resizing the window re-fits both: a fresh layer follows the viewport's size.
 	var was: Vector2i = root.size
-	var fresh: Main = MAIN_SCENE.instantiate()
+	var fresh: Main = make_main()
 	add_child_autofree(fresh)
 	root.size = Vector2i(1920, 1080)
 	assert_eq(fresh.ui.room(), Vector2i(960, 540), "a 1920x1080 window: 960x540 of room")
@@ -166,7 +166,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	var hud: Hud = main.hud
 	# Its old buttons, at their old places, still act on a real click.
 	var target: int = main.simulation.expedition.target_depth
-	_click_world(Hud.on_screen(hud.place_panel.plus_button).get_center())
+	click(Hud.on_screen(hud.place_panel.plus_button).get_center())
 	main.simulation.step()
 	assert_eq(
 		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
@@ -175,11 +175,11 @@ func test_r2_the_old_hud_still_works() -> void:
 	await _frames()
 	_click_ui(main.ui, main.ui.bar.buttons[ShopWindow.ID].get_global_rect().get_center())
 	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
-	_click_world(Hud.on_screen(hud.frames[0]).get_center())
+	click(Hud.on_screen(hud.frames[0]).get_center())
 	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
-	_key(KEY_U)
+	press(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
 	hud.shop.close()
 	# The moved panels are gone from the old HUD, with their buttons: never shown twice.
@@ -433,10 +433,10 @@ func test_r5_windows() -> void:
 	assert_eq(journal.position, start + Vector2(90, 30), "the drag moved it")
 	# A drag of the body does nothing.
 	var body: Vector2 = journal.get_global_rect().get_center()
-	_move(ui.ui_to_world(body))
-	_button(ui.ui_to_world(body), true)
-	_move(ui.ui_to_world(body + Vector2(50, 50)), true)
-	_button(ui.ui_to_world(body + Vector2(50, 50)), false)
+	mouse_move(ui.ui_to_world(body))
+	mouse_button(ui.ui_to_world(body), true)
+	mouse_move(ui.ui_to_world(body + Vector2(50, 50)), true)
+	mouse_button(ui.ui_to_world(body + Vector2(50, 50)), false)
 	assert_eq(journal.position, start + Vector2(90, 30), "only the title bar drags")
 
 	# Overlapping, and a click anywhere on one brings it to the front.
@@ -467,7 +467,7 @@ func test_r5_windows() -> void:
 		journal.place_at(ui.world_to_ui(under) - Vector2(60, 60), Vector2(ui.room()))
 		windows.raise(journal)
 		assert_true(journal.get_global_rect().has_point(ui.world_to_ui(under)), "over %s" % under)
-		_click_world(under)
+		click(under)
 	main.simulation.step()
 	assert_eq(main.simulation.expedition.target_depth, target, "the target is unchanged")
 	assert_false(main.hud.hero_windows.is_open(), "no hero window opened")
@@ -475,7 +475,7 @@ func test_r5_windows() -> void:
 	# Esc closes the front window only, and nothing of the old HUD with it.
 	main.hud.shop.open()
 	windows.raise(orders)
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(orders.is_open(), "Esc closed the front window")
 	assert_true(journal.is_open() and help.is_open(), "only that one")
 	assert_true(main.hud.shop.is_open(), "and left the shop open")
@@ -621,13 +621,13 @@ func test_r7_a_button_bar() -> void:
 			assert_false(button.lit, "%s: dark again" % named)
 		# The tooltip shows after a rest.
 		var help_button: UiButton = bar.buttons[UiRoot.HELP]
-		_move(ui.ui_to_world(help_button.get_global_rect().get_center()))
+		mouse_move(ui.ui_to_world(help_button.get_global_rect().get_center()))
 		bar.tip.advance(UiTip.DELAY + 0.05)
 		assert_eq(bar.tip.shown_text(), bar.tip.text_for(help_button), "the tooltip shows")
 		assert_true(
 			Rect2(Vector2.ZERO, Vector2(ui.room())).encloses(bar.tip.get_global_rect()), "on screen"
 		)
-		_move(Vector2(-10, -10))
+		mouse_move(Vector2(-10, -10))
 		main.free()
 
 
@@ -642,7 +642,7 @@ func test_r8_three_panels_become_windows() -> void:
 	for pair: Array in [[KEY_H, UiRoot.HELP], [KEY_J, UiRoot.JOURNAL], [KEY_O, UiRoot.ORDERS]]:
 		var keycode: Key = pair[0]
 		var id: StringName = pair[1]
-		_key(keycode)
+		press(keycode)
 		assert_true(windows.is_open(id), "%s opens with its key" % id)
 	assert_eq(windows.front(), windows.window(UiRoot.ORDERS), "the last opened in front")
 	for id: StringName in OWN_WINDOWS:
@@ -749,10 +749,10 @@ func test_r8_three_panels_become_windows() -> void:
 	assert_false(shown.encloses(view.row(Journal.CAPACITY - 1).get_global_rect()), "not the 50th")
 	windows.raise(windows.window(UiRoot.JOURNAL))
 	var wheel_at: Vector2 = ui.ui_to_world(shown.get_center())
-	_move(wheel_at)
+	mouse_move(wheel_at)
 	for i: int in 60:
-		_button(wheel_at, true, MOUSE_BUTTON_WHEEL_DOWN)
-		_button(wheel_at, false, MOUSE_BUTTON_WHEEL_DOWN)
+		mouse_button(wheel_at, true, MOUSE_BUTTON_WHEEL_DOWN)
+		mouse_button(wheel_at, false, MOUSE_BUTTON_WHEEL_DOWN)
 	await _frames()
 	assert_true(
 		shown.encloses(view.row(Journal.CAPACITY - 1).get_global_rect()),
@@ -781,10 +781,10 @@ func test_r9_screenshots_show_what_the_player_sees() -> void:
 	for window: Vector2i in [Vector2i(1280, 720), Vector2i(1920, 1080)]:
 		var frame: SubViewport = shot_script.call(&"frame_for", window) as SubViewport
 		add_child_autofree(frame)
-		var shot: Main = MAIN_SCENE.instantiate()
+		var shot: Main = make_main()
 		frame.add_child(shot)
 		root.size = window
-		var game: Main = MAIN_SCENE.instantiate()
+		var game: Main = make_main()
 		add_child_autofree(game)
 		await _frames()
 		assert_eq(shot.ui.room(), game.ui.room(), "%s: the same room" % window)

@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/frame_061_test.gd"
+extends "res://tests/acceptance/frame_061_test_base.gd"
 ## Acceptance tests for specs/061-the-frame-of-the-screen/spec.md, one per requirement: the place
 ## panel, the countdown, the purse, the hero frames, the boss bar and their tooltips on the sharp
 ## layer, driven by real clicks and keys at both rooms.
@@ -503,7 +503,7 @@ func test_r7_tooltips() -> void:
 		_rest_on(main, panel.auto_button)
 		assert_lte(tip.label.size.x, UiTip.WIDTH + 1.0, "wrapped to the tip's width")
 		assert_gt(tip.label.get_line_count(), 1, "onto a second line")
-		_move(Vector2(-50, -50))
+		mouse_move(Vector2(-50, -50))
 		hud.advance(STEP)
 		assert_eq(tip.shown_text(), "", "gone when the mouse leaves")
 		assert_true(_guardian_fight(main), "a guardian fight")
@@ -669,9 +669,9 @@ func test_r8_a_click_on_the_frame_goes_no_further() -> void:
 		probe.mouse_filter = Control.MOUSE_FILTER_STOP
 		probe.gui_input.connect(
 			func(event: InputEvent) -> void:
-				var press: InputEventMouseButton = event as InputEventMouseButton
-				if press != null and press.pressed:
-					heard.append(press.position)
+				var button_press: InputEventMouseButton = event as InputEventMouseButton
+				if button_press != null and button_press.pressed:
+					heard.append(button_press.position)
 		)
 		hud.add_child(probe)
 		_click_ui(main.ui, Vector2(main.ui.room()) / 2.0)
@@ -699,7 +699,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	var main: Main = _main()
 	var hud: Hud = main.hud
 	var sim: Simulation = main.simulation
-	_raise(main, 6)
+	raise_party(main.simulation, 6)
 	sim.set_auto_push(true)
 	assert_true(_fight(main), "a fight")
 	for i: int in 300:

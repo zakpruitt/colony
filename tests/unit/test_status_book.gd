@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## StatusBook (spec 056): the statuses on every fighter, from the events alone, as the sim keeps
 ## them: a stronger status put on again takes its new source; a shield wears down by what the
 ## flagged MISSED events say it absorbed.

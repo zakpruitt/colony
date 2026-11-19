@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/018-seeing-the-loop/spec.md, one per testable requirement (R3 is
 ## judged by eye, from the showcase's screenshots).
 

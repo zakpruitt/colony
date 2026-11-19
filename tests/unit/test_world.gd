@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for World and Bolt details the acceptance tests reach only indirectly.
 
 const FRAME: float = 1.0 / 60.0

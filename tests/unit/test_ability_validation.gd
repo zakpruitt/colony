@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for spec 050's AbilityDef and AbilityEffect validation, beyond the cases R1 shows.
 
 

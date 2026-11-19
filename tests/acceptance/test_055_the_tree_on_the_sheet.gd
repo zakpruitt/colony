@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/055-the-tree-on-the-sheet/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -34,7 +34,8 @@ func before_each() -> void:
 
 
 func after_each() -> void:
-	_mouse(NOWHERE)
+	super()
+	mouse_move(NOWHERE)
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, false)
@@ -137,24 +138,10 @@ func _frame() -> void:
 	_hud.advance(STEP)
 
 
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
-
-
 ## Clicks the left button at [param at], in screen pixels, then moves the mouse away.
 func _click_at(at: Vector2) -> void:
-	_mouse(at)
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		event.global_position = at
-		get_viewport().push_input(event, true)
-	_mouse(AWAY)
+	click(at)
+	mouse_move(AWAY)
 
 
 func _click(control: Control) -> void:
@@ -743,7 +730,7 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	)
 	_sheet().close()
 	_hud.advance(STEP)
-	_mouse(Hud.on_screen(frame).get_center())
+	mouse_move(Hud.on_screen(frame).get_center())
 	_hud.advance(0.2)
 	_hud.advance(0.3)
 	assert_eq(
@@ -751,9 +738,9 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 		"Knight, Berserker: click for details",
 		"on the frame's tooltip"
 	)
-	_mouse(AWAY)
+	mouse_move(AWAY)
 	_hud.advance(STEP)
-	_mouse(Hud.on_screen(_hud.frames[1]).get_center())
+	mouse_move(Hud.on_screen(_hud.frames[1]).get_center())
 	_hud.advance(0.5)
 	assert_eq(_hud.frame_tip.shown_text(), "Click for details", "a hero with no path")
 

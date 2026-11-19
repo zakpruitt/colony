@@ -1,13 +1,8 @@
-extends GutTest
+extends ColonyTest
 ## SoundSettings keeps the mute choice in its own file, and reads a missing or damaged file as
 ## "not muted" without an error. Every test uses a per-process file under user://.
 
-var _path: String = "user://test_sound_settings_%d.settings" % OS.get_process_id()
-
-
-func after_each() -> void:
-	if FileAccess.file_exists(_path):
-		DirAccess.remove_absolute(_path)
+var _path: String = save_path("", "settings")
 
 
 func test_a_missing_file_is_not_muted() -> void:
@@ -35,12 +30,6 @@ func test_a_damaged_file_is_not_muted() -> void:
 func test_the_real_file_is_the_default_and_separate_from_the_save() -> void:
 	assert_eq(SoundSettings.new().file_path(), SoundSettings.DEFAULT_PATH)
 	assert_ne(SoundSettings.DEFAULT_PATH, SaveStore.DEFAULT_PATH)
-
-
-## Also after the last test, so no file is left behind.
-func after_all() -> void:
-	if FileAccess.file_exists(_path):
-		DirAccess.remove_absolute(_path)
 
 
 func test_help_seen_round_trips_beside_the_mute_choice() -> void:

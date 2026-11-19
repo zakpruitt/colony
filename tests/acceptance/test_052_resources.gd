@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/resources_052_case.gd"
+extends "res://tests/acceptance/resources_052_test_base.gd"
 ## Acceptance tests for specs/052-resources/spec.md, R1 to R8, one or more per requirement
 ## (R9 to R12 are in test_052_resources_kept.gd). R3 and R8 deliver the simulation's events one
 ## tick to a frame and many ticks to a frame.
@@ -45,7 +45,7 @@ func test_r1_each_area_has_a_resource() -> void:
 func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 	# Small monsters sometimes: Mossy Hollow, whose monsters are all small.
 	var mossy := Simulation.new(SEED)
-	_level(mossy, STRONG_LEVEL)
+	set_party_level(mossy, STRONG_LEVEL)
 	mossy.set_target_depth(3)
 	var hollow: Dictionary = _watch(mossy, 9000)
 	var small: Vector2i = _drop_share(hollow, MonsterDef.Size.SMALL)
@@ -108,7 +108,7 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 	assert_lt(smalls * 2, KILLS, "but not most (%d of %d)" % [smalls, KILLS])
 	# A guardian always, and several.
 	var king := Simulation.new(SEED)
-	_level(king, STRONG_LEVEL)
+	set_party_level(king, STRONG_LEVEL)
 	king.expedition.stable_seconds = 2.0
 	king.set_target_depth(5)
 	king.set_auto_push(false)
@@ -214,7 +214,7 @@ func test_r3_the_party_keeps_a_count() -> void:
 	)
 	# One tick to a frame: the count follows every drop.
 	_sim = Simulation.new(SEED)
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	for i: int in 3000:
 		_frame()
@@ -238,7 +238,7 @@ func test_r3_the_party_keeps_a_count() -> void:
 	assert_eq(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "one a frame")
 	# Many ticks to a frame: the count is right at once.
 	_sim = Simulation.new(SEED)
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	_frame(3000)
 	assert_gt(_sim.party.resource(GLOWCAPS), 0, "(glowcaps held)")
@@ -514,7 +514,7 @@ func test_r8_told_like_gold() -> void:
 	# One tick to a frame: an icon rises from the monster and flies to the purse; the count
 	# ticks up as it lands.
 	_sim = Simulation.new(SEED)
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	var fallen: Dictionary = {}
 	_world.sim_event.connect(
@@ -559,7 +559,7 @@ func test_r8_told_like_gold() -> void:
 	# Many ticks to a frame: no icon, the count is right, the journal notes the first once.
 	_heard.clear()
 	_sim = Simulation.new(SEED)
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	_frame(6000)
 	assert_gt(_heard_of(SimEvent.Kind.RESOURCE_GAINED).size(), 1, "(drops in the frame)")
@@ -569,14 +569,14 @@ func test_r8_told_like_gold() -> void:
 	# A game that already holds glowcaps notes no first.
 	_heard.clear()
 	_sim = Simulation.new(SEED)
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_sim.party.set_resource(GLOWCAPS, 1)
 	_build_hud()
 	_frame(6000)
 	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 0, "not the first")
 	# The away report lists the resources gathered.
 	var away := Simulation.new(SEED)
-	_level(away, STRONG_LEVEL)
+	set_party_level(away, STRONG_LEVEL)
 	var replay := AwayReplay.new(away, 1200.0)
 	var gathered: int = 0
 	var before: int = away.party.resource(GLOWCAPS)
@@ -596,7 +596,7 @@ func test_r8_told_like_gold() -> void:
 	var with_drops := Tally.new()
 	var without := Tally.new()
 	var fights := Simulation.new(SEED)
-	_level(fights, STRONG_LEVEL)
+	set_party_level(fights, STRONG_LEVEL)
 	var drops_seen: int = 0
 	for i: int in 3000:
 		fights.step()
@@ -637,7 +637,7 @@ func test_r8_firsts_are_remembered() -> void:
 		return
 	assert_true(_sim.has_gathered(GLOWCAPS), "a rank that cost glowcaps: they were held")
 	assert_false(_sim.has_gathered(CLAY), "but not clay")
-	_level(_sim, STRONG_LEVEL)
+	set_party_level(_sim, STRONG_LEVEL)
 	_build_hud()
 	for i: int in 3000:
 		_frame()
@@ -647,7 +647,7 @@ func test_r8_firsts_are_remembered() -> void:
 	assert_eq(_journal_count("First glowcaps, from Mossy Hollow"), 0, "not a first again")
 	# Away: the first glowcaps are in the report, as the journal would have put them.
 	var away := Simulation.new(SEED)
-	_level(away, STRONG_LEVEL)
+	set_party_level(away, STRONG_LEVEL)
 	var replay := AwayReplay.new(away, 600.0)
 	while not replay.is_done():
 		replay.run(1_000_000)

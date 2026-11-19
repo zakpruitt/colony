@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/030-help-and-hints/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -6,7 +6,6 @@ extends GutTest
 ## reads or writes the real save or settings file: R5 gives Main files of its own, under user://,
 ## named for this process, and deletes them.
 
-const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 const SEED: int = 30
 const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
@@ -21,8 +20,8 @@ var _world: World
 var _fx: CombatEffects
 var _hud: Hud
 var _was_muted: bool = false
-var _settings_path: String = "user://test_030_help_%d.settings" % OS.get_process_id()
-var _save_path: String = "user://test_030_help_%d.save" % OS.get_process_id()
+var _settings_path: String = save_path("", "settings")
+var _save_path: String = save_path()
 
 
 func before_each() -> void:
@@ -45,48 +44,13 @@ func before_each() -> void:
 
 
 func after_each() -> void:
+	super()
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	if bus >= 0:
 		AudioServer.set_bus_mute(bus, _was_muted)
-	_delete_files()
-
-
-## Also after the last test: a Main with a save store saves again when GUT frees it.
-func after_all() -> void:
-	_delete_files()
-
-
-func _delete_files() -> void:
-	var paths: Array[String] = [
-		_settings_path,
-		_save_path,
-		_save_path + SaveStore.BACKUP_SUFFIX,
-		_save_path + SaveStore.TEMP_SUFFIX,
-	]
-	for path: String in paths:
-		if FileAccess.file_exists(path):
-			DirAccess.remove_absolute(path)
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _key(keycode: Key, shift: bool = false) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventKey.new()
-		event.keycode = keycode
-		event.physical_keycode = keycode
-		event.shift_pressed = shift
-		event.pressed = pressed
-		get_viewport().push_input(event)
-
-
-## Moves the mouse to [param at], in screen pixels, as the window would.
-func _mouse(at: Vector2) -> void:
-	var event := InputEventMouseMotion.new()
-	event.position = at
-	event.global_position = at
-	get_viewport().push_input(event, true)
 
 
 ## Steps the simulation until [param done] returns true (true), or the limit (false). The world
@@ -103,12 +67,6 @@ func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 
 func _fighting() -> bool:
 	return _sim.expedition.state == Expedition.State.FIGHTING and _sim.expedition.battle != null
-
-
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Sets the party up just before the guardian of [param depth].
@@ -206,7 +164,7 @@ func test_r1_frames_show_live_health() -> void:
 func test_r2_help_panel() -> void:
 	# Spec 058 moved help to a window on the UI layer, opened by H or its button on the button bar
 	# (where the ? button was); it no longer closes the other panels, nor they it.
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	var windows: UiWindows = main.ui.windows
 	var help: HelpPanel = windows.window(UiRoot.HELP).content as HelpPanel
@@ -221,14 +179,14 @@ func test_r2_help_panel() -> void:
 	assert_true(help.is_visible_in_tree(), "and it shows")
 	button.pressed.emit()
 	assert_false(windows.is_open(UiRoot.HELP), "and closes it")
-	_key(KEY_H)
+	press(KEY_H)
 	assert_true(windows.is_open(UiRoot.HELP), "H opens help")
-	_key(KEY_H)
+	press(KEY_H)
 	assert_false(windows.is_open(UiRoot.HELP), "H closes it")
-	_key(KEY_H)
-	_key(KEY_ESCAPE)
+	press(KEY_H)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.HELP), "Esc closes it")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.HELP), "and does not open it")
 
 	# The idea, then the keys.
@@ -250,16 +208,16 @@ func test_r2_help_panel() -> void:
 		assert_has(lines, row, "the panel lists %s" % row)
 
 	# Help stays open beside the shop, a hero window (spec 060) and the journal.
-	_key(KEY_H)
-	_key(KEY_U)
+	press(KEY_H)
+	press(KEY_U)
 	assert_true(main.hud.shop.is_open(), "the shop opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 	main.hud.shop.close()
-	_key(KEY_TAB)
+	press(KEY_TAB)
 	assert_true(main.hud.hero_windows.is_open(), "a hero window opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 	main.hud.hero_windows.close_all()
-	_key(KEY_J)
+	press(KEY_J)
 	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal opens")
 	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 
@@ -303,49 +261,49 @@ func _check_entry(main: Main, label: String) -> void:
 		match label:
 			"H":
 				var was: bool = windows.is_open(UiRoot.HELP)
-				_key(code)
+				press(code)
 				assert_ne(windows.is_open(UiRoot.HELP), was, "%s opens or closes help" % what)
-				_key(code)
+				press(code)
 			"Esc":
 				hud.shop.open()
-				_key(code)
+				press(code)
 				assert_false(hud.shop.is_open(), "%s closes the shop" % what)
 				windows.open_window(UiRoot.HELP)
-				_key(code)
+				press(code)
 				assert_false(windows.is_open(UiRoot.HELP), "%s closes help" % what)
-				_key(KEY_J)
-				_key(code)
+				press(KEY_J)
+				press(code)
 				assert_false(windows.is_open(UiRoot.JOURNAL), "%s closes the journal" % what)
 			"- +":
 				sim.set_target_depth(4)
 				sim.step()
 				hud.advance(0.0)
 				var target: String = hud.place_panel.target_label.text
-				_key(code)
+				press(code)
 				assert_ne(hud.place_panel.target_label.text, target, "%s changes the target" % what)
 			"A":
 				var auto: bool = sim.expedition.auto_push
-				_key(code)
+				press(code)
 				assert_ne(sim.expedition.auto_push, auto, "%s switches auto" % what)
-				_key(code)
+				press(code)
 			"U":
 				var shop: bool = hud.shop.is_open()
-				_key(code)
+				press(code)
 				assert_ne(hud.shop.is_open(), shop, "%s opens or closes the shop" % what)
 				hud.shop.close()
 			"B":
 				hud.shop.open()
 				var buying: bool = hud.shop.auto_buy_on()
-				_key(code)
+				press(code)
 				assert_ne(hud.shop.auto_buy_on(), buying, "%s switches auto-buy" % what)
-				_key(code)
+				press(code)
 				hud.shop.close()
 			"1-5":
 				hud.shop.open()
 				sim.party.gold = 10_000_000
 				var id: StringName = hud.shop.rows[code - KEY_1].id
 				var rank: int = sim.upgrades.rank(id)
-				_key(code)
+				press(code)
 				sim.step()
 				assert_gt(sim.upgrades.rank(id), rank, "%s buys upgrade %s" % [what, id])
 				hud.shop.close()
@@ -359,98 +317,98 @@ func _check_entry(main: Main, label: String) -> void:
 				var training: StringName = cells[code - KEY_1].id
 				var stat: TrainingDef.Stat = Content.training(training).stat
 				var trained: int = hero.paragon_rank(stat)
-				_key(code)
+				press(code)
 				sim.step()
 				assert_gt(hero.paragon_rank(stat), trained, "%s trains %s" % [what, training])
 				hud.hero_windows.close_all()
 			"Q E":
 				hud.hero_windows.open(sim.party.heroes[0].id)
 				var page: HeroWindow.Page = hud.hero_windows.front().page()
-				_key(code)
+				press(code)
 				assert_ne(hud.hero_windows.front().page(), page, "%s changes the front tab" % what)
 				hud.hero_windows.close_all()
 			"Tab":
 				var front: HeroWindow = hud.hero_windows.front()
-				_key(code)
+				press(code)
 				assert_ne(hud.hero_windows.front(), front, "%s opens the next hero window" % what)
 				hud.hero_windows.close_all()
 			"Shift+Tab":
 				hud.hero_windows.open(sim.party.heroes[0].id)
-				_key(code, true)
+				press(code, true)
 				assert_false(hud.hero_windows.is_open(), "%s closes the front hero window" % what)
 			"J":
 				var open: bool = windows.is_open(UiRoot.JOURNAL)
-				_key(code)
+				press(code)
 				assert_ne(
 					windows.is_open(UiRoot.JOURNAL), open, "%s opens or closes the journal" % what
 				)
 				windows.close_window(UiRoot.JOURNAL)
 			"O":
 				var orders: bool = windows.is_open(UiRoot.ORDERS)
-				_key(code)
+				press(code)
 				assert_ne(
 					windows.is_open(UiRoot.ORDERS), orders, "%s opens or closes the orders" % what
 				)
 				windows.close_window(UiRoot.ORDERS)
 			"T":
 				var tally: bool = hud.tally.is_open()
-				_key(code)
+				press(code)
 				assert_ne(hud.tally.is_open(), tally, "%s opens or closes the tally" % what)
 				hud.tally.close()
 			"L":
 				var shown: bool = hud.ladder.is_shown()
-				_key(code)
+				press(code)
 				hud.advance(0.0)
 				assert_ne(hud.ladder.is_shown(), shown, "%s shows or hides the depth ladder" % what)
-				_key(code)
+				press(code)
 				hud.advance(0.0)
 			"W":
 				var map: bool = hud.area_map.is_open()
-				_key(code)
+				press(code)
 				assert_ne(hud.area_map.is_open(), map, "%s opens or closes the area map" % what)
 				hud.area_map.close()
 			"G":
 				var goals: bool = hud.goals.is_shown()
-				_key(code)
+				press(code)
 				hud.advance(0.0)
 				assert_ne(hud.goals.is_shown(), goals, "%s shows or hides the goals" % what)
-				_key(code)
+				press(code)
 				hud.advance(0.0)
 			"Z":
 				var zoom: int = main.world.camera.zoom_level()
-				_key(code)
+				press(code)
 				assert_ne(main.world.camera.zoom_level(), zoom, "%s zooms" % what)
-				_key(code)
+				press(code)
 			"M":
 				var muted: bool = main.sound.is_muted()
-				_key(code)
+				press(code)
 				assert_ne(main.sound.is_muted(), muted, "%s mutes or unmutes" % what)
-				_key(code)
+				press(code)
 			"F":
 				var speed: int = main.speed
-				_key(code)
+				press(code)
 				assert_ne(main.speed, speed, "%s changes the game speed" % what)
 				main.set_speed(speed)
 			"F11":
 				# Spec 067: a played game has window settings; here a file of this test's own, and
 				# no window to change.
-				var path: String = "user://test_030_window_%d.window" % OS.get_process_id()
+				var path: String = save_path("window", "window")
 				var kept := WindowSettings.new(path)
 				main.window_settings = kept
 				main.add_child(kept)
 				var mode: WindowSettings.Mode = kept.mode
-				_key(code)
+				press(code)
 				assert_ne(kept.mode, mode, "%s goes full screen" % what)
-				_key(code)
+				press(code)
 				assert_eq(kept.mode, mode, "%s and back" % what)
 				kept.queue_free()
 				main.window_settings = null
 				DirAccess.remove_absolute(path)
 			"F3":
 				var shown_clock: bool = hud.clock_label.visible
-				_key(code)
+				press(code)
 				assert_ne(hud.clock_label.visible, shown_clock, "%s shows the clock" % what)
-				_key(code)
+				press(code)
 			_:
 				fail_test("%s: this test does not know what the key should do" % what)
 
@@ -472,7 +430,7 @@ func test_r3_every_key_is_listed() -> void:
 		)
 
 	# Each listed key does something in a real game.
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.hud.advance(0.0)
 	for entry: Array in HelpPanel.KEYS:
@@ -507,10 +465,10 @@ func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> Str
 	var tip_box: Control = hud.frame_tip
 	var shown: Callable = hud.frame_tip.shown_text
 	var rect: Rect2 = control.get_global_rect()
-	_mouse(SCREEN / 2.0)
+	mouse_move(SCREEN / 2.0)
 	hud.advance(1.0)
 	assert_eq(str(shown.call()), "", "%s: nothing before resting on it" % what)
-	_mouse(rect.get_center())
+	mouse_move(rect.get_center())
 	hud.advance(0.2)
 	hud.advance(0.15)
 	assert_eq(str(shown.call()), "", "%s: nothing before 0.4 s" % what)
@@ -532,7 +490,7 @@ func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> Str
 	for label: Label in labels:
 		if label.is_visible_in_tree():
 			assert_true(box.encloses(label.get_global_rect()), "%s: the text is in the box" % what)
-	_mouse(SCREEN / 2.0)
+	mouse_move(SCREEN / 2.0)
 	hud.advance(0.016)
 	assert_eq(str(shown.call()), "", "%s: hidden on leaving" % what)
 	return text
@@ -558,7 +516,7 @@ func test_r4_tooltips() -> void:
 
 	# The boss bar, in a guardian fight.
 	_before_guardian(5)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_hud.boss_bar.is_showing), "a guardian fight")
 	_check_tip(_hud, "the boss bar", _hud.boss_bar, "")
 
@@ -567,7 +525,7 @@ func test_r4_tooltips() -> void:
 
 
 func _main_with(settings: SoundSettings, store: SaveStore) -> Main:
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.settings = settings
 	main.save_store = store
 	add_child_autofree(main)
@@ -605,7 +563,7 @@ func test_r5_welcome_on_first_run() -> void:
 	loaded.save_store = null
 	loaded.free()
 
-	var test_run: Main = MAIN_SCENE.instantiate()
+	var test_run: Main = make_main()
 	add_child_autofree(test_run)
 	assert_null(test_run.settings, "a test run has no settings file")
 	assert_null(test_run.sound.settings, "nor does its sound")
@@ -618,7 +576,7 @@ func test_r5_welcome_on_first_run() -> void:
 func test_r6_it_fits() -> void:
 	# Spec 058: help is a window on the UI layer, in UI pixels and the UI font, placed inside the
 	# smallest room (960x540) above the hero frames' line.
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	add_child_autofree(main)
 	main.ui.set_room_for_test(Vector2i(960, 540))
 	main.ui.windows.open_window(UiRoot.HELP)

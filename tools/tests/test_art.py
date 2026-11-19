@@ -281,7 +281,7 @@ class TestCheck(unittest.TestCase):
     def test_r6_check_has_art_step(self) -> None:
         steps = list(dev.STEPS)
         self.assertIn("art", steps)
-        self.assertEqual(steps.index("art"), steps.index("boundary") + 1)
+        self.assertEqual(steps.index("art"), steps.index("harness") + 1)
 
     def test_r6_repository_assets_pass_the_lint(self) -> None:
         self.assertEqual(art.lint(TOOLS.parent / "assets", PALETTE_PATH), [])

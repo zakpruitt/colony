@@ -1,6 +1,6 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## What the acceptance tests of spec 061 (the frame of the screen on the sharp layer) share: their
-## constants and helpers, on top of ui_layer_test.gd's. Kept apart so the tests' own file stays
+## constants and helpers, on top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays
 ## under gdlint's length.
 
 const STEP: float = 1.0 / 60.0
@@ -32,12 +32,6 @@ func _until(main: Main, done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 	return done.call()
 
 
-func _raise(main: Main, level: int) -> void:
-	for hero: Hero in main.simulation.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
-
-
 ## Sets the party up just before the guardian of stage [param depth].
 func _before_guardian(main: Main, depth: int) -> void:
 	var sim: Simulation = main.simulation
@@ -57,7 +51,7 @@ func _before_guardian(main: Main, depth: int) -> void:
 ## A guardian fight under way in [param main], strong enough heroes to last.
 func _guardian_fight(main: Main) -> bool:
 	_before_guardian(main, Expedition.GUARDIAN_EVERY)
-	_raise(main, STRONG_LEVEL)
+	raise_party(main.simulation, STRONG_LEVEL)
 	return _until(main, func() -> bool: return main.hud.boss_bar.is_showing())
 
 
@@ -94,7 +88,7 @@ func _click(main: Main, control: Control) -> void:
 
 
 func _press(main: Main, keycode: Key) -> void:
-	_key(keycode)
+	press(keycode)
 	main.hud.advance(STEP)
 
 
@@ -133,9 +127,9 @@ func _shown_labels(node: Node) -> Array[Label]:
 ## tip's sentences ("" if none came).
 func _rest_on(main: Main, control: Control) -> String:
 	var tip: UiTip = main.hud.frame_tip
-	_move(Vector2(-50, -50))
+	mouse_move(Vector2(-50, -50))
 	main.hud.advance(STEP)
-	_move(main.ui.ui_to_world(control.get_global_rect().get_center()))
+	mouse_move(main.ui.ui_to_world(control.get_global_rect().get_center()))
 	main.hud.advance(0.2)
 	assert_eq(tip.shown_text(), "", "%s: nothing before 0.4 s" % control.name)
 	main.hud.advance(0.25)

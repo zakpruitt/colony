@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/038-rough-edges-on-screen/spec.md, one per requirement.
 ##
 ## Each test builds a World with CombatEffects on a seeded simulation, their clocks turned off,
@@ -185,12 +185,6 @@ func _away_on_stage_one(speed: int) -> void:
 		if absf(e.x - home) >= 24.0 and e.state == Expedition.State.TRAVELLING:
 			break
 	assert_eq(_sim.expedition.depth, 1, "the party is on stage 1")
-
-
-func _raise(level: int) -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-		hero.health = hero.max_health()
 
 
 ## Puts the party just outside the guardian's chamber on [param depth] (the Slime King's on depth
@@ -451,7 +445,7 @@ func _guardian_fight(depth: int, side: int) -> void:
 	_frame = 0
 	_events = []
 	_sim = Simulation.new(SEED)
-	_raise(STRONG_LEVEL)
+	raise_party(_sim, STRONG_LEVEL)
 	_before_guardian(depth)
 	_show(_sim)
 	assert_eq(_sim.expedition.facing, side, "the guardian of depth %d is on that side" % depth)

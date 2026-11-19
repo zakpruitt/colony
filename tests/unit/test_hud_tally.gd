@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Unit tests for [Tally], the counting behind spec 045's party tally, fed made-up events.
 
 const KNIGHT: int = 1

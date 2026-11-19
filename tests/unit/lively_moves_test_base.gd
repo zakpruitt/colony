@@ -1,4 +1,4 @@
-extends "res://tests/unit/abilities_on_screen_rig.gd"
+extends "res://tests/unit/abilities_on_screen_test_base.gd"
 ## Spec 057's helpers for its acceptance tests (tests/acceptance/test_057_lively_moves.gd), on top
 ## of spec 056's rig: reading a move from a sprite's Rig node and its drawn pixels, the spell
 ## visuals, an ordinary swing, a hop, and fights with every class's full tree.

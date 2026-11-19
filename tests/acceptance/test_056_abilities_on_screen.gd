@@ -1,4 +1,4 @@
-extends "res://tests/unit/abilities_on_screen_rig.gd"
+extends "res://tests/unit/abilities_on_screen_test_base.gd"
 ## Acceptance tests for specs/056-abilities-on-screen/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects that listen to it (and,
@@ -462,7 +462,7 @@ func test_r5_the_frames_show_it() -> void:
 	assert_true(frame.status_icons.is_visible_in_tree(), "shown on the frame")
 	var line: String = "Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
 	assert_eq(frame.tip(), line, "the tooltip names each with the seconds left")
-	_mouse(Hud.on_screen(frame).get_center())
+	mouse_move(Hud.on_screen(frame).get_center())
 	_hud.frame_tip.point_at(frame.get_global_rect().get_center())
 	_hud.frame_tip.advance(UiTip.DELAY + 0.1)
 	assert_eq(_hud.frame_tip.shown_text(), line, "as the HUD's tooltip")
@@ -476,7 +476,7 @@ func test_r5_the_frames_show_it() -> void:
 	var titled: String = HeroTalentsTab.title(hero)
 	assert_true(titled.begins_with("Knight, "), "the knight has a path")
 	var both: String = "%s: Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
-	_mouse(Vector2(-1000, -1000))
+	mouse_move(Vector2(-1000, -1000))
 	_hud.frame_tip.point_at(UiTip.NOWHERE)
 	_hud.frame_tip.point_at(frame.get_global_rect().get_center())
 	_hud.frame_tip.advance(UiTip.DELAY + 0.1)

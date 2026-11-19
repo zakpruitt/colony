@@ -1,18 +1,17 @@
-extends "res://tests/acceptance/ui_layer_test.gd"
+extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, R5 to R8 (the rest are in
 ## test_058_sharp_ui_and_windows.gd): the windows in both rooms a player has, 960x540 and
-## 1280x720, and beside the old HUD's panels until specs 059 to 061 move them onto the UI layer.
+## 1280x720, where they open, what moves or closes them, and the goals beside them.
 
 
-## [param world_rect], in the world's 640x360 screen pixels, in UI pixels on [param ui].
 ## A window's rectangle at its default place, in UI pixels.
 func _default_rect(window: UiWindow) -> Rect2:
 	return Rect2(window.default_place, window.size)
 
 
-## Where each old panel opens and where the goals are, in UI pixels on [param main]'s layer:
-## the goals. (Spec 059 made the shop, the tally and the area map windows, and spec 060 the
-## hero sheet.)
+## What the windows must keep clear of, in UI pixels on [param main]'s layer: the goals, the
+## last panel of the old HUD (spec 059 made the shop, the tally and the area map windows, and
+## spec 060 the hero sheet).
 func _old_panels(main: Main) -> Dictionary[String, Rect2]:
 	var hud: Hud = main.hud
 	var found: Dictionary[String, Rect2] = {}
@@ -68,19 +67,19 @@ func test_r5_the_mouse_on_a_window_is_not_on_the_hud() -> void:
 	assert_true(hud.goals_view.rows[0].visible, "the goals show")
 	var on_goal: Vector2 = Hud.on_screen(hud.goals_view.rows[0]).get_center()
 	var journal: UiWindow = ui.windows.window(UiRoot.JOURNAL)
-	_key(KEY_J)
+	press(KEY_J)
 	await _frames()
 	assert_true(journal.get_rect().has_point(ui.world_to_ui(on_goal)), "the journal over the goals")
-	_move(on_goal)
+	mouse_move(on_goal)
 	hud.frame_tip.advance(UiTip.DELAY + 0.1)
 	assert_eq(hud.frame_tip.shown_text(), "", "no HUD tooltip through the journal")
 	var note_mouse: Vector2 = hud.defeat_note.get(&"_mouse")
 	assert_eq(note_mouse, UiTip.NOWHERE, "nor the defeat note's hover")
-	_move(ui.ui_to_world(ui.bar.get_global_rect().get_center()))
+	mouse_move(ui.ui_to_world(ui.bar.get_global_rect().get_center()))
 	note_mouse = hud.defeat_note.get(&"_mouse")
 	assert_eq(note_mouse, UiTip.NOWHERE, "the button bar too")
-	_key(KEY_J)
-	_move(on_goal + Vector2(1, 0))
+	press(KEY_J)
+	mouse_move(on_goal + Vector2(1, 0))
 	hud.frame_tip.advance(UiTip.DELAY + 0.1)
 	assert_ne(hud.frame_tip.shown_text(), "", "with the journal closed, the goal's tooltip shows")
 
@@ -140,12 +139,12 @@ func test_r5_nothing_closes_the_windows_but_the_player() -> void:
 	for id: StringName in _bar_ids(windows):
 		places[id] = windows.window(id).position
 	var written: Array[String] = hud.journal.lines()
-	_click_world(Hud.on_screen(hud.frames[0]).get_center())
+	click(Hud.on_screen(hud.frames[0]).get_center())
 	hud.advance(0.016)
 	assert_true(hud.hero_windows.is_open(), "a click on a frame opens a hero window")
 	for keycode: Key in [KEY_U, KEY_T, KEY_W]:  # each closes its window, then opens it again
-		_key(keycode)
-		_key(keycode)
+		press(keycode)
+		press(keycode)
 		hud.advance(0.016)
 	await _frames()
 	hud.advance(0.016)
@@ -170,7 +169,7 @@ func test_r6_windows_left_open_wait_for_the_away_report() -> void:
 	data[Main.SAVED_AT_KEY] = Time.get_unix_time_from_system()
 	assert_true(SaveStore.new(_save_path).write(data), "the test's save was written")
 
-	var main: Main = MAIN_SCENE.instantiate()
+	var main: Main = make_main()
 	main.settings = SoundSettings.new(_settings_path)
 	main.save_store = SaveStore.new(_save_path)
 	main.away_seconds_override = 600.0
@@ -184,7 +183,7 @@ func test_r6_windows_left_open_wait_for_the_away_report() -> void:
 	var order: Array[UiWindow] = main.ui.windows.order()
 	var journal: UiWindow = main.ui.windows.window(UiRoot.JOURNAL)
 	assert_lt(order.find(journal), order.find(main.away_window), "under the report")
-	_key(KEY_ESCAPE)
+	press(KEY_ESCAPE)
 	await _frames()
 	assert_false(is_instance_valid(main.away_window), "the report went")
 	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "and the journal stays")

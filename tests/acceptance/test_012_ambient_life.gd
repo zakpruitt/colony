@@ -1,4 +1,4 @@
-extends GutTest
+extends ColonyTest
 ## Acceptance tests for specs/012-ambient-life.
 
 const H: int = Labyrinth.LEVEL_HEIGHT
