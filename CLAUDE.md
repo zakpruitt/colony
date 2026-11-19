@@ -115,6 +115,9 @@ committed. To shoot one showcase moment without the minute before it, make that 
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.
+Shots are timed by the wall clock, so the same `--seconds` lands a few frames apart on a loaded machine, and
+`show_NN` from two runs can be different moments. To show nothing changed against a baseline, pair shots by
+the moment's label and compare the UI, not by file number or a pixel diff.
 
 ## Skills (`.claude/skills/`)
 
