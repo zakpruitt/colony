@@ -1,9 +1,9 @@
 # 063 — A picture for everything you gain, and the moment you gain it
 
-- **Status:** provisional (direction from Zak 2026-11-18; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-18; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 017, 028, 051, 055, 058, 059, 060, 062
-- **Pull request:** —
+- **Pull request:** [#64](https://github.com/zakpruitt/colony/pull/64)
 
 ## Intent
 
