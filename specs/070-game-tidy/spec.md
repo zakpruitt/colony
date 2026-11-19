@@ -40,7 +40,7 @@ file. This spec removes those and changes nothing on screen.
 
 ```gdscript
 # game/ui/windows/window_text.gd
-static func ink(label: Label) -> float
+static func ink(of: Label) -> float
 ```
 
 `CombatEffects.battle_guardian` keeps its name and signature (tests call it). No signal, scene or
@@ -66,7 +66,7 @@ R1 is shown by the unedited suite and the shots; R6 is for the reviewer.
 - Moving `Hud`'s formatting statics, splitting `Hud`, the window and key lists, effect pools, the
   stale-event checks and per-frame refresh work (specs 074 to 076).
 - Deleting anything a test uses, including test-only getters and signals. Editing any existing test.
-- The demo and specimen scenes. Any change under `sim/`.
+- The demo and specimen scenes, beyond the comments R3 covers. Any change under `sim/`.
 
 ## Paths
 
