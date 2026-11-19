@@ -49,6 +49,9 @@ Add unit tests under `tests/unit/` for logic the acceptance tests only reach ind
   can be longer; rewrap it (the signatures stay exact, the comment's line breaks do not matter).
 - Generating many files (abilities, trees) or editing with a Python script is fine, but on Windows Python
   writes CRLF unless you open the file with `newline='\n'`; do so, or the diff turns every line.
+  A backslash escape (`"\n"`) in Python sent through the Bash tool's heredoc can reach the file as a real
+  newline or not match at all. Godot still compiles a GDScript string broken that way, so only the
+  `format` step catches it. Make edits that hold a backslash with the Edit tool.
 - Removing a feature other specs built on (spec 051 removed gold training) breaks tests far from your
   code: run the whole suite early, not just your own test, and list each amended test in the pull request.
 - Commit in logical steps with Conventional Commit messages (`feat(sim): …`), each one passing the check.
