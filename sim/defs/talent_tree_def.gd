@@ -7,12 +7,18 @@ extends Resource
 ## Nodes in the trunk, and in each path.
 const TRUNK_LENGTH: int = 3
 const PATH_LENGTH: int = 4
+## The longest a path's summary may be, in characters (spec 064 R4: one short line).
+const SUMMARY_LENGTH: int = 60
 
 @export var class_id: StringName
 @export var trunk: Array[StringName] = []  # ability ids, in order
 @export var path_names: Array[String] = []  # two
 @export var path_a: Array[StringName] = []
 @export var path_b: Array[StringName] = []
+## Spec 064 R4: one short line per path saying what a hero on it becomes ("holds the line and
+## keeps the party standing"), shown on its banner. A view hint: no rule reads it, and the state
+## hash leaves it out.
+@export var path_summaries: Array[String] = []
 
 
 ## Path [param index] (0 or 1), or an empty list for any other index.
@@ -93,6 +99,15 @@ func validate() -> PackedStringArray:
 	for name_text: String in path_names:
 		if name_text.is_empty():
 			problems.append("a path name is empty")
+	if path_summaries.size() != 2:
+		problems.append("path_summaries has %d lines, not 2" % path_summaries.size())
+	for summary: String in path_summaries:
+		if summary.strip_edges().is_empty():
+			problems.append("a path summary is empty")
+		elif summary.length() > SUMMARY_LENGTH:
+			problems.append(
+				"the path summary '%s' is over %d characters" % [summary, SUMMARY_LENGTH]
+			)
 	for label: String in ["path_a", "path_b"]:
 		var nodes: Array[StringName] = path_a if label == "path_a" else path_b
 		if nodes.size() != PATH_LENGTH:

@@ -99,7 +99,16 @@ The picture is drawn in two layers, each in its own pixels.
   sorts its chrome at once (`settle`), refreshes only while open (`advance`, called every frame) and snaps
   its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
   `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A
-  node's picture is its ability's own (spec 063, below).
+  node's picture is its ability's own (spec 063, below). Spec 064 draws the tree as a tree: each
+  `TalentNode` is a large `UiIcon` with its name under it; `TalentTreeView` lays the trunk down the middle
+  and the paths in two far columns under a `PathBanner` each, and draws the lines and arrowheads itself
+  (`joins()`, `arrows()`), lit in the path's colour (`PathColours`, a view table by class and path; a
+  path's name is tinted in it wherever the window says it, by a `WordTint` drawn over the label). A
+  node's words are on its card (`UiTip.attach_card`) and in the `NextStrip` at the tree's foot; the
+  paragon medallions sit under that, past the first view (`HeroTalentsTab.base_height()` leaves them
+  out, so two windows on Talents still sit side by side at 1280x720). `Main` connects the world's
+  `sim_event` to `HeroWindows.hear`, which turns a recent `TALENT_TAKEN`, `PARAGON_SPENT` or
+  `MICROSKILL_LEARNED` into a burst and a banner through `UiMoment`.
 - **Pictures and the moment** (spec 063, `game/ui/`): every ability, upgrade, paragon stat and microskill
   has a 16x16 picture, a part named for its id in one of `assets/sprites/ui/pictures_<group>.png`;
   `UiIcon.picture(id)` finds it, and no rule or data field names it. `UiIcon` is the framed slot (owned,

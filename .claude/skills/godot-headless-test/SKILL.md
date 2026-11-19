@@ -136,6 +136,16 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   `World.catching_up()` is true until it syncs again: anything gated on it (spec 063's `UiMoment`, spec 057's
   moves) silently starts nothing. Call `main.world.sync(STEP)` twice before testing such a thing with no
   events (spec 063's `_settled`), and assert `catching_up()` is false where it matters.
+- `UiMoment` runs its bursts and banners in its own `_process`, and a test's loop runs no frames: in a loop
+  that drives the showcase or the world by hand, call `main.ui.moment.advance(dt)` (and `main.hud.advance(dt)`)
+  each step, or no banner ever shows (spec 064 R14).
+- A control past the first view of a `ScrollContainer` (a hero window's paragon medallions, spec 064) cannot
+  be clicked until it is scrolled into view, and the container learns how tall its content has grown only a
+  frame later. Before a real click there, `await` a frame, then push wheel events over the scroll until its
+  rect encloses the control (`talent_tree_test.gd`'s `_into_view`).
+- A click that follows a click on something that changes under the mouse can miss: the strip under a talent
+  tree shows the node under the mouse, so moving straight from a node to the strip's `Learn` finds the
+  button hidden until the HUD's next frame. Move the mouse away and advance a frame first (`_point_away`).
 
 ## Files
 

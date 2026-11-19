@@ -7,5 +7,6 @@ script = ExtResource("1")
 class_id = &"rogue"
 trunk = Array[StringName]([&"backstab", &"smoke_step", &"finisher"])
 path_names = Array[String](["Assassin", "Trickster"])
+path_summaries = Array[String](["bleeds, marks and finishes the weakest foe", "slows, weakens and slips away from every blow"])
 path_a = Array[StringName]([&"poisoned_blades", &"mark_for_death", &"ambush", &"killing_spree"])
 path_b = Array[StringName]([&"fan_of_knives", &"caltrops", &"dizzying_feint", &"vanish"])
