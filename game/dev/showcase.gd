@@ -105,7 +105,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"clay_fight": 1.5,
 	&"stone_fight": 1.5,
 	&"deep_fight": 1.5,
-	&"guardian_fight": 3.5,
+	&"guardian_fight": 7.0,  # spec 066: the fight, then the guardian falls and its banner shows
 	&"knight_actions": 1.2,
 	&"rogue_actions": 1.2,
 	&"mage_actions": 1.2,
@@ -143,6 +143,8 @@ const BAND_LEVELS: Dictionary[StringName, int] = {
 ## enough to stand, not to end it before it has been seen.
 const GUARDIAN_DEPTH: int = Expedition.GUARDIAN_EVERY
 const GUARDIAN_LEVEL: int = 10
+## Spec 066: seconds the guardian's fight is watched before the guardian is made to fall.
+const GUARDIAN_WATCH: float = 3.2
 ## How many times their health the monsters of the first fight have.
 const TOUGHER: int = 3
 ## The side quest each quest moment walks into, and the depth its search starts from.
@@ -577,8 +579,11 @@ func _look() -> void:
 			):
 				_see()
 		&"guardian_fight":
-			if GuardianSpacing.fighting_guardian(main.simulation) != null:
+			var guardian: Combatant = GuardianSpacing.fighting_guardian(main.simulation)
+			if guardian != null:
 				_see()
+				if _since_evidence >= GUARDIAN_WATCH:
+					guardian.health = mini(guardian.health, 1)  # spec 066 R9: it falls, for its banner
 		&"area_map":
 			if main.hud.area_map.is_open():
 				_see()

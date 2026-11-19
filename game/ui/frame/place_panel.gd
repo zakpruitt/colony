@@ -7,6 +7,8 @@ extends Panel
 ## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
 ## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
 ## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
+## Spec 066: a new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
+## by [method advance]; [Milestones] calls both).
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
 const HEIGHT: float = 41.0
@@ -31,6 +33,8 @@ var target_label: Label
 var plus_button: UiButton
 var auto_button: UiButton
 var status_label: Label
+## Seconds left of the safe stage's step up (spec 066); 0 when still.
+var safe_step: float = 0.0
 
 var _lift: float = 0.0
 
@@ -101,6 +105,27 @@ func show_place(
 	lay_out()
 
 
+## Spec 066 R5: [code]Safe N[/code] steps up, in yellow, for [constant HeroFrameView.STEP_SECONDS].
+func step_safe() -> void:
+	safe_step = HeroFrameView.STEP_SECONDS
+	_show_step()
+
+
+## Runs the safe stage's step on by [param delta] seconds.
+func advance(delta: float) -> void:
+	if safe_step <= 0.0:
+		return
+	safe_step = maxf(safe_step - delta, 0.0)
+	_show_step()
+
+
+## Ends the safe stage's step at once (the world is catching up).
+func stop_step() -> void:
+	if safe_step > 0.0:
+		safe_step = 0.0
+		_show_step()
+
+
 ## Lays the panel out from left to right and sizes it to fit.
 func lay_out() -> void:
 	var x: float = PAD
@@ -139,9 +164,16 @@ func lay_out() -> void:
 	# The safe stage at the right of the line under the buttons, clear of the status.
 	var status_end: float = status_label.position.x + _ink(status_label, false)
 	var safe_x: float = maxf(x - _ink(safe_label, false), status_end + GAP * 2.0)
-	safe_label.position = Vector2(safe_x, LINE_Y)
+	safe_label.position = Vector2(safe_x, LINE_Y - HeroFrameView.step_lift(safe_step))
 	x = maxf(x, safe_x + _ink(safe_label, false))
 	size = Vector2(ceilf(x + PAD), HEIGHT)
+
+
+## The safe stage as its step has it now: yellow and raised while stepping, else silver in place.
+func _show_step() -> void:
+	var colour: StringName = &"yellow" if safe_step > 0.0 else &"silver"
+	safe_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	lay_out()
 
 
 static func _set_text(label: Label, text: String) -> void:

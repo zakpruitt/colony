@@ -16,6 +16,7 @@ extends Control
 ## middle and the nearest of [member keep_clear] (the goals and the stage list in a game): its line
 ## wraps to at most two lines, the last shortened with "..." when it would run longer, and nothing
 ## is cut.
+## [method announce_picture] takes the picture itself in place of an id (spec 066).
 ## Banners wait their turn, at most [constant MAX_WAITING]; a newer one replaces the oldest
 ## waiting. One announced shows from the next [method advance], so of many announced at once only
 ## the newest that can wait are ever shown.
@@ -102,7 +103,7 @@ func _init() -> void:
 	banner_picture.name = "Picture"
 	banner_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	banner_picture.stretch_mode = TextureRect.STRETCH_SCALE
+	banner_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	banner_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	banner_picture.position = Vector2.ONE * BANNER_PAD
 	banner_picture.size = BANNER_PICTURE
@@ -154,10 +155,18 @@ func burst(control: Control, event: SimEvent = null) -> void:
 func announce(
 	picture_id: StringName, headline: String, line: String, event: SimEvent = null
 ) -> void:
+	announce_picture(UiIcon.picture(picture_id), headline, line, event)
+
+
+## Queues a banner as [method announce] does, its picture [param picture] itself (spec 066: a
+## guardian's sprite, an area's resource), shown as large as fits the picture's place, whole.
+func announce_picture(
+	picture: Texture2D, headline: String, line: String, event: SimEvent = null
+) -> void:
 	if not _may_start(event):
 		return
 	var made := Banner.new()
-	made.picture_id = picture_id
+	made.picture = picture
 	made.headline = headline
 	made.line = line
 	_waiting.append(made)
@@ -343,7 +352,7 @@ func _drop_all() -> void:
 func _show_banner(shown: Banner) -> void:
 	_shown = shown
 	_shown_time = 0.0
-	banner_picture.texture = UiIcon.picture(shown.picture_id)
+	banner_picture.texture = shown.picture
 	_lay_out_banner()
 	banner.visible = true
 	_place_banner()
@@ -447,6 +456,6 @@ class Burst:
 ## A banner waiting or showing.
 class Banner:
 	extends RefCounted
-	var picture_id: StringName
+	var picture: Texture2D
 	var headline: String
 	var line: String
