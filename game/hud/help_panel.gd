@@ -37,7 +37,7 @@ const KEYS: Array[Array] = [
 const IDEA: Array[String] = [
 	"Your party explores on its own; heroes' skills unlock side quests.",
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
-	"Gold buys upgrades in the Shop.",
+	"Gold buys upgrades in the Shop: every fifth rank is a milestone.",
 	"It keeps going while the game is closed.",
 	"A hero's talent tree forks into two paths: choose one.",
 ]

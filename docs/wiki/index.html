@@ -206,14 +206,17 @@ showcase's leftovers, not the game.</p>
   Stand, a fat purse for Fat Purse. They show on the talent tree, the paragon row, the skill cards and the
   shop. Also built, for the next two specs to use: a framed slot showing a picture owned, ready, locked or
   closed; a tooltip card with the picture; a burst of sparks when something is gained, and a banner that
-  drops in at the top with a fanfare. Nothing uses the burst and banner yet; 064 and 065 decide when they
-  play.</td></tr>
+  drops in at the top with a fanfare. 064 and 065 decide when they play.</td></tr>
   <tr><td>064 The talent tree as a tree</td><td>The Talents tab is a tree of pictures: the trunk runs down the
   middle and forks into two paths, each in its own colour under a banner that says what a hero on it
   becomes. Point at a node for its card; a strip under the tree shows what is next, with a
   <code>Learn</code> button. Taking a node bursts it and a banner names it; choosing a path closes the other
   before your eyes. Paragon points go into medallions, and the Skills tab's cards carry their pictures.
-  This is the first use of 063's burst and banner.</td></tr>
+  </td></tr>
+  <tr><td>065 Camp upgrades you can see</td><td>Each upgrade in the shop is a card: its picture in a
+  framed slot with the rank on it, pips for the ranks, and what it gives now beside what the next rank
+  gives (<code>Damage and healing  +15%  &gt;  +20%</code>). Buying a rank bursts the picture and fills its
+  pip with a flash; every fifth rank, and the last, drops a banner.</td></tr>
 </table>
 </div>
 
@@ -748,17 +751,26 @@ window keeps its own:</p>
 <p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
 <h3>The Shop window (<kbd>U</kbd>)</h3>
-<p>One row per camp upgrade; the game keeps running behind it. A row has the upgrade's number key and
-name in bold, a sentence saying what one rank gives (<em>Each rank gives +5% damage and healing.</em>),
-its rank as <code>3 / 20</code> with a thin bar and the bonus it gives now (<em>+15% now</em>), and one
-buy button with the whole price: the gold, and from the fourth rank the resource with its icon
-(<code>91 gold + 4</code>). The button can be pressed when the party can pay both; when it cannot, it is
-greyed and a line in orange says what is missing (<em>Needs 12 more clay, from The Claypits</em>). At the
-top rank it reads <code>Max</code>. Rest the mouse on a row for both prices, where the resource comes from
-and, if that area is closed, how to open it. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a
-sentence saying what it does. While the shop is closed, its button on the button bar carries an amber tag
-counting the upgrades the party can pay for. A row flashes when its upgrade is bought, by you or by
-auto-buy.</p>
+<p>One card per camp upgrade; the game keeps running behind it. A card shows the upgrade's picture in a
+framed slot with its rank in the corner: the frame pulses yellow when the party can pay for the next rank,
+is plain and dimmed when it cannot, and turns gold for good at the top rank. Beside the picture are the
+number key and name in bold with the rank (<code>3 / 20</code>) at the end of the line, then the ranks as
+pips, one per rank, filled for each bought, every fifth larger. Under those, what the upgrade gives now and what the next rank
+will give, the gain in green (<code>Damage and healing  +15%  &gt;  +20%</code>); at the top rank only the total
+shows, with <em>Mastered</em>. One buy button carries the whole price: the gold, and from the fourth rank
+the resource with its icon (<code>91 gold + 4</code>). It can be pressed when the party can pay both; when
+it cannot, it is greyed and a line in orange says what is missing (<em>Needs 12 more clay, from The
+Claypits</em>). At the top rank it reads <code>Max</code>. Rest the mouse on a card for a card of its own:
+the picture, both prices of the next rank, where the resource comes from and, if that area is closed, how
+to open it, and what one rank gives. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a sentence
+saying what it does. While the shop is closed, its button on the button bar carries an amber tag counting
+the upgrades the party can pay for.</p>
+<p><strong>Buying.</strong> When you buy a rank (its button or its key) the picture bursts with sparks, the
+new pip fills with a flash and the numbers count up to their new values. A rank auto-buy bought just
+flashes its pip. Every fifth rank, whoever bought it, drops a banner at the top with the picture
+(<em>Sharp Blades, rank 5</em> over <em>+25% damage and healing</em>), and the top rank one of its own
+(<em>Sharp Blades mastered</em>). Nothing plays for purchases made while the game caught up (time away,
+a long stall): the cards simply show where things stand.</p>
 
 <h3>The Party tally window (<kbd>T</kbd>)</h3>
 <p>A damage meter. Three tabs show each hero's damage dealt, healing done (only health actually restored)

@@ -132,7 +132,8 @@ func _tip(control: Control) -> String:
 		_hud.frame_tip.point_at(UiTip.NOWHERE)
 		_hud.frame_tip.advance(0.0)
 		return shown
-	return _hud.shop.tip.text_for(control)
+	var card: UiTip.Card = _hud.shop.tip.card_for(control)  # spec 065: a shop card's is a card
+	return card.body if card != null else _hud.shop.tip.text_for(control)
 
 
 func _heard_of(kind: SimEvent.Kind) -> Array[SimEvent]:
