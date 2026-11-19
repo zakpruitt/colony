@@ -24,14 +24,10 @@ var _edge: Dictionary[int, float] = {}
 
 ## The living guardian in [param simulation]'s fight, or null when none fights.
 static func fighting_guardian(simulation: Simulation) -> Combatant:
-	var battle: Battle = simulation.expedition.battle
-	if battle == null or simulation.expedition.state != Expedition.State.FIGHTING:
+	if simulation.expedition.state != Expedition.State.FIGHTING:
 		return null
-	for monster: Combatant in battle.monsters:
-		var def: MonsterDef = Content.monster(monster.def_id)
-		if def != null and def.guardian and monster.is_alive():
-			return monster
-	return null
+	var guardian: Combatant = CombatEffects.battle_guardian(simulation)
+	return guardian if guardian != null and guardian.is_alive() else null
 
 
 ## Moves the goals of [param world]'s heroes in [param goals] (world pixels, by id) out of the

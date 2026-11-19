@@ -55,11 +55,6 @@ func title() -> String:
 	return _title
 
 
-## True while a crossing dims the screen.
-func is_crossing() -> bool:
-	return _darkness > 0.0
-
-
 ## Takes note of an event the world has passed on: an arrival in another area, or a revival on
 ## another stage, opens the screen after it.
 func heard(event: SimEvent) -> void:

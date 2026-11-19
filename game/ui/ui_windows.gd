@@ -219,11 +219,6 @@ func is_opening_waiting() -> bool:
 	return _opening_waiting
 
 
-## True while windows from last session wait to open.
-func is_waiting() -> bool:
-	return not _waiting.is_empty()
-
-
 ## True when [param at], in the viewport's coordinates (where input events are), is on an open
 ## window or the button bar: what lies under it must not answer the mouse there.
 func covers(at: Vector2) -> bool:

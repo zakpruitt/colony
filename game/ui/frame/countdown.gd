@@ -45,8 +45,8 @@ func _init() -> void:
 ## [param next] beside the bar; [param height] is the panel's.
 func show_road(note: String, next: String, filled: float, height: float) -> void:
 	var counting: bool = note.contains(" in ")
-	_set_text(note_label, note)
-	_set_text(next_label, next)
+	WindowText.set_text(note_label, note)
+	WindowText.set_text(next_label, next)
 	note_label.add_theme_color_override(
 		&"font_color", Palette.color(&"green" if note == "Stable" else &"silver")
 	)
@@ -81,9 +81,3 @@ func _draw_bar() -> void:
 		Palette.color(&"amber"),
 		Palette.color(&"ink")
 	)
-
-
-static func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
-		label.reset_size()

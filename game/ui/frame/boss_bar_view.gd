@@ -107,10 +107,10 @@ func snap() -> void:
 func place(at: Vector2, width: float, height: float) -> void:
 	position = at
 	size = Vector2(width, height)
-	name_label.position = Vector2(floorf((width - _ink(name_label)) / 2.0), NAME_Y)
+	name_label.position = Vector2(floorf((width - WindowText.ink(name_label)) / 2.0), NAME_Y)
 	var bar: Rect2 = bar_rect()
 	health_label.position = Vector2(
-		floorf(bar.get_center().x - _ink(health_label) / 2.0), bar.position.y + 2.0
+		floorf(bar.get_center().x - WindowText.ink(health_label) / 2.0), bar.position.y + 2.0
 	)
 
 
@@ -141,13 +141,7 @@ func is_flashing() -> bool:
 
 ## The guardian in the fight, or null when there is no guardian fight.
 func _guardian() -> Combatant:
-	if _simulation == null or _simulation.expedition.battle == null:
-		return null
-	for monster: Combatant in _simulation.expedition.battle.monsters:
-		var def: MonsterDef = Content.monster(monster.def_id)
-		if def != null and def.guardian:
-			return monster
-	return null
+	return CombatEffects.battle_guardian(_simulation)
 
 
 func _draw() -> void:
@@ -179,7 +173,3 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _world != null and not _world.is_recent(event):
 		return
 	_flash = FLASH_SECONDS
-
-
-static func _ink(label: Label) -> float:
-	return maxf(UiText.width(label.text, true) - UiText.SPACING, 0.0)

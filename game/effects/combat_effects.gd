@@ -897,11 +897,7 @@ func _flash(at: Vector2, color: Color, size: int) -> void:
 
 ## The canvas height of a character's sprite, in pixels.
 func _height(sprite: CharacterSprite) -> float:
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var texture: Texture2D = (part as Sprite2D).texture
-		if texture != null:
-			return float(texture.get_height())
-	return 24.0
+	return SpriteBounds.canvas_height(sprite)
 
 
 ## Where hero [param hero_id]'s XP motes fly to: its frame on the screen when the HUD has said where
@@ -920,12 +916,7 @@ func _chest(hero_id: int) -> Vector2:
 ## Every colour drawn in the sheet of [param sprite] other than its ink outline, read from the
 ## sheet's pixels once per sheet.
 func _colors_of(sprite: CharacterSprite) -> PackedColorArray:
-	var sheet: Texture2D = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null:
-			sheet = atlas.atlas
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
 	if sheet == null:
 		return PackedColorArray()
 	var path: String = sheet.resource_path

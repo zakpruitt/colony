@@ -537,10 +537,10 @@ func _refresh() -> void:
 	var percents: Array[int] = Tally.percents(amounts)
 	for i: int in mini(heroes.size(), _names.size()):
 		_goals[i] = float(amounts[i]) / largest if largest > 0 else 0.0
-		_set_text(value_labels[i], Hud.group_thousands(amounts[i]))
-		_set_text(share_labels[i], "%d%%" % percents[i])
+		value_labels[i].text = Hud.group_thousands(amounts[i])
+		share_labels[i].text = "%d%%" % percents[i]
 		(hero_lines[i] as HeroLine).opened = heroes[i].id == _opened
-	_set_text(_fight_label, _fight_text())
+	_fight_label.text = _fight_text()
 	# The side quests: the session's, a line for each hero who has done any.
 	var shown: int = 0
 	for hero: Hero in heroes:
@@ -548,7 +548,7 @@ func _refresh() -> void:
 		if count <= 0 or _span != Tally.Span.SESSION or shown >= _quest_labels.size():
 			continue
 		var noun: String = "side quest" if count == 1 else "side quests"
-		_set_text(_quest_labels[shown], "%s: %d %s" % [hero.def().display_name, count, noun])
+		_quest_labels[shown].text = "%s: %d %s" % [hero.def().display_name, count, noun]
 		shown += 1
 	for i: int in _quest_labels.size():
 		_quest_labels[i].visible = i < shown
@@ -595,8 +595,8 @@ func _refresh_abilities() -> void:
 		largest = maxi(largest, amounts[named])
 	for i: int in shown.size():
 		var labels: Array[Node] = ability_lines[i].find_children("*", "Label", true, false)
-		_set_text(labels[0] as Label, shown[i])
-		_set_text(labels[1] as Label, Hud.group_thousands(amounts[shown[i]]))
+		(labels[0] as Label).text = shown[i]
+		(labels[1] as Label).text = Hud.group_thousands(amounts[shown[i]])
 		var bar: UiBar = ability_lines[i].find_children("*", "UiBar", true, false)[0] as UiBar
 		bar.fraction = float(amounts[shown[i]]) / largest if largest > 0 else 0.0
 
@@ -655,11 +655,6 @@ func _index(hero_id: int) -> int:
 		if heroes[i].id == hero_id:
 			return i
 	return -1
-
-
-func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
 
 
 ## A hero's line: a click opens or closes its abilities. It lights under the mouse and while open.

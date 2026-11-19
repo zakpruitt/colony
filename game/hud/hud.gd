@@ -32,15 +32,8 @@ const SCREEN: Vector2 = Vector2(640, 360)
 ## The HUD's two bands: everything lies within the top or bottom this many pixels.
 const TOP_BAND: float = 28.0
 const BOTTOM_BAND: float = 40.0
-## Space between the HUD and the screen's edge, and between frames.
+## Space between the HUD and the screen's edge.
 const MARGIN: float = 4.0
-const GAP: float = 4.0
-## The top panels' top edge and height.
-const TOP_Y: float = 2.0
-const TOP_HEIGHT: float = 24.0
-## How far above the screen's margin the hero frames reach, in the world's pixels, for a HUD with
-## no UI layer; on the layer [method frames_line] gives their true top.
-const FRAMES_HEIGHT: float = 34.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
 ## Seconds after the last coin before a shown gold count that is still behind catches up.
@@ -863,11 +856,11 @@ func _pushing() -> bool:
 func _fight_text(battle: Battle) -> String:
 	if battle == null:
 		return STATE_WORDS[Expedition.State.FIGHTING]
+	var guardian: Combatant = CombatEffects.battle_guardian(_simulation)
+	if guardian != null and guardian.is_alive():
+		return "Fighting the %s" % Content.monster(guardian.def_id).display_name
 	var alive: int = 0
 	for monster: Combatant in battle.monsters:
-		var def: MonsterDef = Content.monster(monster.def_id)
-		if def != null and def.guardian and monster.is_alive():
-			return "Fighting the %s" % def.display_name
 		if monster.is_alive():
 			alive += 1
 	return "Fighting %d monster%s" % [alive, "" if alive == 1 else "s"]

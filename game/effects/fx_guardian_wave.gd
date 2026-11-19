@@ -17,12 +17,8 @@ var colors: PackedColorArray = []
 static func weighted_colors(
 	sprite: CharacterSprite, distinct: PackedColorArray
 ) -> PackedColorArray:
-	var image: Image = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null and atlas.atlas != null:
-			image = atlas.atlas.get_image()
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
+	var image: Image = sheet.get_image() if sheet != null else null
 	if image == null or image.is_empty() or distinct.is_empty():
 		return distinct
 	if image.is_compressed():

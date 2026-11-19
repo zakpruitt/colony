@@ -27,8 +27,6 @@ const SLOT: Vector2 = Vector2(36, 36)
 ## The widest a name runs before it takes a second line, and the gap between the slot and it.
 const NAME_WIDTH: float = 116.0
 const NAME_GAP: float = 0.0
-## The most lines a name takes.
-const NAME_LINES: int = 2
 ## The colour of anything dimmed on a hero window: readable, but plainly not in play.
 const DIM: StringName = &"steel"
 ## The slot's look for each state.

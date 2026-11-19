@@ -175,11 +175,11 @@ func refresh(hero: Hero, delta: float) -> void:
 		level_text = "Recovering"
 	elif _dead:
 		level_text = "Down"
-	_set_text(level_label, level_text)
+	WindowText.set_text(level_label, level_text)
 	var number: String = (
 		"%s / %s" % [Hud.group_thousands(maxi(points.x, 0)), Hud.group_thousands(maxi(points.y, 1))]
 	)
-	_set_text(health_label, "" if _dead else number)
+	WindowText.set_text(health_label, "" if _dead else number)
 	_refresh_marker(hero, delta)
 	_refresh_statuses()
 	_lay_out()
@@ -330,11 +330,12 @@ func _lay_out() -> void:
 		marker.position = Vector2(right - marker.size.x, TEXT_Y - 1.0)
 		right = marker.position.x - MARKER_GAP
 	var lift: float = maxf(1.0 if _pulse > 0.0 else 0.0, step_lift(level_step))
-	level_label.position = Vector2(right - _ink(level_label), TEXT_Y - lift)
-	var marks_x: float = name_label.position.x + _ink(name_label) + 4.0
+	level_label.position = Vector2(right - WindowText.ink(level_label), TEXT_Y - lift)
+	var marks_x: float = name_label.position.x + WindowText.ink(name_label) + 4.0
 	status_icons.position = Vector2(marks_x, TEXT_Y + 2.0)
 	health_label.position = Vector2(
-		floorf(HEALTH_BAR.get_center().x - _ink(health_label) / 2.0), HEALTH_BAR.position.y + 1.0
+		floorf(HEALTH_BAR.get_center().x - WindowText.ink(health_label) / 2.0),
+		HEALTH_BAR.position.y + 1.0
 	)
 
 
@@ -390,13 +391,3 @@ static func _health_colour_name(fraction: float) -> StringName:
 
 static func _health_fraction(hero: Hero) -> float:
 	return clampf(float(hero.health) / float(maxi(hero.max_health(), 1)), 0.0, 1.0)
-
-
-static func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
-		label.reset_size()
-
-
-static func _ink(label: Label) -> float:
-	return maxf(UiText.width(label.text, true) - UiText.SPACING, 0.0)

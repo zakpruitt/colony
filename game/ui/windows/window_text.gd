@@ -34,6 +34,14 @@ static func set_text(shown: Label, text: String) -> void:
 	shown.size = Vector2(widest, lines.size() * UiText.LINE_HEIGHT)
 
 
+## How wide [param label]'s text inks in its own font (bold or not), in UI pixels: its width
+## without the spacing after the last glyph.
+@warning_ignore("shadowed_variable")
+static func ink(label: Label) -> float:
+	var bold: bool = label.get_theme_font(&"font") == UiText.font(true)
+	return maxf(UiText.width(label.text, bold) - UiText.SPACING, 0.0)
+
+
 ## A [UiButton] called [param button_name] reading [param text], as wide as its words and padding.
 static func button(button_name: String, text: String) -> UiButton:
 	var made := UiButton.new(text)

@@ -10,7 +10,8 @@ extends VBoxContainer
 ## the report, left open last session: spec 062 R5), and [method _shown] lets it bring itself up
 ## to date.
 
-## The HUD that made it, or null.
+## The HUD that made it, or null. Only the windows built on this one read it.
+@warning_ignore("unused_private_class_variable")
 var _hud: Hud
 ## True from the content's opening to its closing, so [method _shown] runs once per opening.
 var _was_open: bool = false
@@ -33,11 +34,6 @@ func _notification(what: int) -> void:
 	elif not open_now and _was_open:
 		_was_open = false
 		_hidden()
-
-
-## The HUD that made it, or null.
-func made_by() -> Hud:
-	return _hud
 
 
 ## The window holding this content, or null.

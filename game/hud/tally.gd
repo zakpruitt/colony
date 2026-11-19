@@ -131,26 +131,6 @@ func in_fight() -> bool:
 	return _in_fight
 
 
-## [param amounts] (name to amount, largest first) as at most [param most] lines, "Whirlwind 412";
-## past that many, the smallest are summed as "Others". "None yet" when there are none.
-static func lines_by_ability(amounts: Dictionary[String, int], most: int) -> Array[String]:
-	var lines: Array[String] = []
-	var names: Array[String] = []
-	names.assign(amounts.keys())
-	if names.is_empty():
-		lines.append("None yet")
-		return lines
-	var others: int = 0
-	for i: int in names.size():
-		if names.size() > most and i >= most - 1:
-			others += amounts[names[i]]
-		else:
-			lines.append("%s %s" % [names[i], Hud.group_thousands(amounts[names[i]])])
-	if names.size() > most:
-		lines.append("Others %s" % Hud.group_thousands(others))
-	return lines
-
-
 ## Whole percentages of [param amounts]' total, one per amount, that sum to exactly 100 (or are all
 ## 0 when the total is): each is rounded down, then the ones that lost most get a point each, the
 ## first on a tie.

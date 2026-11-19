@@ -540,12 +540,7 @@ func _fighter_color(id: int) -> Color:
 
 ## The most vivid colour of [param sprite]'s sheet, read once per sheet.
 func _vivid(sprite: CharacterSprite) -> Color:
-	var sheet: Texture2D = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null:
-			sheet = atlas.atlas
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
 	if sheet == null:
 		return Palette.color(&"white")
 	var path: String = sheet.resource_path
@@ -628,11 +623,7 @@ func _particle(kind: StringName) -> FxParticle:
 
 ## The canvas height of a character's sprite, in pixels.
 static func _height(sprite: CharacterSprite) -> float:
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var texture: Texture2D = (part as Sprite2D).texture
-		if texture != null:
-			return float(texture.get_height())
-	return 24.0
+	return SpriteBounds.canvas_height(sprite)
 
 
 ## The move that keeps [param rect] (world pixels) inside the band of the screen between the

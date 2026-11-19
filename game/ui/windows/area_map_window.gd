@@ -349,12 +349,12 @@ func _show_foot() -> void:
 	if not chosen_now:
 		return
 	var colour: StringName = DepthLadder.RISK_COLOURS[risk(_chosen, _stage)]
-	_set_text(place_label, "%s, stage" % PlaceText.area_name(_chosen))
-	_set_text(stage_label, str(_stage))
+	place_label.text = "%s, stage" % PlaceText.area_name(_chosen)
+	stage_label.text = str(_stage)
 	stage_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	minus_button.disabled = _stage <= 1
 	plus_button.disabled = _stage >= stage_limit(_chosen)
-	_set_text(risk_label, _risk_text(_chosen, _stage))
+	risk_label.text = _risk_text(_chosen, _stage)
 	risk_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	if go_button.text != go_text():
 		go_button.text = go_text()
@@ -369,11 +369,6 @@ func _risk_text(area_id: StringName, stage: int) -> String:
 		DepthLadder.Risk.DANGEROUS:
 			return "Dangerous"
 	return "Safe"
-
-
-func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
 
 
 # --- Tooltips ------------------------------------------------------------------

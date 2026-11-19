@@ -213,7 +213,7 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	icon.advance(delta)
 	pips.show_ranks(rank, def.max_rank)
 	pips.advance(delta)
-	_set_text(rank_label, "%d / %d" % [rank, def.max_rank])
+	rank_label.text = "%d / %d" % [rank, def.max_rank]
 	_show_numbers(def, rank, delta)
 	var text: String = "Max" if maxed else price_text(price, needed)
 	if buy_button.text != text:
@@ -222,7 +222,7 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	buy_button.disabled = maxed or not _affordable
 	var short_gold: int = maxi(price - party.gold, 0) if not maxed else 0
 	var short_resource: int = maxi(needed - party.resource(def.resource), 0) if not maxed else 0
-	_set_text(needs_label, needs_for(def, short_gold, short_resource))
+	needs_label.text = needs_for(def, short_gold, short_resource)
 	rank_label.add_theme_color_override(
 		&"font_color", Palette.color(&"yellow" if flash() > 0.0 else &"steel")
 	)
@@ -314,17 +314,17 @@ func _show_numbers(def: UpgradeDef, rank: int, delta: float) -> void:
 	if _step > 0.0 and _step_from < rank:
 		shown = lerpf(float(_step_from), float(rank), 1.0 - _step / STEP_SECONDS)
 	var now: String = "+%d%%" % roundi(shown * def.per_rank * 100.0)
-	_set_text(now_label, now)
+	now_label.text = now
 	now_label.add_theme_color_override(
 		&"font_color", Palette.color(&"yellow" if _step > 0.0 else &"white")
 	)
 	var top: bool = rank >= def.max_rank
 	arrow_label.visible = not top
 	if top:
-		_set_text(next_label, MASTERED)
+		next_label.text = MASTERED
 		next_label.add_theme_color_override(&"font_color", Palette.color(&"yellow"))
 		return
-	_set_text(next_label, "+%d%%" % roundi((shown + 1.0) * def.per_rank * 100.0))
+	next_label.text = "+%d%%" % roundi((shown + 1.0) * def.per_rank * 100.0)
 	next_label.add_theme_color_override(&"font_color", Palette.color(&"green"))
 
 
@@ -349,8 +349,3 @@ func _line(
 	made.name = label_name
 	column.add_child(made)
 	return made
-
-
-func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text

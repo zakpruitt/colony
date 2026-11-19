@@ -153,11 +153,6 @@ func text_for(control: Control) -> String:
 	return _read(_texts.get(control, ""))
 
 
-## The title [param control] was given, or "".
-func title_for(control: Control) -> String:
-	return _read(_titles.get(control, ""))
-
-
 ## The sentences showing now, or "" while hidden or showing a card.
 func shown_text() -> String:
 	return label.text if visible and _box.visible else ""

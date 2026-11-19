@@ -52,17 +52,6 @@ func risk(level_depth: int) -> Risk:
 	return StageRisk.judge(level_depth, e.last_stable_depth, e.level_at(level_depth), lowest)
 
 
-## The word for [param level_depth]'s risk, as its number's colour says it: "Safe", "Within
-## reach" or "Dangerous".
-func risk_word(level_depth: int) -> String:
-	match risk(level_depth):
-		Risk.REACHABLE:
-			return "Within reach"
-		Risk.DANGEROUS:
-			return "Dangerous"
-	return "Safe"
-
-
 ## What the stage at [param depth] shows: any of &"party", &"safe", &"held", &"visited",
 ## &"unreached", &"target", &"guardian", &"guardian_beaten". Exactly one of held, visited and
 ## unreached; a beaten guardian's stage has both guardian marks.

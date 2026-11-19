@@ -95,9 +95,9 @@ func show_goal(goal: Goals.Goal, width: float, detail_column: float) -> void:
 	)
 	# White over the flash's bright fill, then green with the tick.
 	var green: bool = finished and goal.flash <= Goals.FLASH_SECONDS / 2.0
-	_set_text(sentence_label, goal.sentence, &"green" if green else &"white")
+	_show(sentence_label, goal.sentence, &"green" if green else &"white")
 	var price: bool = is_gold(goal)
-	_set_text(detail_label, goal.detail, &"yellow" if price else &"steel")
+	_show(detail_label, goal.detail, &"yellow" if price else &"steel")
 	var right: float = width - PAD
 	_arrow = Rect2()
 	if price:
@@ -189,8 +189,7 @@ func _draw_pixels(
 				draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), colour)
 
 
-static func _set_text(label: Label, words: String, colour: StringName) -> void:
-	if label.text != words:
-		label.text = words
-		label.reset_size()
+## Shows [param words] on [param label], sized to them, in the palette colour [param colour].
+static func _show(label: Label, words: String, colour: StringName) -> void:
+	WindowText.set_text(label, words)
 	label.add_theme_color_override(&"font_color", Palette.color(colour))
