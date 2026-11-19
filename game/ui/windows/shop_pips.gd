@@ -11,8 +11,8 @@ extends Control
 ## Seconds a pip flashes after its rank is bought.
 const FLASH_SECONDS: float = 0.5
 ## A pip's side in UI pixels, small and every fifth, and the gap between pips.
-const SMALL: int = 6
-const LARGE: int = 8
+const SMALL: int = 7
+const LARGE: int = 9
 const GAP: int = 2
 
 var _count: int = 0
