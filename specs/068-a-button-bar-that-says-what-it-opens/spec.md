@@ -1,9 +1,9 @@
 # 068 — A button bar that says what it opens
 
-- **Status:** provisional (direction from Zak 2026-11-19; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-19; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 058, 059, 062
-- **Pull request:** —
+- **Pull request:** [#69](https://github.com/zakpruitt/colony/pull/69)
 
 ## Intent
 
