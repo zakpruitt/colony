@@ -7,7 +7,9 @@ extends Control
 ## values; a hit flashes the frame; a dead hero's frame is dimmed with a skull for a portrait and
 ## [code]Down[/code] for a level, [code]Recovering[/code] during a revival (spec 027 R4); a
 ## level-up pulses the level and restarts the XP bar. Its edge is yellow while the hero's window
-## is open, and a click opens or closes that window (spec 060).
+## is open, and a click opens or closes that window (spec 060). Spec 066: a level steps the level
+## number up in yellow ([method step_level]) and a talent point gained pulses the tag three times
+## ([method pulse_tag]); [Milestones] starts both.
 ##
 ## The tag counts the hero's unspent talent and paragon points (spec 051, spec 055) and the
 ## microskills learned since the hero's Skills tab was last open, as the hero window's tab tags do
@@ -24,6 +26,15 @@ const EASE_SECONDS: float = 0.3
 const FLASH_SECONDS: float = 0.12
 ## Seconds the level number pulses after a level-up.
 const PULSE_SECONDS: float = 0.8
+## Spec 066: seconds a level's number stays stepped up, and the pixels it starts raised by (it
+## comes down a pixel at a time).
+const STEP_SECONDS: float = 0.6
+const STEP_LIFT: int = 3
+## Spec 066: how many times the tag pulses for a talent point gained, the seconds of each pulse,
+## and how big the tag gets at its peak.
+const TAG_PULSES: int = 3
+const TAG_PULSE_SECONDS: float = 0.3
+const TAG_POP: float = 1.4
 ## The health bar is green above this fraction, yellow down to [constant RED_BELOW], red below.
 const GREEN_ABOVE: float = 0.5
 const RED_BELOW: float = 0.25
@@ -67,6 +78,9 @@ var gold: int = 0
 var marker: UiBadge
 ## The statuses the hero bears in a fight (spec 056 R5).
 var status_icons: StatusIcons
+## Seconds left of the level number's step up, and of the tag's pulses (spec 066); 0 when still.
+var level_step: float = 0.0
+var tag_pulse: float = 0.0
 
 var _hud: Hud
 ## The hero, as last refreshed.
@@ -140,6 +154,8 @@ func refresh(hero: Hero, delta: float) -> void:
 	_hero = hero
 	_flash = maxf(_flash - delta, 0.0)
 	_pulse = maxf(_pulse - delta, 0.0)
+	level_step = maxf(level_step - delta, 0.0)
+	tag_pulse = maxf(tag_pulse - delta, 0.0)
 	var health: float = _health_fraction(hero)
 	var points: Vector2i = Vector2i(hero.health, hero.max_health())
 	_dead = not hero.is_alive()
@@ -170,6 +186,8 @@ func refresh(hero: Hero, delta: float) -> void:
 	var level_colour: StringName = &"yellow"
 	if _pulse > 0.0 and int(_pulse / 0.1) % 2 == 0:
 		level_colour = &"white"
+	if level_step > 0.0:
+		level_colour = &"yellow"
 	if recovering:
 		level_colour = &"pink"
 	elif _dead:
@@ -186,6 +204,8 @@ func refresh(hero: Hero, delta: float) -> void:
 func snap() -> void:
 	_flash = 0.0
 	_pulse = 0.0
+	level_step = 0.0
+	tag_pulse = 0.0
 	var health: float = _health_fraction(_hero)
 	if fighter != null:
 		health = clampf(float(fighter.health) / float(maxi(fighter.max_health, 1)), 0.0, 1.0)
@@ -223,6 +243,22 @@ func hit() -> void:
 func level_up() -> void:
 	_pulse = PULSE_SECONDS
 	_xp.snap(0.0)
+
+
+## Spec 066 R3: the level number steps up, in yellow, for [constant STEP_SECONDS].
+func step_level() -> void:
+	level_step = STEP_SECONDS
+
+
+## Spec 066 R4: the tag pulses [constant TAG_PULSES] times (it shows which hero has a point).
+func pulse_tag() -> void:
+	tag_pulse = TAG_PULSES * TAG_PULSE_SECONDS
+
+
+## How many pixels a number [param left] seconds from the end of its step up is raised: from
+## [constant STEP_LIFT] down a pixel at a time to 0.
+static func step_lift(left: float) -> float:
+	return ceilf(clampf(left / STEP_SECONDS, 0.0, 1.0) * STEP_LIFT)
 
 
 ## The part of the icon sheet shown: the hero's class, or [code]skull[/code] while dead.
@@ -271,6 +307,10 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	marker.count = HeroWindow.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
+	# Spec 066 R4: each pulse swells the tag about its middle and lets it back.
+	var beat: float = fmod(tag_pulse, TAG_PULSE_SECONDS) / TAG_PULSE_SECONDS
+	marker.pivot_offset = marker.size / 2.0
+	marker.scale = Vector2.ONE * (1.0 + (TAG_POP - 1.0) * sin(beat * PI))
 
 
 ## Spec 056 R5: the hero's statuses, as the tally's book has them.
@@ -289,7 +329,7 @@ func _lay_out() -> void:
 	if marker.visible:
 		marker.position = Vector2(right - marker.size.x, TEXT_Y - 1.0)
 		right = marker.position.x - MARKER_GAP
-	var lift: float = 1.0 if _pulse > 0.0 else 0.0
+	var lift: float = maxf(1.0 if _pulse > 0.0 else 0.0, step_lift(level_step))
 	level_label.position = Vector2(right - _ink(level_label), TEXT_Y - lift)
 	var marks_x: float = name_label.position.x + _ink(name_label) + 4.0
 	status_icons.position = Vector2(marks_x, TEXT_Y + 2.0)

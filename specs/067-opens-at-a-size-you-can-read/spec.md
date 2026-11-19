@@ -1,9 +1,9 @@
 # 067 — Opens at a size you can read
 
-- **Status:** provisional (direction from Zak 2026-11-19; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-19; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 030, 058
-- **Pull request:** —
+- **Pull request:** [#67](https://github.com/zakpruitt/colony/pull/67)
 
 ## Intent
 
