@@ -27,7 +27,7 @@ incomplete, stop and report the question.
 | `data/` | Content as `.tres` resources | Each content class has `validate() -> PackedStringArray` |
 | `assets/` | Sprites (`.px` sources and the sheets baked from them), the palette, audio | Follows `docs/style-bible.md`; the art lint checks it |
 | `tests/unit/`, `tests/acceptance/` | GUT tests | Acceptance tests are named for a spec requirement |
-| `tools/` | `dev.py`, `art.py`, the Godot scripts they run, and their tests (`tools/tests/`) | Standard library only |
+| `tools/` | `dev.py`, `art.py`, `sfx.py`, the Godot scripts they run, and their tests (`tools/tests/`) | Standard library only |
 | `specs/` | One folder per spec, the template, the board | |
 | `addons/gut/` | Vendored GUT 9.7.1 | Do not edit |
 
@@ -37,6 +37,9 @@ incomplete, stop and report the question.
   a type. `var x := d.get(k)` infers a `Variant` and will not compile: write the type.
 - **`sim/` is pure.** If you need a node, a clock or a random number there, the design is wrong: time arrives as
   ticks, randomness comes from a `SimRng` (`sim/sim_rng.gd`).
+- **A comment states a contract or a why the code cannot show.** No spec or requirement numbers, no history
+  ("since", "the old", "as it was", "before spec"), nothing that restates the line under it: specs and git
+  hold the history. This is for `sim/`, `game/` and `tools/`; a test still names the requirement it proves.
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
 - **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail first.
 - **Tests that write files** use a per-process name under `user://` and delete it: `user://` is shared by every
