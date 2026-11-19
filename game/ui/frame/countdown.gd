@@ -1,8 +1,8 @@
 class_name Countdown
 extends Panel
-## The road to stable beside the place panel (spec 061 R2), on the sharp layer: the note
+## The road to stable beside the place panel, on the sharp layer: the note
 ## ([code]Stable in 8:29[/code], [code]Further in 0:42[/code], [code]Stable[/code] or
-## [code]Holding[/code], spec 027 R2 and spec 039 R2) over a bar that fills toward it while it
+## [code]Holding[/code]) over a bar that fills toward it while it
 ## counts, and what comes next beside the bar ([code]then stage 4[/code], [code]staying on stage
 ## 3[/code], [code]Orders (O) to go in[/code]). The texts are the HUD's ([method Hud.stable_text]);
 ## this only draws them. Hidden while there is nothing to say (on the way to another area).

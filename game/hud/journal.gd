@@ -1,19 +1,19 @@
 class_name Journal
 extends Node
-## The party's journal (spec 027 R3): the last [constant CAPACITY] notable happenings as plain
+## The party's journal: the last [constant CAPACITY] notable happenings as plain
 ## sentences stamped with the game time, newest first.
 ##
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
-## the microskill it needed) (spec 028), an order changed (spec 035), a talent point gained
-## and a path chosen (spec 055, [code]The Knight is now a Berserker[/code]) and the first of each
-## resource gathered (spec 052). The newest line shows in the ticker just above the party frames
+## the microskill it needed), an order changed, a talent point gained and a path chosen
+## ([code]The Knight is now a Berserker[/code]) and the first of each resource gathered. The
+## newest line shows in the ticker just above the party frames
 ## for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
-## animate ([method World.is_recent]) are written but not shown there. Spec 058 moved the list of
-## lines onto the UI layer: the Journal window ([kbd]J[/kbd]) is a [JournalView] of this journal,
-## told by [signal written]; spec 062 draws the ticker there too ([Ticker]), from
-## [method ticker_text] and [method ticker_colour].
+## animate ([method World.is_recent]) are written but not shown there. The list of lines is on
+## the UI layer: the Journal window ([kbd]J[/kbd]) is a [JournalView] of this journal, told by
+## [signal written]; the ticker is there too ([Ticker]), from [method ticker_text] and
+## [method ticker_colour].
 ##
 ## The node draws nothing. It moves only in [method advance], so a test can step it exactly.
 
@@ -40,11 +40,11 @@ var _ticker_age: float = INF
 ## What the journal knows of the party, kept in step with the events.
 var _depth: int = 1
 var _deepest: int = 1
-## The area the events are in, kept from AREA_CHANGED in event order (spec 049), and each other
+## The area the events are in, kept from AREA_CHANGED in event order, and each other
 ## area's furthest stage.
 var _area: StringName = &""
 var _deepest_in: Dictionary[StringName, int] = {}
-## Resources the party has held, as heard (spec 052): the first of each is written.
+## Resources the party has held, as heard: the first of each is written.
 var _gathered: Dictionary[StringName, bool] = {}
 
 
@@ -102,7 +102,7 @@ func ticker_colour() -> StringName:
 
 
 ## Writes [param sentence] as a line now, without showing it in the ticker: the goals tracker's
-## line for a finished goal (spec 037 R3), which the tracker itself celebrates.
+## line for a finished goal, which the tracker itself celebrates.
 func write(sentence: String) -> void:
 	if _simulation == null or sentence.is_empty():
 		return
@@ -115,7 +115,7 @@ func write(sentence: String) -> void:
 
 
 ## Writes [param sentence] as a line now and shows it in the ticker: the ladder's warning for a
-## dangerous target (spec 043 R3).
+## dangerous target.
 func announce(sentence: String) -> void:
 	if _simulation == null or sentence.is_empty():
 		return
@@ -164,7 +164,7 @@ func _sentence(event: SimEvent) -> String:
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			sentence = "%s is now stable" % _place(event.amount)
 		SimEvent.Kind.AREA_CHANGED:
-			# Spec 049: each area has its own furthest stage.
+			# Each area has its own furthest stage.
 			var arrived: StringName = _area_at(event.amount)
 			_deepest_in[_area] = _deepest
 			_area = arrived
@@ -180,8 +180,8 @@ func _sentence(event: SimEvent) -> String:
 			var who: String = hero.def().display_name if hero != null else "A hero"
 			sentence = "%s reached level %d" % [who, event.amount]
 		SimEvent.Kind.PARTY_WIPED:
-			# Spec 041 R6, spec 046 R6: the defeat note's first line, what beat the party and
-			# where, then where it falls back to.
+			# The defeat note's first line, what beat the party and where, then where it falls
+			# back to.
 			var hud: Hud = get_parent() as Hud
 			if hud != null and hud.defeat_note != null:
 				return hud.defeat_note.journal_line(event)
@@ -216,7 +216,7 @@ func _sentence(event: SimEvent) -> String:
 	return sentence
 
 
-## The sentence for the first of a resource the party gathers (spec 052): "First glowcaps, from
+## The sentence for the first of a resource the party gathers: "First glowcaps, from
 ## Mossy Hollow"; "" for any after it.
 func _resource_sentence(event: SimEvent) -> String:
 	var ids: Array[StringName] = Content.resource_ids()
@@ -249,7 +249,7 @@ func _talent_sentence(event: SimEvent) -> String:
 	return "The %s is now %s %s" % [who, article, walked]
 
 
-## The sentence for an order changed (spec 035): "Ordered a Bold pace", "Ordered to hold at
+## The sentence for an order changed: "Ordered a Bold pace", "Ordered to hold at
 ## guardians", or "".
 func _order_sentence(event: SimEvent) -> String:
 	if event.target_id == PartyOrders.PACE and event.amount in Expedition.Pace.values():
@@ -287,7 +287,7 @@ func _microskill(index: int) -> MicroskillDef:
 	return Content.microskill(ids[index]) if index >= 0 and index < ids.size() else null
 
 
-## [param stage] of the area the events are in, as the screen names it (spec 049).
+## [param stage] of the area the events are in, as the screen names it.
 func _place(stage: int) -> String:
 	return PlaceText.of(_area, stage)
 

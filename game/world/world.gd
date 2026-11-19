@@ -2,7 +2,7 @@ class_name World
 extends Node2D
 ## The running simulation on screen: the labyrinth around the party, a sprite for every hero and
 ## for every monster waiting in a built level, fights acted out from the simulation's events, and
-## the camera on the party (spec 008).
+## the camera on the party.
 ##
 ## The world only reads the simulation. Each frame [method sync] drains its events, acts them out
 ## and emits each as [signal sim_event], then eases every sprite toward where the simulation says
@@ -11,10 +11,10 @@ extends Node2D
 ## frame would show.
 ##
 ## Children, in draw order: the labyrinth view, the ambience, QuestProps, Characters, Effects,
-## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe (spec 038),
-## and ZoneCrossing, which dims the screen between places (spec 054).
+## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
+## and ZoneCrossing, which dims the screen between places.
 ##
-## Spec 054: the world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
+## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
 ## The party never climbs on screen: it walks into a doorway, the screen dims, the world changes
 ## to the stage it is going to while it is dark ([method ZoneCrossing.stage_shown]) and opens on
 ## the party stepping out of a doorway there. Nothing on screen moves up or down between stages.
@@ -58,7 +58,7 @@ const PARTY_LIGHT_HEIGHT: float = 14.0
 
 ## Set before entering the tree.
 var simulation: Simulation
-## How many times real time the simulation runs (spec 032), set by Main. Ticks come that many
+## How many times real time the simulation runs, set by Main. Ticks come that many
 ## times faster, so the windows above (in ticks) widen by it, and sprites and bolts move by that
 ## many seconds of game time a second: the same game as at 1x, sooner.
 var speed: int = 1
@@ -69,13 +69,13 @@ var camera: WorldCamera
 var effects_layer: Node2D
 ## Light, darkness and decoration around the labyrinth view.
 var ambience: Ambience
-## The arrow over the party pointing toward its target depth (spec 027 R5).
+## The arrow over the party pointing toward its target depth.
 var target_marker: TargetMarker
-## The side quests waiting in chambers, and the work on one (spec 028).
+## The side quests waiting in chambers, and the work on one.
 var quest_props: QuestProps
-## The fallen heroes, and the story of a wipe (spec 038).
+## The fallen heroes, and the story of a wipe.
 var fallen_party: FallenParty
-## The dimming and the title between places (spec 054).
+## The dimming and the title between places.
 var crossing: ZoneCrossing
 
 var _characters: Node2D
@@ -107,15 +107,15 @@ var _last_tick: int = -1
 ## True for the sync in progress when it is to put every sprite (or only the heroes) in place.
 var _snap_all: bool = false
 var _snap_heroes: bool = false
-## Seconds left in which character animation stands still (a crit's hit-stop, spec 010).
+## Seconds left in which character animation stands still (a crit's hit-stop).
 var _frozen: float = 0.0
-## Heroes kept out of a fighting guardian's body (spec 038 R3).
+## Heroes kept out of a fighting guardian's body.
 var _spacing := GuardianSpacing.new()
-## The heroes' moves, started and ended from the events (spec 057).
+## The heroes' moves, started and ended from the events.
 var _fight_moves := FightMoves.new()
 ## True for the sync in progress when the camera is to jump to the party.
 var _snap_camera: bool = false
-## The stage shown (spec 054), or 0 before the first.
+## The stage shown, or 0 before the first.
 var _shown: int = 0
 
 
@@ -180,7 +180,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Switches between the normal view and the close one (spec 018 R1), eased by the camera.
+## Switches between the normal view and the close one, eased by the camera.
 func toggle_zoom() -> void:
 	camera.set_zoom_level(2 if camera.zoom_level() == 1 else 1)
 
@@ -191,7 +191,7 @@ func character(id: int) -> CharacterSprite:
 
 
 ## Pixel position of that character's feet, or Vector2.ZERO if there is none. A hero lying on its
-## back (spec 038) has its feet on the floor under it.
+## back has its feet on the floor under it.
 func feet_position(id: int) -> Vector2:
 	var sprite: CharacterSprite = character(id)
 	return fallen_party.feet_of(id, sprite.position) if sprite != null else Vector2.ZERO
@@ -204,7 +204,7 @@ func is_recent(event: SimEvent) -> bool:
 
 
 ## True during a sync that catches up on a stall (many ticks in one frame, or the first sync): it
-## starts no move or spell, only brings the picture up to date (spec 057 R7).
+## starts no move or spell, only brings the picture up to date.
 func catching_up() -> bool:
 	return _snap_all
 
@@ -227,11 +227,11 @@ func sync(delta: float) -> void:
 	_snap_camera = false
 	_last_tick = now
 	if _snap_all:
-		_fight_moves.stop_all(self)  # spec 057 R7: a stall leaves every body at rest
+		_fight_moves.stop_all(self)  # a stall leaves every body at rest
 
-	# Spec 049: when the party has gone to another area, the events from before its arrival are
-	# shown in the old area first, and the world changes area when it reaches AREA_CHANGED (monster
-	# ids do not name the area, so an old death must not touch the new area's monsters).
+	# When the party has gone to another area, the events from before its arrival are shown in
+	# the area it left first, and the world changes area when it reaches AREA_CHANGED (monster
+	# ids do not name the area, so a death from before must not touch the new area's monsters).
 	var arriving: bool = labyrinth_view.labyrinth != simulation.labyrinth
 	if not arriving:
 		_catch_up_with_state(delta)
@@ -337,7 +337,7 @@ func _leader_id() -> int:
 
 
 ## Where hero [param hero_id] stands, as the simulation has it; while the party changes stage, at
-## the doorway on the floor of the stage shown (spec 054), never on the way up or down.
+## the doorway on the floor of the stage shown, never on the way up or down.
 func _hero_feet(hero_id: int) -> Vector2:
 	var e: Expedition = simulation.expedition
 	# Between stages (a climb, or a journey that began in one) the heroes stand on the shown floor.
@@ -348,13 +348,13 @@ func _hero_feet(hero_id: int) -> Vector2:
 	return _feet(e.hero_position(hero_id))
 
 
-## The stage the world shows (spec 054): the party's, or the one it is crossing to once the
+## The stage the world shows: the party's, or the one it is crossing to once the
 ## screen is dark.
 func shown_stage() -> int:
 	return _shown
 
 
-## Heroes go into the doorway and out of it on a change of stage (spec 054 R1).
+## Heroes go into the doorway and out of it on a change of stage.
 func _show_heroes() -> void:
 	var door: float = simulation.expedition.x * TILE
 	for hero: Hero in simulation.party.heroes:
@@ -521,7 +521,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 			if animate and target != null:
 				target.play_hit()
 		SimEvent.Kind.DIED:
-			fallen_party.fell(event.source_id)  # spec 056: one rising after a revive lies again
+			fallen_party.fell(event.source_id)  # one rising after a revive lies again
 			_died(event.source_id, animate)
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
@@ -536,7 +536,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 		SimEvent.Kind.PARTY_WIPED:
 			fallen_party.wiped(age)
 		SimEvent.Kind.REVIVED:
-			fallen_party.stand(event.target_id)  # spec 056: a fallen hero stands up in the fight
+			fallen_party.stand(event.target_id)  # a fallen hero stands up in the fight
 		SimEvent.Kind.PARTY_REVIVED:
 			# A revival seen as it happens is acted out whole; one heard late, from where it has got to.
 			_snap_camera = not fallen_party.revived(0.0 if animate else age)
@@ -578,7 +578,7 @@ func _died(id: int, animate: bool) -> void:
 		_kill(dying, false)
 
 
-## The party arrived in another area (spec 049): the world shows that area's labyrinth from now
+## The party arrived in another area: the world shows that area's labyrinth from now
 ## on, with none of the last one's monsters, props or bolts, and every sprite and the camera
 ## jump to their places.
 func _change_area() -> void:
@@ -597,7 +597,7 @@ func _change_area() -> void:
 	_snap_all = true
 
 
-## The world shows another stage (spec 054): none of the last one's monsters or bolts are left,
+## The world shows another stage: none of the last one's monsters or bolts are left,
 ## and every sprite and the camera jump to their places on the new one, out of sight in the dark.
 func _change_stage() -> void:
 	_cut_short_everything()

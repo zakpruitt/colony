@@ -1,13 +1,13 @@
 class_name PlacePanel
 extends Panel
-## Where the party is, at the top left (spec 061 R1), on the sharp layer. Its top row: the area's
-## name as a button (a click opens the area map, spec 053; [member area_mark] counts the areas
+## Where the party is, at the top left, on the sharp layer. Its top row: the area's
+## name as a button (a click opens the area map; [member area_mark] counts the areas
 ## opened since the map was last opened), the stage in large digits, the target with its
 ## [code]-[/code] and [code]+[/code] buttons, and the Auto switch. Under it, the line saying what
 ## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
 ## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
 ## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
-## Spec 066: a new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
+## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
 ## by [method advance]; [Milestones] calls both).
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
@@ -33,7 +33,7 @@ var target_label: Label
 var plus_button: UiButton
 var auto_button: UiButton
 var status_label: Label
-## Seconds left of the safe stage's step up (spec 066); 0 when still.
+## Seconds left of the safe stage's step up; 0 when still.
 var safe_step: float = 0.0
 
 var _lift: float = 0.0
@@ -105,7 +105,7 @@ func show_place(
 	lay_out()
 
 
-## Spec 066 R5: [code]Safe N[/code] steps up, in yellow, for [constant HeroFrameView.STEP_SECONDS].
+## [code]Safe N[/code] steps up, in yellow, for [constant HeroFrameView.STEP_SECONDS].
 func step_safe() -> void:
 	safe_step = HeroFrameView.STEP_SECONDS
 	_show_step()

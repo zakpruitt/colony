@@ -1,7 +1,7 @@
 class_name CatchUpBar
 extends Control
-## What the screen shows while the time away is replayed (spec 019 R3), on the sharp layer since
-## spec 062 (R6): the whole room in [code]ink[/code], and in its middle a panel saying
+## What the screen shows while the time away is replayed, on the sharp layer: the whole room in
+## [code]ink[/code], and in its middle a panel saying
 ## [code]Catching up...[/code] in the UI font over a bar that fills as the replay goes.
 
 ## The panel's size and the bar's, in UI pixels; the bar's top-left corner inside the panel.

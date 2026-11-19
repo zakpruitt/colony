@@ -1,20 +1,20 @@
 class_name TallyWindow
 extends WindowContent
-## The party tally (spec 045) as a window on the UI layer (spec 059 R4), in the manner of a damage
+## The party tally as a window on the UI layer, in the manner of a damage
 ## meter: tabs for Damage, Healing and Taken, the Last fight / Session switch, a line saying which
 ## fight, then one line per hero: its portrait, its name in bold, its number right-aligned in a
 ## column of equal-width digits and its share, over a bar in the hero's class colour scaled to the
 ## largest. Under them the session span lists the side quests of each hero who has done any.
 ##
-## Clicking a hero's line (spec 056 R6) opens its abilities under it, indented, each with a thin
+## Clicking a hero's line opens its abilities under it, indented, each with a thin
 ## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950"), largest
 ## first. A second click closes it. [kbd]Q[/kbd] and [kbd]E[/kbd] change tab while the tally is the
 ## front window (the HUD hears them).
 ##
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
-## HUD is made: after time away the HUD is made only once the replay is over (spec 019), so the time
+## HUD is made: after time away the HUD is made only once the replay is over, so the time
 ## away adds nothing. It changes nothing in the simulation. Its [StatusBook] also gives the hero
-## frames their statuses (spec 056 R5, [method status_line]).
+## frames their statuses ([method status_line]).
 
 ## The window's id, title and key.
 const ID: StringName = &"tally"
@@ -23,8 +23,8 @@ const HOTKEY: String = "T"
 ## The tab names, in [enum Tally.Measure] order, and the switch's, in [enum Tally.Span] order.
 const TAB_NAMES: Array[String] = ["Damage", "Healing", "Taken"]
 const SPAN_NAMES: Array[String] = ["Last fight", "Session"]
-## The tooltip of each tab and of each side of the switch (spec 045 R6), in the same orders.
-## A blow's whole size is what the events carry, so Damage and Taken include overkill (spec 046 R8).
+## The tooltip of each tab and of each side of the switch, in the same orders.
+## A blow's whole size is what the events carry, so Damage and Taken include overkill.
 const TAB_TIPS: Array[String] = [
 	"Damage each hero dealt to monsters, overkill on a killing blow included.",
 	"Health each hero gave back to the party, not counting healing past full health.",
@@ -171,7 +171,7 @@ func rows() -> Array[String]:
 	return lines
 
 
-## Spec 056 R6: opens the line of the hero with id [param hero_id], or closes it if it is open.
+## Opens the line of the hero with id [param hero_id], or closes it if it is open.
 func open_hero(hero_id: int) -> void:
 	_opened = -1 if _opened == hero_id else hero_id
 	if is_open():
@@ -348,7 +348,7 @@ func _on_sim_event(event: SimEvent) -> void:
 
 
 ## Made while the party is fighting (the game opened or returned to mid-fight), the tally takes the
-## fight under way as begun, from the tick it began, as if it had heard it start (spec 046 R7).
+## fight under way as begun, from the tick it began, as if it had heard it start.
 func _join_fight() -> void:
 	var e: Expedition = _simulation.expedition
 	var room: LabyrinthChamber = e.chamber()

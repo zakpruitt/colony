@@ -1,10 +1,10 @@
 class_name TalentTreeView
 extends Control
-## One class's talent tree as a hero window's Talents tab draws it (spec 064 R1 to R3, R8): a tree
-## of pictures that forks. The trunk's three nodes run down the middle from the top, joined by lines
-## with arrowheads; under the last one the line splits left and right into the two paths, each a
-## column of four nodes under its [PathBanner], the two columns far apart. Each path has its own
-## colour ([PathColours]): its banner, the lines lit along it and its nodes' tint.
+## One class's talent tree as a hero window's Talents tab draws it: a tree of pictures that forks.
+## The trunk's three nodes run down the middle from the top, joined by lines with arrowheads; under
+## the last one the line splits left and right into the two paths, each a column of four nodes under
+## its [PathBanner], the two columns far apart. Each path has its own colour ([PathColours]): its
+## banner, the lines lit along it and its nodes' tint.
 ##
 ## A line into a taken node is lit (the path's colour, or [constant TRUNK_LIT] on the trunk), one
 ## into a node of the closed path is dark, any other plain. [method light] makes the line into a
@@ -46,7 +46,7 @@ var tree: TalentTreeDef
 var trunk_nodes: Array[TalentNode] = []
 ## Each path's nodes, top to bottom.
 var path_nodes: Array[Array] = [[], []]
-## Each path's banner, and its name (kept for the callers of spec 055).
+## Each path's banner, and its name label (the banner's own, which carries its tooltip).
 var banners: Array[PathBanner] = []
 var path_labels: Array[Label] = []
 

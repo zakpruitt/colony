@@ -1,6 +1,6 @@
 class_name StatusBook
 extends RefCounted
-## The statuses on every fighter (spec 056), kept from the simulation's events and in their order:
+## The statuses on every fighter, kept from the simulation's events and in their order:
 ## a status is on from its STATUS_BEGAN to its STATUS_ENDED, so a frame holding both leaves
 ## nothing over. A fight's end, a wipe, a change of area or of stage clears the book as well, so no
 ## mark outlives the fight it was put on in. It reads nothing but the events, and changes nothing.
@@ -10,7 +10,7 @@ extends RefCounted
 ## ability and the fighters' measures ([member power]); a shield's left is worn down by the
 ## blows the flagged MISSED events say it absorbed.
 
-## Spec 056: how strong a status from fighter [code]source[/code] on fighter
+## How strong a status from fighter [code]source[/code] on fighter
 ## [code]receiver[/code] is, as a multiple of [code]scale[/code] ([enum AbilityEffect.Scale]):
 ## func(source: int, receiver: int, scale: int) -> float. Unset, strengths are not known.
 var power: Callable

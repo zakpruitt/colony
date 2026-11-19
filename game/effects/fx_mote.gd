@@ -1,6 +1,6 @@
 class_name FxMote
 extends Node2D
-## A mote of XP (spec 010 R7): it leaps out of a fallen monster, then homes in on the hero who
+## A mote of XP: it leaps out of a fallen monster, then homes in on the hero who
 ## gained the XP. [CombatEffects] creates it, advances it with where the hero is now, and frees it
 ## (with a tiny flash) when it arrives.
 

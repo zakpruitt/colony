@@ -1,6 +1,6 @@
 class_name FxGuardianWave
 extends RefCounted
-## One wave of a guardian's burst (spec 024 R3), waiting to go off: seconds until it does, where,
+## One wave of a guardian's burst, waiting to go off: seconds until it does, where,
 ## and in which colours. [CombatEffects] counts it down and calls [method burst].
 
 var due: float = 0.0

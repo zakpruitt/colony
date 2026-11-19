@@ -1,6 +1,6 @@
 class_name BossBarView
 extends Panel
-## The guardian's health for the whole of a guardian fight (spec 024 R2, spec 061 R6), on the sharp
+## The guardian's health for the whole of a guardian fight, on the sharp
 ## layer at the top centre: its name in bold capitals over a wide bar with its health as a number
 ## on it ([code]1,234 / 2,000[/code]).
 ##

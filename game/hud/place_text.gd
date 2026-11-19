@@ -1,6 +1,6 @@
 class_name PlaceText
 extends RefCounted
-## How the screen names a place in the labyrinth (spec 049): an area and a stage, "Mossy Hollow 3".
+## How the screen names a place in the labyrinth: an area and a stage, "Mossy Hollow 3".
 
 
 ## [param stage] of area [param area_id], as the screen names it: "Mossy Hollow 3".

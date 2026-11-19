@@ -1,10 +1,10 @@
 class_name AreaNews
 extends RefCounted
-## What the area map (spec 053) and its goal know of the areas, kept in the order the events
-## happened (R7): the area the events are in, the guardians beaten, the areas visited, the open
+## What the area map and its goal know of the areas, kept in the order the events happened: the
+## area the events are in, the guardians beaten, the areas visited, the open
 ## areas still to visit, and how many areas have opened since the map was last opened. A frame
 ## that steps many ticks at once (4x, a hitch, a return from time away) hears its events one by
-## one, so a guardian slain before a journey is the old area's, not the new one's.
+## one, so a guardian slain before a journey belongs to the area left, not the one reached.
 ##
 ## It starts from the simulation (a loaded game) and then changes only through [method hear].
 
@@ -58,7 +58,7 @@ func hear(event: SimEvent) -> void:
 
 
 ## True once area [param id]'s guardian has been beaten: heard so, or the simulation (and so the
-## save) keeps it beaten (spec 052 R12).
+## save) keeps it beaten.
 func is_beaten(id: StringName) -> bool:
 	return beaten.has(id) or (_simulation != null and _simulation.is_guardian_beaten(id))
 
@@ -68,7 +68,7 @@ func seen() -> void:
 	unseen = 0
 
 
-## A goal for each open area not yet visited (R6): [code]Visit The Claypits[/code], done when the
+## A goal for each open area not yet visited: [code]Visit The Claypits[/code], done when the
 ## party first arrives there.
 func visit_goals() -> Array[Goals.Goal]:
 	var goals: Array[Goals.Goal] = []

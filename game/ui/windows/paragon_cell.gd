@@ -1,6 +1,6 @@
 class_name ParagonCell
 extends Control
-## One paragon stat under a hero's talent tree (spec 064 R9): a medallion, the stat's picture in a
+## One paragon stat under a hero's talent tree: a medallion, the stat's picture in a
 ## large [UiIcon] with the stat's rank as its count, and under it the stat's name and the total its
 ## ranks give ([code]+6% damage and healing[/code]). A click on the medallion spends a point
 ## ([HeroTalentsTab]); it shows ready (pulsing) while the hero has one. [method refresh] reads the
@@ -21,7 +21,7 @@ var picture: TextureRect
 var name_label: Label
 ## The total the stat's ranks give.
 var total_label: Label
-## The total, by the name the cells of spec 055 had.
+## The same label as [member total_label], under a second name.
 var rank_label: Label
 
 var _flash: float = 0.0

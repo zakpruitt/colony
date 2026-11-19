@@ -1,10 +1,9 @@
 class_name HeroSkillsTab
 extends Control
-## A hero window's Skills tab (spec 028, as cards by spec 060 R6, with framed pictures by spec 064
-## R10): a [HeroSkillsTab.Card] per microskill the hero's class learns, in the class's order. A
-## learned one shows its picture owned, its name in white, what it does, and which side quests it
-## answers; one still to come is dimmed, its picture locked with its level under it. Read from the
-## simulation at each [method refresh].
+## A hero window's Skills tab: a [HeroSkillsTab.Card] per microskill the hero's class learns, in the
+## class's order. A learned one shows its picture owned, its name in white, what it does, and which
+## side quests it answers; one still to come is dimmed, its picture locked with its level under it.
+## Read from the simulation at each [method refresh].
 
 ## UI pixels between two cards, and between a card's picture and its words.
 const CARD_GAP: float = 10.0
@@ -66,10 +65,9 @@ func lines() -> Array[String]:
 	return made
 
 
-## One microskill's card: its picture (spec 063) in a large [UiIcon] (spec 064 R10), owned when the
-## hero has it and locked, its level under it ([code]Level 8[/code]), when not; beside it its name,
-## what it does (or the level it comes at), and the side quests it answers, the words wrapped to the
-## card's width.
+## One microskill's card: its picture in a large [UiIcon], owned when the hero has it and locked,
+## its level under it ([code]Level 8[/code]), when not; beside it its name, what it does (or the
+## level it comes at), and the side quests it answers, the words wrapped to the card's width.
 class Card:
 	extends Control
 

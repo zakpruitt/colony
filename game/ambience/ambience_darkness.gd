@@ -1,6 +1,6 @@
 class_name AmbienceDarkness
 extends Node2D
-## The darkness over the labyrinth (spec 012, R1): one rectangle covering the view, drawn over
+## The darkness over the labyrinth: one rectangle covering the view, drawn over
 ## the world and the characters, that multiplies everything under it by the light at each pixel
 ## (darkness.gdshader). Its child LampGlow covers the same rectangle just after it and adds a
 ## share of the lamps' light back (glow.gdshader), so a dark back wall near a torch turns warm.
@@ -67,8 +67,8 @@ func set_exposure(map: Texture2D, top_row: int) -> void:
 	_set_both(&"exposure_size", Vector2(map.get_size()))
 
 
-## Lights the world as stage [param look] (spec 054): its stratum everywhere, its ambient light,
-## and no sky or daylight; or, with null, by depth under a sky, as spec 012 drew it.
+## Lights the world as stage [param look]: its stratum everywhere, its ambient light,
+## and no sky or daylight; or, with null, by depth under a sky.
 func set_zone(look: ZoneLook) -> void:
 	_set_both(&"zone_band", look.band if look != null else -1)
 	_set_both(&"sky_line", -1.0e9 if look != null else 0.0)

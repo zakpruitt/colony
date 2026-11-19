@@ -1,8 +1,8 @@
 class_name SoundSettings
 extends RefCounted
 ## Keeps the player's choices that are not progress in a small JSON file under [code]user://[/code],
-## separate from the save (spec 021 R5): whether sounds are muted, and whether the help panel has
-## opened by itself once (spec 030 R5). Like [SaveStore] it takes its path when created, so tests
+## separate from the save: whether sounds are muted, and whether the help panel has opened by
+## itself once. Like [SaveStore] it takes its path when created, so tests
 ## can give it a file of their own and never touch the real one.
 
 ## Where the game's settings live unless told otherwise.

@@ -1,6 +1,6 @@
 class_name FxParticle
 extends Node2D
-## One particle of an effect (spec 010): a square of one palette colour, or a small tinted fx
+## One particle of an effect: a square of one palette colour, or a small tinted fx
 ## sprite, that flies, falls under gravity, may bounce on a floor, and shrinks away. It sits on
 ## whole pixels and never fades. [CombatEffects] creates and advances it.
 

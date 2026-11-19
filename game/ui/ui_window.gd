@@ -1,6 +1,6 @@
 class_name UiWindow
 extends PanelContainer
-## A window on the UI layer (spec 058 R5): a title bar with its name and a close button over its
+## A window on the UI layer: a title bar with its name and a close button over its
 ## [member content]. It is dragged by the title bar and kept so the bar never leaves the room;
 ## [UiWindows] keeps the windows' order (a click anywhere brings one to the front), closes the
 ## front one on [kbd]Esc[/kbd] and remembers where each was. A window stops every click on it, so
@@ -23,7 +23,7 @@ var title: String = "":
 		title = value
 		if title_label != null:
 			title_label.text = value
-## The one word for the window wherever it is named beside others (spec 068 R2): on its button on
+## The one word for the window wherever it is named beside others: on its button on
 ## the bar, in the help's key list and in tooltips ([code]Camp[/code] for a window titled
 ## [code]Camp upgrades[/code]). Given where the window is made; "" for a window that has none.
 var short_name: String = ""
@@ -39,11 +39,11 @@ var key_hint: String = ""
 var keycode: Key
 ## Its picture on the button bar.
 var icon: Texture2D
-## A count the button bar shows on the window's button as an amber tag (spec 059 R6: the shop's
-## upgrades the party can pay for, the map's areas opened since it was last open); 0 shows none.
+## A count the button bar shows on the window's button as an amber tag (the shop's upgrades
+## the party can pay for, the map's areas opened since it was last open); 0 shows none.
 ## The window's content sets it.
 var badge: int = 0
-## False for a window with no button on the bar (spec 060: a hero's window opens from its frame).
+## False for a window with no button on the bar (a hero's window opens from its frame).
 var on_bar: bool = true
 
 var title_bar: PanelContainer
@@ -97,7 +97,7 @@ func _init(
 		hint.name = "Hint"
 		hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(hint)
-	close_button = UiButton.new("x")  # padded as every button is (R4)
+	close_button = UiButton.new("x")
 	close_button.name = "Close"
 	close_button.pressed.connect(close)
 	row.add_child(close_button)
@@ -109,7 +109,7 @@ func _init(
 	column.add_child(margin)
 	content = body
 	margin.add_child(body)
-	# Spec 059: a window grows and shrinks with what it shows (the tally's open line).
+	# A window grows and shrinks with what it shows (the tally's open line).
 	body.minimum_size_changed.connect(_refit_later)
 	title = window_title
 

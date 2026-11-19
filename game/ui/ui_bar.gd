@@ -1,6 +1,6 @@
 class_name UiBar
 extends Control
-## A thin bar on the UI layer (spec 059): a share of its length filled in a palette colour, the
+## A thin bar on the UI layer: a share of its length filled in a palette colour, the
 ## fill's bottom row a darker shade, on an [code]ink[/code] track with a one-pixel
 ## [code]dusk[/code] edge. The shop shows each upgrade's rank on one, the tally each hero's number
 ## and each of its abilities'. Its length is what its container gives it; its height
@@ -36,7 +36,7 @@ func _init(
 	custom_minimum_size.y = height
 
 
-## Draws a bar on [param canvas] (spec 062: the old HUD's bar, kept for the frame's pieces): an
+## Draws a bar on [param canvas], as the frame's pieces draw theirs: an
 ## [code]ink[/code] border around [param rect], filled from the left to [param fraction] in
 ## [param color] with a [param shade_color] bottom row, the rest [param empty]. The filled width is
 ## rounded to whole pixels.

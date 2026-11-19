@@ -1,17 +1,17 @@
 class_name ShopRow
 extends PanelContainer
-## One upgrade's card in the Shop window (spec 017, laid out by spec 059 R2, made a card by spec
-## 065). At its left the upgrade's picture in a large [UiIcon] (spec 063) with the rank as its
-## count: ready (a pulsing yellow frame) when the party can pay, locked when it cannot, owned in
-## gold for good at the top rank. Beside it the number key and the name in bold with the rank in
-## words at the end of the line ([code]3 / 20[/code]), under them the ranks as [ShopPips] across
-## the whole text column, and one buy button with the whole price: the
-## gold, and from the rank that also costs the upgrade's resource (spec 052) that price with the
-## resource's icon; at the top rank it reads [code]Max[/code]. Under those, what the upgrade gives
-## now and what the next rank gives, side by side with an arrow, the gain in green
+## One upgrade's card in the Shop window. At its left the upgrade's picture in a large [UiIcon] with
+## the rank as its count: ready (a pulsing yellow frame) when the party can pay, locked when it
+## cannot, owned in gold for good at the top rank. Beside it the number key and the name in bold
+## with the rank in words at the end of the line ([code]3 / 20[/code]), under them the ranks as
+## [ShopPips] across the whole text column, and one buy button with the whole price: the gold, and
+## from the rank that also costs the upgrade's resource that price with the resource's icon; at the
+## top rank it reads [code]Max[/code]. Under those, what the upgrade gives now and what the next
+## rank gives, side by side with an arrow, the gain in green
 ## ([code]Damage and healing  +15%  >  +20%[/code]; at the top rank the total with
-## [code]Mastered[/code]); and across the card's foot, while the party cannot pay, what is missing
-## in words ([code]Needs 12 more clay, from The Claypits[/code]).
+## [code]Mastered[/code]); and across the card's foot,
+## while the party cannot pay, what is missing in words ([code]Needs 12 more clay, from The
+## Claypits[/code]).
 ##
 ## [method refresh] reads everything from the simulation every frame; the card keeps no copy of a
 ## rank or a price. A purchase heard fresh fills its pip with a flash ([method start_flash]); the
@@ -33,7 +33,7 @@ const MASTERED: String = "Mastered"
 var id: StringName
 ## The picture in its framed slot, the rank as its count.
 var icon: UiIcon
-## The picture inside [member icon] (spec 063's tests read it).
+## The picture inside [member icon].
 var picture: TextureRect
 var key_label: Label
 var name_label: Label
@@ -121,8 +121,8 @@ static func percent(def: UpgradeDef, rank: int) -> String:
 	return "+%d%%" % roundi(rank * def.per_rank * 100.0)
 
 
-## The banner's headline for rank [param rank] of [param def] (spec 065 R6): "Sharp Blades, rank
-## 5", or "Sharp Blades mastered" at the top rank.
+## The banner's headline for rank [param rank] of [param def]: "Sharp Blades, rank 5", or "Sharp
+## Blades mastered" at the top rank.
 static func milestone_headline(def: UpgradeDef, rank: int) -> String:
 	if rank >= def.max_rank:
 		return "%s mastered" % def.display_name
@@ -262,7 +262,7 @@ func affordable() -> bool:
 	return _affordable
 
 
-## The card's tooltip (spec 065 R4): its picture, its name, the kind and rank, the next rank's
+## The card's tooltip: its picture, its name, the kind and rank, the next rank's
 ## prices and where the resource comes from ([method tip_text]), and what one rank gives.
 func card(simulation: Simulation) -> UiTip.Card:
 	var def: UpgradeDef = Content.upgrade(id)
@@ -277,7 +277,7 @@ func card(simulation: Simulation) -> UiTip.Card:
 
 
 ## The next rank's prices, then where its resource comes from and, if that area is closed, how
-## it is opened (spec 052 R5). [code]Rank 4: 91 gold and 4 clay. Clay comes from the Claypits:
+## it is opened. [code]Rank 4: 91 gold and 4 clay. Clay comes from the Claypits:
 ## beat the Slime King in Mossy Hollow to open it.[/code]
 func tip_text(simulation: Simulation) -> String:
 	var def: UpgradeDef = Content.upgrade(id)

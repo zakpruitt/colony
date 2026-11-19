@@ -1,7 +1,7 @@
 class_name DefeatNoteView
 extends Panel
-## The note after a defeat on the sharp layer (spec 062 R4, spec 041): what beat the party and
-## where, the plainest reason, and up to [constant DefeatNote.MOST] of spec 058's buttons, centred
+## The note after a defeat on the sharp layer: what beat the party and where, the plainest
+## reason, and up to [constant DefeatNote.MOST] [UiButton]s, centred
 ## across the room just above the WIPED banner. [DefeatNote] decides what it says and what each
 ## button does; this only draws it. On the UI layer it lies over every window, so it is never
 ## hidden; it stops every click on it.

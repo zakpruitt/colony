@@ -1,6 +1,6 @@
 class_name JournalView
 extends ScrollContainer
-## The journal's lines on the UI layer (spec 058 R8): the content of the Journal window
+## The journal's lines on the UI layer: the content of the Journal window
 ## ([kbd]J[/kbd]). It lists every line the [Journal] keeps, newest first, the time in
 ## [code]steel[/code] then the sentence, the newest in white and the rest in silver; at least
 ## [constant SHOWN_LINES] show at once and the mouse wheel scrolls through all

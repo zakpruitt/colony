@@ -1,9 +1,8 @@
 class_name AwayStory
 extends RefCounted
-## What the report after time away says (spec 019 R5, spec 031, spec 052): how long the party was
-## away and what changed, as rows of a short list, each a label and a value (a number, where there
-## is one). A row is shown only when there is something to say. [AwayWindow] draws it (spec 062
-## R5), the values right-aligned.
+## What the report after time away says: how long the party was away and what changed, as rows
+## of a short list, each a label and a value (a number, where there is one). A row is shown only
+## when there is something to say. [AwayWindow] draws it, the values right-aligned.
 
 ## The report's title.
 const TITLE: String = "While you were away"
@@ -29,7 +28,7 @@ class Row:
 		return label if value.is_empty() else "%s %s" % [label, value]
 
 
-## Where the party was and is (spec 049): "Mossy Hollow 3", "Mossy Hollow 3 to 5", or "Mossy
+## Where the party was and is: "Mossy Hollow 3", "Mossy Hollow 3 to 5", or "Mossy
 ## Hollow 5 to The Claypits 1".
 static func where(report: AwayReport) -> String:
 	var after: String = PlaceText.of(report.area_after, report.depth_after)
@@ -94,8 +93,8 @@ static func _quest_rows(report: AwayReport, made: Array[Row]) -> void:
 			made.append(Row.new("Most needed:", skill, &"orange"))
 
 
-## The resources gathered (spec 052), on one row: "Gathered 12 glowcaps, 3 clay"; none when
-## nothing was gathered. Then the firsts the journal did not see (spec 052 R8).
+## The resources gathered, on one row: "Gathered 12 glowcaps, 3 clay"; none when nothing was
+## gathered. Then the firsts the journal did not see.
 static func _resource_rows(report: AwayReport, made: Array[Row]) -> void:
 	var parts: PackedStringArray = []
 	for id: StringName in Content.resource_ids():

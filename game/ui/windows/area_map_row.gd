@@ -1,10 +1,10 @@
 class_name AreaMapRow
 extends PanelContainer
-## One area's card on the Area map window (spec 053, laid out afresh by spec 059 R3): its name in
-## bold with [code]Here[/code] or [code]On the way, 7 s[/code] at the right, the level of its
-## first stage, then the party's safe and furthest stage there and its resource (spec 052) with
-## the count held, beside its monsters and, past a line, its guardian, as sprites (ticked once
-## beaten). A closed area's card is dimmed and says which guardian opens it and what it gives.
+## One area's card on the Area map window: its name in bold with [code]Here[/code] or [code]On the
+## way, 7 s[/code] at the right, the level of its first stage, then the party's safe and furthest
+## stage there and its resource with the count held, beside its monsters and, past a line, its
+## guardian, as sprites (ticked once beaten). A closed area's card is dimmed and says which guardian
+## opens it and what it gives.
 ##
 ## The card is a button: an open area's card lights under the mouse and a left click emits
 ## [signal clicked]; a closed area's card takes the click and does nothing. The chosen card has a
@@ -29,7 +29,7 @@ var name_label: Label
 var tag_label: Label
 var level_label: Label
 var stages_label: Label
-## The area's resource (spec 052): its icon and the count held, or what opening the area gives.
+## The area's resource: its icon and the count held, or what opening the area gives.
 var resource_icon: TextureRect
 var resource_label: Label
 ## The monsters that live there, in the area's order, and its guardian.
@@ -176,7 +176,7 @@ func show_area(
 		guardian_thumb.beaten = beaten
 
 
-## Shows the area's resource (spec 052 R7): [param held] of it while the area is open, what
+## Shows the area's resource: [param held] of it while the area is open, what
 ## opening it gives while it is closed.
 func show_resource(held: int) -> void:
 	var plural: String = ResourceIcon.plural(Content.area(area_id).resource)

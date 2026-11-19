@@ -1,6 +1,6 @@
 class_name ShownStatus
 extends RefCounted
-## One status on one fighter as the events have told it (spec 056): what it is, who put it there
+## One status on one fighter as the events have told it: what it is, who put it there
 ## with which ability, and the ticks it began, first works and ends on. Kept by a [StatusBook].
 
 var kind: AbilityEffect.Status

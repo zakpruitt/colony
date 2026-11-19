@@ -1,6 +1,6 @@
 class_name PictureSpecimen
 extends Node
-## A sheet to look at every picture of spec 063 (R9): grouped by class (each class's talent tree,
+## A sheet to look at every picture: grouped by class (each class's talent tree,
 ## trunk then both paths), then the camp upgrades, the paragon stats and the microskills. Each
 ## picture shows large in its owned state with its ready, locked and closed states small beside it,
 ## and its name under it. Under the groups, one slot bursts every

@@ -1,6 +1,6 @@
 class_name AbilityCredit
 extends RefCounted
-## What each blow and heal was (spec 056): an ordinary strike or heal, an ability, or a status
+## What each blow and heal was: an ordinary strike or heal, an ability, or a status
 ## working, worked out from the simulation's events alone and in their order, for the effects
 ## (a heavy blow's spark, a status's coloured number) and the tally's lines by ability.
 ##

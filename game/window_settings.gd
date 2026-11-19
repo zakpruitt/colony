@@ -1,13 +1,13 @@
 class_name WindowSettings
 extends Node
-## How the game's window opens, and what the player made of it (spec 067): its mode (windowed,
+## How the game's window opens, and what the player made of it: its mode (windowed,
 ## maximized, full screen) and, when windowed, its size and place, kept in a small JSON file of
 ## their own under [code]user://[/code], apart from the save and the other settings.
 ##
 ## On a first run the window opens maximized if a maximized window on the screen has room for
 ## the UI at twice its size, in full screen if only the bare screen has ([method first_mode]);
-## after that it opens as it was left. [kbd]F11[/kbd] switches between full screen and the
-## window as it was.
+## after that it opens as the player left it. [kbd]F11[/kbd] switches between full screen and
+## the window it came from.
 ##
 ## Every decision is made here from plain values (a screen's size, the file, what the window was
 ## seen to be), so tests check them with no window. Only when [member window] is set, which
@@ -234,7 +234,8 @@ func decide(
 	_based = false
 
 
-## What [kbd]F11[/kbd] does: full screen, or from full screen the window as it was. Saved.
+## What [kbd]F11[/kbd] does: full screen, or from full screen back to the window it came from.
+## Saved.
 func toggle_full_screen() -> void:
 	if mode == Mode.FULL_SCREEN:
 		mode = back
@@ -295,7 +296,7 @@ func save() -> bool:
 
 
 ## Makes what the window was seen to be the remembered state, and saves if that changes it.
-## The first time a window with no remembered size is seen holding still, windowed as it was
+## The first time a window with no remembered size is seen holding still, windowed as
 ## decided, that is only where the project's window opened: taken, but not a change.
 func _take(seen_mode: Mode, seen_rect: Rect2i) -> void:
 	var changed: bool = false

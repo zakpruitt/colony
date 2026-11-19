@@ -1,6 +1,6 @@
 class_name SoundPlayer
 extends Node
-## Plays the sound effects (spec 021): short sounds baked from the recipes in
+## Plays the sound effects: short sounds baked from the recipes in
 ## [code]assets/audio/sfx/[/code], for the moments [signal World.sim_event] and
 ## [signal CombatEffects.coin_collected] mark.
 ##
@@ -41,12 +41,12 @@ const SOUNDS: Array[StringName] = [
 const MAX_VOICES: int = 8
 ## The least time, in seconds, between two starts of the same sound.
 const REPEAT_SECONDS: float = 0.05
-## Sounds kept further apart than that (spec 063 R8): a gain's burst and banner, at most once in
+## Sounds kept further apart than that: a gain's burst and banner, at most once in
 ## 0.15 s however many gains arrive together.
 const SPACED: Dictionary[StringName, float] = {&"gain_small": 0.15, &"gain_grand": 0.15}
 ## How far a start's pitch may stray from the sound's own, either way, as a share (under 6%).
 const PITCH_SPREAD: float = 0.05
-## How much quieter than its own the click of each swing at a side quest is, in dB (spec 028).
+## How much quieter than its own the click of each swing at a side quest is, in dB.
 const WORK_CLICK_DB: float = -10.0
 
 ## Where the mute choice is kept. Null means nowhere: tests, screenshots and headless runs. Set it
@@ -96,10 +96,10 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void
 	# of the gain itself) can be told apart from a coin that flew to the purse.
 	if not effects.coin_collected.is_connected(_on_coin_collected):
 		effects.coin_collected.connect(_on_coin_collected, CONNECT_DEFERRED)
-	# Each swing of a hero working a side quest clicks, softly (spec 028 R9).
+	# Each swing of a hero working a side quest clicks, softly.
 	if world.quest_props != null and not world.quest_props.worked.is_connected(_on_worked):
 		world.quest_props.worked.connect(_on_worked)
-	# A goal finished on the HUD's tracker (spec 037) plays the stable chime.
+	# A goal finished on the HUD's tracker plays the stable chime.
 	var main: Main = get_parent() as Main
 	if main != null and main.hud != null and main.hud.goals != null:
 		if not main.hud.goals.goal_finished.is_connected(_on_goal_finished):
@@ -121,7 +121,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-## Plays a sound by name, subject to the limits of R4, [param volume_db] from its own volume.
+## Plays a sound by name, subject to the limits above, [param volume_db] from its own volume.
 ## Returns whether it started.
 func play(sound: StringName, volume_db: float = 0.0) -> bool:
 	if not _streams.has(sound):

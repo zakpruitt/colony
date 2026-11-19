@@ -1,15 +1,15 @@
 class_name FallenParty
 extends Node
-## The fallen on screen (spec 038 R1, R2). A hero who falls in a fight, or with the party when it
+## The fallen on screen. A hero who falls in a fight, or with the party when it
 ## is wiped, starts its collapse, topples over backwards and lies there on its back rather than
 ## vanishing, until the fight is won or the party is revived. A wipe is told as a story: the
 ## camera holds on the fallen party, then travels to where the simulation will revive it,
 ## arriving before the revival; there the heroes appear, still lying, under the revival light,
 ## and rise back onto their feet. However the world learns of the wipe (as it happens, late after a
 ## stall, or finding the party already down after time away), the story starts from where the
-## time since the wipe has got to (spec 048).
+## time since the wipe has got to.
 ##
-## A revival on another stage (spec 054 R8) is a crossing instead: the camera holds on the fallen
+## A revival on another stage is a crossing instead: the camera holds on the fallen
 ## while the screen dims ([ZoneCrossing]) and cuts to the revival as it happens, so the view never
 ## travels up or down.
 ##
@@ -69,7 +69,7 @@ var _planned: bool = false
 var _from: Vector2 = Vector2.ZERO
 var _length: float = 0.0
 var _cut: bool = false
-## True when the revival is on another stage than the wipe (spec 054): the cut waits for it.
+## True when the revival is on another stage than the wipe: the cut waits for it.
 var _elsewhere: bool = false
 
 
@@ -145,7 +145,7 @@ func revived(age: float) -> bool:
 	return true
 
 
-## Hero [param id], fallen in a fight, was revived there (spec 056 R2): it rises from its back
+## Hero [param id], fallen in a fight, was revived there: it rises from its back
 ## onto its feet where it fell, as the party does after a wipe. A hero revived before it lay down
 ## (in the very frame it fell, as Guardian Angel does) rises from where its fall had got to.
 func stand(id: int) -> void:
@@ -169,7 +169,7 @@ func stand(id: int) -> void:
 	_standing[id] = _rise_at(over)
 
 
-## Hero [param id] fell (spec 056 R2): one that was rising after a revive in the fight lies down
+## Hero [param id] fell: one that was rising after a revive in the fight lies down
 ## again from where its rise had got to, rather than finishing it.
 func fell(id: int) -> void:
 	if not _standing.has(id) or _wipe_age >= 0.0:

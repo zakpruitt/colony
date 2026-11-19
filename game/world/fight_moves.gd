@@ -1,6 +1,6 @@
 class_name FightMoves
 extends RefCounted
-## Starts and ends the heroes' moves from the simulation's events (spec 057). The [World] hands it
+## Starts and ends the heroes' moves from the simulation's events. The [World] hands it
 ## every event as it acts it out, before anything else hears it.
 ##
 ## - An action's move starts on its ABILITY_STARTED, its blow timed to fall when the wind-up ends,

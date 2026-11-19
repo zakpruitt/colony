@@ -1,6 +1,6 @@
 class_name UiWindows
 extends Control
-## The windows on the UI layer (spec 058 R5, R6): any number open at once, overlapping, in an
+## The windows on the UI layer: any number open at once, overlapping, in an
 ## order. A press anywhere on a window brings it to the front before what was pressed acts;
 ## [kbd]Esc[/kbd] closes the front window only; each window's key opens and closes it. When the
 ## room changes, a window the player never moved takes its default place for the new room, and one
@@ -203,8 +203,8 @@ func restore() -> void:
 	_restoring = false
 
 
-## Opens the windows that were open last session, once, as play starts (spec 062 R5: under the
-## away report, when there is one).
+## Opens the windows that were open last session, once, as play starts (under the away report,
+## when there is one).
 func open_waiting() -> void:
 	var opening: Array[StringName] = _waiting.duplicate()
 	_waiting.clear()

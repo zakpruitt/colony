@@ -1,6 +1,6 @@
 class_name CharacterMoves
 extends RefCounted
-## The moves a character performs for its abilities (spec 057), made in code from the parts it
+## The moves a character performs for its abilities, made in code from the parts it
 ## already has: no drawn frames. A [CharacterSprite] owns one, advances it and lays what it works
 ## out ([member shift], [member turn], [member scale], [member turns]) over the rest of its pose.
 ##
@@ -16,7 +16,7 @@ extends RefCounted
 ## Squash and stretch: a body is a little taller in the air and shorter and wider when it lands.
 
 ## Seconds of recovery after the blow, per move; [constant HOP] and [constant CHEER] are the
-## view's own (spec 057 R5), played for a kill or crit and after a fight won.
+## view's own, played for a kill or crit and after a fight won.
 const RECOVER: Dictionary[StringName, float] = {
 	&"leap": 0.32,
 	&"spin": 0.3,
@@ -399,7 +399,7 @@ func _pose_flourish(slot: Slot) -> void:
 	)
 
 
-## A small hop of joy: a kill, a crit (spec 057 R5).
+## A small hop of joy: a kill, a crit.
 func _pose_hop(slot: Slot) -> void:
 	var v: float = slot.after()
 	_add(Vector2(0.0, -HOP_HEIGHT * sin(PI * v)), 0.0, _bounce(v), {})

@@ -1,6 +1,6 @@
 class_name GuardianSpacing
 extends RefCounted
-## Keeps the heroes out of a guardian's body (spec 038 R3). The simulation measures a fight to
+## Keeps the heroes out of a guardian's body. The simulation measures a fight to
 ## each fighter's middle, so a melee hero in reach of a 64-pixel guardian would be drawn inside
 ## it. While a guardian fights, the world asks this where its heroes may stand: on their side of
 ## the guardian, no nearer than its body's edge, and each no nearer than [constant ROOM] to the
@@ -9,7 +9,7 @@ extends RefCounted
 ##
 ## The edge is where the guardian's pixels reach through its poses, its lunge included, and a
 ## hero stands back by as far as its own reach through its poses, its swing included
-## ([method SpriteBounds.reach], spec 048 R7): so neither ever draws over the other.
+## ([method SpriteBounds.reach]): so neither ever draws over the other.
 
 ## Pixels kept clear between a hero's body and the guardian's.
 const GAP: float = 2.0

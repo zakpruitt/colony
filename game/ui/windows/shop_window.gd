@@ -1,21 +1,21 @@
 class_name ShopWindow
 extends WindowContent
-## The upgrade shop (spec 017) as a window on the UI layer (spec 059 R2): one card ([ShopRow],
-## spec 065) per camp upgrade in shop order, then at its foot the Auto-buy switch (spec 022) over a
-## sentence saying what it does. It opens over the running game and never pauses it.
+## The upgrade shop as a window on the UI layer: one card ([ShopRow]) per camp upgrade in shop
+## order, then at its foot the Auto-buy switch over a sentence saying what it does. It opens over
+## the running game and never pauses it.
 ##
 ## Every frame ([method advance], called by the HUD) it reads ranks, prices, gold and resources
 ## from the simulation, so it cannot drift; a buy goes through [method Simulation.buy_upgrade] and
 ## the switch through [method Simulation.set_auto_buy].
 ##
-## Spec 065: on [constant SimEvent.Kind.UPGRADE_BOUGHT] heard fresh (recent, and not while the
+## On [constant SimEvent.Kind.UPGRADE_BOUGHT] heard fresh (recent, and not while the
 ## world catches up) the card's new pip flashes, whoever bought it; a purchase the player asked for
 ## (the shop remembers each ask and its tick, and the simulation applies it on the next) also
 ## bursts the card's icon through [member moment] and steps its numbers. Every fifth rank and the
 ## top one get a banner with the upgrade's picture. A stale purchase starts none of it. [kbd]1[/kbd]
 ## to [kbd]5[/kbd] buy and [kbd]B[/kbd] switches auto-buy while the shop is the front window (the
 ## HUD hears them). While it is closed, its window's [member UiWindow.badge] counts the upgrades
-## the party can pay for: the amber tag on the bar's Shop button (R6).
+## the party can pay for: the amber tag on the bar's Shop button.
 
 ## The window's id, title and key.
 const ID: StringName = &"shop"
@@ -33,12 +33,12 @@ const ASK_TICKS: int = 100
 
 ## One card per upgrade, in [method Content.upgrade_ids] order.
 var rows: Array[ShopRow] = []
-## The Auto-buy switch (spec 022), lit while auto-buy is on, and the sentence beside it.
+## The Auto-buy switch, lit while auto-buy is on, and the sentence beside it.
 var auto_buy_button: UiButton
 var auto_buy_caption: Label
 ## The tooltips of the cards, given by [method add_tips]; null until then.
 var tip: UiTip
-## Marks a purchase: the burst and the banner (spec 065). Given by [Main]; null for none.
+## Marks a purchase: the burst and the banner. Given by [Main]; null for none.
 var moment: UiMoment
 
 var _simulation: Simulation
@@ -94,8 +94,8 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 	advance(0.0)
 
 
-## Gives each card its tooltip, a card itself (spec 065 R4): the picture, both prices of the next
-## rank and where the resource comes from (spec 052 R5). Call once, after the shop is in its
+## Gives each card its tooltip, a card itself: the picture, both prices of the next rank and where
+## the resource comes from. Call once, after the shop is in its
 ## window.
 func add_tips(tips: UiTip) -> void:
 	tip = tips
@@ -144,7 +144,7 @@ func toggle_auto_buy() -> void:
 	advance(0.0)
 
 
-## How many upgrades the party can pay both prices of the next rank of (spec 052).
+## How many upgrades the party can pay both prices of the next rank of.
 func affordable_count() -> int:
 	if _simulation == null:
 		return 0

@@ -1,6 +1,6 @@
 class_name UiTheme
 extends RefCounted
-## The one look of the UI layer (spec 058 R4), defined here and nowhere else: windows, title bars,
+## The one look of the UI layer, defined here and nowhere else: windows, title bars,
 ## buttons, tabs, tooltips and scroll areas, all in palette colours and the UI font ([UiText]).
 ## [UiRoot] gives the theme to its frame, so every [Control] on the layer inherits it.
 ##
@@ -17,16 +17,16 @@ const WINDOW: StringName = &"UiWindow"
 const TITLE_BAR: StringName = &"UiTitleBar"
 const TITLE: StringName = &"UiTitle"
 const TIP: StringName = &"UiTip"
-## The panel every piece of the frame of the screen sits on (spec 061): the window's dark
+## The panel every piece of the frame of the screen sits on: the window's dark
 ## [code]night[/code] with a [code]slate[/code] edge, a step quieter than a window's.
 const FRAME: StringName = &"UiFrame"
 ## Padding between a button's edge and its text, in UI pixels (the edge itself is one more), the
-## same in every state: at least 4 all round (R4).
+## same in every state: at least 4 all round.
 const BUTTON_PAD_X: int = 6
 const BUTTON_PAD_Y: int = 4
 ## A button's least height: its text line, the padding above and below and the edge.
 const BUTTON_HEIGHT: int = UiText.LINE_HEIGHT + 2 * (BUTTON_PAD_Y + 1)
-## A button of the button bar (spec 068): [constant BAR_PAD_X] by [constant BAR_PAD_Y] of padding
+## A button of the button bar: [constant BAR_PAD_X] by [constant BAR_PAD_Y] of padding
 ## and its name in the plain weight, so six names and their keys fit the row, and [constant
 ## BAR_ICON_GAP] between its icon and its name. The colours are every button's.
 const BAR_BUTTON: StringName = &"UiBarButton"

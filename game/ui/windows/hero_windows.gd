@@ -1,6 +1,6 @@
 class_name HeroWindows
 extends Node
-## The hero windows (spec 060): one [HeroWindow] per hero, each a window of spec 058 registered
+## The hero windows: one [HeroWindow] per hero, each a window on the UI layer registered
 ## with [UiWindows] as [code]hero_<n>[/code] (n the hero's place in the party, from 0), so they
 ## move, layer, close on [kbd]Esc[/kbd] and are remembered like any other window, and any of them
 ## can be open at once to compare heroes.
@@ -32,7 +32,7 @@ const GAP: float = 8.0
 ## How far each window of a cascade is set from the one before (less sideways when the room is
 ## too narrow for that and the button bar).
 const CASCADE: Vector2 = Vector2(64, 28)
-## Every this many ranks of a paragon stat gets a banner (spec 064 R9).
+## Every this many ranks of a paragon stat gets a banner.
 const PARAGON_BANNER_EVERY: int = 10
 
 var _ui: UiRoot
@@ -136,7 +136,7 @@ func _set_heights(height: float) -> void:
 
 
 ## Brings every open window up to date with the simulation. The HUD calls it every frame. While
-## the world catches up, every tree drops what it was playing for the events before (spec 057).
+## the world catches up, every tree drops what it was playing for the events before.
 func advance(delta: float) -> void:
 	var settling: bool = _catching_up()
 	for hero_id: int in _ids:
@@ -181,7 +181,7 @@ func toggle(hero_id: int) -> void:
 
 ## Opens the window of the hero after the front hero window's (the first hero's when none is
 ## open), wrapping, and brings it to the front, whatever window is in front; the others stay as
-## they are (spec 059: Tab with the shop or the tally in front still steps through the heroes).
+## they are (Tab with the shop or the tally in front still steps through the heroes).
 func open_next() -> void:
 	if _ids.is_empty():
 		return
@@ -236,9 +236,9 @@ func open_ids() -> Array[int]:
 	return made
 
 
-## Marks a gain the world just reported (spec 064 R8 to R10), through the layer's [UiMoment]: a node
-## taken bursts on its open tree, the line into it lights and a banner names it (a path's first node
-## names the path, and the other path closes before the player's eyes); a paragon point spent bursts
+## Marks a gain the world just reported, through the layer's [UiMoment]: a node taken bursts on
+## its open tree, the line into it lights and a banner names it (a path's first node names the
+## path, and the other path closes before the player's eyes); a paragon point spent bursts
 ## its medallion, with a banner every tenth rank; a microskill learned gets a banner, and a burst on
 ## its card while the hero's window is open on Skills. Nothing starts for an event that is not
 ## recent or while the world catches up: the windows show the end state all the same. [Main]
@@ -264,7 +264,7 @@ func flash_paragon(hero_id: int, index: int) -> void:
 		shown.talents.flash_paragon(index)
 
 
-## The tooltip of hero [param hero_id]'s frame (spec 055 R9, spec 056 R5), the one place it is
+## The tooltip of hero [param hero_id]'s frame, the one place it is
 ## built: [code]Click for details[/code], with the class and its path before it once a path is
 ## chosen ([code]Knight, Berserker: click for details[/code]), and between them the hero's
 ## statuses with their seconds left, [param statuses].

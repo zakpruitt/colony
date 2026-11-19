@@ -1,6 +1,6 @@
 class_name WindowText
 extends RefCounted
-## Text and buttons laid out by hand inside a window on the UI layer (spec 060): labels sized to
+## Text and buttons laid out by hand inside a window on the UI layer: labels sized to
 ## the text they show, lines exactly [constant UiText.LINE_HEIGHT] apart, words wrapped at spaces
 ## to a width so nothing is ever cut, and buttons as wide as their words. A window whose content
 ## is placed this way is laid out the moment it changes, with nothing left for a later frame.

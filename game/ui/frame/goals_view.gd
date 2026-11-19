@@ -1,6 +1,6 @@
 class_name GoalsView
 extends Panel
-## The goals on the sharp layer (spec 062 R1), under the place panel: a small panel titled
+## The goals on the sharp layer, under the place panel: a small panel titled
 ## [code]Goals[/code] with the [kbd]G[/kbd] hint, and a [GoalRow] per goal [Goals] shows, each a
 ## button; a click on one asks [method Goals.press]. It only draws what [Goals] decides, and lays
 ## itself out each time the goals move ([signal Goals.refreshed]), so it is never a frame behind.

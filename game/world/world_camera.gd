@@ -4,7 +4,7 @@ extends Camera2D
 ## band's columns, sits on whole pixels, and can be shaken.
 ##
 ## [member position] is the followed point (clamped and rounded); a shake only moves
-## [member offset], so it never disturbs where the camera is going. A [method travel] (spec 038)
+## [member offset], so it never disturbs where the camera is going. A [method travel]
 ## carries the view to a far place at a pace of its own, eased in and out.
 
 ## How fast the camera closes on its target: each second it covers all but e^-rate of the
@@ -20,7 +20,7 @@ const SETTLE: float = 0.5
 const BAND_WIDTH: float = Labyrinth.LEVEL_WIDTH * LabyrinthView.TILE
 ## The view size assumed outside the tree (the game's 640x360 viewport).
 const FALLBACK_VIEW: Vector2 = Vector2(640, 360)
-## Seconds a change of zoom level takes to ease from one level to the other (spec 018 R1).
+## Seconds a change of zoom level takes to ease from one level to the other.
 const ZOOM_TIME: float = 0.25
 
 ## World pixel position to follow.

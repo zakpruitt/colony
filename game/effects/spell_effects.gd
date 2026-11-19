@@ -1,6 +1,6 @@
 class_name SpellEffects
 extends Node
-## Spells on screen (spec 057 R4): each kind of spell effect has its own small visual, made of
+## Spells on screen: each kind of spell effect has its own small visual, made of
 ## palette squares and the existing particles ([FxParticle]): a fireball that flies with a flame
 ## trail and bursts, a meteor that falls from above the screen, a shard of ice that flies straight
 ## and shatters, a frost burst along the floor, flakes over the enemies, a spark that jumps from
@@ -134,7 +134,7 @@ func advance(delta: float) -> void:
 	if _world == null or _world.effects_layer == null:
 		return
 	if _world.catching_up():
-		_clear()  # the picture jumps to the simulation's: nothing is left in the air (R7)
+		_clear()  # the picture jumps to the simulation's: nothing is left in the air
 		return
 	for flight: Flight in _flights.duplicate():
 		_fly(flight, delta)
@@ -557,7 +557,7 @@ func _column(id: int) -> void:
 
 
 ## A beam of light from under the HUD's top band onto fighter [param id], flashing at its feet: it
-## never covers the boss bar or the panels there (R8).
+## never covers the boss bar or the panels there.
 func _beam(id: int) -> void:
 	var target: CharacterSprite = _world.character(id)
 	if target == null:

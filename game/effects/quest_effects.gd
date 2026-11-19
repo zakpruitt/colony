@@ -1,6 +1,6 @@
 class_name QuestEffects
 extends Node
-## The effects of side quests and microskills (spec 028): a done quest's prop bursting in its own
+## The effects of side quests and microskills: a done quest's prop bursting in its own
 ## colours under words in the reward's colour, a miss's muted "Needs <microskill>" rising from the
 ## prop, a sprung trap's red "Sprung!" with a shake and every hero flashing, and "Learned
 ## <microskill>" over a hero. The coins and XP of a reward come from their own events, through

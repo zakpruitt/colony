@@ -1,7 +1,7 @@
 class_name StageRisk
 extends RefCounted
-## How a stage looks for the party (spec 043): one rule for the depth ladder and the area map
-## (spec 053), so the two never drift.
+## How a stage looks for the party: one rule for the depth ladder and the area map, so the two
+## never drift.
 
 
 ## The risk of [param stage]: safe at or above [param safe_stage], within reach while
@@ -15,7 +15,7 @@ static func judge(
 	var reached: bool = furthest < 0 or stage <= furthest
 	if stage <= safe_stage and reached:
 		return DepthLadder.Risk.SAFE
-	# Spec 049: a stage is as hard as its level.
+	# A stage is as hard as its level.
 	if level <= lowest + 1:
 		return DepthLadder.Risk.REACHABLE
 	return DepthLadder.Risk.DANGEROUS

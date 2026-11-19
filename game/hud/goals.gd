@@ -1,23 +1,23 @@
 class_name Goals
 extends Node
-## The goals tracker (spec 037): the next few things within reach, each a one-line sentence with a
-## thin progress bar or a count. It is a signpost only: it gives no rewards and changes no rules.
-## Since spec 062 this node only decides what the goals say; [GoalsView] draws them on the sharp
-## layer, under the place panel.
+## The goals tracker: the next few things within reach, each a one-line sentence with a thin
+## progress bar or a count. It is a signpost only: it gives no rewards and changes no rules. This
+## node only decides what the goals say; [GoalsView] draws them on the sharp layer, under the place
+## panel.
 ##
 ## At each [method advance] it reads the simulation and lists the first [constant MOST] goals that
 ## apply, in this order: beating the next guardian (when its depth is within
 ## [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching the next
-## depth, spending a hero's talent points (spec 055), the microskill nearest to being learned,
-## training a hero (spending its paragon points, spec 051), and buying an upgrade. A shown
+## depth, spending a hero's talent points, the microskill nearest to being learned, training a
+## hero (spending its paragon points), and buying an upgrade. A shown
 ## goal that is achieved (the guardian slain, the depth reached, the microskill learned) flashes,
 ## shows a tick for [constant CELEBRATE_SECONDS], writes a line in the journal and emits
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
 ## brought old events ([method World.is_recent]: after a stall or time away) is replaced quietly.
 ##
-## [kbd]G[/kbd] hides and shows it; it starts shown. Windows are drawn over it (spec 062 R2), and
-## none hides it. Each line has a tooltip ([method hint], then
-## what a click does, [method action]), and since spec 042 a click on a line takes the player where
+## [kbd]G[/kbd] hides and shows it; it starts shown. Windows are drawn over it, and none hides
+## it. Each line has a tooltip ([method hint], then what a click does, [method action]), and a
+## click on a line takes the player where
 ## the goal is managed ([method press]): the shop, a hero's sheet on a tab, the orders, or the
 ## depth ladder with the goal's rung flashing. A click opens what the HUD's own buttons open and
 ## changes nothing in the simulation. It moves only in [method advance], so a test can step it
@@ -25,11 +25,11 @@ extends Node
 
 ## A shown goal was achieved, in a recent frame: [param sentence] is its journal line.
 signal goal_finished(sentence: String)
-## The goals were read again (every [method advance]): the view lays itself out (spec 062).
+## The goals were read again (every [method advance]): the view lays itself out.
 signal refreshed
 
-## The kinds of goal, in the order the tracker prefers them, but a visit to a new area (spec 053)
-## comes first and a talent point to spend (spec 055) comes after the depth.
+## The kinds of goal, in the order the tracker prefers them, but a visit to a new area comes first
+## and a talent point to spend comes after the depth.
 enum Kind { GUARDIAN, DEPTH, MICROSKILL, TRAINING, UPGRADE, VISIT, TALENT }
 
 ## The most goals shown at once.
@@ -37,8 +37,8 @@ const MOST: int = 3
 ## A guardian's goal shows once its depth is at most this many levels below the deepest depth.
 const GUARDIAN_WITHIN: int = 3
 ## The level a guardian is balanced for is not in the data: it is taken as the guardian's depth
-## plus this many levels, which matches the tests of spec 020 (a level-9 party beats the depth-5
-## guardian).
+## plus this many levels, which matches the balance the tests hold to (a level-9 party beats the
+## depth-5 guardian).
 const GUARDIAN_LEVEL_OVER_DEPTH: int = 4
 ## What a click on a goal of each kind does, for the kinds that open the same place every time.
 const CLICKS: Dictionary[Kind, String] = {
@@ -190,9 +190,9 @@ func flash(index: int) -> float:
 	return _shown[index].flash
 
 
-## What clicking the line at [param index] does (spec 042 R1): an upgrade opens the shop, training
+## What clicking the line at [param index] does: an upgrade opens the shop, training
 ## opens the sheet of the first hero with paragon points to spend on its Talents tab, a talent
-## point opens its hero's sheet on the Talents tab (spec 055), a
+## point opens its hero's sheet on the Talents tab, a
 ## microskill opens its hero's sheet on the Skills tab, a guardian opens the orders, and a depth
 ## shows the depth ladder (closing the shop, which hides it) with that depth's rung flashing. Each
 ## panel opens as its own button opens it. A finished goal, or no goal, does nothing.
@@ -213,13 +213,13 @@ func press(index: int) -> void:
 		Kind.TALENT:
 			_open_sheet(hud, goal.hero_id, HeroWindow.Page.TALENTS)
 		Kind.GUARDIAN:
-			if hud.windows != null:  # spec 058: the orders are a window on the UI layer
+			if hud.windows != null:  # the orders are a window on the UI layer
 				hud.windows.open_window(UiRoot.ORDERS)
 		Kind.DEPTH:
 			hud.shop.close()
 			hud.ladder.flash(goal.target)
 		Kind.VISIT:
-			hud.area_map.open()  # spec 053 R6
+			hud.area_map.open()
 	advance(0.0)
 
 
@@ -250,11 +250,11 @@ func applicable() -> Array[Goal]:
 	var found: Array[Goal] = []
 	var hud: Hud = get_parent() as Hud
 	if hud != null and hud.area_map != null and hud.area_map.news != null:
-		found.append_array(hud.area_map.news.visit_goals())  # spec 053 R6: a new area first
+		found.append_array(hud.area_map.news.visit_goals())  # a new area first
 	var guardian: Goal = _guardian_goal()
 	if guardian != null:
 		found.append(guardian)
-	# Held back from a guardian (spec 035), the way on is the guardian's goal (spec 039 R3).
+	# Held back from a guardian, the way on is the guardian's goal.
 	if not _simulation.expedition.is_holding():
 		found.append(_depth_goal())
 	var talent: Goal = _talent_goal()
@@ -292,7 +292,7 @@ func applicable() -> Array[Goal]:
 	return found
 
 
-## The level a guardian at level [param depth] is balanced for (spec 049: a stage's level, see
+## The level a guardian at level [param depth] is balanced for (a stage's level, see
 ## [method Expedition.level_at]): see [constant GUARDIAN_LEVEL_OVER_DEPTH].
 static func guardian_level(depth: int) -> int:
 	return depth + GUARDIAN_LEVEL_OVER_DEPTH
@@ -319,7 +319,7 @@ func _guardian_goal() -> Goal:
 		"level %d of about %d" % [lowest, wanted],
 		"Heroes near level %d can win: fights, training and upgrades get them there." % wanted
 	)
-	# Spec 035's Hold order keeps the party from the guardian on its depth (or the one above).
+	# The Hold order keeps the party from the guardian on its depth (or the one above).
 	if e.is_holding() and (depth == e.depth or depth == e.depth - 1):
 		goal.hint = "The party is holding back on the Hold order: Orders (O) sends it in."
 	goal.target = depth
@@ -367,7 +367,7 @@ func _depth_goal() -> Goal:
 	var fraction: float = clampf(float(e.depth) / float(next), 0.0, 1.0)
 	var detail_text: String = "stage %d of %d" % [e.depth, next]
 	var how: String = "The party works its way back on, a stable stage at a time."
-	# Spec 039 R3: at the deepest depth the bar follows the timer that decides what comes next.
+	# At the deepest depth the bar follows the timer that decides what comes next.
 	if e.depth >= e.deepest_depth and e.target_depth > e.depth:
 		fraction = 1.0
 		detail_text = "on the way"
@@ -431,7 +431,7 @@ func _microskill_goal() -> Goal:
 	return goal
 
 
-## Spending the talent points of the first hero in formation with any (spec 055 R8):
+## Spending the talent points of the first hero in formation with any:
 ## [code]Spend the Knight's talent point[/code]; null when no hero has one.
 func _talent_goal() -> Goal:
 	for hero: Hero in _simulation.party.heroes:
@@ -453,7 +453,7 @@ func _talent_goal() -> Goal:
 	return null
 
 
-## The first hero in formation with a paragon point to spend (spec 051), or null.
+## The first hero in formation with a paragon point to spend, or null.
 func _trainee() -> Hero:
 	for hero: Hero in _simulation.party.heroes:
 		if hero.paragon_points() > 0:
@@ -461,7 +461,7 @@ func _trainee() -> Hero:
 	return null
 
 
-## Opens [param hero_id]'s window on [param page] (spec 060), as a click on the hero's frame and
+## Opens [param hero_id]'s window on [param page], as a click on the hero's frame and
 ## then its tab would.
 static func _open_sheet(hud: Hud, hero_id: int, page: HeroWindow.Page) -> void:
 	if hud.hero_windows != null:
@@ -469,7 +469,7 @@ static func _open_sheet(hud: Hud, hero_id: int, page: HeroWindow.Page) -> void:
 
 
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought. One whose
-## resource the party lacks cannot (spec 052).
+## resource the party lacks cannot.
 func _cheapest_upgrade() -> int:
 	var cheapest: int = 0
 	for id: StringName in Content.upgrade_ids():
@@ -485,7 +485,7 @@ func _lowest_level() -> int:
 	return PartyLevels.lowest(_simulation.party)
 
 
-## True when [param goal], no longer listed, was achieved rather than merely dropped.
+## True when [param goal], gone from the list, was achieved rather than merely dropped.
 func _achieved(goal: Goal) -> bool:
 	match goal.kind:
 		Kind.GUARDIAN:
@@ -523,7 +523,7 @@ func _finish(goal: Goal) -> void:
 
 
 ## Works out whether the tracker shows: whenever it is wanted. Windows, the tally's too, are drawn
-## over it (spec 062 R2).
+## over it.
 func _show() -> void:
 	_on_screen = _wanted
 	refreshed.emit()
@@ -547,7 +547,7 @@ class Goal:
 	var done: String = ""
 	## The depth (a guardian's or the one to reach) or the level (a microskill's) it is about.
 	var target: int = 0
-	## The area a guardian's or depth's goal is in (spec 049).
+	## The area a guardian's or depth's goal is in.
 	var area: StringName = &""
 	## The hero a microskill goal is about, or -1.
 	var hero_id: int = -1

@@ -1,7 +1,7 @@
 class_name MonsterThumb
 extends Control
-## A monster's sprite at rest, small, for the area map (spec 053): its parts drawn together as the
-## world draws them standing still, at 1x when the sprite is at most [constant MOST] pixels tall
+## A monster's sprite at rest, small, for the area map: its parts drawn together as the world
+## draws them standing still, at 1x when the sprite is at most [constant MOST] pixels tall
 ## and at half size when larger (a guardian's 64-pixel sprite), standing on the bottom edge. A
 ## guardian's thumb shows a 7x5 [code]green[/code] tick in its top-right corner once beaten. A
 ## closed area's thumbs are [member dim]: darkened in colour, never by opacity.

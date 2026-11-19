@@ -1,6 +1,6 @@
 class_name CrossingVeil
 extends Control
-## The dark between places (spec 054 R2, R4, R8): it covers the world, under the rest of the HUD,
+## The dark between places: it covers the world, under the rest of the HUD,
 ## as dark as [method ZoneCrossing.darkness] says, with the crossing's title in the middle.
 ## It follows the world's crossing by itself each frame; tests call [method refresh].
 

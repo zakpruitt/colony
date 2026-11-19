@@ -7,7 +7,7 @@ extends Node
 ## whole tick of it. Because the tick count follows the clock, a throttled,
 ## hidden or minimised window loses no time. See docs/architecture.md, "Time".
 ##
-## Above 1x (spec 032) each frame also steps [member speed] - 1 more ticks for every tick of real
+## Above 1x each frame also steps [member speed] - 1 more ticks for every tick of real
 ## time, but only while the frame's [member step_budget_usec] lasts. Those extra ticks are best
 ## effort: what a frame cannot afford is let go, never kept, so the real-time ticks above (and
 ## everything that counts on them) behave exactly as at 1x and nothing bursts later.
@@ -30,7 +30,7 @@ const STEP_BUDGET_USEC: int = 8_000
 
 ## The simulation being driven. Set before the node enters the tree.
 var simulation: Simulation
-## How many times real time the simulation runs: 1, 2 or 4 (spec 032). Main sets it.
+## How many times real time the simulation runs: 1, 2 or 4. Main sets it.
 var speed: int = 1
 ## See [constant STEP_BUDGET_USEC]; tests change it.
 var step_budget_usec: int = STEP_BUDGET_USEC

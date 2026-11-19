@@ -1,6 +1,6 @@
 class_name GoalRow
 extends Button
-## One goal on the sharp layer (spec 062 R1, specs 037 and 042): a button drawn by the theme with a
+## One goal on the sharp layer: a button drawn by the theme with a
 ## dot (a tick once achieved), the goal's sentence and, under it, a thin bar with the count at its
 ## right; a goal with no bar shows its count (a price) at the sentence's right, and a goal the
 ## player can act on now a small [code]>[/code] at the row's right edge. A left click emits
@@ -78,8 +78,8 @@ static func ink(words: String) -> float:
 	return maxf(UiText.width(words) - UiText.SPACING, 0.0)
 
 
-## True for a goal the player can act on now: talent points (spec 055), training (with paragon
-## points, spec 051) and upgrades (with gold).
+## True for a goal the player can act on now: talent points, training (with paragon points) and
+## upgrades (with gold).
 static func is_gold(goal: Goals.Goal) -> bool:
 	return goal.kind in [Goals.Kind.TALENT, Goals.Kind.TRAINING, Goals.Kind.UPGRADE]
 

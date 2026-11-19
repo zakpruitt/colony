@@ -1,11 +1,11 @@
 class_name CharacterDemo
 extends Node2D
-## Shows the whole cast (the four heroes of spec 007, every monster, spec 013's included, and
-## spec 020's guardians) cycling together through idle, walk, melee attack, ranged attack, hit and
-## death, then reappearing: heroes facing right, monsters facing left, at 2x with their names, and
-## once more below at their real size. The guardians stand at the end of the monster rows at
+## Shows the whole cast (the four heroes, every monster and the guardians) cycling together
+## through idle, walk, melee attack, ranged attack, hit and death, then reappearing: heroes
+## facing right, monsters facing left, at 2x with their names, and once more below at their real
+## size. The guardians stand at the end of the monster rows at
 ## their real size, which is already as big as a large monster at 2x.
-## Spec 057: at the top left, one more knight plays every move of [constant AbilityDef.MOVES] in
+## At the top left, one more knight plays every move of [constant AbilityDef.MOVES] in
 ## turn, its name under it, in a loop of its own.
 ## Run: python tools/dev.py shot --scene=res://game/entities/character_demo.tscn --name=cast
 ##      --seconds=0.7 --count=10
@@ -29,7 +29,7 @@ const MONSTERS: Array[StringName] = [
 	&"wraith",
 	&"deep_horror",
 ]
-## The guardians of spec 020, by the depth they guard. Shown at real size only.
+## The guardians, by the depth they guard. Shown at real size only.
 const GUARDIANS: Array[StringName] = [&"slime_king", &"clay_colossus", &"bone_lord", &"deep_maw"]
 ## How many zoomed monsters stand on each row.
 const MONSTERS_PER_ROW: int = 9
@@ -59,7 +59,7 @@ const REAL_SIZE_SPACING: float = 36.0
 const FONT_SIZE: int = 8
 const SCREEN: Vector2 = Vector2(640, 360)
 
-## Spec 057: the moves the mover plays, in turn; seconds each has (its blow falls MOVE_LEAD into
+## The moves the mover plays, in turn; seconds each has (its blow falls MOVE_LEAD into
 ## it); the mover's class, where it stands and its size.
 const MOVES: Array[StringName] = AbilityDef.MOVES
 const MOVE_SECONDS: float = 1.3
@@ -72,7 +72,7 @@ var _cast: Array[CharacterSprite] = []
 var _real_size: Array[CharacterSprite] = []
 var _stage: Node2D
 var _phase_label: Label
-## Spec 057: the knight playing every move, its label, and its own clock.
+## The knight playing every move, its label, and its own clock.
 var _mover: CharacterSprite
 var _move_label: Label
 var _move_clock: float = -1.0
@@ -131,12 +131,12 @@ func advance(delta: float) -> void:
 	_run_events_between(-1.0, _clock)
 
 
-## Spec 057: the knight that plays every move.
+## The knight that plays every move.
 func mover() -> CharacterSprite:
 	return _mover
 
 
-## Spec 057: the label naming the move it plays.
+## The label naming the move it plays.
 func move_label() -> Label:
 	return _move_label
 

@@ -1,6 +1,6 @@
 class_name QuestProps
 extends Node2D
-## The side quests waiting in the labyrinth, and the work on one (spec 028). Each chamber of a
+## The side quests waiting in the labyrinth, and the work on one. Each chamber of a
 ## built level that holds a side quest ([method Expedition.side_quest_in]) shows its prop on the
 ## floor near its middle, as far away as monsters are shown; a cleared quest's prop goes until the
 ## chamber refills. While the party works a quest, the worker stands at the prop and swings on a
@@ -11,7 +11,7 @@ extends Node2D
 ## [method goal_for] as it moves each hero, and [method animate] once a frame. Props are drawn
 ## under the darkness, like the monsters; the bar and the name over it, like the effects.
 ##
-## A prop out of the party's light carries a glint (spec 038 R4): the ambience's sparkle at its
+## A prop out of the party's light carries a glint: the ambience's sparkle at its
 ## top corner, drawn over the darkness like the glints on ore, slowly swelling and fading, so a
 ## quest waiting in the dark reads from across the level. In the party's light it has none.
 
@@ -185,7 +185,7 @@ static func sheet_of(quest: StringName) -> PixelSheet:
 	return PixelSheet.load_sheet(SHEETS[quest])
 
 
-## Takes every prop away (spec 049: the party arrived in another area); [method scan] gives the new
+## Takes every prop away when the party arrives in another area; [method scan] gives the new
 ## area's chambers theirs.
 func clear() -> void:
 	for key: Vector2i in _props.keys():
@@ -194,7 +194,7 @@ func clear() -> void:
 
 
 ## Gives every chamber of [param built] that holds a side quest its prop, and takes away the
-## props of those that no longer do.
+## props of those that do not.
 func scan(built: Array[int]) -> void:
 	var wanted: Dictionary[Vector2i, StringName] = {}
 	var expedition: Expedition = _simulation.expedition

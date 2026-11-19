@@ -1,14 +1,13 @@
 class_name WindowContent
 extends VBoxContainer
-## What the Shop, Area map and Party tally windows share (spec 059): each is the content of a
+## What the Shop, Area map and Party tally windows share: each is the content of a
 ## [UiWindow] on the UI layer, made by the [Hud] (so it hears the simulation from the start) and
 ## put in its window by [UiRoot]. Opening and closing go through the window and its [UiWindows],
 ## so the content opens at the front; without a window (a HUD on its own) it never opens.
 ##
 ## As it opens, by any way in (its key, its button on the bar, a goal, a saved window put back),
-## it closes the "While you were away" report, as the old panels did (but not as it opens under
-## the report, left open last session: spec 062 R5), and [method _shown] lets it bring itself up
-## to date.
+## it closes the "While you were away" report (but not as it opens under the report, left open
+## last session), and [method _shown] lets it bring itself up to date.
 
 ## The HUD that made it, or null. Only the windows built on this one read it.
 @warning_ignore("unused_private_class_variable")

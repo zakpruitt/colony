@@ -1,6 +1,6 @@
 class_name AmbienceMote
 extends RefCounted
-## One small moving thing of the ambience (spec 012): a dust mote, an ember, a water drip or its
+## One small moving thing of the ambience: a dust mote, an ember, a water drip or its
 ## splash, a glint, or a critter. It is data; [AmbienceLevel] moves and draws it. Nothing in
 ## the game reads it: critters are decoration, not monsters.
 

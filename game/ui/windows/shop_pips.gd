@@ -1,6 +1,6 @@
 class_name ShopPips
 extends Control
-## An upgrade's ranks as pips (spec 065 R3), under its name on its shop card: one pip per rank in
+## An upgrade's ranks as pips, under its name on its shop card: one pip per rank in
 ## one line, filled for each rank bought, every fifth pip larger so the ranks can be counted at a
 ## glance. The pip of a rank just bought fills with a flash ([method flash_pip]).
 ##

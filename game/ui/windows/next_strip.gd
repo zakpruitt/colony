@@ -1,6 +1,6 @@
 class_name NextStrip
 extends Control
-## The strip at the foot of a hero's talent tree (spec 064 R6): one node in full, without pointing.
+## The strip at the foot of a hero's talent tree: one node in full, without pointing.
 ## Its picture in a large [UiIcon], then its name in bold and its kind, how it stands at the right
 ## of that line, and its whole description wrapped under them; a [code]Learn[/code] button at the
 ## right when the node can be taken now. [HeroTalentsTab] chooses the node: the one under the mouse;

@@ -1,6 +1,6 @@
 class_name UiIcon
 extends Control
-## A framed slot showing one picture of a thing a player can gain (spec 063 R2): an ability, a
+## A framed slot showing one picture of a thing a player can gain: an ability, a
 ## camp upgrade, a paragon stat or a microskill, found by the thing's own id
 ## ([method picture]). Large, the 16x16 picture is drawn at twice its size (32 UI pixels) in a
 ## bevelled frame; small, at its own size in a thin one.
@@ -21,7 +21,7 @@ signal clicked
 
 ## How the thing stands for the player.
 enum State { OWNED, READY, LOCKED, CLOSED }
-## A square frame, or one with its corners cut (spec 064 uses the two for actions and passives).
+## A square frame, or one with its corners cut (for actions and passives).
 enum Shape { SQUARE, CUT }
 
 ## The sheets of pictures, one 16x16 part per thing, named for its id (assets/sprites/ui/).
@@ -139,7 +139,7 @@ func state() -> State:
 	return _state
 
 
-## The frame's shape (spec 064: square for an action, cut for a passive).
+## The frame's shape: square for an action, cut for a passive.
 func frame_shape() -> Shape:
 	return _shape
 

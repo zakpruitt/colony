@@ -1,8 +1,8 @@
 class_name SpriteBounds
 extends RefCounted
-## Where a sprite's pixels are (spec 038): the box around the opaque pixels of a character's
-## sheet at rest, or of one part of a sheet, and how far they reach through a fight's poses (spec
-## 048). Read from the baked sheets once each, then cached.
+## Where a sprite's pixels are: the box around the opaque pixels of a character's
+## sheet at rest, or of one part of a sheet, and how far they reach through a fight's poses.
+## Read from the baked sheets once each, then cached.
 
 ## The wind-up of the attack played to measure a reach, in seconds, and how long each attack is
 ## watched for: past its strike, its hold and its settling back.
@@ -35,8 +35,8 @@ static func half_width(sprite: CharacterSprite) -> float:
 	return body_rect(sprite, Vector2.ZERO).size.x / 2.0
 
 
-## How far [param sprite]'s pixels reach either side of its feet through a fight's poses (spec 048
-## R7): breathing, walking, a melee or a ranged attack (a lunge, a swing), a flinch. Its wider side
+## How far [param sprite]'s pixels reach either side of its feet through a fight's poses:
+## breathing, walking, a melee or a ranged attack (a lunge, a swing), a flinch. Its wider side
 ## either way, as [method half_width], so it does not change when it turns. Worked out once a sheet
 ## by playing those poses on a copy of the character, then cached.
 static func reach(sprite: CharacterSprite) -> float:

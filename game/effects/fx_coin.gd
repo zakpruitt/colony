@@ -1,6 +1,6 @@
 class_name FxCoin
 extends Node2D
-## One coin of a gold gain (spec 010 R6): it spills out of a fallen monster in an arc, bounces on
+## One coin of a gold gain: it spills out of a fallen monster in an arc, bounces on
 ## the chamber floor, rests a moment, then flies to the gold target. [CombatEffects] creates it,
 ## advances it with where the target is now, and emits the coin's share when it arrives.
 

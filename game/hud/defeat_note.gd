@@ -1,6 +1,6 @@
 class_name DefeatNote
 extends Node
-## The defeat note (spec 041): after a wipe, a small panel in the upper middle of the screen says
+## The defeat note: after a wipe, a small panel in the upper middle of the screen says
 ## what beat the party and where, the plainest true reason when there is one, and offers up to
 ## [constant MOST] things that would help, each a button one click away. It changes no rule.
 ##
@@ -8,23 +8,22 @@ extends Node
 ## the depth and the safe depth of a defeat are never read from the expedition when its events
 ## arrive, which may be after the revival: they are the expedition's at the end of the last frame
 ## ([method advance]) moved on by each [code]DEPTH_CHANGED[/code] and
-## [code]STABLE_DEPTH_REACHED[/code] since (spec 046 R1). A lost fight's
+## [code]STABLE_DEPTH_REACHED[/code] since. A lost fight's
 ## [code]ENCOUNTER_ENDED[/code] names the chamber, whose survivors ([method Expedition.monsters_in],
 ## a read that changes nothing, of the chamber's own record, which keeps them until the party wins
 ## there) are the monsters alive when the last hero fell; [code]PARTY_WIPED[/code] then works out
 ## the first line ([method wipe_line]; [method journal_line] is the journal's). Only a recent wipe
 ## ([method World.is_recent]) is told: one from a stall or the time away is not, and leaves a note
-## already showing as it was (spec 046 R5). The note stays while the heroes are down and stand up
+## already showing unchanged. The note stays while the heroes are down and stand up
 ## again ([method FallenParty.is_telling]) and [constant LINGER_SECONDS] after, never counting down
 ## while the mouse is over it ([method point_at]), and whatever fight starts meanwhile; then its
 ## text steps down [constant FADE_COLOURS] and it goes. Text never fades by opacity.
 ##
 ## The suggestions are read again at every [method advance], so they follow the gold, except while
-## the mouse is over the note: a click acts on what its button showed (spec 046 R3). Hold reads
-## Holding only while the simulation's order is Hold, or has just been asked for (spec 046 R2).
-## Since spec 062 this node decides and [member panel], a [DefeatNoteView] on the sharp layer over
-## every window, draws: nothing hides the note any more. It moves only in [method advance], so a
-## test can step it exactly.
+## the mouse is over the note: a click acts on what its button showed. Hold reads Holding only
+## while the simulation's order is Hold, or has just been asked for. This node decides and
+## [member panel], a [DefeatNoteView] on the sharp layer over every window, draws. It moves only
+## in [method advance], so a test can step it exactly.
 
 ## What the note can suggest, in the order it prefers them.
 enum Help { TALENTS, TRAIN, UPGRADE, HOLD }
@@ -81,7 +80,7 @@ var _mouse: Vector2 = UiTip.NOWHERE
 var _shown: Array[Help] = []
 var _shown_trainee: int = -1
 var _shown_spender: int = -1
-## The hero the Spend talent points suggestion opens, or -1 (spec 055).
+## The hero the Spend talent points suggestion opens, or -1.
 var _spender: int = -1
 ## The guardian of the defeat being told (or &""): Hold is offered against it.
 var _guardian: StringName = &""
@@ -89,10 +88,10 @@ var _guardian: StringName = &""
 var _held: bool = false
 ## The tick Hold was asked for at, or -1: until the simulation steps, it reads Holding.
 var _hold_asked: int = -1
-## The depth and the safe depth as the events have told them so far (spec 046 R1).
+## The depth and the safe depth as the events have told them so far.
 var _depth_now: int = 0
 var _safe_now: int = 0
-## The area those depths are stages of (spec 049).
+## The area those depths are stages of.
 var _area_now: StringName = &""
 ## The chamber of the fight just lost, as Vector2i(depth, index) (index -1 when none), the names
 ## of the monsters alive in it and its guardian (or &"").
@@ -198,7 +197,7 @@ func suggestions() -> Array[String]:
 
 
 ## What clicking button [param index] does, by the suggestion that button showed: opens the
-## Talents tab of a hero with talent points (spec 055) or of the hero it named, opens the shop, or
+## Talents tab of a hero with talent points or of the hero it named, opens the shop, or
 ## sets the guardian order to Hold.
 func press(index: int) -> void:
 	if index < 0 or index >= _shown.size():
@@ -257,7 +256,7 @@ func wipe_line(event: SimEvent) -> String:
 	return _wipe_line
 
 
-## The journal's line for the wipe [param event] (spec 041 R6, spec 046 R6): the first line and
+## The journal's line for the wipe [param event]: the first line and
 ## where the party falls back to, [code]Beaten by the Slime King on Mossy Hollow 5; falling back
 ## to Mossy Hollow 4[/code], or [code]; regrouping there[/code] when it fell on its safe stage.
 func journal_line(event: SimEvent) -> String:
@@ -384,7 +383,7 @@ func _suggest() -> void:
 		if _spender < 0 and hero.talent_points() > 0:
 			_spender = hero.id
 	if _spender >= 0:
-		_helps.append(Help.TALENTS)  # spec 055 R8: ahead of the other advice
+		_helps.append(Help.TALENTS)  # ahead of the other advice
 	_trainee = _trainee_with_points()
 	if _trainee >= 0:
 		_helps.append(Help.TRAIN)
@@ -392,7 +391,7 @@ func _suggest() -> void:
 		_helps.append(Help.UPGRADE)
 	if _guardian != &"" and (_held or e.guardian_order == Expedition.GuardianOrder.CHALLENGE):
 		_helps.append(Help.HOLD)
-	# Spec 055: with talent points as well, the upgrade gives way, never Hold here.
+	# With talent points as well, the upgrade gives way, never Hold here.
 	if _helps.size() > MOST:
 		_helps.erase(Help.UPGRADE)
 	_helps = _helps.slice(0, MOST)
@@ -418,7 +417,7 @@ func _tip(index: int) -> String:
 	return TIPS[_shown[index]]
 
 
-## The id of the first hero in formation with a paragon point to spend (spec 051), or -1.
+## The id of the first hero in formation with a paragon point to spend, or -1.
 func _trainee_with_points() -> int:
 	for hero: Hero in _simulation.party.heroes:
 		if hero.paragon_points() > 0:
@@ -427,7 +426,7 @@ func _trainee_with_points() -> int:
 
 
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought. One whose
-## resource the party lacks cannot (spec 052).
+## resource the party lacks cannot.
 func _cheapest_upgrade() -> int:
 	var cheapest: int = 0
 	for id: StringName in Content.upgrade_ids():
@@ -452,14 +451,14 @@ func _input(event: InputEvent) -> void:
 	var motion: InputEventMouseMotion = event as InputEventMouseMotion
 	if motion != null:
 		# Under a window or the button bar is nowhere for the note, unless on the note itself,
-		# which lies over every window (spec 062 R4).
+		# which lies over every window.
 		var at: Vector2 = motion.position
 		var on_note: bool = _on_screen and Hud.on_screen(panel).has_point(at)
 		var covered: bool = _hud != null and _hud.windows != null and _hud.windows.covers(at)
 		point_at(UiTip.NOWHERE if covered and not on_note else at)
 
 
-## True once the party is up and the heroes have stood (spec 038), or the world tells nothing.
+## True once the party is up and the heroes have stood, or the world tells nothing.
 func _stood() -> bool:
 	if _simulation.expedition.state == Expedition.State.REVIVING:
 		return false
@@ -492,6 +491,6 @@ func _show() -> void:
 	panel.show_note(_lines, texts, lit, colour, room_width, bottom)
 
 
-## [param stage] of the area of the wipe, as the screen names it (spec 049).
+## [param stage] of the area of the wipe, as the screen names it.
 func _place(stage: int) -> String:
 	return PlaceText.of(_wipe_area, stage)

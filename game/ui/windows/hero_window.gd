@@ -1,9 +1,8 @@
 class_name HeroWindow
 extends UiWindow
-## One hero's window (spec 060): the hero sheet of specs 026, 034 and 055 as a window of spec 058
-## on the UI layer, one per hero, any of them open at once, so two heroes can be read side by
-## side. [HeroWindows] makes them and opens them; the window's id is [code]hero_<n>[/code], n
-## the hero's place in the party from 0.
+## One hero's window: the hero's sheet as a window on the UI layer, one per hero, any of them open
+## at once, so two heroes can be read side by side. [HeroWindows] makes them and opens them; the
+## window's id is [code]hero_<n>[/code], n the hero's place in the party from 0.
 ##
 ## A header always shows: the class portrait at twice its size, the class and its path in bold
 ## ([code]Knight, Berserker[/code]), the level, the role, what the hero is doing now, and health and
@@ -77,7 +76,7 @@ const DOING_COLOURS: Dictionary[String, StringName] = {
 var hero_id: int = -1
 ## The hero's class portrait, at twice its size; a skull while the hero is down.
 var portrait: TextureRect
-## The class (and path) line, in bold, its path's name in the path's colour (spec 064 R1).
+## The class (and path) line, in bold, its path's name in the path's colour.
 var class_label: Label
 var path_tint: WordTint
 ## The tab buttons, in [enum Page] order; the open tab's is lit.

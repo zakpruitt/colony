@@ -1,7 +1,7 @@
 class_name TalentNode
 extends Control
-## One node of a hero's talent tree on a hero window's Talents tab (spec 064 R2, R3): its ability's
-## picture in a large [UiIcon] ([member slot]), square for an action and with cut corners for a
+## One node of a hero's talent tree on a hero window's Talents tab: its ability's picture in a
+## large [UiIcon] ([member slot]), square for an action and with cut corners for a
 ## passive, and the ability's name under it, centred, on one or two lines and never cut. No
 ## description is written here: pointing at the node shows its card ([HeroTalentsTab]).
 ##
@@ -88,8 +88,8 @@ func full_height() -> float:
 	return SLOT.y + NAME_GAP + name_label.size.y
 
 
-## Sets how the node stands. [param _pulsing] is kept for the callers of spec 055: a node that can
-## be taken now pulses by its state alone.
+## Sets how the node stands. [param _pulsing] is ignored, kept so existing callers still fit: a
+## node that can be taken now pulses by its state alone.
 func show_state(shown: State, _pulsing: bool = true) -> void:
 	if shown == _state:
 		return

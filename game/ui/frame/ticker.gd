@@ -1,6 +1,6 @@
 class_name Ticker
 extends Panel
-## The journal's newest line on the sharp layer (spec 062 R3, spec 027 R3): a one-line panel just
+## The journal's newest line on the sharp layer: a one-line panel just
 ## above the hero frames, centred, in the UI font, while [method Journal.ticker_text] has a line;
 ## its text steps down through the journal's fade colours at the end. A left click on it emits
 ## [signal clicked] (the HUD opens the Journal window); it stops every click on it.
@@ -41,7 +41,7 @@ func _gui_input(event: InputEvent) -> void:
 
 ## Shows [param text] in [param colour] (none for ""), centred across [param room_width] UI pixels
 ## with its bottom [constant GAP] above [param frames_top], but moved left as far as needed to end
-## [constant GAP] before [param right_limit] (the button bar beside it, spec 062 R10).
+## [constant GAP] before [param right_limit] (the button bar beside it).
 func show_line(
 	text: String, colour: StringName, room_width: float, frames_top: float, right_limit: float
 ) -> void:

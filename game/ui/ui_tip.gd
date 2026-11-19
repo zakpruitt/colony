@@ -1,18 +1,18 @@
 class_name UiTip
 extends PanelContainer
-## The UI layer's tooltip (spec 058 R4, R7): a title in bold where there is one, then one or two
+## The UI layer's tooltip: a title in bold where there is one, then one or two
 ## plain sentences wrapped to [constant WIDTH], in a small dark box, shown once the mouse has
 ## rested [constant DELAY] seconds on a control it was attached to, above the control (below it if
 ## there is no room above), always inside the room and never over the control. Drawn by the theme's
 ## [constant UiTheme.TIP] look and never in the way of a click.
 ##
 ## A tip hears the mouse through each control's own entering and leaving, or, with
-## [member follows_mouse] (spec 061: the frame of the screen, whose labels take no mouse), by
+## [member follows_mouse] (as on the frame of the screen, whose labels take no mouse), by
 ## finding which of its controls is under each move of the mouse, as [method point_at] does for
 ## tests. [member covered] says where the mouse is on something in front (a window), which is
 ## nowhere for a tip that follows the mouse.
 ##
-## Spec 063 R3: a control may be given a card instead ([method attach_card]): the picture of what it
+## A control may be given a card instead ([method attach_card]): the picture of what it
 ## stands for, a bold title, a grey line saying what kind of thing it is, the body wrapped to
 ## [constant CARD_WIDTH], and a last line in a colour of the caller's choice saying how it stands.
 
@@ -38,7 +38,7 @@ var follows_mouse: bool = false
 ## Given a point in the viewport's coordinates (where input events are), true while something in
 ## front covers it; unset, nothing does.
 var covered: Callable
-## A card's parts (spec 063 R3), shown instead of [member label] while a card shows.
+## A card's parts, shown instead of [member label] while a card shows.
 var card_picture: TextureRect
 var card_title: Label
 var card_kind: Label
@@ -130,7 +130,7 @@ func attach_card(control: Control, card: Callable) -> void:
 	_cards[control] = card
 
 
-## The card [param control] was given (spec 065), made now; null when it has none.
+## The card [param control] was given, made now; null when it has none.
 func card_for(control: Control) -> Card:
 	if not _cards.has(control):
 		return null
@@ -311,7 +311,7 @@ static func _read(source: Variant) -> String:
 	return str(source)
 
 
-## A card (spec 063 R3): what to show in a tooltip that is a card.
+## A card: what to show in a tooltip that is a card.
 class Card:
 	extends RefCounted
 	## The id of the thing whose picture shows ([method UiIcon.picture]).
