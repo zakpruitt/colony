@@ -3,10 +3,13 @@ extends "res://tests/acceptance/frame_061_test.gd"
 ##
 ## Each test runs the main scene with its own processing off, laid out for a chosen room, and steps
 ## it a frame at a time by hand: the simulation, the world, the effects, the HUD, the milestones
-## and the moment. The events are the simulation's own (a guardian fought and slain, XP given
-## through the expedition, a stage stood on until it is safe); where the simulation cannot report
-## what a requirement names (an area opened with no guardian, a stage made safe twice, an event
-## long past), one is sent through the world's signal as the world sends its own.
+## and the moment. The events are the simulation's own: a guardian fought and slain (its health
+## set to 1 once the fight is on), XP given through the expedition's own `_give_xp`, a stage stood
+## on until it is safe (with a short `stable_seconds`). Three kinds are sent through the world's
+## signal by hand, as the world sends its own, because the simulation cannot report them: an area
+## opened with no guardian slain (R2), a stage told safe that was safe already (R5, with one
+## further stage after it to show the bursts still come), and events stamped long past while the
+## world is not catching up (R6's first block). R8 shows banners of its own through the moment.
 
 const GUARDIAN_STAGE: int = Expedition.GUARDIAN_EVERY
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
@@ -67,15 +70,16 @@ func _earn_level(main: Main, hero: Hero, level: int) -> void:
 	main.simulation.expedition._give_xp(hero, Hero.xp_for_level(level) - hero.xp)
 
 
-## The party fights the guardian of [param stage] and slays it; true once GUARDIAN_SLAIN is heard.
-func _slay_guardian(main: Main, stage: int = GUARDIAN_STAGE) -> bool:
+## The party, at [param level], fights the guardian of [param stage] and slays it; true once
+## GUARDIAN_SLAIN is heard.
+func _slay_guardian(main: Main, stage: int = GUARDIAN_STAGE, level: int = STRONG_LEVEL) -> bool:
 	var slain: Array[bool] = [false]
 	var heard := func(event: SimEvent) -> void:
 		if event.kind == SimEvent.Kind.GUARDIAN_SLAIN:
 			slain[0] = true
 	main.world.sim_event.connect(heard)
 	_before_guardian(main, stage)
-	_raise(main, STRONG_LEVEL)
+	_raise(main, level)
 	var met: bool = _frames_until(
 		main, func() -> bool: return GuardianSpacing.fighting_guardian(main.simulation) != null
 	)
@@ -109,6 +113,62 @@ func _emit_old(
 	main.world.sim_event.emit(SimEvent.new(kind, tick, source, target, amount))
 
 
+## True while the world shows the words [param words] (a banner of the effects).
+func _fx_text(main: Main, words: String) -> bool:
+	for text: FxText in main.effects._texts:
+		if text.text == words:
+			return true
+	return false
+
+
+## Asserts [param picture] is [param monster]'s sprite as its sheet draws it: every part, the
+## later over the earlier, cut to what is drawn (worked out here from the sheet, pixel by pixel).
+func _assert_whole_sprite(monster: StringName, picture: Texture2D) -> void:
+	var sheet: PixelSheet = PixelSheet.load_sheet("res://assets/sprites/monsters/%s.png" % monster)
+	var drawn: Dictionary[Vector2i, Color] = {}
+	var from: Vector2i = sheet.size
+	var to: Vector2i = Vector2i.ZERO
+	assert_gt(sheet.part_names.size(), 1, "%s: a sprite of several parts" % monster)
+	for part_name: String in sheet.part_names:
+		var part: Image = sheet.part(StringName(part_name)).get_image()
+		var own: int = 0
+		for y: int in part.get_height():
+			for x: int in part.get_width():
+				var pixel: Color = part.get_pixel(x, y)
+				if pixel.a > 0.5:
+					drawn[Vector2i(x, y)] = pixel
+					from = Vector2i(mini(from.x, x), mini(from.y, y))
+					to = Vector2i(maxi(to.x, x), maxi(to.y, y))
+					own += 1
+		assert_gt(own, 0, "%s: its %s has pixels" % [monster, part_name])
+	var image: Image = picture.get_image()
+	var size := Vector2i(image.get_width(), image.get_height())
+	assert_eq(size, to - from + Vector2i.ONE, "%s: cut to what is drawn" % monster)
+	var wrong: int = 0
+	for y: int in size.y:
+		for x: int in size.x:
+			var want: Color = drawn.get(Vector2i(x, y) + from, Color(0, 0, 0, 0))
+			var got: Color = image.get_pixel(x, y)
+			if (want.a > 0.5) != (got.a > 0.5) or (want.a > 0.5 and not got.is_equal_approx(want)):
+				wrong += 1
+	assert_eq(wrong, 0, "%s: every part is drawn, pixel for pixel" % monster)
+
+
+## Asserts the banner's picture is shown at a whole multiple of its own size, inside the banner.
+func _assert_whole_scale(moment: UiMoment, what: String) -> void:
+	var texture: Texture2D = moment.banner_picture.texture
+	var shown: Vector2 = moment.banner_picture.size
+	var times: float = shown.x / texture.get_width()
+	assert_gte(times, 1.0, "%s: no smaller than its pixels" % what)
+	assert_eq(times, floorf(times), "%s: at a whole-number scale (%s)" % [what, times])
+	assert_eq(shown, texture.get_size() * times, "%s: never stretched unevenly" % what)
+	assert_eq(moment.banner_picture.stretch_mode, TextureRect.STRETCH_SCALE, "%s: filled" % what)
+	assert_true(
+		moment.banner.get_global_rect().encloses(moment.banner_picture.get_global_rect()),
+		"%s: the picture inside the banner" % what
+	)
+
+
 func _has_line(main: Main, wanted: String) -> bool:
 	for line: String in main.hud.journal.lines():
 		if line.contains(wanted):
@@ -138,31 +198,22 @@ func test_r1_a_guardian_beaten() -> void:
 	assert_true(main.simulation.is_area_open(&"claypits"), "which opens the Claypits")
 	_frame(main)
 	assert_eq(moment.shown_headline(), "Slime King is beaten", "a banner for the guardian")
-	assert_eq(moment.banner_line.text, "The Claypits are open", "saying what that gave")
+	assert_eq(moment.banner_line.text, "New area: The Claypits", "saying what that gave")
 	var picture: Texture2D = Milestones.guardian_picture(&"slime_king")
 	assert_not_null(picture, "the guardian has a picture")
 	assert_eq(moment.banner_picture.texture, picture, "the guardian's own sprite")
-	if picture != null:
-		var image: Image = picture.get_image()
-		var sheet: PixelSheet = PixelSheet.load_sheet(
-			"res://assets/sprites/monsters/slime_king.png"
-		)
-		var body: Image = sheet.part(&"body").get_image()
-		var solid: int = 0
-		var same: int = 0
-		var used: Rect2i = body.get_used_rect()
-		assert_lte(image.get_width(), sheet.size.x, "no wider than the sprite")
-		assert_eq(image.get_width(), image.get_height(), "square, so it is not stretched")
-		for y: int in image.get_height():
-			for x: int in image.get_width():
-				if image.get_pixel(x, y).a > 0.5:
-					solid += 1
-		for y: int in range(used.position.y, used.end.y):
-			for x: int in range(used.position.x, used.end.x):
-				if body.get_pixel(x, y).a > 0.5:
-					same += 1
-		assert_gte(solid, same, "all of its body is in the picture (%d of %d)" % [solid, same])
-		assert_gt(same, 200, "a body of some size")
+	for i: int in 20:
+		_frame(main)  # the banner unrolls
+	_assert_whole_scale(moment, "the Slime King")
+	for area: StringName in Content.area_ids():
+		var guardian: StringName = Content.area(area).guardian
+		var sprite: Texture2D = Milestones.guardian_picture(guardian)
+		assert_not_null(sprite, "%s has a picture" % guardian)
+		if sprite != null:
+			_assert_whole_sprite(guardian, sprite)
+			var shown: Vector2 = UiMoment.picture_size(sprite)
+			assert_eq(shown.x / sprite.get_width(), shown.y / sprite.get_height(), "even")
+			assert_eq(fmod(shown.x, sprite.get_width()), 0.0, "%s: whole" % guardian)
 	var seen: Array[String] = _headlines(main)
 	assert_eq(seen, ["Slime King is beaten"] as Array[String], "one banner, not two")
 
@@ -185,14 +236,18 @@ func test_r2_an_area_opened() -> void:
 	var ids: Array[StringName] = Content.area_ids()
 	_emit(main, SimEvent.Kind.AREA_OPENED, -1, -1, ids.find(&"claypits"))
 	_frame(main)
-	assert_eq(moment.shown_headline(), "The Claypits are open", "a banner of its own")
+	assert_eq(moment.shown_headline(), "New area: The Claypits", "a banner of its own")
 	assert_eq(moment.banner_line.text, "It gives clay", "saying what it gives")
 	assert_not_null(ResourceIcon.texture(&"clay"), "clay has an icon")
 	assert_eq(moment.banner_picture.texture, ResourceIcon.texture(&"clay"), "the resource's icon")
+	assert_eq(moment.banner_picture.size, UiMoment.BANNER_PICTURE, "as large as its place")
+	for i: int in 20:
+		_frame(main)  # the banner unrolls
+	_assert_whole_scale(moment, "the clay")
 	moment.banner_clicked()
 	_emit(main, SimEvent.Kind.AREA_OPENED, -1, -1, ids.find(&"ember_deep"))
 	_frame(main)
-	assert_eq(moment.shown_headline(), "Ember Deep is open", "one area, one thing")
+	assert_eq(moment.shown_headline(), "New area: Ember Deep", "the same words for any area")
 	assert_eq(moment.banner_line.text, "It gives embers")
 	assert_eq(moment.banner_picture.texture, ResourceIcon.texture(&"embers"))
 
@@ -337,53 +392,71 @@ func test_r6_only_for_what_just_happened() -> void:
 	var main: Main = _start()
 	var moment: UiMoment = main.ui.moment
 	var knight: Hero = main.simulation.party.heroes[0]
+	var frame: HeroFrameView = _frame_of(main, knight.id)
+	var panel: PlacePanel = main.hud.place_panel
+	var e: Expedition = main.simulation.expedition
 	var ids: Array[StringName] = Content.area_ids()
-	_set_level(knight, 4)
 	_frame(main)
 	_frame(main)
 	assert_false(main.world.catching_up(), "not catching up")
 	var bursts: int = moment.bursts_seen()
 
-	# Events long past, heard now.
+	# Events long past, heard now (sent by hand: the simulation stamps its own with this tick).
 	var old: int = 10 * Simulation.TICKS_PER_SECOND
 	_emit_old(main, SimEvent.Kind.GUARDIAN_SLAIN, Expedition.FIRST_MONSTER_ID, -1, 5, old)
 	_emit_old(main, SimEvent.Kind.AREA_OPENED, -1, -1, ids.find(&"claypits"), old)
 	_emit_old(main, SimEvent.Kind.AREA_OPENED, -1, -1, ids.find(&"old_crypt"), old - 1)
-	_emit_old(main, SimEvent.Kind.LEVEL_UP, -1, knight.id, 5, old)
-	_emit_old(main, SimEvent.Kind.TALENT_POINT_GAINED, knight.id, -1, 6, old)
-	_emit_old(main, SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 4, old)
+	_emit_old(main, SimEvent.Kind.LEVEL_UP, -1, knight.id, knight.level, old)
+	_emit_old(main, SimEvent.Kind.TALENT_POINT_GAINED, knight.id, -1, knight.level, old)
+	_emit_old(main, SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 2, old)
 	_frame(main, 0)
 	assert_eq(moment.bursts_seen(), bursts, "no burst for an old event")
 	assert_true(_all_still(main), "nothing starts for an old event")
 
-	# The same, recent: everything starts (so the check above means something).
-	_emit(main, SimEvent.Kind.GUARDIAN_SLAIN, Expedition.FIRST_MONSTER_ID, -1, 5)
-	_emit(main, SimEvent.Kind.LEVEL_UP, -1, knight.id, 5)
-	_emit(main, SimEvent.Kind.TALENT_POINT_GAINED, knight.id, -1, 6)
-	_emit(main, SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 5)
-	_frame(main, 0)
-	var frame: HeroFrameView = _frame_of(main, knight.id)
+	# The simulation's own, recent: a guardian slain, then on one tick a level with its talent
+	# point and a new safe stage. Everything runs.
+	assert_true(_slay_guardian(main, GUARDIAN_STAGE, 9), "the guardian is slain")
+	_frame(main)
 	assert_eq(moment.shown_headline(), "Slime King is beaten", "recent: the banner")
+	bursts = moment.bursts_seen()
+	e.stable_seconds = 0.1
+	_earn_level(main, knight, 10)
+	_frame(main)
+	_frame(main)
+	assert_eq(knight.level, 10, "the knight levelled")
+	assert_eq(e.last_stable_depth, GUARDIAN_STAGE, "the guardian's stage became safe")
 	assert_gt(frame.level_step, 0.0, "recent: the level steps")
 	assert_gt(frame.tag_pulse, 0.0, "recent: the tag pulses")
-	assert_gt(main.hud.place_panel.safe_step, 0.0, "recent: the safe stage steps")
-	assert_eq(moment.bursts_seen(), bursts + 2, "recent: the frame and the safe stage burst")
+	assert_gt(panel.safe_step, 0.0, "recent: the safe stage steps")
+	assert_true(moment.is_bursting(frame), "recent: the frame bursts")
+	assert_true(moment.is_bursting(panel.safe_label), "recent: the safe stage bursts")
+	assert_eq(moment.shown_headline(), "Slime King is beaten", "the banner still up")
 
-	# A catch-up starts: what is running is cleared, and its own events start nothing.
+	# A stall: the simulation runs four seconds on with nothing shown, then gives a level and a
+	# talent point on the very tick the world catches up. What was running is cleared, and
+	# neither those events nor the ones of the four seconds start anything.
 	for i: int in 4 * Simulation.TICKS_PER_SECOND:
 		main.simulation.step()
-	main.simulation.drain_events()
-	_earn_level(main, knight, 6)  # a level and a talent point, on the tick the world catches up
+	_earn_level(main, knight, 12)
+	main.simulation.step()  # the expedition hands its events over on a step
+	var heard: Dictionary[SimEvent.Kind, int] = {}
+	var listen := func(event: SimEvent) -> void:
+		if main.world.is_recent(event):
+			var before: int = heard.get(event.kind, 0)
+			heard[event.kind] = before + 1
+	main.world.sim_event.connect(listen)
 	bursts = moment.bursts_seen()
 	main.world.sync(STEP)
+	main.world.sim_event.disconnect(listen)
 	assert_true(main.world.catching_up(), "the world is catching up")
-	_emit(main, SimEvent.Kind.GUARDIAN_SLAIN, Expedition.FIRST_MONSTER_ID, -1, 5)
-	_emit(main, SimEvent.Kind.AREA_OPENED, -1, -1, ids.find(&"old_crypt"))
-	_emit(main, SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, 9)
+	var levels: int = heard.get(SimEvent.Kind.LEVEL_UP, 0)
+	var points: int = heard.get(SimEvent.Kind.TALENT_POINT_GAINED, 0)
+	assert_gte(levels, 2, "two levels heard, recent, in the catch-up")
+	assert_gte(points, 1, "and a talent point")
+	main.effects.advance(STEP)
 	main.hud.advance(STEP)
 	main.milestones.advance(STEP)
 	moment.advance(STEP)
-	assert_eq(knight.level, 6, "the knight levelled meanwhile")
 	assert_eq(moment.bursts_seen(), bursts, "no burst while catching up")
 	assert_true(_all_still(main), "what was running is cleared, and nothing starts")
 	_frame(main, 0)
@@ -428,23 +501,35 @@ func test_r6_the_away_report_still_tells() -> void:
 
 func test_r7_nothing_lost() -> void:
 	var main: Main = _start()
+	var moment: UiMoment = main.ui.moment
 	var knight: Hero = main.simulation.party.heroes[0]
 	var frame: HeroFrameView = _frame_of(main, knight.id)
+	var panel: PlacePanel = main.hud.place_panel
 	var e: Expedition = main.simulation.expedition
-	# A level and its talent point.
+	var gains: Array[StringName] = [UiMoment.SMALL_SOUND, UiMoment.GRAND_SOUND]
+	var ticker: Array[String] = []
+	main.hud.journal.ticker_changed.connect(
+		func() -> void: ticker.append(main.hud.journal.ticker_text())
+	)
+	# A level and its talent point: the burst is there and silent, the level's own are all there.
 	_set_level(knight, 5)
 	_frame(main)
 	main.sound.drain_started()
 	_earn_level(main, knight, 6)
 	_frame(main)
 	var sounds: Array[StringName] = main.sound.drain_started()
+	assert_true(moment.is_bursting(frame), "the level bursts the frame")
+	assert_gt(frame.tag_pulse, 0.0, "and the point pulses the tag")
 	assert_has(sounds, &"level_up", "the level's own sound")
+	for gain: StringName in gains:
+		assert_does_not_have(sounds, gain, "a level and a talent point: no %s" % gain)
+	assert_true(_fx_text(main, "LEVEL UP"), "the world's LEVEL UP over the hero")
+	assert_gt(main.effects.live_particles(), 8, "with its rising sparks")
 	assert_gt(frame.level_pulse(), 0.0, "the level's old pulse")
 	assert_true(_has_line(main, "Knight reached level 6"), "the journal's line for the level")
 	assert_true(_has_line(main, "The Knight has a talent point to spend"), "and for the point")
-	assert_eq(
-		main.hud.journal.ticker_text(), "The Knight has a talent point to spend", "the ticker"
-	)
+	assert_has(ticker, "Knight reached level 6", "the ticker's line for the level")
+	assert_has(ticker, "The Knight has a talent point to spend", "and for the point")
 	# A new safe stage.
 	_raise(main, STRONG_LEVEL)
 	e.stable_seconds = 2.0
@@ -452,28 +537,39 @@ func test_r7_nothing_lost() -> void:
 	e.target_depth = 2
 	_frame(main)
 	main.sound.drain_started()
-	var world_effects: int = 0
 	sounds.clear()
 	for i: int in 2_000:
 		_frame(main)
 		sounds.append_array(main.sound.drain_started())
 		if e.last_stable_depth == 2:
-			world_effects = main.world.effects_layer.get_child_count()
 			break
+	assert_true(moment.is_bursting(panel.safe_label), "the safe stage bursts")
 	assert_has(sounds, &"depth_stable", "the safe stage's own sound")
-	assert_gt(world_effects, 0, "and the world's own banner")
+	for gain: StringName in gains:
+		assert_does_not_have(sounds, gain, "a safe stage: no %s" % gain)
+	assert_true(_fx_text(main, "MOSSY HOLLOW 2 STABLE"), "the world's own banner")
 	assert_true(_has_line(main, "Mossy Hollow 2 is now stable"), "the journal's line for it")
+	assert_has(ticker, "Mossy Hollow 2 is now stable", "the ticker's line for it")
 	# A guardian, and the area it opens.
 	sounds.clear()
-	var heard := func(_event: SimEvent) -> void: sounds.append_array(main.sound.drain_started())
-	main.world.sim_event.connect(heard)
+	var listen := func(_event: SimEvent) -> void: sounds.append_array(main.sound.drain_started())
+	main.world.sim_event.connect(listen)
 	assert_true(_slay_guardian(main), "the guardian is slain")
-	_frame(main)
-	sounds.append_array(main.sound.drain_started())
-	main.world.sim_event.disconnect(heard)
+	main.world.sim_event.disconnect(listen)
+	assert_true(_fx_text(main, "GUARDIAN SLAIN"), "the world's GUARDIAN SLAIN")
+	var banner: bool = false
+	for i: int in 30:
+		_frame(main)
+		sounds.append_array(main.sound.drain_started())
+		banner = banner or moment.shown_headline() == "Slime King is beaten"
+	assert_true(banner, "the guardian's banner shows")
 	assert_has(sounds, &"guardian_slain", "the guardian's fanfare")
+	for gain: StringName in gains:
+		assert_does_not_have(sounds, gain, "a guardian: no %s" % gain)
 	assert_true(_has_line(main, "Slew the Slime King on Mossy Hollow 5"), "the journal's line")
 	assert_true(_has_line(main, "The Claypits is open"), "and the area's, as it was")
+	assert_has(ticker, "Slew the Slime King on Mossy Hollow 5", "the ticker's line for it")
+	assert_has(ticker, "The Claypits is open", "and for the area")
 	assert_eq(main.hud.area_map.news.unseen, 1, "the area map's mark")
 
 
@@ -499,10 +595,10 @@ func test_r8_fits_both_rooms() -> void:
 				[Milestones.beaten_text(guardian), Milestones.behind_text(area, 95)],
 				[
 					Milestones.beaten_text(guardian),
-					Milestones.open_text([area] as Array[StringName])
+					Milestones.opened_text([area] as Array[StringName])
 				],
 				[
-					Milestones.open_text([area] as Array[StringName]),
+					Milestones.opened_text([area] as Array[StringName]),
 					Milestones.gives_text(def.resource)
 				],
 			]
@@ -522,9 +618,7 @@ func test_r8_fits_both_rooms() -> void:
 				for label: Label in [moment.banner_headline, moment.banner_line]:
 					var ink: Rect2 = _ink(label)
 					assert_true(box.grow(0.5).encloses(ink), "%s: %s inside" % [what, label.name])
-				assert_true(
-					box.encloses(moment.banner_picture.get_global_rect()), "%s: its picture" % what
-				)
+				_assert_whole_scale(moment, what)
 				var pieces: Dictionary[String, Control] = _pieces(main)
 				pieces["goals"] = main.hud.goals_view
 				pieces["stage list"] = main.hud.ladder
@@ -545,7 +639,9 @@ func test_r8_fits_both_rooms() -> void:
 
 func test_r9_wiki_and_showcase() -> void:
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
-	for words: String in ["is beaten", "is behind you", "steps up", "pulses three times", "Safe"]:
+	for words: String in [
+		"is beaten", "New area:", "is behind you", "steps up", "pulses three times"
+	]:
 		assert_true(wiki.contains(words), "the wiki tells of '%s'" % words)
 	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
 	add_child_autofree(showcase)

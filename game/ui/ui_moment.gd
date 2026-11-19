@@ -16,7 +16,9 @@ extends Control
 ## middle and the nearest of [member keep_clear] (the goals and the stage list in a game): its line
 ## wraps to at most two lines, the last shortened with "..." when it would run longer, and nothing
 ## is cut.
-## [method announce_picture] takes the picture itself in place of an id (spec 066).
+## [method announce_picture] takes the picture itself in place of an id (spec 066): it is shown at
+## the largest whole multiple of its own size that fits [constant BANNER_PICTURE], at its own size
+## when it is larger (a guardian's sprite), and the banner grows to hold it.
 ## Banners wait their turn, at most [constant MAX_WAITING]; a newer one replaces the oldest
 ## waiting. One announced shows from the next [method advance], so of many announced at once only
 ## the newest that can wait are ever shown.
@@ -24,7 +26,8 @@ extends Control
 ## Only for what just happened: with [member world] set, neither starts while the world is
 ## catching up, nor for an [param event] that is not recent ([method World.is_recent]); and when a
 ## catch-up starts, what waits and what is running are dropped. The burst plays the small gain's
-## sound and the banner the grand one, through [member sound].
+## sound and the banner the grand one, through [member sound]; a [code]quiet[/code] one plays
+## none (spec 066: an event that has a sound of its own).
 
 ## How long a burst lasts, how long its frame flashes, and when the pop is at its biggest.
 const BURST_SECONDS: float = 0.6
@@ -68,6 +71,7 @@ var keep_clear: Array[Control] = []
 ## The banner, its picture, its headline and its line.
 var banner: Panel
 var banner_picture: TextureRect
+var banner_picture_frame: Panel
 var banner_headline: Label
 var banner_line: Label
 
@@ -92,18 +96,18 @@ func _init() -> void:
 	banner.add_theme_stylebox_override(&"panel", UiTheme.box(&"night", &"amber"))
 	banner.gui_input.connect(_on_banner_input)
 	add_child(banner)
-	var frame := Panel.new()  # a gold frame round the picture
-	frame.name = "PictureFrame"
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.add_theme_stylebox_override(&"panel", UiTheme.box(&"ink", &"yellow"))
-	frame.position = Vector2.ONE * (BANNER_PAD - 2.0)
-	frame.size = BANNER_PICTURE + Vector2(4, 4)
-	banner.add_child(frame)
+	banner_picture_frame = Panel.new()  # a gold frame round the picture
+	banner_picture_frame.name = "PictureFrame"
+	banner_picture_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	banner_picture_frame.add_theme_stylebox_override(&"panel", UiTheme.box(&"ink", &"yellow"))
+	banner_picture_frame.position = Vector2.ONE * (BANNER_PAD - 2.0)
+	banner_picture_frame.size = BANNER_PICTURE + Vector2(4, 4)
+	banner.add_child(banner_picture_frame)
 	banner_picture = TextureRect.new()
 	banner_picture.name = "Picture"
 	banner_picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	banner_picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	banner_picture.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	banner_picture.stretch_mode = TextureRect.STRETCH_SCALE
 	banner_picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
 	banner_picture.position = Vector2.ONE * BANNER_PAD
 	banner_picture.size = BANNER_PICTURE
@@ -127,8 +131,9 @@ func fit_room(room: Vector2i) -> void:
 
 ## Marks a gain on [param control]: a flash, a ring of sparks and a pop (see the class
 ## description). Nothing starts for an [param event] that is not recent, or while the world is
-## catching up. A second burst on a control that is bursting starts it again.
-func burst(control: Control, event: SimEvent = null) -> void:
+## catching up. A second burst on a control that is bursting starts it again. A [param quiet]
+## burst plays no sound.
+func burst(control: Control, event: SimEvent = null, quiet: bool = false) -> void:
 	if control == null or not _may_start(event):
 		return
 	var running: Burst = _burst_of(control)
@@ -144,7 +149,7 @@ func burst(control: Control, event: SimEvent = null) -> void:
 	running.time = 0.0
 	control.pivot_offset = control.size / 2.0
 	_bursts_seen += 1
-	if sound != null:
+	if sound != null and not quiet:
 		sound.play(SMALL_SOUND)
 	queue_redraw()
 
@@ -159,14 +164,16 @@ func announce(
 
 
 ## Queues a banner as [method announce] does, its picture [param picture] itself (spec 066: a
-## guardian's sprite, an area's resource), shown as large as fits the picture's place, whole.
+## guardian's sprite, an area's resource), shown at a whole multiple of its size ([method
+## picture_size]). A [param quiet] banner plays no sound when it shows.
 func announce_picture(
-	picture: Texture2D, headline: String, line: String, event: SimEvent = null
+	picture: Texture2D, headline: String, line: String, event: SimEvent = null, quiet: bool = false
 ) -> void:
 	if not _may_start(event):
 		return
 	var made := Banner.new()
 	made.picture = picture
+	made.quiet = quiet
 	made.headline = headline
 	made.line = line
 	_waiting.append(made)
@@ -356,7 +363,7 @@ func _show_banner(shown: Banner) -> void:
 	_lay_out_banner()
 	banner.visible = true
 	_place_banner()
-	if sound != null:
+	if sound != null and not shown.quiet:
 		sound.play(GRAND_SOUND)
 
 
@@ -364,7 +371,10 @@ func _show_banner(shown: Banner) -> void:
 ## the line wrapped to fit, the line to at most [constant BANNER_LINES] lines.
 func _lay_out_banner() -> void:
 	_banner_room = room_for_banner()
-	var words_x: float = BANNER_PAD + BANNER_PICTURE.x + BANNER_GAP
+	var picture: Vector2 = picture_size(_shown.picture)
+	banner_picture.size = picture
+	banner_picture_frame.size = picture + Vector2(4, 4)
+	var words_x: float = BANNER_PAD + picture.x + BANNER_GAP
 	var width: float = minf(BANNER_LINE_WIDTH, _banner_room - words_x - BANNER_PAD)
 	WindowText.set_text(banner_headline, _shortened(_shown.headline, width, true))
 	var lines: Array[String] = WindowText.wrap(_shown.line, width)
@@ -377,11 +387,22 @@ func _lay_out_banner() -> void:
 		maxf(banner_headline.size.x, banner_line.size.x),
 		banner_headline.size.y + banner_line.size.y
 	)
-	var inner_height: float = maxf(BANNER_PICTURE.y, words.y)
+	var inner_height: float = maxf(picture.y, words.y)
 	var words_y: float = BANNER_PAD + floorf((inner_height - words.y) / 2.0)
 	banner_headline.position = Vector2(words_x, words_y)
 	banner_line.position = Vector2(words_x, words_y + banner_headline.size.y)
 	_banner_full = Vector2(words_x + words.x + BANNER_PAD, inner_height + 2.0 * BANNER_PAD).ceil()
+
+
+## The size [param picture] is shown at on a banner: the largest whole multiple of its own size
+## that fits [constant BANNER_PICTURE] (a 16x16 picture at three times), its own size when that is
+## larger; [constant BANNER_PICTURE] for none.
+static func picture_size(picture: Texture2D) -> Vector2:
+	if picture == null or picture.get_width() <= 0 or picture.get_height() <= 0:
+		return BANNER_PICTURE
+	var own: Vector2 = picture.get_size()
+	var times: float = floorf(minf(BANNER_PICTURE.x / own.x, BANNER_PICTURE.y / own.y))
+	return own * maxf(times, 1.0)
 
 
 ## The widest the banner may be, centred in the room, in UI pixels: as far as the nearest of
@@ -457,5 +478,6 @@ class Burst:
 class Banner:
 	extends RefCounted
 	var picture: Texture2D
+	var quiet: bool = false
 	var headline: String
 	var line: String

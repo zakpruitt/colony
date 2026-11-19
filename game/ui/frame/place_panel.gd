@@ -111,7 +111,8 @@ func step_safe() -> void:
 	_show_step()
 
 
-## Runs the safe stage's step on by [param delta] seconds.
+## Runs the safe stage's step on by [param delta] seconds. [Milestones] calls it every frame, not
+## the HUD (which only calls [method show_place], with no time).
 func advance(delta: float) -> void:
 	if safe_step <= 0.0:
 		return
