@@ -7,5 +7,6 @@ script = ExtResource("1")
 class_id = &"knight"
 trunk = Array[StringName]([&"shield_bash", &"taunt", &"bottle_top_block"])
 path_names = Array[String](["Guardian", "Berserker"])
+path_summaries = Array[String](["holds the line and keeps the party standing", "fights hurt, strikes faster and heals by hitting"])
 path_a = Array[StringName]([&"hold_the_line", &"last_stand", &"bulwark", &"rallying_cry"])
 path_b = Array[StringName]([&"whirlwind", &"bloodthirst", &"reckless_swing", &"rampage"])

@@ -119,7 +119,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"area_map": 1.5,
 	&"journey": 1.2,
 	&"four_areas": 0.2,
-	&"talent_tree": 0.6,
+	&"talent_tree": 2.5,  # spec 064: the path's banner shows after the node's
 	&"away_report": 2.0,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
@@ -230,9 +230,9 @@ const STATUS_FROM: Dictionary[int, StringName] = {
 const STATUS_SECONDS: float = 30.0
 const STATUS_MONSTERS: int = 3
 ## The tree's moment: the knight's level (four talent points), and seconds between its clicks
-## (short: the whole pass must stay within test_018's limit).
+## (long enough to see each node burst, short enough for test_018's limit).
 const TREE_LEVEL: int = 8
-const TREE_STEP: float = 0.2
+const TREE_STEP: float = 0.6
 
 ## The game, as the main scene builds it.
 var main: Main
@@ -459,11 +459,13 @@ func _begin(current: StringName) -> void:
 			_area_turn = -1
 			_areas_seen.clear()
 		&"talent_tree":
-			# Spec 055: the knight at level 8 with one trunk node taken, three points to spend.
+			# Spec 055: the knight at level 8 with two trunk nodes taken, two points to spend (spec
+			# 064: one for the last trunk node, one for a path).
 			_settle_now()
 			var knight: Hero = sim.party.heroes[0]
 			_set_level(knight, TREE_LEVEL)
-			knight.set_talents([Content.talent_tree(knight.class_id).trunk[0]] as Array[StringName])
+			var trunk: Array[StringName] = Content.talent_tree(knight.class_id).trunk
+			knight.set_talents(trunk.slice(0, 2))
 			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)  # spec 060
 			_tree_clicks = 0
 		&"away_report":
@@ -918,12 +920,12 @@ func _cut_to_area(id: StringName) -> void:
 
 
 ## The tree's moment: at once and then every TREE_STEP seconds, the next click on the knight's
-## Talents tab: the two trunk nodes left, then the first Berserker node, which asks, then Choose.
+## Talents tab: the trunk node left, then the first Berserker node, which asks, then Choose.
 func _click_through_tree() -> void:
 	var knight_id: int = main.simulation.party.heroes[0].id
 	var tab: HeroTalentsTab = main.hud.hero_windows.window_of(knight_id).talents
 	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
-	var clicks: Array[StringName] = [tree.trunk[1], tree.trunk[2], tree.path_b[0], &"choose"]
+	var clicks: Array[StringName] = [tree.trunk[2], tree.path_b[0], &"choose"]
 	var due: int = mini(floori(_moment_time / TREE_STEP) + 1, clicks.size())
 	while _tree_clicks < due:
 		var click: StringName = clicks[_tree_clicks]

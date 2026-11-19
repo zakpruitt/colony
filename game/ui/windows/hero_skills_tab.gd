@@ -1,9 +1,10 @@
 class_name HeroSkillsTab
 extends Control
-## A hero window's Skills tab (spec 028, as cards by spec 060 R6): a [HeroSkillsTab.Card] per
-## microskill the hero's class learns, in the class's order. A learned one shows its name in white,
-## what it does, and which side quests it answers; one still to come is dimmed, with the level it
-## comes at. Read from the simulation at each [method refresh].
+## A hero window's Skills tab (spec 028, as cards by spec 060 R6, with framed pictures by spec 064
+## R10): a [HeroSkillsTab.Card] per microskill the hero's class learns, in the class's order. A
+## learned one shows its picture owned, its name in white, what it does, and which side quests it
+## answers; one still to come is dimmed, its picture locked with its level under it. Read from the
+## simulation at each [method refresh].
 
 ## UI pixels between two cards, and between a card's picture and its words.
 const CARD_GAP: float = 10.0
@@ -45,8 +46,11 @@ func refresh() -> void:
 	var hero: Hero = _simulation.party.hero(_hero_id) if _simulation != null else null
 	if hero == null:
 		return
+	var y: float = 0.0
 	for card: Card in cards:
 		card.show_learned(hero.level >= card.level)
+		card.position.y = y  # a card to come is a line taller, for its level under the picture
+		y += card.size.y + CARD_GAP
 
 
 ## The cards' lines, one per card: [code]Lockpicker: Opens locks[/code] for one learned,
@@ -62,9 +66,10 @@ func lines() -> Array[String]:
 	return made
 
 
-## One microskill's card: its picture (spec 063) at twice its size, and beside it its name, what
-## it does (or the level it comes at), and the side quests it answers, the words wrapped to the
-## card's width. A microskill still to come has its picture dimmed.
+## One microskill's card: its picture (spec 063) in a large [UiIcon] (spec 064 R10), owned when the
+## hero has it and locked, its level under it ([code]Level 8[/code]), when not; beside it its name,
+## what it does (or the level it comes at), and the side quests it answers, the words wrapped to the
+## card's width.
 class Card:
 	extends Control
 
@@ -76,8 +81,11 @@ class Card:
 	var name_label: Label
 	var text_label: Label
 	var answers_label: Label
-	## The microskill's own picture, at the card's left.
+	## The microskill's slot at the card's left, and its picture.
+	var slot: UiIcon
 	var picture: TextureRect
+	## [code]Level 8[/code], under the slot while the microskill is still to come.
+	var level_label: Label
 
 	var _width: float = 0.0
 	## Where the words start, right of the picture.
@@ -88,17 +96,20 @@ class Card:
 		level = at_level
 		name = "Card_%s" % shown.id
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
-		picture = TextureRect.new()
-		picture.name = "Picture"
-		picture.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		picture.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		picture.stretch_mode = TextureRect.STRETCH_SCALE
-		picture.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-		picture.custom_minimum_size = UiIcon.PICTURE_SIZE * 2.0
-		picture.size = UiIcon.PICTURE_SIZE * 2.0
-		picture.texture = UiIcon.picture(shown.id)
-		add_child(picture)
-		_words_x = picture.size.x + PICTURE_GAP
+		slot = UiIcon.new(shown.id, true, UiIcon.Shape.CUT)
+		slot.name = "Slot"
+		slot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(slot)
+		picture = slot.picture_rect
+		level_label = WindowText.label("Level", "Level %d" % at_level, &"steel")
+		add_child(level_label)
+		# The slot and its level centred in one column, as wide as the wider of them.
+		var column: float = maxf(slot.size.x, level_label.size.x)
+		slot.position.x = floorf((column - slot.size.x) / 2.0)
+		level_label.position = Vector2(
+			floorf((column - level_label.size.x) / 2.0), slot.size.y + 1.0
+		)
+		_words_x = column + PICTURE_GAP
 		_width = width - _words_x
 		width = _width
 		name_label = WindowText.label("Name", shown.display_name, &"white", true)
@@ -122,7 +133,8 @@ class Card:
 		learned = true
 		show_learned(false)
 
-	## Shows the card as learned (white, what it does) or to come (dimmed, its level).
+	## Shows the card as learned (white, what it does, the slot owned) or to come (dimmed, its
+	## level, the slot locked).
 	func show_learned(has: bool) -> void:
 		if has == learned:
 			return
@@ -137,8 +149,10 @@ class Card:
 		var bottom: float = answers_label.position.y
 		if answers_label.visible:
 			bottom += answers_label.size.y
-		size = Vector2(_words_x + _width, maxf(bottom, picture.size.y))
-		picture.modulate = Color.WHITE if has else UiIcon.LOCKED_TINT
+		slot.show_state(UiIcon.State.OWNED if has else UiIcon.State.LOCKED)
+		level_label.visible = not has
+		var low: float = level_label.position.y + level_label.size.y if not has else slot.size.y
+		size = Vector2(_words_x + _width, maxf(bottom, low))
 		var dim: Color = Palette.color(TalentNode.DIM)
 		name_label.add_theme_color_override(&"font_color", Palette.color(&"white") if has else dim)
 		text_label.add_theme_color_override(&"font_color", Palette.color(&"silver") if has else dim)

@@ -545,7 +545,8 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	hud.hero_windows.open(rogue.id, HeroWindow.Page.TALENTS)
 	var sheet: HeroWindow = hud.hero_windows.window_of(rogue.id)
 	hud.advance(0.1)
-	assert_eq(sheet.line(&"talent_points"), "5 talent points", "level 17 earns 7, two are spent")
+	# Spec 064 R7: the points read "to spend".
+	assert_eq(sheet.line(&"talent_points"), "5 points to spend", "level 17 earns 7, two are spent")
 	assert_eq(sheet.line(&"paragon_points"), "3 paragon points", "and three paragon points")
 	assert_eq(sheet.line(&"training_power"), "Power 0 +0%", "nothing in Power yet")
 	assert_true(sheet.page_marked(HeroWindow.Page.TALENTS), "the tab asks for a look")
@@ -568,7 +569,8 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	assert_false(sheet.page_marked(HeroWindow.Page.TALENTS), "nothing more to spend")
 	var row: ParagonCell = sheet.talents.paragon_cells[0]
 	assert_eq(row.id, &"power", "the first cell is Power")
-	assert_true(row.buy_button.disabled, "the button is dim with no point")
+	# Spec 064 R9: a medallion, not ready with no point.
+	assert_ne(row.medallion.state(), UiIcon.State.READY, "the medallion is not ready with no point")
 	sheet.train_row(0)
 	sim.step()
 	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 3, "and spends nothing")
@@ -577,7 +579,7 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	sim.take_talent(rogue.id, &"finisher")
 	sim.step()
 	hud.advance(0.1)
-	assert_eq(sheet.line(&"talent_points"), "4 talent points", "one talent point fewer")
+	assert_eq(sheet.line(&"talent_points"), "4 points to spend", "one talent point fewer")
 
 
 # --- R7 ------------------------------------------------------------------------
