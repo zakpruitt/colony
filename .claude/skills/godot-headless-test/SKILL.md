@@ -20,7 +20,8 @@ base; `tests/unit/test_colony_test.gd` fails on one that does not. It holds what
 | `mouse_button(at, pressed, button = LEFT)` | one press or release |
 | `click(at, button = LEFT)` | moves there and clicks; the mouse stays (move it away yourself if a hover would get in the way) |
 | `raise(hero, level)` / `raise_party(simulation, level)` | gains a level's experience (levelling up as in play) and full health |
-| `set_party_level(simulation, level)` | sets level and experience outright, full health, no levelling up |
+| `set_level_keeping_health(hero, level)` | sets level and experience outright: no levelling up, health untouched |
+| `set_party_level(simulation, level)` | the same for the whole party, then full health |
 | `step_until(simulation, done, limit)` | steps until `done` is true, checking first; fails the test after `limit` ticks |
 | `make_main()` | the main scene, instantiated, not in the tree, no save store or settings |
 | `save_path(tag = "", extension = "save")` | a per-process file under `user://`, deleted with its `.bak` and `.tmp` after each test and after the last |
@@ -185,11 +186,18 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 (a `Main` with a save store saves again when GUT frees it, after `after_each`):
 
 ```gdscript
-var _path: String = save_path()  # user://test_<script>_<pid>.save
-var _settings: String = save_path("", "settings")
+var _path: String = save_path()  # in test_032_game_speed.gd: user://test_032_game_speed_<pid>.save
+var _b: String = save_path("b", "settings")  # user://test_032_game_speed_b_<pid>.settings
 ```
 
-The `harness` check step fails on a test script that mentions `user://` with no `after_all` in it or a base
+A test names no `user://` path of its own: the `harness` step fails on a `user://` string literal in a
+test script other than `colony_test.gd`, except in an assertion about a game class's `DEFAULT_PATH`.
+
+```gdscript
+assert_eq(SaveStore.DEFAULT_PATH, "user://colony.save")  # allowed: the game's own default
+```
+
+The `harness` step also fails on a test script that mentions `user://` with no `after_all` in it or a base
 it extends, and on a tracked `.gd` without its tracked `.gd.uid`.
 
 Code that must not raise engine errors on a missing or damaged file (and a test that checks one with
