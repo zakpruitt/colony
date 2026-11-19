@@ -145,6 +145,19 @@ The picture is drawn in two layers, each in its own pixels.
   player's (it bursts through `Main`'s `ShopWindow.moment`), any other auto-buy's. Only a fresh purchase
   flashes, bursts or announces; every fifth rank and the top one get a banner. `UiTip.card_for` reads
   the card a control was given.
+- **Milestones** (spec 066, `game/ui/frame/milestones.gd`): `Main` makes a `Milestones` node that hears
+  the world's `sim_event` and marks the run's biggest events through `UiMoment`: a guardian slain
+  gets a banner with the guardian's sprite (`Milestones.guardian_picture`, every part of its sheet
+  drawn into one texture cut to what is drawn; `UiMoment.announce_picture` takes a `Texture2D` where
+  `announce` takes a picture id, and shows it at a whole multiple of its size, `picture_size`, the
+  banner growing to hold a sprite larger than the 48 pixel place), held until the next `advance` so that the areas opened on the same tick go
+  on it rather than on a banner of their own; a level bursts the hero's frame and steps its level
+  number up (`HeroFrameView.step_level`), a talent point pulses its tag (`pulse_tag`), a stage
+  further than the safe one it knows bursts and steps `Safe N` (`PlacePanel.step_safe`, run by
+  `Milestones.advance`, since the HUD gives the panel no time). All ask `UiMoment.may_start` first
+  and are cleared when the world catches up (the hero frames by the HUD's own snap on a stall). Each
+  of these events has its own sound, so every burst and banner here passes `quiet` (the last
+  argument of `burst` and `announce_picture`) and the moment plays none.
 
 ## Time
 

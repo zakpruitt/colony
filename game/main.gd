@@ -51,6 +51,8 @@ var ui: UiRoot
 var effects: CombatEffects
 ## The party frames, the purse and the depth readout, on [member hud_layer].
 var hud: Hud
+## Marks the run's milestones on the frame of the screen (spec 066).
+var milestones: Milestones
 ## If set to 0 or more before the scene enters the tree, used as the time away instead of the
 ## real clock (for a save that has a stamp; a save without one has no time away).
 var away_seconds_override: float = -1.0
@@ -212,6 +214,9 @@ func _start_play() -> void:
 	ui.moment.keep_clear = [hud.goals_view, hud.ladder] as Array[Control]
 	world.sim_event.connect(ui.hero_windows.hear)  # spec 064: a node taken, a point spent, a skill
 	hud.shop.moment = ui.moment  # spec 065: a purchase bursts, a fifth rank gets a banner
+	milestones = Milestones.new()  # spec 066: a guardian, an area, a level, a safe stage
+	add_child(milestones)
+	milestones.setup(simulation, world, hud, ui.moment)
 	ui.windows.open_waiting()  # spec 062 R5: under the away report, when there is one
 	_welcome()
 

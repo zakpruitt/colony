@@ -217,6 +217,11 @@ showcase's leftovers, not the game.</p>
   framed slot with the rank on it, pips for the ranks, and what it gives now beside what the next rank
   gives (<code>Damage and healing  +15%  &gt;  +20%</code>). Buying a rank bursts the picture and fills its
   pip with a flash; every fifth rank, and the last, drops a banner.</td></tr>
+  <tr><td>066 The run's milestones, announced</td><td>The biggest things a run does are marked on the frame
+  of the screen. A guardian beaten drops a banner with its own sprite (<em>Slime King is beaten</em>, over
+  <em>New area: The Claypits</em> or <em>Mossy Hollow 10 is behind you</em>). A level bursts the hero's
+  frame and its level number steps up in yellow; a talent point gained makes that frame's tag swell: it
+  pulses three times. A new safe stage bursts <em>Safe 3</em> on the place panel.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -410,7 +415,11 @@ beaten.</p>
 <p>A guardian fight is staged as a boss fight: its name appears large (<code>SLIME KING</code>, with
 <code>GUARDIAN OF MOSSY HOLLOW 5</code> under it), the screen shakes and a horn sounds; a wide red health
 bar sits at the top centre for the whole fight; and when it dies the screen shakes hard, it bursts in
-three waves, at least 20 coins pour out, <code>GUARDIAN SLAIN</code> shows in gold and a fanfare plays.</p>
+three waves, at least 20 coins pour out, <code>GUARDIAN SLAIN</code> shows in gold and a fanfare plays.
+A banner then drops in at the top of the screen with the guardian's picture: <em>Slime King is beaten</em>,
+and under it what that gave: <em>New area: The Claypits</em> the first time, <em>Mossy Hollow 10 is behind
+you</em> for a later one. The banner makes no sound of its own (the fanfare is the guardian's). Click the
+banner to send it away.</p>
 
 <h3>Resources</h3>
 <p>Each area gives its own resource. A monster killed there may drop some: a small one about three times
@@ -611,13 +620,13 @@ after a defeat is drawn over every window.</p>
 <div class="table-wrap">
 <table>
   <tr><th>Where</th><th>What</th><th>Says</th></tr>
-  <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) beside the stage in big numbers; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and under them a line for what the party is doing, with <em>Safe 3</em> (the stage a wipe sends the party back to) at its right: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
+  <tr><td>Top left</td><td>The place panel</td><td>The area's name (click it for the map) beside the stage in big numbers; the target with <kbd>-</kbd> and <kbd>+</kbd>; the Auto switch; and under them a line for what the party is doing, with <em>Safe 3</em> (the stage a wipe sends the party back to; it bursts with sparks and steps up in yellow when a further stage becomes safe) at its right: <em>Heading on to stage 5</em>, <em>Hunting on stage 4</em>, <em>Fighting 3 monsters</em>, <em>Fighting the Slime King</em>, <em>Resting, 64% health</em>, <em>Working: Locked Chest</em>, <em>On the way to The Claypits 1</em>, <em>Holding at the Slime King</em>, <em>Chased home! Regrouping</em>.</td></tr>
   <tr><td>Right of it</td><td>The countdown</td><td><em>Stable in 8:29</em> over a bar on a stage that is not yet safe; a green <em>Stable</em> once it is; <em>Further in 0:42</em> when Auto is about to move the party on, with what comes next (<em>then stage 3</em>); <em>staying on stage 3</em> with Auto off; <em>Holding</em> at a guardian the party is told to wait for.</td></tr>
   <tr><td>Under it</td><td>Goals (<kbd>G</kbd>)</td><td>Up to three things within reach, each a button with a bar or a price (and a small <code>&gt;</code> when it can be done now); click one to go where it is done.</td></tr>
   <tr><td>Top right</td><td>The purse, with the speed</td><td>The speed button (<em>1x</em>, <em>2x</em>, <em>4x</em>; lit when faster than 1x, <kbd>F</kbd>), then the gold with its coin, counting up as coins arrive. Each resource the party holds has an icon and a count, on a second row when there are many. From 10,000 the counts shorten (12.3k, 9.9M).</td></tr>
   <tr><td>Bottom right, above the frames</td><td>The button bar</td><td>A small button per window (help, the journal, the orders, the shop, the area map, the tally; a hero's window opens from its frame), lit while its window is open; rest the mouse on one for its name and key. The Shop button carries an amber tag counting the upgrades the party can pay for; the Map button a mark when a new area has opened, until the map is opened (the area's name in the place panel carries one too). The last button puts every window back in its place.</td></tr>
   <tr><td>Right edge, under the purse</td><td>The stage list (<kbd>L</kbd>)</td><td>Twelve stages of this area, headed by the area's name, each guardian's name beside its stage.</td></tr>
-  <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. Click a frame to open its window.</td></tr>
+  <tr><td>Bottom</td><td>Four hero frames</td><td>Portrait, class in bold, level, the health bar with its number on it (<em>34 / 40</em>), the XP bar, up to three status icons, and an orange tag when the hero has points to spend or a new microskill. The edge is yellow while the hero's window is open; it flashes red when the hero is hit; a fallen hero shows a skull and <em>Down</em> or <em>Recovering</em>. XP motes fly to the frame. When the hero gains a level the whole frame bursts with sparks and the level number steps up in yellow for a moment; when that level brings a talent point the tag pulses three times, so you see which hero has something to spend. Click a frame to open its window.</td></tr>
   <tr><td>Just above the frames</td><td>The ticker</td><td>The newest journal line, for 4 seconds; click it to open the journal.</td></tr>
   <tr><td>Top centre, in a guardian fight</td><td>The boss bar</td><td>The guardian's name in bold over a wide bar with its health as a number (<em>1,234 / 2,000</em>), draining smoothly and flashing on a hit.</td></tr>
 </table>

@@ -139,6 +139,10 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - `UiMoment` runs its bursts and banners in its own `_process`, and a test's loop runs no frames: in a loop
   that drives the showcase or the world by hand, call `main.ui.moment.advance(dt)` (and `main.hud.advance(dt)`)
   each step, or no banner ever shows (spec 064 R14).
+- `SoundPlayer` counts time in its own `_process` too, and has eight voices: in a loop that runs no frames
+  its clock stands still, every voice stays busy with the first sounds of a fight, and a later sound never
+  starts (`drain_started()` comes back without it). Call `main.sound._process(dt)` each step of a loop
+  that then asserts on a sound (spec 066 R7).
 - A control past the first view of a `ScrollContainer` (a hero window's paragon medallions, spec 064) cannot
   be clicked until it is scrolled into view, and the container learns how tall its content has grown only a
   frame later. Before a real click there, `await` a frame, then push wheel events over the scroll until its
