@@ -1,6 +1,6 @@
 class_name HeroStatsTab
 extends Control
-## A hero window's Stats tab (spec 060 R4): each stat on a line of its own, its name, its value,
+## A hero window's Stats tab: each stat on a line of its own, its name, its value,
 ## and beside it in green what raises it and by how much, in words
 ## ([code]Damage 14   +15% Sharp Blades, +6% Power[/code]): each camp upgrade that raises it, by
 ## its name, and the paragon stat that does. Every value is read from the simulation at each

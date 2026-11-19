@@ -1,6 +1,6 @@
 class_name AmbienceLevel
 extends Node2D
-## The decoration of one built level (spec 012): torches on the chambers' back walls, props that
+## The decoration of one built level: torches on the chambers' back walls, props that
 ## say what kind each chamber is, things buried in the earth, and the small motion around them
 ## (dust, embers, drips, critters, glints).
 ##
@@ -19,7 +19,7 @@ const NODES: int = 2
 const GLOW_Z: int = 101
 
 # Torches.
-## One torch per this many tiles of chamber width (spec: one per 6 to 8), and at least one.
+## One torch per this many tiles of chamber width, so one per 6 to 8 tiles, and at least one.
 const TORCH_SPACING: float = 7.0
 ## The torch's tile is this many rows above the floor row, so its bracket ends a tile above the
 ## floor and its flame is just over the heads of the party.
@@ -42,14 +42,16 @@ const GLEAM_ENERGY: float = 0.55
 const GLEAM_FLICKER: float = 0.25
 const GLOW_RADIUS: float = 40.0
 const GLOW_ENERGY: float = 0.5
-## Glowing props past this many on a level still glow, but cast no light (R9's budget).
+## Glowing props past this many on a level still glow, but cast no light, to keep the
+## lights in view few.
 const MAX_GLOW_LIGHTS: int = 2
 ## How many props a PLAIN chamber has at most (at least one).
 const MAX_PLAIN_PROPS: int = 3
 
 # Buried details.
 ## The earth is cut into cells this many tiles wide and tall, and each holds at most one buried
-## thing, so they are spread evenly: about one per 40 buried tiles (spec: one per 30 to 60).
+## thing, so they are spread evenly: about one per 40 buried tiles, and between one per 30 and
+## one per 60.
 const DETAIL_CELL: Vector2i = Vector2i(10, 8)
 ## Tries at finding a buried tile in a cell before leaving it empty.
 const DETAIL_TRIES: int = 8
@@ -67,7 +69,7 @@ const ROOTS: Array[StringName] = [&"root_0", &"root_1"]
 const ORES: Array[StringName] = [&"ore_copper", &"ore_iron", &"ore_gold", &"crystal_ore", &"gem"]
 
 # Motion.
-## Motes alive at most on one level, so five built levels stay inside R9's 600.
+## Motes alive at most on one level, so five built levels keep under 600 motes.
 const MAX_MOTES: int = 120
 const DUST_PER_TORCH: int = 4
 ## How far from its torch a dust mote drifts, in pixels, and how fast.
@@ -490,7 +492,7 @@ func _place_plain(
 	chamber: LabyrinthChamber, floor_free: Array[int], ceiling_free: Array[int], salt: int
 ) -> void:
 	var pool: Array[StringName] = [&"stalactite", &"stalactite", &"mushroom", &"crate", &"puddle"]
-	# Glowing things grow from the stone stratum down (R7).
+	# Glowing things grow from the stone stratum down.
 	if _band >= 2:
 		pool.append_array([&"glow_mushroom", &"glow_mushroom", &"glow_mushroom", &"glow_mushroom"])
 	if _band == 3:
@@ -630,7 +632,7 @@ func exposure_at(tile: Vector2i) -> float:
 
 ## Marks the open tiles of this band as the view draws them (chambers, tunnels and shafts,
 ## including the shaft from the level above and those of the levels either side reaching in; a
-## stage shown as its own place, spec 054, has no shafts), and from them how much light reaches
+## stage shown as its own place has no shafts), and from them how much light reaches
 ## each tile.
 func _map_open(view: LabyrinthView) -> void:
 	var width: int = Labyrinth.LEVEL_WIDTH + 2

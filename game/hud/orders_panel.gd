@@ -1,14 +1,14 @@
 class_name OrdersPanel
 extends VBoxContainer
-## The party's orders (spec 035, moved onto the UI layer by spec 058 R8): one row per order, its
-## name and a button per choice with the current one lit, and the current choice explained in a
-## full sentence under it. It is the content of the Orders window ([kbd]O[/kbd], its button on the
-## button bar, or a click on a held guardian's goal); it never pauses the game.
+## The party's orders: one row per order, its name and a button per choice with the current one
+## lit, and the current choice explained in a full sentence under it. It is the content of the
+## Orders window ([kbd]O[/kbd], its button on the button bar, or a click on a held guardian's
+## goal); it never pauses the game.
 ##
 ## It reads the orders from the simulation every frame, so a loaded save shows the saved orders;
 ## a click sends [method Simulation.set_pace] or [method Simulation.set_guardian_order], and the
 ## choice is lit at once, before the simulation applies it on its next step. From that step on each
-## row lights the simulation's own value again, whatever it holds (spec 040 R2).
+## row lights the simulation's own value again, whatever it holds.
 
 ## The rows, in order: [constant PartyOrders.PACE] then [constant PartyOrders.GUARDIANS].
 const ORDER_NAMES: Array[String] = ["Pace", "Guardians"]

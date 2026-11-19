@@ -1,6 +1,6 @@
 class_name StatusIcons
 extends Control
-## Up to three small status marks on a hero frame (spec 056 R5), the statuses the hero bears now in
+## Up to three small status marks on a hero frame, the statuses the hero bears now in
 ## [enum AbilityEffect.Status] order, from the tally's [StatusBook]; and the line naming every one
 ## of them with the seconds it has left, for the frame's tooltip.
 

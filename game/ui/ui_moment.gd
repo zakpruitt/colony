@@ -1,8 +1,8 @@
 class_name UiMoment
 extends Control
-## The moment a gain is marked (spec 063 R4 to R6): one, on the UI layer above the windows and
+## The moment a gain is marked: one, on the UI layer above the windows and
 ## under the note after a defeat and the tooltips ([member UiRoot.moment], made by
-## [method UiRoot.setup]). Which gains are marked is the callers' to decide (specs 064, 065).
+## [method UiRoot.setup]). Which gains are marked is the callers' to decide.
 ##
 ## [method burst] marks a gain on a control: for [constant BURST_SECONDS] its frame flashes white,
 ## a ring of sparks spreads from it and the control pops to [constant POP] times its size about its
@@ -16,7 +16,7 @@ extends Control
 ## middle and the nearest of [member keep_clear] (the goals and the stage list in a game): its line
 ## wraps to at most two lines, the last shortened with "..." when it would run longer, and nothing
 ## is cut.
-## [method announce_picture] takes the picture itself in place of an id (spec 066): it is shown at
+## [method announce_picture] takes the picture itself in place of an id: it is shown at
 ## the largest whole multiple of its own size that fits [constant BANNER_PICTURE], at its own size
 ## when it is larger (a guardian's sprite), and the banner grows to hold it.
 ## Banners wait their turn, at most [constant MAX_WAITING]; a newer one replaces the oldest
@@ -27,7 +27,7 @@ extends Control
 ## catching up, nor for an [param event] that is not recent ([method World.is_recent]); and when a
 ## catch-up starts, what waits and what is running are dropped. The burst plays the small gain's
 ## sound and the banner the grand one, through [member sound]; a [code]quiet[/code] one plays
-## none (spec 066: an event that has a sound of its own).
+## none (for an event that has a sound of its own).
 
 ## How long a burst lasts, how long its frame flashes, and when the pop is at its biggest.
 const BURST_SECONDS: float = 0.6
@@ -163,8 +163,8 @@ func announce(
 	announce_picture(UiIcon.picture(picture_id), headline, line, event)
 
 
-## Queues a banner as [method announce] does, its picture [param picture] itself (spec 066: a
-## guardian's sprite, an area's resource), shown at a whole multiple of its size ([method
+## Queues a banner as [method announce] does, its picture [param picture] itself (a guardian's
+## sprite, an area's resource), shown at a whole multiple of its size ([method
 ## picture_size]). A [param quiet] banner plays no sound when it shows.
 func announce_picture(
 	picture: Texture2D, headline: String, line: String, event: SimEvent = null, quiet: bool = false
@@ -274,7 +274,7 @@ func _draw() -> void:
 
 
 ## True when a moment may start for [param event] now: it is recent and the world is not catching
-## up (spec 064 asks it before starting a moment of its own, such as a path closing).
+## up. Callers ask it before starting a moment of their own, such as a path closing.
 func may_start(event: SimEvent) -> bool:
 	return _may_start(event)
 

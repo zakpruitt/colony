@@ -1,20 +1,19 @@
 class_name Showcase
 extends Node
-## A development scene (spec 018) that plays the loop's moments on demand, one after another, each
-## labelled on screen: travel, a crit, a kill, a heal, a level up, a rest, going on a stage and
-## back (spec 054: the crossing), a wipe and the revival, a stage becoming stable, a fight in each
-## other area, a guardian's fight (spec 038), side quests (spec 028): one done, one nobody can do,
-## a tripwire sprung and a microskill learned; then the area map (spec 053) with two areas open
-## and the rest closed, a journey to the Claypits and the arrival there, with the map open on the
-## way; the four areas' looks in turn (spec 054); the knight's talent tree (spec 055), a node
-## taken and a path chosen. Spec 056: each class's hero using its actions, and every status on
-## a row of fighters, each labelled with its statuses.
+## A development scene that plays the loop's moments on demand, one after another, each labelled
+## on screen: travel, a crit, a kill, a heal, a level up, a rest, going on a stage and back (the
+## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
+## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
+## labelled with its statuses), side quests (one done, one nobody can do, a tripwire sprung and a
+## microskill learned), the shop, the area map with two areas open and the rest closed, a journey
+## to the Claypits and the arrival there (with the map open on the way), the four areas' looks in
+## turn, the knight's talent tree (a node taken and a path chosen) and the report after time away.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
-## target depth, stable time and place, and [method Arrival.from_save] to cut to another
-## depth. The
-## pictures are the game's own. Everything moves in [method advance], so a test can drive a pass.
+## target depth, stable time and place, and [method Arrival.from_save] to cut to another depth.
+## The pictures are the game's own. Everything moves in [method advance], so a test can drive a
+## pass.
 ##
 ## Run it with [code]godot --path . res://game/dev/showcase.tscn[/code].
 
@@ -105,7 +104,7 @@ const LINGER: Dictionary[StringName, float] = {
 	&"clay_fight": 1.5,
 	&"stone_fight": 1.5,
 	&"deep_fight": 1.5,
-	&"guardian_fight": 7.0,  # spec 066: the fight, then the guardian falls and its banner shows
+	&"guardian_fight": 7.0,  # the fight, then the guardian falls and its banner shows
 	&"knight_actions": 1.2,
 	&"rogue_actions": 1.2,
 	&"mage_actions": 1.2,
@@ -119,15 +118,15 @@ const LINGER: Dictionary[StringName, float] = {
 	&"area_map": 1.5,
 	&"journey": 1.2,
 	&"four_areas": 0.2,
-	&"talent_tree": 2.5,  # spec 064: the path's banner shows after the node's
+	&"talent_tree": 2.5,  # the path's banner shows after the node's
 	&"away_report": 2.0,
 }
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
 ## How much faster than real time the simulation runs while the party walks to its next fight.
 const WALK_SPEED_UP: float = 3.0
-## The areas of the band fights (spec 054: one in each area after the first, each its own look),
-## and the stage each is fought on there: levels 8, 13 and 18, as the old depths were.
+## The areas of the band fights (one in each area after the first, each its own look), and the
+## stage each is fought on there.
 const BAND_AREAS: Dictionary[StringName, StringName] = {
 	&"clay_fight": &"claypits", &"stone_fight": &"old_crypt", &"deep_fight": &"ember_deep"
 }
@@ -143,7 +142,7 @@ const BAND_LEVELS: Dictionary[StringName, int] = {
 ## enough to stand, not to end it before it has been seen.
 const GUARDIAN_DEPTH: int = Expedition.GUARDIAN_EVERY
 const GUARDIAN_LEVEL: int = 10
-## Spec 066: seconds the guardian's fight is watched before the guardian is made to fall.
+## Seconds the guardian's fight is watched before the guardian is made to fall.
 const GUARDIAN_WATCH: float = 3.2
 ## How many times their health the monsters of the first fight have.
 const TOUGHER: int = 3
@@ -175,12 +174,12 @@ const CUT_TICKS: int = 1200
 const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
 ## The area the map moments open and the journey goes to.
 const NEW_AREA: StringName = &"claypits"
-## Spec 059: the gold the shop moment gives the party, enough for a few ranks.
+## The gold the shop moment gives the party, enough for a few ranks.
 const SHOP_GOLD: int = 300
-## Spec 065: the upgrade the shop moment buys, and the rank it reaches, a milestone with a banner.
+## The upgrade the shop moment buys, and the rank it reaches, a milestone with a banner.
 const SHOP_UPGRADE: StringName = &"sharp_blades"
 const SHOP_RANK: int = 5
-## Spec 056: each class's moment, the path its hero takes there (the one whose actions look most
+## Each class's moment, the path its hero takes there (the one whose actions look most
 ## unlike the trunk's), the heroes' level (every talent point earned), the stage of the fight and
 ## how many times their health the monsters have, so the hero's actions are seen.
 const CLASS_MOMENTS: Dictionary[StringName, StringName] = {
@@ -193,12 +192,12 @@ const CLASS_PATHS: Dictionary[StringName, int] = {
 	&"knight": 1, &"rogue": 1, &"mage": 0, &"cleric": 1
 }
 const CLASS_LEVEL: int = 14
-## Spec 057: how many different moves the class's hero's abilities make (an action's among them)
+## How many different moves the class's hero's abilities make (an action's among them)
 ## before its moment is seen.
 const CLASS_MOVES_SEEN: int = 2
 const CLASS_STAGE: int = 2
 const CLASS_TOUGHER: int = 6
-## Spec 056: in the statuses' moment, the statuses on each hero (by place in the party) and on
+## In the statuses' moment, the statuses on each hero (by place in the party) and on
 ## each monster (by place in the fight; the last also takes any left over), the ability each is
 ## said to come from, and how long each lasts. The fight needs this many monsters at least.
 const HERO_STATUSES: Array[Array] = [
@@ -257,7 +256,7 @@ var _steered: Dictionary[int, bool] = {}
 var _map_on_the_way: bool = false
 ## The tree's moment: the clicks made so far.
 var _tree_clicks: int = 0
-## A class's moment: the moves of the abilities its hero has used so far (spec 057), and whether
+## A class's moment: the moves of the abilities its hero has used so far, and whether
 ## one was an action.
 var _moves_used: Dictionary[StringName, bool] = {}
 var _actions_used: bool = false
@@ -432,8 +431,8 @@ func _begin(current: StringName) -> void:
 				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 			_cut_to_quest(QUEST_OF[current])
 		&"shop":
-			# Spec 059: the shop's window, gold for a few ranks, and the first row bought. Spec 065:
-			# it is Sharp Blades' fifth rank, so the card bursts and a banner drops in.
+			# The shop's window, gold for a few ranks, and the first row bought: Sharp Blades' fifth
+			# rank, so the card bursts and a banner drops in.
 			_settle_now()
 			sim.party.gold = SHOP_GOLD
 			sim.upgrades.set_rank(SHOP_UPGRADE, SHOP_RANK - 1)
@@ -461,17 +460,17 @@ func _begin(current: StringName) -> void:
 			_area_turn = -1
 			_areas_seen.clear()
 		&"talent_tree":
-			# Spec 055: the knight at level 8 with two trunk nodes taken, two points to spend (spec
-			# 064: one for the last trunk node, one for a path).
+			# The knight at level 8 with two trunk nodes taken and two points to spend: one for the
+			# last trunk node, one for a path.
 			_settle_now()
 			var knight: Hero = sim.party.heroes[0]
 			_set_level(knight, TREE_LEVEL)
 			var trunk: Array[StringName] = Content.talent_tree(knight.class_id).trunk
 			knight.set_talents(trunk.slice(0, 2))
-			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)  # spec 060
+			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
 			_tree_clicks = 0
 		&"away_report":
-			# Spec 062: the report after time away, as a window over the game.
+			# The report after time away, as a window over the game.
 			_settle_now()
 			main.away_window = main.ui.show_away(_away_report(), sim.party)
 
@@ -583,7 +582,7 @@ func _look() -> void:
 			if guardian != null:
 				_see()
 				if _since_evidence >= GUARDIAN_WATCH:
-					guardian.health = mini(guardian.health, 1)  # spec 066 R9: it falls, for its banner
+					guardian.health = mini(guardian.health, 1)  # it falls, for its banner
 		&"area_map":
 			if main.hud.area_map.is_open():
 				_see()
@@ -682,7 +681,7 @@ func _walks_to_a_fight() -> bool:
 	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting"]
 
 
-## Spec 056: puts every status on the fight's fighters through the battle's own rules (each with
+## Puts every status on the fight's fighters through the battle's own rules (each with
 ## its STATUS_BEGAN), for STATUS_SECONDS, and makes the fight harmless and long, so the row stands
 ## still to be read. A fight with too few monsters is ended and the next one taken.
 func _put_on_statuses(battle: Battle) -> void:
@@ -748,7 +747,7 @@ func _x_of(id: int) -> float:
 	return sprite.position.x if sprite != null else 0.0
 
 
-## Spec 056: while the statuses' moment shows, a label under each fighter names its statuses.
+## While the statuses' moment shows, a label under each fighter names its statuses.
 func _label_statuses() -> void:
 	var marks: StatusMarks = main.effects.ability_effects.marks
 	var ids: Array[int] = []
@@ -941,7 +940,7 @@ func _click_through_tree() -> void:
 		_tree_clicks += 1
 
 
-## An evening's time away to tell of (spec 031): gold, levels, a guardian, a quest, a microskill.
+## An evening's time away to tell of: gold, levels, a guardian, a quest, a microskill.
 func _away_report() -> AwayReport:
 	var report := AwayReport.new()
 	var e: Expedition = main.simulation.expedition

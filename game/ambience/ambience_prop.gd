@@ -1,6 +1,6 @@
 class_name AmbienceProp
 extends RefCounted
-## One placed piece of decoration (spec 012): a torch on a back wall or a prop on a chamber's
+## One placed piece of decoration: a torch on a back wall or a prop on a chamber's
 ## floor or ceiling. It is data; [AmbienceLevel] draws it.
 
 enum Anchor { FLOOR, CEILING, WALL }

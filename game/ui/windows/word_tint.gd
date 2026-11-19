@@ -1,8 +1,8 @@
 class_name WordTint
 extends Control
-## Words of a one-line label drawn again in colours of their own (spec 064 R1: a path's name in the
-## path's colour wherever a hero window names it, as in [code]Knight, Berserker[/code] or the
-## question before a path). It sits on the label, the size of it, and draws each word in the UI
+## Words of a one-line label drawn again in colours of their own (a path's name in the path's
+## colour wherever a hero window names it, as in [code]Knight, Berserker[/code] or the question
+## before a path). It sits on the label, the size of it, and draws each word in the UI
 ## font exactly over the label's own letters, so the line reads as one text with those words
 ## coloured; the label keeps its whole text.
 

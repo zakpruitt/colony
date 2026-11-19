@@ -1,6 +1,6 @@
 class_name Milestones
 extends Node
-## Marks the biggest things a run does on the frame of the screen (spec 066), with the two sizes
+## Marks the biggest things a run does on the frame of the screen, with the two sizes
 ## of moment [UiMoment] has. It hears the world's events:
 ## [br]- a guardian slain gets a banner, the guardian's own sprite its picture: [code]Slime King is
 ## beaten[/code] over [code]New area: The Claypits[/code] when that opened an area, else

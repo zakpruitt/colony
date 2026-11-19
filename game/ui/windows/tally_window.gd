@@ -1,20 +1,20 @@
 class_name TallyWindow
 extends WindowContent
-## The party tally (spec 045) as a window on the UI layer (spec 059 R4), in the manner of a damage
+## The party tally as a window on the UI layer, in the manner of a damage
 ## meter: tabs for Damage, Healing and Taken, the Last fight / Session switch, a line saying which
 ## fight, then one line per hero: its portrait, its name in bold, its number right-aligned in a
 ## column of equal-width digits and its share, over a bar in the hero's class colour scaled to the
 ## largest. Under them the session span lists the side quests of each hero who has done any.
 ##
-## Clicking a hero's line (spec 056 R6) opens its abilities under it, indented, each with a thin
+## Clicking a hero's line opens its abilities under it, indented, each with a thin
 ## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950"), largest
 ## first. A second click closes it. [kbd]Q[/kbd] and [kbd]E[/kbd] change tab while the tally is the
 ## front window (the HUD hears them).
 ##
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
-## HUD is made: after time away the HUD is made only once the replay is over (spec 019), so the time
+## HUD is made: after time away the HUD is made only once the replay is over, so the time
 ## away adds nothing. It changes nothing in the simulation. Its [StatusBook] also gives the hero
-## frames their statuses (spec 056 R5, [method status_line]).
+## frames their statuses ([method status_line]).
 
 ## The window's id, title and key.
 const ID: StringName = &"tally"
@@ -23,8 +23,8 @@ const HOTKEY: String = "T"
 ## The tab names, in [enum Tally.Measure] order, and the switch's, in [enum Tally.Span] order.
 const TAB_NAMES: Array[String] = ["Damage", "Healing", "Taken"]
 const SPAN_NAMES: Array[String] = ["Last fight", "Session"]
-## The tooltip of each tab and of each side of the switch (spec 045 R6), in the same orders.
-## A blow's whole size is what the events carry, so Damage and Taken include overkill (spec 046 R8).
+## The tooltip of each tab and of each side of the switch, in the same orders.
+## A blow's whole size is what the events carry, so Damage and Taken include overkill.
 const TAB_TIPS: Array[String] = [
 	"Damage each hero dealt to monsters, overkill on a killing blow included.",
 	"Health each hero gave back to the party, not counting healing past full health.",
@@ -114,9 +114,8 @@ func _init() -> void:
 
 
 ## Call once, before the first advance. [param world] may be null (nothing is counted then).
-func setup(simulation: Simulation, world: World, hud: Hud) -> void:
+func setup(simulation: Simulation, world: World) -> void:
 	_simulation = simulation
-	_hud = hud
 	_start_tick = simulation.tick
 	_area = simulation.expedition.place
 	_depth = simulation.expedition.depth
@@ -171,7 +170,7 @@ func rows() -> Array[String]:
 	return lines
 
 
-## Spec 056 R6: opens the line of the hero with id [param hero_id], or closes it if it is open.
+## Opens the line of the hero with id [param hero_id], or closes it if it is open.
 func open_hero(hero_id: int) -> void:
 	_opened = -1 if _opened == hero_id else hero_id
 	if is_open():
@@ -348,7 +347,7 @@ func _on_sim_event(event: SimEvent) -> void:
 
 
 ## Made while the party is fighting (the game opened or returned to mid-fight), the tally takes the
-## fight under way as begun, from the tick it began, as if it had heard it start (spec 046 R7).
+## fight under way as begun, from the tick it began, as if it had heard it start.
 func _join_fight() -> void:
 	var e: Expedition = _simulation.expedition
 	var room: LabyrinthChamber = e.chamber()
@@ -537,10 +536,10 @@ func _refresh() -> void:
 	var percents: Array[int] = Tally.percents(amounts)
 	for i: int in mini(heroes.size(), _names.size()):
 		_goals[i] = float(amounts[i]) / largest if largest > 0 else 0.0
-		_set_text(value_labels[i], Hud.group_thousands(amounts[i]))
-		_set_text(share_labels[i], "%d%%" % percents[i])
+		value_labels[i].text = Hud.group_thousands(amounts[i])
+		share_labels[i].text = "%d%%" % percents[i]
 		(hero_lines[i] as HeroLine).opened = heroes[i].id == _opened
-	_set_text(_fight_label, _fight_text())
+	_fight_label.text = _fight_text()
 	# The side quests: the session's, a line for each hero who has done any.
 	var shown: int = 0
 	for hero: Hero in heroes:
@@ -548,7 +547,7 @@ func _refresh() -> void:
 		if count <= 0 or _span != Tally.Span.SESSION or shown >= _quest_labels.size():
 			continue
 		var noun: String = "side quest" if count == 1 else "side quests"
-		_set_text(_quest_labels[shown], "%s: %d %s" % [hero.def().display_name, count, noun])
+		_quest_labels[shown].text = "%s: %d %s" % [hero.def().display_name, count, noun]
 		shown += 1
 	for i: int in _quest_labels.size():
 		_quest_labels[i].visible = i < shown
@@ -595,8 +594,8 @@ func _refresh_abilities() -> void:
 		largest = maxi(largest, amounts[named])
 	for i: int in shown.size():
 		var labels: Array[Node] = ability_lines[i].find_children("*", "Label", true, false)
-		_set_text(labels[0] as Label, shown[i])
-		_set_text(labels[1] as Label, Hud.group_thousands(amounts[shown[i]]))
+		(labels[0] as Label).text = shown[i]
+		(labels[1] as Label).text = Hud.group_thousands(amounts[shown[i]])
 		var bar: UiBar = ability_lines[i].find_children("*", "UiBar", true, false)[0] as UiBar
 		bar.fraction = float(amounts[shown[i]]) / largest if largest > 0 else 0.0
 
@@ -655,11 +654,6 @@ func _index(hero_id: int) -> int:
 		if heroes[i].id == hero_id:
 			return i
 	return -1
-
-
-func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
 
 
 ## A hero's line: a click opens or closes its abilities. It lights under the mouse and while open.

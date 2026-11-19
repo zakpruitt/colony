@@ -1,9 +1,9 @@
 class_name UiText
 extends RefCounted
-## The UI layer's font (spec 058 R3), made for reading: [code]assets/fonts/ui.px[/code] and its bold
+## The UI layer's font, made for reading: [code]assets/fonts/ui.px[/code] and its bold
 ## [code]ui_bold.px[/code], baked by [code]tools/art.py[/code] and imported as images. This class
 ## turns each sheet into a [FontFile] (so every [Control] on the layer gets it from [UiTheme]) and
-## measures text, as [PixelText] does for the world's old font.
+## measures text, as [PixelText] does for the world's font.
 ##
 ## A glyph is one part of the sheet, drawn from the left edge of a [constant CELL] cell: capitals
 ## and digits [constant CAP_HEIGHT] rows tall above the baseline, lower case [constant X_HEIGHT]

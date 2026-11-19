@@ -1,9 +1,8 @@
 class_name StageList
 extends Panel
-## The stage list on the sharp layer (spec 062 R2; specs 033, 043 and 047): the stages of this area
-## as a column of [constant RUNGS] rows at the right edge, headed by the area's name, shallow at the
-## top, with the party's stage always among them. What each stage is comes from [DepthLadder]; this
-## draws it and hears the mouse.
+## The stage list on the sharp layer: the stages of this area as a column of [constant RUNGS] rows
+## at the right edge, headed by the area's name, shallow at the top, with the party's stage always
+## among them. What each stage is comes from [DepthLadder]; this draws it and hears the mouse.
 ##
 ## A row shows its number, coloured by how the stage looks for this party ([method risk]), and,
 ## drawn in code, what it is: the party's stage (a bright diamond that bobs, its number framed in
@@ -14,7 +13,7 @@ extends Panel
 ## ([member hint]). The wheel scrolls it ([method scroll_by]); while scrolled away an arrow points
 ## toward the party, and a click on it, or [constant RETURN_SECONDS] without the mouse over the
 ## list, brings it back to following the party. [kbd]L[/kbd] hides and shows it; windows are drawn
-## over it (spec 062 R2). A goal's click (spec 042) shows it and flashes a row ([method flash]).
+## over it. A goal's click shows it and flashes a row ([method flash]).
 ## It moves only in [method advance], so a test can step it.
 
 ## A click asked for a new target (the HUD mirrors it on its own target number at once).
@@ -58,7 +57,7 @@ const BELOW_DEEPEST: int = 6
 const RETURN_SECONDS: float = 5.0
 ## The arrow toward the party while scrolled away: its box's size, centred on the rails.
 const ARROW_SIZE: Vector2 = Vector2(17, 10)
-## The frame round the number of the target's row and of the party's (spec 047 R5), in palette
+## The frame round the number of the target's row and of the party's, in palette
 ## colours that are none of [constant DepthLadder.RISK_COLOURS].
 const MARK_COLOURS: Dictionary[StringName, StringName] = {&"target": &"yellow", &"party": &"white"}
 ## Each frame's box inside its row (x from the row's left, y from its top): the target's round the
@@ -104,8 +103,8 @@ var _flash: float = 0.0
 var _following: bool = true
 ## The top row while scrolled away.
 var _view_top: int = 1
-## True while the mouse is over the list, from its enter and exit notifications only (spec 047
-## R2), and seconds since it last was.
+## True while the mouse is over the list, from its enter and exit notifications only, and seconds
+## since it last was.
 var _mouse_in: bool = false
 var _away: float = 0.0
 ## Where the last mouse event over the list put the mouse (the list's own coordinates), and
@@ -142,7 +141,7 @@ func _gui_input(event: InputEvent) -> void:
 	var mouse: InputEventMouse = event as InputEventMouse
 	if mouse == null:
 		return
-	# Spec 047 R2: an event here says where the mouse is, not that it is over the list (a press
+	# An event here says where the mouse is, not that it is over the list (a press
 	# dragged off it keeps sending them); only the enter and exit notifications say that.
 	_pointer = mouse.position
 	_has_pointer = true
@@ -184,8 +183,8 @@ func _draw() -> void:
 	draw_rect(Rect2(PADDING, CAPTION_HEIGHT, WIDTH - PADDING * 2.0, 1.0), Palette.color(&"dusk"))
 
 
-## Call once, before the first advance. [param journal] hears a dangerous click (may be null);
-## Call once: the list shows [param simulation]'s stages; [param journal] hears a dangerous target.
+## Call once, before the first advance: the list shows [param simulation]'s stages; [param journal]
+## hears a dangerous target (may be null).
 func setup(simulation: Simulation, journal: Journal) -> void:
 	_simulation = simulation
 	ladder = DepthLadder.new(simulation, journal)
@@ -235,12 +234,12 @@ func setup(simulation: Simulation, journal: Journal) -> void:
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
-	visible = _wanted  # windows, the shop's too, are drawn over it (spec 062 R2)
+	visible = _wanted  # windows, the shop's too, are drawn over it
 	if not visible:
 		hovered = 0
 	ladder.advance()
 	var e: Expedition = _simulation.expedition
-	# Spec 049 R9: the heading names the area whose stages the rows are.
+	# The heading names the area whose stages the rows are.
 	var heading: String = PlaceText.area_name(e.place)
 	if _caption.text != heading:
 		_caption.text = heading
@@ -253,7 +252,7 @@ func advance(delta: float) -> void:
 		_away += delta
 		if _away >= RETURN_SECONDS:
 			follow()
-	# Spec 047 R3: a scrolled list stays where it was put, even when the party's own view comes to
+	# A scrolled list stays where it was put, even when the party's own view comes to
 	# the same rows; only the arrow's click and the timer above bring it back.
 	if not _following:
 		_view_top = clampi(_view_top, 1, _max_top())
@@ -264,7 +263,7 @@ func advance(delta: float) -> void:
 		_scroll = lerpf(_scroll, goal, 1.0 - exp(-SCROLL_RATE * delta))
 		if absf(goal - _scroll) < 0.01:
 			_scroll = goal
-	# Spec 047 R1: the rows may have moved under a still mouse; the outline and the line go to the
+	# The rows may have moved under a still mouse; the outline and the line go to the
 	# row under it now, on the frame the rows are drawn there.
 	if _has_pointer and visible:
 		hovered = _under(_pointer)
@@ -287,7 +286,7 @@ func first_depth() -> int:
 		return 1
 	if not _following:
 		return _view_top
-	return maxi(roundi(_party_depth()) - ABOVE, 1)  # the shown stage's (spec 054)
+	return maxi(roundi(_party_depth()) - ABOVE, 1)  # the shown stage's
 
 
 ## How the stage at [param level_depth] looks for this party: see [method DepthLadder.risk].
@@ -313,7 +312,7 @@ func shown_target() -> int:
 ## Scrolls the list by [param rungs] (positive is deeper), from stage 1 at the top down to
 ## [constant BELOW_DEEPEST] rows below the furthest stage ever reached, and stops it following the
 ## party. While following, the first row is the next whole one from the list as drawn, so a notch
-## moves it at most one row even while the party is between stages (spec 047 R4). Scrolling back
+## moves it at most one row even while the party is between stages. Scrolling back
 ## onto exactly the party's own view follows it again.
 func scroll_by(rungs: int) -> void:
 	if _simulation == null or rungs == 0:
@@ -369,7 +368,7 @@ func follow() -> void:
 
 ## The arrow toward the party's row while scrolled away, in the list's own coordinates: at the
 ## right of the caption's row when the party is above the rows, on the panel's bottom edge when
-## below, so it never covers the party's diamond in the top or bottom row (spec 047 R5). Empty
+## below, so it never covers the party's diamond in the top or bottom row. Empty
 ## while following.
 func arrow_rect() -> Rect2:
 	if _following or _simulation == null:
@@ -398,8 +397,8 @@ func click_depth(depth: int) -> void:
 
 
 ## Shows the list if L hid it and flashes the row of [param level_depth] for
-## [constant FLASH_SECONDS] (spec 042: a goal's click points at its stage). A row off the list is
-## scrolled onto it first, at once, so it is on show while it blinks (spec 043 R5).
+## [constant FLASH_SECONDS] (a goal's click points at its stage). A row off the list is scrolled
+## onto it first, at once, so it is on show while it blinks.
 func flash(level_depth: int) -> void:
 	_wanted = true
 	_flash_depth = level_depth
@@ -485,7 +484,7 @@ func _under(at: Vector2) -> int:
 	return 0 if arrow_rect().has_point(at) else depth_at(at)
 
 
-## The party's stage (spec 054): the one the world shows, so the diamond moves a whole row when the
+## The party's stage: the one the world shows, so the diamond moves a whole row when the
 ## stage changes in the dark of a crossing.
 func _party_depth() -> float:
 	return float(ZoneCrossing.stage_shown(_simulation))
@@ -604,7 +603,7 @@ func _draw_rungs() -> void:
 		_draw_rung(canvas, depth, row)
 
 
-## The arrow back to the party, over the rows and outside them (spec 047 R5).
+## The arrow back to the party, over the rows and outside them.
 func _draw_arrow_layer() -> void:
 	var arrow: Rect2 = arrow_rect()
 	if arrow.has_area():
@@ -657,7 +656,7 @@ func _draw_rung(canvas: Control, depth: int, row: float) -> void:
 		var lit := Rect2(1.0, row + 1.0, WIDTH - 2.0, PITCH - 2.0)
 		_outline(canvas, lit, Palette.color(&"yellow"))
 		_outline(canvas, lit.grow(-1.0), Palette.color(&"amber"))
-	# Spec 047 R5: frames round the target's and the party's numbers (drawn under the numbers).
+	# Frames round the target's and the party's numbers (drawn under the numbers).
 	for mark: StringName in MARK_BOXES:
 		if shown.has(mark):
 			var box := Rect2(MARK_BOXES[mark].position + Vector2(0.0, row), MARK_BOXES[mark].size)

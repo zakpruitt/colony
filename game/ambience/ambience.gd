@@ -1,6 +1,6 @@
 class_name Ambience
 extends Node2D
-## Ambient life over the labyrinth view (spec 012): darkness with stepped pools of torchlight,
+## Ambient life over the labyrinth view: darkness with stepped pools of torchlight,
 ## a light that follows the party, things buried in the earth, props that say what kind each
 ## chamber is, and small motion everywhere (flames, dust, embers, drips, critters, glints).
 ## It changes no rules and decides nothing.
@@ -32,7 +32,7 @@ var _party_light: AmbienceLight
 ## The built levels' exposure maps in one texture for the darkness; remade when levels change.
 var _exposure := ImageTexture.new()
 var _exposure_stale: bool = true
-## The look the darkness was last given (spec 054): its band and stage, or (-1, 0) for none, and
+## The look the darkness was last given: its band and stage, or (-1, 0) for none, and
 ## (-2, 0) before the first.
 var _zone: Vector2i = Vector2i(-2, 0)
 
@@ -77,12 +77,12 @@ func advance(delta: float) -> void:
 	_darkness.show_lights(_visible_rect(), lights())
 
 
-## Counts for tests and for R9.
+## How many lights there are, for tests and the budget of lights.
 func light_count() -> int:
 	return lights().size()
 
 
-## Counts for tests and for R9.
+## How many motes there are, for tests and the budget of motes.
 func particle_count() -> int:
 	var count: int = 0
 	for depth: int in _levels:

@@ -1,9 +1,9 @@
 class_name UiButton
 extends Button
-## A button on the UI layer (spec 058 R4), drawn by the theme ([UiTheme]): bold text, four states
+## A button on the UI layer, drawn by the theme ([UiTheme]): bold text, four states
 ## told apart, never smaller than [constant UiTheme.BUTTON_HEIGHT] UI pixels tall. A button that
 ## has a key shows it after its text in a dimmer colour ([code]Shop  U[/code]), or set apart in a
-## small key cap when [member key_cap] is set (spec 068: the button bar's), which [member
+## small key cap when [member key_cap] is set (as the button bar's are), which [member
 ## key_corner] makes smaller and puts at the button's top right corner; [member lit] shows a
 ## toggle that is on, drawn as pressed.
 
@@ -25,13 +25,13 @@ var key_hint: String = "":
 	set(value):
 		key_hint = value
 		_fit()
-## Spec 068 R1: true to set the key apart in a small key cap, a dark box with a light edge round
+## True to set the key apart in a small key cap, a dark box with a light edge round
 ## the letter.
 var key_cap: bool = false:
 	set(value):
 		key_cap = value
 		_fit()
-## Spec 068 R4: true to make the key cap small and put it at the button's top right corner, over
+## True to make the key cap small and put it at the button's top right corner, over
 ## the button's own edge, for a button that is its icon over its name: the button is made wide
 ## enough that the icon in its middle stays clear of the cap.
 var key_corner: bool = false:

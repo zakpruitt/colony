@@ -1,6 +1,6 @@
 class_name WindowText
 extends RefCounted
-## Text and buttons laid out by hand inside a window on the UI layer (spec 060): labels sized to
+## Text and buttons laid out by hand inside a window on the UI layer: labels sized to
 ## the text they show, lines exactly [constant UiText.LINE_HEIGHT] apart, words wrapped at spaces
 ## to a width so nothing is ever cut, and buttons as wide as their words. A window whose content
 ## is placed this way is laid out the moment it changes, with nothing left for a later frame.
@@ -32,6 +32,13 @@ static func set_text(shown: Label, text: String) -> void:
 	for line: String in lines:
 		widest = maxi(widest, UiText.width(line, bold))
 	shown.size = Vector2(widest, lines.size() * UiText.LINE_HEIGHT)
+
+
+## How wide [param of]'s text inks in its own font (bold or not), in UI pixels: its width
+## without the spacing after the last glyph.
+static func ink(of: Label) -> float:
+	var bold: bool = of.get_theme_font(&"font") == UiText.font(true)
+	return maxf(UiText.width(of.text, bold) - UiText.SPACING, 0.0)
 
 
 ## A [UiButton] called [param button_name] reading [param text], as wide as its words and padding.

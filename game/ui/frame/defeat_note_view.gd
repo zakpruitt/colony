@@ -1,7 +1,7 @@
 class_name DefeatNoteView
 extends Panel
-## The note after a defeat on the sharp layer (spec 062 R4, spec 041): what beat the party and
-## where, the plainest reason, and up to [constant DefeatNote.MOST] of spec 058's buttons, centred
+## The note after a defeat on the sharp layer: what beat the party and where, the plainest
+## reason, and up to [constant DefeatNote.MOST] [UiButton]s, centred
 ## across the room just above the WIPED banner. [DefeatNote] decides what it says and what each
 ## button does; this only draws it. On the UI layer it lies over every window, so it is never
 ## hidden; it stops every click on it.
@@ -63,7 +63,7 @@ func show_note(
 			label.reset_size()
 		var own: StringName = &"white" if i == 0 else &"silver"
 		label.add_theme_color_override(&"font_color", Palette.color(own if fade == &"" else fade))
-		width = maxf(width, _ink(label))
+		width = maxf(width, WindowText.ink(label))
 		label.position.y = y
 		y += UiText.LINE_HEIGHT + 2.0
 	var row: float = 0.0
@@ -85,7 +85,7 @@ func show_note(
 	width = maxf(width, row)
 	var full: float = ceilf(width + PAD.x * 2.0)
 	for label: Label in labels:
-		label.position.x = floorf((full - _ink(label)) / 2.0)
+		label.position.x = floorf((full - WindowText.ink(label)) / 2.0)
 	var x: float = floorf((full - row) / 2.0)
 	if not texts.is_empty():
 		y += BUTTONS_GAP
@@ -95,8 +95,3 @@ func show_note(
 		y += UiTheme.BUTTON_HEIGHT
 	size = Vector2(full, ceilf(y + PAD.y))
 	position = Vector2(floorf((room_width - full) / 2.0), floorf(bottom - size.y))
-
-
-static func _ink(label: Label) -> float:
-	var bold: bool = label.get_theme_font(&"font") == UiText.font(true)
-	return maxf(UiText.width(label.text, bold) - UiText.SPACING, 0.0)

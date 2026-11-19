@@ -8,7 +8,7 @@ extends Node2D
 ## Edges (floor tops, ceilings, wall faces, and shade on the back wall), Corners (inner corners)
 ## and Ladder. The art is in [LabyrinthTiles].
 ##
-## Zoned (spec 054, the game's world), each stage is shown as its own place instead: only the
+## Zoned (as the game's world is), each stage is shown as its own place instead: only the
 ## focus stage is built, with earth all round it, no shafts and no ladders, and a doorway in the
 ## far wall where each shaft left or arrived. Its earth is its area's look ([ZoneLook]).
 
@@ -35,7 +35,7 @@ const _LAYERS: Array[String] = ["Ground", "Edges", "Corners", "Ladder"]
 
 ## Set before entering the tree.
 var labyrinth: Labyrinth
-## Set before entering the tree: true to show each stage as its own place (spec 054).
+## Set before entering the tree: true to show each stage as its own place.
 var zoned: bool = false
 ## Zoned: the area [member labyrinth] belongs to, which gives the stages their look.
 var area: StringName = &""
@@ -119,8 +119,8 @@ func open_rects_near(depth: int) -> Array[Rect2i]:
 	return rects
 
 
-## Shows [param other] instead (spec 049: the party arrived in another area): every built level
-## is freed, and the next [method set_focus] builds the new labyrinth's.
+## Shows [param other] instead, when the party arrives in another area: every built level is
+## freed, and the next [method set_focus] builds the new labyrinth's.
 func show_labyrinth(other: Labyrinth) -> void:
 	for built: int in _levels.keys():
 		_levels[built].free()

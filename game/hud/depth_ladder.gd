@@ -1,8 +1,8 @@
 class_name DepthLadder
 extends RefCounted
-## What the stage list says about each stage (spec 033, spec 043, spec 047): its marks, how it looks
-## for this party and its line in words, and what a click asks for. Since spec 062 this decides
-## only; [StageList] draws the stages on the sharp layer and hears the mouse.
+## What the stage list says about each stage: its marks, how it looks for this party and its line
+## in words, and what a click asks for. This decides only; [StageList] draws the stages on the
+## sharp layer and hears the mouse.
 ##
 ## Every mark is read from the simulation each time it is asked for ([method marks]): the party's
 ## stage, the safe stage, held (at or above the safe stage), visited (reached since), never reached,
@@ -50,17 +50,6 @@ func risk(level_depth: int) -> Risk:
 	var e: Expedition = _simulation.expedition
 	var lowest: int = PartyLevels.lowest(_simulation.party)
 	return StageRisk.judge(level_depth, e.last_stable_depth, e.level_at(level_depth), lowest)
-
-
-## The word for [param level_depth]'s risk, as its number's colour says it: "Safe", "Within
-## reach" or "Dangerous".
-func risk_word(level_depth: int) -> String:
-	match risk(level_depth):
-		Risk.REACHABLE:
-			return "Within reach"
-		Risk.DANGEROUS:
-			return "Dangerous"
-	return "Safe"
 
 
 ## What the stage at [param depth] shows: any of &"party", &"safe", &"held", &"visited",
@@ -114,7 +103,7 @@ func guardian_beaten(depth: int) -> bool:
 ## The line in words for the stage at [param depth]: [code]Mossy Hollow 7: visited[/code],
 ## [code]Mossy Hollow 5: Slime King (beaten)[/code] and so on, followed by
 ## [constant CLICK_HINT] when a click would send the party there, then on a second line how the
-## stage looks for this party (spec 043): [code]Within reach[/code] or [code]Dangerous: heroes
+## stage looks for this party: [code]Within reach[/code] or [code]Dangerous: heroes
 ## are level 3[/code], nothing for a safe stage.
 func hover_text(depth: int) -> String:
 	var parts: PackedStringArray = hover_parts(depth)
@@ -149,7 +138,7 @@ func hover_parts(depth: int) -> PackedStringArray:
 	return PackedStringArray(["%s: %s" % [place, what], click, risk_line(depth)])
 
 
-## The line for how [param depth] looks (spec 043 R2): "" for a safe stage.
+## The line for how [param depth] looks: "" for a safe stage.
 func risk_line(depth: int) -> String:
 	match risk(depth):
 		Risk.REACHABLE:

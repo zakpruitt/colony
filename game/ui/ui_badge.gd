@@ -1,10 +1,10 @@
 class_name UiBadge
 extends Control
-## The amber tag on a button of the bar (spec 059 R6), as the old HUD's Shop button had one (spec
-## 017 R2): a number in [code]ink[/code] on a small [code]amber[/code] tag that pulses to
+## The amber tag on a button of the bar: a number in [code]ink[/code] on a small
+## [code]amber[/code] tag that pulses to
 ## [code]orange[/code] and back, lifting a pixel on the beat. [UiButtonBar] shows it at its
 ## button's top-right corner while its window's [member UiWindow.badge] is above 0, on a layer of
-## its own over the bar's buttons and under the windows (spec 062 R12).
+## its own over the bar's buttons and under the windows.
 
 ## Seconds of one pulse, bright half then dim half.
 const PULSE_SECONDS: float = 0.8

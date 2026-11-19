@@ -1,6 +1,6 @@
 class_name ResourceIcon
 extends RefCounted
-## How the screen shows a resource (spec 052): its 8x8 icon, its name as a title, and the
+## How the screen shows a resource: its 8x8 icon, its name as a title, and the
 ## sentences saying where it comes from and how that area is opened.
 
 ## The sheet of resource icons, one part per resource, named by its id.

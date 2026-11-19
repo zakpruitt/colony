@@ -1,7 +1,7 @@
 class_name TargetMarker
 extends Node2D
-## A small arrow bobbing above the party that points the way to its target stage (spec 027 R5).
-## Spec 054: it points sideways, toward the doorway the party will leave by (the way on for a
+## A small arrow bobbing above the party that points the way to its target stage.
+## It points sideways, toward the doorway the party will leave by (the way on for a
 ## further target, the way back for an earlier one), never up or down. It hides in a fight,
 ## while the party is down, during a crossing and once the party is at its target stage. Drawn in
 ## code, pixel by pixel, in [code]yellow[/code] (the HUD's colour for the target) with an

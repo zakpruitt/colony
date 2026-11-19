@@ -1,27 +1,27 @@
 class_name AbilityEffects
 extends Node
-## Abilities on screen (spec 056): what a fighter's action or passive is and does, told plainly.
+## Abilities on screen: what a fighter's action or passive is and does, told plainly.
 ##
-## - R1: an ability's name rises over its fighter in the hero's (or monster's) colour, at most
+## - An ability's name rises over its fighter in the hero's (or monster's) colour, at most
 ##   [constant MAX_NAMES] stacked over one fighter. An action is named as its wind-up begins, a
 ##   passive as it fires.
-## - R2: an action's wind-up lights its fighter (a pulsing glow for its length) and performs its
-##   move (spec 057); a heavy blow throws a larger spark, damage to many a ring on the floor, a push
+## - An action's wind-up lights its fighter (a pulsing glow for its length) and performs its
+##   move; a heavy blow throws a larger spark, damage to many a ring on the floor, a push
 ##   kicks dust at the feet of those the events say it landed on (its target, and whoever its
 ##   ability's other effects reached in that tick) as they slide. A heal shows the heal effect
 ##   [CombatEffects] already draws for every HEALED, and a revive stands the fallen hero up
 ##   ([method FallenParty.stand]), even one revived in the frame it fell.
-## - R3: the statuses are [StatusMarks], drawn from [member AbilityCredit.statuses]; a status's
+## - The statuses are [StatusMarks], drawn from [member AbilityCredit.statuses]; a status's
 ##   damage number takes its colour ([method number_color]).
-## - R4: a strike that misses shows [code]Miss[/code], damage a shield absorbs [code]Blocked[/code]
+## - A strike that misses shows [code]Miss[/code], damage a shield absorbs [code]Blocked[/code]
 ##   (once a second for one shield, however many blows it takes).
 ##
 ## It listens to [signal World.sim_event] before [CombatEffects] does (that one asks it the colour
 ## of a number), and draws on [member World.effects_layer]. Everything moves in [method advance],
 ## from elapsed time, so a test can step it exactly. Names, words and [CombatEffects]' numbers keep
-## inside the band between the HUD's top and bottom, so they never cover a health bar (R8).
+## inside the band between the HUD's top and bottom, so they never cover a health bar.
 
-# Names (R1).
+# Names.
 ## Seconds a name shows, and how fast it drifts up, in pixels a second.
 const NAME_LIFE: float = 1.2
 const NAME_DRIFT: float = 8.0
@@ -29,19 +29,19 @@ const NAME_DRIFT: float = 8.0
 ## between; and between two names stacked over one fighter.
 const NAME_RAISE: float = 12.0
 const NAME_STEP: float = 8.0
-## The most names over one fighter at once (R1).
+## The most names over one fighter at once.
 const MAX_NAMES: int = 2
 ## Pixels a name or word keeps clear of the HUD's bands and the screen's sides.
 const BAND_MARGIN: float = 2.0
 
-# Wind-ups (R2).
+# Wind-ups.
 ## The glow's colour, its least and most, and how many times a second it pulses.
 const GLOW_COLOR: StringName = &"yellow"
 const GLOW_LOW: float = 0.25
 const GLOW_HIGH: float = 0.6
 const GLOW_RATE: float = 6.0
 
-# Landings (R2).
+# Landings.
 ## A damage effect at least this many times the fighter's damage is a heavy blow.
 const HEAVY: float = 1.5
 ## The heavy blow's flash, in pixels, and how many large shards it throws.
@@ -55,12 +55,12 @@ const DUST_SECONDS: float = 0.35
 ## The most particles these effects make at once.
 const MAX_PARTICLES: int = 150
 
-# Misses (R4).
+# Misses.
 const MISS_LIFE: float = 0.6
 const MISS_LEAP: float = 45.0
 const MISS_GRAVITY: float = 90.0
 
-## The colour of a status's damage numbers and of its tint and motes (R3).
+## The colour of a status's damage numbers and of its tint and motes.
 const STATUS_COLORS: Dictionary[int, StringName] = {
 	AbilityEffect.Status.BURNING: &"orange",
 	AbilityEffect.Status.BLEEDING: &"red",
@@ -69,7 +69,7 @@ const STATUS_COLORS: Dictionary[int, StringName] = {
 
 ## What each blow and heal was, and the statuses on every fighter.
 var credit: AbilityCredit = AbilityCredit.new()
-## The marks of the statuses (R3), beside the effects layer.
+## The marks of the statuses, beside the effects layer.
 var marks: StatusMarks
 
 var _world: World
@@ -152,14 +152,14 @@ func advance(delta: float) -> void:
 
 
 ## Keeps each of [param shown] (texts on the effects layer, [CombatEffects]' numbers) inside the
-## band between the HUD's top and bottom, so none covers a health bar (R8). Call after they move.
+## band between the HUD's top and bottom, so none covers a health bar. Call after they move.
 func keep_in_band(shown: Array[FxText]) -> void:
 	for text: FxText in shown:
 		if not text.on_screen:
 			text.position += _band_shift(text.rect())
 
 
-## Keeps each of [param icons] (spec 052's resource drops) inside that band while it rises and
+## Keeps each of [param icons] (resource drops) inside that band while it rises and
 ## hangs where the fighter fell; one flying to its place beside the gold crosses the screen to get
 ## there, as a coin does, and is left alone.
 func keep_drops_in_band(icons: Array[FxResource]) -> void:
@@ -170,7 +170,7 @@ func keep_drops_in_band(icons: Array[FxResource]) -> void:
 
 
 ## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
-## burning, bleeding or chilled status did (R3), [param fallback] otherwise.
+## burning, bleeding or chilled status did, [param fallback] otherwise.
 func number_color(event: SimEvent, fallback: StringName) -> StringName:
 	if event == _last_hit and STATUS_COLORS.has(credit.status):
 		return STATUS_COLORS[credit.status]
@@ -187,7 +187,7 @@ func names_over(id: int) -> Array[String]:
 	return found
 
 
-## Every name and word showing (R8 measures them).
+## Every name and word showing.
 func texts() -> Array[FxText]:
 	var found: Array[FxText] = []
 	found.append_array(_names)
@@ -274,7 +274,7 @@ func _started(event: SimEvent, recent: bool) -> void:
 	_light(event.source_id)
 	if not recent:
 		return
-	_announce(event.source_id, ability)  # its fighter's move is the World's (spec 057)
+	_announce(event.source_id, ability)  # its fighter's move is the World's to play
 	_announced[event.source_id] = ability.id
 
 
@@ -540,12 +540,7 @@ func _fighter_color(id: int) -> Color:
 
 ## The most vivid colour of [param sprite]'s sheet, read once per sheet.
 func _vivid(sprite: CharacterSprite) -> Color:
-	var sheet: Texture2D = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null:
-			sheet = atlas.atlas
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
 	if sheet == null:
 		return Palette.color(&"white")
 	var path: String = sheet.resource_path
@@ -628,11 +623,7 @@ func _particle(kind: StringName) -> FxParticle:
 
 ## The canvas height of a character's sprite, in pixels.
 static func _height(sprite: CharacterSprite) -> float:
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var texture: Texture2D = (part as Sprite2D).texture
-		if texture != null:
-			return float(texture.get_height())
-	return 24.0
+	return SpriteBounds.canvas_height(sprite)
 
 
 ## The move that keeps [param rect] (world pixels) inside the band of the screen between the

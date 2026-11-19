@@ -1,9 +1,8 @@
 class_name HeroTalentsTab
 extends Control
-## A hero window's Talents tab (spec 055, on the UI layer by spec 060, a tree of pictures by spec
-## 064): the hero's talent tree as a [TalentTreeView], the strip at its foot that shows one node in
-## full ([NextStrip]), and the paragon medallions ([ParagonCell]) once the hero has paragon points
-## or ranks.
+## A hero window's Talents tab: the hero's talent tree as a [TalentTreeView], the strip at its foot
+## that shows one node in full ([NextStrip]), and the paragon medallions ([ParagonCell]) once the
+## hero has paragon points or ranks.
 ##
 ## From the top: the unspent talent points in large letters ([code]2 points to spend[/code]), or the
 ## level that brings the next ([code]Next point at level 6[/code]), with the [code]Reset[/code]
@@ -14,7 +13,7 @@ extends Control
 ## ([member top_row]): a hero window stands it above the part that scrolls, so the question and its
 ## answers show however far the tree is scrolled.
 ##
-## Pointing at a node shows its card (spec 063's [method UiTip.attach_card]): picture, name, kind,
+## Pointing at a node shows its card ([method UiTip.attach_card]): picture, name, kind,
 ## the whole description and how it stands in words ([method standing]). A click on a node that can
 ## be taken takes it ([method Simulation.take_talent]), as does the strip's [code]Learn[/code]; the
 ## first node of a path asks first, and only [code]Choose[/code] sends the command. A reset asks
@@ -77,7 +76,7 @@ var _hero_id: int = -1
 var _asking: Asking = Asking.NOTHING
 ## The node a path question is about.
 var _asked_node: StringName = &""
-## The price a reset question named: if it changes, the question goes (spec 055 R6).
+## The price a reset question named: if it changes, the question goes.
 var _asked_price: int = 0
 var _width: float = 0.0
 var _paragon_y: float = 0.0
@@ -148,7 +147,7 @@ func _draw() -> void:
 
 func _notification(what: int) -> void:
 	# The tab or its window was hidden: a question asked on it is forgotten, never answered later
-	# at a price or a choice the player no longer sees.
+	# at a price or a choice the player cannot see.
 	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
 		_asking = Asking.NOTHING
 		if question_card != null:
@@ -169,10 +168,10 @@ func refresh(delta: float) -> void:
 		return
 	tree.refresh(hero, delta)
 	if _asking == Asking.PATH and tree.state_of(_asked_node) != TalentNode.State.AVAILABLE:
-		_asking = Asking.NOTHING  # the node was taken, or can no longer be: nothing to ask
+		_asking = Asking.NOTHING  # the node was taken, or cannot be: nothing to ask
 	if _asking == Asking.RESET:
 		if not reset_reason(hero).is_empty() or Simulation.reset_price(hero) != _asked_price:
-			_asking = Asking.NOTHING  # in a fight, too poor, or the price is no longer the one asked
+			_asking = Asking.NOTHING  # in a fight, too poor, or the price is not the one asked
 	if not is_visible_in_tree():
 		_asking = Asking.NOTHING
 	_refresh_top(hero)
@@ -242,7 +241,7 @@ func spend_paragon(index: int) -> void:
 	var hero: Hero = _hero()
 	if hero == null or index < 0 or index >= paragon_cells.size():
 		return
-	# A press reaching a cell while the tab is hidden does nothing (spec 034 R3).
+	# A press reaching a cell while the tab is hidden does nothing.
 	if hero.paragon_points() <= 0 or not is_visible_in_tree():
 		return
 	_simulation.spend_paragon(hero.id, Content.training(paragon_cells[index].id).stat)
@@ -299,7 +298,7 @@ static func reason(hero: Hero, ability_id: StringName) -> String:
 	return "No talent point"
 
 
-## How node [param ability_id] stands for [param hero], in words (spec 064 R5):
+## How node [param ability_id] stands for [param hero], in words:
 ## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code],
 ## [code]No points: the next comes at level 9[/code] or [code]Guardian was not chosen[/code].
 static func standing(hero: Hero, ability_id: StringName) -> String:

@@ -3,16 +3,16 @@ extends Node
 ## The main scene: one simulation, the driver that runs it, the world that shows it, and the HUD
 ## layer above, which holds a small clock readout and the dark of a crossing.
 ##
-## Spec 058 gives it two layers. The world and its effects are drawn into [member world_viewport],
-## 640x360 pixels scaled up by a whole number with hard edges; the HUD layer stays where it was in
-## the tree but draws into that viewport, and since spec 062 draws only the world's own there (the
-## dark of a crossing, the tick readout). Over it, [member ui] is the sharp UI layer with all the
-## player reads: the frame of the screen, the windows and the button bar.
+## It has two layers. The world and its effects are drawn into [member world_viewport], 640x360
+## pixels scaled up by a whole number with hard edges; the HUD layer draws into that viewport too,
+## and only what belongs to the world (the dark of a crossing, the tick readout). Over it,
+## [member ui] is the sharp UI layer with all the player reads: the frame of the screen, the
+## windows and the button bar.
 
 ## Emitted when the replay of the time away has ended, before the world is made: the
 ## simulation is then exactly where the replay left it.
 signal caught_up(report: AwayReport)
-## Emitted when the game's speed changes (spec 032), with the new speed.
+## Emitted when the game's speed changes, with the new speed.
 signal speed_changed(value: int)
 
 ## The seed of a new game.
@@ -45,35 +45,36 @@ var hud_layer: CanvasLayer
 ## shows it scaled up.
 var world_viewport: SubViewport
 var world_view: SubViewportContainer
-## The sharp UI layer over everything (spec 058): the windows and the button bar.
+## The sharp UI layer over everything: the frame of the screen, the windows and the button bar.
 var ui: UiRoot
 ## Numbers, sparks, coins and the other effects of what happens in [member world].
 var effects: CombatEffects
-## The party frames, the purse and the depth readout, on [member hud_layer].
+## What the screen tells of the party: it lays out the frame of the screen on [member ui] and
+## draws the dark of a crossing on [member hud_layer].
 var hud: Hud
-## Marks the run's milestones on the frame of the screen (spec 066).
+## Marks the run's milestones on the frame of the screen.
 var milestones: Milestones
 ## If set to 0 or more before the scene enters the tree, used as the time away instead of the
 ## real clock (for a save that has a stamp; a save without one has no time away).
 var away_seconds_override: float = -1.0
 ## The replay of the time away while it runs, then null. Null from the start without one.
 var replay: AwayReplay
-## Shown while [member replay] runs, on the sharp layer (spec 062 R6).
+## Shown while [member replay] runs, on the sharp layer.
 var catch_up_bar: CatchUpBar
 ## What happened while away, once a replay has ended; null if there was none.
 var away_report: AwayReport
-## The window telling of [member away_report] (spec 062 R5), until it closes.
+## The window telling of [member away_report], until it closes.
 var away_window: AwayWindow
-## Plays the sound effects; made with the world, so null during a replay (spec 021).
+## Plays the sound effects; made with the world, so null during a replay.
 var sound: SoundPlayer
-## The player's settings (mute, and whether help has welcomed them: spec 030 R5). Null means none:
+## The player's settings (mute, and whether help has welcomed them). Null means none:
 ## tests, screenshots and headless runs, which then never open help by themselves. Set it before
 ## the scene enters the tree to choose the file; a played game uses the default one.
 var settings: SoundSettings
-## How the window opens and what F11 does (spec 067). Null means the window is left alone: tests,
+## How the window opens and what F11 does. Null means the window is left alone: tests,
 ## screenshots and headless runs. Set it before the scene enters the tree to choose the file.
 var window_settings: WindowSettings
-## How many times real time the game runs (spec 032): one of [constant SPEEDS]. A way of
+## How many times real time the game runs: one of [constant SPEEDS]. A way of
 ## watching, not a rule: never saved, 1 in every new session, and time away is counted at 1x.
 ## Read-only outside the class: assigning it goes through [method set_speed].
 var speed: int:
@@ -209,19 +210,19 @@ func _start_play() -> void:
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	ui.setup(simulation, hud, settings)
-	ui.moment.world = world  # spec 063: moments only for what just happened, with their sounds
+	ui.moment.world = world  # moments only for what just happened, with their sounds
 	ui.moment.sound = sound
 	ui.moment.keep_clear = [hud.goals_view, hud.ladder] as Array[Control]
-	world.sim_event.connect(ui.hero_windows.hear)  # spec 064: a node taken, a point spent, a skill
-	hud.shop.moment = ui.moment  # spec 065: a purchase bursts, a fifth rank gets a banner
-	milestones = Milestones.new()  # spec 066: a guardian, an area, a level, a safe stage
+	world.sim_event.connect(ui.hero_windows.hear)  # a node taken, a point spent, a skill
+	hud.shop.moment = ui.moment  # a purchase bursts, a fifth rank gets a banner
+	milestones = Milestones.new()  # a guardian, an area, a level, a safe stage
 	add_child(milestones)
 	milestones.setup(simulation, world, hud, ui.moment)
-	ui.windows.open_waiting()  # spec 062 R5: under the away report, when there is one
+	ui.windows.open_waiting()  # under the away report, when there is one
 	_welcome()
 
 
-## Opens the help window by itself the first time a new game is played (spec 030 R5), and notes in
+## Opens the help window by itself the first time a new game is played, and notes in
 ## [member settings] that it has, so it never does again. Not over a loaded save, and never
 ## without settings (tests and screenshot runs).
 func _welcome() -> void:

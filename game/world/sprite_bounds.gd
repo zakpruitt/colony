@@ -1,8 +1,8 @@
 class_name SpriteBounds
 extends RefCounted
-## Where a sprite's pixels are (spec 038): the box around the opaque pixels of a character's
-## sheet at rest, or of one part of a sheet, and how far they reach through a fight's poses (spec
-## 048). Read from the baked sheets once each, then cached.
+## Where a sprite's pixels are: the box around the opaque pixels of a character's
+## sheet at rest, or of one part of a sheet, and how far they reach through a fight's poses.
+## Read from the baked sheets once each, then cached.
 
 ## The wind-up of the attack played to measure a reach, in seconds, and how long each attack is
 ## watched for: past its strike, its hold and its settling back.
@@ -35,8 +35,8 @@ static func half_width(sprite: CharacterSprite) -> float:
 	return body_rect(sprite, Vector2.ZERO).size.x / 2.0
 
 
-## How far [param sprite]'s pixels reach either side of its feet through a fight's poses (spec 048
-## R7): breathing, walking, a melee or a ranged attack (a lunge, a swing), a flinch. Its wider side
+## How far [param sprite]'s pixels reach either side of its feet through a fight's poses:
+## breathing, walking, a melee or a ranged attack (a lunge, a swing), a flinch. Its wider side
 ## either way, as [method half_width], so it does not change when it turns. Worked out once a sheet
 ## by playing those poses on a copy of the character, then cached.
 static func reach(sprite: CharacterSprite) -> float:
@@ -89,8 +89,8 @@ static func opaque(texture: AtlasTexture) -> Rect2i:
 static func box_of(sprite: CharacterSprite) -> Rect2i:
 	var path: String = ""
 	var parts: Array[AtlasTexture] = []
-	for node: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (node as Sprite2D).texture as AtlasTexture
+	for part: Sprite2D in parts_of(sprite):
+		var atlas: AtlasTexture = part.texture as AtlasTexture
 		if atlas != null and atlas.atlas != null:
 			parts.append(atlas)
 			path = atlas.atlas.resource_path
@@ -111,13 +111,36 @@ static func box_of(sprite: CharacterSprite) -> Rect2i:
 	return box
 
 
-## The baked sheet [param sprite] is drawn from, or "" when it has none.
-static func _sheet_path(sprite: CharacterSprite) -> String:
+## Every [Sprite2D] part of [param sprite], however deep, in tree order.
+static func parts_of(sprite: Node) -> Array[Sprite2D]:
+	var found: Array[Sprite2D] = []
 	for node: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (node as Sprite2D).texture as AtlasTexture
+		found.append(node as Sprite2D)
+	return found
+
+
+## The baked sheet [param sprite]'s first part is cut from, or null when no part is cut from one.
+static func sheet_of(sprite: Node) -> Texture2D:
+	for part: Sprite2D in parts_of(sprite):
+		var atlas: AtlasTexture = part.texture as AtlasTexture
 		if atlas != null and atlas.atlas != null:
-			return atlas.atlas.resource_path
-	return ""
+			return atlas.atlas
+	return null
+
+
+## The height of the canvas [param sprite]'s first textured part is drawn on, in pixels (24 when
+## it has none): how tall a character's frame is, whatever its pixels fill.
+static func canvas_height(sprite: Node) -> float:
+	for part: Sprite2D in parts_of(sprite):
+		if part.texture != null:
+			return float(part.texture.get_height())
+	return 24.0
+
+
+## The path of the baked sheet [param sprite] is drawn from, or "" when it has none.
+static func _sheet_path(sprite: CharacterSprite) -> String:
+	var found: Texture2D = sheet_of(sprite)
+	return found.resource_path if found != null else ""
 
 
 ## The leftmost and rightmost pixel edges (x, y) of [param posed]'s parts, facing right, from its
@@ -141,8 +164,7 @@ static func _posed_span(posed: CharacterSprite) -> Vector2:
 ## The leftmost and rightmost pixel edges (x, y) of [param posed]'s opaque parts as posed now.
 static func _drawn_span(posed: CharacterSprite) -> Vector2:
 	var span := Vector2(INF, -INF)
-	for node: Node in posed.find_children("*", "Sprite2D", true, false):
-		var part: Sprite2D = node as Sprite2D
+	for part: Sprite2D in parts_of(posed):
 		var box: Rect2i = opaque(part.texture as AtlasTexture)
 		if not part.visible or box.size == Vector2i.ZERO:
 			continue

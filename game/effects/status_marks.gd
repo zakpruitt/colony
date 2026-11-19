@@ -1,7 +1,7 @@
 class_name StatusMarks
 extends Node2D
-## The statuses on screen (spec 056 R3): on whoever has one, for as long as it lasts, gone the frame
-## it ends. What is on whom comes from a [StatusBook] kept from the events in order (R7), never
+## The statuses on screen: on whoever has one, for as long as it lasts, gone the frame
+## it ends. What is on whom comes from a [StatusBook] kept from the events in order, never
 ## from the live state ahead of them; nothing is drawn on a fighter that has fallen or gone.
 ##
 ## - stunned: three stars circling the head, and the sprite held still

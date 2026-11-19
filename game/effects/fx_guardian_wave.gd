@@ -1,6 +1,6 @@
 class_name FxGuardianWave
 extends RefCounted
-## One wave of a guardian's burst (spec 024 R3), waiting to go off: seconds until it does, where,
+## One wave of a guardian's burst, waiting to go off: seconds until it does, where,
 ## and in which colours. [CombatEffects] counts it down and calls [method burst].
 
 var due: float = 0.0
@@ -17,12 +17,8 @@ var colors: PackedColorArray = []
 static func weighted_colors(
 	sprite: CharacterSprite, distinct: PackedColorArray
 ) -> PackedColorArray:
-	var image: Image = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null and atlas.atlas != null:
-			image = atlas.atlas.get_image()
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
+	var image: Image = sheet.get_image() if sheet != null else null
 	if image == null or image.is_empty() or distinct.is_empty():
 		return distinct
 	if image.is_compressed():

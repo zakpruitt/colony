@@ -1,11 +1,11 @@
 class_name ZoneCrossing
 extends Node
-## The crossing from one place to another (spec 054): while the party is between stages the
+## The crossing from one place to another: while the party is between stages the
 ## screen dims to dark and a title names where it is arriving, then it opens on the new zone.
 ##
 ## A child of [World], which calls [method update] each frame after the events. Everything is
 ## worked out from the simulation's own clock, so a frame that steps many ticks shows the crossing
-## where the simulation has got to (spec 054 R7), and at 2x or 4x it is only sooner.
+## where the simulation has got to, and at 2x or 4x it is only sooner.
 ##
 ## - A change of stage (CLIMBING) dims over the first [constant FADE_SHARE] of the climb, is dark
 ##   while the world changes stage (at [constant SWITCH_SHARE]) and opens over the last share, so
@@ -15,7 +15,7 @@ extends Node
 ##   once the party has arrived. Once dark it stays at least as dark until the party arrives:
 ##   a journey that starts during a change of stage, or turns to a new destination (which starts
 ##   its clock again), never lights the screen on the way.
-## - A revival on another stage (spec 048 as amended) holds on the fallen for
+## - A revival on another stage holds on the fallen for
 ##   [constant FallenParty.HOLD_SECONDS], dims, names the stage, and opens over
 ##   [constant OPEN_SECONDS] as the heroes stand up.
 
@@ -53,11 +53,6 @@ func darkness() -> float:
 ## The title over the dark: where the party is arriving, or "" when none shows.
 func title() -> String:
 	return _title
-
-
-## True while a crossing dims the screen.
-func is_crossing() -> bool:
-	return _darkness > 0.0
 
 
 ## Takes note of an event the world has passed on: an arrival in another area, or a revival on

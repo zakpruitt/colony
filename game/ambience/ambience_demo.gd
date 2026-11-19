@@ -1,6 +1,6 @@
 class_name AmbienceDemo
 extends Node2D
-## Tours the labyrinth with ambience on (spec 012, R10): a party of four walks through a chamber
+## Tours the labyrinth with ambience on: a party of four walks through a chamber
 ## of every kind, a dark tunnel, and a level of every earth stratum, one stop every
 ## [constant STOP_SECONDS], with monsters standing in the dens. The caption names the stop; the
 ## corner shows the frame rate.

@@ -1,15 +1,15 @@
 class_name UiButtonBar
 extends HBoxContainer
-## The row of window buttons (spec 058 R7, spec 068), at the bottom right of the UI layer just
+## The row of window buttons, at the bottom right of the UI layer just
 ## above the line of the hero frames: one button per window on the layer, in the order the windows
-## were made. Each says what it opens (spec 068 R1): its window's icon, the window's short name
+## were made. Each says what it opens: its window's icon, the window's short name
 ## ([member UiWindow.short_name]) and its key in a small key cap. A click opens or closes the
 ## window; a button
 ## is lit while its window is open; resting on one gives the window's title, its key and what it
 ## is for in one sentence ([code]Journal (J): what has happened to the party, newest first.[/code]).
-## The last button, [member reset_button], puts every window back in its default place (R6).
+## The last button, [member reset_button], puts every window back in its default place.
 ##
-## The row has two forms (spec 068 R4, [method fit_room]). With room for it, each button is its
+## The row has two forms ([method fit_room]). With room for it, each button is its
 ## icon, its name and its key side by side, [constant ROW_HEIGHT] tall. Where that would reach
 ## into the [constant LEFT_ROOM] the bar leaves at its left (960x540), each button is its icon
 ## over its name, [constant NARROW_HEIGHT] tall, with its key in a smaller cap at its top right
@@ -18,9 +18,9 @@ extends HBoxContainer
 ## keys dropped from the buttons ([member shows_keys] is false; the tooltips still name them).
 ## The buttons are [constant UiTheme.BAR_BUTTON]s, padded a little less than other buttons.
 ##
-## A window's amber tag (spec 059 R6) stands on the top left corner of its button's icon (spec 068
-## R3), no more than [constant TAG_OUTSIDE] outside the button, so a window beside the bar never
-## cuts it, and clear of the name and the key.
+## A window's amber tag stands on the top left corner of its button's icon, no more than
+## [constant TAG_OUTSIDE] outside the button, so a window beside the bar never cuts it, and clear
+## of the name and the key.
 
 ## UI pixels between the bar and the room's right edge, and above the hero frames' line.
 const MARGIN: float = 8.0
@@ -35,16 +35,16 @@ const NARROW_HEIGHT: float = 16.0 + 1.0 + UiText.LINE_HEIGHT + 2.0 * (UiTheme.BA
 ## UI pixels between two buttons.
 const GAP: int = 2
 ## UI pixels the bar leaves free at its left with its buttons side by side: what the fourth hero
-## window, cascaded from the left, needs beside it at 1280x720 (spec 060).
+## window, cascaded from the left, needs beside it at 1280x720.
 const LEFT_ROOM: float = 754.0
 ## UI pixels the bar leaves free at its left in its narrower form: what a hero window's default
-## place and the ticker's longest line (spec 062 R10) need at 960x540, which leaves the bar 317.
+## place and the ticker's longest line need at 960x540, which leaves the bar 317.
 const NARROW_LEFT_ROOM: float = 635.0
-## Spec 068 R3: how far a tag lies over its button's icon, from the icon's top left corner, and
+## How far a tag lies over its button's icon, from the icon's top left corner, and
 ## the most it reaches outside the button (no more than [constant GAP], so never onto the next).
 const TAG_ON_ICON: float = 6.0
 const TAG_OUTSIDE: float = 2.0
-## Spec 068 R3: what each window is for, the end of its button's tooltip after its title and key.
+## What each window is for, the end of its button's tooltip after its title and key.
 const ABOUT: Dictionary[StringName, String] = {
 	UiRoot.HELP: "how Colony works, and every key it answers to.",
 	UiRoot.JOURNAL: "what has happened to the party, newest first.",
@@ -57,16 +57,16 @@ const ABOUT: Dictionary[StringName, String] = {
 const RESET_NAME: String = "Reset"
 const RESET_TIP: String = "Put every window back in its place"
 
-## Spec 068 R4: true while the buttons show their keys; false in a room too narrow for that.
+## True while the buttons show their keys; false in a room too narrow for that.
 var shows_keys: bool = true
-## Spec 068 R4: true while each button is its icon over its name, its key at its corner.
+## True while each button is its icon over its name, its key at its corner.
 var stacked: bool = false
 ## A button per window id.
 var buttons: Dictionary[StringName, UiButton] = {}
-## Spec 059 R6: each button's amber tag, shown while its window's [member UiWindow.badge] is
+## Each button's amber tag, shown while its window's [member UiWindow.badge] is
 ## above 0.
 var badges: Dictionary[StringName, UiBadge] = {}
-## The tags' own layer, just after the bar on the UI layer (spec 062 R12): drawn over every button,
+## The tags' own layer, just after the bar on the UI layer: drawn over every button,
 ## and under every window, which come later.
 var tag_layer: Control
 ## Puts every window back where a new game has it.
@@ -144,8 +144,8 @@ func rebuild() -> void:
 	refresh()
 
 
-## Lights each button whose window is open, and shows each window's tag (spec 059 R6) on the top
-## left corner of its button's icon (spec 068 R3).
+## Lights each button whose window is open, and shows each window's tag on the top left corner of
+## its button's icon.
 func refresh() -> void:
 	for id: StringName in buttons:
 		buttons[id].lit = _windows.is_open(id)
@@ -166,7 +166,7 @@ static func tag_place(button: UiButton, tag_size: Vector2) -> Vector2:
 
 
 ## Puts the bar at the bottom right of a room of [param room] UI pixels, above the frames' line,
-## in the first form that fits it (spec 068 R4): icon, name and key side by side; each icon over
+## in the first form that fits it: icon, name and key side by side; each icon over
 ## its name with the key at the button's corner; the same without the keys.
 func fit_room(room: Vector2i) -> void:
 	if _ui == null:
@@ -183,9 +183,9 @@ func fit_room(room: Vector2i) -> void:
 
 
 ## Where the bar stands in a room of [param room] UI pixels: at the right, just above the hero
-## frames' line (the hero windows keep clear of it). The bar's size goes by the room (spec 068
-## R4), so a room it is not yet laid out for is fitted first: whoever asks before the layer has
-## told the bar of a new room still gets that room's answer.
+## frames' line (the hero windows keep clear of it). The bar's size goes by the room, so a room
+## it is not yet laid out for is fitted first: whoever asks before the layer has told the bar of
+## a new room still gets that room's answer.
 func rect_in(room: Vector2i) -> Rect2:
 	if _ui == null:
 		return Rect2()

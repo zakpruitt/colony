@@ -1,6 +1,6 @@
 class_name GuardianSpacing
 extends RefCounted
-## Keeps the heroes out of a guardian's body (spec 038 R3). The simulation measures a fight to
+## Keeps the heroes out of a guardian's body. The simulation measures a fight to
 ## each fighter's middle, so a melee hero in reach of a 64-pixel guardian would be drawn inside
 ## it. While a guardian fights, the world asks this where its heroes may stand: on their side of
 ## the guardian, no nearer than its body's edge, and each no nearer than [constant ROOM] to the
@@ -9,7 +9,7 @@ extends RefCounted
 ##
 ## The edge is where the guardian's pixels reach through its poses, its lunge included, and a
 ## hero stands back by as far as its own reach through its poses, its swing included
-## ([method SpriteBounds.reach], spec 048 R7): so neither ever draws over the other.
+## ([method SpriteBounds.reach]): so neither ever draws over the other.
 
 ## Pixels kept clear between a hero's body and the guardian's.
 const GAP: float = 2.0
@@ -24,14 +24,10 @@ var _edge: Dictionary[int, float] = {}
 
 ## The living guardian in [param simulation]'s fight, or null when none fights.
 static func fighting_guardian(simulation: Simulation) -> Combatant:
-	var battle: Battle = simulation.expedition.battle
-	if battle == null or simulation.expedition.state != Expedition.State.FIGHTING:
+	if simulation.expedition.state != Expedition.State.FIGHTING:
 		return null
-	for monster: Combatant in battle.monsters:
-		var def: MonsterDef = Content.monster(monster.def_id)
-		if def != null and def.guardian and monster.is_alive():
-			return monster
-	return null
+	var guardian: Combatant = CombatEffects.battle_guardian(simulation)
+	return guardian if guardian != null and guardian.is_alive() else null
 
 
 ## Moves the goals of [param world]'s heroes in [param goals] (world pixels, by id) out of the

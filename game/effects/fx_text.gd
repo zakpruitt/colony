@@ -1,6 +1,6 @@
 class_name FxText
 extends Node2D
-## A word or number of an effect (spec 010) in the pixel font, at a whole multiple of its size,
+## A word or number of an effect in the pixel font, at a whole multiple of its size,
 ## with a 1-pixel-per-multiple ink shadow. It pops one size larger as it appears, moves in an arc
 ## (or drifts), and blinks out at the end of its life: it never fades. Its position is the centre
 ## of its baseline. [CombatEffects] creates and advances it.
@@ -11,7 +11,7 @@ const POP_TIME: float = 0.07
 const BLINK_TIME: float = 0.2
 const BLINK_STEP: float = 0.05
 
-## What it is: &"damage" and &"heal" are numbers (spec 010 R1, R2); &"banner" and &"z" are words.
+## What it is: &"damage" and &"heal" are numbers; &"banner" and &"z" are words.
 var kind: StringName = &""
 var text: String = ""
 var color: Color = Color.WHITE
@@ -31,8 +31,8 @@ var follow_id: int = -1
 ## Kept in the middle of the screen, offset by [member screen_offset] (CombatEffects places it).
 var on_screen: bool = false
 var screen_offset: Vector2 = Vector2.ZERO
-## Drawn with an ink outline all round as well as its shadow (spec 056's ability names), so it
-## reads over any wall.
+## Drawn with an ink outline all round as well as its shadow (as ability names are), so it reads
+## over any wall.
 var outline: bool = false
 
 var _exact: Vector2

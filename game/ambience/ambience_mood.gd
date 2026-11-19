@@ -1,6 +1,6 @@
 class_name AmbienceMood
 extends RefCounted
-## How dark each earth stratum is and what colour light takes there (spec 012, R1 and R7), and
+## How dark each earth stratum is and what colour light takes there, and
 ## the stepped light formula. [code]darkness.gdshader[/code] draws the same formula on the GPU;
 ## [method light_at] computes it here so tests can read it. Change one, change both.
 ##
@@ -18,7 +18,7 @@ const RING_POWER: float = 1.5
 ## colour the darkness leans toward, and how much of it there is (1 is unlit). Loam is warm,
 ## clay warmer, stone cold and darker, deep an eerie teal.
 const AMBIENT_HUE: Array[StringName] = [&"tan", &"orange", &"steel", &"cyan"]
-## The deep is lifted (spec 018 R3) so its dark monsters still read outside the party's light.
+## The deep is lifted so its dark monsters still read outside the party's light.
 const AMBIENT_LEVEL: Array[float] = [0.34, 0.33, 0.36, 0.46]
 ## How much of the hue goes into the ambient colour, the rest being grey.
 const AMBIENT_SATURATION: Array[float] = [0.45, 0.6, 0.5, 0.55]
@@ -100,7 +100,7 @@ static func daylight(y: float) -> float:
 
 ## The light at a world pixel from the ambient darkness, daylight and [param lights], of which
 ## a share of [param exposure] reaches it (see [constant EDGE_EXPOSURE]). Each channel is
-## between 0 and 1. With a [param look] (spec 054: a stage shown as its own place) there is no sky
+## between 0 and 1. With a [param look] (a stage shown as its own place) there is no sky
 ## and no daylight, and the look's stratum and stage set the ambient light.
 static func light_at(
 	world_pixels: Vector2,

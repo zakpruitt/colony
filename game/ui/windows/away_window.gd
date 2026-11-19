@@ -1,6 +1,6 @@
 class_name AwayWindow
 extends UiWindow
-## The report after time away (spec 062 R5, specs 019 and 031): a window that opens by itself in
+## The report after time away: a window that opens by itself in
 ## the middle of the room, in front of every other, telling [AwayStory]'s rows as a short list with
 ## the values right-aligned, over a button that closes it. [kbd]Esc[/kbd] closes it as it closes
 ## any front window; it also goes by itself after [constant SHOW_SECONDS], but never while the
@@ -106,9 +106,8 @@ func centre_in(room: Vector2) -> void:
 	position = ((room - size) / 2.0).floor()
 
 
-## Closes every report among [param windows]' windows (a window opened by the player closes it, as
-## the old panels did: spec 059), unless the windows are opening those left open last session,
-## which open under it (spec 062 R5).
+## Closes every report among [param windows]' windows (a window opened by the player closes it),
+## unless the windows are opening those left open last session, which open under it.
 static func close_in(windows: UiWindows) -> void:
 	if windows == null or windows.is_opening_waiting():
 		return

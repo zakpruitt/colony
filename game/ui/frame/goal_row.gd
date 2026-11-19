@@ -1,6 +1,6 @@
 class_name GoalRow
 extends Button
-## One goal on the sharp layer (spec 062 R1, specs 037 and 042): a button drawn by the theme with a
+## One goal on the sharp layer: a button drawn by the theme with a
 ## dot (a tick once achieved), the goal's sentence and, under it, a thin bar with the count at its
 ## right; a goal with no bar shows its count (a price) at the sentence's right, and a goal the
 ## player can act on now a small [code]>[/code] at the row's right edge. A left click emits
@@ -78,8 +78,8 @@ static func ink(words: String) -> float:
 	return maxf(UiText.width(words) - UiText.SPACING, 0.0)
 
 
-## True for a goal the player can act on now: talent points (spec 055), training (with paragon
-## points, spec 051) and upgrades (with gold).
+## True for a goal the player can act on now: talent points, training (with paragon points) and
+## upgrades (with gold).
 static func is_gold(goal: Goals.Goal) -> bool:
 	return goal.kind in [Goals.Kind.TALENT, Goals.Kind.TRAINING, Goals.Kind.UPGRADE]
 
@@ -95,9 +95,9 @@ func show_goal(goal: Goals.Goal, width: float, detail_column: float) -> void:
 	)
 	# White over the flash's bright fill, then green with the tick.
 	var green: bool = finished and goal.flash <= Goals.FLASH_SECONDS / 2.0
-	_set_text(sentence_label, goal.sentence, &"green" if green else &"white")
+	_show(sentence_label, goal.sentence, &"green" if green else &"white")
 	var price: bool = is_gold(goal)
-	_set_text(detail_label, goal.detail, &"yellow" if price else &"steel")
+	_show(detail_label, goal.detail, &"yellow" if price else &"steel")
 	var right: float = width - PAD
 	_arrow = Rect2()
 	if price:
@@ -189,8 +189,7 @@ func _draw_pixels(
 				draw_rect(Rect2(at + Vector2(x, y), Vector2.ONE), colour)
 
 
-static func _set_text(label: Label, words: String, colour: StringName) -> void:
-	if label.text != words:
-		label.text = words
-		label.reset_size()
+## Shows [param words] on [param label], sized to them, in the palette colour [param colour].
+static func _show(label: Label, words: String, colour: StringName) -> void:
+	WindowText.set_text(label, words)
 	label.add_theme_color_override(&"font_color", Palette.color(colour))

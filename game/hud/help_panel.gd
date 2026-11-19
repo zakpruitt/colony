@@ -1,9 +1,8 @@
 class_name HelpPanel
 extends VBoxContainer
-## Help (spec 030 R2, moved onto the UI layer by spec 058 R8): what the game is about in a few
-## lines, and every key it answers to, with what each does, in two columns. It is the content of
-## the Help window ([kbd]H[/kbd], its button on the button bar); it never pauses the game and can be
-## open beside any other window.
+## Help: what the game is about in a few lines, and every key it answers to, with what each
+## does, in two columns. It is the content of the Help window ([kbd]H[/kbd], its button on the
+## button bar); it never pauses the game and can be open beside any other window.
 ##
 ## The keys list is the one table [constant KEYS]; [method keycodes] turns each key label into
 ## the key codes it stands for, so the list can be checked against what the input code handles.

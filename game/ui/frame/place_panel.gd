@@ -1,13 +1,13 @@
 class_name PlacePanel
 extends Panel
-## Where the party is, at the top left (spec 061 R1), on the sharp layer. Its top row: the area's
-## name as a button (a click opens the area map, spec 053; [member area_mark] counts the areas
+## Where the party is, at the top left, on the sharp layer. Its top row: the area's
+## name as a button (a click opens the area map; [member area_mark] counts the areas
 ## opened since the map was last opened), the stage in large digits, the target with its
 ## [code]-[/code] and [code]+[/code] buttons, and the Auto switch. Under it, the line saying what
 ## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
 ## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
 ## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
-## Spec 066: a new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
+## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
 ## by [method advance]; [Milestones] calls both).
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
@@ -33,7 +33,7 @@ var target_label: Label
 var plus_button: UiButton
 var auto_button: UiButton
 var status_label: Label
-## Seconds left of the safe stage's step up (spec 066); 0 when still.
+## Seconds left of the safe stage's step up; 0 when still.
 var safe_step: float = 0.0
 
 var _lift: float = 0.0
@@ -93,19 +93,21 @@ func show_place(
 ) -> void:
 	if area_button.text != area:
 		area_button.text = area
-	_set_text(stage_label, str(stage))
+	# Sized at 1x here; the label stays big enough at its 2x font because a Control never shrinks
+	# below its minimum size.
+	WindowText.set_text(stage_label, str(stage))
 	stage_label.add_theme_color_override(&"font_color", Palette.color(stage_colour))
-	_set_text(safe_label, "Safe %d" % safe)
-	_set_text(target_label, str(target))
+	WindowText.set_text(safe_label, "Safe %d" % safe)
+	WindowText.set_text(target_label, str(target))
 	auto_button.text = "Auto on" if auto_on else "Auto off"
 	auto_button.lit = auto_on
-	_set_text(status_label, status)
+	WindowText.set_text(status_label, status)
 	status_label.add_theme_color_override(&"font_color", Palette.color(status_colour))
 	_lift = lift
 	lay_out()
 
 
-## Spec 066 R5: [code]Safe N[/code] steps up, in yellow, for [constant HeroFrameView.STEP_SECONDS].
+## [code]Safe N[/code] steps up, in yellow, for [constant HeroFrameView.STEP_SECONDS].
 func step_safe() -> void:
 	safe_step = HeroFrameView.STEP_SECONDS
 	_show_step()
@@ -150,23 +152,23 @@ func lay_out() -> void:
 	stage_label.position = Vector2(
 		x, BUTTON_Y + floorf((UiTheme.BUTTON_HEIGHT - caps) / 2.0) - air - _lift
 	)
-	x += _ink(stage_label, true) * STAGE_SCALE + GAP * 2.0
+	x += WindowText.ink(stage_label) * STAGE_SCALE + GAP * 2.0
 	target_caption.position = Vector2(x, text_y)
-	x += _ink(target_caption, false) + GAP
+	x += WindowText.ink(target_caption) + GAP
 	minus_button.position = Vector2(x, BUTTON_Y)
 	x += minus_button.size.x + 4.0
 	target_label.position = Vector2(x, text_y)
-	x += _ink(target_label, true) + 4.0
+	x += WindowText.ink(target_label) + 4.0
 	plus_button.position = Vector2(x, BUTTON_Y)
 	x += plus_button.size.x + GAP
 	auto_button.position = Vector2(x, BUTTON_Y)
 	x += auto_button.size.x
 	status_label.position = Vector2(PAD + 2.0, LINE_Y)
 	# The safe stage at the right of the line under the buttons, clear of the status.
-	var status_end: float = status_label.position.x + _ink(status_label, false)
-	var safe_x: float = maxf(x - _ink(safe_label, false), status_end + GAP * 2.0)
+	var status_end: float = status_label.position.x + WindowText.ink(status_label)
+	var safe_x: float = maxf(x - WindowText.ink(safe_label), status_end + GAP * 2.0)
 	safe_label.position = Vector2(safe_x, LINE_Y - HeroFrameView.step_lift(safe_step))
-	x = maxf(x, safe_x + _ink(safe_label, false))
+	x = maxf(x, safe_x + WindowText.ink(safe_label))
 	size = Vector2(ceilf(x + PAD), HEIGHT)
 
 
@@ -175,14 +177,3 @@ func _show_step() -> void:
 	var colour: StringName = &"yellow" if safe_step > 0.0 else &"silver"
 	safe_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	lay_out()
-
-
-static func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
-		label.reset_size()
-
-
-## How wide [param label]'s text inks at the font's own size, in UI pixels.
-static func _ink(label: Label, bold: bool) -> float:
-	return maxf(UiText.width(label.text, bold) - UiText.SPACING, 0.0)

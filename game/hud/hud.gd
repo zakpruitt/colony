@@ -1,46 +1,36 @@
 class_name Hud
 extends Control
-## The HUD (spec 011): what the screen tells of the party, around the world. Since spec 062 it draws
-## nothing in the world's pixels but the dark of a crossing ([CrossingVeil], with the world's own
-## title): everything else is on the sharp layer.
+## The HUD: what the screen tells of the party, around the world. It draws nothing in the world's
+## pixels but the dark of a crossing ([CrossingVeil], with the world's own title): everything else
+## is on the sharp layer.
 ##
 ## The HUD only reads the simulation, and listens to [signal World.sim_event] for hits and
 ## level-ups; the player's choices reach the simulation through [method Simulation.set_target_depth]
 ## and [method Simulation.set_auto_push]. It keeps to the top [constant TOP_BAND] and the bottom
 ## [constant BOTTOM_BAND] pixels of the 640x360 screen.
 ##
-## Spec 027 makes the party readable: the place panel says what the party is doing and why ([method
-## status_text]) and how long until this stage is stable ([method stable_text]), and a [Journal]
-## keeps the last happenings, with a ticker over the frames (its list is the Journal window on the
-## UI layer, spec 058). Spec 039 makes that note count down to auto-push's next push once the depth
-## is stable.
+## The place panel says what the party is doing and why ([method status_text]) and how long until
+## this stage is stable, or until auto-push's next push once it is ([method stable_text]); a
+## [Journal] keeps the last happenings, with a ticker over the frames (its list is the Journal
+## window on the UI layer).
 ##
-## Spec 061 draws the frame of the screen on the sharp layer, in the UI font: the [PlacePanel] and
-## the [Countdown] at the top left, the [Purse] at the top right, the [BossBarView] between them in
-## a guardian fight, and a [HeroFrameView] per hero along the bottom, all inside the two bands. They
+## The frame of the screen is on the sharp layer, in the UI font: the [PlacePanel] and the
+## [Countdown] at the top left, the [Purse] at the top right, the [BossBarView] between them in a
+## guardian fight, a [HeroFrameView] per hero along the bottom, the goals ([GoalsView]) under the
+## place panel, the stage list ([StageList]) at the right edge, the [Ticker] over the hero frames,
+## and the note after a defeat ([DefeatNoteView]), which [UiRoot] lifts over every window. They
 ## hang from [member screen_frame], which [UiRoot] takes onto its layer; a HUD on its own (a test)
 ## keeps it, scaled so that its 960x540 UI pixels cover the 640x360 screen. The texts are made here
-## and only drawn there; their tooltips are [member frame_tip], spec 058's tooltip.
-##
-## Spec 062 moves the rest there too: the goals ([GoalsView]) under the place panel, the stage list
-## ([StageList]) at the right edge, the [Ticker] over the hero frames, and the note after a defeat
-## ([DefeatNoteView]), which [UiRoot] lifts over every window. [Goals], [Journal] and [DefeatNote]
-## still decide what they say; they draw nothing.
+## and only drawn there; their tooltips are [member frame_tip]. [Goals], [Journal] and
+## [DefeatNote] decide what they say; they draw nothing.
 
 ## The screen the HUD is laid out on, in pixels.
 const SCREEN: Vector2 = Vector2(640, 360)
 ## The HUD's two bands: everything lies within the top or bottom this many pixels.
 const TOP_BAND: float = 28.0
 const BOTTOM_BAND: float = 40.0
-## Space between the HUD and the screen's edge, and between frames.
+## Space between the HUD and the screen's edge.
 const MARGIN: float = 4.0
-const GAP: float = 4.0
-## The top panels' top edge and height.
-const TOP_Y: float = 2.0
-const TOP_HEIGHT: float = 24.0
-## How far above the screen's margin the hero frames reach, in the world's pixels, for a HUD with
-## no UI layer; on the layer [method frames_line] gives their true top.
-const FRAMES_HEIGHT: float = 34.0
 ## The sheet of HUD icons: a portrait per hero class, a skull and a coin.
 const ICONS_PATH: String = "res://assets/sprites/ui/hud_icons.png"
 ## Seconds after the last coin before a shown gold count that is still behind catches up.
@@ -74,7 +64,7 @@ const STATE_COLOURS: Dictionary[Expedition.State, StringName] = {
 	Expedition.State.WORKING: &"amber",
 	Expedition.State.JOURNEYING: &"tan",
 }
-## Each piece's tooltip, as the old pieces had them (spec 030 R4).
+## Each piece's tooltip.
 const STAGE_TIP: String = "The stage the party is on now."
 const STATUS_TIP: String = "What the party is doing right now, and why."
 const SAFE_TIP: String = "The last safe stage: a wipe sends the party back there."
@@ -89,7 +79,7 @@ const GOLD_TIP: String = "Gold from fights, to spend in the Camp."
 const BOSS_TIP: String = "A guardian holds the way on: beat it to go further."
 const AREA_TIP: String = "The area the party is in: click (or press W) to open the Map."
 
-## The frame of the screen (spec 061): the room-sized control its pieces hang from.
+## The frame of the screen: the room-sized control its pieces hang from.
 var screen_frame: Control
 ## Where the party is: the area, the stage, the safe stage, the target, Auto and the status line.
 var place_panel: PlacePanel
@@ -100,23 +90,22 @@ var countdown: Countdown
 var purse: Purse
 ## One frame per hero, in formation order, left to right.
 var frames: Array[HeroFrameView] = []
-## The guardian's health during a guardian fight (spec 024).
+## The guardian's health during a guardian fight.
 var boss_bar: BossBarView
-## The tooltips of the frame's pieces (spec 061 R7).
+## The tooltips of the frame's pieces.
 var frame_tip: UiTip
 ## Main's tick readout, for developers: bottom right, dim, hidden until F3.
 var clock_label: Label
-## The upgrade shop (spec 017): since spec 059 the content of the Shop window on the UI layer,
-## made here so it hears the simulation from the start; [UiRoot] puts it in its window.
+## The upgrade shop: the content of the Shop window on the UI layer, made here so it hears the
+## simulation from the start; [UiRoot] puts it in its window.
 var shop: ShopWindow
-## The last happenings, the ticker over the party frames and the J panel (spec 027).
+## The last happenings, behind the ticker over the party frames and the Journal window.
 var journal: Journal
-## The journal's newest line over the hero frames (spec 062 R3); a click opens the Journal.
+## The journal's newest line over the hero frames; a click opens the Journal.
 var ticker: Ticker
-## The dark of a crossing and its title (spec 054): the world's own, all the HUD still draws in the
-## world's pixels (spec 062 R7).
+## The dark of a crossing and its title: the world's own, all the HUD draws in the world's pixels.
 var veil: CrossingVeil
-## A window per hero on the UI layer (spec 060), opened by clicking its frame or with Tab; null
+## A window per hero on the UI layer, opened by clicking its frame or with Tab; null
 ## when there is no UI layer (a HUD on its own in a test). Set by [method UiRoot.setup].
 var hero_windows: HeroWindows:
 	set(value):
@@ -124,27 +113,27 @@ var hero_windows: HeroWindows:
 		if value != null:
 			value.changed.connect(_mark_frames)
 			_mark_frames()
-## The stages of this area down the right edge (spec 033, spec 062 R2); L hides it.
+## The stages of this area down the right edge; L hides it.
 var ladder: StageList
-## The next few things within reach (spec 037); G hides them. [member goals_view] draws them under
-## the place panel (spec 062 R1).
+## The next few things within reach; G hides them. [member goals_view] draws them under the place
+## panel.
 var goals: Goals
 var goals_view: GoalsView
-## The windows on the UI layer (spec 058), which hold help, the journal's list and the orders;
+## The windows on the UI layer, which hold help, the journal's list and the orders;
 ## null when there is no UI layer (a HUD on its own in a test).
 var windows: UiWindows:
 	set(value):
 		windows = value
 		if frame_tip != null and value != null:
 			frame_tip.covered = _covered
-## What beat the party and what would help (spec 041); its [member DefeatNote.panel] is drawn over
-## every window (spec 062 R4).
+## What beat the party and what would help; its [member DefeatNote.panel] is drawn over every
+## window.
 var defeat_note: DefeatNote
-## The party tally (spec 045): who deals, heals and takes the damage; the content of the Party
-## tally window since spec 059, made here so it counts from the start.
+## The party tally: who deals, heals and takes the damage; the content of the Party tally window,
+## made here so it counts from the start.
 var tally: TallyWindow
-## The area map (spec 053): where the party can go, opened with W or the area's name; the content
-## of the Area map window since spec 059.
+## The area map: where the party can go, opened with W or the area's name; the content of the
+## Area map window.
 var area_map: AreaMapWindow
 
 var _simulation: Simulation
@@ -165,7 +154,7 @@ var _auto_on: bool = false
 ## The room the frame of the screen is laid out in, in UI pixels.
 var _frame_room: Vector2 = Vector2(UiRoot.MIN_ROOM)
 ## The simulation's tick at the last [method advance] (-1 before the first): more ticks than a
-## stall since then and the frame shows where things are, not how they got there (spec 061 R9).
+## stall since then and the frame shows where things are, not how they got there.
 var _seen_tick: int = -1
 
 
@@ -184,8 +173,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key == null or not key.pressed or key.echo or _simulation == null:
 		return
 	var handled: bool = true
-	# Specs 059 and 060: a window's keys act only while it is the front window of all (Esc, which
-	# closes the front window, is the windows' own).
+	# A window's keys act only while it is the front window of all (Esc, which closes the front
+	# window, is the windows' own).
 	var top: UiWindow = windows.front() if windows != null else null
 	var hero_top: HeroWindow = top as HeroWindow
 	match key.keycode:
@@ -212,8 +201,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if handled:
 				shop.toggle_auto_buy()
 		KEY_1, KEY_2, KEY_3, KEY_4, KEY_5:
-			# The shop's rows while it is the front window (spec 059 R2); paragon points while a
-			# hero window on its Talents tab is (spec 034, spec 055, spec 060).
+			# The shop's rows while it is the front window; paragon points while a hero window on
+			# its Talents tab is.
 			var training: bool = hero_top != null and hero_top.page() == HeroWindow.Page.TALENTS
 			if _in_front(shop):
 				shop.buy_row(key.keycode - KEY_1)
@@ -222,8 +211,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			else:
 				handled = false
 		KEY_Q, KEY_E:
-			# The front window's previous and next tab: a hero window's pages (spec 034, spec
-			# 060) or the tally's measures (spec 059 R4).
+			# The front window's previous and next tab: a hero window's pages or the tally's
+			# measures.
 			if hero_top != null:
 				if key.keycode == KEY_Q:
 					hero_top.previous_page()
@@ -248,7 +237,7 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	_world = world
 	_effects = effects
 	_icons = PixelSheet.load_sheet(ICONS_PATH)
-	veil = CrossingVeil.new()  # spec 054
+	veil = CrossingVeil.new()
 	add_child(veil)
 	veil.setup(world)
 	_build_screen_frame()
@@ -261,15 +250,15 @@ func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void
 	goals = Goals.new()
 	add_child(goals)
 	goals.setup(simulation, world)
-	# Spec 059: the tally and the area map are windows on the UI layer, which [UiRoot] makes.
+	# The tally and the area map are the content of windows on the UI layer, which [UiRoot] makes.
 	tally = TallyWindow.new()
-	tally.setup(simulation, world, self)
+	tally.setup(simulation, world)
 	area_map = AreaMapWindow.new()
 	area_map.setup(simulation, world, self)
 	_build_news()
 	place_panel.area_button.pressed.connect(area_map.toggle)
 	purse.setup(simulation, effects.resource_effects if effects != null else null)
-	defeat_note = DefeatNote.new()  # spec 041
+	defeat_note = DefeatNote.new()
 	add_child(defeat_note)
 	defeat_note.setup(simulation, world, self)
 	screen_frame.add_child(defeat_note.panel)
@@ -297,7 +286,7 @@ func advance(delta: float) -> void:
 		var frame: HeroFrameView = _frames_by_id.get(hero.id, null)
 		if frame != null:
 			frame.recovering = reviving
-			frame.gold = _simulation.party.gold  # for its marker (spec 037 R4)
+			frame.gold = _simulation.party.gold  # for its marker
 			frame.fighter = battle.combatant(hero.id) if fighting and battle != null else null
 			frame.refresh(hero, delta)
 			if stalled:
@@ -327,7 +316,7 @@ func advance(delta: float) -> void:
 	frame_tip.advance(delta)
 
 
-## Puts the frame of the screen on [param ui]'s layer (spec 061), under its windows, filling its
+## Puts the frame of the screen on [param ui]'s layer, under its windows, filling its
 ## room; its tooltip treats a point under a window as nowhere. Called by [method UiRoot.setup].
 func adopt_frame(ui: UiRoot) -> void:
 	_ui = ui
@@ -364,7 +353,7 @@ static func _fit(room: Vector2i) -> float:
 	return minf(1.0, minf(float(room.x) / UiRoot.MIN_ROOM.x, float(room.y) / UiRoot.MIN_ROOM.y))
 
 
-## Puts the note after a defeat over every window on [param ui]'s layer (spec 062 R4), and the
+## Puts the note after a defeat over every window on [param ui]'s layer, and the
 ## frame's tooltip over everything else (the button bar, every window and the note), unscaled, in
 ## the layer's room. Called by [method UiRoot.setup] once all is on it.
 func lift_tip(ui: UiRoot) -> void:
@@ -380,15 +369,15 @@ func lift_tip(ui: UiRoot) -> void:
 	frame_tip.room = Vector2(ui.room())
 
 
-## True while the window holding [param content] is the front window on the UI layer (spec 059).
+## True while the window holding [param content] is the front window on the UI layer.
 func _in_front(content: Control) -> bool:
 	var top: UiWindow = windows.front() if windows != null else null
 	return top != null and top.content == content
 
 
 ## What the party is doing and why, as the place panel shows it: "Heading on to stage 5",
-## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (spec
-## 027 R1, spec 049 R9: the area's name names the area the stages are in).
+## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (the
+## area's name names the area the stages are in).
 func status_text() -> String:
 	var e: Expedition = _simulation.expedition
 	var line: String = STATE_WORDS.get(e.state, "")
@@ -407,7 +396,7 @@ func status_text() -> String:
 		Expedition.State.RESTING:
 			line = "Resting, %d%% health" % _party_health_percent()
 		Expedition.State.CLIMBING:
-			var to: int = ClimbProgress.stage_to(e)  # spec 054: on or back, never down or up
+			var to: int = ClimbProgress.stage_to(e)  # on or back, never down or up
 			line = ("Going on to stage %d" if to > e.depth else "Going back to stage %d") % to
 		Expedition.State.REVIVING:
 			line = "Chased home! Regrouping"
@@ -420,7 +409,7 @@ func status_text() -> String:
 	return line
 
 
-## The road to stable (spec 027 R2, spec 039 R2): "Stable in m:ss" while the party must still hold
+## The road to stable: "Stable in m:ss" while the party must still hold
 ## this depth, "Further in m:ss" while auto-push counts down to the next, "Stable" otherwise, or
 ## "Holding" at a guardian, followed by what happens next (", then stage N",
 ## ", staying on stage N", ", Orders (O) to go in").
@@ -430,7 +419,7 @@ func stable_text() -> String:
 
 
 ## How far the bar beside the note has filled, from 0 to 1: toward stable on this depth, or, once
-## it is stable, toward auto-push's next push (spec 039 R2).
+## it is stable, toward auto-push's next push.
 func stable_progress() -> float:
 	var e: Expedition = _simulation.expedition
 	if e.stable_seconds <= 0.0:
@@ -522,7 +511,7 @@ static func _screen_transform(item: CanvasItem) -> Transform2D:
 # --- Building ------------------------------------------------------------------
 
 
-## The frame of the screen (spec 061): its pieces, on a room-sized control that [UiRoot] takes
+## The frame of the screen: its pieces, on a room-sized control that [UiRoot] takes
 ## onto its layer, or that stays on the HUD scaled to the screen when there is no UI layer.
 func _build_screen_frame() -> void:
 	screen_frame = Control.new()
@@ -550,7 +539,7 @@ func _build_screen_frame() -> void:
 		screen_frame.add_child(frame)
 		frames.append(frame)
 		_frames_by_id[hero.id] = frame
-		frame.clicked.connect(_on_frame_clicked)  # spec 060: a click opens or closes its window
+		frame.clicked.connect(_on_frame_clicked)
 	frame_tip = UiTip.new()
 	frame_tip.name = "FrameTip"
 	frame_tip.follows_mouse = true
@@ -559,9 +548,8 @@ func _build_screen_frame() -> void:
 	screen_frame.add_child(frame_tip)
 
 
-## Gives each piece of the frame its tooltip (spec 061 R7): the old pieces' sentences, under a
-## bold title where there is one. The first control under the mouse wins, so the small ones come
-## before the panels that hold them.
+## Gives each piece of the frame its tooltip, under a bold title where there is one. The first
+## control under the mouse wins, so the small ones come before the panels that hold them.
 func _tip_frame() -> void:
 	frame_tip.attach(place_panel.area_button, AREA_TIP, place_panel.area_button.get_text)
 	frame_tip.attach(place_panel.stage_label, STAGE_TIP)
@@ -579,15 +567,15 @@ func _tip_frame() -> void:
 	frame_tip.attach(purse.speed_button, SPEED_TIP)
 	frame_tip.attach(purse, GOLD_TIP, "Gold")
 	frame_tip.attach(boss_bar, BOSS_TIP, boss_bar.shown_name)
-	# Spec 037 R5: each goal says how to get there; spec 042 R3: then what a click does.
+	# Each goal says how to get there, then what a click does.
 	for i: int in goals_view.rows.size():
 		frame_tip.attach(goals_view.rows[i], goals_view.tip.bind(i))
 	for frame: HeroFrameView in frames:
-		# Spec 055 R9: the class and its path once one is chosen; spec 056 R5: the statuses.
+		# The class and its path once one is chosen, then the statuses.
 		frame_tip.attach(frame, frame.tip, frame.tip_title)
 
 
-## The countdown's tooltip (spec 039 R2): what decides what happens next.
+## The countdown's tooltip: what decides what happens next.
 func _countdown_tip() -> String:
 	var note: String = countdown.note_label.text
 	if note.begins_with("Further in"):
@@ -601,26 +589,26 @@ func _countdown_tip() -> String:
 	return "This stage is safe: a wipe comes back here."
 
 
-## The shop: the content of the Shop window since spec 059, which [UiRoot] puts in its window (the
-## Shop button is on the bar).
+## The shop: the content of the Shop window, which [UiRoot] puts in its window (the Shop button is
+## on the bar).
 func _build_shop() -> void:
 	shop = ShopWindow.new()
-	shop.setup(_simulation, _world, self)
+	shop.setup(_simulation, _world)
 
 
-## Shows the game's speed (spec 032) on the purse's speed button: its label, lit above 1x.
+## Shows the game's speed on the purse's speed button: its label, lit above 1x.
 func show_speed(value: int) -> void:
 	purse.speed_button.text = "%dx" % value
 	purse.speed_button.lit = value > 1
 
 
-## A click on hero [param hero_id]'s frame opens or closes its window (spec 060).
+## A click on hero [param hero_id]'s frame opens or closes its window.
 func _on_frame_clicked(hero_id: int) -> void:
 	if hero_windows != null:
 		hero_windows.toggle(hero_id)
 
 
-## The stage list (spec 033, spec 062 R2): it hides itself on L and while the shop is open; a click
+## The stage list: it hides itself on L and while the shop is open; a click
 ## on a row asks for a target, which the target number shows at once, as the - and + buttons do.
 func _build_ladder() -> void:
 	ladder = StageList.new()
@@ -634,7 +622,7 @@ func _on_ladder_target(depth: int) -> void:
 	_advance_depth(0.0)
 
 
-## The goals and the ticker on the frame of the screen (spec 062 R1, R3).
+## The goals and the ticker on the frame of the screen.
 func _build_news() -> void:
 	goals_view = GoalsView.new()
 	screen_frame.add_child(goals_view)
@@ -646,7 +634,7 @@ func _build_news() -> void:
 
 
 ## Shows the journal's newest line in the ticker, just above the hero frames, clear of the button
-## bar beside it (spec 062 R3, R10). Called as the frame is laid out and whenever the line changes.
+## bar beside it. Called as the frame is laid out and whenever the line changes.
 func _show_ticker() -> void:
 	var room: Vector2 = _frame_room
 	var frames_y: float = room.y - FRAME_EDGE - HeroFrameView.SIZE.y
@@ -658,7 +646,7 @@ func _show_ticker() -> void:
 
 
 ## True when [param at] (the viewport's coordinates) lies on a window or the button bar and not on
-## the note after a defeat, which is drawn over them (spec 062 R4): the frame's tip treats such a
+## the note after a defeat, which is drawn over them: the frame's tip treats such a
 ## point as nowhere.
 func _covered(at: Vector2) -> bool:
 	if windows == null or not windows.covers(at):
@@ -666,7 +654,7 @@ func _covered(at: Vector2) -> bool:
 	return not (defeat_note.is_shown() and Hud.on_screen(defeat_note.panel).has_point(at))
 
 
-## A click on the ticker opens the Journal window (spec 062 R3).
+## A click on the ticker opens the Journal window.
 func _on_ticker_clicked() -> void:
 	if windows != null:
 		windows.open_window(UiRoot.JOURNAL)
@@ -733,7 +721,7 @@ func _advance_gold(delta: float) -> void:
 func _show_gold() -> void:
 	var lift: float = 1.0 if _gold_bump > GOLD_BUMP_SECONDS / 2.0 else 0.0
 	var colour: StringName = &"white" if _gold_bump > 0.0 else &"yellow"
-	# Spec 052: short, so the resources fit beside it.
+	# Short, so the resources fit beside it.
 	purse.show_gold(short_count(_shown_gold), colour, lift, PlacePanel.HEIGHT)
 
 
@@ -765,7 +753,7 @@ func _advance_depth(delta: float) -> void:
 	countdown.show_road(road[0], road[1], stable_progress(), PlacePanel.HEIGHT)
 
 
-## The area's name marks each area opened since the map was last opened (spec 053 R6).
+## The area's name marks each area opened since the map was last opened.
 func _mark_area() -> void:
 	var mark: UiBadge = place_panel.area_mark
 	mark.count = area_map.news.unseen if area_map.news != null else 0
@@ -776,7 +764,7 @@ func _mark_area() -> void:
 	place_panel.area_button.lit = area_map.is_open()
 
 
-## Lays the frame of the screen out in its room (spec 061 R10): the place panel and the countdown at
+## Lays the frame of the screen out in its room: the place panel and the countdown at
 ## the top left, the purse at the top right, the boss bar centred between them, and the hero frames
 ## in a row along the bottom. Everything stays in the two bands; the effects are told where the
 ## counters and frames are.
@@ -799,8 +787,8 @@ func _lay_out_frame() -> void:
 	var width_bar: float = floorf(minf(widest, right - left))
 	var bar_x: float = clampf(floorf((room.x - width_bar) / 2.0), left, right - width_bar)
 	boss_bar.place(Vector2(bar_x, FRAME_TOP), width_bar, PlacePanel.HEIGHT)
-	# Spec 062: the goals under the place panel, the stage list at the right edge under the purse,
-	# and the ticker just above the hero frames.
+	# The goals under the place panel, the stage list at the right edge under the purse, and the
+	# ticker just above the hero frames.
 	var under: float = FRAME_TOP + PlacePanel.HEIGHT + FRAME_GAP
 	goals_view.position = Vector2(FRAME_EDGE, under)
 	ladder.position = Vector2(room.x - FRAME_EDGE - StageList.WIDTH, under)
@@ -809,7 +797,7 @@ func _lay_out_frame() -> void:
 
 
 ## Tells the effects where the frame's counters and frames are on the screen: coins fly to the
-## coin, a resource's icons to its counter and XP motes to their hero's frame (spec 061 R4).
+## coin, a resource's icons to its counter and XP motes to their hero's frame.
 func _aim_effects() -> void:
 	if _effects == null:
 		return
@@ -821,12 +809,12 @@ func _aim_effects() -> void:
 		_effects.frame_screen_targets[frame.hero_id] = on_screen(frame).get_center()
 
 
-## More ticks than this between two advances is a stall: as the world's own (spec 057 R7).
+## More ticks than this between two advances is a stall, as for the world.
 func _stall_ticks() -> int:
 	return World.STALL_TICKS * maxi(_world.speed if _world != null else 1, 1)
 
 
-## The road to stable's two parts (spec 039 R2): the note ("Stable in m:ss" while this depth is
+## The road to stable's two parts: the note ("Stable in m:ss" while this depth is
 ## not yet stable, "Further in m:ss" while auto-push counts down to the next, "Stable", or
 ## "Holding" at a guardian) and what happens next at the target ("then stage N", "staying on
 ## stage N", "Orders (O) to go in", or "").
@@ -849,7 +837,7 @@ func _stable_parts() -> PackedStringArray:
 	return PackedStringArray(["Stable", next])
 
 
-## True while this depth is stable and auto-push is counting down to the next (spec 039 R2).
+## True while this depth is stable and auto-push is counting down to the next.
 func _pushing() -> bool:
 	var e: Expedition = _simulation.expedition
 	return (
@@ -863,11 +851,11 @@ func _pushing() -> bool:
 func _fight_text(battle: Battle) -> String:
 	if battle == null:
 		return STATE_WORDS[Expedition.State.FIGHTING]
+	var guardian: Combatant = CombatEffects.battle_guardian(_simulation)
+	if guardian != null and guardian.is_alive():
+		return "Fighting the %s" % Content.monster(guardian.def_id).display_name
 	var alive: int = 0
 	for monster: Combatant in battle.monsters:
-		var def: MonsterDef = Content.monster(monster.def_id)
-		if def != null and def.guardian and monster.is_alive():
-			return "Fighting the %s" % def.display_name
 		if monster.is_alive():
 			alive += 1
 	return "Fighting %d monster%s" % [alive, "" if alive == 1 else "s"]

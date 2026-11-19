@@ -1,6 +1,6 @@
 class_name ZoneLook
 extends RefCounted
-## How a stage of an area looks on screen (spec 054 R5). Each area is its own place: it takes one
+## How a stage of an area looks on screen. Each area is its own place: it takes one
 ## of the four looks of earth, floor and light (loam, clay, stone, deep, in
 ## [constant LabyrinthTiles.STRATA] order) by its place in the list of areas, so the four areas
 ## all differ. Within an area every stage is the same place, each later one a little darker.

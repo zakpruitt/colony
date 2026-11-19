@@ -1,7 +1,7 @@
 class_name AwayReplay
 extends RefCounted
 ## Plays the time the game was closed through the real simulation, a slice at a time, and
-## counts what happened in an [AwayReport] (spec 019). Only the number of ticks differs from
+## counts what happened in an [AwayReport]. Only the number of ticks differs from
 ## watching: every tick is [method Simulation.step], and its events are drained and counted
 ## rather than shown.
 
@@ -20,7 +20,7 @@ var _deepest_guardian_depth: int = -1
 ## Side quests missed for want of each microskill (by its position in
 ## [method Content.microskill_ids]), in the order each was first missed.
 var _missed_by_skill: Dictionary[int, int] = {}
-## The resources the party had already held when the replay began (spec 052).
+## The resources the party had already held when the replay began.
 var _gathered_before: Dictionary[StringName, bool] = {}
 
 

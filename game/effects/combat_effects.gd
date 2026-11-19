@@ -1,6 +1,6 @@
 class_name CombatEffects
 extends Node2D
-## Turns simulation events into impact (spec 010): damage and heal numbers, hit sparks, a shake and
+## Turns simulation events into impact: damage and heal numbers, hit sparks, a shake and
 ## a hit-stop on a crit, monsters bursting, coins bouncing out and flying to the purse, XP motes,
 ## level-up bursts, bolt trails, and the beats of the loop (rest, wipe, revival, a stable depth).
 ##
@@ -12,17 +12,17 @@ extends Node2D
 ## One coin of a gold gain has reached the gold target; amount is that coin's share.
 signal coin_collected(amount: int)
 
-# Caps (R11).
+# Caps.
 ## The most numbers on screen at once; further numbers are not shown.
 const MAX_NUMBERS: int = 40
 ## The most particles at once; further particles are not made.
 const MAX_PARTICLES: int = 300
 
-# Numbers (R1, R2).
+# Numbers.
 ## Font multiples of a number, and of a crit.
 const NUMBER_SCALE: int = 2
 const CRIT_SCALE: int = 3
-## Seconds a number lives, and a crit (both under the spec's 0.8).
+## Seconds a number lives, and a crit (both under 0.8).
 const NUMBER_LIFE: float = 0.7
 const CRIT_LIFE: float = 0.78
 ## A number's leap upward and drift sideways, in pixels per second, and its fall.
@@ -31,7 +31,7 @@ const NUMBER_DRIFT: float = 22.0
 const NUMBER_GRAVITY: float = 230.0
 ## How high on the target a number appears, as a share of the sprite's height above its feet.
 const NUMBER_HEIGHT: float = 0.62
-## Where a number may start, as steps from its place over the target (spec 018 R5): the first
+## Where a number may start, as steps from its place over the target: the first
 ## whose path stays clear of every number already showing is taken. Each step is NUMBER_STEP
 ## pixels across and NUMBER_RISE pixels up; a number drifts the way its step leans.
 const NUMBER_SPOTS: Array[Vector2i] = [
@@ -75,7 +75,7 @@ const PATH_STEP: float = 1.0 / 60.0
 ## Pixels kept clear between a number and the edge of the screen (a crit's shake fits inside).
 const SCREEN_MARGIN: float = 4.0
 
-# Sparks (R3).
+# Sparks.
 const SPARK_SHEET: String = "res://assets/sprites/fx/spark.png"
 const SPARKS_MIN: int = 4
 const SPARKS_MAX: int = 8
@@ -89,31 +89,31 @@ const CRIT_SPARK_COLORS: Array[StringName] = [&"white", &"yellow", &"white"]
 ## How high on the target the sparks fly from, as a share of the sprite's height.
 const IMPACT_HEIGHT: float = 0.45
 
-# Weight (R4).
+# Weight.
 ## Pixels of camera shake for a crit and for a hero's death.
 const CRIT_SHAKE: float = 2.5
 const HERO_DEATH_SHAKE: float = 6.0
 ## Seconds every character's animation stands still on a crit.
 const CRIT_FREEZE: float = 0.06
 
-# Bursts (R5).
+# Bursts.
 const BURST_MIN: int = 10
 const BURST_MAX: int = 20
 const BURST_GRAVITY: float = 380.0
 const PUFF_SIZE: int = 14
 const PUFF_LIFE: float = 0.3
 
-# Coins (R6).
+# Coins.
 ## One coin per this much gold, at least 1 and at most COINS_MAX.
 const GOLD_PER_COIN: int = 5
 const COINS_MAX: int = 12
 
-# XP (R7).
+# XP.
 ## One mote per this much XP, at least 1 and at most MOTES_MAX.
 const XP_PER_MOTE: int = 10
 const MOTES_MAX: int = 3
 
-# Level up (R8).
+# Level up.
 const LEVEL_UP_TIME: float = 1.2
 const LEVEL_UP_PARTICLES: int = 22
 ## LEVEL UP's font multiple, and how far above the hero's feet it sits, in pixels: clear of the
@@ -121,12 +121,12 @@ const LEVEL_UP_PARTICLES: int = 22
 const LEVEL_UP_SCALE: int = 2
 const LEVEL_UP_RAISE: float = 44.0
 
-# Bolts (R9).
+# Bolts.
 ## A trail square is dropped every this many pixels of a bolt's flight.
 const TRAIL_STEP: float = 2.0
 const TRAIL_LIFE: float = 0.16
 
-# Beats (R10).
+# Beats.
 ## Seconds between a resting hero's z's.
 const Z_EVERY: float = 1.1
 const BANNER_LIFE_STABLE: float = 2.0
@@ -135,7 +135,7 @@ const STABLE_RAISE: float = 40.0
 const LIGHT_HEIGHT: int = 56
 const LIGHT_LIFE: float = 0.9
 
-# Guardians (spec 024).
+# Guardians.
 ## The announcement: the name's and the depth line's font multiples, how far above the middle
 ## of the screen each sits, how long both stay, and the camera's one shake.
 const ANNOUNCE_SCALE: int = 4
@@ -165,16 +165,16 @@ const SLAIN_LIFE: float = 2.5
 
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
-## Where each hero's XP motes fly to, in screen pixels, by hero id: its frame (spec 061 R4). The
-## HUD sets it; a hero with none has its motes fly to its chest (spec 010 R7).
+## Where each hero's XP motes fly to, in screen pixels, by hero id: its frame. The HUD sets it;
+## a hero with none has its motes fly to its chest.
 var frame_screen_targets: Dictionary[int, Vector2] = {}
-## The effects of side quests and microskills (spec 028), advanced with these.
+## The effects of side quests and microskills, advanced with these.
 var quest_effects: QuestEffects
-## Abilities and statuses on screen (spec 056), advanced with these.
+## Abilities and statuses on screen, advanced with these.
 var ability_effects: AbilityEffects
-## Resource drops rising and flying to the purse (spec 052), advanced with these.
+## Resource drops rising and flying to the purse, advanced with these.
 var resource_effects: ResourceEffects
-## Spells seen flying and landing (spec 057), advanced with these.
+## Spells seen flying and landing, advanced with these.
 var spell_effects: SpellEffects
 
 var _world: World
@@ -251,7 +251,7 @@ func advance(delta: float) -> void:
 	ability_effects.advance(delta)
 	spell_effects.advance(delta)
 	resource_effects.advance(delta)
-	ability_effects.keep_drops_in_band(resource_effects.live_icons())  # spec 056 R8
+	ability_effects.keep_drops_in_band(resource_effects.live_icons())
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
@@ -271,7 +271,7 @@ func advance(delta: float) -> void:
 		if not text.advance(delta):
 			_texts.erase(text)
 			text.queue_free()
-	ability_effects.keep_in_band(_texts)  # off the health bars (spec 056 R8)
+	ability_effects.keep_in_band(_texts)  # off the health bars
 	var purse: Vector2 = _screen_to_world(gold_screen_target)
 	for coin: FxCoin in _coins.duplicate():
 		if coin.advance(delta, purse):
@@ -390,7 +390,7 @@ func _hit(event: SimEvent) -> void:
 	var color_name: StringName = &"white" if on_monster else &"red"
 	if crit:
 		color_name = &"amber"
-	color_name = ability_effects.number_color(event, color_name)  # a status's own (spec 056)
+	color_name = ability_effects.number_color(event, color_name)  # a status's own
 	var words: String = str(event.amount) + ("!" if crit else "")
 	_number(event.target_id, words, color_name, CRIT_SCALE if crit else NUMBER_SCALE, &"damage")
 	var impact: Vector2 = feet + Vector2(-away * 3.0, -roundf(height * IMPACT_HEIGHT))
@@ -897,15 +897,11 @@ func _flash(at: Vector2, color: Color, size: int) -> void:
 
 ## The canvas height of a character's sprite, in pixels.
 func _height(sprite: CharacterSprite) -> float:
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var texture: Texture2D = (part as Sprite2D).texture
-		if texture != null:
-			return float(texture.get_height())
-	return 24.0
+	return SpriteBounds.canvas_height(sprite)
 
 
 ## Where hero [param hero_id]'s XP motes fly to: its frame on the screen when the HUD has said where
-## that is (spec 061 R4), else its chest.
+## that is, else its chest.
 func _mote_target(hero_id: int) -> Vector2:
 	if frame_screen_targets.has(hero_id):
 		return _screen_to_world(frame_screen_targets[hero_id])
@@ -920,12 +916,7 @@ func _chest(hero_id: int) -> Vector2:
 ## Every colour drawn in the sheet of [param sprite] other than its ink outline, read from the
 ## sheet's pixels once per sheet.
 func _colors_of(sprite: CharacterSprite) -> PackedColorArray:
-	var sheet: Texture2D = null
-	for part: Node in sprite.find_children("*", "Sprite2D", true, false):
-		var atlas: AtlasTexture = (part as Sprite2D).texture as AtlasTexture
-		if atlas != null:
-			sheet = atlas.atlas
-			break
+	var sheet: Texture2D = SpriteBounds.sheet_of(sprite)
 	if sheet == null:
 		return PackedColorArray()
 	var path: String = sheet.resource_path

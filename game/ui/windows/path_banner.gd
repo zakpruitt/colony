@@ -1,6 +1,6 @@
 class_name PathBanner
 extends Control
-## The banner over one path of a talent tree (spec 064 R1, R3, R4): the path's name in bold and,
+## The banner over one path of a talent tree: the path's name in bold and,
 ## under it, one short line saying what a hero on it becomes
 ## ([member TalentTreeDef.path_summaries]), in a box edged and striped in the path's colour
 ## ([PathColours]). Closed (the hero chose the other path), the box is dimmed to greys, a padlock

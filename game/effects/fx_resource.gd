@@ -1,6 +1,6 @@
 class_name FxResource
 extends Node2D
-## One icon of a resource drop (spec 052 R8): it rises a little from where the monster fell,
+## One icon of a resource drop: it rises a little from where the monster fell,
 ## hangs a moment, then flies to the resource's place beside the gold. [ResourceEffects] creates
 ## it, advances it with where its target is now, and counts its share in when it arrives.
 

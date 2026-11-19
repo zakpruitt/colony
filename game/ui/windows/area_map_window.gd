@@ -1,6 +1,6 @@
 class_name AreaMapWindow
 extends WindowContent
-## The area map (spec 053) as a window on the UI layer (spec 059 R3): where the party can go. One
+## The area map as a window on the UI layer: where the party can go. One
 ## [AreaMapRow] card per area in order: its name, its monsters and guardian as sprites (named on
 ## hover, the guardian ticked once beaten), the level of its first stage, the party's safe and
 ## furthest stage there, its resource with the count held, and [code]Here[/code] or [code]On the
@@ -9,7 +9,7 @@ extends WindowContent
 ##
 ## Choosing an open card ([method choose], or a click on it) shows the stage chooser under the
 ## cards: the stage, starting at that area's safe stage, between [code]-[/code] and [code]+[/code]
-## (1 to one past its furthest), coloured by the ladder's rule (spec 043) judged by that area's
+## (1 to one past its furthest), coloured by the ladder's rule judged by that area's
 ## levels with that word beside it, and a [code]Go[/code] button whose text says what it will do
 ## ([code]Travel to The Claypits 3[/code], [code]Set target: stage 4[/code]). Go ([method go]) asks
 ## for the journey ([method Simulation.set_destination]) or, for the area the party is in, sets the
@@ -17,11 +17,10 @@ extends WindowContent
 ## map closes.
 ##
 ## [kbd]W[/kbd], the bar's Map button or a click on the area's name in the place panel ([member
-## PlacePanel.area_button], spec 061, which the [Hud] connects) opens and closes it. When an area
-## opens, the bar's Map button carries a mark until the map has been opened (spec 053 R6, spec 059
-## R6), and the goals tracker shows a goal to visit it ([member news]). Everything that depends on
-## the order of events is kept by [AreaNews] (spec 053 R7). It moves only in [method advance], so a
-## test can step it.
+## PlacePanel.area_button], which the [Hud] connects) opens and closes it. When an area opens, the
+## bar's Map button carries a mark until the map has been opened, and the goals tracker shows a
+## goal to visit it ([member news]). Everything that depends on the order of events is kept by
+## [AreaNews]. It moves only in [method advance], so a test can step it.
 
 ## The window's id, title and key.
 const ID: StringName = &"map"
@@ -51,6 +50,8 @@ var news: AreaNews
 var tip: UiTip
 
 var _simulation: Simulation
+## The HUD that made it, whose ladder and journal Go speaks to; null for a window on its own.
+var _hud: Hud
 var _chooser: HBoxContainer
 var _chosen: StringName = &""
 var _stage: int = 0
@@ -83,7 +84,7 @@ func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 	advance(0.0)
 
 
-## Gives every control its tooltip (spec 053 R8): the cards, the sprites and the foot (the area's
+## Gives every control its tooltip: the cards, the sprites and the foot (the area's
 ## name has its own, on the frame of the screen). Call once, after the map is in its window.
 func add_tips(tips: UiTip) -> void:
 	tip = tips
@@ -151,7 +152,7 @@ func go() -> void:
 	if _simulation == null or _chosen == &"" or not _simulation.is_area_open(_chosen):
 		return
 	var e: Expedition = _simulation.expedition
-	# Warned once per change of where the party is going (review of spec 053): not when it is
+	# Warned once per change of where the party is going: not when it is
 	# already headed there, nor for a second Go before the simulation has taken the first.
 	var asked: String = "%s/%d" % [_chosen, _stage]
 	var changed: bool = asked != _heading()
@@ -185,8 +186,8 @@ func go_text() -> String:
 	return "Travel to %s" % PlaceText.of(_chosen, _stage)
 
 
-## How [param stage] of area [param area_id] looks for this party, by the ladder's rule (spec
-## 043) judged by that area's levels: safe at or above a safe stage the party has held there,
+## How [param stage] of area [param area_id] looks for this party, by the ladder's rule judged
+## by that area's levels: safe at or above a safe stage the party has held there,
 ## within reach while the stage's level is at most the party's lowest level plus one, dangerous
 ## beyond.
 func risk(area_id: StringName, stage: int) -> DepthLadder.Risk:
@@ -337,7 +338,7 @@ func _show_row(shown: AreaMapRow) -> void:
 			stages = level
 			level = AreaMapRow.opens_by(guardian, opener)
 	shown.show_area(is_open_now, tag, tag_colour, level, stages, news.is_beaten(id))
-	shown.show_resource(_simulation.party.resource(def.resource))  # spec 052
+	shown.show_resource(_simulation.party.resource(def.resource))
 	shown.chosen = id == _chosen
 
 
@@ -349,12 +350,12 @@ func _show_foot() -> void:
 	if not chosen_now:
 		return
 	var colour: StringName = DepthLadder.RISK_COLOURS[risk(_chosen, _stage)]
-	_set_text(place_label, "%s, stage" % PlaceText.area_name(_chosen))
-	_set_text(stage_label, str(_stage))
+	place_label.text = "%s, stage" % PlaceText.area_name(_chosen)
+	stage_label.text = str(_stage)
 	stage_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	minus_button.disabled = _stage <= 1
 	plus_button.disabled = _stage >= stage_limit(_chosen)
-	_set_text(risk_label, _risk_text(_chosen, _stage))
+	risk_label.text = _risk_text(_chosen, _stage)
 	risk_label.add_theme_color_override(&"font_color", Palette.color(colour))
 	if go_button.text != go_text():
 		go_button.text = go_text()
@@ -369,11 +370,6 @@ func _risk_text(area_id: StringName, stage: int) -> String:
 		DepthLadder.Risk.DANGEROUS:
 			return "Dangerous"
 	return "Safe"
-
-
-func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
 
 
 # --- Tooltips ------------------------------------------------------------------

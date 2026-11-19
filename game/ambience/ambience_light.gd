@@ -1,6 +1,6 @@
 class_name AmbienceLight
 extends RefCounted
-## One light of the ambience (spec 012): a torch, the campfire, a vault's gleam, a glowing prop or
+## One light of the ambience: a torch, the campfire, a vault's gleam, a glowing prop or
 ## the party's own light. It flickers in small steps, a few times a second, so the pool's rings
 ## jump by a pixel rather than swim.
 

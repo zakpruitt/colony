@@ -1,7 +1,7 @@
 class_name Tally
 extends RefCounted
-## The counting behind the party tally (spec 045): each hero's damage dealt, healing done and damage
-## taken, for the last fight and for the session, and the side quests each hero has done. It is fed
+## The counting behind the party tally: each hero's damage dealt, healing done and damage taken,
+## for the last fight and for the session, and the side quests each hero has done. It is fed
 ## the simulation's events one at a time through [method observe] and changes nothing.
 ##
 ## What counts, from [SimEvent]: [constant SimEvent.Kind.HIT] from a hero to a monster is damage
@@ -11,27 +11,26 @@ extends RefCounted
 ## amount is what the target gained, already stopped at full health by the battle, so healing
 ## beyond full health is never counted. A hit's amount is the whole blow, and the events do not say
 ## how much health its target had left, so a killing blow's overkill is counted in damage dealt and
-## taken; the tally's tooltips say so (spec 046 R8).
+## taken; the tally's tooltips say so.
 ## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
 ## last fight; [constant SimEvent.Kind.SIDE_QUEST_DONE] counts one side quest for its worker.
 ## A hero is any id below [constant Expedition.FIRST_MONSTER_ID].
 ##
-## Spec 056 R6: each hero's damage dealt and healing done is also kept by what dealt or gave it (an
-## ability, a status working, or an ordinary strike or heal), as an [AbilityCredit] reading the
-## same events works it out. Its [member AbilityCredit.statuses] are the statuses the hero frames
-## show (R5).
+## Each hero's damage dealt and healing done is also kept by what dealt or gave it (an ability, a
+## status working, or an ordinary strike or heal), as an [AbilityCredit] reading the same events
+## works it out. Its [member AbilityCredit.statuses] are the statuses the hero frames show.
 
 ## What is counted.
 enum Measure { DAMAGE, HEALING, TAKEN }
 ## Over how long.
 enum Span { LAST_FIGHT, SESSION }
 
-## What each blow and heal was, and the statuses on every fighter (spec 056).
+## What each blow and heal was, and the statuses on every fighter.
 var credit: AbilityCredit = AbilityCredit.new()
 
 ## Amounts by span, then measure, then hero id.
 var _amounts: Array[Array] = []
-## Spec 056 R6: amounts by span, then measure (damage and healing only), then hero id, then
+## Amounts by span, then measure (damage and healing only), then hero id, then
 ## [method AbilityCredit.key].
 var _by_ability: Array[Array] = []
 var _quests: Dictionary[int, int] = {}
@@ -94,7 +93,7 @@ func share(hero_id: int, measure: Measure, span: Span) -> float:
 	return float(value(hero_id, measure, span)) / total if total > 0 else 0.0
 
 
-## Spec 056 R6: the hero's [param measure] (damage or healing) over [param span] by what dealt or
+## The hero's [param measure] (damage or healing) over [param span] by what dealt or
 ## gave it, as name to amount, largest first: [code]{"Strikes": 950, "Whirlwind": 412}[/code].
 ## Empty for the damage taken.
 func by_ability(hero_id: int, measure: Measure, span: Span) -> Dictionary[String, int]:
@@ -129,26 +128,6 @@ func fights() -> int:
 ## True from a fight's start to its end.
 func in_fight() -> bool:
 	return _in_fight
-
-
-## [param amounts] (name to amount, largest first) as at most [param most] lines, "Whirlwind 412";
-## past that many, the smallest are summed as "Others". "None yet" when there are none.
-static func lines_by_ability(amounts: Dictionary[String, int], most: int) -> Array[String]:
-	var lines: Array[String] = []
-	var names: Array[String] = []
-	names.assign(amounts.keys())
-	if names.is_empty():
-		lines.append("None yet")
-		return lines
-	var others: int = 0
-	for i: int in names.size():
-		if names.size() > most and i >= most - 1:
-			others += amounts[names[i]]
-		else:
-			lines.append("%s %s" % [names[i], Hud.group_thousands(amounts[names[i]])])
-	if names.size() > most:
-		lines.append("Others %s" % Hud.group_thousands(others))
-	return lines
 
 
 ## Whole percentages of [param amounts]' total, one per amount, that sum to exactly 100 (or are all

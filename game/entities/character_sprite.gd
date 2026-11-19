@@ -1,7 +1,7 @@
 class_name CharacterSprite
 extends Node2D
 ## A hero or monster drawn from its part-based sheet (docs/style-bible.md) and animated in code:
-## it breathes, walks, winds up and strikes, flinches and dies (spec 007).
+## it breathes, walks, winds up and strikes, flinches and dies.
 ##
 ## Every pose is computed in [method advance] from elapsed time, never from a wall clock or a
 ## Tween, so a test can step it exactly. The pose has layers: a base loop (idle or walk), and
@@ -79,16 +79,16 @@ const WEAPON_WINDUP_TURN: float = 0.5
 const WEAPON_STRIKE_TURN: float = 0.35
 const WEAPON_RANGED_WINDUP_TURN: float = -0.6
 ## How many pixels the body shifts back while winding up and forward on the strike: a clear draw
-## back and a step in (spec 057 R5). A shot instead kicks the body back by RANGED_RECOIL.
+## back and a step in. A shot instead kicks the body back by RANGED_RECOIL.
 const BODY_WINDUP_SHIFT: float = 3.5
 const BODY_STRIKE_SHIFT: float = 4.5
 const RANGED_WINDUP_SHIFT: float = 1.5
 const RANGED_RECOIL: float = 2.5
-## How many pixels a character with no arm or weapon gathers back and then lunges.
-## Spec 057: the furthest the arm and the weapon turn, back (x) and forward (y), however the
+## The furthest the arm and the weapon turn, back (x) and forward (y), however the
 ## layers of a pose add up, so a weapon never swings through the floor.
 const ARM_LIMITS: Vector2 = Vector2(-2.8, 1.3)
 const WEAPON_LIMITS: Vector2 = Vector2(-1.2, 0.7)
+## How many pixels a character with no arm or weapon gathers back and then lunges.
 const LUNGE_BACK: float = 3.0
 const LUNGE_FORWARD: float = 7.0
 
@@ -104,7 +104,8 @@ const HIT_SQUASH_TIME: float = 0.14
 const HIT_SQUASH: float = 0.18
 
 # Death.
-## Seconds of the whole collapse (under the spec's 0.4), and of the pop that starts it.
+## Seconds of the whole collapse (under 0.4, so a death reads as quick), and of the pop that
+## starts it.
 const DEATH_TIME: float = 0.34
 const DEATH_POP_TIME: float = 0.07
 
@@ -114,10 +115,10 @@ const PHASE_SPREAD: float = 0.618034
 
 static var _created: int = 0
 
-## Spec 056: true while the character is stunned: it stands still in the pose it had, though a hit
+## True while the character is stunned: it stands still in the pose it had, though a hit
 ## or a death still plays.
 var held: bool = false
-## Spec 057: the moves it performs for its abilities, laid over every other layer of its pose.
+## The moves it performs for its abilities, laid over every other layer of its pose.
 ## Read it to see what is playing; start and end moves with [method play_move].
 var moves: CharacterMoves = CharacterMoves.new()
 
@@ -154,7 +155,7 @@ var _hit_time: float = -1.0
 ## Seconds since play_death(), or -1 when not dying.
 var _death_time: float = -1.0
 var _dead: bool = false
-## Spec 056: the looks of the statuses it bears and of an action's wind-up (see
+## The looks of the statuses it bears and of an action's wind-up (see
 ## [method set_status_look] and [method set_glow]).
 var _tint_share: float = 0.0
 var _fade: float = 1.0
@@ -223,7 +224,7 @@ func play_attack(windup_seconds: float, ranged: bool) -> void:
 	_apply_pose()
 
 
-## Spec 057: performs [param move] (one of [constant AbilityDef.MOVES], or a cheer or hop of
+## Performs [param move] (one of [constant AbilityDef.MOVES], or a cheer or hop of
 ## [CharacterMoves]) so that its blow falls [param lead] seconds from now, then recovers. A move
 ## with a lead replaces the one playing; one with none (a passive's flourish) plays over whatever
 ## the character is doing. A leap or dash goes at most [param room] pixels forward, and at a game
@@ -309,7 +310,7 @@ func is_dead() -> bool:
 	return _dead
 
 
-## Spec 056: washes the character toward [param tint] by [param share] (0 for none) and draws it
+## Washes the character toward [param tint] by [param share] (0 for none) and draws it
 ## at [param fade] of its opacity (1 for whole), for the statuses it bears.
 func set_status_look(tint: Color, share: float, fade: float) -> void:
 	_tint_share = share
@@ -319,7 +320,7 @@ func set_status_look(tint: Color, share: float, fade: float) -> void:
 	_mirror.modulate.a = fade
 
 
-## Spec 056: lights the character toward [param color] by [param amount] (0 for none), while it
+## Lights the character toward [param color] by [param amount] (0 for none), while it
 ## winds up an action.
 func set_glow(color: Color, amount: float) -> void:
 	_glow = amount

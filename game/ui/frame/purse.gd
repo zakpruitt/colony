@@ -1,12 +1,12 @@
 class_name Purse
 extends Panel
-## The purse at the top right (spec 061 R3), on the sharp layer: the game-speed button (spec 032,
-## lit above 1x), the gold with its coin, then each resource the party holds with its icon and count
-## (spec 052), in [method Content.resource_ids] order; one it has none of is not shown. Counts are
+## The purse at the top right, on the sharp layer: the game-speed button (lit above 1x), the gold
+## with its coin, then each resource the party holds with its icon and count, in
+## [method Content.resource_ids] order; one it has none of is not shown. Counts are
 ## in the font's equal-width digits, shortened from 10,000 ([method Hud.short_count]).
 ##
 ## The gold count is the HUD's ([method Hud.shown_gold]), which counts each coin in as it lands. The
-## resource counts tick up the same way (spec 052 R8): a drop's icons ([ResourceEffects]) count in
+## resource counts tick up the same way: a drop's icons ([ResourceEffects]) count in
 ## as they arrive, a count still behind catches up [constant CATCH_UP_SECONDS] after the last
 ## arrival, and a count above the party's (an upgrade paid for) drops to it at once. It moves only
 ## in [method advance], so a test can step it.
@@ -89,7 +89,7 @@ func advance(delta: float) -> void:
 		_since_icon = 0.0
 
 
-## Every resource count shows the party's at once (after a stall: spec 061 R9).
+## Every resource count shows the party's at once (after a stall).
 func catch_up() -> void:
 	if _simulation == null:
 		return
@@ -144,7 +144,6 @@ func lay_out(height: float) -> float:
 	speed_button.size = speed_button.get_combined_minimum_size()
 	speed_button.position = Vector2(PAD - 2.0, floorf((height - speed_button.size.y) / 2.0))
 	var start: float = speed_button.position.x + speed_button.size.x + ENTRY_GAP
-	# Each entry: an icon and its count.
 	var entries: Array[Array] = [[coin_icon, gold_label]]
 	if _simulation != null:
 		for id: StringName in Content.resource_ids():
@@ -163,7 +162,7 @@ func lay_out(height: float) -> float:
 	var row: int = 0
 	var run: float = 0.0
 	for entry: Array in entries:
-		var width: float = ICON.x + ICON_GAP + _ink_width(entry[1] as Label)
+		var width: float = ICON.x + ICON_GAP + WindowText.ink(entry[1] as Label)
 		if run > 0.0 and run + ENTRY_GAP + width > ROW_WIDTH:
 			row = 1
 			run = 0.0
@@ -189,7 +188,7 @@ func lay_out(height: float) -> float:
 		label.position = Vector2(
 			x + ICON.x + ICON_GAP, icon_y + floorf((ICON.y - UiText.LINE_HEIGHT) / 2.0) - lift
 		)
-		x = label.position.x + _ink_width(label)
+		x = label.position.x + WindowText.ink(label)
 		right = maxf(right, x)
 	size = Vector2(ceilf(right + PAD), height)
 	return size.x
@@ -219,9 +218,3 @@ static func _icon_rect(icon_name: String, texture: Texture2D) -> TextureRect:
 	made.texture = texture
 	made.size = ICON
 	return made
-
-
-## How wide [param label]'s text inks, in UI pixels (its last glyph's spacing left out).
-static func _ink_width(label: Label) -> float:
-	var bold: bool = label.get_theme_font(&"font") == UiText.font(true)
-	return maxf(UiText.width(label.text, bold) - UiText.SPACING, 0.0)

@@ -1,21 +1,19 @@
 class_name HeroFrameView
 extends Control
-## One hero's frame along the bottom of the screen (spec 011 R1 and R2, spec 061 R5), on the sharp
-## layer: the class portrait, the class in bold, the level, the health bar with its number on it
-## ([code]34 / 40[/code]), the XP bar toward the next level, up to three status marks (spec 056 R5)
-## and the tag counting what the hero has for the player to do (spec 037 R4). The bars ease to new
-## values; a hit flashes the frame; a dead hero's frame is dimmed with a skull for a portrait and
-## [code]Down[/code] for a level, [code]Recovering[/code] during a revival (spec 027 R4); a
-## level-up pulses the level and restarts the XP bar. Its edge is yellow while the hero's window
-## is open, and a click opens or closes that window (spec 060). Spec 066: a level steps the level
+## One hero's frame along the bottom of the screen, on the sharp layer: the class portrait, the
+## class in bold, the level, the health bar with its number on it ([code]34 / 40[/code]), the XP
+## bar toward the next level, up to three status marks and the tag counting what the hero has for
+## the player to do. The bars ease to new values; a hit flashes the frame; a dead hero's frame is
+## dimmed with a skull for a portrait and [code]Down[/code] for a level, [code]Recovering[/code]
+## during a revival; a level-up pulses the level and restarts the XP bar. Its edge is yellow while
+## the hero's window is open, and a click opens or closes that window. A level steps the level
 ## number up in yellow ([method step_level]) and a talent point gained pulses the tag three times
 ## ([method pulse_tag]); [Milestones] starts both.
 ##
-## The tag counts the hero's unspent talent and paragon points (spec 051, spec 055) and the
-## microskills learned since the hero's Skills tab was last open, as the hero window's tab tags do
-## (spec 034).
+## The tag counts the hero's unspent talent and paragon points and the microskills learned since
+## the hero's Skills tab was last open, as the hero window's tab tags do.
 
-## Clicking the frame opens or closes this hero's window (spec 026, spec 060).
+## Clicking the frame opens or closes this hero's window.
 signal clicked(hero_id: int)
 
 ## The frame's size in UI pixels.
@@ -26,11 +24,11 @@ const EASE_SECONDS: float = 0.3
 const FLASH_SECONDS: float = 0.12
 ## Seconds the level number pulses after a level-up.
 const PULSE_SECONDS: float = 0.8
-## Spec 066: seconds a level's number stays stepped up, and the pixels it starts raised by (it
+## Seconds a level's number stays stepped up, and the pixels it starts raised by (it
 ## comes down a pixel at a time).
 const STEP_SECONDS: float = 0.6
 const STEP_LIFT: int = 3
-## Spec 066: how many times the tag pulses for a talent point gained, the seconds of each pulse,
+## How many times the tag pulses for a talent point gained, the seconds of each pulse,
 ## and how big the tag gets at its peak.
 const TAG_PULSES: int = 3
 const TAG_PULSE_SECONDS: float = 0.3
@@ -45,7 +43,7 @@ const SHADES: Dictionary[StringName, StringName] = {
 	&"red": &"crimson",
 }
 ## The portrait's box, the portrait in it (its 16x16 art at its own size, so that the hero
-## window's portrait is twice the frame's, spec 026 R2), and the bars.
+## window's portrait is twice the frame's), and the bars.
 const ICON_BOX: Rect2 = Rect2(5, 14, 20, 20)
 const ICON_SIZE: Vector2 = Vector2(16, 16)
 const HEALTH_BAR: Rect2 = Rect2(31, 18, 177, UiText.LINE_HEIGHT + 2)
@@ -66,19 +64,18 @@ var level_label: Label
 var health_label: Label
 ## True while the party is being revived after a wipe: set by the HUD before [method refresh].
 var recovering: bool = false
-## True while this hero's window is open (spec 026, spec 060): the frame's edge is drawn in yellow.
+## True while this hero's window is open: the frame's edge is drawn in yellow.
 var marked: bool = false
 ## The hero's fighter in the battle under way, or null outside a fight: set by the HUD before
-## [method refresh] (spec 030 R1).
+## [method refresh].
 var fighter: Combatant
-## The party's gold: set by the HUD before [method refresh]. Nothing on the frame reads it since
-## spec 051 took the price off training.
+## The party's gold: set by the HUD before [method refresh]. Nothing on the frame reads it.
 var gold: int = 0
-## The tag saying this hero has something for the player to do (spec 037 R4).
+## The tag saying this hero has something for the player to do.
 var marker: UiBadge
-## The statuses the hero bears in a fight (spec 056 R5).
+## The statuses the hero bears in a fight.
 var status_icons: StatusIcons
-## Seconds left of the level number's step up, and of the tag's pulses (spec 066); 0 when still.
+## Seconds left of the level number's step up, and of the tag's pulses; 0 when still.
 var level_step: float = 0.0
 var tag_pulse: float = 0.0
 
@@ -149,7 +146,7 @@ static func xp_progress(hero: Hero) -> float:
 
 
 ## Brings the frame up to date with [param hero] and advances its animations by [param delta].
-## During a fight the health and death are [member fighter]'s (spec 030 R1), else the hero's own.
+## During a fight the health and death are [member fighter]'s, else the hero's own.
 func refresh(hero: Hero, delta: float) -> void:
 	_hero = hero
 	_flash = maxf(_flash - delta, 0.0)
@@ -169,17 +166,17 @@ func refresh(hero: Hero, delta: float) -> void:
 	if part != _icon_part:
 		_icon_part = part
 		icon.texture = _hud.icon(part) if _hud != null else null
-	# Spec 027 R4: where the level was, "Down" for a fallen hero, "Recovering" during a revival.
+	# Where the level was, "Down" for a fallen hero, "Recovering" during a revival.
 	var level_text: String = "Lv %d" % hero.level
 	if recovering:
 		level_text = "Recovering"
 	elif _dead:
 		level_text = "Down"
-	_set_text(level_label, level_text)
+	WindowText.set_text(level_label, level_text)
 	var number: String = (
 		"%s / %s" % [Hud.group_thousands(maxi(points.x, 0)), Hud.group_thousands(maxi(points.y, 1))]
 	)
-	_set_text(health_label, "" if _dead else number)
+	WindowText.set_text(health_label, "" if _dead else number)
 	_refresh_marker(hero, delta)
 	_refresh_statuses()
 	_lay_out()
@@ -200,7 +197,7 @@ func refresh(hero: Hero, delta: float) -> void:
 
 
 ## The bars show the hero's health and XP at once, and a flash or pulse ends: after a stall, when
-## what happened is long over (spec 061 R9).
+## what happened is long over.
 func snap() -> void:
 	_flash = 0.0
 	_pulse = 0.0
@@ -221,8 +218,8 @@ func _gui_input(event: InputEvent) -> void:
 		accept_event()
 
 
-## The frame's tooltip, as [method HeroWindows.frame_tip] builds it: the class and its path (spec
-## 055), the hero's statuses with the seconds each has left (spec 056), then what a click does.
+## The frame's tooltip, as [method HeroWindows.frame_tip] builds it: the class and its path, the
+## hero's statuses with the seconds each has left, then what a click does.
 func tip() -> String:
 	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var line: String = tally.status_line(hero_id) if tally != null and not _dead else ""
@@ -245,12 +242,12 @@ func level_up() -> void:
 	_xp.snap(0.0)
 
 
-## Spec 066 R3: the level number steps up, in yellow, for [constant STEP_SECONDS].
+## The level number steps up, in yellow, for [constant STEP_SECONDS].
 func step_level() -> void:
 	level_step = STEP_SECONDS
 
 
-## Spec 066 R4: the tag pulses [constant TAG_PULSES] times (it shows which hero has a point).
+## The tag pulses [constant TAG_PULSES] times (it shows which hero has a point).
 func pulse_tag() -> void:
 	tag_pulse = TAG_PULSES * TAG_PULSE_SECONDS
 
@@ -307,13 +304,13 @@ func _refresh_marker(hero: Hero, delta: float) -> void:
 	marker.count = HeroWindow.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
 	marker.advance(delta)
-	# Spec 066 R4: each pulse swells the tag about its middle and lets it back.
+	# Each pulse swells the tag about its middle and lets it back.
 	var beat: float = fmod(tag_pulse, TAG_PULSE_SECONDS) / TAG_PULSE_SECONDS
 	marker.pivot_offset = marker.size / 2.0
 	marker.scale = Vector2.ONE * (1.0 + (TAG_POP - 1.0) * sin(beat * PI))
 
 
-## Spec 056 R5: the hero's statuses, as the tally's book has them.
+## The hero's statuses, as the tally's book has them.
 func _refresh_statuses() -> void:
 	var tally: TallyWindow = _hud.tally if _hud != null else null
 	var statuses: Array[ShownStatus] = []
@@ -330,11 +327,12 @@ func _lay_out() -> void:
 		marker.position = Vector2(right - marker.size.x, TEXT_Y - 1.0)
 		right = marker.position.x - MARKER_GAP
 	var lift: float = maxf(1.0 if _pulse > 0.0 else 0.0, step_lift(level_step))
-	level_label.position = Vector2(right - _ink(level_label), TEXT_Y - lift)
-	var marks_x: float = name_label.position.x + _ink(name_label) + 4.0
+	level_label.position = Vector2(right - WindowText.ink(level_label), TEXT_Y - lift)
+	var marks_x: float = name_label.position.x + WindowText.ink(name_label) + 4.0
 	status_icons.position = Vector2(marks_x, TEXT_Y + 2.0)
 	health_label.position = Vector2(
-		floorf(HEALTH_BAR.get_center().x - _ink(health_label) / 2.0), HEALTH_BAR.position.y + 1.0
+		floorf(HEALTH_BAR.get_center().x - WindowText.ink(health_label) / 2.0),
+		HEALTH_BAR.position.y + 1.0
 	)
 
 
@@ -390,13 +388,3 @@ static func _health_colour_name(fraction: float) -> StringName:
 
 static func _health_fraction(hero: Hero) -> float:
 	return clampf(float(hero.health) / float(maxi(hero.max_health(), 1)), 0.0, 1.0)
-
-
-static func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
-		label.reset_size()
-
-
-static func _ink(label: Label) -> float:
-	return maxf(UiText.width(label.text, true) - UiText.SPACING, 0.0)

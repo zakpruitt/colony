@@ -1,6 +1,6 @@
 class_name UiRoot
 extends CanvasLayer
-## The sharp UI layer (spec 058 R1): drawn over the world in UI pixels, each a whole number of
+## The sharp UI layer: drawn over the world in UI pixels, each a whole number of
 ## screen pixels, so text and windows are finer than the 640x360 world under them.
 ##
 ## While a UiRoot is in the tree the game window draws in
@@ -23,7 +23,7 @@ const WORLD_SIZE: Vector2i = Vector2i(640, 360)
 const MIN_ROOM: Vector2i = Vector2i(960, 540)
 ## The canvas layer the UI is drawn on: above the HUD's layer (10) and the effects.
 const LAYER: int = 20
-## The windows spec 058 made, by id.
+## The ids of the windows this layer makes itself.
 const HELP: StringName = &"help"
 const JOURNAL: StringName = &"journal"
 const ORDERS: StringName = &"orders"
@@ -38,21 +38,21 @@ static var _saved_mode: Window.ContentScaleMode = Window.CONTENT_SCALE_MODE_VIEW
 
 ## The room-sized control everything on the layer hangs from, themed by [UiTheme].
 var frame: Control
-## The windows on this layer (spec 058 R5), made by [method setup].
+## The windows on this layer, made by [method setup].
 var windows: UiWindows
-## The row of buttons that open and close the windows (spec 058 R7), made by [method setup].
+## The row of buttons that open and close the windows, made by [method setup].
 var bar: UiButtonBar
-## A window per hero (spec 060), made by [method setup] when there is a HUD.
+## A window per hero, made by [method setup] when there is a HUD.
 var hero_windows: HeroWindows
 
 ## The tooltip the windows and the button bar share, made by [method setup].
 var tip: UiTip
-## The moment a gain is marked (spec 063), above the windows, made by [method setup].
+## The moment a gain is marked, above the windows, made by [method setup].
 var moment: UiMoment
 
-## The HUD whose frame of the screen (spec 061) is on this layer, or null.
+## The HUD whose frame of the screen is on this layer, or null.
 var _hud: Hud
-## The report after time away while it is up (spec 062 R5).
+## The report after time away while it is up.
 var _away: AwayWindow
 var _world_scale: int = 1
 var _ui_scale: int = 1
@@ -97,7 +97,7 @@ func _exit_tree() -> void:
 	UiRoot._restore_mode.call_deferred()
 
 
-## Puts the game window's scale mode back as it was before the first UiRoot, if none is left.
+## Gives the game window back the scale mode it had before the first UiRoot, if none is left.
 ## (It looks the window up again: when the game quits, the window may be gone by then.)
 static func _restore_mode() -> void:
 	var tree: SceneTree = Engine.get_main_loop() as SceneTree
@@ -105,13 +105,13 @@ static func _restore_mode() -> void:
 		tree.root.content_scale_mode = _saved_mode
 
 
-## Makes the windows (help, the journal and the orders, spec 058 R8) and the button bar, puts
+## Makes the windows (help, the journal and the orders) and the button bar, puts
 ## each window back where [param settings] last had it (null: nowhere, as in tests and screenshots)
 ## and tells [param hud] of them. Call once, after the layer is in the tree.
 func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	windows = UiWindows.new()
 	windows.setup(self, settings)
-	if hud != null:  # spec 061: the frame of the screen, under everything else on the layer
+	if hud != null:  # the frame of the screen, under everything else on the layer
 		_hud = hud
 		hud.adopt_frame(self)
 	bar = UiButtonBar.new()
@@ -125,7 +125,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	var journal := UiWindow.new(JOURNAL, "Journal", view, "J", KEY_J)
 	var panel := OrdersPanel.new()
 	var orders := UiWindow.new(ORDERS, OrdersPanel.TITLE, panel, "O", KEY_O)
-	# Spec 068 R2: the one word for each window, on its button and wherever else it is named.
+	# The one word for each window, on its button and wherever else it is named.
 	help.short_name = "Help"
 	journal.short_name = "Journal"
 	orders.short_name = "Orders"
@@ -135,15 +135,15 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		view.setup(hud.journal)
 	panel.setup(simulation, tip)
 	var made_here: Array[UiWindow] = [help, journal, orders]
-	made_here.append_array(_management_windows(hud, icons, tip))  # spec 059
+	made_here.append_array(_management_windows(hud, icons, tip))
 	for made: UiWindow in made_here:
 		windows.register(made)
-	if hud != null:  # spec 060: the hero windows, each opened from its hero's frame
+	if hud != null:  # the hero windows, each opened from its hero's frame
 		hero_windows = HeroWindows.new()
 		frame.add_child(hero_windows)
 		hero_windows.setup(simulation, self, tip)
 		hud.hero_windows = hero_windows
-	moment = UiMoment.new()  # spec 063: over the windows, under the tips and the defeat note
+	moment = UiMoment.new()  # over the windows, under the tips and the defeat note
 	frame.add_child(moment)
 	moment.fit_room(_room)
 	place_defaults()
@@ -160,7 +160,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
-## Opens the report after time away (spec 062 R5) telling of [param report]: a window in the middle
+## Opens the report after time away telling of [param report]: a window in the middle
 ## of the room, in front of every other. Call after [method setup].
 func show_away(report: AwayReport, party: Party) -> AwayWindow:
 	var made := AwayWindow.new(report, party)
@@ -172,7 +172,7 @@ func show_away(report: AwayReport, party: Party) -> AwayWindow:
 	return made
 
 
-## Spec 059: the shop, the area map and the tally, which [param hud] made so they hear the
+## The shop, the area map and the tally, which [param hud] made so they hear the
 ## simulation from the start, each put in a window of its own with its icon and its key, and
 ## given [param shared] for its tooltips. None without a HUD.
 func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[UiWindow]:
@@ -188,7 +188,7 @@ func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[Ui
 	made.append(
 		UiWindow.new(TallyWindow.ID, TallyWindow.TITLE, hud.tally, TallyWindow.HOTKEY, KEY_T)
 	)
-	made[0].short_name = "Camp"  # spec 068 R2
+	made[0].short_name = "Camp"
 	made[1].short_name = "Map"
 	made[2].short_name = "Tally"
 	for each: UiWindow in made:
@@ -200,7 +200,7 @@ func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[Ui
 
 
 ## Works out each window's default place for the room it has now: the journal at the top left
-## under the HUD's top band, help at the top right, and the orders under the journal. Spec 059:
+## under the HUD's top band, help at the top right, and the orders under the journal. Then
 ## the tally at the top left, the shop at the top right and the area map between them, side by
 ## side so all three open at once with none over another, all clear of the hero frames' line
 ## (they lie over the journal, help and the orders, which a click brings back to the front).
@@ -226,7 +226,7 @@ func place_defaults() -> void:
 		hero_windows.place_defaults()
 
 
-## Spec 059: the tally at the top left, the shop at the top right, the map between them.
+## The tally at the top left, the shop at the top right, the map between them.
 func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: float) -> void:
 	tally.default_place = Vector2(PLACE_GAP, top)
 	shop.default_place = Vector2(_room.x - PLACE_GAP - shop.size.x, top)
@@ -357,5 +357,5 @@ func _apply() -> void:
 			_away.fit_in(Vector2(_room))
 		else:
 			_away.centre_in(Vector2(_room))
-	if held != null:  # spec 067 R4: it stays in the hand, not back at its default or the middle
+	if held != null:  # it stays in the hand, not back at its default or the middle
 		held.place_at(held_at, Vector2(_room))

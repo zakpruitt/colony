@@ -1,8 +1,8 @@
 class_name Countdown
 extends Panel
-## The road to stable beside the place panel (spec 061 R2), on the sharp layer: the note
+## The road to stable beside the place panel, on the sharp layer: the note
 ## ([code]Stable in 8:29[/code], [code]Further in 0:42[/code], [code]Stable[/code] or
-## [code]Holding[/code], spec 027 R2 and spec 039 R2) over a bar that fills toward it while it
+## [code]Holding[/code]) over a bar that fills toward it while it
 ## counts, and what comes next beside the bar ([code]then stage 4[/code], [code]staying on stage
 ## 3[/code], [code]Orders (O) to go in[/code]). The texts are the HUD's ([method Hud.stable_text]);
 ## this only draws them. Hidden while there is nothing to say (on the way to another area).
@@ -45,8 +45,8 @@ func _init() -> void:
 ## [param next] beside the bar; [param height] is the panel's.
 func show_road(note: String, next: String, filled: float, height: float) -> void:
 	var counting: bool = note.contains(" in ")
-	_set_text(note_label, note)
-	_set_text(next_label, next)
+	WindowText.set_text(note_label, note)
+	WindowText.set_text(next_label, next)
 	note_label.add_theme_color_override(
 		&"font_color", Palette.color(&"green" if note == "Stable" else &"silver")
 	)
@@ -81,9 +81,3 @@ func _draw_bar() -> void:
 		Palette.color(&"amber"),
 		Palette.color(&"ink")
 	)
-
-
-static func _set_text(label: Label, text: String) -> void:
-	if label.text != text:
-		label.text = text
-		label.reset_size()
