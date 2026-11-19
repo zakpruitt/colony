@@ -177,11 +177,15 @@ func test_r2_the_shop_reads_at_a_glance() -> void:
 		var rank: int = sim.upgrades.rank(ids[i])
 		assert_eq(row.name_label.text, def.display_name, "its name")
 		assert_true(_bold(row.name_label), "in bold")
-		assert_eq(row.description_label.text, "Each rank gives %s." % def.description, "a sentence")
+		# Spec 065: the sentence is on the card's tooltip, the bar is pips, the bonus now is on
+		# the card's line of numbers.
+		var card: UiTip.Card = shop.tip.card_for(row)
+		var sentence: String = card.stand if card != null else ""
+		assert_eq(sentence, "Each rank gives %s." % def.description, "a sentence")
 		assert_eq(row.rank_label.text, "%d / %d" % [rank, def.max_rank], "its rank")
-		assert_almost_eq(row.rank_bar.fraction, float(rank) / def.max_rank, 0.001, "on a bar")
+		assert_eq([row.pips.filled(), row.pips.count()], [rank, def.max_rank], "on pips")
 		var bonus: int = roundi(rank * def.per_rank * 100.0)
-		assert_eq(row.bonus_label.text, "+%d%% now" % bonus, "the bonus it gives now")
+		assert_eq(row.now_label.text, "+%d%%" % bonus, "the bonus it gives now")
 	var armor: ShopRow = shop.rows[ids.find(ARMOR)]
 	var price: int = sim.upgrades.cost(ARMOR)
 	var clay: int = sim.upgrades.resource_cost(ARMOR)
@@ -461,7 +465,8 @@ func test_r5_nothing_lost() -> void:
 	_frame(main)
 	assert_true(sim.auto_buy, "set_auto_buy, by a click on the switch")
 	# Each row's tooltip still says both prices and where the resource comes from.
-	var tip: String = hud.shop.tip.text_for(hud.shop.rows[armor])
+	var card: UiTip.Card = hud.shop.tip.card_for(hud.shop.rows[armor])  # spec 065: a card
+	var tip: String = card.body if card != null else ""
 	var next: String = "Rank %d:" % (sim.upgrades.rank(ARMOR) + 1)
 	assert_string_contains(tip, next, "the next rank's prices")
 	assert_string_contains(tip, "comes from", "and where its resource comes from")

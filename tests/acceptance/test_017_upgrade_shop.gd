@@ -171,13 +171,15 @@ func test_r3_lists_every_upgrade() -> void:
 		var rank: int = _sim.upgrades.rank(ids[i])
 		assert_eq(row.id, ids[i], "row %d is in shop order" % i)
 		assert_eq(row.name_label.text, def.display_name, "name")
-		assert_string_contains(row.description_label.text, def.description, "description")
+		# Spec 065: the sentence is on the card's tooltip, the bonus now on its line of numbers.
+		var card: UiTip.Card = shop.tip.card_for(row)
+		assert_string_contains(card.stand if card != null else "", def.description, "description")
 		assert_eq(row.rank_label.text, "%d / %d" % [rank, def.max_rank], "rank")
 		var bonus: int = roundi(rank * def.per_rank * 100.0)
-		assert_eq(row.bonus_label.text, "+%d%% now" % bonus, "bonus")
+		assert_eq(row.now_label.text, "+%d%%" % bonus, "bonus")
 		assert_true(row.buy_button.is_visible_in_tree(), "a buy button")
 		assert_string_contains(row.buy_button.text, str(def.cost_at(rank)), "with the price")
-	assert_eq(_row(ARMOR).bonus_label.text, "+15% now", "three ranks of 5%")
+	assert_eq(_row(ARMOR).now_label.text, "+15%", "three ranks of 5%")
 	await get_tree().process_frame  # the window's containers lay out
 	await get_tree().process_frame
 	if shop.rows.size() > 1:
@@ -311,7 +313,7 @@ func test_r6_follows_the_simulation() -> void:
 	_sim.party.set_resource(&"old_bones", 1000)  # spec 052: rank 8 costs old bones too
 	_hud.advance(0.016)
 	assert_eq(blades.rank_label.text, "7 / 20", "a rank set directly shows at once")
-	assert_eq(blades.bonus_label.text, "+35% now")
+	assert_eq(blades.now_label.text, "+35%")  # spec 065: the line of numbers
 	assert_string_contains(blades.buy_button.text, str(_price(BLADES)), "with its price")
 	assert_true(blades.affordable(), "and the gold set directly")
 	_sim.upgrades.set_rank(BLADES, 20)

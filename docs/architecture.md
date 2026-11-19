@@ -115,6 +115,13 @@ The picture is drawn in two layers, each in its own pixels.
   and start nothing for one that is not recent or while the world catches up, and a catch-up drops what
   waits and what runs. Which gains get one is for specs 064 and 065. `PictureSpecimen`
   (`game/ui/picture_specimen.tscn`) shows every picture in every state.
+- **Shop cards** (spec 065): each `ShopRow` is a card: a large `UiIcon` (the rank as its count),
+  `ShopPips`, and what the upgrade gives now and next, its stat named by `UpgradeDef.gives` (a view
+  hint no rule reads). The simulation's `UPGRADE_BOUGHT` does not say who bought, so `ShopWindow`
+  remembers each ask of the player's with its tick: a purchase heard on the tick after its ask is the
+  player's (it bursts through `Main`'s `ShopWindow.moment`), any other auto-buy's. Only a fresh purchase
+  flashes, bursts or announces; every fifth rank and the top one get a banner. `UiTip.card_for` reads
+  the card a control was given.
 
 ## Time
 
