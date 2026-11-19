@@ -1,13 +1,13 @@
 class_name TalentTreeDef
 extends Resource
-## One class's talent tree (spec 051): a trunk of nodes taken in order, then two named paths of
+## One class's talent tree: a trunk of nodes taken in order, then two named paths of
 ## nodes taken in order, of which a hero may walk only one. Each node is an [AbilityDef] id. One
 ## .tres file per class under res://data/talents.
 
 ## Nodes in the trunk, and in each path.
 const _TRUNK_LENGTH: int = 3
 const PATH_LENGTH: int = 4
-## The longest a path's summary may be, in characters (spec 064 R4: one short line).
+## The longest a path's summary may be, in characters: one short line.
 const _SUMMARY_LENGTH: int = 60
 
 @export var class_id: StringName
@@ -15,7 +15,7 @@ const _SUMMARY_LENGTH: int = 60
 @export var path_names: Array[String] = []  # two
 @export var path_a: Array[StringName] = []
 @export var path_b: Array[StringName] = []
-## Spec 064 R4: one short line per path saying what a hero on it becomes ("holds the line and
+## One short line per path saying what a hero on it becomes ("holds the line and
 ## keeps the party standing"), shown on its banner. A view hint: no rule reads it, and the state
 ## hash leaves it out.
 @export var path_summaries: Array[String] = []
@@ -121,6 +121,6 @@ func validate() -> PackedStringArray:
 		if ability == null:
 			problems.append("'%s' is not an ability under %s" % [node, Content.ABILITIES_DIR])
 		elif ability.is_action() and not ability.ready_at_start:
-			# Spec 051 R14: fights last seconds, so an action waits only for its condition.
+			# Fights last seconds, so an action waits only for its condition.
 			problems.append("'%s' is an action not ready as a fight starts" % node)
 	return problems

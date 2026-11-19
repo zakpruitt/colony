@@ -1,6 +1,6 @@
 class_name ClimbProgress
 extends RefCounted
-## Reads of a party changing stage (spec 054), for the view's crossing: where it is going and how
+## Reads of a party changing stage, for the view's crossing: where it is going and how
 ## far it has come. Reading changes nothing, and nothing here is in the state hash. Kept apart
 ## from [Expedition] so it stays under gdlint's limits.
 

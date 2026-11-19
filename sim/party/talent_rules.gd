@@ -1,6 +1,6 @@
 class_name TalentRules
 extends RefCounted
-## The rules of talent and paragon points that do not need a hero (spec 051), beside [Hero].
+## The rules of talent and paragon points that do not need a hero, beside [Hero].
 
 
 ## How many talent points a hero of level [param level_number] has earned: one at every

@@ -1,6 +1,6 @@
 class_name PartyOrders
 extends RefCounted
-## The rules and names of the party's standing orders (spec 035), kept apart from [Expedition],
+## The rules and names of the party's standing orders, kept apart from [Expedition],
 ## which holds the orders themselves ([member Expedition.pace], [member Expedition.guardian_order]).
 ## Plain functions; nothing here keeps state.
 
@@ -16,7 +16,7 @@ const _BOLD_REST_BELOW: float = 0.4
 
 
 ## The share of a hero's health below which the party rests after a fight at [param pace]. Steady
-## is [constant Expedition.REST_BELOW], the rule from before orders.
+## is [constant Expedition.REST_BELOW].
 static func rest_below(pace: Expedition.Pace) -> float:
 	match pace:
 		Expedition.Pace.CAUTIOUS:
@@ -27,7 +27,7 @@ static func rest_below(pace: Expedition.Pace) -> float:
 
 
 ## True if the party must rest after a fight at [param pace]: any of [param heroes] is down or
-## below its own share of its own maximum health (spec 040 R3: per hero, not the party's total).
+## below its own share of its own maximum health (per hero, not the party's total).
 static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
 	for hero: Hero in heroes:
 		if not hero.is_alive() or hero.health < rest_below(pace) * hero.max_health():

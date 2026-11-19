@@ -1,6 +1,6 @@
 class_name BattleAbilities
 extends RefCounted
-## The rules of abilities in a battle (spec 050): which action a fighter is ready to use and
+## The rules of abilities in a battle: which action a fighter is ready to use and
 ## at whom, what sets passives off, and what each effect does to whom. Stateless: everything
 ## lives on the [Combatant]s and the [Battle] passed in.
 

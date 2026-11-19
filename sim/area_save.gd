@@ -1,11 +1,11 @@
 class_name AreaSave
 extends RefCounted
-## The areas in the save (spec 049, save version 6), kept apart from [Simulation] so its file stays
+## The areas in the save (from save version 6), kept apart from [Simulation] so its file stays
 ## a readable size.
 ##
 ## [code]area[/code] is the area the party is in (or heading to); its safe, furthest and target
 ## stages stay in [code]last_stable_depth[/code], [code]deepest_depth[/code] and
-## [code]target_depth[/code], as depths were before. [code]areas[/code] holds every other area the
+## [code]target_depth[/code]. [code]areas[/code] holds every other area the
 ## party has been in, by id, as [code]{"safe": s, "furthest": f}[/code], and
 ## [code]open_areas[/code] lists the open areas' ids.
 

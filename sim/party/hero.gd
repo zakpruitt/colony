@@ -1,16 +1,16 @@
 class_name Hero
 extends RefCounted
 ## One member of the party: its class, level, XP, the health it carries between
-## fights, its talents and its paragon points (spec 051). Its fighting numbers come from its
+## fights, its talents and its paragon points. Its fighting numbers come from its
 ## [HeroClassDef], times the party's camp upgrades, times its paragon points; it fights with
 ## the abilities of its talents.
 
 ## XP per level step: reaching level n takes (n - 1) * (_XP_STEP * n - _XP_DISCOUNT) in total.
 const _XP_STEP: int = 25
-## XP taken off each level step (spec 036): the first levels come quickly, the late ones cost
-## nearly what they did.
+## XP taken off each level step: the first levels come quickly, and the late ones cost nearly
+## the full step.
 const _XP_DISCOUNT: int = 30
-## Talent points a hero can earn: enough to fill a tree, its trunk and one path (spec 051).
+## Talent points a hero can earn: enough to fill a tree, its trunk and one path.
 const TALENT_POINTS: int = 7
 ## A talent point comes at every level divisible by this.
 const TALENT_EVERY: int = 2
@@ -24,7 +24,7 @@ var health: int
 var upgrades: Upgrades
 
 var _def: HeroClassDef
-## The talent tree nodes this hero has taken, in the order taken (spec 051).
+## The talent tree nodes this hero has taken, in the order taken.
 var _talents: Array[StringName] = []
 ## The paragon points this hero has spent, by [enum TrainingDef.Stat]; stats with none left out.
 var _paragon: Dictionary[int, int] = {}
@@ -93,7 +93,7 @@ func has_microskill(skill_id: StringName) -> bool:
 ## A battle combatant for this hero, with the hero's id and current health, the party's
 ## upgrades and the hero's paragon points in its damage, healing power, maximum health and
 ## attack speed, and the abilities of its talents, the newest first: a fighter tries its actions in
-## that order, so a deeper node is not starved by the trunk in fights of a few seconds (R14).
+## that order, so a deeper node is not starved by the trunk in fights of a few seconds.
 func combatant() -> Combatant:
 	var c: Combatant = Combatant.from_hero(_def, level, id)
 	var power: float = (
@@ -113,7 +113,7 @@ func combatant() -> Combatant:
 	return c
 
 
-# --- Talents and paragon (spec 051) -------------------------------------------
+# --- Talents and paragon -------------------------------------------------------
 
 
 ## The nodes this hero has taken, in the order taken.

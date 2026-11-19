@@ -13,7 +13,7 @@ const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 const SAVE_VERSION: int = 8
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
-## A fresh start costs this much gold per level of the hero (spec 051).
+## A fresh start costs this much gold per level of the hero.
 const _RESET_GOLD_PER_LEVEL: int = 100
 ## The largest whole number a JSON float holds exactly (2^53).
 const _LARGEST_WHOLE: int = 9_007_199_254_740_992
@@ -29,8 +29,8 @@ var tick: int:
 	set(_value):
 		push_error("Simulation.tick is read-only; call step() to advance it")
 
-## The endless levels of the area the party is in, made from the seed (spec 049: each area has its
-## own). Read-only.
+## The endless levels of the area the party is in, made from the seed (each area has its own).
+## Read-only.
 var labyrinth: Labyrinth:
 	get:
 		return expedition.labyrinth
@@ -93,23 +93,23 @@ func set_auto_push(enabled: bool) -> void:
 	expedition.auto_push = enabled
 
 
-## Sets the party's pace (spec 035): how hurt it may be before it rests after a fight. It applies
+## Sets the party's pace: how hurt it may be before it rests after a fight. It applies
 ## from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an unknown value is
 ## ignored.
 func set_pace(pace: Expedition.Pace) -> void:
 	expedition.command_pace(pace)
 
 
-## Sets the party's guardian order (spec 035): under Hold it never enters a living guardian's
+## Sets the party's guardian order: under Hold it never enters a living guardian's
 ## chamber. It applies from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an
 ## unknown value is ignored.
 func set_guardian_order(order: Expedition.GuardianOrder) -> void:
 	expedition.command_guardian_order(order)
 
 
-## Sends the party to [param stage] of area [param area_id] (spec 049). If the area is open, the
-## party finishes any fight it is in, leaves, spends [constant AreaTravel.JOURNEY_SECONDS] on the
-## way and arrives alive, as hurt as it was, at the start of that stage (or of the area's safe
+## Sends the party to [param stage] of area [param area_id]. If the area is open, the party
+## finishes any fight it is in, leaves, spends [constant AreaTravel.JOURNEY_SECONDS] on the way
+## and arrives alive, its health unchanged, at the start of that stage (or of the area's safe
 ## stage, if the stage asked for is beyond it), with the stage asked for as its target. A command
 ## for an area that is not open does nothing.
 func set_destination(area_id: StringName, stage: int) -> void:
@@ -128,13 +128,12 @@ func area_progress(area_id: StringName) -> Vector2i:
 	return expedition.travel.progress(expedition, area_id)
 
 
-## True once area [param area_id]'s guardian has been beaten at least once (spec 052 R12); a save
-## keeps it.
+## True once area [param area_id]'s guardian has been beaten at least once; a save keeps it.
 func is_guardian_beaten(area_id: StringName) -> bool:
 	return expedition.travel.guardians_beaten.has(area_id)
 
 
-## True once the party has held resource [param id] (spec 052 R8: the journal notes the first).
+## True once the party has held resource [param id] (the journal notes the first).
 ## It needs no saved field: a resource is only ever spent on upgrade ranks, so the party has held it
 ## when it holds some now or owns a rank of an upgrade that cost it.
 func has_gathered(id: StringName) -> bool:
@@ -149,27 +148,27 @@ func has_gathered(id: StringName) -> bool:
 
 ## Asks to buy the next rank of upgrade [param id] at the next step. It is bought
 ## then if the id is known, the rank is below the maximum and the party has the
-## gold and the resource it costs (spec 052); otherwise nothing happens.
+## gold and the resource it costs; otherwise nothing happens.
 func buy_upgrade(id: StringName) -> void:
 	_pending_buys.append(id)
 
 
-## Asks hero [param hero_id] to spend a talent point on node [param ability_id] at the next step
-## (spec 051). It is taken then if the hero has an unspent point and the node is next in its tree
+## Asks hero [param hero_id] to spend a talent point on node [param ability_id] at the next step.
+## It is taken then if the hero has an unspent point and the node is next in its tree
 ## ([method Hero.can_take]), with [constant SimEvent.Kind.TALENT_TAKEN]; the hero fights with it
 ## from its next fight on. Otherwise nothing happens.
 func take_talent(hero_id: int, ability_id: StringName) -> void:
 	_pending_talents.append([_TAKE, hero_id, ability_id])
 
 
-## Asks hero [param hero_id] to put a paragon point into [param stat] at the next step (spec 051).
+## Asks hero [param hero_id] to put a paragon point into [param stat] at the next step.
 ## It goes in then if the hero has an unspent one, with [constant SimEvent.Kind.PARAGON_SPENT]; a
 ## hero in a fight fights on with the new numbers. Otherwise nothing happens.
 func spend_paragon(hero_id: int, stat: TrainingDef.Stat) -> void:
 	_pending_talents.append([_PARAGON, hero_id, stat])
 
 
-## Asks for a fresh start for hero [param hero_id] at the next step (spec 051): for
+## Asks for a fresh start for hero [param hero_id] at the next step: for
 ## [constant _RESET_GOLD_PER_LEVEL] gold per level, every node it took is given back as an unspent
 ## talent point and both paths are open again, with [constant SimEvent.Kind.TALENTS_RESET].
 ## Paragon points stay. Nothing happens during a fight, without the gold, or with no node taken.
@@ -316,10 +315,10 @@ func seconds() -> float:
 ## tick, the party, the expedition and the battle in progress.
 func state_hash() -> int:
 	var parts: Array = [_seed, _tick, party.hash_parts(), expedition.hash_parts()]
-	# Without upgrades the hash is what it was before they existed.
+	# Only when one is bought, to keep the hash of a run without upgrades.
 	if upgrades.any():
 		parts.append(upgrades.hash_parts())
-	# Likewise auto-buy: only a simulation with it on hashes the switch.
+	# Only when on, to keep the hash of a run without auto-buy.
 	if _auto_buy:
 		parts.append("auto_buy")
 	return hash(parts)
@@ -387,8 +386,8 @@ static func from_save(data: Dictionary) -> Simulation:
 		hero.upgrades = sim.upgrades
 		hero.level = _whole(saved["level"])
 		hero.xp = _whole(saved["xp"])
-		# A save from before spec 036's cheaper levels can hold XP that pays for more levels: take
-		# them now, silently, so the hero is what its XP earns (spec 044). Health is filled below.
+		# A saved hero's XP may pay for more levels than its saved level: take them now, silently,
+		# so the hero is what its XP earns. Health is filled below.
 		hero.gain_xp(0)
 		TalentSave.read(hero, saved)
 		hero.health = hero.max_health()

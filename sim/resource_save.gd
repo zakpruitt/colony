@@ -1,6 +1,6 @@
 class_name ResourceSave
 extends RefCounted
-## The resources and beaten guardians in the save (spec 052, save version 8), kept apart from
+## The resources and beaten guardians in the save (from save version 8), kept apart from
 ## [Simulation] as [AreaSave] is.
 ##
 ## [code]resources[/code] is a dictionary of [ResourceDef] id to the count the party holds (one it

@@ -32,7 +32,7 @@ func reward_at(level_depth: int) -> int:
 
 ## What one kill at [param level_depth] is worth on average, as Vector2(gold, XP): each monster
 ## (not a guardian) whose [member MonsterDef.base_level] is at most that depth, weighted by that
-## level: the worth of a kill at that depth before spec 049's areas, so rewards stay as they were.
+## level. It reads every monster, not an area's, so a reward depends on the depth alone.
 static func kill_value(level_depth: int) -> Vector2:
 	var gold: float = 0.0
 	var xp: float = 0.0

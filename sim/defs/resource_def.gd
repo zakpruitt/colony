@@ -1,6 +1,6 @@
 class_name ResourceDef
 extends Resource
-## A resource (spec 052): what an area gives the party for fighting there, which the later ranks of
+## A resource: what an area gives the party for fighting there, which the later ranks of
 ## the camp upgrades cost. Its icon is its part of [code]assets/sprites/ui/resource_icons.px[/code],
 ## named by its id. One .tres file per resource under res://data/resources.
 

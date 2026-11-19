@@ -1,6 +1,6 @@
 class_name TrainingDef
 extends Resource
-## One stat a hero's paragon points go into (spec 051; spec 029's gold training before it). Each
+## One stat a hero's paragon points go into. Each
 ## point adds [member per_rank] to one of that hero's multipliers, with no limit. One .tres file
 ## per stat under res://data/training.
 

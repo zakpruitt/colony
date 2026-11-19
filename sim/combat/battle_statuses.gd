@@ -1,6 +1,6 @@
 class_name BattleStatuses
 extends RefCounted
-## The rules of statuses in a battle (spec 050): putting one on, its work each second, and its
+## The rules of statuses in a battle: putting one on, its work each second, and its
 ## end. Stateless: everything lives on the [Combatant]s and the [Battle] passed in.
 
 ## Statuses that do something each second.

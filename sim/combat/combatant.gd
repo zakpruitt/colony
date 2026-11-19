@@ -42,8 +42,9 @@ var strike_tick: int = -1
 ## Set by the battle: the first tick a new attack may start on.
 var ready_tick: int = 0
 
-## Spec 050: what this fighter does beyond its strike, in the order it considers them.
-var abilities: Array[AbilityDef] = []  # empty for everyone today
+## What this fighter does beyond its strike, in the order it considers them: a hero's talents,
+## the newest first; empty for a monster.
+var abilities: Array[AbilityDef] = []
 ## Set by the battle: the action being wound up, or null for an ordinary strike.
 var pending_action: AbilityDef = null
 ## Set by the battle: the id of the action this fighter is walking or waiting to use, whose

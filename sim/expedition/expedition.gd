@@ -8,15 +8,15 @@ extends RefCounted
 ## ([method LabyrinthChamber.floor_columns]). Feet stand on the level's floor row
 ## ([member LabyrinthLevel.floor_y]).
 ##
-## Some plain chambers hold a side quest instead of monsters (spec 025): a hero with its
+## Some plain chambers hold a side quest instead of monsters: a hero with its
 ## microskill does it while the party stands WORKING, and without one the party walks past.
 ##
 ## Every change worth showing is reported as a [SimEvent] stamped with the
 ## simulation tick; [method drain_events] hands them over once.
 
-## JOURNEYING: on the way to another area (spec 049), standing where it left until it arrives.
+## JOURNEYING: on the way to another area, standing where it left until it arrives.
 enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING, JOURNEYING }
-## The party's orders (spec 035): how hurt it may be before it rests after a fight (see
+## The party's orders: how hurt it may be before it rests after a fight (see
 ## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
 enum Pace { CAUTIOUS, STEADY, BOLD }
 enum GuardianOrder { CHALLENGE, HOLD }
@@ -55,7 +55,7 @@ const _EPSILON: float = 0.0001
 const _SIDE_QUEST_SHARE: float = 0.3
 
 var state: State = State.TRAVELLING
-## The area the party is in, or heading to while JOURNEYING (spec 049). The depths below are
+## The area the party is in, or heading to while JOURNEYING. The depths below are
 ## stages of the area it is in.
 var area: StringName
 var depth: int = 1
@@ -72,17 +72,16 @@ var stable_seconds: float:
 	get:
 		if _stable_set >= 0.0:
 			return _stable_set
-		# Spec 049 R2 as amended: by the stage number, not its level, so every area's first
-		# stage is safe in a minute.
+		# By the stage number, not its level, so every area's first stage is safe in a minute.
 		return DepthTiming.stable_seconds_at(depth)
 	set(value):
 		_stable_set = value
 ## The fight in progress, or null.
 var battle: Battle
-## The orders (spec 035). Read-only outside the class: see [method command_pace].
+## The orders. Read-only outside the class: see [method command_pace].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
-## While the party is down, the tick it revives on (spec 048). Read-only outside the class.
+## While the party is down, the tick it revives on. Read-only outside the class.
 var revive_tick: int:
 	get:
 		return _revive_tick
@@ -92,17 +91,17 @@ var labyrinth: Labyrinth:
 		return _labyrinth
 
 ## The area whose labyrinth the party stands in: [member area], except while JOURNEYING, when it
-## is the area being left (spec 049). Read-only.
+## is the area being left. Read-only.
 var place: StringName:
 	get:
 		return _here.id
-## The areas' state (spec 049). Read-only outside the class.
+## The areas' state. Read-only outside the class.
 var travel: AreaTravel:
 	get:
 		return _areas
 
 var _labyrinth: Labyrinth
-## The area of [member _labyrinth], where the party is (spec 049), and the areas' other state.
+## The area of [member _labyrinth], where the party is, and the areas' other state.
 var _here: AreaDef
 var _areas: AreaTravel
 var _party: Party
@@ -209,7 +208,7 @@ func command_target_depth(new_depth: int) -> void:
 	_pending_target = maxi(new_depth, 1)
 
 
-## Asks for a new pace or guardian order (spec 035); each applies from the next tick, even while
+## Asks for a new pace or guardian order; each applies from the next tick, even while
 ## the party is down, and an unknown value is ignored.
 func command_pace(new_pace: Pace) -> void:
 	_pending_pace = new_pace
@@ -344,7 +343,7 @@ func revival_place() -> Vector3:
 	return Vector3(column, last_stable_depth, Arrival.facing(column))
 
 
-## Seconds until auto-push raises the target depth (spec 039); 0.0 when it is off or the party is
+## Seconds until auto-push raises the target depth; 0.0 when it is off or the party is
 ## not at its target. Reading it changes nothing.
 func seconds_to_push() -> float:
 	if state == State.JOURNEYING:
@@ -432,7 +431,7 @@ func hash_parts() -> Array:
 		parts.append(
 			[battle.tick, battle.result(), _combatant_parts(battle.heroes + battle.monsters)]
 		)
-	# With the orders at their defaults and none asked for, the hash is what it was before them.
+	# Only when off their defaults or asked for, to keep the hash of a run without orders.
 	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
 	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:
 		parts.append(["orders", pace, guardian_order, _pending_pace, _pending_guardian_order])
@@ -454,7 +453,7 @@ func _apply_commands() -> void:
 	var wanted: int = _pending_target
 	_pending_target = 0
 	_set_target(wanted)
-	# Chosen on the way to another area: the target there (spec 049 R4 as amended).
+	# Chosen on the way to another area: the target there.
 	_areas.target_chosen = _areas.target_chosen or state == State.JOURNEYING
 
 
@@ -710,7 +709,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	var key := Vector2i(level_depth, chamber_index)
 	var fill: ChamberState = _chambers.get(key, null)
 	if fill == null:
-		fill = ChamberState.new(level_depth)  # refills by the stage number (spec 049 R2)
+		fill = ChamberState.new(level_depth)  # refills by the stage number
 		fill.guardian = _is_guardian_chamber(level_depth, chamber_index)
 		_chambers[key] = fill
 	if fill.cleared_tick >= 0 and _tick >= _refill_tick(fill):
@@ -791,7 +790,7 @@ func _fight() -> void:
 	if battle.result() == Battle.Result.MONSTERS_WON and not alive.is_empty():
 		overwhelmed = true
 	if overwhelmed and battle.result() != Battle.Result.HEROES_WON:
-		# Spec 051 R13: every status ends with its event before the heroes fall.
+		# Every status ends with its event before the heroes fall.
 		battle.end()
 		for event: SimEvent in battle.drain_events():
 			event.tick = _tick
@@ -833,9 +832,9 @@ func _reward(dead: Combatant, alive: Dictionary[int, bool]) -> void:
 	gold = roundi(gold * _upgrade(UpgradeDef.Stat.GOLD))
 	_party.gold += gold
 	_emit(SimEvent.Kind.GOLD_GAINED, dead.id, -1, gold)
-	ResourceDrops.on_kill(self, dead, def)  # spec 052
+	ResourceDrops.on_kill(self, dead, def)
 	if def.guardian:
-		_areas.guardians_beaten[_here.id] = true  # spec 052 R12
+		_areas.guardians_beaten[_here.id] = true
 		_emit(SimEvent.Kind.GUARDIAN_SLAIN, dead.id, -1, _battle_key.x)
 		if _battle_key.x == _here.guardian_stage:
 			for opened: StringName in _areas.open_after(_here.id):

@@ -1,6 +1,6 @@
 class_name QuestWork
 extends RefCounted
-## The expedition's side quests (spec 025): meeting one, and the work on it while the party
+## The expedition's side quests: meeting one, and the work on it while the party
 ## stands WORKING. Kept apart from [Expedition] so its file stays under gdlint's 1000 lines.
 
 
@@ -52,7 +52,7 @@ static func work(run: Expedition) -> void:
 	else:
 		run._party.gold += amount
 		run._emit(SimEvent.Kind.GOLD_GAINED, run._worker, -1, amount)
-	ResourceDrops.on_quest(run, run._worker, run._work_key.x)  # spec 052
+	ResourceDrops.on_quest(run, run._worker, run._work_key.x)
 	var fill: ChamberState = run._chambers[run._work_key]
 	fill.cleared_tick = run._tick
 	fill.missed = false

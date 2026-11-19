@@ -1,6 +1,6 @@
 class_name DepthTiming
 extends RefCounted
-## How long things take on a depth (spec 036): quick near the surface, so a new game is busy, and
+## How long things take on a depth: quick near the surface, so a new game is busy, and
 ## the deep game's slow pace from [constant DEEP_DEPTH] down.
 
 ## From this depth down every time here is the deep game's, unchanged.
@@ -30,7 +30,7 @@ static func stable_left(run: Expedition, now: int, since: int, timer_depth: int)
 	return _left(run.stable_seconds, now, since if run.depth == timer_depth else now)
 
 
-## [method Expedition.seconds_to_push] for [param run] at tick [param now] (spec 039). The push
+## [method Expedition.seconds_to_push] for [param run] at tick [param now]. The push
 ## comes once the party has held its target for the stable time, counted from the later of its
 ## arrival and the target being set. [param timers] is the expedition's two counts: the tick the
 ## depth has been held since, that depth, the tick the target was set and that target. A depth or

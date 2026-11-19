@@ -1,6 +1,6 @@
 class_name ResourceDrops
 extends RefCounted
-## What the party gathers of the area's resource (spec 052): a monster killed may drop some, by its
+## What the party gathers of the area's resource: a monster killed may drop some, by its
 ## size, and a side quest finished pays some; the amount grows with the stage. Kept apart from
 ## [Expedition] so its file stays under gdlint's 1000 lines.
 ##

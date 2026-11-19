@@ -1,13 +1,13 @@
 class_name TalentSave
 extends RefCounted
 ## How each hero's talents and paragon points are saved, checked and brought forward from a
-## version 6 save (spec 051), kept apart from [Simulation] as [AreaSave] is.
+## version 6 save, kept apart from [Simulation] as [AreaSave] is.
 ##
 ## A saved hero carries "talents" (its nodes, in the order taken) and "paragon" (a dictionary
 ## of [TrainingDef] id to the points spent in that stat). Unspent points are not saved: they are
 ## what the hero's level earns less what it spent.
 
-## What spec 029's gold training cost, by training id: [base cost, growth per rank, maximum
+## What a version 6 save's gold training cost, by training id: [base cost, growth per rank, maximum
 ## rank]. Only a version 6 save needs them, to give the gold back.
 const _OLD_TRAINING_PRICES: Dictionary[String, Array] = {
 	"power": [40, 1.35, 20],
@@ -82,7 +82,7 @@ static func upgrade_6_to_7(data: Dictionary) -> Dictionary:
 	return data
 
 
-## The gold spec 029 took for the ranks in [param training], or -1 if they cannot be read.
+## The gold a version 6 save paid for the ranks in [param training], or -1 if they cannot be read.
 static func _paid_for(training: Variant) -> int:
 	if not (training is Dictionary):
 		return -1

@@ -69,7 +69,7 @@ static func upgrade_ids() -> Array[StringName]:
 	return _upgrade_ids.duplicate()
 
 
-## The hero training with this id (spec 029), or null if there is none.
+## The paragon stat with this id, or null if there is none.
 static func training(id: StringName) -> TrainingDef:
 	_load()
 	return _training.get(id, null)
@@ -105,7 +105,7 @@ static func side_quest_ids() -> Array[StringName]:
 	return _sorted(_side_quests.keys())
 
 
-## The area with this id (spec 049), or null if there is none.
+## The area with this id, or null if there is none.
 static func area(id: StringName) -> AreaDef:
 	_load()
 	return _areas.get(id, null)
@@ -117,7 +117,7 @@ static func area_ids() -> Array[StringName]:
 	return _area_ids.duplicate()
 
 
-## The ability with this id (spec 050), or null if there is none.
+## The ability with this id, or null if there is none.
 static func ability(id: StringName) -> AbilityDef:
 	_load()
 	return _abilities.get(id, null)
@@ -129,13 +129,13 @@ static func ability_ids() -> Array[StringName]:
 	return _sorted(_abilities.keys())
 
 
-## The talent tree of hero class [param class_id] (spec 051), or null if it has none.
+## The talent tree of hero class [param class_id], or null if it has none.
 static func talent_tree(class_id: StringName) -> TalentTreeDef:
 	_load()
 	return _talent_trees.get(class_id, null)
 
 
-## The resource with this id (spec 052), or null if there is none.
+## The resource with this id, or null if there is none.
 static func resource_def(id: StringName) -> ResourceDef:
 	_load()
 	return _resources.get(id, null)

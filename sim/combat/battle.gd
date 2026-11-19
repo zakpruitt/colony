@@ -12,8 +12,7 @@ extends RefCounted
 ## flight are dropped.
 ## [br]- When a target dies, every wind-up aimed at it is cancelled at once.
 ##
-## Abilities (spec 050) follow [BattleAbilities] and statuses [BattleStatuses]; a battle in
-## which nobody has an ability rolls, moves and ends exactly as it did before them.
+## Abilities follow [BattleAbilities] and statuses [BattleStatuses].
 
 enum Result { ONGOING, HEROES_WON, MONSTERS_WON }
 ## What dealt some damage: an ordinary strike, an action, a passive or a status.

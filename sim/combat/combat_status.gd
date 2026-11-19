@@ -1,6 +1,6 @@
 class_name CombatStatus
 extends RefCounted
-## A status on one fighter (spec 050): what it is, who put it there, how strong it is and
+## A status on one fighter: what it is, who put it there, how strong it is and
 ## until when. Statuses live only as long as the fight.
 
 var kind: AbilityEffect.Status
