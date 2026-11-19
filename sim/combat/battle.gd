@@ -369,7 +369,7 @@ func _use(c: Combatant, target: Combatant) -> void:
 	c.pending_action = null
 	c.state = Combatant.State.IDLE
 	c.ready_tick = tick + c.strike_interval_ticks()
-	c.action_ready_tick[action.id] = tick + roundi(action.cooldown * Simulation.TICKS_PER_SECOND)
+	c.action_ready_tick[action.id] = tick + Combatant.seconds_to_ticks(action.cooldown, 0)
 	BattleAbilities.use(self, c, action, target)
 
 
@@ -403,7 +403,7 @@ func _taunter(c: Combatant, enemies: Array[Combatant]) -> Combatant:
 func _strikes_from_here(c: Combatant, target: Combatant, reach: float) -> bool:
 	if reach > MELEE_REACH or c.state == Combatant.State.MOVING or c.ready_tick == 0:
 		return false
-	var allies: Array[Combatant] = heroes if c.team == Combatant.Team.HEROES else monsters
+	var allies: Array[Combatant] = allies_of(c)
 	var spacing: float = _spacing(allies)
 	for ally: Combatant in allies:
 		var standing: bool = ally != c and ally.is_alive() and ally.state != Combatant.State.MOVING
@@ -438,7 +438,7 @@ func _take_place(c: Combatant, target: Combatant, reach: float) -> bool:
 ## a hero of a more forward role (then earlier in the party) attacking the same target. Sets
 ## [member _held_back]: true when standing allies alone kept [param c] short of [param goal].
 func _station(c: Combatant, goal: float, forward: float) -> float:
-	var allies: Array[Combatant] = heroes if c.team == Combatant.Team.HEROES else monsters
+	var allies: Array[Combatant] = allies_of(c)
 	var spacing: float = _spacing(allies)
 	var place: float = goal * forward
 	var bound_by_mover: bool = false
@@ -517,8 +517,7 @@ func _strike(c: Combatant, target: Combatant) -> void:
 	if not is_heal and c.attack_range <= MELEE_REACH:
 		_apply(c, target, false)
 		return
-	var seconds: float = absf(target.x - c.x) / _PROJECTILE_SPEED
-	var flight: int = maxi(1, roundi(seconds * Simulation.TICKS_PER_SECOND))
+	var flight: int = Combatant.seconds_to_ticks(absf(target.x - c.x) / _PROJECTILE_SPEED)
 	_projectiles.append(BattleProjectile.new(c, target.id, tick + flight, is_heal))
 	record(SimEvent.Kind.PROJECTILE_LAUNCHED, c.id, target.id, flight, is_heal)
 
@@ -533,10 +532,7 @@ func _apply(source: Combatant, target: Combatant, is_heal: bool) -> void:
 			return
 	var roll: float = _ROLL_MIN + _rng.next_float() * (_ROLL_MAX - _ROLL_MIN)
 	if is_heal:
-		var healed: int = mini(roundi(source.heal_power * roll), target.max_health - target.health)
-		healed = maxi(healed, 0)
-		target.health += healed
-		record(SimEvent.Kind.HEALED, source.id, target.id, healed)
+		heal(source, target, roundi(source.heal_power * roll))
 		return
 	var crit: bool = _rng.chance(source.crit_chance)
 	# Passives that multiply this strike, rather than add a hit of their own.

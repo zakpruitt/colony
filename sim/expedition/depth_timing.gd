@@ -62,5 +62,5 @@ static func refill_seconds(fill: ChamberState) -> float:
 ## Seconds left at tick [param now] of [param seconds] counted from tick [param since], in whole
 ## ticks as the expedition counts them; never below 0.
 static func _left(seconds: float, now: int, since: int) -> float:
-	var needed: int = roundi(seconds * Simulation.TICKS_PER_SECOND)
+	var needed: int = Combatant.seconds_to_ticks(seconds, 0)
 	return float(maxi(needed - (now - since), 0)) / Simulation.TICKS_PER_SECOND

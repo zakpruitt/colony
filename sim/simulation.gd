@@ -256,7 +256,7 @@ func _reset(hero: Hero) -> void:
 func _apply_auto_buy() -> void:
 	if not _auto_buy:
 		return
-	var every: int = maxi(roundi(AUTO_BUY_SECONDS * TICKS_PER_SECOND), 1)
+	var every: int = Combatant.seconds_to_ticks(AUTO_BUY_SECONDS)
 	if _tick % every != 0:
 		return
 	var id: StringName = upgrades.cheapest_affordable(party)

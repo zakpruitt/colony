@@ -71,8 +71,8 @@ static func roll(
 
 ## Stands waiting monsters evenly over the middle half of the chamber's floor.
 static func spread(monsters: Array[Combatant], room: LabyrinthChamber) -> void:
-	var left: float = room.rect.position.x
-	var right: float = room.rect.end.x - 1
+	var left: float = room.floor_columns().x
+	var right: float = room.floor_columns().y
 	var quarter: float = (right - left) / 4.0
 	for i: int in monsters.size():
 		var share: float = (i + 0.5) / monsters.size()

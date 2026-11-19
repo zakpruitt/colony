@@ -4,9 +4,9 @@ extends RefCounted
 ## climbing between levels, fights, rewards, rest, and falling back after a wipe.
 ##
 ## Positions are world tiles, x right and y down. A column [code]c[/code] is the
-## position [code]x = c[/code]; a chamber's floor runs from its first open column
-## ([code]rect.position.x[/code]) to its last ([code]rect.end.x - 1[/code]). Feet
-## stand on the level's floor row ([member LabyrinthLevel.floor_y]).
+## position [code]x = c[/code]; a chamber's floor runs from its first open column to its last
+## ([method LabyrinthChamber.floor_columns]). Feet stand on the level's floor row
+## ([member LabyrinthLevel.floor_y]).
 ##
 ## Some plain chambers hold a side quest instead of monsters (spec 025): a hero with its
 ## microskill does it while the party stands WORKING, and without one the party walks past.
@@ -174,13 +174,9 @@ func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
 	area = _here.id
 	_areas = AreaTravel.new(first_labyrinth)
 	var level: LabyrinthLevel = _labyrinth.level(1)
-	var start: LabyrinthChamber = level.chambers[0]
-	for room: LabyrinthChamber in level.chambers:
-		if room.kind == LabyrinthChamber.Kind.START:
-			start = room
-	x = (start.rect.position.x + start.rect.end.x - 1) / 2.0
+	x = Arrival.column(_labyrinth, 1)
 	facing = 1 if level.shaft_down.position.x >= x else -1
-	_entered_key = Vector2i(1, start.index)
+	_entered_key = Vector2i(1, level.chamber_at(floori(x)).index)
 
 
 ## Advances the expedition to simulation tick [param tick].
@@ -494,7 +490,7 @@ func _count_time() -> void:
 	if target_depth != _timer_target:
 		_timer_target = target_depth
 		_target_since = _tick - 1
-	var needed: int = roundi(stable_seconds * Simulation.TICKS_PER_SECOND)
+	var needed: int = Combatant.seconds_to_ticks(stable_seconds, 0)
 	if _tick - _depth_since >= needed and depth > last_stable_depth:
 		last_stable_depth = depth
 		_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, -1, -1, depth)
@@ -523,9 +519,9 @@ func _travel() -> void:
 	elif depth > target_depth and not holding:
 		goal = _shaft_middle(depth - 1)
 	elif facing > 0:
-		goal = level.chambers[level.chambers.size() - 1].rect.end.x - 1
+		goal = level.chambers[level.chambers.size() - 1].floor_columns().y
 	else:
-		goal = level.chambers[0].rect.position.x
+		goal = level.chambers[0].floor_columns().x
 	if guardian_order == GuardianOrder.HOLD and _guardian_alive(depth):
 		goal = PartyOrders.short_of(level.shaft_chamber(), x, goal)
 	_walk_toward(goal)
@@ -587,8 +583,8 @@ func _formation_x(rank: int) -> float:
 	if _turn_facing != 0 and lag > since_turn:
 		hero_x = _turn_x - _turn_facing * (lag - since_turn)
 	var level: LabyrinthLevel = _labyrinth.level(depth)
-	var first: float = level.chambers[0].rect.position.x
-	var last: float = level.chambers[level.chambers.size() - 1].rect.end.x - 1
+	var first: float = level.chambers[0].floor_columns().x
+	var last: float = level.chambers[level.chambers.size() - 1].floor_columns().y
 	return clampf(hero_x, first, last)
 
 
@@ -766,8 +762,8 @@ func _start_battle(room: LabyrinthChamber) -> void:
 	battle = Battle.new(
 		heroes,
 		fill.monsters,
-		room.rect.position.x,
-		room.rect.end.x - 1,
+		room.floor_columns().x,
+		room.floor_columns().y,
 		facing > 0,
 		_rng.fork("battle/%d" % _battle_count)
 	)

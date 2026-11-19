@@ -40,8 +40,8 @@ static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
 static func short_of(room: LabyrinthChamber, from: float, goal: float) -> float:
 	if room == null:
 		return goal
-	var first: float = room.rect.position.x
-	var last: float = room.rect.end.x - 1
+	var first: float = room.floor_columns().x
+	var last: float = room.floor_columns().y
 	if goal > from and from < first and goal > first - 1.0:
 		return first - 1.0
 	if goal < from and from > last and goal < last + 1.0:
