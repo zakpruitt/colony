@@ -8,6 +8,7 @@ implementer lane builds exactly that.
 | # | Spec | Milestone | Status | Depends on |
 |---|---|---|---|---|
 | — | Harness bootstrap (not a spec: built by the lead), [#1](https://github.com/zakpruitt/colony/pull/1) | M0 | landed | — |
+| 064 | [The talent tree as a tree, with paragon and skills](064-the-talent-tree-as-a-tree/spec.md) | M7 | landed on dev, [#66](https://github.com/zakpruitt/colony/pull/66), provisional | 028, 051, 055, 060, 063 |
 | 067 | [Opens at a size you can read](067-opens-at-a-size-you-can-read/spec.md) | M7 | provisional, in progress | 030, 058 |
 | 066 | [The run's milestones, announced](066-milestones-announced/spec.md) | M7 | provisional, waits for 064 | 019, 049, 061, 062, 063 |
 | 065 | [Camp upgrades you can see](065-camp-upgrades-you-can-see/spec.md) | M7 | landed on dev, [#65](https://github.com/zakpruitt/colony/pull/65), provisional | 017, 045, 052, 059, 063 |
