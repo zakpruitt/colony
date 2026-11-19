@@ -389,13 +389,8 @@ def shot_window(ui_room: str) -> tuple[int, int]:
     raise StepFailed(f"no window gives the UI a room of {ui_room}")
 
 
-def command_shot(args: argparse.Namespace) -> int:
-    """Run the game in a real window (not headless) and save screenshots of the whole window."""
-    folder = ROOT / ".shots"
-    folder.mkdir(exist_ok=True)
-    # Keeps Godot from importing the screenshots as game assets.
-    (folder / ".gdignore").touch()
-    out = (folder / args.name).as_posix()
+def shot_command(args: argparse.Namespace, out: str) -> list[str]:
+    """The Godot command a shot runs, saving to `out` (a path without its extension)."""
     command = [
         godot_binary(),
         "--path",
@@ -406,12 +401,24 @@ def command_shot(args: argparse.Namespace) -> int:
         f"--out={out}",
         f"--seconds={args.seconds}",
         f"--count={args.count}",
+        # Spec 067: the window as the project opens it, never maximized or as the player left it.
+        "--window-default",
     ]
     if args.scene:
         command.append(f"--scene={args.scene}")
+    window = shot_window(args.ui_room)
+    command.append(f"--window={window[0]}x{window[1]}")
+    return command
+
+
+def command_shot(args: argparse.Namespace) -> int:
+    """Run the game in a real window (not headless) and save screenshots of the whole window."""
+    folder = ROOT / ".shots"
+    folder.mkdir(exist_ok=True)
+    # Keeps Godot from importing the screenshots as game assets.
+    (folder / ".gdignore").touch()
     try:
-        window = shot_window(args.ui_room)
-        command.append(f"--window={window[0]}x{window[1]}")
+        command = shot_command(args, (folder / args.name).as_posix())
         code, output = run(command, timeout=int(args.seconds * args.count) + 60)
     except StepFailed as failure:
         print(failure)

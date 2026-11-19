@@ -317,13 +317,25 @@ func _fit(window: Vector2i) -> void:
 	_room = room_for(window)
 
 
+## The window whose title bar the mouse holds now, or null.
+func _held() -> UiWindow:
+	for id: StringName in windows.ids():
+		if windows.window(id).is_dragging():
+			return windows.window(id)
+	return null
+
+
 func _apply() -> void:
 	scale = Vector2.ONE * float(_ui_scale) / float(_world_scale)
 	frame.position = Vector2.ZERO
 	frame.size = Vector2(_room)
 	if windows != null:
+		var held: UiWindow = _held()
+		var held_at: Vector2 = held.position if held != null else Vector2.ZERO
 		place_defaults()
 		windows.fit_room(_room)
+		if held != null:  # spec 067 R4: it stays in the hand, not back at its default place
+			held.place_at(held_at, Vector2(_room))
 	if bar != null:
 		bar.fit_room(_room)
 	if moment != null:

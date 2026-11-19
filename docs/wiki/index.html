@@ -211,6 +211,9 @@ showcase's leftovers, not the game.</p>
   framed slot with the rank on it, pips for the ranks, and what it gives now beside what the next rank
   gives (<code>Damage and healing  +15%  &gt;  +20%</code>). Buying a rank bursts the picture and fills its
   pip with a flash; every fifth rank, and the last, drops a banner.</td></tr>
+  <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
+  so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
+  window.</td></tr>
 </table>
 </div>
 
@@ -297,6 +300,15 @@ and try again:</p>
 <p>The game keeps running while the window is minimised or unfocused, saves by itself every 30 seconds
 and when it closes, and plays out the time it was closed (up to 8 hours) when it next starts. Sound is
 quiet by default; <kbd>M</kbd> mutes it and the game remembers. A new game opens the help window once.</p>
+<p><strong>The window.</strong> The first time, the game opens maximized, so the UI is drawn at twice
+the size and is easy to read. On a screen with less than 1920 by 1080 of free space (a 1080p screen with
+a taskbar, a laptop) it opens as a 1280 by 720 window instead, as it used to. <kbd>F11</kbd> switches to
+full screen (borderless, on the screen the window is on) and back to the window as it was. After that
+the game opens the way you left it: windowed, maximized or full screen, and a window at the size and
+place you gave it. That is kept in a small file of its own, <code>colony.window</code>, beside the save
+and the settings file, not in either; delete it to start over. If the remembered place is on a screen
+that is no longer there, the window keeps its size and opens in the middle of the screen. The
+screenshot tool and the tests never use the file and never maximize.</p>
 
 <h2 id="game">2. What the game is</h2>
 <p>Colony is a 2D pixel-art idle RPG you leave running while you do other things. A party of four heroes
@@ -626,6 +638,7 @@ after a defeat is drawn over every window.</p>
   <tr><td><kbd>F</kbd></td><td>Game speed: 1x, 2x, 4x, then back to 1x</td></tr>
   <tr><td><kbd>Z</kbd></td><td>Zoom in to twice the size, or back out</td></tr>
   <tr><td><kbd>M</kbd></td><td>Sound on or off</td></tr>
+  <tr><td><kbd>F11</kbd></td><td>Full screen on or off</td></tr>
   <tr><td><kbd>F3</kbd></td><td>Show or hide the developer clock</td></tr>
 </table>
 </div>
