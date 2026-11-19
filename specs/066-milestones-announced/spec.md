@@ -1,9 +1,9 @@
 # 066 — The run's milestones, announced
 
-- **Status:** provisional (direction from Zak 2026-11-19; text not yet read by him)
+- **Status:** landed (provisional: not yet reviewed by Zak) (direction from Zak 2026-11-19; text not yet read by him)
 - **Milestone:** M7
 - **Depends on:** 019, 049, 061, 062, 063
-- **Pull request:** —
+- **Pull request:** [#68](https://github.com/zakpruitt/colony/pull/68)
 
 ## Intent
 
