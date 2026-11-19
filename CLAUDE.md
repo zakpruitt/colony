@@ -69,6 +69,9 @@ incomplete, stop and report the question.
   518 nor taller than 28 (the fourth cascaded hero window, two hero windows side by side). After any change
   to its size run `test --only=test_06` and `test_059`, both rooms. A `Button` with its icon over its text
   counts the text's height twice: set `expand_icon` and give the height yourself (`UiButtonBar._shape`).
+  Windows are drawn over the bar's tags, and a hero window stands 4 pixels from the bar: whatever sits on a
+  button stays within 2 pixels of it. Headless Godot still calls `_draw`, so a test can read what a control
+  recorded there (`UiButton.cap_drawn`), though never a pixel.
 - **A view that reacts to events starts nothing for a stale one.** Check `World.is_recent(event)` and
   `World.catching_up()` before starting a move or an effect, and clear what is running when the world
   catches up; otherwise a stall or a fast-forward leaves things playing for events long past (spec 057).
