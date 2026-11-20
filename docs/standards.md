@@ -17,12 +17,12 @@ plug in.
 | Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress` | gdlint: `Expedition` is at 20 public methods |
 | Window on the button bar | A `WindowEntry` in `WindowBook`, whose content extends `WindowContent` | `game/ui/windows/` | spec 074's tests: button, key, tooltip, help line |
 | Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | specs 030 and 074 |
-| Passing effect (particle, text, flash) | A node with `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests |
+| Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; spec 079's `FxNode` test |
 | View that reacts to events | Its own `_on_sim_event`, connected in its own setup, asking `World.may_animate(event)` | | spec 076's old-event tests |
 | Label's text or colour | `WindowText.set_text` / `set_colour`, which set only on a change | `game/ui/windows/window_text.gd` | spec 075's idle-screen test |
 | Number or time shown to the player | `UiFormat` | `game/ui/ui_format.gd` | spec 075 |
 | Tag on a bar button | `WindowContent._show_badge(count)` | | spec 075's badge test |
-| Showcase moment | A row in `Showcase.ROWS` | `game/dev/showcase.gd` | spec 076 |
+| Showcase moment | A row in `Showcase.ROWS`; how it begins and is seen in `ShowcaseMoments` | `game/dev/` | spec 076 |
 | Test | `extends ColonyTest`; a helper two tests need goes on it | `tests/colony_test.gd` | `check`'s `harness` step |
 | Tool test | A `test_*.py` in `tools/tests/`, or in `tools/tests/godot/` if it starts Godot | | `check`'s `art` step; its `tools` step |
 | Sprite | A `.px` file, baked | `create-sprite` skill | `check`'s `art` step |
