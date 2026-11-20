@@ -17,13 +17,15 @@ on a change, so new UI has a pattern to follow and an idle screen costs little. 
 - **R1. Nothing the player sees or does changes.** Existing tests pass, edited only to follow a moved
   name (list each). Shots of the main scene and showcase at both rooms match the baseline.
 - **R2. Formatting has a home.** `group_thousands`, `short_count`, `clock` and `on_screen` live in
-  `UiFormat`; `Hud` no longer has them and no file reaches into `Hud` for a static helper or a path.
+  `UiFormat`; `Hud` no longer has them. The sentences `Hud` words as statics (`speed_tip`, `area_tip`,
+  `holding_tip`, `holding_next`, `frames_line`) move to one small class of their own. No code in
+  `game/` outside `hud.gd` calls a static of `Hud` other than `Hud.new`, or reaches into it for a path.
 - **R3. `Hud` is the frame of the screen.** It lays out and advances the frame's pieces (place panel,
   purse, hero frames, boss bar, ticker, goals, stage list). It still makes and advances the shop, the
   map and the tally, because 29 test files build a `Hud` alone and read them through it; it makes no
   other window content and has no key handling for windows. No file finds the `Hud` with `get_parent() as Hud`,
   looks a node up by name, or emits another object's signal: each is handed what it needs in `setup`.
-  `Hud` has at most 15 public methods (it has 21, one over gdlint's cap counting statics).
+  `Hud` has at most 15 public methods, statics included (it has 26: 17 on the instance and 9 static).
 - **R4. Text and colour are set on change.** Over 120 frames with the simulation stopped, no label's
   text is set, no theme override is added and no control redraws, in: the hero frames, an open hero
   window (each tab), the place panel, the goals, the shop, the purse and the button bar. When a value
@@ -65,9 +67,9 @@ In `tests/acceptance/test_075_a_smaller_hud.gd` (extends `ColonyTest`), both roo
 
 | Requirement | Test | What it shows |
 |---|---|---|
-| R2 | `test_r2_nobody_borrows_from_the_hud` | reads `game/`; no `Hud.` followed by a lower-case name outside `hud.gd` |
+| R2 | `test_r2_nobody_borrows_from_the_hud` | reads `game/`; outside `hud.gd` and outside comments, `Hud.` is followed only by `new`; `hud.gd` has no `static func` |
 | R3 | `test_r3_the_hud_is_handed_what_it_needs` | reads `game/`; no `get_parent() as Hud`, no `.emit(` on another object's signal from the map window |
-| R3 | `test_r3_the_hud_has_few_public_methods` | counts the public methods of `hud.gd` |
+| R3 | `test_r3_the_hud_has_few_public_methods` | counts the public methods of `hud.gd`, statics included: at most 15 |
 | R4 | `test_r4_an_idle_screen_sets_nothing` | as R4 says, counting through a counter the shared text and colour setters keep |
 | R4 | `test_r4_a_change_shows_on_the_next_frame` | gold, health, XP, level, a goal's progress and the place each change and are shown one frame later |
 | R5 | `test_r5_a_closed_window_does_no_work` | the same counter stays still for closed windows over 120 busy frames; opened, each shows current values at once |
