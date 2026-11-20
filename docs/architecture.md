@@ -200,6 +200,18 @@ Classes, talents, items and monsters are custom `Resource` classes with typed `@
 `validate() -> PackedStringArray` (one line per problem); the `data` step of the check loads every resource
 and fails on any problem.
 
+`Content` (`sim/defs/content.gd`) loads them, once, from one table, `Content.KINDS`: a row per kind with
+its folder under `data/`, its definition class, the property a definition is found by (`id`, or
+`class_id` for talent trees, one a class) and how its ids are listed (`BY_ID`, `BY_ORDER` by the
+definitions' `order` then id, `BY_AREA` for resources). Each `…_ids()` getter returns the same read-only
+array every call: a caller that wants to change the list copies it (`.duplicate()`) first.
+
+**Adding a kind of content:** make its `Resource` class under `sim/defs/` (typed `@export` fields, an `id`,
+`validate()`), its folder under `data/`, a value in `Content.Kind` and its row at the same place in
+`Content.KINDS` (a kind ordered by another comes after it), and its getters (`thing(id)` and
+`thing_ids()`, each one line over `_find` and `_ids_of`). `test_072_content_table` fails until every folder
+under `data/` has exactly one row.
+
 ## Saving
 
 The save is the party's *progress*, not the exact moment (spec 014). `Simulation.to_save()` returns plain
@@ -214,7 +226,9 @@ stable depth, with every chamber freshly populated.
 
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
-  int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save.
+  int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save. Those whole-number
+  checks, and a dictionary of counts by known id, are `SaveChecks` (`sim/save_checks.gd`), which every part
+  of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`) shares.
 - **Versions.** `SAVE_VERSION` is 8. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
