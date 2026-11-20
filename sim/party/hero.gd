@@ -28,6 +28,8 @@ var _def: HeroClassDef
 var _talents: Array[StringName] = []
 ## The paragon points this hero has spent, by [enum TrainingDef.Stat]; stats with none left out.
 var _paragon: Dictionary[int, int] = {}
+## The factor of each stat in [member _paragon], worked out as its points change.
+var _paragon_factors: Dictionary[int, float] = {}
 
 
 ## A level-1 hero of class [param class_def] at full health.
@@ -179,6 +181,7 @@ func spend_paragon(stat: TrainingDef.Stat) -> bool:
 	if paragon_points() <= 0 or TalentRules.stat_def(stat) == null:
 		return false
 	_paragon[stat] = paragon_rank(stat) + 1
+	_count_paragon(stat)
 	return true
 
 
@@ -189,21 +192,28 @@ func set_paragon_rank(stat: TrainingDef.Stat, rank: int) -> void:
 		_paragon.erase(stat)
 	else:
 		_paragon[stat] = rank
+	_count_paragon(stat)
 
 
 ## The factor this hero's paragon points in [param stat] give: 1 plus each point's
 ## [member TrainingDef.per_rank]; 1.0 with none.
 func paragon_multiplier(stat: TrainingDef.Stat) -> float:
-	var rank: int = paragon_rank(stat)
-	var def_of_stat: TrainingDef = TalentRules.stat_def(stat)
-	if rank == 0 or def_of_stat == null:
-		return 1.0
-	return 1.0 + rank * def_of_stat.per_rank
+	return _paragon_factors.get(stat, 1.0)
 
 
 ## True when this hero has taken a node or spent a paragon point.
 func has_grown() -> bool:
 	return not _talents.is_empty() or not _paragon.is_empty()
+
+
+## Works out the factor of [param stat] from its points, after they change.
+func _count_paragon(stat: TrainingDef.Stat) -> void:
+	var rank: int = paragon_rank(stat)
+	var def_of_stat: TrainingDef = TalentRules.stat_def(stat)
+	if rank == 0 or def_of_stat == null:
+		_paragon_factors.erase(stat)
+	else:
+		_paragon_factors[stat] = 1.0 + rank * def_of_stat.per_rank
 
 
 func _multiplier(stat: UpgradeDef.Stat) -> float:

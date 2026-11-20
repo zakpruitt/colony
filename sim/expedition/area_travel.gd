@@ -59,7 +59,7 @@ static func first_area() -> StringName:
 ## What the streams of area [param id] are forked under: nothing for the first area, whose
 ## labyrinth and rolls are the seed's own, and "area/<id>/" for every other.
 static func label(id: StringName) -> String:
-	return "" if id == first_area() else "area/%s/" % id
+	return "" if id == first_area() else "area/" + String(id) + "/"
 
 
 ## The labyrinth of area [param id], made from the first area's seed once and then kept.

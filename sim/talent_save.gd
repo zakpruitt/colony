@@ -39,7 +39,7 @@ static func read(hero: Hero, saved: Dictionary) -> void:
 	var paragon: Dictionary = saved["paragon"]
 	for key: Variant in paragon:
 		var stat: TrainingDef.Stat = Content.training(StringName(key as String)).stat
-		hero.set_paragon_rank(stat, Simulation._whole(paragon[key]))
+		hero.set_paragon_rank(stat, SaveChecks.whole(paragon[key]))
 
 
 ## Adds a problem, naming the field after [param where], for each thing wrong with the talents
@@ -77,8 +77,8 @@ static func upgrade_6_to_7(data: Dictionary) -> Dictionary:
 			hero.erase("training")
 			hero["talents"] = []
 			hero["paragon"] = {}
-	if Simulation._is_whole(data.get("gold")):
-		data["gold"] = Simulation._whole(data["gold"]) + refund
+	if SaveChecks.is_whole(data.get("gold")):
+		data["gold"] = SaveChecks.whole(data["gold"]) + refund
 	return data
 
 
@@ -91,10 +91,10 @@ static func _paid_for(training: Variant) -> int:
 	for key: Variant in ranks:
 		if typeof(key) != TYPE_STRING or not _OLD_TRAINING_PRICES.has(key as String):
 			return -1
-		if not Simulation._is_whole(ranks[key]):
+		if not SaveChecks.is_whole(ranks[key]):
 			return -1
 		var price: Array = _OLD_TRAINING_PRICES[key as String]
-		var rank: int = Simulation._whole(ranks[key])
+		var rank: int = SaveChecks.whole(ranks[key])
 		var top: int = price[2]
 		if rank < 0 or rank > top:
 			return -1
@@ -153,12 +153,12 @@ static func _check_paragon(
 		if Content.training(StringName(key as String)) == null:
 			problems.append("%s: unknown stat '%s'" % [field, key])
 			continue
-		if not Simulation._is_whole(points[key]):
+		if not SaveChecks.is_whole(points[key]):
 			problems.append("%s: points missing or not a whole number" % field)
-		elif Simulation._whole(points[key]) < 0:
-			problems.append("%s: points %d are below 0" % [field, Simulation._whole(points[key])])
+		elif SaveChecks.whole(points[key]) < 0:
+			problems.append("%s: points %d are below 0" % [field, SaveChecks.whole(points[key])])
 		else:
-			spent += Simulation._whole(points[key])
+			spent += SaveChecks.whole(points[key])
 	if level > 0 and spent > TalentRules.paragon_points_at(level):
 		problems.append(
 			(

@@ -34,6 +34,9 @@ var heroes: Array[Combatant]
 var monsters: Array[Combatant]
 ## How many passives are firing inside one another now (see [constant BattleAbilities.MAX_CHAIN]).
 var chain: int = 0
+## Whom the action [method BattleAbilities.ready_action] last found aims at; null when it found
+## none.
+var ready_target: Combatant
 
 var _left: float
 var _right: float
@@ -47,6 +50,9 @@ var _result: Result = Result.ONGOING
 var _by_id: Dictionary[int, Combatant] = {}
 var _events: Array[SimEvent] = []
 var _projectiles: Array[BattleProjectile] = []
+## The heroes, then the monsters: the order everyone acts in. The sides never change after the
+## battle is made.
+var _fighters: Array[Combatant] = []
 
 
 ## heroes_from_left: true if the heroes enter at `left` and face right.
@@ -63,13 +69,14 @@ func _init(
 	_left = minf(left, right)
 	_right = maxf(left, right)
 	_rng = rng
-	for c: Combatant in heroes + monsters:
+	_fighters = heroes + monsters
+	for c: Combatant in _fighters:
 		if _by_id.has(c.id):
 			push_error("Battle: duplicate combatant id %d; the battle is over" % c.id)
 			_result = Result.MONSTERS_WON
 			return
 		_by_id[c.id] = c
-	for c: Combatant in heroes + monsters:
+	for c: Combatant in _fighters:
 		c.target_id = -1
 		c.strike_tick = -1
 		c.ready_tick = 0
@@ -88,7 +95,7 @@ func step() -> void:
 		BattleAbilities.fight_starts(self)
 	BattleStatuses.pulse(self)
 	_land_projectiles()
-	for c: Combatant in heroes + monsters:
+	for c: Combatant in _fighters:
 		if c.is_alive():
 			_act(c)
 	_check_end()
@@ -101,7 +108,7 @@ func step() -> void:
 ## Ends every status in the fight, each with its STATUS_ENDED event. The battle does this as it
 ## ends; whatever stops a fight early (the expedition's time limit) calls it too.
 func end() -> void:
-	for c: Combatant in heroes + monsters:
+	for c: Combatant in _fighters:
 		BattleStatuses.clear(self, c)
 
 
@@ -281,16 +288,22 @@ func _line_up(heroes_from_left: bool) -> void:
 		monsters[i].x = clampf(middle + (far - middle) * share, _left, _right)
 
 
+## Lands every projectile due this tick, in the order they were launched, and keeps the rest in
+## that order.
 func _land_projectiles() -> void:
-	var waiting: Array[BattleProjectile] = []
-	for shot: BattleProjectile in _projectiles:
+	var count: int = _projectiles.size()
+	var kept: int = 0
+	for i: int in count:
+		var shot: BattleProjectile = _projectiles[i]
 		if shot.land_tick > tick:
-			waiting.append(shot)
+			_projectiles[kept] = shot
+			kept += 1
 			continue
 		var target: Combatant = combatant(shot.target_id)
 		if target != null and target.is_alive():
 			_apply(shot.source, target, shot.is_heal)
-	_projectiles = waiting
+	# Nothing launches while projectiles land, so the list still holds only those counted.
+	_projectiles.resize(kept)
 
 
 func _act(c: Combatant) -> void:
@@ -340,7 +353,7 @@ func _try_action(c: Combatant) -> bool:
 	if action == null:
 		c.chasing = &""
 		return false
-	var target: Combatant = BattleAbilities.aim(self, c, action)
+	var target: Combatant = ready_target
 	c.target_id = target.id
 	# It keeps to this target until the action starts, so a choice that changes as it walks
 	# (the furthest enemy, say) does not turn it back and forth.
@@ -561,7 +574,7 @@ func _die(dead: Combatant) -> void:
 	record(SimEvent.Kind.DIED, dead.id)
 	BattleStatuses.clear(self, dead)
 	# Nobody keeps aiming at the dead: a wind-up on them is lost at once.
-	for c: Combatant in heroes + monsters:
+	for c: Combatant in _fighters:
 		if c.is_alive() and c.target_id == dead.id:
 			c.target_id = -1
 			if c.state == Combatant.State.WINDUP:

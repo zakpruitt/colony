@@ -5,6 +5,9 @@ extends RefCounted
 ## [code]1 + r * per_rank[/code].
 
 var _ranks: Dictionary[StringName, int] = {}
+## Each stat's multiplier, by [enum UpgradeDef.Stat], kept from its first request until a rank
+## changes.
+var _multipliers: Dictionary[int, float] = {}
 
 
 ## The rank bought of upgrade [param id]; 0 if none or unknown.
@@ -32,10 +35,15 @@ func resource_cost(id: StringName) -> int:
 ## True when [param party] can pay both prices of the next rank of [param id], its gold and its
 ## resource.
 func can_pay(id: StringName, party: Party) -> bool:
-	var price: int = cost(id)
+	# Asked of every upgrade each tick the shop or auto-buy looks, so the definition is found once.
+	var def: UpgradeDef = Content.upgrade(id)
+	if def == null:
+		return false
+	var held: int = rank(id)
+	var price: int = def.cost_at(held)
 	if price < 0 or price > party.gold:
 		return false
-	return has_resource_for(id, party)
+	return def.resource_cost_at(held) <= party.resource(def.resource)
 
 
 ## True when [param party] holds the resource the next rank of [param id] costs (true for a rank
@@ -47,6 +55,13 @@ func has_resource_for(id: StringName, party: Party) -> bool:
 
 ## The factor every upgrade of [param stat] gives together; 1.0 with no ranks.
 func multiplier(stat: UpgradeDef.Stat) -> float:
+	if not _multipliers.has(stat):
+		_multipliers[stat] = _summed(stat)
+	return _multipliers[stat]
+
+
+## The sum behind [method multiplier], in the order the ranks were set.
+func _summed(stat: UpgradeDef.Stat) -> float:
 	var bonus: float = 0.0
 	for id: StringName in _ranks:
 		var def: UpgradeDef = Content.upgrade(id)
@@ -62,6 +77,7 @@ func set_rank(id: StringName, new_rank: int) -> void:
 	if def == null:
 		return
 	var clamped: int = clampi(new_rank, 0, def.max_rank)
+	_multipliers.clear()
 	if clamped == 0:
 		_ranks.erase(id)
 	else:
