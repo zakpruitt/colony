@@ -81,9 +81,11 @@ incomplete, stop and report the question.
   Windows are drawn over the bar's tags, and a hero window stands 4 pixels from the bar: whatever sits on a
   button stays within 2 pixels of it. Headless Godot still calls `_draw`, so a test can read what a control
   recorded there (`UiButton.cap_drawn`), though never a pixel.
-- **A view that reacts to events starts nothing for a stale one.** Check `World.is_recent(event)` and
-  `World.catching_up()` before starting a move or an effect, and clear what is running when the world
-  catches up; otherwise a stall or a fast-forward leaves things playing for events long past (spec 057).
+- **A view that reacts to events starts nothing for a stale one.** Ask `World.may_animate(event)` (and
+  nothing else) before starting a move, an effect, a sound or a flash, and clear what is running when
+  `World.catching_up()`; otherwise a stall or a fast-forward leaves things playing for events long past
+  (specs 057, 076). A passing effect goes in `World.fx`, the one `FxPool`, under its budget; a listener
+  connects its own `_on_sim_event` to `World.sim_event` in its own setup.
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 

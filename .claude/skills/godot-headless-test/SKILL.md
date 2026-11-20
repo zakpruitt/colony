@@ -160,10 +160,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   sized from `get_combined_minimum_size()` the moment its text changes comes out hundreds of pixels tall:
   size it from the label's own `get_minimum_size()` after setting its width (`UiTip._show`, spec 061), and
   assert a box's height against its line count, since the tall box passed every other check.
-- A `Main` built by spec 058's `_main` has a world that has synced once (or not at all), so
-  `World.catching_up()` is true until it syncs again: anything gated on it (spec 063's `UiMoment`, spec 057's
-  moves) silently starts nothing. Call `main.world.sync(STEP)` twice before testing such a thing with no
-  events (spec 063's `_settled`), and assert `catching_up()` is false where it matters.
+- Every view starts a move, effect, sound or flash only when `World.may_animate(event)` says so: the
+  event is recent and the world is not catching up. `catching_up()` is true for a sync after more than
+  `World.STALL_TICKS` ticks until the next sync, so a test that steps
+  the simulation far between syncs silently starts nothing. Step in small runs with a `sync` between, call
+  `main.world.sync(STEP)` once more before testing a start with no events (spec 063's `_settled`), and
+  assert `catching_up()` is false where it matters. The world's first sync is not catching up.
 - `UiMoment` runs its bursts and banners in its own `_process`, and a test's loop runs no frames: in a loop
   that drives the showcase or the world by hand, call `main.ui.moment.advance(dt)` (and `main.hud.advance(dt)`)
   each step, or no banner ever shows (spec 064 R14).
