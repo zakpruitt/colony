@@ -26,7 +26,10 @@ effect or listener gets both right by using them. What plays on screen in normal
 - **R3. One gate.** `World.may_animate(event)` is true only when the event is recent and the world is
   not catching up. Every view that starts a move, an effect, a sound or a flash for an event asks it
   and nothing else. Where a listener checked only one half before, it now checks both: that is the
-  one intended change, and it only stops things playing for events long past.
+  one intended change, and it only stops things playing for events long past. "Catching up" means a
+  stall (more ticks between two syncs than `World.STALL_TICKS` allows) and nothing else: the world's
+  first sync and a move to another stage or area still snap the sprites, but are not a catch-up, or a
+  goal would miss the arrival in a new area. `docs/architecture.md` says so.
 - **R4. Listeners are named and wired one way.** A handler connected to `World.sim_event` is named
   `_on_sim_event` and connected in its own `setup`: `AreaNews.hear`, `Milestones.hear` and
   `HeroWindows.hear` are renamed, and neither `Main` nor `AreaMapWindow` connects one for someone else.
@@ -91,6 +94,7 @@ baseline; and the game after `F` at 4x for a minute, to see nothing lingering.
   `stage_list.gd` and `crossing_veil.gd` for R6, and the one line in `ui_root.gd` that hands
   `HeroWindows.setup` the world. Lane 074 works in the same folders: touch nothing else there.
 - `tests/` (R1's renames; `test_076_…` new)
-- `CLAUDE.md` (its stale-event rule names `may_animate`), `docs/architecture.md`
+- `CLAUDE.md` (its stale-event rule names `may_animate`), `docs/architecture.md`,
+  `.claude/skills/godot-headless-test/SKILL.md` (its note on catching up)
 
 ## Open questions
