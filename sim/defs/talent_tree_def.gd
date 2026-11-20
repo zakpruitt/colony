@@ -1,5 +1,5 @@
 class_name TalentTreeDef
-extends Resource
+extends ContentDef
 ## One class's talent tree: a trunk of nodes taken in order, then two named paths of
 ## nodes taken in order, of which a hero may walk only one. Each node is an [AbilityDef] id. One
 ## .tres file per class under res://data/talents.
@@ -77,6 +77,11 @@ func order_problem(taken: Array[StringName]) -> String:
 			return "[%d]: '%s' cannot be taken there (trunk in order, then one path)" % [i, node]
 		so_far.append(node)
 	return ""
+
+
+## What Content finds this definition by: its class.
+func key() -> StringName:
+	return class_id
 
 
 ## One line per problem; empty when the tree is usable.

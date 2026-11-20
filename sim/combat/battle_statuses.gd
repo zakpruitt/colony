@@ -52,7 +52,7 @@ static func apply(
 ## Lets every status in the battle work and end, on its tick: damage or healing each whole
 ## second after it began, then its end once its time is up.
 static func pulse(battle: Battle) -> void:
-	for c: Combatant in battle.heroes + battle.monsters:
+	for c: Combatant in battle.fighters():
 		if c.statuses.is_empty():
 			continue
 		for kind: int in c.statuses.keys():

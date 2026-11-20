@@ -1,5 +1,5 @@
 class_name TrainingDef
-extends Resource
+extends ContentDef
 ## One stat a hero's paragon points go into. Each
 ## point adds [member per_rank] to one of that hero's multipliers, with no limit. One .tres file
 ## per stat under res://data/training.
@@ -13,6 +13,11 @@ enum Stat { POWER, TOUGHNESS, QUICKNESS }
 @export var order: int  # position on the hero sheet, lowest first
 @export var stat: Stat
 @export var per_rank: float
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the stat is usable.

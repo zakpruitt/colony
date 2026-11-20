@@ -2,10 +2,10 @@ class_name Content
 extends RefCounted
 ## Loads and caches the definitions under res://data.
 ##
-## Each kind of content is a row of [constant KINDS]: its folder, its definition class, the
-## property a definition is found by and how its ids are listed. The folders are read once, on the
-## first request, and each kind's id list is built then and never changes: callers get the same
-## read-only array every time, and copy it to change it.
+## Each kind of content is a row of [constant KINDS]: its folder, its definition class (a
+## [ContentDef], found by its [method ContentDef.key]) and how its ids are listed. The folders
+## are read once, on the first request, and each kind's id list is built then and never changes:
+## callers get the same read-only array every time, and copy it to change it.
 
 ## How a kind's ids are listed: by id; by the definitions' [code]order[/code], then id; or by the
 ## order of the first area that gives each (resources), then id.
@@ -27,68 +27,42 @@ enum Kind {
 const DATA_DIR: String = "res://data"
 const ABILITIES_DIR: String = "res://data/abilities"
 
-## One row a kind, in [enum Kind] order. [code]key[/code] is the property a definition is found
-## by; a second definition with a key already taken is refused, so a class has one talent tree.
+## One row a kind, in [enum Kind] order. A definition is found by its [method ContentDef.key]; a
+## second definition with a key already taken is refused, so a class has one talent tree.
 ## Areas come before resources, whose order they decide.
 const KINDS: Array[Dictionary] = [
-	{
-		"folder": "heroes",
-		"def": preload("res://sim/defs/hero_class_def.gd"),
-		"key": &"id",
-		"order": Order.BY_ID
-	},
-	{
-		"folder": "monsters",
-		"def": preload("res://sim/defs/monster_def.gd"),
-		"key": &"id",
-		"order": Order.BY_ID
-	},
+	{"folder": "heroes", "def": preload("res://sim/defs/hero_class_def.gd"), "order": Order.BY_ID},
+	{"folder": "monsters", "def": preload("res://sim/defs/monster_def.gd"), "order": Order.BY_ID},
 	{
 		"folder": "upgrades",
 		"def": preload("res://sim/defs/upgrade_def.gd"),
-		"key": &"id",
 		"order": Order.BY_ORDER
 	},
 	{
 		"folder": "training",
 		"def": preload("res://sim/defs/training_def.gd"),
-		"key": &"id",
 		"order": Order.BY_ORDER
 	},
 	{
 		"folder": "microskills",
 		"def": preload("res://sim/defs/microskill_def.gd"),
-		"key": &"id",
 		"order": Order.BY_ID
 	},
 	{
 		"folder": "sidequests",
 		"def": preload("res://sim/defs/side_quest_def.gd"),
-		"key": &"id",
 		"order": Order.BY_ID
 	},
-	{
-		"folder": "areas",
-		"def": preload("res://sim/defs/area_def.gd"),
-		"key": &"id",
-		"order": Order.BY_ORDER
-	},
-	{
-		"folder": "abilities",
-		"def": preload("res://sim/defs/ability_def.gd"),
-		"key": &"id",
-		"order": Order.BY_ID
-	},
+	{"folder": "areas", "def": preload("res://sim/defs/area_def.gd"), "order": Order.BY_ORDER},
+	{"folder": "abilities", "def": preload("res://sim/defs/ability_def.gd"), "order": Order.BY_ID},
 	{
 		"folder": "talents",
 		"def": preload("res://sim/defs/talent_tree_def.gd"),
-		"key": &"class_id",
 		"order": Order.BY_ID
 	},
 	{
 		"folder": "resources",
 		"def": preload("res://sim/defs/resource_def.gd"),
-		"key": &"id",
 		"order": Order.BY_AREA
 	},
 ]
@@ -226,12 +200,11 @@ static func _load() -> void:
 		var found: Dictionary = {}
 		_defs.append(found)
 		var def_class: Script = row["def"]
-		var key_name: StringName = row["key"]
 		for resource: Resource in _resources_in(DATA_DIR.path_join(row["folder"] as String)):
 			if not is_instance_of(resource, def_class):
 				push_error("Content: %s is not %s" % [resource.resource_path, _named(def_class)])
 				continue
-			var key: StringName = resource.get(key_name)
+			var key: StringName = (resource as ContentDef).key()
 			if found.has(key):
 				var known: Resource = found[key]
 				push_error(

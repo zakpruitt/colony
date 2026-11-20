@@ -16,7 +16,7 @@ var team: Team
 ## The id of the HeroClassDef or MonsterDef this was made from.
 var def_id: StringName
 var role: HeroClassDef.Role  # MELEE or RANGED for monsters, by range
-var level: int  # hero level, or monster depth
+var level: int  # the hero's level, or the monster's
 var x: float
 var health: int
 var max_health: int
@@ -83,17 +83,18 @@ static func from_hero(def: HeroClassDef, hero_level: int, combatant_id: int) -> 
 	return c
 
 
-## A monster [param def] met at [param depth].
-static func from_monster(def: MonsterDef, depth: int, combatant_id: int) -> Combatant:
+## A monster [param def] at [param monster_level], a stage's level (see
+## [method AreaDef.level_at]).
+static func from_monster(def: MonsterDef, monster_level: int, combatant_id: int) -> Combatant:
 	var c := Combatant.new()
-	var scale: float = pow(DEPTH_GROWTH, maxi(depth - def.base_level, 0))
+	var scale: float = pow(DEPTH_GROWTH, maxi(monster_level - def.base_level, 0))
 	c.id = combatant_id
 	c.team = Team.MONSTERS
 	c.def_id = def.id
 	c.role = HeroClassDef.Role.MELEE
 	if def.attack_range > Battle.MELEE_REACH:
 		c.role = HeroClassDef.Role.RANGED
-	c.level = depth
+	c.level = monster_level
 	c.max_health = roundi(def.max_health * scale)
 	c.damage = roundi(def.damage * scale)
 	c.heal_power = 0

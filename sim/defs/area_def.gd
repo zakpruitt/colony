@@ -1,5 +1,5 @@
 class_name AreaDef
-extends Resource
+extends ContentDef
 ## A place in the labyrinth the party can work in: its own monsters and guardian, and
 ## stages that get harder from [member base_level]. One .tres file per area under res://data/areas.
 
@@ -27,6 +27,11 @@ extends Resource
 ## The level of [param stage] in this area.
 func level_at(stage: int) -> int:
 	return base_level + stage - 1
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the area is usable.

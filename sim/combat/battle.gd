@@ -32,11 +32,6 @@ const MIN_SPACING: float = 0.6  # tiles between two standing combatants of one s
 var tick: int = 0
 var heroes: Array[Combatant]
 var monsters: Array[Combatant]
-## How many passives are firing inside one another now (see [constant BattleAbilities.MAX_CHAIN]).
-var chain: int = 0
-## Whom the action [method BattleAbilities.ready_action] last found aims at; null when it found
-## none.
-var ready_target: Combatant
 
 var _left: float
 var _right: float
@@ -70,6 +65,7 @@ func _init(
 	_right = maxf(left, right)
 	_rng = rng
 	_fighters = heroes + monsters
+	_fighters.make_read_only()
 	for c: Combatant in _fighters:
 		if _by_id.has(c.id):
 			push_error("Battle: duplicate combatant id %d; the battle is over" % c.id)
@@ -122,6 +118,12 @@ func combatant(id: int) -> Combatant:
 	return _by_id.get(id, null)
 
 
+## Everyone in the fight, the heroes then the monsters: the order they act in. The battle's own
+## list, made once; read it, never change it.
+func fighters() -> Array[Combatant]:
+	return _fighters
+
+
 ## The events recorded since the last call, oldest first.
 func drain_events() -> Array[SimEvent]:
 	var drained: Array[SimEvent] = _events
@@ -161,39 +163,45 @@ func untouchable(source: Combatant, target: Combatant) -> bool:
 	return target.has_status(AbilityEffect.Status.UNTOUCHABLE)
 
 
-## The living enemies [param c] may aim at: those that are not untouchable, or if every one of
-## them is, all of them.
-func aimable(c: Combatant) -> Array[Combatant]:
-	var open: Array[Combatant] = []
-	var shut: Array[Combatant] = []
-	for enemy: Combatant in enemies_of(c):
-		if enemy.is_alive():
-			if untouchable(c, enemy):
-				shut.append(enemy)
-			else:
-				open.append(enemy)
-	return shut if open.is_empty() else open
-
-
 ## The enemy [param c] strikes at: a taunting one it can reach, else the nearest it may aim at
-## (see [method aimable]); or null.
+## (see [method best_enemy]); or null.
 func nearest_enemy(c: Combatant) -> Combatant:
-	var enemies: Array[Combatant] = enemies_of(c)
-	var taunter: Combatant = _taunter(c, enemies)
+	var taunter: Combatant = _taunter(c)
 	if taunter != null:
 		return taunter
-	var nearest: Combatant = null
-	var best: float = INF
-	for enemy: Combatant in aimable(c):
-		var distance: float = absf(enemy.x - c.x)
-		if distance < best:
-			nearest = enemy
-			best = distance
-	return nearest
+	return best_enemy(c, AbilityDef.Aim.NEAREST_ENEMY)
+
+
+## The living enemy [param c] may aim at that is nearest, weakest (the lowest share of health) or
+## furthest, by [param aim], or null. It may aim at those that are not untouchable, or if every one
+## of them is, at all of them; on a tie, at the first in its side's order. One pass, keeping the
+## best of each kind, so the choice makes no list.
+func best_enemy(c: Combatant, aim: AbilityDef.Aim) -> Combatant:
+	var open: Combatant = null
+	var open_score: float = 0.0
+	var shut: Combatant = null
+	var shut_score: float = 0.0
+	for enemy: Combatant in enemies_of(c):
+		if not enemy.is_alive():
+			continue
+		# Larger is better, and only a strictly better one replaces the first found.
+		var score: float = absf(enemy.x - c.x)
+		if aim == AbilityDef.Aim.NEAREST_ENEMY:
+			score = -score
+		elif aim == AbilityDef.Aim.WEAKEST_ENEMY:
+			score = -enemy.health_fraction()
+		if untouchable(c, enemy):
+			if shut == null or score > shut_score:
+				shut = enemy
+				shut_score = score
+		elif open == null or score > open_score:
+			open = enemy
+			open_score = score
+	return open if open != null else shut
 
 
 ## The ally a healer [param c] would heal now: the living one with the lowest share of health,
-## if it is below 80%; or null.
+## if it is below [constant _HEAL_THRESHOLD]; or null.
 func hurt_ally(c: Combatant) -> Combatant:
 	var hurt: Combatant = null
 	var lowest: float = _HEAL_THRESHOLD
@@ -207,7 +215,10 @@ func hurt_ally(c: Combatant) -> Combatant:
 ## [param source] deals [param dealt] damage to [param target]: a shield absorbs what it can
 ## (a MISSED event, flagged), the rest is a HIT, and the passives it sets off answer.
 ## Returns the damage that got through. Nothing lands on the dead, or on the untouchable.
-func deal(source: Combatant, target: Combatant, dealt: int, crit: bool, via: Via) -> int:
+## [param chain] is how many passives deep the damage is (see [method BattleAbilities.fire]).
+func deal(
+	source: Combatant, target: Combatant, dealt: int, crit: bool, via: Via, chain: int = 0
+) -> int:
 	if not target.is_alive() or untouchable(source, target):
 		return 0
 	var shield: CombatStatus = target.status(AbilityEffect.Status.SHIELDED)
@@ -225,7 +236,7 @@ func deal(source: Combatant, target: Combatant, dealt: int, crit: bool, via: Via
 	record(SimEvent.Kind.HIT, source.id, target.id, dealt, crit)
 	if target.health == 0:
 		_die(target)
-	BattleAbilities.after_damage(self, source, target, before, crit, via)
+	BattleAbilities.after_damage(self, source, target, before, crit, via, chain)
 	return dealt
 
 
@@ -325,9 +336,12 @@ func _act(c: Combatant) -> void:
 		c.state = Combatant.State.IDLE
 		c.pending_action = null
 
-	if not c.abilities.is_empty() and _try_action(c):
+	# Asked once a tick: a healer with an ally to heal uses no action aimed at an enemy, and
+	# strikes at that ally.
+	var hurt: Combatant = hurt_ally(c) if c.role == HeroClassDef.Role.HEALER else null
+	if not c.abilities.is_empty() and _try_action(c, hurt != null):
 		return
-	var target: Combatant = _pick_target(c)
+	var target: Combatant = hurt if hurt != null else nearest_enemy(c)
 	if target == null:
 		c.state = Combatant.State.IDLE
 		c.target_id = -1
@@ -346,14 +360,19 @@ func _act(c: Combatant) -> void:
 	record(SimEvent.Kind.ATTACK_STARTED, c.id, target.id, c.windup_ticks)
 
 
-## Starts, or walks toward, the first action [param c] is ready to use. False if it has none
-## ready, and then it strikes as usual.
-func _try_action(c: Combatant) -> bool:
-	var action: AbilityDef = BattleAbilities.ready_action(self, c)
+## Starts, or walks toward, the first action [param c] is ready to use (none aimed at an enemy
+## when [param heal_first]). False if it has none ready, and then it strikes as usual.
+func _try_action(c: Combatant, heal_first: bool) -> bool:
+	var action: AbilityDef = null
+	var target: Combatant = null
+	for ability: AbilityDef in c.abilities:
+		target = BattleAbilities.ready_target(self, c, ability, heal_first)
+		if target != null:
+			action = ability
+			break
 	if action == null:
 		c.chasing = &""
 		return false
-	var target: Combatant = ready_target
 	c.target_id = target.id
 	# It keeps to this target until the action starts, so a choice that changes as it walks
 	# (the furthest enemy, say) does not turn it back and forth.
@@ -385,21 +404,13 @@ func _use(c: Combatant, target: Combatant) -> void:
 	BattleAbilities.use(self, c, action, target)
 
 
-func _pick_target(c: Combatant) -> Combatant:
-	if c.role == HeroClassDef.Role.HEALER:
-		var hurt: Combatant = hurt_ally(c)
-		if hurt != null:
-			return hurt
-	return nearest_enemy(c)
-
-
 ## The nearest living enemy with a taunt that [param c] can reach (as [method _strikes_from_here]
 ## counts its reach), or null.
-func _taunter(c: Combatant, enemies: Array[Combatant]) -> Combatant:
+func _taunter(c: Combatant) -> Combatant:
 	var found: Combatant = null
 	var best: float = INF
 	var reach: float = c.attack_range + MIN_SPACING * (allies_of(c).size() - 1) + EPSILON
-	for enemy: Combatant in enemies:
+	for enemy: Combatant in enemies_of(c):
 		if not enemy.is_alive() or not enemy.has_status(AbilityEffect.Status.TAUNTING):
 			continue
 		var distance: float = absf(enemy.x - c.x)

@@ -59,7 +59,7 @@ func is_alive() -> bool:
 	return health > 0
 
 
-## Total XP needed to be this level: (level - 1) * (25 * level - 30).
+## Total XP needed to be this level: (level - 1) * (_XP_STEP * level - _XP_DISCOUNT).
 static func xp_for_level(level_number: int) -> int:
 	return (level_number - 1) * (_XP_STEP * level_number - _XP_DISCOUNT)
 

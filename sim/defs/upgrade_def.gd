@@ -1,5 +1,5 @@
 class_name UpgradeDef
-extends Resource
+extends ContentDef
 ## A party-wide camp upgrade bought with gold, rank by rank. Each rank adds
 ## [member per_rank] to one stat's multiplier; the next rank costs
 ## [code]base_cost * cost_growth ^ rank[/code]. One .tres file per upgrade under
@@ -46,6 +46,11 @@ func resource_cost_at(rank: int) -> int:
 	if rank < resource_from_rank:
 		return 0
 	return roundi(resource_base * pow(cost_growth, rank - resource_from_rank))
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the upgrade is usable.

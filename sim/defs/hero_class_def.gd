@@ -1,5 +1,5 @@
 class_name HeroClassDef
-extends Resource
+extends ContentDef
 ## A hero class: the numbers a level-1 hero of this class fights with, and how
 ## they grow per level. One .tres file per class under res://data/heroes.
 
@@ -22,6 +22,11 @@ enum Role { TANK, MELEE, RANGED, HEALER }
 ## The microskills this class learns, and (same length) the hero level each is learned at.
 @export var microskills: Array[StringName] = []
 @export var microskill_levels: Array[int] = []
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the class is usable.
