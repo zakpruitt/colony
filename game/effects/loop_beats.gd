@@ -64,11 +64,16 @@ func setup(
 		world.sim_event.connect(_on_sim_event)
 
 
-## Shows a revival seen since the last advance, and the resting heroes' z's.
-func advance(delta: float) -> void:
+## Shows a revival seen since the last frame. [CombatEffects] calls it before the guardian's waves
+## and the bolts' trails, and [method advance] after them, so effects join the pool in one order.
+func light_revival() -> void:
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
+
+
+## Moves the resting heroes' z's on by [param delta] seconds.
+func advance(delta: float) -> void:
 	_rest_z(delta)
 
 

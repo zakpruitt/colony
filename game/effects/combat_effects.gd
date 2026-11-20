@@ -179,6 +179,7 @@ func advance(delta: float) -> void:
 	ability_effects.advance(delta)
 	spell_effects.advance(delta)
 	resource_effects.advance(delta)
+	_beats.light_revival()
 	_advance_waves(delta)
 	_follow_bolts()
 	_beats.advance(delta)

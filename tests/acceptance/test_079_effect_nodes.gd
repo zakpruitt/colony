@@ -354,3 +354,14 @@ func test_r7_sound_is_handed_its_goals() -> void:
 			for arg: Dictionary in method["args"]:
 				goals = goals or arg["class_name"] == &"Goals"
 	assert_true(goals, "setup is handed the goals")
+
+
+func test_r7_a_finished_goal_chimes_in_the_game() -> void:
+	var main: Main = make_main()
+	add_child_autofree(main)
+	main.driver.set_process(false)
+	main.world.set_process(false)
+	main.effects.set_process(false)
+	main.sound.drain_started()
+	main.hud.goals.goal_finished.emit("Goal: reached Mossy Hollow 2")
+	assert_has(main.sound.drain_started(), &"depth_stable", "a finished goal plays the chime")
