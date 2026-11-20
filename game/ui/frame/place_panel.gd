@@ -37,6 +37,8 @@ var status_label: Label
 var safe_step: float = 0.0
 
 var _lift: float = 0.0
+## What the panel was last shown: [method show_place] words and lays out only a change.
+var _shown: ShownValues = ShownValues.new()
 
 
 func _init() -> void:
@@ -91,18 +93,31 @@ func show_place(
 	status: String,
 	status_colour: StringName
 ) -> void:
+	_shown.begin()
+	_shown.see(area)
+	_shown.see(stage)
+	_shown.see(stage_colour)
+	_shown.see(lift)
+	_shown.see(safe)
+	_shown.see(target)
+	_shown.see(auto_on)
+	_shown.see(status)
+	_shown.see(status_colour)
+	_shown.see(area_mark.visible)
+	if not _shown.changed():
+		return
 	if area_button.text != area:
 		area_button.text = area
 	# Sized at 1x here; the label stays big enough at its 2x font because a Control never shrinks
 	# below its minimum size.
 	WindowText.set_text(stage_label, str(stage))
-	stage_label.add_theme_color_override(&"font_color", Palette.color(stage_colour))
+	WindowText.set_colour(stage_label, stage_colour)
 	WindowText.set_text(safe_label, "Safe %d" % safe)
 	WindowText.set_text(target_label, str(target))
 	auto_button.text = "Auto on" if auto_on else "Auto off"
 	auto_button.lit = auto_on
 	WindowText.set_text(status_label, status)
-	status_label.add_theme_color_override(&"font_color", Palette.color(status_colour))
+	WindowText.set_colour(status_label, status_colour)
 	_lift = lift
 	lay_out()
 
@@ -175,5 +190,5 @@ func lay_out() -> void:
 ## The safe stage as its step has it now: yellow and raised while stepping, else silver in place.
 func _show_step() -> void:
 	var colour: StringName = &"yellow" if safe_step > 0.0 else &"silver"
-	safe_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(safe_label, colour)
 	lay_out()

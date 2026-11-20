@@ -168,7 +168,7 @@ func _sentences(goals: Array[Goals.Goal]) -> Array[String]:
 
 
 func _rect() -> Rect2:
-	return Hud.on_screen(_hud.goals_view)
+	return UiFormat.on_screen(_hud.goals_view)
 
 
 func _frame(hero: Hero) -> HeroFrameView:
@@ -211,14 +211,14 @@ func test_r1_tracker() -> void:
 
 	# The panel: under the depth panel, on the left.
 	var rect: Rect2 = _rect()
-	var depth: Rect2 = Hud.on_screen(_hud.place_panel)
+	var depth: Rect2 = UiFormat.on_screen(_hud.place_panel)
 	assert_gte(rect.position.y, depth.end.y, "under the depth panel")
 	assert_lte(rect.position.y, depth.end.y + 6.0, "just under it")
 	assert_eq(rect.position.x, depth.position.x, "lined up with it on the left")
 	assert_lt(rect.end.x, SCREEN.x / 2.0, "on the left")
 	for i: int in goals.lines().size():
 		assert_true(
-			rect.encloses(Hud.on_screen(_hud.goals_view.rows[i])), "row %d is on the panel" % i
+			rect.encloses(UiFormat.on_screen(_hud.goals_view.rows[i])), "row %d is on the panel" % i
 		)
 
 	# G hides and shows it.
@@ -334,7 +334,7 @@ func test_r2_goals_come_from_the_game() -> void:
 	assert_eq(goals.progress(1), -1.0, "training has no bar")
 	assert_eq(goals.detail(1), "2 points", "the points to spend")
 	assert_eq(goals.progress(2), -1.0, "an upgrade has no bar")
-	assert_eq(goals.detail(2), "%s gold" % Hud.group_thousands(upgrade), "its price")
+	assert_eq(goals.detail(2), "%s gold" % UiFormat.group_thousands(upgrade), "its price")
 	_sim.party.gold = upgrade - 1
 	_hud.advance(STEP)
 	assert_eq(
@@ -625,14 +625,14 @@ func test_r6_out_of_the_way() -> void:
 	for frame: HeroFrameView in _hud.frames:
 		others.append(frame)
 	for control: Control in others:
-		var each: Rect2 = Hud.on_screen(control)
+		var each: Rect2 = UiFormat.on_screen(control)
 		assert_false(rect.intersects(each), "clear of %s %s" % [control.name, each])
 
 	# The journal's ticker, with a long line.
 	_emit(SimEvent.Kind.STABLE_DEPTH_REACHED, 123_456)
 	_hud.advance(STEP)
 	assert_ne(_hud.journal.ticker_text(), "", "the ticker shows")
-	var ticker_box: Rect2 = Hud.on_screen(_hud.ticker)
+	var ticker_box: Rect2 = UiFormat.on_screen(_hud.ticker)
 	var strip := Rect2(0, ticker_box.position.y, SCREEN.x, ticker_box.size.y)
 	assert_false(rect.intersects(strip), "clear of the ticker's whole strip")
 

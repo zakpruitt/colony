@@ -522,8 +522,8 @@ func _refresh_top(hero: Hero) -> void:
 	points_label.size = Vector2(
 		UiText.width(text, true) * POINTS_SCALE, UiText.LINE_HEIGHT * POINTS_SCALE
 	)
-	points_label.add_theme_color_override(&"font_color", Palette.color(colour))
-	var price: String = "Reset %s" % Hud.group_thousands(Simulation.reset_price(hero))
+	WindowText.set_colour(points_label, colour)
+	var price: String = "Reset %s" % UiFormat.group_thousands(Simulation.reset_price(hero))
 	if reset_button.text != price:
 		reset_button.text = price
 		WindowText.fit_button(reset_button)
@@ -555,7 +555,7 @@ func _refresh_top(hero: Hero) -> void:
 			tints[tree_def.path_names[index]] = tree.path_colour(index)
 		_show_question_card(on)
 	else:
-		var gold: String = Hud.group_thousands(Simulation.reset_price(hero))
+		var gold: String = UiFormat.group_thousands(Simulation.reset_price(hero))
 		question = "Reset the %s's tree for %s gold?" % [hero.def().display_name, gold]
 		choose_button.text = "Reset"
 	WindowText.fit_button(choose_button)
@@ -654,7 +654,7 @@ func _label(label_name: String, colour: StringName, parent: Control) -> Label:
 
 func _show(label: Label, text: String, colour: StringName) -> void:
 	WindowText.set_text(label, text)
-	label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(label, colour)
 
 
 static func _lower(text: String) -> String:

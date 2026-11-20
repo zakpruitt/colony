@@ -462,7 +462,7 @@ func test_r5_the_frames_show_it() -> void:
 	assert_true(frame.status_icons.is_visible_in_tree(), "shown on the frame")
 	var line: String = "Shielded 6 s, Mending 8 s, Hasted 12 s, Mighty 5 s. Click for details"
 	assert_eq(frame.tip(), line, "the tooltip names each with the seconds left")
-	mouse_move(Hud.on_screen(frame).get_center())
+	mouse_move(UiFormat.on_screen(frame).get_center())
 	_hud.frame_tip.point_at(frame.get_global_rect().get_center())
 	_hud.frame_tip.advance(UiTip.DELAY + 0.1)
 	assert_eq(_hud.frame_tip.shown_text(), line, "as the HUD's tooltip")
@@ -565,7 +565,7 @@ func test_r6_the_tally_knows_abilities() -> void:
 		first.id, Tally.Measure.DAMAGE, panel.span()
 	)
 	var top: String = dealt.keys()[0]
-	assert_eq(shown[1], "%s %s" % [top, Hud.group_thousands(dealt[top])], "largest first")
+	assert_eq(shown[1], "%s %s" % [top, UiFormat.group_thousands(dealt[top])], "largest first")
 	panel.set_measure(Tally.Measure.HEALING)
 	assert_eq(panel.breakdown()[0], "Healing by ability", "and its healing, on that tab")
 	panel.set_measure(Tally.Measure.DAMAGE)
@@ -817,7 +817,7 @@ func test_r8_kept_off_the_bars() -> void:
 	var monster: int = _monster()
 	var frame: HeroFrameView = _hud.frames[0]
 	var health := frame.get_global_transform() * HeroFrameView.HEALTH_BAR
-	var boss := Hud.on_screen(_hud.boss_bar)
+	var boss := UiFormat.on_screen(_hud.boss_bar)
 	var places: Array[Array] = []
 	for dy: int in range(-8, 40, 6):
 		places.append([KNIGHT, health.get_center() + Vector2(0, dy), health])

@@ -64,6 +64,9 @@ The picture is drawn in two layers, each in its own pixels.
   saved open open as the game starts, under the away report if there is one (`UiWindows.open_waiting`). `UiButtonBar` holds a button
   per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
   upgrades, the map's newly opened areas); a window with `on_bar` false (a hero window) has no button.
+  A count is told, never polled: the content calls `WindowContent._show_badge(count)`, which emits
+  `badge_changed(text)` only when the tag's text changes; its `UiWindow` takes the count and the bar
+  refreshes its tags. The bar has no `_process`: `UiRoot.advance` runs the tags' pulse.
   Each button says what it opens (spec 068): the window's icon, its `UiWindow.short_name` (one word per
   window, given by its `WindowEntry`, the same in the help's key list, the goals, the notes
   and the tooltips: the shop, titled `Camp upgrades`, is `Camp`) and its key in a key cap
@@ -84,7 +87,8 @@ The picture is drawn in two layers, each in its own pixels.
   of all (`UiWindows.front()`): 1 to 5 and B the shop's, 1 to 3 a hero window's on its Talents tab, Q and
   E a hero window's or the tally's tabs. Tab opens the next hero's window in front whatever is in front,
   Esc closes the front window (`UiWindows`), and a click anywhere on a window brings it to the front.
-  The `Hud` hears the keys and asks `UiWindows.front()` (`Hud._in_front`).
+  `WindowKeys` (`game/ui/windows/window_keys.gd`, made by `UiRoot.setup`) hears them and asks
+  `UiWindows.front()`; the `Hud` hears only its own (-, +, A, F3).
 - **Window contents made by the HUD** (spec 059): `ShopWindow`, `AreaMapWindow` and `TallyWindow`
   (`game/ui/windows/`, all `WindowContent`) are made and advanced by `Hud.setup` as `hud.shop`,
   `hud.area_map` and `hud.tally`, so they hear the world's events from the start; their entries hand them
@@ -112,7 +116,7 @@ The picture is drawn in two layers, each in its own pixels.
   moves `screen_frame` onto the layer (`Hud.adopt_frame`, first child of `frame`, so windows draw over it)
   and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A window under 1280x720 (whose UI room is
   under 960x540, as a headless test's 640x360 is) has the frame laid out at 960x540 and drawn scaled down
-  by that fraction. `Hud.frames_line(room)` is the hero frames' true top in a room, and
+  by that fraction. `HudFrame.frames_line(room)` is the hero frames' true top in a room, and
   `UiRoot.frames_top()` the same in world pixels: the button bar, the hero windows and the ticker
   stand on it. Spec 062 adds the rest of what the HUD shows: `GoalsView` (rows of `GoalRow`) under the
   place panel, drawing what the `Goals` node decides; `StageList` at the right edge under the purse,
@@ -124,10 +128,23 @@ The picture is drawn in two layers, each in its own pixels.
   the mouse itself (`follows_mouse`) and treats a point on a window as nowhere; `UiRoot.setup` lifts it to
   the last child of `frame` (`Hud.lift_tip`), so it draws over the button bar and every window. Each
   piece stops a click on it, so none reaches the world under it. Effects aim at the pieces' places on the screen
-  (`Hud.on_screen`, through the canvas layer's transform, never a camera's): coins at the purse's coin, resource
+  (`UiFormat.on_screen`, through the canvas layer's transform, never a camera's): coins at the purse's coin, resource
   icons at their counts, and XP motes at their hero's frame (`CombatEffects.frame_screen_targets`; with no
   HUD, at the hero's chest as before). After a stall (`World.STALL_TICKS` at the game's speed) every
   piece snaps to the simulation's state.
+- **A small HUD, and a screen that sits still** (spec 075). The `Hud` is the frame of the screen: it
+  makes, lays out and advances its pieces and the shop, the map and the tally, and has at most 15
+  public methods. What others shared from it lives apart: `UiFormat` (`game/ui/ui_format.gd`:
+  `group_thousands`, `short_count`, `clock`, `on_screen`) and `HudFrame` (`game/hud/hud_frame.gd`: the
+  frame's sizes, `frames_line`, `STATE_WORDS` and the frame's tooltips). Nothing finds the `Hud` by
+  its parent or looks it up: `Goals`, `Journal`, `AreaMapWindow` and `DefeatNote` are handed the
+  pieces they reach in `setup` (the map asks for a target with its own `target_asked`). Each frame a
+  view works out the values it shows and words, lays out or redraws only when they changed
+  (`ShownValues`, `game/ui/shown_values.gd`); a label's text goes through `WindowText.set_text` and
+  its colour through `WindowText.set_colour`, which set only a change and count it in
+  `WindowText.changes` (spec 075's test watches an idle screen with it). A closed shop, map, tally or
+  hero window words nothing and is brought up to date as it opens; a hero window refreshes only the
+  tab showing, and its Stats tab builds the hero's `Combatant` only when a stat's inputs change.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
   party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is

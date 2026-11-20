@@ -37,14 +37,14 @@ func test_the_box_stays_on_screen_and_off_its_element() -> void:
 		hud.add_child(element)
 		# Spec 062: the HUD's tooltips are spec 058's, as the frame of the screen's are.
 		var tooltip := UiTip.new()
-		tooltip.room = Hud.SCREEN
+		tooltip.room = HudFrame.SCREEN
 		hud.add_child(tooltip)
 		tooltip.attach(element, "A sentence long enough to need pushing back on the screen.")
 		tooltip.point_at(corner + Vector2(10, 10))
 		tooltip.advance(UiTip.DELAY)
 		assert_ne(tooltip.shown_text(), "", "%s: shown" % corner)
 		var box: Rect2 = tooltip.get_global_rect()
-		var screen := Rect2(Vector2.ZERO, Hud.SCREEN)
+		var screen := Rect2(Vector2.ZERO, HudFrame.SCREEN)
 		assert_true(screen.encloses(box), "%s: on the screen %s" % [corner, box])
 		assert_false(
 			box.intersects(element.get_global_rect()), "%s: clear of it %s" % [corner, box]

@@ -458,7 +458,7 @@ func test_r9_out_of_the_way() -> void:
 		hero.set_paragon_rank(TrainingDef.Stat.POWER, 1999 - i)
 	# Spec 060: the windows are on the UI layer, measured in its pixels; each opens alone at its
 	# own place (spec 060 R7 checks two side by side).
-	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var top_band: float = _ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
 	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	var room := Vector2(_ui.room())
 	for hero: Hero in _sim.party.heroes:

@@ -155,7 +155,7 @@ func _z_of(item: CanvasItem) -> int:
 ## A control over the whole world that records every press reaching it, in world pixels.
 func _probe(main: Main, heard: Array[Vector2]) -> Control:
 	var probe := Control.new()
-	probe.size = Hud.SCREEN
+	probe.size = HudFrame.SCREEN
 	probe.mouse_filter = Control.MOUSE_FILTER_STOP
 	probe.gui_input.connect(
 		func(event: InputEvent) -> void:

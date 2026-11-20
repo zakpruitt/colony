@@ -13,8 +13,9 @@ extends PanelContainer
 ## while the party cannot pay, what is missing in words ([code]Needs 12 more clay, from The
 ## Claypits[/code]).
 ##
-## [method refresh] reads everything from the simulation every frame; the card keeps no copy of a
-## rank or a price. A purchase heard fresh fills its pip with a flash ([method start_flash]); the
+## [method refresh] reads everything from the simulation every frame the shop is open, and words
+## and colours the card only when what it shows has changed; while the shop is closed only its
+## flash and stepping run on ([method run_on]). A purchase heard fresh fills its pip with a flash ([method start_flash]); the
 ## player's own also steps the numbers to their new values ([method start_step]) while the shop
 ## bursts the icon. Pointing at the card shows a card tooltip ([method card]).
 
@@ -55,6 +56,8 @@ var _affordable: bool = false
 ## The numbers stepping: the rank they step from, and the seconds of the step left.
 var _step_from: int = 0
 var _step: float = 0.0
+## What the card was last worded from.
+var _shown: ShownValues = ShownValues.new()
 
 
 ## A card for upgrade [param upgrade_id], the [param index]th in the shop (0-based).
@@ -173,8 +176,8 @@ static func button_width() -> int:
 ## (its icon follows).
 static func price_text(gold: int, resource: int) -> String:
 	if resource > 0:
-		return "%s gold + %s" % [Hud.group_thousands(gold), Hud.group_thousands(resource)]
-	return "%s gold" % Hud.group_thousands(gold)
+		return "%s gold + %s" % [UiFormat.group_thousands(gold), UiFormat.group_thousands(resource)]
+	return "%s gold" % UiFormat.group_thousands(gold)
 
 
 ## What a party short of [param gold] gold and [param resource] of [param def]'s resource is
@@ -183,10 +186,10 @@ static func price_text(gold: int, resource: int) -> String:
 static func needs_for(def: UpgradeDef, gold: int, resource: int) -> String:
 	var parts: PackedStringArray = []
 	if gold > 0:
-		parts.append("%s more gold" % Hud.group_thousands(gold))
+		parts.append("%s more gold" % UiFormat.group_thousands(gold))
 	if resource > 0:
 		var plural: String = ResourceIcon.plural(def.resource)
-		parts.append("%s more %s" % [Hud.group_thousands(resource), plural])
+		parts.append("%s more %s" % [UiFormat.group_thousands(resource), plural])
 	if parts.is_empty():
 		return ""
 	var text: String = "Needs " + " and ".join(parts)
@@ -196,25 +199,36 @@ static func needs_for(def: UpgradeDef, gold: int, resource: int) -> String:
 
 
 ## Brings the card up to date with [param upgrades] and what [param party] holds, and runs its
-## flash, its pulse and its stepping numbers on by [param delta] seconds.
+## flash, its pulse and its stepping numbers on by [param delta] seconds ([method run_on]).
 func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
+	run_on(delta)
 	var def: UpgradeDef = Content.upgrade(id)
 	var rank: int = upgrades.rank(id)
 	var price: int = upgrades.cost(id)
 	var needed: int = upgrades.resource_cost(id)
 	var maxed: bool = price < 0
 	_affordable = upgrades.can_pay(id, party)
+	_shown.begin()
+	_shown.see(rank)
+	_shown.see(price)
+	_shown.see(needed)
+	_shown.see(_affordable)
+	_shown.see(flash() > 0.0)
+	_shown.see(_step)
+	if not maxed:
+		_shown.see(party.gold)
+		_shown.see(party.resource(def.resource))
+	if not _shown.changed():
+		return
 	if maxed:
 		icon.show_state(UiIcon.State.OWNED)
 	else:
 		icon.show_state(UiIcon.State.READY if _affordable else UiIcon.State.LOCKED)
 	if icon.count_label.text != str(rank) or not icon.count_label.visible:
 		icon.set_count(str(rank))
-	icon.advance(delta)
 	pips.show_ranks(rank, def.max_rank)
-	pips.advance(delta)
 	rank_label.text = "%d / %d" % [rank, def.max_rank]
-	_show_numbers(def, rank, delta)
+	_show_numbers(def, rank)
 	var text: String = "Max" if maxed else price_text(price, needed)
 	if buy_button.text != text:
 		buy_button.text = text
@@ -223,9 +237,15 @@ func refresh(upgrades: Upgrades, party: Party, delta: float) -> void:
 	var short_gold: int = maxi(price - party.gold, 0) if not maxed else 0
 	var short_resource: int = maxi(needed - party.resource(def.resource), 0) if not maxed else 0
 	needs_label.text = needs_for(def, short_gold, short_resource)
-	rank_label.add_theme_color_override(
-		&"font_color", Palette.color(&"yellow" if flash() > 0.0 else &"steel")
-	)
+	WindowText.set_colour(rank_label, &"yellow" if flash() > 0.0 else &"steel")
+
+
+## Runs the card's pulse, its pip's flash and its stepping numbers on by [param delta] seconds,
+## without wording anything: all a closed shop does.
+func run_on(delta: float) -> void:
+	icon.advance(delta)
+	pips.advance(delta)
+	_step = maxf(_step - delta, 0.0)
 
 
 ## Fills the pip of rank [param rank] (1-based) with a flash: that rank was just bought.
@@ -291,14 +311,20 @@ func tip_text(simulation: Simulation) -> String:
 		var from: int = def.resource_from_rank + 1
 		return (
 			"Rank %d: %s gold. From rank %d it costs %s too. %s"
-			% [rank + 1, Hud.group_thousands(price), from, ResourceIcon.plural(def.resource), where]
+			% [
+				rank + 1,
+				UiFormat.group_thousands(price),
+				from,
+				ResourceIcon.plural(def.resource),
+				where
+			]
 		)
 	return (
 		"Rank %d: %s gold and %s %s. %s"
 		% [
 			rank + 1,
-			Hud.group_thousands(price),
-			Hud.group_thousands(needed),
+			UiFormat.group_thousands(price),
+			UiFormat.group_thousands(needed),
 			ResourceIcon.plural(def.resource),
 			where
 		]
@@ -307,25 +333,21 @@ func tip_text(simulation: Simulation) -> String:
 
 ## Shows what the upgrade gives now and at the next rank; while stepping, the numbers count from
 ## [member _step_from]'s toward [param rank]'s, the total in yellow.
-func _show_numbers(def: UpgradeDef, rank: int, delta: float) -> void:
-	if _step > 0.0:
-		_step = maxf(_step - delta, 0.0)
+func _show_numbers(def: UpgradeDef, rank: int) -> void:
 	var shown: float = float(rank)
 	if _step > 0.0 and _step_from < rank:
 		shown = lerpf(float(_step_from), float(rank), 1.0 - _step / STEP_SECONDS)
 	var now: String = "+%d%%" % roundi(shown * def.per_rank * 100.0)
 	now_label.text = now
-	now_label.add_theme_color_override(
-		&"font_color", Palette.color(&"yellow" if _step > 0.0 else &"white")
-	)
+	WindowText.set_colour(now_label, &"yellow" if _step > 0.0 else &"white")
 	var top: bool = rank >= def.max_rank
 	arrow_label.visible = not top
 	if top:
 		next_label.text = MASTERED
-		next_label.add_theme_color_override(&"font_color", Palette.color(&"yellow"))
+		WindowText.set_colour(next_label, &"yellow")
 		return
 	next_label.text = "+%d%%" % roundi((shown + 1.0) * def.per_rank * 100.0)
-	next_label.add_theme_color_override(&"font_color", Palette.color(&"green"))
+	WindowText.set_colour(next_label, &"green")
 
 
 ## A box container in [param parent]: a column ([param column]) or a row, its children

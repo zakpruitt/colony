@@ -671,7 +671,7 @@ func test_r8_nothing_lost() -> void:
 	var row: int = main.hud.goals.lines().find("Spend the Knight's talent points")
 	assert_gte(row, 0, "a goal: %s" % [main.hud.goals.lines()])
 	if row >= 0:
-		click(Hud.on_screen(main.hud.goals_view.rows[row]).get_center())
+		click(UiFormat.on_screen(main.hud.goals_view.rows[row]).get_center())
 		main.hud.advance(STEP)
 		assert_true(main.hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
 		assert_eq(_window(main, knight).page(), HeroWindow.Page.TALENTS, "on its Talents tab")

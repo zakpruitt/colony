@@ -56,7 +56,7 @@ var stacked: bool = false
 ## A button per window id.
 var buttons: Dictionary[StringName, UiButton] = {}
 ## Each button's amber tag, shown while its window's [member UiWindow.badge] is
-## above 0.
+## above 0: told by its content's [signal WindowContent.badge_changed], never looked for.
 var badges: Dictionary[StringName, UiBadge] = {}
 ## The tags' own layer, just after the bar on the UI layer: drawn over every button,
 ## and under every window, which come later.
@@ -78,16 +78,13 @@ func _init() -> void:
 	add_theme_constant_override(&"separation", GAP)
 
 
-func _process(delta: float) -> void:
-	advance(delta)
-
-
-## Lights the buttons, shows the tags and runs their pulse on by [param delta] seconds. Called
-## every frame; tests call it.
+## Runs the pulse of each tag shown on by [param delta] seconds. Called every frame by [UiRoot];
+## tests call it.
 func advance(delta: float) -> void:
-	refresh()
 	for id: StringName in badges:
-		badges[id].advance(delta)
+		var tag: UiBadge = badges[id]
+		if tag.visible:
+			tag.advance(delta)
 
 
 ## Call once, after the windows are registered with [param windows].
@@ -102,6 +99,7 @@ func setup(ui: UiRoot, windows: UiWindows) -> void:
 	ui.frame.add_child(tag_layer)
 	ui.frame.move_child(tag_layer, get_index() + 1)
 	windows.changed.connect(refresh)
+	item_rect_changed.connect(refresh)  # the tags stand on the buttons wherever they go
 	reset_button = UiButton.new(RESET_NAME)
 	reset_button.name = "Reset"
 	reset_button.icon = _icon(&"reset")
@@ -130,10 +128,14 @@ func rebuild() -> void:
 		move_child(button, reset_button.get_index())
 		buttons[id] = button
 		tip.attach(button, entry.tip())
+		button.item_rect_changed.connect(refresh)
 		var tag := UiBadge.new()
 		tag.name = "Badge_%s" % id
 		tag_layer.add_child(tag)
 		badges[id] = tag
+		var told: WindowContent = shown.content as WindowContent
+		if told != null:
+			told.badge_changed.connect(_on_badge_changed.unbind(1))
 	fit_room(_ui.room())
 	refresh()
 
@@ -149,6 +151,11 @@ func refresh() -> void:
 		tag.count = _windows.window(id).badge
 		tag.visible = tag.count > 0
 		tag.position = position + buttons[id].position + tag_place(buttons[id], tag.size)
+
+
+## A window's content said its tag changed: [UiWindow] has taken the count in already.
+func _on_badge_changed() -> void:
+	refresh()
 
 
 ## Where a tag of [param tag_size] stands on [param button], in the button's own pixels: over the
@@ -185,7 +192,7 @@ func rect_in(room: Vector2i) -> Rect2:
 		return Rect2()
 	if room != _fitted:
 		fit_room(room)
-	var line: float = floorf(Hud.frames_line(room))
+	var line: float = floorf(HudFrame.frames_line(room))
 	return Rect2(Vector2(room.x - MARGIN - size.x, line - ABOVE_FRAMES - size.y).round(), size)
 
 

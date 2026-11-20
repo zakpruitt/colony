@@ -3,12 +3,12 @@ extends ColonyTest
 
 
 func test_group_thousands() -> void:
-	assert_eq(Hud.group_thousands(0), "0")
-	assert_eq(Hud.group_thousands(999), "999")
-	assert_eq(Hud.group_thousands(1000), "1,000")
-	assert_eq(Hud.group_thousands(12345), "12,345")
-	assert_eq(Hud.group_thousands(1234567), "1,234,567")
-	assert_eq(Hud.group_thousands(-4500), "-4,500")
+	assert_eq(UiFormat.group_thousands(0), "0")
+	assert_eq(UiFormat.group_thousands(999), "999")
+	assert_eq(UiFormat.group_thousands(1000), "1,000")
+	assert_eq(UiFormat.group_thousands(12345), "12,345")
+	assert_eq(UiFormat.group_thousands(1234567), "1,234,567")
+	assert_eq(UiFormat.group_thousands(-4500), "-4,500")
 
 
 func test_eased_value_settles_on_its_goal() -> void:

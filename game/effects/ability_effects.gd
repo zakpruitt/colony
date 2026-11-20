@@ -616,9 +616,10 @@ func _band_shift(rect: Rect2) -> Vector2:
 	var top_left: Vector2 = (rect.position - camera.position - camera.offset) * zoom + view / 2.0
 	var size: Vector2 = rect.size * zoom
 	var band := Rect2(
-		Vector2(BAND_MARGIN, Hud.TOP_BAND + BAND_MARGIN),
+		Vector2(BAND_MARGIN, HudFrame.TOP_BAND + BAND_MARGIN),
 		Vector2(
-			view.x - 2.0 * BAND_MARGIN, view.y - Hud.TOP_BAND - Hud.BOTTOM_BAND - 2.0 * BAND_MARGIN
+			view.x - 2.0 * BAND_MARGIN,
+			view.y - HudFrame.TOP_BAND - HudFrame.BOTTOM_BAND - 2.0 * BAND_MARGIN
 		)
 	)
 	var shift := Vector2.ZERO

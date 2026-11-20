@@ -55,6 +55,8 @@ const MARKER_GAP: float = 3.0
 const MARK_SCALE: float = 2.0
 ## What a click on the frame does, the end of its tooltip.
 const CLICK_TIP: String = "Click for details"
+## No statuses, shown while no fighter bears one.
+const NO_STATUSES: Array[ShownStatus] = []
 
 var hero_id: int
 var icon: TextureRect
@@ -92,6 +94,10 @@ var _xp: EasedValue = EasedValue.new(EASE_SECONDS)
 ## How many microskills the hero had when their Skills page was last open (or when the frame was
 ## made), as the hero window counts them.
 var _skills_seen: int = 0
+## What the words were last set from, what the frame was last drawn from, and the tag's pop.
+var _worded: ShownValues = ShownValues.new()
+var _drawn: ShownValues = ShownValues.new()
+var _popped: float = 1.0
 
 
 ## A frame for [param hero], drawing its portraits from [param hud].
@@ -166,20 +172,8 @@ func refresh(hero: Hero, delta: float) -> void:
 	if part != _icon_part:
 		_icon_part = part
 		icon.texture = _hud.icon(part) if _hud != null else null
-	# Where the level was, "Down" for a fallen hero, "Recovering" during a revival.
-	var level_text: String = "Lv %d" % hero.level
-	if recovering:
-		level_text = "Recovering"
-	elif _dead:
-		level_text = "Down"
-	WindowText.set_text(level_label, level_text)
-	var number: String = (
-		"%s / %s" % [Hud.group_thousands(maxi(points.x, 0)), Hud.group_thousands(maxi(points.y, 1))]
-	)
-	WindowText.set_text(health_label, "" if _dead else number)
 	_refresh_marker(hero, delta)
 	_refresh_statuses()
-	_lay_out()
 	var level_colour: StringName = &"yellow"
 	if _pulse > 0.0 and int(_pulse / 0.1) % 2 == 0:
 		level_colour = &"white"
@@ -189,11 +183,45 @@ func refresh(hero: Hero, delta: float) -> void:
 		level_colour = &"pink"
 	elif _dead:
 		level_colour = &"red"
-	level_label.add_theme_color_override(&"font_color", Palette.color(level_colour))
-	name_label.add_theme_color_override(
-		&"font_color", Palette.color(&"slate" if _dead else &"white")
+	_worded.begin()
+	_worded.see(hero.level)
+	_worded.see(recovering)
+	_worded.see(_dead)
+	_worded.see(points)
+	_worded.see(level_colour)
+	_worded.see(marker.visible)
+	_worded.see(marker.size.x)
+	_worded.see(maxf(1.0 if _pulse > 0.0 else 0.0, step_lift(level_step)))
+	_worded.see(status_icons.kinds.size())
+	if _worded.changed():
+		_show_words(hero, points, level_colour)
+	_drawn.begin()
+	_drawn.see(_flash > 0.0)
+	_drawn.see(marked)
+	_drawn.see(_dead)
+	_drawn.see(_health.value)
+	_drawn.see(_xp.value)
+	if _drawn.changed():
+		queue_redraw()
+
+
+## Words the level and the health, colours the level and the name, and lays them out.
+func _show_words(hero: Hero, points: Vector2i, level_colour: StringName) -> void:
+	# Where the level was, "Down" for a fallen hero, "Recovering" during a revival.
+	var level_text: String = "Lv %d" % hero.level
+	if recovering:
+		level_text = "Recovering"
+	elif _dead:
+		level_text = "Down"
+	WindowText.set_text(level_label, level_text)
+	var number: String = (
+		"%s / %s"
+		% [UiFormat.group_thousands(maxi(points.x, 0)), UiFormat.group_thousands(maxi(points.y, 1))]
 	)
-	queue_redraw()
+	WindowText.set_text(health_label, "" if _dead else number)
+	_lay_out()
+	WindowText.set_colour(level_label, level_colour)
+	WindowText.set_colour(name_label, &"slate" if _dead else &"white")
 
 
 ## The bars show the hero's health and XP at once, and a flash or pulse ends: after a stall, when
@@ -296,27 +324,31 @@ func level_pulse() -> float:
 ## Brings [member marker] up to date with [param hero] (marking the microskills its open Skills
 ## tab shows as seen, as the window does) and runs its pulse on by [param delta] seconds.
 func _refresh_marker(hero: Hero, delta: float) -> void:
-	var learned: int = hero.microskills().size()
+	var learned: int = HeroWindow.skills_learned(hero)
 	var windows: HeroWindows = _hud.hero_windows if _hud != null else null
 	var shown: HeroWindow = windows.window_of(hero_id) if windows != null else null
 	if shown != null and shown.is_open() and shown.page() == HeroWindow.Page.SKILLS:
 		_skills_seen = learned
 	marker.count = HeroWindow.unspent(hero) + maxi(learned - _skills_seen, 0)
 	marker.visible = marker.count > 0
-	marker.advance(delta)
+	if marker.visible:
+		marker.advance(delta)
 	# Each pulse swells the tag about its middle and lets it back.
 	var beat: float = fmod(tag_pulse, TAG_PULSE_SECONDS) / TAG_PULSE_SECONDS
-	marker.pivot_offset = marker.size / 2.0
-	marker.scale = Vector2.ONE * (1.0 + (TAG_POP - 1.0) * sin(beat * PI))
+	var pop: float = 1.0 + (TAG_POP - 1.0) * sin(beat * PI)
+	if pop != _popped or marker.pivot_offset != marker.size / 2.0:
+		_popped = pop
+		marker.pivot_offset = marker.size / 2.0
+		marker.scale = Vector2.ONE * pop
 
 
 ## The hero's statuses, as the tally's book has them.
 func _refresh_statuses() -> void:
 	var tally: TallyWindow = _hud.tally if _hud != null else null
-	var statuses: Array[ShownStatus] = []
-	if tally != null and not _dead:
-		statuses = tally.tally.credit.statuses.statuses_of(hero_id)
-	status_icons.show_statuses(statuses)
+	if tally == null or _dead or tally.tally.credit.statuses.is_empty():
+		status_icons.show_statuses(NO_STATUSES)
+	else:
+		status_icons.show_statuses(tally.tally.credit.statuses.statuses_of(hero_id))
 
 
 ## The name and its status marks at the left of the top row, the tag at its right and the level

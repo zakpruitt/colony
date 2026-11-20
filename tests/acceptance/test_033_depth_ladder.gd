@@ -158,7 +158,7 @@ func test_r1_ladder_of_depths() -> void:
 	_situation(1, 1, 1, 1)
 	assert_eq(ladder.first_depth(), 1, "a new game starts at the top")
 
-	var rect: Rect2 = Hud.on_screen(ladder)
+	var rect: Rect2 = UiFormat.on_screen(ladder)
 	assert_true(ladder.is_shown(), "it is on screen")
 	assert_lte(rect.end.x, SCREEN.x, "on the screen's right edge %s" % rect)
 	assert_gte(rect.end.x, SCREEN.x - Hud.MARGIN - 2.0, "against the right edge %s" % rect)
@@ -387,7 +387,7 @@ func test_r6_stays_out_of_the_way() -> void:
 		return
 	_sim.party.gold = 9_876_543
 	_situation(120, 119, 120, 123)
-	var rect: Rect2 = Hud.on_screen(ladder)
+	var rect: Rect2 = UiFormat.on_screen(ladder)
 	assert_gte(rect.position.y, TOP_BAND, "below the top band")
 	for control: Control in [_hud.place_panel, _hud.purse]:
 		assert_false(rect.intersects(control.get_global_rect()), "clear of %s" % control.name)
@@ -402,7 +402,7 @@ func test_r6_stays_out_of_the_way() -> void:
 	_world.sim_event.emit(event)
 	_hud.advance(STEP)
 	assert_ne(_hud.journal.ticker_text(), "", "the ticker shows")
-	var ticker_box: Rect2 = Hud.on_screen(_hud.ticker)
+	var ticker_box: Rect2 = UiFormat.on_screen(_hud.ticker)
 	var strip := Rect2(0, ticker_box.position.y, SCREEN.x, ticker_box.size.y)
 	assert_false(rect.intersects(strip), "clear of the ticker's whole strip")
 
@@ -412,7 +412,9 @@ func test_r6_stays_out_of_the_way() -> void:
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	assert_false(Hud.on_screen(ladder).intersects(_hud.boss_bar.get_global_rect()), "clear of it")
+	assert_false(
+		UiFormat.on_screen(ladder).intersects(_hud.boss_bar.get_global_rect()), "clear of it"
+	)
 
 	# The shop: since spec 062 R2 the ladder stays while it is open (the window is drawn over it).
 	_hud.shop.open()

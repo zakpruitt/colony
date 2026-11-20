@@ -19,15 +19,19 @@ func _init() -> void:
 	size = Vector2(MOST * MARK + (MOST - 1) * GAP, MARK)
 
 
-## Shows the first [constant MOST] of [param statuses].
+## Shows the first [constant MOST] of [param statuses]; the same marks as shown change nothing.
 func show_statuses(statuses: Array[ShownStatus]) -> void:
-	var wanted: Array[int] = []
-	for status: ShownStatus in statuses:
-		if wanted.size() < MOST:
-			wanted.append(status.kind)
-	if wanted != kinds:
-		kinds = wanted
-		queue_redraw()
+	var count: int = mini(statuses.size(), MOST)
+	var same: bool = count == kinds.size()
+	for i: int in count:
+		if same and kinds[i] != statuses[i].kind:
+			same = false
+	if same:
+		return
+	kinds.clear()
+	for i: int in count:
+		kinds.append(statuses[i].kind)
+	queue_redraw()
 
 
 ## Every one of [param statuses] with the whole seconds it has left at simulation tick

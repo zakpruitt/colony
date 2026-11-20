@@ -81,7 +81,10 @@ func advance(delta: float) -> void:
 	_flash = maxf(_flash - delta, 0.0)
 	var number: String = (
 		"%s / %s"
-		% [Hud.group_thousands(maxi(guardian.health, 0)), Hud.group_thousands(guardian.max_health)]
+		% [
+			UiFormat.group_thousands(maxi(guardian.health, 0)),
+			UiFormat.group_thousands(guardian.max_health)
+		]
 	)
 	if health_label.text != number:
 		health_label.text = number

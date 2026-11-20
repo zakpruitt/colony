@@ -55,8 +55,18 @@ const FLASH_SECONDS: float = 0.5
 const TITLE: String = "Goals"
 const HIDE_HINT: String = "G hide"
 
+## The windows on the UI layer (the orders open there) and the hero windows a goal opens; null
+## without a UI layer. The [Hud] hands them on as the layer gives them.
+var windows: UiWindows
+var hero_windows: HeroWindows
+
 var _simulation: Simulation
 var _world: World
+## Where a goal is written down, and what a click on one opens; each may be null.
+var _journal: Journal
+var _shop: ShopWindow
+var _area_map: AreaMapWindow
+var _ladder: StageList
 ## The goals showing, top first (some may be celebrating).
 var _shown: Array[Goal] = []
 ## Whether the player wants the tracker ([kbd]G[/kbd]).
@@ -79,10 +89,24 @@ func _unhandled_input(event: InputEvent) -> void:
 	get_viewport().set_input_as_handled()
 
 
-## Call once, before the first advance. [param world] may be null (nothing is then old).
-func setup(simulation: Simulation, world: World) -> void:
+## Call once, before the first advance. [param world] may be null (nothing is then old). A
+## finished goal is written in [param journal]; a click opens [param shop], [param area_map] or
+## flashes a rung of [param ladder]; and the map's news brings the goal to visit an area. Each may
+## be null.
+func setup(
+	simulation: Simulation,
+	world: World,
+	journal: Journal = null,
+	shop: ShopWindow = null,
+	area_map: AreaMapWindow = null,
+	ladder: StageList = null
+) -> void:
 	_simulation = simulation
 	_world = world
+	_journal = journal
+	_shop = shop
+	_area_map = area_map
+	_ladder = ladder
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
@@ -209,29 +233,32 @@ func flash(index: int) -> float:
 ## shows the depth ladder (closing the shop, which hides it) with that depth's rung flashing. Each
 ## panel opens as its own button opens it. A finished goal, or no goal, does nothing.
 func press(index: int) -> void:
-	var hud: Hud = get_parent() as Hud
-	if hud == null or index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
+	if index < 0 or index >= _shown.size() or _shown[index].celebrate > 0.0:
 		return
 	var goal: Goal = _shown[index]
 	match goal.kind:
 		Kind.UPGRADE:
-			hud.shop.open()
+			if _shop != null:
+				_shop.open()
 		Kind.TRAINING:
 			var trainee: Hero = _trainee()
 			if trainee != null:
-				_open_sheet(hud, trainee.id, HeroWindow.Page.TALENTS)
+				_open_sheet(trainee.id, HeroWindow.Page.TALENTS)
 		Kind.MICROSKILL:
-			_open_sheet(hud, goal.hero_id, HeroWindow.Page.SKILLS)
+			_open_sheet(goal.hero_id, HeroWindow.Page.SKILLS)
 		Kind.TALENT:
-			_open_sheet(hud, goal.hero_id, HeroWindow.Page.TALENTS)
+			_open_sheet(goal.hero_id, HeroWindow.Page.TALENTS)
 		Kind.GUARDIAN:
-			if hud.windows != null:  # the orders are a window on the UI layer
-				hud.windows.open_window(UiRoot.ORDERS)
+			if windows != null:  # the orders are a window on the UI layer
+				windows.open_window(UiRoot.ORDERS)
 		Kind.DEPTH:
-			hud.shop.close()
-			hud.ladder.flash(goal.target)
+			if _shop != null:
+				_shop.close()
+			if _ladder != null:
+				_ladder.flash(goal.target)
 		Kind.VISIT:
-			hud.area_map.open()
+			if _area_map != null:
+				_area_map.open()
 	advance(0.0)
 
 
@@ -260,9 +287,8 @@ func action(index: int) -> String:
 ## Every goal that applies now, in the tracker's order, read from the simulation.
 func applicable() -> Array[Goal]:
 	var found: Array[Goal] = []
-	var hud: Hud = get_parent() as Hud
-	if hud != null and hud.area_map != null and hud.area_map.news != null:
-		found.append_array(hud.area_map.news.visit_goals())  # a new area first
+	if _area_map != null and _area_map.news != null:
+		found.append_array(_area_map.news.visit_goals())  # a new area first
 	var guardian: Goal = _guardian_goal()
 	if guardian != null:
 		found.append(guardian)
@@ -297,7 +323,7 @@ func applicable() -> Array[Goal]:
 				Kind.UPGRADE,
 				"Buy an upgrade",
 				-1.0,
-				"%s gold" % Hud.group_thousands(upgrade),
+				"%s gold" % UiFormat.group_thousands(upgrade),
 				upgrade_hint()
 			)
 		)
@@ -388,7 +414,7 @@ func _depth_goal() -> Goal:
 		var left: float = e.seconds_to_push()
 		if e.stable_seconds > 0.0:
 			fraction = clampf(1.0 - left / e.stable_seconds, 0.0, 1.0)
-		detail_text = "in " + Hud.clock(left)
+		detail_text = "in " + UiFormat.clock(left)
 		how = "Hold this stage until it is stable, and the party moves on by itself."
 	elif e.depth >= e.deepest_depth and not e.auto_push:
 		fraction = 0.0
@@ -434,7 +460,7 @@ func _microskill_goal() -> Goal:
 		Kind.MICROSKILL,
 		"%s learns %s at level %d" % [who, best_skill.display_name, best_level],
 		clampf(float(best.xp) / float(needed), 0.0, 1.0),
-		"%s XP to go" % Hud.group_thousands(maxi(best_left, 0)),
+		"%s XP to go" % UiFormat.group_thousands(maxi(best_left, 0)),
 		"%s: %s, learned with XP from fights." % [best_skill.display_name, _lower(best_skill)]
 	)
 	goal.target = best_level
@@ -475,9 +501,9 @@ func _trainee() -> Hero:
 
 ## Opens [param hero_id]'s window on [param page], as a click on the hero's frame and
 ## then its tab would.
-static func _open_sheet(hud: Hud, hero_id: int, page: HeroWindow.Page) -> void:
-	if hud.hero_windows != null:
-		hud.hero_windows.open(hero_id, page)
+func _open_sheet(hero_id: int, page: HeroWindow.Page) -> void:
+	if hero_windows != null:
+		hero_windows.open(hero_id, page)
 
 
 ## The cheapest price of any camp upgrade's next rank, or 0 if none can be bought. One whose
@@ -508,8 +534,7 @@ func _achieved(goal: Goal) -> bool:
 			var hero: Hero = _simulation.party.hero(goal.hero_id)
 			return hero != null and hero.level >= goal.target
 		Kind.VISIT:
-			var hud: Hud = get_parent() as Hud
-			return hud != null and hud.area_map.news.visited.has(goal.area)
+			return _area_map != null and _area_map.news.visited.has(goal.area)
 	return false
 
 
@@ -528,9 +553,8 @@ func _on_sim_event(event: SimEvent) -> void:
 
 ## Writes [param goal]'s line in the journal and tells the listeners.
 func _finish(goal: Goal) -> void:
-	var hud: Hud = get_parent() as Hud
-	if hud != null and hud.journal != null:
-		hud.journal.write(goal.done)
+	if _journal != null:
+		_journal.write(goal.done)
 	goal_finished.emit(goal.done)
 
 

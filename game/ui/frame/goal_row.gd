@@ -46,6 +46,8 @@ var detail_label: Label
 var _goal: Goals.Goal
 var _bar: Rect2 = Rect2()
 var _arrow: Rect2 = Rect2()
+## What the row was last shown from: [method show_goal] words, lays out and draws only a change.
+var _shown: ShownValues = ShownValues.new()
 
 
 func _init() -> void:
@@ -89,6 +91,18 @@ static func is_gold(goal: Goals.Goal) -> bool:
 func show_goal(goal: Goals.Goal, width: float, detail_column: float) -> void:
 	_goal = goal
 	var finished: bool = goal.celebrate > 0.0
+	_shown.begin()
+	_shown.see(goal.kind)
+	_shown.see(goal.sentence)
+	_shown.see(goal.detail)
+	_shown.see(goal.progress)
+	_shown.see(finished)
+	_shown.see(goal.flash > 0.0)
+	_shown.see(goal.flash > Goals.FLASH_SECONDS / 2.0)
+	_shown.see(width)
+	_shown.see(detail_column)
+	if not _shown.changed():
+		return
 	disabled = finished
 	mouse_default_cursor_shape = (
 		Control.CURSOR_ARROW if finished else Control.CURSOR_POINTING_HAND
@@ -192,4 +206,4 @@ func _draw_pixels(
 ## Shows [param words] on [param label], sized to them, in the palette colour [param colour].
 static func _show(label: Label, words: String, colour: StringName) -> void:
 	WindowText.set_text(label, words)
-	label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(label, colour)

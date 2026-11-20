@@ -62,7 +62,7 @@ func show_note(
 			label.text = lines[i]
 			label.reset_size()
 		var own: StringName = &"white" if i == 0 else &"silver"
-		label.add_theme_color_override(&"font_color", Palette.color(own if fade == &"" else fade))
+		WindowText.set_colour(label, own if fade == &"" else fade)
 		width = maxf(width, WindowText.ink(label))
 		label.position.y = y
 		y += UiText.LINE_HEIGHT + 2.0
@@ -75,10 +75,10 @@ func show_note(
 		if button.text != texts[i]:
 			button.text = texts[i]
 		button.lit = lit[i]
-		if fade == &"":
+		if fade == &"" and button.has_theme_color_override(&"font_color"):
 			button.remove_theme_color_override(&"font_color")
-		else:
-			button.add_theme_color_override(&"font_color", Palette.color(fade))
+		elif fade != &"":
+			WindowText.set_colour(button, fade)
 		button.reset_size()
 		button.size = button.get_combined_minimum_size()
 		row += button.size.x + (BUTTON_GAP if row > 0.0 else 0.0)

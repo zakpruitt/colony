@@ -68,7 +68,7 @@ func refresh(hero: Hero, delta: float) -> void:
 	var colour: StringName = &"green" if rank > 0 else &"steel"
 	if _flash > 0.0:
 		colour = &"yellow"
-	total_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(total_label, colour)
 
 
 ## The total [param rank] points of [param def] give, in words: [code]+6% damage and healing[/code]

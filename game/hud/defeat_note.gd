@@ -54,10 +54,18 @@ const TIPS: Dictionary[Help, String] = {
 var panel: DefeatNoteView
 ## One button per suggestion slot, left to right; a slot with no suggestion is hidden.
 var buttons: Array[UiButton] = []
+## The windows on the UI layer, whose cover hides the note's tooltip, and the hero windows Spend
+## and Train open; null without a UI layer. The [Hud] hands them on as the layer gives them.
+var windows: UiWindows
+var hero_windows: HeroWindows
 
 var _simulation: Simulation
 var _world: World
-var _hud: Hud
+## The shop Upgrade opens; null for none.
+var _shop: ShopWindow
+## The frame of the screen the note is laid out on until [method lift] lifts it onto [member _ui].
+var _frame: Control
+var _ui: UiRoot
 ## True while the note is told (see [method is_shown]).
 var _on_screen: bool = false
 ## The lines of the defeat being told, the first and maybe a second.
@@ -115,18 +123,27 @@ func _init() -> void:
 
 
 ## Call once, before the first advance. [param world] may be null (then nothing is told, as
-## nothing is recent); [param hud] may be null (the buttons then only reach the simulation).
-func setup(simulation: Simulation, world: World, hud: Hud) -> void:
+## nothing is recent); [param shop] may be null (Upgrade then opens nothing), [param tip] gives the
+## buttons their tooltips (may be null), and [param frame] is the frame of the screen the note is
+## laid out on (null: the screen itself).
+func setup(
+	simulation: Simulation,
+	world: World,
+	shop: ShopWindow = null,
+	tip: UiTip = null,
+	frame: Control = null
+) -> void:
 	_simulation = simulation
 	_world = world
-	_hud = hud
+	_shop = shop
+	_frame = frame
 	_area_now = simulation.expedition.place
 	panel = DefeatNoteView.new()
 	buttons = panel.buttons
 	for i: int in buttons.size():
 		buttons[i].pressed.connect(press.bind(i))
-		if hud != null and hud.frame_tip != null:
-			hud.frame_tip.attach(buttons[i], _tip.bind(i))
+		if tip != null:
+			tip.attach(buttons[i], _tip.bind(i))
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
 	advance(0.0)
@@ -211,14 +228,14 @@ func press(index: int) -> void:
 		return
 	match _shown[index]:
 		Help.TALENTS:
-			if _hud != null and _hud.hero_windows != null:
-				_hud.hero_windows.open(_shown_spender, HeroWindow.Page.TALENTS)
+			if hero_windows != null:
+				hero_windows.open(_shown_spender, HeroWindow.Page.TALENTS)
 		Help.TRAIN:
-			if _hud != null and _hud.hero_windows != null:
-				_hud.hero_windows.open(_shown_trainee, HeroWindow.Page.TALENTS)
+			if hero_windows != null:
+				hero_windows.open(_shown_trainee, HeroWindow.Page.TALENTS)
 		Help.UPGRADE:
-			if _hud != null and _hud.shop != null:
-				_hud.shop.open()
+			if _shop != null:
+				_shop.open()
 		Help.HOLD:
 			if not _holding():
 				_held = true
@@ -451,7 +468,7 @@ func _lowest_level() -> int:
 
 ## True while the mouse is over the note's panel.
 func _hovered() -> bool:
-	return _on_screen and panel.is_inside_tree() and Hud.on_screen(panel).has_point(_mouse)
+	return _on_screen and panel.is_inside_tree() and UiFormat.on_screen(panel).has_point(_mouse)
 
 
 func _input(event: InputEvent) -> void:
@@ -460,8 +477,8 @@ func _input(event: InputEvent) -> void:
 		# Under a window or the button bar is nowhere for the note, unless on the note itself,
 		# which lies over every window.
 		var at: Vector2 = motion.position
-		var on_note: bool = _on_screen and Hud.on_screen(panel).has_point(at)
-		var covered: bool = _hud != null and _hud.windows != null and _hud.windows.covers(at)
+		var on_note: bool = _on_screen and UiFormat.on_screen(panel).has_point(at)
+		var covered: bool = windows != null and windows.covers(at)
 		point_at(UiTip.NOWHERE if covered and not on_note else at)
 
 
@@ -490,12 +507,35 @@ func _show() -> void:
 	_shown_trainee = _trainee
 	_shown_spender = _spender
 	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (WIPED_SCALE + 1))
-	var bottom: float = Hud.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP
-	var room_width: float = Hud.SCREEN.x
-	if _hud != null:
-		room_width = _hud.note_room().x
-		bottom = _hud.world_to_note(Vector2(0.0, bottom)).y
+	var bottom: float = HudFrame.SCREEN.y / 2.0 + wiped.position.y - WIPED_GAP
+	var room_width: float = HudFrame.SCREEN.x
+	if _frame != null:
+		room_width = _room().x
+		bottom = _world_to_note(Vector2(0.0, bottom)).y
 	panel.show_note(_lines, texts, lit, colour, room_width, bottom)
+
+
+## Puts the note over every window on [param ui]'s layer: from then on it is laid out in the
+## layer's room.
+func lift(ui: UiRoot) -> void:
+	_ui = ui
+	panel.reparent(ui.frame, false)
+	ui.frame.move_child(panel, -1)
+	panel.scale = Vector2.ONE
+	panel.z_index = 1  # with the stage list's line, which it comes after: drawn over it
+
+
+## The room the note is laid out in, in its own UI pixels: the layer's room once it is lifted over
+## the windows, else the frame of the screen's.
+func _room() -> Vector2:
+	return Vector2(_ui.room()) if _ui != null else Vector2(UiRoot.MIN_ROOM)
+
+
+## [param world_px], a point in the screen's 640x360 pixels, in the note's own UI pixels.
+func _world_to_note(world_px: Vector2) -> Vector2:
+	if _ui != null:
+		return _ui.world_to_ui(world_px)
+	return _frame.get_transform().affine_inverse() * world_px
 
 
 ## [param stage] of the area of the wipe, as the screen names it.

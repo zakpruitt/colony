@@ -14,8 +14,9 @@ extends WindowContent
 ## bursts the card's icon through [member moment] and steps its numbers. Every fifth rank and the
 ## top one get a banner with the upgrade's picture. A stale purchase starts none of it. [kbd]1[/kbd]
 ## to [kbd]5[/kbd] buy and [kbd]B[/kbd] switches auto-buy while the shop is the front window (the
-## HUD hears them). While it is closed, its window's [member UiWindow.badge] counts the upgrades
-## the party can pay for: the amber tag on the bar's Shop button.
+## window keys hear them). While it is closed, it words nothing: its cards only run their flashes
+## on, and are brought up to date as it opens; its tag on the bar's Shop button counts the
+## upgrades the party can pay for ([method WindowContent._show_badge]).
 
 ## The window's id and title (its key is its entry's, in [WindowBook]).
 const ID: StringName = &"shop"
@@ -89,6 +90,8 @@ func setup(simulation: Simulation, world: World) -> void:
 	foot.add_child(auto_buy_caption)
 	if world != null:
 		world.sim_event.connect(_on_sim_event)
+	for row: ShopRow in rows:
+		row.refresh(simulation.upgrades, simulation.party, 0.0)  # right before it is ever open
 	advance(0.0)
 
 
@@ -101,16 +104,20 @@ func add_tips(tips: UiTip) -> void:
 		tip.attach_card(row, func() -> UiTip.Card: return row.card(_simulation))
 
 
-## Brings every row up to date with the simulation, runs the flashes, and sets the tag on the bar.
-## Called every frame by the HUD; tests call it.
+## Brings every row up to date with the simulation while the shop is open, runs the flashes, and
+## tells the bar its tag. Called every frame by the HUD; tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
 	var catching_up: bool = _world != null and _world.catching_up()
+	var open_now: bool = is_open()
 	for row: ShopRow in rows:
 		if catching_up:
 			row.stop()
-		row.refresh(_simulation.upgrades, _simulation.party, delta)
+		if open_now:
+			row.refresh(_simulation.upgrades, _simulation.party, delta)
+		else:
+			row.run_on(delta)
 	_forget_asks(_simulation.tick - ASK_TICKS)
 	if _asked_auto_buy >= 0 and (_asked_auto_buy == 1) == _simulation.auto_buy:
 		_asked_auto_buy = -1
@@ -119,9 +126,7 @@ func advance(delta: float) -> void:
 	if auto_buy_button.text != text:
 		auto_buy_button.text = text
 	auto_buy_button.lit = on
-	var holder: UiWindow = window()
-	if holder != null:
-		holder.badge = 0 if is_open() else affordable_count()
+	_show_badge(0 if open_now else affordable_count())
 
 
 ## True when the switch shows auto-buy as on: the switch asked for, until the simulation applies
@@ -147,8 +152,8 @@ func affordable_count() -> int:
 	if _simulation == null:
 		return 0
 	var count: int = 0
-	for id: StringName in Content.upgrade_ids():
-		if _simulation.upgrades.can_pay(id, _simulation.party):
+	for row: ShopRow in rows:
+		if _simulation.upgrades.can_pay(row.id, _simulation.party):
 			count += 1
 	return count
 

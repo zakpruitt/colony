@@ -22,7 +22,7 @@ func _init() -> void:
 	name = "CrossingVeil"
 	process_priority = 3  # after the world (1) has synced, so it shows this frame's crossing
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
-	size = Hud.SCREEN
+	size = HudFrame.SCREEN
 	title_label = PixelText.label("", TITLE_COLOUR)
 	title_label.name = "Title"
 	title_label.scale = Vector2.ONE * TITLE_SCALE

@@ -65,7 +65,7 @@ func test_r5_the_mouse_on_a_window_is_not_on_the_hud() -> void:
 	var hud: Hud = main.hud
 	hud.advance(0.016)
 	assert_true(hud.goals_view.rows[0].visible, "the goals show")
-	var on_goal: Vector2 = Hud.on_screen(hud.goals_view.rows[0]).get_center()
+	var on_goal: Vector2 = UiFormat.on_screen(hud.goals_view.rows[0]).get_center()
 	var journal: UiWindow = ui.windows.window(UiRoot.JOURNAL)
 	press(KEY_J)
 	await _frames()
@@ -139,7 +139,7 @@ func test_r5_nothing_closes_the_windows_but_the_player() -> void:
 	for id: StringName in _bar_ids(windows):
 		places[id] = windows.window(id).position
 	var written: Array[String] = hud.journal.lines()
-	click(Hud.on_screen(hud.frames[0]).get_center())
+	click(UiFormat.on_screen(hud.frames[0]).get_center())
 	hud.advance(0.016)
 	assert_true(hud.hero_windows.is_open(), "a click on a frame opens a hero window")
 	for keycode: Key in [KEY_U, KEY_T, KEY_W]:  # each closes its window, then opens it again

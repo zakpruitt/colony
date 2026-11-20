@@ -172,12 +172,12 @@ func test_r2_button_and_key() -> void:
 
 
 func _check_placement(hud: Hud, what: String) -> void:
-	var rect: Rect2 = Hud.on_screen(hud.purse.speed_button)
+	var rect: Rect2 = UiFormat.on_screen(hud.purse.speed_button)
 	assert_true(hud.purse.speed_button.is_visible_in_tree(), "%s: the button shows" % what)
 	assert_gte(rect.position.y, 0.0, "%s: in the top band" % what)
-	assert_lte(rect.end.y, Hud.TOP_BAND, "%s: in the top band" % what)
+	assert_lte(rect.end.y, HudFrame.TOP_BAND, "%s: in the top band" % what)
 	assert_gte(rect.position.x, 0.0, "%s: on screen" % what)
-	assert_lte(rect.end.x, Hud.SCREEN.x, "%s: on screen" % what)
+	assert_lte(rect.end.x, HudFrame.SCREEN.x, "%s: on screen" % what)
 	var others: Dictionary[String, Control] = {
 		"depth panel": hud.place_panel,
 		"gold": hud.purse.gold_label,
@@ -185,7 +185,7 @@ func _check_placement(hud: Hud, what: String) -> void:
 	if hud.boss_bar.is_showing():
 		others["boss bar"] = hud.boss_bar
 	for part: String in others:
-		var other: Rect2 = Hud.on_screen(others[part])
+		var other: Rect2 = UiFormat.on_screen(others[part])
 		assert_false(rect.intersects(other), "%s: clear of the %s" % [what, part])
 
 

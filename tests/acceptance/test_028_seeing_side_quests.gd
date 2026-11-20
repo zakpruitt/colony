@@ -508,7 +508,7 @@ func test_r7_sheet_lists_microskills() -> void:
 	)
 
 	# It still fits, for every hero, at every level (spec 060: on the UI layer, in its pixels).
-	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var top_band: float = _ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
 	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	for level: int in [1, 6]:
 		for hero: Hero in sim.party.heroes:

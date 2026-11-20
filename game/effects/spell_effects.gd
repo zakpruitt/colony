@@ -645,7 +645,7 @@ func _particle(kind: StringName) -> FxParticle:
 ## The world row just under the HUD's top band (the boss bar, the panels there).
 func _band_top() -> float:
 	var zoom: float = _world.camera.zoom.y if _world.camera != null else 1.0
-	return ceilf(_screen_top() + (Hud.TOP_BAND + 1.0) / zoom)
+	return ceilf(_screen_top() + (HudFrame.TOP_BAND + 1.0) / zoom)
 
 
 ## The world row at the top of the screen.

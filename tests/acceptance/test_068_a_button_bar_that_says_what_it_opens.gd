@@ -242,7 +242,7 @@ func test_r2_one_name_per_window_everywhere() -> void:
 		Goals.CLICKS[Goals.Kind.GUARDIAN]: "Orders",
 		Goals.CLICKS[Goals.Kind.VISIT]: "Map",
 		DefeatNote.TIPS[DefeatNote.Help.UPGRADE]: "Camp",
-		Hud.area_tip(): "Map",
+		HudFrame.area_tip(): "Map",
 		Showcase.caption(&"shop"): "CAMP",
 		Showcase.caption(&"area_map"): "MAP",
 	}

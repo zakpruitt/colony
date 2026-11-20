@@ -22,6 +22,10 @@ extends WindowContent
 ## goal to visit it ([member news]). Everything that depends on the order of events is kept by
 ## [AreaNews]. It moves only in [method advance], so a test can step it.
 
+## Go set the target of the area the party is in to [param stage], as a click on the stage list
+## does: the [Hud] shows it at once.
+signal target_asked(stage: int)
+
 ## The window's id and title (its key is its entry's, in [WindowBook]).
 const ID: StringName = &"map"
 const TITLE: String = "Area map"
@@ -49,8 +53,10 @@ var news: AreaNews
 var tip: UiTip
 
 var _simulation: Simulation
-## The HUD that made it, whose ladder and journal Go speaks to; null for a window on its own.
-var _hud: Hud
+## The stage list whose target Go reads, and the journal a dangerous Go writes in; null for a
+## window on its own.
+var _ladder: StageList
+var _journal: Journal
 var _chooser: HBoxContainer
 var _chosen: StringName = &""
 var _stage: int = 0
@@ -65,11 +71,14 @@ func _init() -> void:
 	add_theme_constant_override(&"separation", CARD_GAP)
 
 
-## Call once, before the first advance. [param world] may be null; [param hud] is where the
-## area's name is, and the ladder and journal Go speaks to.
-func setup(simulation: Simulation, world: World, hud: Hud) -> void:
+## Call once, before the first advance. [param world] may be null; [param ladder] and
+## [param journal] are the stage list and the journal Go speaks to (null for none).
+func setup(
+	simulation: Simulation, world: World, ladder: StageList = null, journal: Journal = null
+) -> void:
 	_simulation = simulation
-	_hud = hud
+	_ladder = ladder
+	_journal = journal
 	news = AreaNews.new(simulation, world)
 	for id: StringName in Content.area_ids():
 		var made := AreaMapRow.new(id)
@@ -95,9 +104,7 @@ func add_tips(tips: UiTip) -> void:
 func advance(_delta: float) -> void:
 	if _simulation == null:
 		return
-	var holder: UiWindow = window()
-	if holder != null:
-		holder.badge = news.unseen if has_mark() else 0
+	_show_badge(news.unseen if has_mark() else 0)
 	if not is_open():
 		return
 	for each_row: AreaMapRow in rows:
@@ -159,12 +166,11 @@ func go() -> void:
 	_asked_tick = _simulation.tick
 	if _chosen == e.area:
 		_simulation.set_target_depth(_stage)
-		if _hud != null:
-			_hud.ladder.target_asked.emit(_stage)
+		target_asked.emit(_stage)
 	else:
 		_simulation.set_destination(_chosen, _stage)
-	if changed and risk(_chosen, _stage) == DepthLadder.Risk.DANGEROUS and _hud != null:
-		_hud.journal.announce(
+	if changed and risk(_chosen, _stage) == DepthLadder.Risk.DANGEROUS and _journal != null:
+		_journal.announce(
 			(
 				"Target set to %s: dangerous for level %d heroes"
 				% [PlaceText.of(_chosen, _stage), PartyLevels.lowest(_simulation.party)]
@@ -228,7 +234,7 @@ func _heading() -> String:
 		return "%s/%d" % [e.travel.pending_area, e.travel.pending_stage]
 	if e.state == Expedition.State.JOURNEYING:
 		return "%s/%d" % [e.area, e.travel.arrival_target(e)]
-	var target: int = _hud.ladder.shown_target() if _hud != null else e.target_depth
+	var target: int = _ladder.shown_target() if _ladder != null else e.target_depth
 	return "%s/%d" % [e.area, target]
 
 
@@ -349,11 +355,11 @@ func _show_foot() -> void:
 	var colour: StringName = DepthLadder.RISK_COLOURS[risk(_chosen, _stage)]
 	place_label.text = "%s, stage" % PlaceText.area_name(_chosen)
 	stage_label.text = str(_stage)
-	stage_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(stage_label, colour)
 	minus_button.disabled = _stage <= 1
 	plus_button.disabled = _stage >= stage_limit(_chosen)
 	risk_label.text = _risk_text(_chosen, _stage)
-	risk_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(risk_label, colour)
 	if go_button.text != go_text():
 		go_button.text = go_text()
 

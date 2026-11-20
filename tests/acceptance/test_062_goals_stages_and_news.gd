@@ -138,7 +138,9 @@ func test_r2_stage_list() -> void:
 		assert_true(main.ui.is_ancestor_of(list), "%s: the list is on the sharp layer" % what)
 		assert_true(list.is_visible_in_tree(), "%s: and shown" % what)
 		var rect: Rect2 = list.get_global_rect()
-		assert_almost_eq(rect.end.x, room.x - Hud.FRAME_EDGE, 1.0, "%s: at the right edge" % what)
+		assert_almost_eq(
+			rect.end.x, room.x - HudFrame.FRAME_EDGE, 1.0, "%s: at the right edge" % what
+		)
 		var caption: Label = list.find_child("Caption", true, false)
 		assert_eq(caption.text, PlaceText.area_name(e.place), "%s: headed by the area" % what)
 		assert_eq(_font_of(caption), UiText.font(true), "%s: in the new font" % what)
