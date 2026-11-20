@@ -46,7 +46,7 @@ func before_each() -> void:
 	_sound.settings = SoundSettings.new(_settings_path)
 	add_child_autofree(_sound)
 	_sound.set_process(false)
-	_sound.setup(_world, _fx, _sim)
+	_sound.setup(_world, _fx, _sim, null)
 	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
 
 
@@ -321,7 +321,7 @@ func test_r5_within_budget() -> void:
 	assert_true(_start_guardian_fight(), "the guardian's fight starts")
 	# The particle cap already full when it dies: its death still shows, within its allowance.
 	while _fx.live_particles() < CombatEffects.MAX_PARTICLES:
-		var filler: FxParticle = _fx._particle(&"filler")
+		var filler: FxParticle = _fx.new_particle(&"filler")
 		filler.life = 30.0
 	var most_particles: int = 0
 	var most_numbers: int = 0

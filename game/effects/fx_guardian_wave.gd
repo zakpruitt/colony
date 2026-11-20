@@ -58,14 +58,14 @@ func burst(fx: CombatEffects, rng: RandomNumberGenerator, spark: Texture2D) -> v
 		from += Vector2(rng.randf_range(-0.6, 0.6), rng.randf_range(-0.6, 0.3)) * reach
 	from = from.round()
 	var flash_size: int = 36 - 10 * mini(index, 2)
-	var flash: FxParticle = fx._particle(&"flash", CombatEffects.GUARDIAN_ALLOWANCE)
+	var flash: FxParticle = fx.new_particle(&"flash", CombatEffects.GUARDIAN_ALLOWANCE)
 	if flash != null:
 		flash.shape = FxParticle.Shape.PUFF
 		flash.color = Palette.color(&"white" if index == 0 else &"yellow")
 		flash.size = flash_size
 		flash.life = 0.18
 		flash.start(from)
-	var ring: FxParticle = fx._particle(&"flash", CombatEffects.GUARDIAN_ALLOWANCE)
+	var ring: FxParticle = fx.new_particle(&"flash", CombatEffects.GUARDIAN_ALLOWANCE)
 	if ring != null:
 		ring.shape = FxParticle.Shape.PUFF
 		ring.color = colors[0]
@@ -73,7 +73,7 @@ func burst(fx: CombatEffects, rng: RandomNumberGenerator, spark: Texture2D) -> v
 		ring.life = 0.26
 		ring.start(from)
 	for i: int in count:
-		var bit: FxParticle = fx._particle(&"guardian", CombatEffects.GUARDIAN_ALLOWANCE)
+		var bit: FxParticle = fx.new_particle(&"guardian", CombatEffects.GUARDIAN_ALLOWANCE)
 		if bit == null:
 			break
 		bit.color = colors[rng.randi_range(0, colors.size() - 1)]

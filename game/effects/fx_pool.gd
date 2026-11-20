@@ -5,9 +5,9 @@ extends RefCounted
 ## puts it on the layer, advances everything once a frame and frees what has finished, so nothing
 ## stays on the layer once its effects are over.
 ##
-## A pooled node has [code]advance(delta: float) -> bool[/code], false once it is finished. A
-## budget in [constant CAPS] holds at most that many nodes at once (an add past it is refused and
-## the node freed); any other budget is only a name to count by.
+## A pooled node is an [FxNode]. A budget in [constant CAPS] holds at most that many nodes at
+## once (an add past it is refused and the node freed); any other budget is only a name to count
+## by.
 
 ## The particles each effect class may have at once.
 const COMBAT: int = 300
@@ -25,7 +25,7 @@ const CAPS: Dictionary[StringName, int] = {
 var _layer: Node2D
 ## Every node added, oldest first: the order they advance in. A node taken away early stays here
 ## until the next advance drops it.
-var _nodes: Array[Node2D] = []
+var _nodes: Array[FxNode] = []
 ## The nodes held under each budget, oldest first.
 var _kinds: Dictionary[StringName, Array] = {}
 var _budget_of: Dictionary[Node2D, StringName] = {}
@@ -40,7 +40,7 @@ func setup(layer: Node2D) -> void:
 
 ## Puts [param node] on the layer under [param budget], whose cap [param allowance] raises for
 ## this one add. False, with the node freed, when the budget is spent.
-func add(node: Node2D, budget: StringName, allowance: int = 0) -> bool:
+func add(node: FxNode, budget: StringName, allowance: int = 0) -> bool:
 	if _layer == null or (CAPS.has(budget) and count(budget) >= CAPS[budget] + allowance):
 		node.free()
 		return false
@@ -52,29 +52,21 @@ func add(node: Node2D, budget: StringName, allowance: int = 0) -> bool:
 
 
 ## Advances every node by [param delta] seconds, in the order they were added, and frees each
-## that has finished. A node added meanwhile first moves on the next frame.
+## that has finished. A node added meanwhile first moves on the next frame. The lists are tidied
+## where they are: no new list is made, and only a budget with a node finished is gone through.
 func advance(delta: float) -> void:
 	var held: int = _nodes.size()
-	var finished: int = 0
 	for i: int in held:
-		var node: Node2D = _nodes[i]
-		if _budget_of.has(node) and not node.call(&"advance", delta):
+		var node: FxNode = _nodes[i]
+		if _budget_of.has(node) and not node.advance(delta):
 			var budget: StringName = _budget_of[node]
 			_done[budget] = _done.get(budget, 0) + 1
 			_let_go(node)
-			finished += 1
-	if finished == 0 and held == _nodes.size() and _budget_of.size() == held:
-		return
-	var kept: Array[Node2D] = []
-	for node: Node2D in _nodes:
-		if _budget_of.has(node):
-			kept.append(node)
-	_nodes = kept
+	if _budget_of.size() != _nodes.size():
+		_keep_held(_nodes)
+	for kind: StringName in _done:
+		_keep_held(_kinds[kind])
 	_done.clear()
-	for kind: StringName in _kinds:
-		_kinds[kind] = []
-	for node: Node2D in kept:
-		_kinds[_budget_of[node]].append(node)
 
 
 ## How many nodes are held under [param kind], or in all with none.
@@ -121,7 +113,7 @@ func clear() -> void:
 	_nodes.clear()
 	_done.clear()
 	for kind: StringName in _kinds:
-		_kinds[kind] = []
+		_kinds[kind].clear()
 
 
 ## The nodes of [param budget], made the first time it is used.
@@ -129,6 +121,17 @@ func _kind(budget: StringName) -> Array:
 	if not _kinds.has(budget):
 		_kinds[budget] = []
 	return _kinds[budget]
+
+
+## Drops from [param list], in place and in order, every node no longer held.
+func _keep_held(list: Array) -> void:
+	var kept: int = 0
+	for i: int in list.size():
+		var node: Node2D = list[i]
+		if _budget_of.has(node):
+			list[kept] = node
+			kept += 1
+	list.resize(kept)
 
 
 ## Forgets [param node] and frees it. Its budget's list is put right by the caller.

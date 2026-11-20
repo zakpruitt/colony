@@ -2,7 +2,9 @@ class_name CombatEffects
 extends Node2D
 ## Turns simulation events into impact: damage and heal numbers, hit sparks, a shake and
 ## a hit-stop on a crit, monsters bursting, coins bouncing out and flying to the purse, XP motes,
-## level-up bursts, bolt trails, and the beats of the loop (rest, wipe, revival, a stable depth).
+## bolt trails and a guardian's burst. Where a number starts is [NumberPlace]'s; the beats of the
+## loop (a level up, rest, a wipe, a revival, a stable stage, a guardian's coming and its fall)
+## are [LoopBeats]'.
 ##
 ## It listens to [signal World.sim_event] and makes its effects through the world's [FxPool]
 ## ([member World.fx]), on [member World.effects_layer], so they move with the world. Everything
@@ -32,49 +34,8 @@ const NUMBER_DRIFT: float = 22.0
 const NUMBER_GRAVITY: float = 230.0
 ## How high on the target a number appears, as a share of the sprite's height above its feet.
 const NUMBER_HEIGHT: float = 0.62
-## Where a number may start, as steps from its place over the target: the first
-## whose path stays clear of every number already showing is taken. Each step is NUMBER_STEP
-## pixels across and NUMBER_RISE pixels up; a number drifts the way its step leans.
-const NUMBER_SPOTS: Array[Vector2i] = [
-	Vector2i(0, 0),
-	Vector2i(1, 1),
-	Vector2i(-1, 1),
-	Vector2i(2, 0),
-	Vector2i(-2, 0),
-	Vector2i(1, 2),
-	Vector2i(-1, 2),
-	Vector2i(3, 1),
-	Vector2i(-3, 1),
-	Vector2i(0, 3),
-	Vector2i(2, 3),
-	Vector2i(-2, 3),
-	Vector2i(4, 0),
-	Vector2i(-4, 0),
-	Vector2i(3, 3),
-	Vector2i(-3, 3),
-	Vector2i(0, -1),
-	Vector2i(2, -1),
-	Vector2i(-2, -1),
-	Vector2i(5, 2),
-	Vector2i(-5, 2),
-	Vector2i(1, 4),
-	Vector2i(-1, 4),
-	Vector2i(4, 4),
-	Vector2i(-4, 4),
-	Vector2i(6, 0),
-	Vector2i(-6, 0),
-	Vector2i(0, 5),
-	Vector2i(3, 5),
-	Vector2i(-3, 5),
-]
-const NUMBER_STEP: float = 8.0
-const NUMBER_RISE: float = 9.0
-## Two numbers clash when their boxes share more than this share of the smaller box.
-const NUMBER_OVERLAP: float = 0.25
-## Seconds between the points of a path checked for clashes.
-const PATH_STEP: float = 1.0 / 60.0
-## Pixels kept clear between a number and the edge of the screen (a crit's shake fits inside).
-const SCREEN_MARGIN: float = 4.0
+## Pixels across between the places a number may start ([NumberPlace]).
+const NUMBER_STEP: float = NumberPlace.STEP
 
 # Sparks.
 const SPARK_SHEET: String = "res://assets/sprites/fx/spark.png"
@@ -114,37 +75,15 @@ const COINS_MAX: int = 12
 const XP_PER_MOTE: int = 10
 const MOTES_MAX: int = 3
 
-# Level up.
-const LEVEL_UP_TIME: float = 1.2
-const LEVEL_UP_PARTICLES: int = 22
-## LEVEL UP's font multiple, and how far above the hero's feet it sits, in pixels: clear of the
-## numbers that leap from the hero's chest.
-const LEVEL_UP_SCALE: int = 2
-const LEVEL_UP_RAISE: float = 44.0
+## How far above a hero's feet LEVEL UP sits ([LoopBeats]).
+const LEVEL_UP_RAISE: float = LoopBeats.LEVEL_UP_RAISE
 
 # Bolts.
 ## A trail square is dropped every this many pixels of a bolt's flight.
 const TRAIL_STEP: float = 2.0
 const TRAIL_LIFE: float = 0.16
 
-# Beats.
-## Seconds between a resting hero's z's.
-const Z_EVERY: float = 1.1
-const BANNER_LIFE_STABLE: float = 2.0
-## How far above the middle of the screen the depth banner sits, so it never covers WIPED.
-const STABLE_RAISE: float = 40.0
-const LIGHT_HEIGHT: int = 56
-const LIGHT_LIFE: float = 0.9
-
 # Guardians.
-## The announcement: the name's and the depth line's font multiples, how far above the middle
-## of the screen each sits, how long both stay, and the camera's one shake.
-const ANNOUNCE_SCALE: int = 4
-const ANNOUNCE_LINE_SCALE: int = 2
-const ANNOUNCE_RAISE: float = 92.0
-const ANNOUNCE_LINE_RAISE: float = 64.0
-const ANNOUNCE_LIFE: float = 2.0
-const ANNOUNCE_SHAKE: float = 4.0
 ## A guardian's death: a hard shake and a hit-stop.
 const GUARDIAN_DEATH_SHAKE: float = 12.0
 const GUARDIAN_FREEZE: float = 0.2
@@ -159,11 +98,6 @@ const GUARDIAN_GRAVITY: float = 300.0
 ## The coins of its gold: at least GUARDIAN_COINS_MIN, at most GUARDIAN_COINS_MAX.
 const GUARDIAN_COINS_MIN: int = 20
 const GUARDIAN_COINS_MAX: int = 28
-## GUARDIAN SLAIN: its font multiple, how far above the middle it sits and how long it stays.
-const SLAIN_SCALE: int = 4
-const SLAIN_RAISE: float = 64.0
-const SLAIN_LIFE: float = 2.5
-
 ## Where coins fly to, in screen pixels. The HUD sets it.
 var gold_screen_target: Vector2 = Vector2(600, 12)
 ## Where each hero's XP motes fly to, in screen pixels, by hero id: its frame. The HUD sets it;
@@ -180,6 +114,8 @@ var spell_effects: SpellEffects
 
 var _world: World
 var _simulation: Simulation
+## The beats of the loop, advanced with these.
+var _beats: LoopBeats
 var _rng := RandomNumberGenerator.new()
 var _spark_texture: Texture2D
 
@@ -188,11 +124,6 @@ var _fallen_at: Vector2 = Vector2.ZERO
 ## Per bolt (instance id): where its trail last dropped a square; and the bolts already flashed.
 var _trail_from: Dictionary[int, Vector2] = {}
 var _flashed: Dictionary[int, bool] = {}
-## Resting, and each hero's seconds to its next z.
-var _resting: bool = false
-var _z_in: Dictionary[int, float] = {}
-## A revival seen this frame, shown once the world has put the heroes back on their feet.
-var _revival_due: bool = false
 ## Colours of each monster sheet, by its path.
 var _sheet_colors: Dictionary[String, PackedColorArray] = {}
 ## A guardian's burst waves still to come.
@@ -221,6 +152,9 @@ func setup(world: World, simulation: Simulation) -> void:
 	ability_effects.setup(world, simulation)  # it hears each event first: see _hit
 	if not _world.sim_event.is_connected(_on_sim_event):
 		_world.sim_event.connect(_on_sim_event)
+	if _beats == null:
+		_beats = LoopBeats.new()
+	_beats.setup(self, world, simulation, _rng, _spark_texture)  # it hears each event next
 	if quest_effects == null:
 		quest_effects = QuestEffects.new()
 		quest_effects.name = "QuestEffects"
@@ -245,12 +179,10 @@ func advance(delta: float) -> void:
 	ability_effects.advance(delta)
 	spell_effects.advance(delta)
 	resource_effects.advance(delta)
-	if _revival_due:
-		_revival_due = false
-		_revival_lights()
+	_beats.light_revival()
 	_advance_waves(delta)
 	_follow_bolts()
-	_rest_z(delta)
+	_beats.advance(delta)
 	_world.fx.advance(delta)
 
 
@@ -339,35 +271,6 @@ func _on_sim_event(event: SimEvent) -> void:
 				_gold(event)
 			else:
 				coin_collected.emit(event.amount)
-		SimEvent.Kind.GUARDIAN_SLAIN:
-			if recent:
-				_slain()
-		SimEvent.Kind.LEVEL_UP:
-			if recent:
-				_level_up(event.target_id)
-		SimEvent.Kind.REST_STARTED:
-			_resting = true
-			_z_in.clear()
-		SimEvent.Kind.REST_ENDED:
-			_resting = false
-		SimEvent.Kind.ENCOUNTER_STARTED:
-			_resting = false
-			var guardian: Combatant = battle_guardian(_simulation)
-			if recent and guardian != null:
-				_announce(guardian)
-		SimEvent.Kind.PARTY_WIPED:
-			_resting = false
-			if recent:
-				_banner("WIPED", &"red", 3, Expedition.REVIVE_SECONDS, Vector2.ZERO)
-		SimEvent.Kind.PARTY_REVIVED:
-			if recent:
-				_revival_due = true
-		SimEvent.Kind.STABLE_DEPTH_REACHED:
-			if recent:
-				var words: String = (
-					"%s STABLE" % PlaceText.here(_simulation, event.amount).to_upper()
-				)
-				_banner(words, &"yellow", 2, BANNER_LIFE_STABLE, Vector2(0, -STABLE_RAISE))
 
 
 func _hit(event: SimEvent) -> void:
@@ -396,7 +299,7 @@ func _hit(event: SimEvent) -> void:
 	)
 	var colors: Array[StringName] = CRIT_SPARK_COLORS if crit else SPARK_COLORS
 	for i: int in count:
-		var spark: FxParticle = _particle(&"spark")
+		var spark: FxParticle = new_particle(&"spark")
 		if spark == null:
 			break
 		spark.color = Palette.color(colors[i % colors.size()])
@@ -422,7 +325,7 @@ func _healed(event: SimEvent) -> void:
 	_number(event.target_id, "+%d" % event.amount, &"green", NUMBER_SCALE, &"heal")
 	var height: float = _height(target)
 	for i: int in 6:
-		var sparkle: FxParticle = _particle(&"sparkle")
+		var sparkle: FxParticle = new_particle(&"sparkle")
 		if sparkle == null:
 			break
 		sparkle.color = Palette.color(&"green" if i % 2 == 0 else &"white")
@@ -459,7 +362,7 @@ func _burst(dying: CharacterSprite) -> void:
 	var count: int = _rng.randi_range(14, 18)
 	count = clampi(count, BURST_MIN, BURST_MAX)
 	for i: int in count:
-		var bit: FxParticle = _particle(&"burst")
+		var bit: FxParticle = new_particle(&"burst")
 		if bit == null:
 			break
 		bit.color = colors[_rng.randi_range(0, colors.size() - 1)]
@@ -473,7 +376,7 @@ func _burst(dying: CharacterSprite) -> void:
 		bit.life = _rng.randf_range(0.55, 0.95)
 		var spread := Vector2(_rng.randf_range(-4.0, 4.0), _rng.randf_range(-4.0, 4.0))
 		bit.start(middle + spread.round())
-	var puff: FxParticle = _particle(&"puff")
+	var puff: FxParticle = new_particle(&"puff")
 	if puff != null:
 		puff.shape = FxParticle.Shape.PUFF
 		puff.color = Palette.color(&"silver")
@@ -541,82 +444,7 @@ static func coin_share(amount: int, count: int, index: int) -> int:
 	return amount / count + (1 if index < amount % count else 0)
 
 
-func _level_up(hero_id: int) -> void:
-	var hero: CharacterSprite = _world.character(hero_id)
-	if hero == null:
-		return
-	var feet: Vector2 = hero.position
-	var colors: Array[StringName] = [&"yellow", &"amber", &"white", &"orange"]
-	for i: int in LEVEL_UP_PARTICLES:
-		var bit: FxParticle = _particle(&"rise")
-		if bit == null:
-			break
-		bit.color = Palette.color(colors[i % colors.size()])
-		bit.texture = _spark_texture if i % 4 == 0 else null
-		bit.size = 1 + i % 2
-		bit.velocity = Vector2(_rng.randf_range(-14.0, 14.0), _rng.randf_range(-75.0, -30.0))
-		bit.gravity = -25.0
-		bit.life = _rng.randf_range(0.6, LEVEL_UP_TIME)
-		bit.start(
-			feet + Vector2(_rng.randf_range(-11.0, 11.0), -_rng.randf_range(0.0, 8.0)).round()
-		)
-	var words: FxText = _text(&"banner")
-	words.text = "LEVEL UP"
-	words.color = Palette.color(&"yellow")
-	words.scale_factor = LEVEL_UP_SCALE
-	# Over every number, so a fight's numbers never hide it.
-	words.z_index = 2
-	words.life = LEVEL_UP_TIME
-	words.velocity = Vector2(0, -6)
-	words.follow_id = hero_id
-	words.screen_offset = Vector2(0, -LEVEL_UP_RAISE)
-	words.start(feet + words.screen_offset)
-	_show_text(words)
-
-
-func _banner(
-	words: String, color_name: StringName, factor: int, life: float, offset: Vector2
-) -> void:
-	var banner: FxText = _text(&"banner")
-	banner.text = words
-	banner.color = Palette.color(color_name)
-	banner.scale_factor = factor
-	banner.life = life
-	banner.on_screen = true
-	banner.screen_offset = offset
-	banner.start(_screen_to_world(_view_size() * 0.5 + offset))
-	_show_text(banner)
-
-
 # --- Guardians -----------------------------------------------------------------
-
-
-## Its name, large, in the upper middle of the screen, the depth it guards under it, and a shake.
-func _announce(guardian: Combatant) -> void:
-	var def: MonsterDef = Content.monster(guardian.def_id)
-	var title: FxText = _text(&"announce")
-	title.text = def.display_name.to_upper()
-	title.color = Palette.color(&"white")
-	title.scale_factor = ANNOUNCE_SCALE
-	title.z_index = 3
-	title.life = ANNOUNCE_LIFE
-	title.on_screen = true
-	title.screen_offset = Vector2(0, -ANNOUNCE_RAISE)
-	title.start(_screen_to_world(_view_size() * 0.5 + title.screen_offset))
-	_show_text(title)
-	var line: FxText = _text(&"announce")
-	line.text = (
-		"GUARDIAN OF %s" % PlaceText.here(_simulation, _simulation.expedition.depth).to_upper()
-	)
-	line.color = Palette.color(&"red")
-	line.scale_factor = ANNOUNCE_LINE_SCALE
-	line.z_index = 3
-	line.life = ANNOUNCE_LIFE
-	line.on_screen = true
-	line.screen_offset = Vector2(0, -ANNOUNCE_LINE_RAISE)
-	line.start(_screen_to_world(_view_size() * 0.5 + line.screen_offset))
-	_show_text(line)
-	_world.camera.shake(ANNOUNCE_SHAKE)
 
 
 ## The biggest moment in the game: a hard shake, a hit-stop, then the guardian bursting in three
@@ -653,45 +481,6 @@ func _advance_waves(delta: float) -> void:
 		wave.burst(self, _rng, _spark_texture)
 
 
-## GUARDIAN SLAIN, in gold, above the middle of the screen.
-func _slain() -> void:
-	var words: FxText = _text(&"slain")
-	words.text = "GUARDIAN SLAIN"
-	words.color = Palette.color(&"yellow")
-	words.scale_factor = SLAIN_SCALE
-	words.z_index = 3
-	words.life = SLAIN_LIFE
-	words.on_screen = true
-	words.screen_offset = Vector2(0, -SLAIN_RAISE)
-	words.start(_screen_to_world(_view_size() * 0.5 + words.screen_offset))
-	_show_text(words)
-
-
-func _revival_lights() -> void:
-	for hero: Hero in _simulation.party.heroes:
-		var sprite: CharacterSprite = _world.character(hero.id)
-		if sprite == null:
-			continue
-		var outer: FxParticle = _particle(&"light")
-		if outer == null:
-			return
-		outer.shape = FxParticle.Shape.COLUMN
-		outer.color = Palette.color(&"yellow")
-		outer.size = 16
-		outer.height = LIGHT_HEIGHT
-		outer.life = LIGHT_LIFE
-		outer.start(_world.feet_position(hero.id))  # on the floor, under a hero still lying
-		var core: FxParticle = _particle(&"light")
-		if core == null:
-			return
-		core.shape = FxParticle.Shape.COLUMN
-		core.color = Palette.color(&"white")
-		core.size = 8
-		core.height = LIGHT_HEIGHT
-		core.life = LIGHT_LIFE
-		core.start(_world.feet_position(hero.id))
-
-
 # --- Ongoing -------------------------------------------------------------------
 
 
@@ -708,7 +497,7 @@ func _follow_bolts() -> void:
 		var gap: Vector2 = bolt.position - from
 		var steps: int = mini(floori(gap.length() / TRAIL_STEP), 12)
 		for i: int in steps:
-			var piece: FxParticle = _particle(&"trail")
+			var piece: FxParticle = new_particle(&"trail")
 			if piece == null:
 				break
 			piece.color = bolt.color
@@ -721,7 +510,7 @@ func _follow_bolts() -> void:
 			_flashed[id] = true
 			_flash(bolt.position, bolt.head_color, 7)
 			for i: int in 4:
-				var bit: FxParticle = _particle(&"flash")
+				var bit: FxParticle = new_particle(&"flash")
 				if bit == null:
 					break
 				bit.color = bolt.color
@@ -736,33 +525,6 @@ func _follow_bolts() -> void:
 			_flashed.erase(id)
 
 
-## While the party rests, a z drifts up from each living hero now and then.
-func _rest_z(delta: float) -> void:
-	if not _resting:
-		return
-	var index: int = 0
-	for hero: Hero in _simulation.party.heroes:
-		index += 1
-		var sprite: CharacterSprite = _world.character(hero.id)
-		if sprite == null or sprite.is_dead():
-			continue
-		var due: float = _z_in.get(hero.id, 0.15 + 0.27 * index) - delta
-		if due > 0.0:
-			_z_in[hero.id] = due
-			continue
-		_z_in[hero.id] = Z_EVERY
-		var z: FxText = _text(&"z")
-		z.text = "z"
-		z.color = Palette.color(&"white")
-		z.scale_factor = 2
-		z.life = 1.3
-		z.velocity = Vector2(5, -16)
-		z.sway = 2.0
-		z.sway_period = 0.9
-		z.start(sprite.position + Vector2(5, -28))
-		_show_text(z)
-
-
 # --- Making effects ------------------------------------------------------------
 
 
@@ -775,7 +537,7 @@ func _number(
 		return
 	var target: CharacterSprite = _world.character(target_id)
 	var base: Vector2 = target.position + Vector2(0, -roundf(_height(target) * NUMBER_HEIGHT))
-	var number: FxText = _text(kind)
+	var number: FxText = new_text(kind)
 	number.text = words
 	number.color = Palette.color(color_name)
 	number.scale_factor = factor
@@ -785,77 +547,18 @@ func _number(
 	number.gravity = NUMBER_GRAVITY
 	var drift: float = _rng.randf_range(0.4, 1.0) * NUMBER_DRIFT
 	var lean: float = -1.0 if _rng.randi_range(0, 1) == 0 else 1.0
-	var view: Rect2 = _view_rect().grow(-SCREEN_MARGIN)
-	var keep_on_screen: bool = view.has_point(target.position)
-	var best_clash: float = INF
-	var best_at: Vector2 = base
-	var best_velocity := Vector2(drift * lean, -NUMBER_LEAP)
-	for spot: Vector2i in NUMBER_SPOTS:
-		var side: float = signf(spot.x) if spot.x != 0 else lean
-		number.velocity = Vector2(drift * side, -NUMBER_LEAP)
-		number.start(base + Vector2(spot.x * NUMBER_STEP, -spot.y * NUMBER_RISE))
-		if keep_on_screen:
-			number.start(number.position + _shift_inside(number, view))
-		var clash: float = _clash(number)
-		if clash < best_clash:
-			best_clash = clash
-			best_at = number.position
-			best_velocity = number.velocity
-		if clash <= 0.0:
-			break
-	if best_clash > 0.0:
-		# Nowhere is clear: like a number past the cap, it is not shown.
-		number.free()
-		return
-	number.velocity = best_velocity
-	number.start(best_at)
-	_show_text(number)
+	var showing: Array[FxText] = texts()
+	if NumberPlace.place(
+		number, base, NUMBER_LEAP, drift, lean, target.position, _view_rect(), showing
+	):
+		show_text(number)
+	else:
+		number.free()  # nowhere is clear: like a number past the cap, it is not shown
 
 
-## How badly the path of [param number] (not yet shown) crosses the paths of the numbers showing:
-## the most any of its boxes shares with theirs beyond NUMBER_OVERLAP, as a share; 0 when clear.
-func _clash(number: FxText) -> float:
-	var worst: float = 0.0
-	for other: FxText in texts():
-		if other == number or (other.kind != &"damage" and other.kind != &"heal"):
-			continue
-		var t: float = 0.0
-		while t < number.life and other.age + t < other.life:
-			var mine: Rect2 = number.rect_at(t)
-			var theirs: Rect2 = other.rect_at(other.age + t)
-			var shared: Rect2 = mine.intersection(theirs)
-			var smaller: float = minf(mine.get_area(), theirs.get_area())
-			if smaller > 0.0:
-				worst = maxf(worst, shared.get_area() / smaller - NUMBER_OVERLAP)
-			t += PATH_STEP
-	return maxf(worst, 0.0)
-
-
-## The move that keeps every box on the path of [param number] inside [param view].
-func _shift_inside(number: FxText, view: Rect2) -> Vector2:
-	var low := Vector2(INF, INF)
-	var high := Vector2(-INF, -INF)
-	var t: float = 0.0
-	while t <= number.life:
-		var box: Rect2 = number.rect_at(t)
-		low = low.min(box.position)
-		high = high.max(box.end)
-		t += PATH_STEP
-	var shift := Vector2.ZERO
-	if low.x < view.position.x:
-		shift.x = view.position.x - low.x
-	elif high.x > view.end.x:
-		shift.x = view.end.x - high.x
-	if low.y < view.position.y:
-		shift.y = view.position.y - low.y
-	elif high.y > view.end.y:
-		shift.y = view.end.y - high.y
-	return shift.round()
-
-
-## A new text of [param kind], not yet shown: [method _show_text] puts it on the layer once it is
+## A new text of [param kind], not yet shown: [method show_text] puts it on the layer once it is
 ## placed.
-func _text(kind: StringName) -> FxText:
+func new_text(kind: StringName) -> FxText:
 	var made := FxText.new()
 	made.name = "Text"
 	made.kind = kind
@@ -864,7 +567,7 @@ func _text(kind: StringName) -> FxText:
 
 
 ## Puts [param text] on the effects layer.
-func _show_text(text: FxText) -> void:
+func show_text(text: FxText) -> void:
 	_world.fx.add(text, &"combat_text")
 
 
@@ -872,7 +575,7 @@ func _show_text(text: FxText) -> void:
 ## it, and every text but a banner keeps off the health bars.
 func _keep_text(text: FxText) -> bool:
 	if text.on_screen:
-		text.set_anchor(_screen_to_world(_view_size() * 0.5 + text.screen_offset))
+		text.set_anchor(screen_middle(text.screen_offset))
 		return true
 	if text.follow_id >= 0 and _world.character(text.follow_id) != null:
 		text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
@@ -882,7 +585,7 @@ func _keep_text(text: FxText) -> bool:
 
 ## A new particle on the effects layer, or null at the cap, raised by [param allowance] (only a
 ## guardian's death passes one).
-func _particle(kind: StringName, allowance: int = 0) -> FxParticle:
+func new_particle(kind: StringName, allowance: int = 0) -> FxParticle:
 	var made := FxParticle.new()
 	made.name = "Particle"
 	made.kind = kind
@@ -891,7 +594,7 @@ func _particle(kind: StringName, allowance: int = 0) -> FxParticle:
 
 ## A bright square that shrinks away in a moment, where something struck or arrived.
 func _flash(at: Vector2, color: Color, size: int) -> void:
-	var flash: FxParticle = _particle(&"flash")
+	var flash: FxParticle = new_particle(&"flash")
 	if flash == null:
 		return
 	flash.shape = FxParticle.Shape.PUFF
@@ -902,6 +605,12 @@ func _flash(at: Vector2, color: Color, size: int) -> void:
 
 
 # --- Reading the world ---------------------------------------------------------
+
+
+## The world pixel [param offset] screen pixels from the middle of the screen, where a banner
+## stays.
+func screen_middle(offset: Vector2) -> Vector2:
+	return _screen_to_world(_view_size() * 0.5 + offset)
 
 
 ## The canvas height of a character's sprite, in pixels.

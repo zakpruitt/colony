@@ -497,6 +497,11 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   leap or dash in front of its target (the gap less both sprites' reach). A stall (`World.catching_up`)
   ends every move. An action heard only as it lands moves nothing, and a sprite held by a stun starts
   no move (it would play late).
+- **`CombatEffects`** (`game/effects/combat_effects.gd`) shows the blows: numbers, sparks, bursts,
+  coins, motes, bolt trails, a guardian's burst. Where a number starts, so its path clears every
+  number showing, is `NumberPlace`'s; the beats of the loop (a level up, resting z's, the WIPED and
+  stable banners, a revival's light, a guardian's coming and fall) are `LoopBeats`', which it makes
+  and advances and which hears its own events.
 - **`SpellEffects`** (`game/effects/spell_effects.gd`), made and advanced by `CombatEffects`, maps an
   ability to a kind of spell (`KINDS`) drawn from palette particles in one colour family each: a flight
   (fireball, meteor, ice shard) leaves on `ABILITY_STARTED` and arrives as the wind-up ends; the rest
@@ -506,8 +511,9 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   world catches up.
 - **One pool, one gate, one guardian record** (spec 076). Every passing effect (texts, particles, coins,
   motes, rings, resource icons) is added to the `World`'s `FxPool` (`World.fx`, `game/effects/fx_pool.gd`)
-  under a budget name; the pool parents it to `World.effects_layer`, advances it each frame (a node's
-  `advance(delta) -> bool` returns false when it is finished) and frees it. Four budgets are capped:
+  under a budget name; the pool parents it to `World.effects_layer`, advances it each frame (every
+  pooled node is an `FxNode`, whose `advance(delta) -> bool` returns false when it is finished) and
+  frees it, tidying its lists in place. Four budgets are capped:
   combat 300, ability 150, spell 120, quest 120 (`FxPool.CAPS`); a guardian's death may pass combat's
   by its allowance. What a node follows or flies to is a callable on it (`FxText.follow`,
   `FxCoin.target`, ...), and arrivals are its signals. Every view that starts a move, effect, sound or

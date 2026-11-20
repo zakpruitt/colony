@@ -1,5 +1,5 @@
 class_name FxText
-extends Node2D
+extends FxNode
 ## A word or number of an effect in the pixel font, at a whole multiple of its size,
 ## with a 1-pixel-per-multiple ink shadow. It pops one size larger as it appears, moves in an arc
 ## (or drifts), and blinks out at the end of its life: it never fades. Its position is the centre

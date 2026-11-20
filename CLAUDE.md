@@ -67,8 +67,8 @@ incomplete, stop and report the question.
   asks `KeyBook.label(action)` for its letter (spec 074's tests check both).
 - **gdlint caps a class at 20 public methods (statics apart) and a file at 1000 lines.** `Expedition` and
   `Hero` are at the method cap: a read-only helper goes in its own small class (as `ClimbProgress` does under
-  `sim/expedition/`). `expedition.gd`, `combat_effects.gd` and `showcase.gd` are within 15 lines of the
-  line cap: a spec that adds to one must first move something out of it.
+  `sim/expedition/`). `expedition.gd` is within 15 lines of the line cap: a spec that adds to it must
+  first move something out of it.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.

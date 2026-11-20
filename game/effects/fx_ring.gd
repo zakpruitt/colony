@@ -1,5 +1,5 @@
 class_name FxRing
-extends Node2D
+extends FxNode
 ## A ring of an action that strikes many: squares of one palette colour on a flat
 ## ellipse round its position (a fighter's or target's feet), widening from a few pixels to
 ## [member reach] and blinking out. Nothing is smooth or faded. [AbilityEffects] creates it;
