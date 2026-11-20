@@ -19,8 +19,9 @@ on a change, so new UI has a pattern to follow and an idle screen costs little. 
 - **R2. Formatting has a home.** `group_thousands`, `short_count`, `clock` and `on_screen` live in
   `UiFormat`; `Hud` no longer has them and no file reaches into `Hud` for a static helper or a path.
 - **R3. `Hud` is the frame of the screen.** It lays out and advances the frame's pieces (place panel,
-  purse, hero frames, boss bar, ticker, goals, stage list). It does not make, own or advance window
-  contents, and has no key handling for windows. No file finds the `Hud` with `get_parent() as Hud`,
+  purse, hero frames, boss bar, ticker, goals, stage list). It still makes and advances the shop, the
+  map and the tally, because 29 test files build a `Hud` alone and read them through it; it makes no
+  other window content and has no key handling for windows. No file finds the `Hud` with `get_parent() as Hud`,
   looks a node up by name, or emits another object's signal: each is handed what it needs in `setup`.
   `Hud` has at most 15 public methods (it has 21, one over gdlint's cap counting statics).
 - **R4. Text and colour are set on change.** Over 120 frames with the simulation stopped, no label's
@@ -37,6 +38,9 @@ on a change, so new UI has a pattern to follow and an idle screen costs little. 
   differs from the one showing. Every colour on screen is the one it is today.
 
 ## Interfaces
+
+Spec 074 left `KeyBook` (`game/ui/key_book.gd`) and `WindowBook`/`WindowEntry`
+(`game/ui/windows/`) in place, and spec 076 left `World.may_animate` and `World.fx`: use them as they are.
 
 ```gdscript
 # game/ui/ui_format.gd
@@ -77,6 +81,8 @@ at both rooms, beside the baseline; enlarge the hero frames 3x.
 
 - Named colour roles in `UiTheme` in place of the 473 palette names in `game/ui/` and `game/hud/`: a
   spec of its own, if Round 3's survey still wants it.
+- Moving the shop, the map and the tally out of `Hud` (it would mean rewriting the setup of 29 test
+  files for no gain a player or a later spec would feel).
 - Any change to how the UI looks or is laid out. New windows or HUD pieces. Splitting `World`,
   `StageList` or the effects files. Anything under `sim/` (if `Hero.combatant()` must be avoided, do it
   by not calling it, not by changing it).
