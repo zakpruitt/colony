@@ -261,7 +261,7 @@ func test_r5_help_lists_the_keys_in_the_same_order() -> void:
 
 func test_r5_keys_are_guarded_one_way() -> void:
 	var texts: Dictionary[String, String] = {}
-	_scripts_in("res://game", texts)
+	scripts_in("res://game", texts)
 	assert_gt(texts.size(), 100, "the game's scripts were read")
 	var guarded: Array[String] = []
 	for path: String in texts:
@@ -289,7 +289,7 @@ func test_r6_no_sentence_spells_a_key_itself() -> void:
 	var quoted := RegEx.new()
 	quoted.compile('"((?:[^"\\\\]|\\\\.)*)"')
 	var texts: Dictionary[String, String] = {}
-	_scripts_in("res://game", texts)
+	scripts_in("res://game", texts)
 	var read: int = 0
 	for path: String in texts:
 		var lines: PackedStringArray = texts[path].split("\n")
@@ -306,11 +306,11 @@ func test_r6_no_sentence_spells_a_key_itself() -> void:
 	assert_gt(read, 200, "the game's strings were read")
 	# The words on screen are as they were, each sentence that asks KeyBook for a key in full.
 	var said: Dictionary[String, String] = {
-		Hud.area_tip(): "The area the party is in: click (or press W) to open the Map.",
-		Hud.speed_tip(): "How fast the game runs: click (or press F) for 1x, 2x or 4x.",
-		Hud.holding_tip():
+		HudFrame.area_tip(): "The area the party is in: click (or press W) to open the Map.",
+		HudFrame.speed_tip(): "How fast the game runs: click (or press F) for 1x, 2x or 4x.",
+		HudFrame.holding_tip():
 		"The Hold order keeps the party from the guardian: Orders (O) sends it in.",
-		Hud.holding_next(): "Orders (O) to go in",
+		HudFrame.holding_next(): "Orders (O) to go in",
 		Goals.upgrade_hint(): "Open the Camp (U) and spend gold on the whole party.",
 		Goals.holding_hint():
 		"The party is holding back on the Hold order: Orders (O) sends it in.",
@@ -326,12 +326,3 @@ func test_r6_no_sentence_spells_a_key_itself() -> void:
 	assert_eq(KeyBook.label(ShopWindow.ID), "U", "the Camp's key")
 	assert_eq(KeyBook.label(AreaMapWindow.ID), "W", "the Map's key")
 	assert_eq(KeyBook.label(&"speed"), "F", "the speed's key")
-
-
-## Every script under [param folder], by path.
-func _scripts_in(folder: String, into: Dictionary[String, String]) -> void:
-	for child: String in DirAccess.get_directories_at(folder):
-		_scripts_in(folder.path_join(child), into)
-	for file: String in DirAccess.get_files_at(folder):
-		if file.get_extension() == "gd":
-			into[folder.path_join(file)] = FileAccess.get_file_as_string(folder.path_join(file))
