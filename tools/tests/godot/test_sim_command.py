@@ -1,6 +1,6 @@
 """Acceptance test for spec 005, R19: `python tools/dev.py sim` prints a run as one JSON object.
 
-Run: python -m unittest discover tools/tests   (the `art` check step runs it too)
+Run: python -m unittest discover tools/tests/godot   (the `tools` check step runs it too)
 Needs Godot, found the way tools/dev.py finds it.
 """
 
@@ -12,7 +12,7 @@ import sys
 import unittest
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent.parent
+ROOT = Path(__file__).resolve().parents[3]
 
 FIELDS = {
     "seed": int,

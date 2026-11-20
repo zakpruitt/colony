@@ -24,6 +24,7 @@ plug in.
 | Tag on a bar button | `WindowContent._show_badge(count)` | | spec 075's badge test |
 | Showcase moment | A row in `Showcase.ROWS` | `game/dev/showcase.gd` | spec 076 |
 | Test | `extends ColonyTest`; a helper two tests need goes on it | `tests/colony_test.gd` | `check`'s `harness` step |
+| Tool test | A `test_*.py` in `tools/tests/`, or in `tools/tests/godot/` if it starts Godot | | `check`'s `art` step; its `tools` step |
 | Sprite | A `.px` file, baked | `create-sprite` skill | `check`'s `art` step |
 | Sound | A `.sfx` recipe, baked | `tools/sfx.py` | the sound lint |
 
@@ -36,7 +37,8 @@ plug in.
 - **A thing is handed what it needs.** In `setup`, by whoever makes it: no finding a parent by type, no
   node looked up by name, no signal emitted for another object.
 - **Public means used elsewhere.** A constant or function nothing outside its file uses is private.
-- **A comment states a contract or a why.** No spec numbers, no history.
+- **A comment states a contract or a why.** No spec numbers, no history. `check`'s `harness` step reads
+  every comment in `sim/`, `game/`, `tools/` and `tests/colony_test.gd`, and warns of a file or class near gdlint's caps.
 - **Nothing changes a state hash or an old save by accident.** A spec that means to says so.
 
 ## When the standard does not fit

@@ -2,7 +2,7 @@ extends SceneTree
 ## Runs the main scene in a real window and saves what it shows as PNG files,
 ## so an agent can look at the game. Needs a display: do not pass --headless.
 ##
-## Each shot is the whole composed window (spec 058 R9): the world and the sharp UI layer over it,
+## Each shot is the whole composed window: the world and the sharp UI layer over it,
 ## at the window's size, 1280x720 unless told. So that a size bigger than the screen still works,
 ## the scene runs in a [SubViewport] of exactly that size which stretches the world's 640x360
 ## pixels over it as the game's window does (its canvas items scaled by a whole number), and the

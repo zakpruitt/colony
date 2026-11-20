@@ -296,7 +296,7 @@ showcase's leftovers, not the game.</p>
   <li>A frame holding two arrivals in different areas (a long return from time away) may draw the events
   between them in the last area.</li>
   <li>No monster has an ability yet: only heroes do.</li>
-  <li>The full check takes fifteen to twenty minutes.</li>
+  <li>The full check takes fifteen to twenty minutes on one machine. CI runs it as five jobs side by side, in about five minutes.</li>
 </ul>
 
 <h3>Not built yet <span class="tag planned">Planned</span></h3>
@@ -997,10 +997,12 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Play the game</td><td><code>godot --path .</code></td></tr>
   <tr><td>Open the editor</td><td><code>godot -e --path .</code></td></tr>
   <tr><td>Watch the showcase: every moment of the game, labelled, in about ninety seconds (it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
-  <tr><td>Run every check (what CI runs, fifteen to twenty minutes)</td><td><code>python tools/dev.py check</code></td></tr>
+  <tr><td>Run every check (what CI runs; fifteen to twenty minutes here, about five in CI's five jobs)</td><td><code>python tools/dev.py check</code></td></tr>
   <tr><td>Run only some check steps</td><td><code>python tools/dev.py check --only=compile,tests</code></td></tr>
+  <tr><td>Run every check step but some (CI's fifth job leaves out the tests)</td><td><code>python tools/dev.py check --skip=tests</code></td></tr>
   <tr><td>Run the tests</td><td><code>python tools/dev.py test</code></td></tr>
   <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
+  <tr><td>Run one of four parts of the tests, as one CI job does</td><td><code>python tools/dev.py test --shard=1/4</code></td></tr>
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
   <tr><td>Run the game with no window and print what happened as numbers</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code></td></tr>
@@ -1038,15 +1040,16 @@ wipes.</p>
   <tr><th>Step</th><th>Fails when</th></tr>
   <tr><td><code>format</code></td><td>Code is not formatted, or breaks a lint rule</td></tr>
   <tr><td><code>boundary</code></td><td>Something in <code>sim/</code> uses graphics, a clock or global randomness</td></tr>
-  <tr><td><code>harness</code></td><td>A test that writes files does not clean up after its last test, or a script has no <code>.uid</code> file committed beside it</td></tr>
+  <tr><td><code>harness</code></td><td>A test that writes files does not clean up after its last test, a script has no <code>.uid</code> file committed beside it, a comment names a spec or tells history, or a commit on the branch carries an attribution line or a session link. It also warns, without failing, of a file or class close to the lint's limits</td></tr>
   <tr><td><code>art</code></td><td>A sprite breaks the style rules or is out of date with its text file; or a sound is missing, out of date, longer than 1.2 s or too loud</td></tr>
   <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
+  <tr><td><code>tools</code></td><td>A tool test that runs Godot fails: the headless sim runs and the real screenshots</td></tr>
   <tr><td><code>tests</code></td><td>Any test fails</td></tr>
   <tr><td><code>data</code></td><td>Any data file does not load or reports a problem</td></tr>
   <tr><td><code>boot</code></td><td>The game prints an error while starting</td></tr>
 </table>
 </div>
-<p>It ends with <code>check: PASS</code> or names the step that failed. Requirements: Godot 4.7.2 and Python
+<p>It first says which commit it checks and whether there are uncommitted changes, and ends with <code>check: PASS</code> or names the step that failed. CI runs the same steps as five jobs side by side: the tests in four parts, everything else in the fifth. Requirements: Godot 4.7.2 and Python
 on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>) for the format step.</p>
 
 <h2 id="folders">8. Where things live</h2>

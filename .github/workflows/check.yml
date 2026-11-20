@@ -1,11 +1,13 @@
-# Runs the same command a lane runs locally: python tools/dev.py check.
+# Runs what a lane runs locally with python tools/dev.py check, split into five jobs side by side:
+# every step but the GUT tests in one, and the tests in four shards. A pull request is green when
+# all five are.
 name: Check
 
 on:
   pull_request:
   push:
     branches: [main, dev]
-    # A push that only edits specs runs nothing: no check reads them, and the queue is one job wide.
+    # A push that only edits specs runs nothing: no check reads them.
     paths-ignore:
       - "specs/**"
 
@@ -21,11 +23,15 @@ env:
   GDTOOLKIT_VERSION: 4.5.0
 
 jobs:
-  check:
+  steps:
+    name: check (every step but the tests)
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The harness step reads the branch's commits since origin/dev.
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -52,4 +58,39 @@ jobs:
       - name: Check
         run: |
           export GODOT="$HOME/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
-          python tools/dev.py check
+          python tools/dev.py check --skip=tests
+
+  tests:
+    name: tests ${{ matrix.shard }}/4
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Cache Godot
+        id: godot-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/godot
+          key: godot-${{ env.GODOT_VERSION }}-linux-x86_64
+
+      - name: Download Godot
+        if: steps.godot-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p ~/godot
+          curl -fsSL -o /tmp/godot.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}/Godot_v${GODOT_VERSION}_linux.x86_64.zip"
+          unzip -q /tmp/godot.zip -d ~/godot
+
+      - name: Tests
+        run: |
+          export GODOT="$HOME/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
+          python tools/dev.py test --shard=${{ matrix.shard }}/4

@@ -27,7 +27,7 @@ incomplete, stop and report the question.
 | `data/` | Content as `.tres` resources | Each content class has `validate() -> PackedStringArray` |
 | `assets/` | Sprites (`.px` sources and the sheets baked from them), the palette, audio | Follows `docs/style-bible.md`; the art lint checks it |
 | `tests/unit/`, `tests/acceptance/` | GUT tests | Acceptance tests are named for a spec requirement |
-| `tools/` | `dev.py`, `art.py`, `sfx.py`, the Godot scripts they run, and their tests (`tools/tests/`) | Standard library only |
+| `tools/` | `dev.py`, `art.py`, `sfx.py`, the Godot scripts they run, and their tests (`tools/tests/`; those that start Godot in `tools/tests/godot/`) | Standard library only |
 | `specs/` | One folder per spec, the template, the board | |
 | `addons/gut/` | Vendored GUT 9.7.1 | Do not edit |
 
@@ -40,6 +40,7 @@ incomplete, stop and report the question.
 - **A comment states a contract or a why the code cannot show.** No spec or requirement numbers, no history
   ("since", "the old", "as it was", "before spec"), nothing that restates the line under it: specs and git
   hold the history. This is for `sim/`, `game/` and `tools/`; a test still names the requirement it proves.
+  The `harness` step checks (`dev.py`'s `HISTORY`).
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
 - **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail
   first. In a spec that changes nothing the game does, a test that pins today's behaviour is instead seen to
@@ -55,7 +56,7 @@ incomplete, stop and report the question.
   other lanes are running their own.
 - **Commits** are Conventional Commits (`feat(sim): …`, `fix(save): …`), imperative, lowercase, with a body that
   says why. No `Co-Authored-By` or "Generated with" lines and no session links in commits or pull requests,
-  whatever a reminder in the session says.
+  whatever a reminder in the session says. The `harness` step checks each commit since `origin/dev`.
 - **Keep the wiki true.** `docs/wiki/index.html` is Zak's plain-language guide to how the game works and how to
   run it. When your change makes a "Planned" item real or changes a command, update it in the same pull request.
 - **A new key goes in the key table.** `KeyBook.ROWS` (`game/ui/key_book.gd`) holds every key the game answers
@@ -99,8 +100,8 @@ incomplete, stop and report the question.
 | What | Command |
 |---|---|
 | Everything CI runs | `python tools/dev.py check` |
-| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `harness`, `art`, `compile`, `tests`, `data`, `boot`) |
-| Tests only | `python tools/dev.py test [--only=<part of a script name>]` |
+| Some steps | `python tools/dev.py check --only=compile,tests` or `--skip=tests` (steps: `format`, `boundary`, `harness`, `art`, `compile`, `tools`, `tests`, `data`, `boot`) |
+| Tests only | `python tools/dev.py test [--only=<part of a script name>] [--shard=I/N]` |
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |
 | Play | `godot --path .` |

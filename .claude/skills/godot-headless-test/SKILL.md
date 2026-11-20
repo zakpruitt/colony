@@ -39,8 +39,15 @@ A spec whose tests share more than that gets a base of its own, named `*_test_ba
 ```
 python tools/dev.py test                  # all tests
 python tools/dev.py test --only=test_003  # scripts whose name contains this
+python tools/dev.py test --shard=2/4      # the second of four parts, as one CI job runs it
 python tools/dev.py check --only=compile,tests
 ```
+
+`test` imports the project before it runs, so a new `class_name` is seen without `dev.py import`. CI runs
+the suite as four shards side by side (`--shard=I/4`), split by the script times in
+`tools/test_times.json`: if a shard's job is much slower than the others, measure the slow scripts and
+update that file. Tool tests (Python, `tools/tests/`) that start Godot go in `tools/tests/godot/`, which
+the `tools` step runs; the `art` step runs the rest and must start no Godot.
 
 ## A test must be able to fail
 
