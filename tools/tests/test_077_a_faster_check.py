@@ -10,6 +10,7 @@ from __future__ import annotations
 import argparse
 import contextlib
 import io
+import json
 import os
 import subprocess
 import sys
@@ -80,6 +81,72 @@ class FakeGodot:
 
     def imports(self) -> int:
         return sum(1 for call in self.calls if "--import" in call)
+
+
+class ShardRuns(unittest.TestCase):
+    """step_tests with Godot stubbed out: what a shard hands GUT, and when it refuses to run."""
+
+    def run_tests(self, only: str | None, shard: tuple[int, int]) -> tuple[str, list[list[str]]]:
+        fake = FakeGodot()
+        with mock.patch.dict(os.environ, {dev.IMPORTED: "1"}), mock.patch.object(dev, "godot", fake):
+            summary = dev.step_tests(only, shard)
+        return summary, fake.calls
+
+    def test_r1_shards_find_what_gut_finds(self) -> None:
+        config = json.loads((ROOT / ".gutconfig.json").read_text(encoding="utf-8"))
+        self.assertEqual(config["dirs"], [f"res://{dev.TEST_DIR}"])
+        self.assertTrue(config["include_subdirs"])
+        self.assertEqual(config["prefix"], dev.TEST_PREFIX)
+        self.assertEqual(config["suffix"], dev.TEST_SUFFIX)
+
+    def test_r1_the_arguments_gut_is_given(self) -> None:
+        part = dev.shard_scripts(dev.test_scripts(), 2, 4)
+        _, calls = self.run_tests(None, (2, 4))
+        self.assertEqual(len(calls), 1)
+        args = calls[0]
+        self.assertIn("-gconfig=", args, "without the config, whose folder adds every script")
+        self.assertIn("-gexit", args)
+        self.assertIn("-glog=1", args)
+        listed = [arg for arg in args if arg.startswith("-gtest=")]
+        self.assertEqual(listed, ["-gtest=" + ",".join(f"res://{s}" for s in part)])
+        self.assertFalse(any(arg.startswith("-gselect") for arg in args))
+
+        name = Path(part[0]).name
+        _, calls = self.run_tests(name, (2, 4))
+        self.assertIn(f"-gtest=res://{part[0]}", calls[0], "only the scripts --only names")
+
+    def test_r1_an_empty_shard_fails(self) -> None:
+        count = len(dev.test_scripts())
+        with self.assertRaises(dev.StepFailed) as failed:
+            self.run_tests(None, (count + 4, count + 4))
+        self.assertIn("holds no script", str(failed.exception))
+        with self.assertRaises(dev.StepFailed) as failed:
+            self.run_tests("tset_077", (1, 4))
+        self.assertIn("matches no test script", str(failed.exception))
+
+        # A shard that holds none of --only's matches, while another shard does, may pass.
+        script = dev.shard_scripts(dev.test_scripts(), 1, 4)[0]
+        summary, calls = self.run_tests(Path(script).name, (2, 4))
+        self.assertEqual(calls, [], "no Godot for an empty shard")
+        self.assertIn("other shards", summary)
+
+
+class Workflow(unittest.TestCase):
+    def test_r2_ci_runs_every_step(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "check.yml").read_text(encoding="utf-8")
+        self.assertIn("python tools/dev.py check --skip=tests\n", workflow)
+        self.assertIn("python tools/dev.py test --shard=${{ matrix.shard }}/4\n", workflow)
+        self.assertIn("shard: [1, 2, 3, 4]", workflow)
+
+        ran: list[str] = []
+        recorders = {name: (lambda name=name: ran.append(name) or "ran") for name in dev.STEPS}
+        with (
+            mock.patch.dict(dev.STEPS, recorders),
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
+            code = dev.command_check(argparse.Namespace(only=None, skip="tests"))
+        self.assertEqual(code, 0)
+        self.assertEqual(ran, [name for name in dev.STEPS if name != "tests"])
 
 
 class Imports(unittest.TestCase):
@@ -185,8 +252,15 @@ class Comments(TempTree):
         self.write("tests/unit/test_made_up.gd", "extends GutTest\n# Spec 12 R3\n")
         self.assertEqual(len(dev.comment_problems(self.root)), 4)
 
-        with self.assertRaises(dev.StepFailed):
+        with self.assertRaises(dev.StepFailed), contextlib.redirect_stdout(io.StringIO()):
             dev.step_harness(self.root)
+
+    def test_r5_a_script_that_does_not_tokenize_fails(self) -> None:
+        self.write("tools/broken.py", 'X = """never closed\n# spec 12\n')
+        problems = dev.comment_problems(self.root)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("tools/broken.py", problems[0])
+        self.assertIn("tokenize", problems[0])
 
     def test_r5_todays_tree_passes(self) -> None:
         self.assertEqual(dev.comment_problems(ROOT), [])
@@ -211,8 +285,10 @@ class Attribution(TempTree):
                 problems = dev.attribution_problems(self.root)
                 self.assertEqual(len(problems), 1, problems)
                 self.assertIn(commit, problems[0])
-                with self.assertRaises(dev.StepFailed):
+                output = io.StringIO()
+                with self.assertRaises(dev.StepFailed), contextlib.redirect_stdout(output):
                     dev.step_harness(self.root)
+                self.assertIn("origin/dev..HEAD", output.getvalue(), "the range read is named")
                 # Once on dev, it is no longer this branch's to answer for.
                 git(self.root, "update-ref", "refs/remotes/origin/dev", "HEAD")
                 self.assertEqual(dev.attribution_problems(self.root), [])
@@ -241,6 +317,7 @@ class Caps(TempTree):
         self.assertNotIn("game/small.gd", shown)
         self.assertIn("sim/wide.gd", shown)
         self.assertNotIn("sim/narrow.gd", shown)
+        self.assertIn("HEAD alone", shown, "with no origin/dev, the range read is named")
 
 
 if __name__ == "__main__":

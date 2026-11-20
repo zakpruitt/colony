@@ -3,6 +3,7 @@
 
     python tools/dev.py check            every step, in order
     python tools/dev.py check --only=tests,boot
+    python tools/dev.py check --skip=tests     every step but these
     python tools/dev.py test [--only=NAME] [--shard=I/N]
                                          the GUT tests; --shard=I/N runs the I-th of N parts
     python tools/dev.py format           rewrite scripts with gdformat
@@ -60,6 +61,12 @@ IMPORTED = "COLONY_PROJECT_IMPORTED"
 
 # The tool tests that start Godot, run by the `tools` step after `compile` instead of by `art`.
 GODOT_TOOL_TESTS = "tools/tests/godot"
+
+# Where GUT finds the test scripts, as .gutconfig.json says (its dirs with subfolders, prefix,
+# suffix): a shard lists its scripts itself, and must find the ones a whole run finds.
+TEST_DIR = "tests"
+TEST_PREFIX = "test_"
+TEST_SUFFIX = ".gd"
 
 # How long each slow GUT script takes, in seconds, so the shards come out even.
 TEST_TIMES = Path(__file__).resolve().parent / "test_times.json"
@@ -363,15 +370,15 @@ def gd_comment(line: str) -> str:
 
 
 def py_comments(text: str) -> list[tuple[int, str, bool]]:
-    """Each comment in Python source as (line, text, whether it stands on a line of its own)."""
+    """Each comment in Python source as (line, text, whether it stands on a line of its own).
+
+    Raises tokenize.TokenError or SyntaxError on source that does not tokenize.
+    """
     found: list[tuple[int, str, bool]] = []
-    try:
-        for token in tokenize.generate_tokens(io.StringIO(text).readline):
-            if token.type == tokenize.COMMENT:
-                whole = token.line.strip().startswith("#")
-                found.append((token.start[0], token.string, whole))
-    except (tokenize.TokenError, SyntaxError):
-        pass
+    for token in tokenize.generate_tokens(io.StringIO(text).readline):
+        if token.type == tokenize.COMMENT:
+            whole = token.line.strip().startswith("#")
+            found.append((token.start[0], token.string, whole))
     return found
 
 
@@ -431,7 +438,12 @@ def comment_problems(root: Path = ROOT) -> list[str]:
     for path in comment_scripts(root):
         relative = path.relative_to(root).as_posix()
         patterns = game if relative.startswith("game/") else history
-        for number, text in comments(path):
+        try:
+            found = comments(path)
+        except (tokenize.TokenError, SyntaxError) as failure:
+            problems.append(f"{relative}: its comments cannot be read, as it does not tokenize: {failure}")
+            continue
+        for number, text in found:
             if any(pattern.search(text) for pattern in patterns):
                 problems.append(
                     f"{relative}:{number}: a comment that names a spec or tells history: {text}"
@@ -443,15 +455,22 @@ def git_in(root: Path, args: list[str]) -> tuple[int, str]:
     return run(["git", "-C", str(root), *args], timeout=60)
 
 
-def attribution_problems(root: Path = ROOT) -> list[str]:
-    """Each commit on this branch (origin/dev..HEAD, or HEAD alone with no origin/dev to compare
-    with) whose message carries an attribution line or a session link.
+def commit_range(root: Path = ROOT) -> list[str]:
+    """The commits on this branch as `git log` arguments: origin/dev..HEAD, or HEAD alone with no
+    origin/dev to compare with (a shallow checkout), or none in a repository with no commit.
     """
     code, _ = git_in(root, ["rev-parse", "--verify", "-q", "HEAD"])
     if code != 0:
         return []
     code, _ = git_in(root, ["rev-parse", "--verify", "-q", "origin/dev"])
-    commits = ["origin/dev..HEAD"] if code == 0 else ["-1", "HEAD"]
+    return ["origin/dev..HEAD"] if code == 0 else ["-1", "HEAD"]
+
+
+def attribution_problems(root: Path = ROOT) -> list[str]:
+    """Each commit in commit_range whose message carries an attribution line or a session link."""
+    commits = commit_range(root)
+    if not commits:
+        return []
     code, output = git_in(root, ["log", "--format=%h %s%x00%B%x1e", *commits])
     if code != 0:
         raise StepFailed(f"git log failed (exit {code})\n{tail(output)}")
@@ -486,6 +505,9 @@ def cap_warnings(root: Path = ROOT) -> list[str]:
 
 
 def step_harness(root: Path = ROOT) -> str:
+    commits = commit_range(root)
+    shown = " ".join(commits).replace("-1 HEAD", "HEAD alone (no origin/dev)") or "none"
+    print(f"[harness] commits read for attribution lines: {shown}")
     problems = harness_problems(root) + comment_problems(root) + attribution_problems(root)
     if problems:
         raise StepFailed("\n".join(problems))
@@ -566,8 +588,9 @@ def step_tools() -> str:
 
 
 def test_scripts(root: Path = ROOT) -> list[str]:
-    """Every GUT test script, as a path relative to [root]."""
-    return sorted(path.relative_to(root).as_posix() for path in (root / "tests").rglob("test_*.gd"))
+    """Every GUT test script, as a path relative to [root], found as .gutconfig.json finds them."""
+    found = (root / TEST_DIR).rglob(f"{TEST_PREFIX}*{TEST_SUFFIX}")
+    return sorted(path.relative_to(root).as_posix() for path in found)
 
 
 def parse_shard(text: str) -> tuple[int, int]:
@@ -595,22 +618,28 @@ def shard_scripts(scripts: list[str], index: int, count: int) -> list[str]:
 
 
 def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) -> str:
-    ensure_imported()
     args = ["-s", "res://addons/gut/gut_cmdln.gd", "-gexit"]
     which = ""
     if shard:
         index, count = shard
-        scripts = shard_scripts(test_scripts(), index, count)
-        scripts = [script for script in scripts if not only or only in Path(script).name]
-        which = f", shard {index}/{count}: {len(scripts)} script{'' if len(scripts) == 1 else 's'}"
+        every = test_scripts()
+        scripts = shard_scripts(every, index, count)
         if not scripts:
-            return f"no script in shard {index}/{count} matches {only!r}"
+            raise StepFailed(f"shard {index}/{count} holds no script: there are {len(every)}")
+        if only:
+            if not any(only in Path(script).name for script in every):
+                raise StepFailed(f"--only={only} matches no test script")
+            scripts = [script for script in scripts if only in Path(script).name]
+            if not scripts:
+                return f"no script in shard {index}/{count} matches {only!r}; other shards hold them"
+        which = f", shard {index}/{count}: {len(scripts)} script{'' if len(scripts) == 1 else 's'}"
         # Without the config file, whose folder would add every script back.
         listed = ",".join(f"res://{script}" for script in scripts)
         args += ["-gconfig=", "-glog=1", f"-gtest={listed}"]
     elif only:
         args.append(f"-gselect={only}")
-    # The whole suite takes about 12 minutes in CI and has taken 25 on a busy machine.
+    # The whole suite takes about 17 minutes in one CI job and has taken 25 on a busy machine.
+    ensure_imported()
     code, output = godot(args, timeout=2700)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
         raise StepFailed(f"tests failed (exit {code})\n{tail(output, 400)}")
@@ -680,14 +709,23 @@ def run_steps(names: list[str]) -> int:
     return 0
 
 
+def step_names(listed: str | None) -> list[str]:
+    """The steps named in a comma-separated list; raise ValueError naming any unknown one."""
+    names = [name.strip() for name in (listed or "").split(",") if name.strip()]
+    unknown = [name for name in names if name not in STEPS]
+    if unknown:
+        raise ValueError(f"unknown step(s): {', '.join(unknown)}; steps are {', '.join(STEPS)}")
+    return names
+
+
 def command_check(args: argparse.Namespace) -> int:
-    names = list(STEPS)
-    if args.only:
-        names = [name.strip() for name in args.only.split(",")]
-        unknown = [name for name in names if name not in STEPS]
-        if unknown:
-            print(f"unknown step(s): {', '.join(unknown)}; steps are {', '.join(STEPS)}")
-            return 2
+    try:
+        only = step_names(args.only)
+        skip = step_names(getattr(args, "skip", None))
+    except ValueError as failure:
+        print(failure)
+        return 2
+    names = [name for name in (only or list(STEPS)) if name not in skip]
     return run_steps(names)
 
 
@@ -825,6 +863,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     check = commands.add_parser("check", help="run every check step (what CI runs)")
     check.add_argument("--only", help=f"comma-separated steps: {', '.join(STEPS)}")
+    check.add_argument("--skip", help="comma-separated steps to leave out of the rest")
     check.set_defaults(handler=command_check)
 
     test = commands.add_parser("test", help="run the GUT tests")

@@ -58,7 +58,7 @@ jobs:
       - name: Check
         run: |
           export GODOT="$HOME/godot/Godot_v${GODOT_VERSION}_linux.x86_64"
-          python tools/dev.py check --only=format,boundary,harness,art,compile,tools,data,boot
+          python tools/dev.py check --skip=tests
 
   tests:
     name: tests ${{ matrix.shard }}/4
