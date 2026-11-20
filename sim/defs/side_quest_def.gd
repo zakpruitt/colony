@@ -1,5 +1,5 @@
 class_name SideQuestDef
-extends Resource
+extends ContentDef
 ## A side quest: something a chamber can hold instead of monsters. A living hero with
 ## [member microskill] does it in [member work_seconds] for a reward worth
 ## [member reward_factor] kills of that depth; with nobody able, the party walks past, or a
@@ -47,6 +47,11 @@ static func kill_value(level_depth: int) -> Vector2:
 	if weight == 0:
 		return Vector2.ZERO
 	return Vector2(gold, xp) / weight
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the side quest is usable.

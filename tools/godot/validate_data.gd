@@ -1,9 +1,6 @@
 extends SceneTree
-## Loads every resource under res://data and asks it whether it is valid.
-##
-## A content class opts in by defining
-## [code]func validate() -> PackedStringArray[/code], returning one line per
-## problem (empty when the resource is fine).
+## Loads every resource under res://data and asks each [ContentDef] whether it is valid
+## ([method ContentDef.validate]: one line per problem, empty when it is fine).
 ##
 ## Run: godot --headless --path . -s res://tools/godot/validate_data.gd
 
@@ -26,10 +23,9 @@ func _problems_in(path: String) -> PackedStringArray:
 	var resource: Resource = load(path)
 	if resource == null:
 		return ["does not load"]
-	if not resource.has_method(&"validate"):
-		return []
-	var result: PackedStringArray = resource.call(&"validate")
-	return result
+	if resource is ContentDef:
+		return (resource as ContentDef).validate()
+	return []
 
 
 func _resources_under(dir: String) -> PackedStringArray:

@@ -1,5 +1,5 @@
 class_name AbilityDef
-extends Resource
+extends ContentDef
 ## Something a fighter does in battle beyond its ordinary strike: an action with a
 ## cooldown, or a passive that answers to what happens in the fight. Either has one or more
 ## [AbilityEffect]s, applied in order. One .tres file per ability under res://data/abilities.
@@ -101,6 +101,11 @@ func aims_at_ally() -> bool:
 	if is_action():
 		return aim in [Aim.WEAKEST_ALLY, Aim.SELF]
 	return trigger in [Trigger.FIGHT_STARTS, Trigger.FALLS_BELOW, Trigger.ALLY_DIES]
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the ability can do something.

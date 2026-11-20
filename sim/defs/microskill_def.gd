@@ -1,5 +1,5 @@
 class_name MicroskillDef
-extends Resource
+extends ContentDef
 ## A microskill: a minor passive a hero picks up at a level of their class (see
 ## [member HeroClassDef.microskills]), which lets the party do side quests that ask for it.
 ## One .tres file per microskill under res://data/microskills.
@@ -7,6 +7,11 @@ extends Resource
 @export var id: StringName
 @export var display_name: String
 @export var description: String  # one short line, e.g. "Opens locks"
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the microskill is usable.

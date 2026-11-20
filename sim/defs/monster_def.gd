@@ -1,5 +1,5 @@
 class_name MonsterDef
-extends Resource
+extends ContentDef
 ## A monster: the numbers it fights with at [member base_level] and what it is worth. Where it
 ## lives is the areas' to say ([AreaDef]). One .tres file per monster under
 ## res://data/monsters.
@@ -26,6 +26,11 @@ enum Size { SMALL, LARGE, BOSS }
 ## A guardian holds an area's way on at its guardian stages and never appears in an ordinary
 ## encounter.
 @export var guardian: bool = false
+
+
+## What Content finds this definition by: its id.
+func key() -> StringName:
+	return id
 
 
 ## One line per problem; empty when the monster is usable.
