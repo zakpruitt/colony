@@ -2,7 +2,7 @@
 
 A 2D pixel-art idle RPG: a party of heroes explores an endless labyrinth on its own while the player manages
 them. Godot 4.7.2, typed GDScript. The design is `docs/design/plan.md`; how the code fits together is
-`docs/architecture.md`. Read both once.
+`docs/architecture.md`; what to extend when you add something is `docs/standards.md`. Read all three once.
 
 ## How work happens here
 
