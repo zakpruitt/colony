@@ -1,5 +1,5 @@
 class_name FxMote
-extends Node2D
+extends FxNode
 ## A mote of XP: it leaps out of a fallen monster, then homes in on the hero who
 ## gained the XP. [CombatEffects] creates it and flashes where it arrives; the [FxPool] advances
 ## it.

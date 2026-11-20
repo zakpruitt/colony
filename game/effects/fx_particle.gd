@@ -1,5 +1,5 @@
 class_name FxParticle
-extends Node2D
+extends FxNode
 ## One particle of an effect: a square of one palette colour, or a small tinted fx
 ## sprite, that flies, falls under gravity, may bounce on a floor, and shrinks away. It sits on
 ## whole pixels and never fades. An effect class makes it; the [FxPool] advances it.
