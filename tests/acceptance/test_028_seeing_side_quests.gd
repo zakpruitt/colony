@@ -103,7 +103,7 @@ func _show(simulation: Simulation) -> void:
 	_sound = SoundPlayer.new()
 	add_child_autofree(_sound)
 	_sound.set_process(false)
-	_sound.setup(_world, _effects, simulation)
+	_sound.setup(_world, _effects, simulation, null)
 	_frame(0.0)
 
 

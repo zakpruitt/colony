@@ -235,7 +235,7 @@ func test_r4_looks_and_sounds_right() -> void:
 	var sound := SoundPlayer.new()
 	add_child_autofree(sound)
 	sound.set_process(false)
-	sound.setup(world, fx, sim)
+	sound.setup(world, fx, sim, null)
 	var events: Array[SimEvent] = []
 	world.sim_event.connect(func(event: SimEvent) -> void: events.append(event))
 

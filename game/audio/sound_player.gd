@@ -83,9 +83,10 @@ func _init() -> void:
 		_ends.append(0.0)
 
 
-## Listens to [param world]'s events and [param effects]' coins, and takes the mute choice from
-## [member settings]. Call it once the world, effects and HUD exist (after any catch-up).
-func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void:
+## Listens to [param world]'s events, [param effects]' coins and [param goals]' finished goals
+## (null: none), and takes the mute choice from [member settings]. Call it once the world, effects
+## and HUD exist (after any catch-up).
+func setup(world: World, effects: CombatEffects, simulation: Simulation, goals: Goals) -> void:
 	_world = world
 	_simulation = simulation
 	if not world.sim_event.is_connected(_on_sim_event):
@@ -98,10 +99,8 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void
 	if world.quest_props != null and not world.quest_props.worked.is_connected(_on_worked):
 		world.quest_props.worked.connect(_on_worked)
 	# A goal finished on the HUD's tracker plays the stable chime.
-	var main: Main = get_parent() as Main
-	if main != null and main.hud != null and main.hud.goals != null:
-		if not main.hud.goals.goal_finished.is_connected(_on_goal_finished):
-			main.hud.goals.goal_finished.connect(_on_goal_finished)
+	if goals != null and not goals.goal_finished.is_connected(_on_goal_finished):
+		goals.goal_finished.connect(_on_goal_finished)
 	_apply_mute(settings != null and settings.muted())
 
 

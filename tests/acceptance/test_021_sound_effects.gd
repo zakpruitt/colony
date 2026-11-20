@@ -64,7 +64,7 @@ func _player() -> SoundPlayer:
 	sound.settings = SoundSettings.new(_settings_path)
 	add_child_autofree(sound)
 	sound.set_process(false)
-	sound.setup(_world, _fx, _sim)
+	sound.setup(_world, _fx, _sim, null)
 	return sound
 
 
