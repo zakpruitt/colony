@@ -229,6 +229,11 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
+## The world the HUD was set up with, or null before [method setup].
+func world_view() -> World:
+	return _world
+
+
 ## Call once, before the first advance.
 func setup(simulation: Simulation, world: World, effects: CombatEffects) -> void:
 	_simulation = simulation

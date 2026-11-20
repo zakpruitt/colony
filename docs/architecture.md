@@ -495,7 +495,10 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   by its allowance. What a node follows or flies to is a callable on it (`FxText.follow`,
   `FxCoin.target`, ...), and arrivals are its signals. Every view that starts a move, effect, sound or
   flash for an event asks `World.may_animate(event)` (recent, and the world not catching up); only code
-  that clears what is running reads `World.catching_up()`. Every listener connects its own
+  that clears what is running reads `World.catching_up()`. Catching up means a stall only: a sync
+  after more than `World.STALL_TICKS` ticks (times the speed) since the last. The world's first sync
+  and a move to another stage or area snap every sprite into place, but are not a catch-up, so what
+  they bring (an arrival's goal, a level up) still shows. Every listener connects its own
   `_on_sim_event` in its own setup. `World.guardians` (`GuardianRecord`) knows which fighters are
   guardians, updated from events, for the sounds and the combat effects alike.
 - An ordinary strike's draw back and step are stronger (`BODY_WINDUP_SHIFT`, `BODY_STRIKE_SHIFT`) and a

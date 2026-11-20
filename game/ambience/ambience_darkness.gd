@@ -19,9 +19,9 @@ const GLOW_STRENGTH: float = 0.2
 const MARGIN: float = 32.0
 
 var _view_rect: Rect2
-## The lights handed over last, and each one's place and reach then (x, y, radius).
+## The lights handed over last, and each one's place, reach and core then (x, y, radius, core).
 var _given: Array[AmbienceLight] = []
-var _places: PackedVector3Array = []
+var _places: PackedVector4Array = []
 ## The lights the shaders take now, and their shapes and colours as the shaders read them.
 var _near: Array[AmbienceLight] = []
 var _shapes: Array[Vector4] = []
@@ -105,7 +105,7 @@ func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
 
 
 ## True when [param lights] are not those handed over last, or one has moved or changed its
-## reach; it then remembers them.
+## reach or core; it then remembers them.
 func _moved(lights: Array[AmbienceLight]) -> bool:
 	var moved: bool = lights.size() != _given.size()
 	if moved:
@@ -113,7 +113,7 @@ func _moved(lights: Array[AmbienceLight]) -> bool:
 		_places.resize(lights.size())
 	for i: int in lights.size():
 		var light: AmbienceLight = lights[i]
-		var place := Vector3(light.position.x, light.position.y, light.radius)
+		var place := Vector4(light.position.x, light.position.y, light.radius, light.core)
 		if moved or _given[i] != light or _places[i] != place:
 			moved = true
 			_given[i] = light

@@ -14,10 +14,13 @@ func note(simulation: Simulation) -> void:
 		_ids[guardian.id] = true
 
 
-## Takes in [param event]: a fight that starts with a guardian notes it.
+## Takes in [param event]: a fight that starts with a guardian notes it, and a guardian slain is
+## noted by its own id.
 func observe(event: SimEvent, simulation: Simulation) -> void:
 	if event.kind == SimEvent.Kind.ENCOUNTER_STARTED:
 		note(simulation)
+	elif event.kind == SimEvent.Kind.GUARDIAN_SLAIN:
+		_ids[event.source_id] = true
 
 
 ## True for the combatant id of a guardian seen in a fight.

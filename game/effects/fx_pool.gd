@@ -23,10 +23,14 @@ const CAPS: Dictionary[StringName, int] = {
 }
 
 var _layer: Node2D
-## Every node held, oldest first, and the budget each was added under.
+## Every node added, oldest first: the order they advance in. A node taken away early stays here
+## until the next advance drops it.
 var _nodes: Array[Node2D] = []
+## The nodes held under each budget, oldest first.
+var _kinds: Dictionary[StringName, Array] = {}
 var _budget_of: Dictionary[Node2D, StringName] = {}
-var _counts: Dictionary[StringName, int] = {}
+## Per budget, the nodes finished in the advance under way, still in its list until it ends.
+var _done: Dictionary[StringName, int] = {}
 
 
 ## Call once: what is added goes on [param layer].
@@ -42,34 +46,56 @@ func add(node: Node2D, budget: StringName, allowance: int = 0) -> bool:
 		return false
 	_layer.add_child(node)
 	_nodes.append(node)
+	_kind(budget).append(node)
 	_budget_of[node] = budget
-	_counts[budget] = _counts.get(budget, 0) + 1
 	return true
 
 
 ## Advances every node by [param delta] seconds, in the order they were added, and frees each
-## that has finished.
+## that has finished. A node added meanwhile first moves on the next frame.
 func advance(delta: float) -> void:
-	for node: Node2D in _nodes.duplicate():
-		if not _budget_of.has(node):
-			continue  # taken away by another's advance this frame
-		var going: bool = node.call(&"advance", delta)
-		if not going:
-			remove(node)
+	var held: int = _nodes.size()
+	var finished: int = 0
+	for i: int in held:
+		var node: Node2D = _nodes[i]
+		if _budget_of.has(node) and not node.call(&"advance", delta):
+			var budget: StringName = _budget_of[node]
+			_done[budget] = _done.get(budget, 0) + 1
+			_let_go(node)
+			finished += 1
+	if finished == 0 and held == _nodes.size() and _budget_of.size() == held:
+		return
+	var kept: Array[Node2D] = []
+	for node: Node2D in _nodes:
+		if _budget_of.has(node):
+			kept.append(node)
+	_nodes = kept
+	_done.clear()
+	for kind: StringName in _kinds:
+		_kinds[kind] = []
+	for node: Node2D in kept:
+		_kinds[_budget_of[node]].append(node)
 
 
 ## How many nodes are held under [param kind], or in all with none.
 func count(kind: StringName = &"") -> int:
 	if kind == &"":
-		return _nodes.size()
-	return _counts.get(kind, 0)
+		return _budget_of.size()
+	if not _kinds.has(kind):
+		return 0
+	return _kinds[kind].size() - _done.get(kind, 0)
 
 
 ## The nodes held under [param kind], oldest first.
 func nodes(kind: StringName) -> Array[Node2D]:
 	var found: Array[Node2D] = []
-	for node: Node2D in _nodes:
-		if _budget_of[node] == kind:
+	if not _kinds.has(kind):
+		return found
+	if _done.get(kind, 0) == 0:
+		found.assign(_kinds[kind])
+		return found
+	for node: Node2D in _kinds[kind]:
+		if _budget_of.has(node):
 			found.append(node)
 	return found
 
@@ -84,16 +110,30 @@ func has(node: Node2D) -> bool:
 func remove(node: Node2D) -> void:
 	if not has(node):
 		return
-	var budget: StringName = _budget_of[node]
-	_budget_of.erase(node)
-	_nodes.erase(node)
-	_counts[budget] -= 1
-	if node.get_parent() != null:
-		node.get_parent().remove_child(node)
-	node.queue_free()
+	_kinds[_budget_of[node]].erase(node)
+	_let_go(node)  # erased from its list already, so not counted as done
 
 
 ## Takes every node away.
 func clear() -> void:
-	for node: Node2D in _nodes.duplicate():
-		remove(node)
+	for node: Node2D in _budget_of.keys():
+		_let_go(node)
+	_nodes.clear()
+	_done.clear()
+	for kind: StringName in _kinds:
+		_kinds[kind] = []
+
+
+## The nodes of [param budget], made the first time it is used.
+func _kind(budget: StringName) -> Array:
+	if not _kinds.has(budget):
+		_kinds[budget] = []
+	return _kinds[budget]
+
+
+## Forgets [param node] and frees it. Its budget's list is put right by the caller.
+func _let_go(node: Node2D) -> void:
+	_budget_of.erase(node)
+	if node.get_parent() != null:
+		node.get_parent().remove_child(node)
+	node.queue_free()

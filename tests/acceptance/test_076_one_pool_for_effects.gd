@@ -54,6 +54,8 @@ const CLEARING: Array[String] = [
 ]
 
 var _main: Main
+## Level ups sent so far, so each is to a new level.
+var _levels_told: int = 0
 
 
 func _start_main() -> Main:
@@ -97,53 +99,190 @@ func _code_files() -> Array[String]:
 	return found
 
 
-## Every listener's start, by name: what each shows now, read so a start changes it. (The world
-## starts its own bolts and moves from its own queue, through the same gate.)
-func _shown() -> Dictionary[String, int]:
+## A Main in a fight nobody can win or lose, synced, with every listener's window set up for what
+## it starts: the boss bar on a guardian, the shop's rows built.
+func _start_fight() -> void:
+	_start_main()
+	var sim: Simulation = _main.simulation
+	for i: int in 6000:
+		if sim.expedition.battle != null and _monster() > 0:
+			break
+		_frame()
+	assert_not_null(sim.expedition.battle, "(a fight)")
+	var fighters: Array[Combatant] = []
+	fighters.append_array(sim.expedition.battle.heroes)
+	fighters.append_array(sim.expedition.battle.monsters)
+	for fighter: Combatant in fighters:
+		fighter.max_health *= 1000
+		fighter.health = fighter.max_health
+	_main.hud.boss_bar._guardian_id = _monster()
+	_frame()
+	assert_false(_main.world.catching_up(), "(the world is caught up)")
+
+
+## Every listener that starts something, by name: [the events of tick t that start it, given
+## (tick, monster); what it shows now, as a number a start changes; what puts it back at rest].
+func _probes() -> Dictionary[String, Array]:
 	var fx: CombatEffects = _main.effects
-	var frame: HeroFrameView = _main.hud.frames[0]
+	var hud: Hud = _main.hud
+	var moment: UiMoment = _main.ui.moment
+	var frame: HeroFrameView = hud.frames[0]
+	var shop: ShopWindow = hud.shop
+	var knight: CharacterSprite = _main.world.character(KNIGHT)
 	return {
-		"numbers": fx.live_numbers(),
-		"words": fx.ability_effects.texts().size(),
-		"spells": fx.spell_effects.live(),
-		"quest words": _main.world.fx.count(&"quest_text"),
-		"resource icons": fx.resource_effects.live_icons().size(),
-		"sounds": _main.sound.drain_started().size(),
-		"frame flash": 1 if frame._flash > 0.0 else 0,
-		"ticker": _main.hud.journal.ticker_text().hash(),
+		"combat numbers": [_hit.bind(KNIGHT, false), fx.live_numbers, func() -> void: pass],
+		"ability words":
+		[
+			_kind.bind(SimEvent.Kind.MISSED),
+			func() -> int: return fx.ability_effects.texts().size(),
+			func() -> void: pass
+		],
+		"spells": [_spell, fx.spell_effects.live, func() -> void: pass],
+		"quest words": [_learned, _main.world.fx.count.bind(&"quest_text"), func() -> void: pass],
+		"resource icons":
+		[
+			_resource,
+			func() -> int: return fx.resource_effects.live_icons().size(),
+			func() -> void: pass
+		],
+		"world bolts":
+		[_bolt, func() -> int: return _main.world._bolts.size(), func() -> void: pass],
+		"sounds":
+		[
+			_hit.bind(KNIGHT, false),
+			func() -> int: return _main.sound.drain_started().size(),
+			_quiet,
+		],
+		"hero frame flash":
+		[
+			_struck,
+			func() -> int: return 1 if frame._flash > 0.0 else 0,
+			func() -> void: frame._flash = 0.0
+		],
+		"journal ticker":
+		[_level_up, func() -> int: return hud.journal.ticker_text().hash(), func() -> void: pass],
+		"boss bar flash":
+		[
+			_hit.bind(KNIGHT, false),
+			func() -> int: return 1 if hud.boss_bar.is_flashing() else 0,
+			func() -> void: hud.boss_bar._flash = 0.0
+		],
+		# Goals start their celebration on the next advance unless an event was stale.
+		"goals":
+		[
+			_hit.bind(KNIGHT, false),
+			func() -> int: return 0,
+			func() -> void: hud.goals._stale = false
+		],
+		"shop row flash":
+		[
+			_bought,
+			func() -> int: return 1 if shop.rows[0].pips.flashing() >= 0 else 0,
+			func() -> void: shop.rows[0].stop()
+		],
+		"hero windows' banner": [_learned, moment.waiting, func() -> void: moment._waiting.clear()],
+		"milestones' burst":
+		[
+			_level_up,
+			func() -> int: return 1 if moment.is_bursting(frame) else 0,
+			func() -> void: moment._drop_all()
+		],
+		"ui moment": [_nothing, moment.bursts_seen, func() -> void: pass],
+		"fight moves":
+		[
+			_hit.bind(KNIGHT, true),
+			func() -> int: return knight.moves.names().size(),
+			func() -> void: knight.play_move(&"", 0.0)
+		],
+		# Last: a wipe changes what the world shows.
+		"defeat note":
+		[
+			_kind.bind(SimEvent.Kind.PARTY_WIPED),
+			func() -> int: return 1 if hud.defeat_note._telling else 0,
+			func() -> void: hud.defeat_note._telling = false
+		],
 	}
 
 
-## Sends one event each listener animates, all of tick [param tick], and says which listeners
-## started something.
-func _send_all(tick: int) -> Array[String]:
+## Sends what probe [param probe_name] listens for, of [param tick], through the simulation and the
+## world's sync, and says whether it started anything; with [param stall], a stall comes first.
+func _send(probe_name: String, tick: int, stall: bool = false) -> bool:
+	var probe: Array = _probes()[probe_name]
+	var rest: Callable = probe[2]
+	var shown: Callable = probe[1]
+	rest.call()
+	var before: int = shown.call()
+	if stall:
+		for i: int in World.STALL_TICKS * maxi(_main.world.speed, 1) + 2:
+			_main.simulation.step()
 	var monster: int = _monster()
 	assert_gt(monster, 0, "(a monster on screen)")
-	var frame: HeroFrameView = _main.hud.frames[0]
-	frame._flash = 0.0
-	_main.sound.drain_started()
-	var before: Dictionary[String, int] = _shown()
-	var level: int = _main.simulation.party.hero(KNIGHT).level + 1 + tick % 7
-	var events: Array[SimEvent] = [
-		SimEvent.new(SimEvent.Kind.HIT, tick, KNIGHT, monster, 7),
-		SimEvent.new(SimEvent.Kind.MISSED, tick, KNIGHT, monster),
-		SimEvent.new(SimEvent.Kind.MICROSKILL_LEARNED, tick, KNIGHT, 0),
-		SimEvent.new(SimEvent.Kind.RESOURCE_GAINED, tick, monster, 0, 2),
-		SimEvent.new(SimEvent.Kind.PROJECTILE_LAUNCHED, tick, MAGE, monster, 20),
-		SimEvent.new(SimEvent.Kind.HIT, tick, monster, KNIGHT, 3),
-		SimEvent.new(SimEvent.Kind.LEVEL_UP, tick, -1, KNIGHT, level),
-	]
+	var made: Callable = probe[0]
+	var events: Array[SimEvent] = []
+	var sent: Array = made.call(tick if not stall else _main.simulation.tick, monster)
+	events.assign(sent)
+	_main.simulation._events.append_array(events)
+	_main.world.sync(FRAME)
+	if probe_name == "ui moment":
+		_main.ui.moment.burst(_main.hud.frames[1], events[0])
+	if probe_name == "goals":
+		return not _main.hud.goals._stale
+	return shown.call() != before
+
+
+## Every voice free and no sound just played, so the next may start.
+func _quiet() -> void:
+	var sound: SoundPlayer = _main.sound
+	sound.drain_started()
+	sound._last_start.clear()
+	for i: int in sound._ends.size():
+		sound._ends[i] = -INF
+
+
+func _hit(tick: int, monster: int, source: int, crit: bool) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.HIT, tick, source, monster, 7, crit)]
+
+
+func _struck(tick: int, monster: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.HIT, tick, monster, KNIGHT, 3)]
+
+
+func _kind(tick: int, monster: int, kind: SimEvent.Kind) -> Array[SimEvent]:
+	return [SimEvent.new(kind, tick, KNIGHT, monster)]
+
+
+func _resource(tick: int, monster: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.RESOURCE_GAINED, tick, monster, 0, 2)]
+
+
+func _spell(tick: int, monster: int) -> Array[SimEvent]:
 	var spell := SimEvent.new(SimEvent.Kind.ABILITY_USED, tick, MAGE, monster)
 	spell.ability_id = &"frost_nova"
-	events.append(spell)
-	for event: SimEvent in events:
-		_main.world.sim_event.emit(event)
-	var after: Dictionary[String, int] = _shown()
-	var started: Array[String] = []
-	for key: String in before:
-		if after[key] != before[key]:
-			started.append(key)
-	return started
+	return [spell]
+
+
+func _bolt(tick: int, monster: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.PROJECTILE_LAUNCHED, tick, MAGE, monster, 20)]
+
+
+func _learned(tick: int, _monster_id: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.MICROSKILL_LEARNED, tick, KNIGHT, 0, 2)]
+
+
+## A level up to a level not told before, so the journal has a new line for it.
+func _level_up(tick: int, _monster_id: int) -> Array[SimEvent]:
+	_levels_told += 1
+	var level: int = _main.simulation.party.hero(KNIGHT).level + _levels_told
+	return [SimEvent.new(SimEvent.Kind.LEVEL_UP, tick, -1, KNIGHT, level)]
+
+
+func _bought(tick: int, _monster_id: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.UPGRADE_BOUGHT, tick, 0, -1, 1)]
+
+
+## An event no listener acts on, for a burst started by hand.
+func _nothing(tick: int, _monster_id: int) -> Array[SimEvent]:
+	return [SimEvent.new(SimEvent.Kind.TARGET_DEPTH_CHANGED, tick, -1, -1, 1)]
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -215,28 +354,19 @@ func test_r2_the_layer_empties_after_quiet() -> void:
 
 
 func test_r3_nothing_starts_for_an_old_event() -> void:
-	_start_main()
-	var old: int = _main.simulation.tick - World.ANIMATE_TICKS - 1
-	assert_eq(_send_all(old), [] as Array[String], "an old event starts nothing")
-	_frame()
-	var started: Array[String] = _send_all(_main.simulation.tick)
-	for key: String in _shown().keys():
-		assert_has(started, key, "a fresh one starts %s" % key)
+	_start_fight()
+	for probe: String in _probes():
+		var old: int = _main.simulation.tick - World.ANIMATE_TICKS * maxi(_main.world.speed, 1) - 1
+		assert_false(_send(probe, old), "an old event starts nothing: %s" % probe)
+		assert_true(_send(probe, _main.simulation.tick), "a fresh one starts it: %s" % probe)
 
 
 func test_r3_nothing_starts_while_catching_up() -> void:
-	_start_main()
-	for i: int in World.STALL_TICKS + 2:
-		_main.simulation.step()
-	_main.world.sync(FRAME)
-	assert_true(_main.world.catching_up(), "(the world catches up)")
-	assert_eq(_send_all(_main.simulation.tick), [] as Array[String], "a fresh event starts nothing")
-	_main.effects.advance(FRAME)
-	_frame()
-	assert_false(_main.world.catching_up(), "(caught up)")
-	var started: Array[String] = _send_all(_main.simulation.tick)
-	for key: String in _shown().keys():
-		assert_has(started, key, "then one starts %s" % key)
+	_start_fight()
+	for probe: String in _probes():
+		assert_false(_send(probe, 0, true), "a fresh event in a stall starts nothing: %s" % probe)
+		assert_true(_main.world.catching_up(), "(that sync caught up on a stall: %s)" % probe)
+		assert_true(_send(probe, _main.simulation.tick), "the next one starts it: %s" % probe)
 
 
 func test_r3_listeners_ask_the_gate() -> void:
