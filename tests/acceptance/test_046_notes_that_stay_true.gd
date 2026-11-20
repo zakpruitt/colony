@@ -238,7 +238,7 @@ func test_r2_holding_is_true() -> void:
 	assert_eq(_sim.expedition.guardian_order, Expedition.GuardianOrder.HOLD, "the order is Hold")
 	assert_eq(_note().suggestions(), ["Holding"] as Array[String], "and it reads Holding")
 	assert_true(hold.lit, "lit while holding")
-	assert_eq(_tip_of(hold), DefeatNote.HOLDING_TIP, "the Holding tooltip")
+	assert_eq(_tip_of(hold), DefeatNote.holding_tip(), "the Holding tooltip")
 
 	# The order goes back to Challenge through the orders panel while the note shows. (Spec 058
 	# moved the panel into a window on the UI layer; one made on its own sends the same command.)
@@ -518,7 +518,7 @@ func test_r8_measures_say_what_they_count() -> void:
 
 func test_r9_help_row() -> void:
 	var text: String = ""
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		if str(entry[0]) == "Q E":
 			text = str(entry[1])
 	# Spec 058 shortened the row to fit the help window's column on one line, and spec 060 again

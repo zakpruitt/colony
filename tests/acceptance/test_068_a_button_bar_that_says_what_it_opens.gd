@@ -43,8 +43,8 @@ func _spellings(text: String, word: String) -> Array[String]:
 
 ## What the help's key list says the key [param keycode] does; "" when it does not list it.
 func _help_says(keycode: Key) -> String:
-	for entry: Array in HelpPanel.KEYS:
-		if HelpPanel.keycodes(str(entry[0])).has(keycode):
+	for entry: Array in KeyBook.entries():
+		if KeyBook.keycodes(str(entry[0])).has(keycode):
 			return str(entry[1])
 	return ""
 
@@ -183,7 +183,7 @@ func test_r2_one_name_per_window_everywhere() -> void:
 	var main: Main = await _settled(ROOM_LARGE)
 	var bar: UiButtonBar = main.ui.bar
 	var said: Array[String] = []
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		said.append(str(entry[1]))
 	said.append_array(HelpPanel.IDEA)
 	for id: StringName in NAMES:
@@ -242,16 +242,18 @@ func test_r2_one_name_per_window_everywhere() -> void:
 		Goals.CLICKS[Goals.Kind.GUARDIAN]: "Orders",
 		Goals.CLICKS[Goals.Kind.VISIT]: "Map",
 		DefeatNote.TIPS[DefeatNote.Help.UPGRADE]: "Camp",
-		Hud.AREA_TIP: "Map",
+		Hud.area_tip(): "Map",
 		Showcase.CAPTIONS[&"shop"]: "CAMP",
 		Showcase.CAPTIONS[&"area_map"]: "MAP",
 	}
 	for text: String in naming:
 		assert_gt(_spellings(text, naming[text]).size(), 0, "'%s' names the window" % text)
 	var all: Array[String] = texts.values()
-	assert_true(all.has("Open the Camp (U) and spend gold on the whole party."), "the upgrade goal")
 	assert_true(
-		all.has("%s is open: send the party there from the Map (W)."), "the new area's goal"
+		all.has("Open the Camp (%s) and spend gold on the whole party."), "the upgrade goal"
+	)
+	assert_true(
+		all.has("%s is open: send the party there from the Map (%s)."), "the new area's goal"
 	)
 	# The wiki: Camp, never the shop; and its table of keys names each window as its button does.
 	var wiki: String = FileAccess.get_file_as_string(WIKI)

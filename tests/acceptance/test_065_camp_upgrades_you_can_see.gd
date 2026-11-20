@@ -766,7 +766,7 @@ func test_r10_fits_both_rooms() -> void:
 
 func test_r11_help_wiki_and_showcase() -> void:
 	var keys: Dictionary[String, String] = {}
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys[str(entry[0])] = str(entry[1])
 	# Spec 068 R2: the help calls the shop what its button does, the Camp.
 	assert_string_contains(str(keys.get("U", "")), "Camp", "U opens the shop")

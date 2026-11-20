@@ -49,7 +49,6 @@ const TIPS: Dictionary[Help, String] = {
 	Help.UPGRADE: "Opens the Camp: upgrades make the whole party stronger.",
 	Help.HOLD: "Orders the party to stay away from guardians and grow stronger first.",
 }
-const HOLDING_TIP: String = "The party stays away from guardians until Orders (O) sends it in."
 
 ## The note seen, on the sharp layer; the lines and buttons are its children.
 var panel: DefeatNoteView
@@ -170,6 +169,14 @@ func _update(delta: float) -> void:
 	panel.visible = told
 	if told:
 		_show()
+
+
+## The Hold suggestion's tooltip while the party already holds.
+static func holding_tip() -> String:
+	return (
+		"The party stays away from guardians until Orders (%s) sends it in."
+		% KeyBook.label(UiRoot.ORDERS)
+	)
 
 
 ## True while the note is on screen.
@@ -413,7 +420,7 @@ func _tip(index: int) -> String:
 	if index < 0 or index >= _shown.size():
 		return ""
 	if _shown[index] == Help.HOLD and _holding():
-		return HOLDING_TIP
+		return holding_tip()
 	return TIPS[_shown[index]]
 
 

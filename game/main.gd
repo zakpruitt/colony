@@ -121,8 +121,7 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or key.keycode != KEY_F:
+	if not KeyBook.pressed(event, KEY_F):
 		return
 	cycle_speed()
 	get_viewport().set_input_as_handled()

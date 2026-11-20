@@ -6,7 +6,8 @@ extends HBoxContainer
 ## ([member UiWindow.short_name]) and its key in a small key cap. A click opens or closes the
 ## window; a button
 ## is lit while its window is open; resting on one gives the window's title, its key and what it
-## is for in one sentence ([code]Journal (J): what has happened to the party, newest first.[/code]).
+## is for in one sentence ([code]Journal (J): what has happened to the party, newest first.[/code]),
+## all from the window's [WindowEntry].
 ## The last button, [member reset_button], puts every window back in its default place.
 ##
 ## The row has two forms ([method fit_room]). With room for it, each button is its
@@ -44,15 +45,6 @@ const NARROW_LEFT_ROOM: float = 635.0
 ## the most it reaches outside the button (no more than [constant GAP], so never onto the next).
 const TAG_ON_ICON: float = 6.0
 const TAG_OUTSIDE: float = 2.0
-## What each window is for, the end of its button's tooltip after its title and key.
-const ABOUT: Dictionary[StringName, String] = {
-	UiRoot.HELP: "how Colony works, and every key it answers to.",
-	UiRoot.JOURNAL: "what has happened to the party, newest first.",
-	UiRoot.ORDERS: "how careful the party is, and whether it fights guardians.",
-	ShopWindow.ID: "spend gold on upgrades for the whole party.",
-	AreaMapWindow.ID: "the areas the party can go to, and what each holds.",
-	TallyWindow.ID: "who deals, heals and takes the damage.",
-}
 ## The reset button's word and tooltip.
 const RESET_NAME: String = "Reset"
 const RESET_TIP: String = "Put every window back in its place"
@@ -120,13 +112,15 @@ func setup(ui: UiRoot, windows: UiWindows) -> void:
 	rebuild()
 
 
-## Makes a button for each window there is, then lays the bar out.
+## Makes a button for each window of the layer's [member UiRoot.entries], in their order, its
+## name, key and tooltip theirs; then lays the bar out.
 func rebuild() -> void:
-	for id: StringName in _windows.ids():
+	for entry: WindowEntry in _ui.entries:
+		var id: StringName = entry.id
 		var shown: UiWindow = _windows.window(id)
-		if buttons.has(id) or not shown.on_bar:
+		if buttons.has(id) or shown == null or not shown.on_bar:
 			continue
-		var button := UiButton.new(shown.title if shown.short_name.is_empty() else shown.short_name)
+		var button := UiButton.new(entry.short_name)
 		button.name = "Button_%s" % id
 		button.icon = shown.icon
 		button.theme_type_variation = UiTheme.BAR_BUTTON
@@ -135,7 +129,7 @@ func rebuild() -> void:
 		add_child(button)
 		move_child(button, reset_button.get_index())
 		buttons[id] = button
-		tip.attach(button, _tip_for(shown))
+		tip.attach(button, entry.tip())
 		var tag := UiBadge.new()
 		tag.name = "Badge_%s" % id
 		tag_layer.add_child(tag)
@@ -216,13 +210,6 @@ func _shape(over: bool, keys: bool) -> void:
 	for id: StringName in buttons:
 		buttons[id].key_corner = over
 		buttons[id].key_hint = _windows.window(id).key_hint if keys else ""
-
-
-## The tooltip of [param shown]'s button: its title, its key and what it is for.
-func _tip_for(shown: UiWindow) -> String:
-	var named: String = "%s (%s)" % [shown.title, shown.key_hint]
-	var about: String = ABOUT.get(shown.window_id, "")
-	return named if about.is_empty() else "%s: %s" % [named, about]
 
 
 func _icon(part: StringName) -> Texture2D:

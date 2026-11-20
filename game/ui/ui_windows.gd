@@ -44,8 +44,7 @@ func _input(event: InputEvent) -> void:
 		if under != null:
 			raise(under)
 		return
-	var key: InputEventKey = event as InputEventKey
-	if key != null and key.pressed and not key.echo and key.keycode == KEY_ESCAPE:
+	if KeyBook.pressed(event, KEY_ESCAPE):
 		var top: UiWindow = front()
 		if top != null:
 			top.close()
@@ -53,8 +52,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo:
+	var key: InputEventKey = KeyBook.fresh_key(event)
+	if key == null:
 		return
 	for id: StringName in _ids:
 		if _windows[id].keycode == key.keycode:

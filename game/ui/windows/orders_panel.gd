@@ -1,14 +1,15 @@
 class_name OrdersPanel
-extends VBoxContainer
+extends WindowContent
 ## The party's orders: one row per order, its name and a button per choice with the current one
 ## lit, and the current choice explained in a full sentence under it. It is the content of the
 ## Orders window ([kbd]O[/kbd], its button on the button bar, or a click on a held guardian's
 ## goal); it never pauses the game.
 ##
-## It reads the orders from the simulation every frame, so a loaded save shows the saved orders;
-## a click sends [method Simulation.set_pace] or [method Simulation.set_guardian_order], and the
-## choice is lit at once, before the simulation applies it on its next step. From that step on each
-## row lights the simulation's own value again, whatever it holds.
+## It reads the orders from the simulation each time it is advanced, so a loaded save shows the
+## saved orders; a click sends [method Simulation.set_pace] or
+## [method Simulation.set_guardian_order], and the choice is lit at once, before the simulation
+## applies it on its next step. From that step on each row lights the simulation's own value
+## again, whatever it holds.
 
 ## The rows, in order: [constant PartyOrders.PACE] then [constant PartyOrders.GUARDIANS].
 const ORDER_NAMES: Array[String] = ["Pace", "Guardians"]
@@ -63,12 +64,8 @@ var _asked_tick: int = 0
 
 func _init() -> void:
 	name = "OrdersPanel"
-	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	closes_away = false
 	add_theme_constant_override(&"separation", 10)
-
-
-func _process(delta: float) -> void:
-	advance(delta)
 
 
 ## Call once, before the first advance. [param tips] gives each choice its sentence as a tooltip
@@ -108,7 +105,7 @@ func setup(simulation: Simulation, tips: UiTip) -> void:
 	advance(0.0)
 
 
-## Brings the rows up to date with the simulation. Called every frame; tests call it.
+## Brings the rows up to date with the simulation. Called every frame by [UiRoot]; tests call it.
 func advance(_delta: float) -> void:
 	if _simulation == null:
 		return
@@ -116,7 +113,7 @@ func advance(_delta: float) -> void:
 	for order: int in choice_buttons.size():
 		if _asked[order] >= 0 and (stepped or _asked[order] == _current(order)):
 			_asked[order] = -1
-		var shown: int = _shown(order)
+		var shown: int = _lit(order)
 		var buttons: Array = choice_buttons[order]
 		for value: int in buttons.size():
 			(buttons[value] as UiButton).lit = value == shown
@@ -131,7 +128,7 @@ func line(order: int) -> String:
 	if order < 0 or order >= LINES.size():
 		return ""
 	var lines: Array = LINES[order]
-	var shown: int = _shown(order)
+	var shown: int = _lit(order)
 	if shown < 0 or shown >= lines.size():
 		return ""
 	var text: String = lines[shown]
@@ -167,7 +164,7 @@ func _current(order: int) -> int:
 
 
 ## The value lit for [param order]: the one asked for until the simulation applies it, then its own.
-func _shown(order: int) -> int:
+func _lit(order: int) -> int:
 	if _simulation == null:
 		return -1
 	return _asked[order] if _asked[order] >= 0 else _current(order)

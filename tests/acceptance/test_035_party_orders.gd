@@ -811,8 +811,8 @@ func test_r9_explains_itself() -> void:
 	# O is in the help window's key list.
 	var help: HelpPanel = _main.ui.windows.window(UiRoot.HELP).content as HelpPanel
 	var listed: bool = false
-	for entry: Array in HelpPanel.KEYS:
-		if HelpPanel.keycodes(str(entry[0])).has(KEY_O):
+	for entry: Array in KeyBook.entries():
+		if KeyBook.keycodes(str(entry[0])).has(KEY_O):
 			listed = true
 			assert_has(help.lines(), "%s  %s" % [entry[0], entry[1]], "the panel lists O")
 	assert_true(listed, "O is in the key list")

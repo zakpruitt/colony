@@ -80,7 +80,10 @@ func visit_goals() -> Array[Goals.Goal]:
 			"Visit " + called,
 			-1.0,
 			"",
-			"%s is open: send the party there from the Map (W)." % called
+			(
+				"%s is open: send the party there from the Map (%s)."
+				% [called, KeyBook.label(AreaMapWindow.ID)]
+			)
 		)
 		goal.area = id
 		goal.done = "Goal: visited " + called

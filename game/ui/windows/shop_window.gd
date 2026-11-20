@@ -17,10 +17,9 @@ extends WindowContent
 ## HUD hears them). While it is closed, its window's [member UiWindow.badge] counts the upgrades
 ## the party can pay for: the amber tag on the bar's Shop button.
 
-## The window's id, title and key.
+## The window's id and title (its key is its entry's, in [WindowBook]).
 const ID: StringName = &"shop"
 const TITLE: String = "Camp upgrades"
-const HOTKEY: String = "U"
 ## The Auto-buy switch's sentence.
 const AUTO_BUY_LINE: String = "Buys the cheapest upgrade the party can pay for, once a second."
 ## UI pixels between rows (their own padding is the space; a rule divides them), and between the

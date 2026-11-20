@@ -23,7 +23,7 @@ const WORLD_SIZE: Vector2i = Vector2i(640, 360)
 const MIN_ROOM: Vector2i = Vector2i(960, 540)
 ## The canvas layer the UI is drawn on: above the HUD's layer (10) and the effects.
 const LAYER: int = 20
-## The ids of the windows this layer makes itself.
+## The ids of help, the journal and the orders, whose entries [WindowBook] holds.
 const HELP: StringName = &"help"
 const JOURNAL: StringName = &"journal"
 const ORDERS: StringName = &"orders"
@@ -45,6 +45,9 @@ var bar: UiButtonBar
 ## A window per hero, made by [method setup] when there is a HUD.
 var hero_windows: HeroWindows
 
+## The windows on the bar as [WindowBook] lists them, each with a window, made by
+## [method setup].
+var entries: Array[WindowEntry] = []
 ## The tooltip the windows and the button bar share, made by [method setup].
 var tip: UiTip
 ## The moment a gain is marked, above the windows, made by [method setup].
@@ -52,6 +55,8 @@ var moment: UiMoment
 
 ## The HUD whose frame of the screen is on this layer, or null.
 var _hud: Hud
+## The contents this layer made and advances (help, the journal, the orders, any added).
+var _advanced: Array[WindowContent] = []
 ## The report after time away while it is up.
 var _away: AwayWindow
 var _world_scale: int = 1
@@ -105,9 +110,9 @@ static func _restore_mode() -> void:
 		tree.root.content_scale_mode = _saved_mode
 
 
-## Makes the windows (help, the journal and the orders) and the button bar, puts
-## each window back where [param settings] last had it (null: nowhere, as in tests and screenshots)
-## and tells [param hud] of them. Call once, after the layer is in the tree.
+## Makes the windows of [WindowBook] and the button bar, puts each window back where
+## [param settings] last had it (null: nowhere, as in tests and screenshots) and tells [param hud]
+## of them. Call once, after the layer is in the tree.
 func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	windows = UiWindows.new()
 	windows.setup(self, settings)
@@ -118,26 +123,8 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	frame.add_child(bar)
 	frame.add_child(windows)  # over the bar
 	windows.fit_room(_room)
-	var icons: PixelSheet = PixelSheet.load_sheet(ICONS_PATH)
-	tip = UiTip.new()  # the orders' choices share the bar's look of tooltip
-	var help := UiWindow.new(HELP, HelpPanel.TITLE, HelpPanel.new(), "H", KEY_H)
-	var view := JournalView.new()
-	var journal := UiWindow.new(JOURNAL, "Journal", view, "J", KEY_J)
-	var panel := OrdersPanel.new()
-	var orders := UiWindow.new(ORDERS, OrdersPanel.TITLE, panel, "O", KEY_O)
-	# The one word for each window, on its button and wherever else it is named.
-	help.short_name = "Help"
-	journal.short_name = "Journal"
-	orders.short_name = "Orders"
-	for made: UiWindow in [help, journal, orders]:
-		made.icon = icons.part(made.window_id) if icons != null else null
-	if hud != null and hud.journal != null:
-		view.setup(hud.journal)
-	panel.setup(simulation, tip)
-	var made_here: Array[UiWindow] = [help, journal, orders]
-	made_here.append_array(_management_windows(hud, icons, tip))
-	for made: UiWindow in made_here:
-		windows.register(made)
+	tip = UiTip.new()  # the windows' controls share the bar's look of tooltip
+	var made_here: Array[UiWindow] = _make_windows(simulation, hud)
 	if hud != null:  # the hero windows, each opened from its hero's frame
 		hero_windows = HeroWindows.new()
 		frame.add_child(hero_windows)
@@ -160,6 +147,18 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
+## Advances the contents this layer made by [param delta] seconds. Called every frame; tests
+## call it.
+func advance(delta: float) -> void:
+	for content: WindowContent in _advanced:
+		if is_instance_valid(content):
+			content.advance(delta)
+
+
+func _process(delta: float) -> void:
+	advance(delta)
+
+
 ## Opens the report after time away telling of [param report]: a window in the middle
 ## of the room, in front of every other. Call after [method setup].
 func show_away(report: AwayReport, party: Party) -> AwayWindow:
@@ -172,68 +171,42 @@ func show_away(report: AwayReport, party: Party) -> AwayWindow:
 	return made
 
 
-## The shop, the area map and the tally, which [param hud] made so they hear the
-## simulation from the start, each put in a window of its own with its icon and its key, and
-## given [param shared] for its tooltips. None without a HUD.
-func _management_windows(hud: Hud, icons: PixelSheet, shared: UiTip) -> Array[UiWindow]:
+## A window for each entry of [WindowBook] whose content there is, registered in the list's
+## order, each with its icon and its key; the bar's own list is kept as [member entries].
+func _make_windows(simulation: Simulation, hud: Hud) -> Array[UiWindow]:
+	var icons: PixelSheet = PixelSheet.load_sheet(ICONS_PATH)
 	var made: Array[UiWindow] = []
-	if hud == null or hud.shop == null or hud.area_map == null or hud.tally == null:
-		return made
-	made.append(UiWindow.new(ShopWindow.ID, ShopWindow.TITLE, hud.shop, ShopWindow.HOTKEY, KEY_U))
-	made.append(
-		UiWindow.new(
-			AreaMapWindow.ID, AreaMapWindow.TITLE, hud.area_map, AreaMapWindow.HOTKEY, KEY_W
+	entries.clear()
+	for entry: WindowEntry in WindowBook.entries(simulation, hud, tip):
+		var content: WindowContent = entry.make_content.call()
+		if content == null:
+			continue
+		var shown := UiWindow.new(
+			entry.id, entry.title, content, KeyBook.key_name(entry.key), entry.key
 		)
-	)
-	made.append(
-		UiWindow.new(TallyWindow.ID, TallyWindow.TITLE, hud.tally, TallyWindow.HOTKEY, KEY_T)
-	)
-	made[0].short_name = "Camp"
-	made[1].short_name = "Map"
-	made[2].short_name = "Tally"
-	for each: UiWindow in made:
-		each.icon = icons.part(each.window_id) if icons != null else null
-	hud.shop.add_tips(shared)
-	hud.area_map.add_tips(shared)
-	hud.tally.add_tips(shared)
+		shown.short_name = entry.short_name
+		if icons != null and icons.has_part(entry.icon_part):
+			shown.icon = icons.part(entry.icon_part)
+		if not entry.advanced_elsewhere:
+			_advanced.append(content)
+		entries.append(entry)
+		windows.register(shown)
+		made.append(shown)
 	return made
 
 
-## Works out each window's default place for the room it has now: the journal at the top left
-## under the HUD's top band, help at the top right, and the orders under the journal. Then
-## the tally at the top left, the shop at the top right and the area map between them, side by
-## side so all three open at once with none over another, all clear of the hero frames' line
-## (they lie over the journal, help and the orders, which a click brings back to the front).
+## Works out each window's default place for the room it has now, as its [WindowEntry] says,
+## in the list's order; then the hero windows'.
 func place_defaults() -> void:
 	if windows == null:
 		return
 	var top: float = ceilf(world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + PLACE_GAP / 2.0
-	var journal: UiWindow = windows.window(JOURNAL)
-	var orders: UiWindow = windows.window(ORDERS)
-	var help: UiWindow = windows.window(HELP)
-	if journal != null:
-		journal.default_place = Vector2(PLACE_GAP, top)
-	if orders != null and journal != null:
-		orders.default_place = Vector2(PLACE_GAP, top + journal.size.y + PLACE_GAP)
-	if help != null:
-		help.default_place = Vector2(_room.x - PLACE_GAP - help.size.x, top)
-	var tally: UiWindow = windows.window(TallyWindow.ID)
-	var shop: UiWindow = windows.window(ShopWindow.ID)
-	var map: UiWindow = windows.window(AreaMapWindow.ID)
-	if tally != null and shop != null and map != null:
-		_place_management(tally, shop, map, top)
+	for entry: WindowEntry in entries:
+		var shown: UiWindow = windows.window(entry.id)
+		if shown != null:
+			shown.default_place = entry.place.call(shown, Vector2(_room), top, windows)
 	if hero_windows != null:
 		hero_windows.place_defaults()
-
-
-## The tally at the top left, the shop at the top right, the map between them.
-func _place_management(tally: UiWindow, shop: UiWindow, map: UiWindow, top: float) -> void:
-	tally.default_place = Vector2(PLACE_GAP, top)
-	shop.default_place = Vector2(_room.x - PLACE_GAP - shop.size.x, top)
-	var left: float = tally.default_place.x + tally.size.x + PLACE_GAP
-	var right: float = shop.default_place.x - PLACE_GAP
-	var middle: float = floorf((_room.x - map.size.x) / 2.0)
-	map.default_place = Vector2(clampf(middle, left, maxf(right - map.size.x, left)), top)
 
 
 ## The top of the hero frames' line in this layer's room, in the world's 640x360 screen pixels.

@@ -16,10 +16,9 @@ extends WindowContent
 ## away adds nothing. It changes nothing in the simulation. Its [StatusBook] also gives the hero
 ## frames their statuses ([method status_line]).
 
-## The window's id, title and key.
+## The window's id and title (its key is its entry's, in [WindowBook]).
 const ID: StringName = &"tally"
 const TITLE: String = "Party tally"
-const HOTKEY: String = "T"
 ## The tab names, in [enum Tally.Measure] order, and the switch's, in [enum Tally.Span] order.
 const TAB_NAMES: Array[String] = ["Damage", "Healing", "Taken"]
 const SPAN_NAMES: Array[String] = ["Last fight", "Session"]

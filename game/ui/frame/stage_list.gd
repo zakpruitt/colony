@@ -127,8 +127,7 @@ func _init() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or key.keycode != KEY_L:
+	if not KeyBook.pressed(event, KEY_L):
 		return
 	_wanted = not _wanted
 	advance(0.0)
