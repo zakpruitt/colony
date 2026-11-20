@@ -55,9 +55,12 @@ incomplete, stop and report the question.
   says why. No `Co-Authored-By` or "Generated with" lines in commits or pull requests.
 - **Keep the wiki true.** `docs/wiki/index.html` is Zak's plain-language guide to how the game works and how to
   run it. When your change makes a "Planned" item real or changes a command, update it in the same pull request.
-- **A new key goes in the help list.** `HelpPanel.KEYS` (`game/hud/help_panel.gd`) lists every key the game
-  answers to; spec 030's R3 test reads every `KEY_…` name in `game/` and fails on one the list does not cover
-  (so do not name a constant `KEY_…`), and presses each listed key to see it do something.
+- **A new key goes in the key table.** `KeyBook.ROWS` (`game/ui/key_book.gd`) holds every key the game answers
+  to (a bar window's key is its `WindowEntry`'s, in `WindowBook`); the help's list is `KeyBook.entries()`.
+  Spec 030's R3 test reads every `KEY_…` name in `game/` and fails on one the table does not cover (so do not
+  name a constant `KEY_…`), and presses each listed key to see it do something. Input code asks
+  `KeyBook.pressed(event, key)` (or `fresh_key`), never `key.echo` itself, and a sentence that names a key
+  asks `KeyBook.label(action)` for its letter (spec 074's tests check both).
 - **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
   in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in

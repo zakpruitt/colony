@@ -65,7 +65,7 @@ The picture is drawn in two layers, each in its own pixels.
   per window, each with a `UiBadge` showing the window's `UiWindow.badge` count (the shop's affordable
   upgrades, the map's newly opened areas); a window with `on_bar` false (a hero window) has no button.
   Each button says what it opens (spec 068): the window's icon, its `UiWindow.short_name` (one word per
-  window, given where the window is made in `UiRoot`, the same in the help's key list, the goals, the notes
+  window, given by its `WindowEntry`, the same in the help's key list, the goals, the notes
   and the tooltips: the shop, titled `Camp upgrades`, is `Camp`) and its key in a key cap
   (`UiButton.key_cap`). `UiButtonBar.fit_room` picks the first form that fits: icon, name and key side by
   side where that leaves `LEFT_ROOM` at the bar's left (1280x720); else each icon over its name with the
@@ -86,10 +86,25 @@ The picture is drawn in two layers, each in its own pixels.
   Esc closes the front window (`UiWindows`), and a click anywhere on a window brings it to the front.
   The `Hud` hears the keys and asks `UiWindows.front()` (`Hud._in_front`).
 - **Window contents made by the HUD** (spec 059): `ShopWindow`, `AreaMapWindow` and `TallyWindow`
-  (`game/ui/windows/`, all `WindowContent`) are made by `Hud.setup` as `hud.shop`, `hud.area_map` and
-  `hud.tally`, so they hear the world's events from the start, and `UiRoot.setup` puts each in a window.
+  (`game/ui/windows/`, all `WindowContent`) are made and advanced by `Hud.setup` as `hud.shop`,
+  `hud.area_map` and `hud.tally`, so they hear the world's events from the start; their entries hand them
+  to `UiRoot.setup`, which puts each in a window. `HelpPanel`, `JournalView` and `OrdersPanel` are
+  made by their entries and advanced by `UiRoot.advance`; no content runs its own `_process`.
   They open and close through their window (`WindowContent.open`), so without a `UiRoot` (a HUD-only
   test) they never open: such a test adds one. `UiBar` is the UI layer's thin bar.
+- **One list of windows, one table of keys** (spec 074). `WindowBook.entries()`
+  (`game/ui/windows/window_book.gd`) lists the bar's windows in order, a `WindowEntry` each: its id,
+  title, short name, key, the sentence its tooltip ends with, its icon part, its default place (a
+  `place` callable: `WindowBook.top_left`, `top_right`, `under`, `between`) and `make_content`.
+  `UiRoot` makes the windows from it (`UiRoot.entries`), the bar takes each button's name, key and
+  tooltip from it, and `KeyBook` each window's help line. To add a window, add an entry there and a
+  part to `window_icons.px`; nothing else changes (a test adds one with `WindowBook.add`). `KeyBook`
+  (`game/ui/key_book.gd`) holds every other key in `ROWS`: its action, label, what it does and when it
+  applies, with a window's row standing where its line goes in the help (an entry the table does not
+  name goes at the end). `KeyBook.entries()` is the help's list, `KeyBook.pressed(event, key)` and
+  `fresh_key(event)` the one test of a fresh press every piece of input code uses, and
+  `KeyBook.label(action)` the letter a sentence writes ("Orders (O) sends it in"). To add a key, add a
+  row and handle it where it acts, asking `KeyBook.pressed`.
 - **The frame of the screen** (spec 061, `game/ui/frame/`): `PlacePanel` and `Countdown` at the top left,
   `Purse` (with the speed button) at the top right, `BossBarView` between them in a guardian fight, and a
   `HeroFrameView` per hero along the bottom. The `Hud` builds them under `Hud.screen_frame`, keeps making
