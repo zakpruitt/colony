@@ -29,14 +29,18 @@ changes.
   line in help, opens and closes with its key, and is remembered like the others, with no other code
   changed.
 - **R4. Every window's content is a `WindowContent`.** `OrdersPanel`, `JournalView` and `HelpPanel`
-  join `ShopWindow`, `AreaMapWindow` and `TallyWindow`: one base, each made by its entry, each advanced
-  through `advance` by whoever owns the windows, and none runs its own `_process` (`OrdersPanel` and
-  `JournalView` do today). What each needs in its own `setup` may differ. The six live under
-  `game/ui/windows/`.
+  join `ShopWindow`, `AreaMapWindow` and `TallyWindow`: one base, each handed over by its entry, and
+  none runs its own `_process` (`OrdersPanel` and `JournalView` do today). `UiRoot` makes and advances
+  help, the journal, the orders and any added entry. `Hud` still makes and advances the shop, the map
+  and the tally (tests build a `Hud` with no `UiRoot` and read them, and the showcase reaches them
+  through it); their entries hand over the `Hud`'s instances, and spec 075 moves them. What each needs
+  in its own `setup` may differ, and each can still be made and set up on its own as tests do today.
+  The six live under `game/ui/windows/`.
 - **R5. A key is one entry.** One table holds every key the game answers to: its label, what it does
   (the help's text), and when it applies ("Camp in front", "Talents tab", always). One helper answers
   "is this event a fresh press of that key"; the eight hand-written guards use it. The help list is
-  built from the table and shows the same lines in the same order as today.
+  built from the table and shows the same lines in the same order as today; an added window's line
+  goes at the end.
 - **R6. Text names a key by asking.** The "(O)", "(U)", "(W)" and "press F" written into tooltips,
   goals, notes and news are read from the table, so the words on screen are unchanged and a key's
   letter is written in one place.
@@ -87,12 +91,13 @@ In `tests/acceptance/test_074_one_list_of_windows_and_keys.gd` (extends `ColonyT
 ## Out of scope
 
 - Rebinding keys, new windows, new keys. Hero windows and the away window (they are not on the bar).
-- Splitting `Hud` further than moving the window contents and their keys out of it (spec 075).
+- Moving the shop, the map and the tally out of `Hud`, or splitting it any other way (spec 075).
   Per-frame refresh work (075). Effects and event listeners (076).
 
 ## Paths
 
-- `game/ui/`, `game/hud/`, `game/main.gd`, `game/audio/` and `game/world/world.gd` (their key guards only)
+- `game/ui/`, `game/hud/`, `game/main.gd`; `game/audio/`, `game/world/world.gd` and
+  `game/window_settings.gd` (their key guards only)
 - `tests/` (R1's renames; `test_074_…` new)
 - `CLAUDE.md`, `docs/architecture.md`, `docs/wiki/index.html`, `.claude/skills/write-spec/SKILL.md`
   (its note on adding a key)
