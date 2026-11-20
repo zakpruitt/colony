@@ -237,7 +237,7 @@ func test_r4_the_burst() -> void:
 	var main: Main = _settled(ROOM_LARGE)
 	var moment: UiMoment = main.ui.moment
 	assert_not_null(moment, "the moment is on the UI layer")
-	moment.set_process(false)
+	main.ui.set_process(false)
 	var row := HBoxContainer.new()
 	row.position = Vector2(300, 300)
 	main.ui.frame.add_child(row)

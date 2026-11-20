@@ -2,7 +2,8 @@ class_name CrossingVeil
 extends Control
 ## The dark between places: it covers the world, under the rest of the HUD,
 ## as dark as [method ZoneCrossing.darkness] says, with the crossing's title in the middle.
-## It follows the world's crossing by itself each frame; tests call [method refresh].
+## The [Hud] that holds it refreshes it at the end of each of its frames, after the world has
+## synced; tests call [method refresh].
 
 ## The veil's colour, at full darkness.
 const INK: StringName = &"ink"
@@ -20,7 +21,6 @@ var _world: World
 
 func _init() -> void:
 	name = "CrossingVeil"
-	process_priority = 3  # after the world (1) has synced, so it shows this frame's crossing
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	size = HudFrame.SCREEN
 	title_label = PixelText.label("", TITLE_COLOUR)
@@ -28,10 +28,6 @@ func _init() -> void:
 	title_label.scale = Vector2.ONE * TITLE_SCALE
 	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(title_label)
-
-
-func _process(_delta: float) -> void:
-	refresh()
 
 
 ## Call once: the veil follows [param world]'s crossing.

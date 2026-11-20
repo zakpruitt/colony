@@ -1,7 +1,7 @@
 class_name UiFormat
 extends RefCounted
-## How the UI writes a number or a time, and where a control is on the screen: the one place each
-## is worked out, for every piece of the frame, every window and the effects.
+## How the UI writes a number, a time or a sentence's piece, and where a control is on the screen:
+## the one place each is worked out, for every piece of the frame, every window and the effects.
 
 
 ## [param value] with a comma between each group of three digits: 1234567 is "1,234,567".
@@ -38,6 +38,12 @@ static func short_count(value: int) -> String:
 static func clock(seconds: float) -> String:
 	var whole: int = ceili(seconds)
 	return "%d:%02d" % [whole / 60, whole % 60]
+
+
+## [param text] as it reads inside a sentence: its first letter in lower case and no full stop at
+## its end ("Opens locks" is "opens locks").
+static func lower_first(text: String) -> String:
+	return text.left(1).to_lower() + text.substr(1).trim_suffix(".") if not text.is_empty() else ""
 
 
 ## Where [param control] is, as a rectangle in the screen's 640x360 pixels (where input events

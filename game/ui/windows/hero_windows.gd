@@ -272,9 +272,11 @@ func flash_paragon(hero_id: int, index: int) -> void:
 static func frame_tip(hero: Hero, statuses: String = "") -> String:
 	var titled: String = HeroTalentsTab.title(hero) if hero != null and hero.path() >= 0 else ""
 	if statuses.is_empty():
-		return "Click for details" if titled.is_empty() else "%s: click for details" % titled
+		if titled.is_empty():
+			return HeroFrameView.CLICK_TIP
+		return "%s: %s" % [titled, UiFormat.lower_first(HeroFrameView.CLICK_TIP)]
 	var said: String = statuses if titled.is_empty() else "%s: %s" % [titled, statuses]
-	return "%s. Click for details" % said
+	return "%s. %s" % [said, HeroFrameView.CLICK_TIP]
 
 
 func _on_taken(event: SimEvent, moment: UiMoment) -> void:

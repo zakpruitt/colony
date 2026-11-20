@@ -1,5 +1,5 @@
 class_name Countdown
-extends Panel
+extends FramePiece
 ## The road to stable beside the place panel, on the sharp layer: the note
 ## ([code]Stable in 8:29[/code], [code]Further in 0:42[/code], [code]Stable[/code] or
 ## [code]Holding[/code]) over a bar that fills toward it while it
@@ -78,6 +78,24 @@ func show_road(note: String, next: String, filled: float, height: float) -> void
 ## The share of the bar filled, as last shown.
 func progress() -> float:
 	return _progress
+
+
+## The countdown's tooltip says what decides what happens next.
+func add_tips(tips: UiTip) -> void:
+	tips.attach(self, _tip)
+
+
+func _tip() -> String:
+	var note: String = note_label.text
+	if note.begins_with("Further in"):
+		return "Time left until Auto takes the party a stage further."
+	if note == "Holding":
+		return HudFrame.holding_tip()
+	if bar.visible:
+		return "Time left until this stage is safe."
+	if next_label.text.begins_with("staying"):
+		return "Safe, and Auto is off: the party stays until Auto is on or the target is further."
+	return "This stage is safe: a wipe comes back here."
 
 
 func _draw_bar() -> void:

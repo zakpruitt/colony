@@ -213,8 +213,8 @@ func test_r2_one_name_per_window_everywhere() -> void:
 	assert_eq(main.ui.windows.window(&"shop").title, "Camp upgrades", "the shop's title")
 	for line: String in said:
 		assert_eq(_spellings(line, "shop"), [] as Array[String], "the help says Camp: %s" % line)
-	assert_eq(_spellings(Hud.GOLD_TIP, "shop"), [] as Array[String], "so does the gold's tooltip")
-	assert_gt(_spellings(Hud.GOLD_TIP, "Camp").size(), 0, "which names the Camp")
+	assert_eq(_spellings(Purse.GOLD_TIP, "shop"), [] as Array[String], "so does the gold's tooltip")
+	assert_gt(_spellings(Purse.GOLD_TIP, "Camp").size(), 0, "which names the Camp")
 	# Every goal, note, caption and tooltip in the game's code: no other word for a window, and
 	# a window's word spelled as its button spells it (a caption in capitals, in capitals).
 	var titles: Array[String] = []

@@ -1,5 +1,5 @@
 class_name GoalsView
-extends Panel
+extends FramePiece
 ## The goals on the sharp layer, under the place panel: a small panel titled
 ## [code]Goals[/code] with the [kbd]G[/kbd] hint, and a [GoalRow] per goal [Goals] shows, each a
 ## button; a click on one asks [method Goals.press]. It only draws what [Goals] decides, and lays
@@ -83,6 +83,12 @@ func tip(index: int) -> String:
 	var click: String = _goals.action(index)
 	var how: String = _goals.hint(index)
 	return how if click.is_empty() else how + " " + click
+
+
+## Each goal's row says how to get there, then what a click does ([method tip]).
+func add_tips(tips: UiTip) -> void:
+	for i: int in rows.size():
+		tips.attach(rows[i], tip.bind(i))
 
 
 func _on_pressed(index: int) -> void:

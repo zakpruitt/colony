@@ -51,8 +51,8 @@ func _init(training_id: StringName, index: int) -> void:
 	custom_minimum_size = size
 
 
-## Brings the cell up to date with [param hero] and runs its pulse and flash on by [param delta].
-func refresh(hero: Hero, delta: float) -> void:
+## Brings the cell up to date with [param hero]: its rank, its total in words and its look.
+func show_hero(hero: Hero) -> void:
 	var def: TrainingDef = Content.training(id)
 	var rank: int = hero.paragon_rank(def.stat)
 	_rank = rank
@@ -60,15 +60,18 @@ func refresh(hero: Hero, delta: float) -> void:
 	var can_spend: bool = hero.paragon_points() > 0
 	var look: UiIcon.State = UiIcon.State.OWNED if rank > 0 else UiIcon.State.LOCKED
 	medallion.show_state(UiIcon.State.READY if can_spend else look)
-	medallion.advance(delta)
 	WindowText.set_text(total_label, total_text(def, rank))
 	_centre(name_label, medallion.size.y + GAP)
 	_centre(total_label, medallion.size.y + GAP + UiText.LINE_HEIGHT)
-	_flash = maxf(_flash - delta, 0.0)
-	var colour: StringName = &"green" if rank > 0 else &"steel"
+	_show_colour()
+
+
+## Runs the cell's pulse and flash on by [param delta] seconds.
+func advance(delta: float) -> void:
+	medallion.advance(delta)
 	if _flash > 0.0:
-		colour = &"yellow"
-	WindowText.set_colour(total_label, colour)
+		_flash = maxf(_flash - delta, 0.0)
+		_show_colour()
 
 
 ## The total [param rank] points of [param def] give, in words: [code]+6% damage and healing[/code]
@@ -89,16 +92,26 @@ func text() -> String:
 ## Starts the flash: a point just went in.
 func start_flash() -> void:
 	_flash = FLASH_SECONDS
+	_show_colour()
 
 
 ## Stops the flash at once.
 func stop_flash() -> void:
 	_flash = 0.0
+	_show_colour()
 
 
 ## Seconds of flash left.
 func flash() -> float:
 	return _flash
+
+
+## The total's colour: yellow while the cell flashes, else green once it has a rank.
+func _show_colour() -> void:
+	var colour: StringName = &"green" if _rank > 0 else &"steel"
+	if _flash > 0.0:
+		colour = &"yellow"
+	WindowText.set_colour(total_label, colour)
 
 
 func _centre(label: Label, y: float) -> void:

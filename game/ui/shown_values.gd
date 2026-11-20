@@ -33,8 +33,3 @@ func changed() -> bool:
 		_values.resize(_at)
 		_changed = true
 	return _changed
-
-
-## Forgets every value, so the next look is a change.
-func forget() -> void:
-	_values.clear()

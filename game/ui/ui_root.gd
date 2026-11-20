@@ -152,14 +152,16 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
-## Advances the contents this layer made by [param delta] seconds. Called every frame; tests
-## call it.
+## Advances the contents this layer made, its bar and its [member moment] by [param delta]
+## seconds. Called every frame; tests call it.
 func advance(delta: float) -> void:
 	for content: WindowContent in _advanced:
 		if is_instance_valid(content):
 			content.advance(delta)
 	if bar != null:
 		bar.advance(delta)
+	if moment != null:
+		moment.advance(delta)
 
 
 func _process(delta: float) -> void:

@@ -115,6 +115,8 @@ func _process(delta: float) -> void:
 	if replay != null:
 		_catch_up()
 		return
+	if milestones != null:
+		milestones.advance(delta)
 	_save_in -= delta
 	if _save_in <= 0.0:
 		save_now()
