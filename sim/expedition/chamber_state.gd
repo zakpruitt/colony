@@ -23,3 +23,9 @@ var missed: bool = false
 ## The record of a chamber on the level at [param level_depth], holding its first monsters.
 func _init(level_depth: int) -> void:
 	depth = level_depth
+
+
+## The tick it refills on, once cleared ([method DepthTiming.refill_seconds] after
+## [member cleared_tick]).
+func refill_tick() -> int:
+	return cleared_tick + Combatant.seconds_to_ticks(DepthTiming.refill_seconds(self))

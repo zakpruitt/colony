@@ -167,7 +167,7 @@ func spend_paragon(hero_id: int, stat: TrainingDef.Stat) -> void:
 
 
 ## Asks for a fresh start for hero [param hero_id] at the next step: for
-## 100 gold per level, every node it took is given back as an unspent
+## [method reset_price] in gold, every node it took is given back as an unspent
 ## talent point and both paths are open again, with [constant SimEvent.Kind.TALENTS_RESET].
 ## Paragon points stay. Nothing happens during a fight, without the gold, or with no node taken.
 func reset_talents(hero_id: int) -> void:
