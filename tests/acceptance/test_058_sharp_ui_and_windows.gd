@@ -651,7 +651,7 @@ func test_r8_three_panels_become_windows() -> void:
 
 	# Help: every key, in two columns.
 	var help: HelpPanel = windows.window(UiRoot.HELP).content as HelpPanel
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		assert_has(help.lines(), "%s  %s" % [entry[0], entry[1]], "help lists %s" % entry[0])
 	var columns: Dictionary[float, bool] = {}
 	var keys_shown: Array[String] = []
@@ -665,11 +665,11 @@ func test_r8_three_panels_become_windows() -> void:
 		assert_true(
 			help_rect.encloses(label.get_global_rect()), "%s inside the window" % label.text
 		)
-		for entry: Array in HelpPanel.KEYS:
+		for entry: Array in KeyBook.entries():
 			if label.text == str(entry[0]):
 				columns[label.get_global_rect().position.x] = true
 				keys_shown.append(label.text)
-	assert_eq(keys_shown.size(), HelpPanel.KEYS.size(), "every key shown")
+	assert_eq(keys_shown.size(), KeyBook.entries().size(), "every key shown")
 	assert_eq(columns.size(), 2, "in two columns")
 	# Each key's row on one line, at both rooms: what it does fits beside it without wrapping.
 	for room: Vector2i in [ROOM_LARGE, ROOM_SMALL]:
@@ -682,7 +682,7 @@ func test_r8_three_panels_become_windows() -> void:
 			if key_label == null or key_label.get_index() + 1 >= grid.get_child_count():
 				continue
 			var does: Label = grid.get_child(key_label.get_index() + 1) as Label
-			if does == null or not HelpPanel.keycodes(key_label.text).size() > 0:
+			if does == null or not KeyBook.keycodes(key_label.text).size() > 0:
 				continue
 			rows += 1
 			assert_eq(does.get_line_count(), 1, "%s: '%s' on one line" % [room, does.text])
@@ -690,7 +690,7 @@ func test_r8_three_panels_become_windows() -> void:
 				float(UiText.width(does.text)), does.size.x, "%s: '%s' not cut" % [room, does.text]
 			)
 			assert_lte(does.size.y, key_label.size.y, "%s: '%s' one row tall" % [room, does.text])
-		assert_eq(rows, HelpPanel.KEYS.size(), "%s: every key's row" % room)
+		assert_eq(rows, KeyBook.entries().size(), "%s: every key's row" % room)
 
 	# Orders: a full sentence for each choice, and both orders' commands sent by real clicks.
 	var orders: OrdersPanel = windows.window(UiRoot.ORDERS).content as OrdersPanel
@@ -874,10 +874,10 @@ func test_r10_true_in_a_crowded_frame() -> void:
 
 
 func test_r11_in_the_help_list_and_the_wiki() -> void:
-	# Spec 030's R3, as amended: every key the game's code names is in HelpPanel.KEYS.
+	# Spec 030's R3, as amended: every key the game's code names is in KeyBook.entries().
 	var listed: Dictionary[int, bool] = {}
-	for entry: Array in HelpPanel.KEYS:
-		for code: int in HelpPanel.keycodes(str(entry[0])):
+	for entry: Array in KeyBook.entries():
+		for code: int in KeyBook.keycodes(str(entry[0])):
 			listed[code] = true
 	var handled: Dictionary[String, String] = {}
 	_key_names_in("res://game", handled)

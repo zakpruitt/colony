@@ -595,8 +595,8 @@ func test_r5_explains_itself() -> void:
 
 	# G in the help panel's key list, and its case in spec 030's test.
 	var listed: bool = false
-	for entry: Array in HelpPanel.KEYS:
-		listed = listed or HelpPanel.keycodes(str(entry[0])).has(KEY_G)
+	for entry: Array in KeyBook.entries():
+		listed = listed or KeyBook.keycodes(str(entry[0])).has(KEY_G)
 	assert_true(listed, "G is in the help panel's keys")
 	var source: String = FileAccess.get_file_as_string(
 		"res://tests/acceptance/test_030_help_and_hints.gd"

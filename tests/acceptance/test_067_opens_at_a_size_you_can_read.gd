@@ -202,12 +202,12 @@ func test_r2_full_screen() -> void:
 
 	# The help lists it.
 	var listed: bool = false
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		if str(entry[0]) == "F11":
 			listed = true
 			assert_true(str(entry[1]).to_lower().contains("full screen"), "help says what F11 does")
 	assert_true(listed, "F11 is in the help's keys")
-	assert_true(HelpPanel.keycodes("F11").has(KEY_F11), "and the list reads it as the F11 key")
+	assert_true(KeyBook.keycodes("F11").has(KEY_F11), "and the list reads it as the F11 key")
 
 
 # --- R3 ------------------------------------------------------------------------

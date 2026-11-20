@@ -50,6 +50,7 @@ Decide which it is. A change in what the game does goes to Zak. A clarification 
 would agree with is yours: commit it to the spec on `dev`, tell the lane to rebase, and note it in the pull
 request so the reviewer reads the same spec the lane built.
 
-- **A spec that adds a key** must list `game/hud/help_panel.gd` (its `KEYS` table) and
-  `tests/acceptance/test_030_help_and_hints.gd` (the key's case in `_check_entry`) in Paths: the help panel
-  lists every key the game handles and that test fails for one that is missing. Lane 033 stopped on this.
+- **A spec that adds a key** must list `game/ui/key_book.gd` (its `ROWS` table; a bar window's key is in
+  `game/ui/windows/window_book.gd`) and `tests/acceptance/test_030_help_and_hints.gd` (the key's case in
+  `_check_entry`) in Paths: the help panel lists every key the game handles and that test fails for one
+  that is missing. Lane 033 stopped on this.

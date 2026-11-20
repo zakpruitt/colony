@@ -1,11 +1,11 @@
 class_name JournalView
-extends ScrollContainer
+extends WindowContent
 ## The journal's lines on the UI layer: the content of the Journal window
 ## ([kbd]J[/kbd]). It lists every line the [Journal] keeps, newest first, the time in
 ## [code]steel[/code] then the sentence, the newest in white and the rest in silver; at least
 ## [constant SHOWN_LINES] show at once and the mouse wheel scrolls through all
 ## [constant Journal.CAPACITY]. It only reads the journal, which writes its lines in the order the
-## events happened however many arrive in a frame.
+## events happened however many arrive in a frame. The lines scroll in [member scroll].
 
 ## Lines in view at once.
 const SHOWN_LINES: int = 20
@@ -14,6 +14,9 @@ const LINE_GAP: int = 0
 const TIME_WIDTH: int = 52
 const TEXT_WIDTH: int = 310
 const EMPTY: String = "Nothing yet: the party's deeds will be written here"
+
+## The lines' scrolling view, the content's one child.
+var scroll: ScrollContainer
 
 var _journal: Journal
 var _rows: Array[HBoxContainer] = []
@@ -26,14 +29,19 @@ var _dirty: bool = true
 
 func _init() -> void:
 	name = "JournalView"
-	horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	closes_away = false
+	add_theme_constant_override(&"separation", 0)
+	scroll = ScrollContainer.new()
+	scroll.name = "Scroll"
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	add_child(scroll)
 	var lines := VBoxContainer.new()
 	lines.name = "Lines"
 	lines.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lines.add_theme_constant_override(&"separation", LINE_GAP)
 	lines.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	add_child(lines)
+	scroll.add_child(lines)
 	_empty = UiText.label(EMPTY, &"slate")
 	lines.add_child(_empty)
 	for i: int in Journal.CAPACITY:
@@ -53,11 +61,7 @@ func _init() -> void:
 		_times.append(time)
 		_sentences.append(sentence)
 	var tall: int = SHOWN_LINES * UiText.LINE_HEIGHT + (SHOWN_LINES - 1) * LINE_GAP
-	custom_minimum_size = Vector2(TIME_WIDTH + TEXT_WIDTH + 12, tall)
-
-
-func _process(_delta: float) -> void:
-	refresh()
+	scroll.custom_minimum_size = Vector2(TIME_WIDTH + TEXT_WIDTH + 12, tall)
 
 
 ## Call once: the view shows [param journal]'s lines.
@@ -68,8 +72,13 @@ func setup(journal: Journal) -> void:
 	refresh()
 
 
-## Brings the list up to date with the journal if it has written since. Called every frame;
-## tests call it.
+## Brings the list up to date with the journal, as [method refresh] does. Called every frame by
+## [UiRoot].
+func advance(_delta: float) -> void:
+	refresh()
+
+
+## Brings the list up to date with the journal if it has written since; tests call it.
 func refresh() -> void:
 	if not _dirty or _journal == null:
 		return

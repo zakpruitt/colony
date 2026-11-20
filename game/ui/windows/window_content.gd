@@ -1,14 +1,18 @@
 class_name WindowContent
 extends VBoxContainer
-## What the Shop, Area map and Party tally windows share: each is the content of a
-## [UiWindow] on the UI layer, made by the [Hud] (so it hears the simulation from the start) and
-## put in its window by [UiRoot]. Opening and closing go through the window and its [UiWindows],
-## so the content opens at the front; without a window (a HUD on its own) it never opens.
+## What every window on the button bar shows: each is the content of a [UiWindow] on the UI
+## layer, made by its [WindowEntry] (the shop, the map and the tally by the [Hud], so they hear
+## the simulation from the start) and put in its window by [UiRoot]. Opening and closing go
+## through the window and its [UiWindows], so the content opens at the front; without a window
+## (a HUD on its own) it never opens.
 ##
 ## As it opens, by any way in (its key, its button on the bar, a goal, a saved window put back),
-## it closes the "While you were away" report (but not as it opens under the report, left open
-## last session), and [method _shown] lets it bring itself up to date.
+## it closes the "While you were away" report if [member closes_away] is set (but not as it opens
+## under the report, left open last session), and [method _shown] lets it bring itself up to date.
 
+## True when its opening closes the away report: the shop, the map and the tally do; help, the
+## journal and the orders open beside it.
+var closes_away: bool = true
 ## True from the content's opening to its closing, so [method _shown] runs once per opening.
 var _was_open: bool = false
 
@@ -24,7 +28,7 @@ func _notification(what: int) -> void:
 	if open_now and not _was_open:
 		_was_open = true
 		var holder: UiWindow = window()
-		if holder != null:
+		if holder != null and closes_away:
 			AwayWindow.close_in(holder.get_parent() as UiWindows)
 		_shown()
 	elif not open_now and _was_open:
@@ -71,6 +75,17 @@ func toggle() -> void:
 		close()
 	else:
 		open()
+
+
+## Brings what it shows up to date and runs its animations on by [param _delta] seconds. Called
+## every frame by whoever made it ([UiRoot], or the [Hud] for its own); tests call it.
+func advance(_delta: float) -> void:
+	pass
+
+
+## Gives the content [param _tips], the tooltip it shares with the bar, for its controls.
+func add_tips(_tips: UiTip) -> void:
+	pass
 
 
 ## Called as the window opens: bring what it shows up to date.

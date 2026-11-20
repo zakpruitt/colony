@@ -201,8 +201,8 @@ func test_r2_help_panel() -> void:
 	for words: String in ["on its own", "stable", "wipe", "last safe stage", "gold", "upgrades"]:
 		assert_string_contains(told, words, "the idea says: %s" % words)
 	assert_string_contains(told, "while the game is closed", "and that it goes on while closed")
-	assert_gt(HelpPanel.KEYS.size(), 8, "the keys list")
-	for entry: Array in HelpPanel.KEYS:
+	assert_gt(KeyBook.entries().size(), 8, "the keys list")
+	for entry: Array in KeyBook.entries():
 		assert_eq(entry.size(), 2, "%s: a key and what it does" % [entry])
 		var row: String = "%s  %s" % [entry[0], entry[1]]
 		assert_has(lines, row, "the panel lists %s" % row)
@@ -254,7 +254,7 @@ func _check_entry(main: Main, label: String) -> void:
 	var hud: Hud = main.hud
 	var windows: UiWindows = main.ui.windows
 	var sim: Simulation = main.simulation
-	var codes: Array[int] = HelpPanel.keycodes(label)
+	var codes: Array[int] = KeyBook.keycodes(label)
 	assert_false(codes.is_empty(), "%s: names keys" % label)
 	for code: int in codes:
 		var what: String = "%s (%s)" % [label, OS.get_keycode_string(code)]
@@ -416,8 +416,8 @@ func _check_entry(main: Main, label: String) -> void:
 func test_r3_every_key_is_listed() -> void:
 	# Each key the game's input code names is in the list.
 	var listed: Dictionary[int, bool] = {}
-	for entry: Array in HelpPanel.KEYS:
-		for code: int in HelpPanel.keycodes(str(entry[0])):
+	for entry: Array in KeyBook.entries():
+		for code: int in KeyBook.keycodes(str(entry[0])):
 			listed[code] = true
 	var handled: Dictionary[String, String] = {}
 	_key_names_in("res://game", handled)
@@ -433,7 +433,7 @@ func test_r3_every_key_is_listed() -> void:
 	var main: Main = make_main()
 	add_child_autofree(main)
 	main.hud.advance(0.0)
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		_check_entry(main, str(entry[0]))
 
 

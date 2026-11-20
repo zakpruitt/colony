@@ -588,7 +588,7 @@ func test_r8_found_and_explained() -> void:
 	_build_hud()
 	_hud.advance(STEP)
 	var listed: bool = false
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		listed = listed or str(entry[0]) == "W"
 	assert_true(listed, "W is in the help list")
 	press(KEY_W)

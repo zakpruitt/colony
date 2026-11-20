@@ -808,10 +808,10 @@ func test_r10_fits() -> void:
 
 func test_r11_help_wiki_and_showcase() -> void:
 	var listed: Array[String] = []
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		listed.append(str(entry[0]))
 	assert_has(listed, "Shift+Tab", "the help lists Shift+Tab")
-	assert_has(HelpPanel.keycodes("Shift+Tab"), KEY_TAB, "the Tab key, with Shift")
+	assert_has(KeyBook.keycodes("Shift+Tab"), KEY_TAB, "the Tab key, with Shift")
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
 	assert_true(wiki.contains("hero window"), "the wiki describes hero windows")
 	assert_true(wiki.contains("side by side"), "and comparing them")

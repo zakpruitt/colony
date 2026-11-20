@@ -600,7 +600,7 @@ func test_r8_nothing_lost() -> void:
 	assert_string_contains(hud.ticker.label.text, "dangerous", "the warning in the ticker")
 	# Every key the game answers to is still in the help list.
 	var keys: Dictionary[String, bool] = {}
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys[str(entry[0])] = true
 	for key: String in ["G", "L", "J"]:
 		assert_true(keys.has(key), "help lists %s" % key)
@@ -782,7 +782,7 @@ func test_r11_showcase_help_and_wiki() -> void:
 		assert_true(show.main.ui.windows.is_ancestor_of(report), "among the windows")
 	assert_false(FileAccess.get_file_as_string(SHOWCASE).contains("AwayPanel"), "no old panel")
 	var keys: Dictionary[String, bool] = {}
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys[str(entry[0])] = true
 	for key: String in ["G", "L", "J", "Esc"]:
 		assert_true(keys.has(key), "help lists %s" % key)

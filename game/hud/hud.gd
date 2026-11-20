@@ -74,10 +74,8 @@ const PLUS_TIP: String = "Set the target one stage further."
 const AUTO_TIP: String = (
 	"When on, the party goes a stage further each time it holds its target " + "long enough."
 )
-const SPEED_TIP: String = "How fast the game runs: click (or press F) for 1x, 2x or 4x."
 const GOLD_TIP: String = "Gold from fights, to spend in the Camp."
 const BOSS_TIP: String = "A guardian holds the way on: beat it to go further."
-const AREA_TIP: String = "The area the party is in: click (or press W) to open the Map."
 
 ## The frame of the screen: the room-sized control its pieces hang from.
 var screen_frame: Control
@@ -169,8 +167,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or _simulation == null:
+	var key: InputEventKey = KeyBook.fresh_key(event)
+	if key == null or _simulation == null:
 		return
 	var handled: bool = true
 	# A window's keys act only while it is the front window of all (Esc, which closes the front
@@ -434,6 +432,32 @@ static func clock(seconds: float) -> String:
 	return "%d:%02d" % [whole / 60, whole % 60]
 
 
+## The speed button's tooltip.
+static func speed_tip() -> String:
+	return "How fast the game runs: click (or press %s) for 1x, 2x or 4x." % KeyBook.label(&"speed")
+
+
+## The area's name's tooltip.
+static func area_tip() -> String:
+	return (
+		"The area the party is in: click (or press %s) to open the Map."
+		% KeyBook.label(AreaMapWindow.ID)
+	)
+
+
+## The countdown's tooltip while the Hold order keeps the party from a guardian.
+static func holding_tip() -> String:
+	return (
+		"The Hold order keeps the party from the guardian: Orders (%s) sends it in."
+		% KeyBook.label(UiRoot.ORDERS)
+	)
+
+
+## What the countdown says comes next while the party holds.
+static func holding_next() -> String:
+	return "Orders (%s) to go in" % KeyBook.label(UiRoot.ORDERS)
+
+
 ## The gold count currently displayed.
 func shown_gold() -> int:
 	return _shown_gold
@@ -551,7 +575,7 @@ func _build_screen_frame() -> void:
 ## Gives each piece of the frame its tooltip, under a bold title where there is one. The first
 ## control under the mouse wins, so the small ones come before the panels that hold them.
 func _tip_frame() -> void:
-	frame_tip.attach(place_panel.area_button, AREA_TIP, place_panel.area_button.get_text)
+	frame_tip.attach(place_panel.area_button, area_tip(), place_panel.area_button.get_text)
 	frame_tip.attach(place_panel.stage_label, STAGE_TIP)
 	frame_tip.attach(place_panel.status_label, STATUS_TIP)
 	frame_tip.attach(place_panel.safe_label, SAFE_TIP)
@@ -564,7 +588,7 @@ func _tip_frame() -> void:
 	for id: StringName in Content.resource_ids():
 		frame_tip.attach(purse.icons[id], purse.tip_text.bind(id))
 		frame_tip.attach(purse.labels[id], purse.tip_text.bind(id))
-	frame_tip.attach(purse.speed_button, SPEED_TIP)
+	frame_tip.attach(purse.speed_button, speed_tip())
 	frame_tip.attach(purse, GOLD_TIP, "Gold")
 	frame_tip.attach(boss_bar, BOSS_TIP, boss_bar.shown_name)
 	# Each goal says how to get there, then what a click does.
@@ -581,7 +605,7 @@ func _countdown_tip() -> String:
 	if note.begins_with("Further in"):
 		return "Time left until Auto takes the party a stage further."
 	if note == "Holding":
-		return "The Hold order keeps the party from the guardian: Orders (O) sends it in."
+		return holding_tip()
 	if countdown.bar.visible:
 		return "Time left until this stage is safe."
 	if countdown.next_label.text.begins_with("staying"):
@@ -821,7 +845,7 @@ func _stall_ticks() -> int:
 func _stable_parts() -> PackedStringArray:
 	var e: Expedition = _simulation.expedition
 	if e.is_holding():
-		return PackedStringArray(["Holding", "Orders (O) to go in"])
+		return PackedStringArray(["Holding", holding_next()])
 	if e.state == Expedition.State.REVIVING:
 		return PackedStringArray(["Stable", ""])
 	if e.state == Expedition.State.JOURNEYING:

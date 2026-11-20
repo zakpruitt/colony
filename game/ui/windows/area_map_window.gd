@@ -22,12 +22,11 @@ extends WindowContent
 ## goal to visit it ([member news]). Everything that depends on the order of events is kept by
 ## [AreaNews]. It moves only in [method advance], so a test can step it.
 
-## The window's id, title and key.
+## The window's id and title (its key is its entry's, in [WindowBook]).
 const ID: StringName = &"map"
 const TITLE: String = "Area map"
 ## What the stage chooser's number and the place before it say under the mouse.
 const STAGE_TIP: String = "The stage to go to: - and + change it, up to one past the furthest."
-const HOTKEY: String = "W"
 ## What the foot says while no area is chosen.
 const CHOOSE_HINT: String = "Click an open area to choose where the party goes."
 ## UI pixels between cards, and between the cards and the foot.

@@ -879,7 +879,7 @@ func test_r11_it_fits_and_is_explained() -> void:
 		assert_ne(_tip_text(control), "", "%s has a tooltip" % control.name)
 	# The help panel's text about training is replaced.
 	var keys: Array[String] = []
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys.append(str(entry[1]))
 	for text: String in keys:
 		assert_false(text.contains("Training"), "no Training tab in help: %s" % text)

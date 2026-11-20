@@ -172,8 +172,8 @@ func _process(delta: float) -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or camera == null:
+	var key: InputEventKey = KeyBook.fresh_key(event)
+	if key == null or camera == null:
 		return
 	if key.keycode == KEY_Z:
 		toggle_zoom()

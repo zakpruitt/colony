@@ -603,8 +603,8 @@ func test_r6_explains_itself() -> void:
 		seen[text] = true
 	# T is in the help panel's list, and spec 030's test presses it.
 	var listed: bool = false
-	for entry: Array in HelpPanel.KEYS:
-		listed = listed or HelpPanel.keycodes(str(entry[0])).has(KEY_T)
+	for entry: Array in KeyBook.entries():
+		listed = listed or KeyBook.keycodes(str(entry[0])).has(KEY_T)
 	assert_true(listed, "T is in the help panel's keys")
 	var source: String = FileAccess.get_file_as_string(
 		"res://tests/acceptance/test_030_help_and_hints.gd"

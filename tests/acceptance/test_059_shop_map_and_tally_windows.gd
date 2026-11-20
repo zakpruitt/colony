@@ -754,7 +754,7 @@ func _does(keys: Dictionary[String, String], key: String) -> String:
 
 func test_r9_help_wiki_and_showcase() -> void:
 	var keys: Dictionary[String, String] = {}
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys[str(entry[0])] = str(entry[1])
 	# Spec 068 R2: the help names each window as its button does (Camp, Map, Tally).
 	assert_string_contains(_does(keys, "U"), "Camp", "U opens the shop")

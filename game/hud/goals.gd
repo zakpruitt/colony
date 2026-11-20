@@ -72,8 +72,7 @@ func _init() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	var key: InputEventKey = event as InputEventKey
-	if key == null or not key.pressed or key.echo or key.keycode != KEY_G:
+	if not KeyBook.pressed(event, KEY_G):
 		return
 	_wanted = not _wanted
 	advance(0.0)
@@ -130,6 +129,19 @@ func advance(delta: float) -> void:
 		shown.insert(mini(index, shown.size()), celebrating[index])
 	_shown = shown.slice(0, MOST)
 	_show()
+
+
+## The upgrade goal's hint.
+static func upgrade_hint() -> String:
+	return "Open the Camp (%s) and spend gold on the whole party." % KeyBook.label(ShopWindow.ID)
+
+
+## The guardian goal's hint while the party holds back from it.
+static func holding_hint() -> String:
+	return (
+		"The party is holding back on the Hold order: Orders (%s) sends it in."
+		% KeyBook.label(UiRoot.ORDERS)
+	)
 
 
 ## True while the tracker is on screen: while it is wanted ([kbd]G[/kbd]).
@@ -286,7 +298,7 @@ func applicable() -> Array[Goal]:
 				"Buy an upgrade",
 				-1.0,
 				"%s gold" % Hud.group_thousands(upgrade),
-				"Open the Camp (U) and spend gold on the whole party."
+				upgrade_hint()
 			)
 		)
 	return found
@@ -321,7 +333,7 @@ func _guardian_goal() -> Goal:
 	)
 	# The Hold order keeps the party from the guardian on its depth (or the one above).
 	if e.is_holding() and (depth == e.depth or depth == e.depth - 1):
-		goal.hint = "The party is holding back on the Hold order: Orders (O) sends it in."
+		goal.hint = holding_hint()
 	goal.target = depth
 	goal.area = e.place
 	goal.done = "Goal: beat the %s" % who

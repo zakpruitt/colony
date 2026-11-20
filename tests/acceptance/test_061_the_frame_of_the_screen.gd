@@ -860,7 +860,7 @@ func test_r11_showcase_help_and_wiki() -> void:
 	for said: String in ["Stable in", "Safe", "Auto", "1x"]:
 		assert_string_contains(wiki, said, "the wiki names %s" % said)
 	var keys: Dictionary[String, bool] = {}
-	for entry: Array in HelpPanel.KEYS:
+	for entry: Array in KeyBook.entries():
 		keys[str(entry[0])] = true
 	for key: String in ["- +", "A", "F", "W", "Tab"]:
 		assert_true(keys.has(key), "help lists %s" % key)
