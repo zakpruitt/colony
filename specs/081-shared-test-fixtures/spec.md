@@ -1,6 +1,6 @@
 # 081 — Shared test fixtures, and a check that keeps helpers shared
 
-- **Status:** provisional
+- **Status:** in-progress (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 071, 077, 080
 - **Pull request:** —

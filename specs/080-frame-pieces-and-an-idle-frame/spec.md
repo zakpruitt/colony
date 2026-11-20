@@ -1,6 +1,6 @@
 # 080 — Frame pieces share a base type, and an idle frame does nothing
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 075, 079
 - **Pull request:** —
