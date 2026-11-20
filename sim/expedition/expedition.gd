@@ -227,8 +227,7 @@ func level_at(stage: int) -> int:
 ## True while the party is being kept from a living guardian by the Hold order: its way to the
 ## target depth leads through the guardian's chamber on this depth (down) or the one above (up).
 func is_holding() -> bool:
-	var away: Array[State] = [State.CLIMBING, State.REVIVING, State.JOURNEYING]
-	if guardian_order != GuardianOrder.HOLD or state in away:
+	if guardian_order != GuardianOrder.HOLD or _is_away():
 		return false
 	if depth < target_depth:
 		return _guardian_alive(depth)
@@ -446,7 +445,8 @@ func _apply_commands() -> void:
 	if _pending_pace >= 0 or _pending_guardian_order >= 0:
 		_apply_orders()
 	# A destination waits for the fight or side quest to end and the party to stand.
-	if _areas.pending_area != &"" and state not in [State.FIGHTING, State.REVIVING, State.WORKING]:
+	var busy: bool = state == State.FIGHTING or state == State.REVIVING or state == State.WORKING
+	if _areas.pending_area != &"" and not busy:
 		_areas.depart(self)
 	# While the party is down a command waits, so it wins over the fallback target on revival.
 	if _pending_target <= 0 or state == State.REVIVING:
@@ -482,7 +482,7 @@ func _set_target(new_target: int) -> void:
 ## Checks time on this depth (for the last stable depth) and at the target (for auto-push).
 func _count_time() -> void:
 	deepest_depth = maxi(deepest_depth, depth)
-	if state in [State.CLIMBING, State.REVIVING, State.JOURNEYING]:
+	if _is_away():
 		return
 	# A depth or target set from outside counts from the tick before this one.
 	if depth != _timer_depth:
@@ -730,8 +730,9 @@ func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> String
 		return &""
 	if _is_guardian_chamber(level_depth, chamber_index) or _is_always_empty(level, chamber_index):
 		return &""
-	var label: String = AreaTravel.label(_here.id)
-	var rng: SimRng = _rng.fork(label + "sidequest/%d/%d/%d" % [level_depth, chamber_index, visit])
+	# Joined by hand: a format string builds an array, and this is asked as the party walks.
+	var where: String = str(level_depth) + "/" + str(chamber_index) + "/" + str(visit)
+	var rng: SimRng = _rng.fork(AreaTravel.label(_here.id) + "sidequest/" + where)
 	if not rng.chance(_SIDE_QUEST_SHARE):
 		return &""
 	var ids: Array[StringName] = Content.side_quest_ids()
@@ -964,6 +965,11 @@ func _revive() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
+
+
+## True while the party is off the floor of a depth: climbing, down or on its way to another area.
+func _is_away() -> bool:
+	return state == State.CLIMBING or state == State.REVIVING or state == State.JOURNEYING
 
 
 ## The party's upgrade multiplier for [param stat].

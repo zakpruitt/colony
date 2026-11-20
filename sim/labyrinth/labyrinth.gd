@@ -48,6 +48,8 @@ var seed_value: int:
 var _seed: int
 var _root: SimRng
 var _levels: Dictionary[int, LabyrinthLevel] = {}
+## Each depth's shaft column, worked out on the first request.
+var _shaft_columns: Dictionary[int, int] = {}
 
 
 ## The levels of [param seed_value]; with an [param area_label] (an area other than the first),
@@ -67,9 +69,11 @@ func level(depth: int) -> LabyrinthLevel:
 	return _levels[depth]
 
 
-## Left column of the shaft from this depth to the next. Generates nothing.
+## Left column of the shaft from this depth to the next. Generates no level.
 func shaft_column(depth: int) -> int:
-	return _roll_shaft_column(_root.fork("shaft/%d" % depth), depth)
+	if not _shaft_columns.has(depth):
+		_shaft_columns[depth] = _roll_shaft_column(_root.fork("shaft/%d" % depth), depth)
+	return _shaft_columns[depth]
 
 
 ## A shaft column for this depth's side: the right third on odd depths, the left third on even.
