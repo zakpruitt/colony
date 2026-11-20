@@ -195,6 +195,7 @@ func test_r2_every_definition_is_a_content_def() -> void:
 			var def: Resource = getter.call(id)
 			assert_true(def is ContentDef, "%s is a ContentDef" % id)
 			if def is ContentDef:
+				assert_ne((def as ContentDef).key(), &"", "%s has a key" % id)
 				assert_eq((def as ContentDef).key(), id, "%s is found by its key" % id)
 			if k == TALENTS_ROW:
 				assert_eq((def as TalentTreeDef).class_id, id, "a tree's key is its class")
@@ -307,7 +308,10 @@ func test_r6_no_private_constant_is_documented() -> void:
 			sim_classes[named.get_string(1)] = path
 	assert_true(sim_classes.has("Expedition"), "the sim's classes are found")
 	var doc: String = FileAccess.get_file_as_string(ARCHITECTURE)
-	var named_constant := RegEx.create_from_string("\\b([A-Z][A-Za-z0-9]*)\\.([A-Z][A-Z0-9_]*)\\b")
+	# A name written with its underscore is caught too, and fails as private.
+	var named_constant := RegEx.create_from_string(
+		"\\b([A-Z][A-Za-z0-9]*)\\.(_?[A-Z][A-Z0-9_]*)\\b"
+	)
 	var checked: int = 0
 	var missing: PackedStringArray = []
 	for m: RegExMatch in named_constant.search_all(doc):
@@ -316,7 +320,8 @@ func test_r6_no_private_constant_is_documented() -> void:
 			continue
 		checked += 1
 		var script: Script = load(sim_classes[named_class])
-		if not script.get_script_constant_map().has(m.get_string(2)):
+		var constant: String = m.get_string(2)
+		if constant.begins_with("_") or not script.get_script_constant_map().has(constant):
 			missing.append(m.get_string())
 	assert_gt(checked, 5, "the document names the sim's constants")
 	assert_eq(missing, PackedStringArray(), "every constant named is public")

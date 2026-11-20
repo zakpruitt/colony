@@ -65,6 +65,7 @@ func _init(
 	_right = maxf(left, right)
 	_rng = rng
 	_fighters = heroes + monsters
+	_fighters.make_read_only()
 	for c: Combatant in _fighters:
 		if _by_id.has(c.id):
 			push_error("Battle: duplicate combatant id %d; the battle is over" % c.id)

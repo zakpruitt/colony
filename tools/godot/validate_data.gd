@@ -23,9 +23,13 @@ func _problems_in(path: String) -> PackedStringArray:
 	var resource: Resource = load(path)
 	if resource == null:
 		return ["does not load"]
-	if resource is ContentDef:
-		return (resource as ContentDef).validate()
-	return []
+	if not resource is ContentDef:
+		return []
+	var def: ContentDef = resource
+	var problems: PackedStringArray = def.validate()
+	if def.key() == &"":
+		problems.append("its key is empty: Content cannot find it")
+	return problems
 
 
 func _resources_under(dir: String) -> PackedStringArray:

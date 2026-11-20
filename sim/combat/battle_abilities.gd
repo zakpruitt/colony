@@ -10,7 +10,7 @@ const MAX_CHAIN: int = 4
 
 ## The first of [param c]'s actions that is off cooldown, whose condition holds and which has
 ## someone to aim at, or null. A healer with an ally to heal uses none aimed at an enemy: it
-## heals first.
+## heals first. Nothing on the tick asks it: the battle asks [method ready_target] of each action.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
 	var heal_first: bool = c.role == HeroClassDef.Role.HEALER and battle.hurt_ally(c) != null
 	for ability: AbilityDef in c.abilities:

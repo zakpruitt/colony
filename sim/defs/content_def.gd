@@ -5,11 +5,13 @@ extends Resource
 ## [code]display_name[/code] (a field here would rewrite every .tres), and answers both methods.
 
 
-## What Content finds this definition by.
+## What Content finds this definition by. Each kind's class answers it; one that does not is
+## reported here, and its key is empty.
 func key() -> StringName:
+	push_error("ContentDef: %s does not say what it is found by (key())" % resource_path)
 	return &""
 
 
-## One line per problem; empty when the definition is sound.
+## One line per problem; empty when the definition is sound. Each kind's class answers it.
 func validate() -> PackedStringArray:
-	return PackedStringArray()
+	return PackedStringArray(["validate() is not given for this kind of definition"])
