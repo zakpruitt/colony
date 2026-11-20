@@ -1,6 +1,6 @@
 class_name TalentSpender
 extends RefCounted
-## The headless run's way of spending talent and paragon points (spec 051 R11), for
+## The headless run's way of spending talent and paragon points, for
 ## `python tools/dev.py sim --spend-talents` and the tests that compare it: each hero takes its
 ## trunk in order, then one path of its tree (the first unless told), and puts every paragon
 ## point into Power.

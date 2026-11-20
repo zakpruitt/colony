@@ -7,20 +7,20 @@ extends SceneTree
 ## or, more simply: python tools/dev.py sim --seed=1 --minutes=10
 ##
 ## With --buy-upgrades the run buys the cheapest upgrade it can afford whenever it can.
-## With --timeline the summary gains "timeline": the game time in seconds of each first (spec 036),
+## With --timeline the summary gains "timeline": the game time in seconds of each first,
 ## or null for one that did not happen. "level_2" and "level_5" are when every hero had reached
 ## that level; "upgrade_affordable" is when the party first held the price of an upgrade.
 ## With --area the party is sent to that area at the start (opened for the run if it is not open),
-## at the target depth's stage if one is given, else stage 1 (spec 049). The summary names the area
+## at the target depth's stage if one is given, else stage 1. The summary names the area
 ## the party is in and its stage ("area", "stage"), each area's safe and furthest stage ("areas")
 ## and the open areas ("open_areas"); a run that ends on the way to another area also names where
 ## the party will arrive ("journeying_to").
-## With --spend-talents each hero spends its points as they come (spec 051, [TalentSpender]): its
+## With --spend-talents each hero spends its points as they come ([TalentSpender]): its
 ## trunk in order, then its tree's first path, and every paragon point into Power. Each hero in
 ## the summary lists the nodes it took ("talents"). "slime_king_won" is the game time of the first
 ## win over the Slime King, or null, and "wipes_before_slime_king" counts the wipes before it (all
 ## of the run's, without one).
-## The summary names the resources the party holds at the end ("resources", spec 052).
+## The summary names the resources the party holds at the end ("resources").
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -177,7 +177,7 @@ func _init() -> void:
 	quit(0)
 
 
-## Each area's safe and furthest stage, by id (spec 049).
+## Each area's safe and furthest stage, by id.
 func _areas(sim: Simulation) -> Dictionary:
 	var areas: Dictionary = {}
 	for id: StringName in Content.area_ids():

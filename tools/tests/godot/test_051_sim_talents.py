@@ -1,6 +1,6 @@
 """Acceptance test for spec 051, R11: `python tools/dev.py sim --spend-talents` spends points.
 
-Run: python -m unittest discover tools/tests   (the `art` check step runs it too)
+Run: python -m unittest discover tools/tests/godot   (the `tools` check step runs it too)
 Needs Godot, found the way tools/dev.py finds it.
 """
 

@@ -3,7 +3,7 @@
 It prints the area and stage the party is in, each area's safe and furthest stage and the open
 areas, and `--area=<id>` sends the party to that area at the start, opening it for the run.
 
-Run: python -m unittest discover tools/tests   (the `art` check step runs it too)
+Run: python -m unittest discover tools/tests/godot   (the `tools` check step runs it too)
 Needs Godot, found the way tools/dev.py finds it.
 """
 

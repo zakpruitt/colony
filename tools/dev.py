@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Colony's one entry point for checks.
 
-    python tools/dev.py check            every step, in order; what CI runs
+    python tools/dev.py check            every step, in order
     python tools/dev.py check --only=tests,boot
-    python tools/dev.py test [--only=NAME]
+    python tools/dev.py test [--only=NAME] [--shard=I/N]
+                                         the GUT tests; --shard=I/N runs the I-th of N parts
     python tools/dev.py format           rewrite scripts with gdformat
     python tools/dev.py import           rebuild Godot's import cache
     python tools/dev.py shot [--name=N] [--seconds=S] [--count=C] [--scene=res://...]
@@ -22,6 +23,8 @@ variable, else on PATH. Every Godot run has a timeout.
 from __future__ import annotations
 
 import argparse
+import io
+import json
 import os
 import re
 import shutil
@@ -29,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import tokenize
 from pathlib import Path
 from typing import Callable
 
@@ -50,6 +54,42 @@ ERROR_MARKERS = ("SCRIPT ERROR", "Parse Error", "ERROR:")
 
 # The shared test base, the one test script that may name a user:// path.
 SHARED_TEST_BASE = "tests/colony_test.gd"
+
+# Set once a process has imported the project; a dev.py started under it skips its own import.
+IMPORTED = "COLONY_PROJECT_IMPORTED"
+
+# The tool tests that start Godot, run by the `tools` step after `compile` instead of by `art`.
+GODOT_TOOL_TESTS = "tools/tests/godot"
+
+# How long each slow GUT script takes, in seconds, so the shards come out even.
+TEST_TIMES = Path(__file__).resolve().parent / "test_times.json"
+# What a script missing from TEST_TIMES is reckoned to take.
+USUAL_TEST_SECONDS = 4.0
+
+# Comment text that names a spec or a requirement, or tells history.
+HISTORY = (
+    r"(?i)\bspec \d",
+    r"(?i)\bsince spec",
+    r"(?i)\bthe old\b",
+    r"(?i)\bas it was\b",
+    r"(?i)\bas it did before\b",
+    r"\bR\d+\b",
+)
+# game/ is held to more: a comment pointing at "the spec" tells a reader no more than its number.
+GAME_HISTORY = (r"(?i)\bspecs?\b",)
+
+# A commit carries none of these: Zak's rule in CLAUDE.md.
+ATTRIBUTION = (
+    (r"(?im)^\s*co-authored-by:", "a Co-Authored-By line"),
+    (r"(?m)^\W*Generated with\b", 'a "Generated with" line'),
+    (r"claude\.ai/code/session", "a session link"),
+)
+
+# gdlint's limits (its defaults), and how near to them the harness step starts to warn.
+MAX_FILE_LINES = 1000
+FILE_LINES_WARNING = 15
+MAX_PUBLIC_METHODS = 20
+PUBLIC_METHODS_WARNING = 1
 
 # Names the simulation may not use: they tie it to the scene tree, to real
 # time, or to the global random state, any of which breaks headless,
@@ -246,7 +286,7 @@ def script_parent(text: str, scripts: dict[str, str]) -> str | None:
 
 
 def harness_problems(root: Path = ROOT) -> list[str]:
-    """Two of the written rules (spec 071) as checks, on the files git tracks under [root].
+    """Two of the written rules as checks, on the files git tracks under [root].
 
     A test script names no user:// path of its own (ColonyTest.save_path hands them out and
     deletes them), except in an assertion about a game class's DEFAULT_PATH. A test script that
@@ -303,20 +343,176 @@ def harness_problems(root: Path = ROOT) -> list[str]:
     return problems
 
 
-def step_harness() -> str:
-    problems = harness_problems()
+def gd_comment(line: str) -> str:
+    """The comment on one GDScript line, from its # to the end, or "" if it has none."""
+    quote = ""
+    i = 0
+    while i < len(line):
+        c = line[i]
+        if quote:
+            if c == "\\":
+                i += 1
+            elif c == quote:
+                quote = ""
+        elif c in "\"'":
+            quote = c
+        elif c == "#":
+            return line[i:]
+        i += 1
+    return ""
+
+
+def py_comments(text: str) -> list[tuple[int, str, bool]]:
+    """Each comment in Python source as (line, text, whether it stands on a line of its own)."""
+    found: list[tuple[int, str, bool]] = []
+    try:
+        for token in tokenize.generate_tokens(io.StringIO(text).readline):
+            if token.type == tokenize.COMMENT:
+                whole = token.line.strip().startswith("#")
+                found.append((token.start[0], token.string, whole))
+    except (tokenize.TokenError, SyntaxError):
+        pass
+    return found
+
+
+def comments(path: Path) -> list[tuple[int, str]]:
+    """The comments in a script as (first line, text): a run of whole-line comments joined into
+    one text, so a reference wrapped over two lines is read whole, and a comment after code alone.
+    """
+    text = path.read_text(encoding="utf-8")
+    if path.suffix == ".py":
+        each = py_comments(text)
+    else:
+        each = []
+        for number, line in enumerate(text.splitlines(), 1):
+            comment = gd_comment(line)
+            if comment:
+                each.append((number, comment, line.strip().startswith("#")))
+    found: list[tuple[int, str]] = []
+    run_start = 0
+    run: list[str] = []
+    last = 0
+    for number, comment, whole in each:
+        words = comment.lstrip("#").strip()
+        if whole and run and number == last + 1:
+            run.append(words)
+        else:
+            if run:
+                found.append((run_start, " ".join(run)))
+                run = []
+            if whole:
+                run_start, run = number, [words]
+            else:
+                found.append((number, words))
+        last = number
+    if run:
+        found.append((run_start, " ".join(run)))
+    return found
+
+
+def comment_scripts(root: Path) -> list[Path]:
+    """The scripts held to the comment rule: sim/, game/, tools/ but its tests, the test base."""
+    found: list[Path] = []
+    for folder in ("sim", "game", "tools"):
+        for path in sorted((root / folder).rglob("*")):
+            relative = path.relative_to(root).as_posix()
+            if path.suffix in (".gd", ".py") and not relative.startswith("tools/tests/"):
+                found.append(path)
+    if (root / SHARED_TEST_BASE).is_file():
+        found.append(root / SHARED_TEST_BASE)
+    return found
+
+
+def comment_problems(root: Path = ROOT) -> list[str]:
+    """Every comment that names a spec or requirement or tells history (CLAUDE.md's rule)."""
+    history = [re.compile(pattern) for pattern in HISTORY]
+    game = history + [re.compile(pattern) for pattern in GAME_HISTORY]
+    problems: list[str] = []
+    for path in comment_scripts(root):
+        relative = path.relative_to(root).as_posix()
+        patterns = game if relative.startswith("game/") else history
+        for number, text in comments(path):
+            if any(pattern.search(text) for pattern in patterns):
+                problems.append(
+                    f"{relative}:{number}: a comment that names a spec or tells history: {text}"
+                )
+    return problems
+
+
+def git_in(root: Path, args: list[str]) -> tuple[int, str]:
+    return run(["git", "-C", str(root), *args], timeout=60)
+
+
+def attribution_problems(root: Path = ROOT) -> list[str]:
+    """Each commit on this branch (origin/dev..HEAD, or HEAD alone with no origin/dev to compare
+    with) whose message carries an attribution line or a session link.
+    """
+    code, _ = git_in(root, ["rev-parse", "--verify", "-q", "HEAD"])
+    if code != 0:
+        return []
+    code, _ = git_in(root, ["rev-parse", "--verify", "-q", "origin/dev"])
+    commits = ["origin/dev..HEAD"] if code == 0 else ["-1", "HEAD"]
+    code, output = git_in(root, ["log", "--format=%h %s%x00%B%x1e", *commits])
+    if code != 0:
+        raise StepFailed(f"git log failed (exit {code})\n{tail(output)}")
+    problems: list[str] = []
+    for entry in output.split("\x1e"):
+        if "\x00" not in entry:
+            continue
+        name, message = entry.strip("\n").split("\x00", 1)
+        for pattern, what in ATTRIBUTION:
+            if re.search(pattern, message):
+                problems.append(f"commit {name}: {what}; reword it out (CLAUDE.md, Commits)")
+    return problems
+
+
+def cap_warnings(root: Path = ROOT) -> list[str]:
+    """Each script near gdlint's limit on lines or on a class's public methods."""
+    warnings: list[str] = []
+    for folder in SOURCE_DIRS:
+        for path in sorted((root / folder).rglob("*.gd")):
+            text = path.read_text(encoding="utf-8")
+            relative = path.relative_to(root).as_posix()
+            lines = len(text.splitlines())
+            if lines >= MAX_FILE_LINES - FILE_LINES_WARNING:
+                warnings.append(f"{relative}: {lines} lines; gdlint stops at {MAX_FILE_LINES}")
+            # gdlint counts a class's functions without a leading _, not its static ones.
+            public = len(re.findall(r"^func\s+[A-Za-z]", text, re.MULTILINE))
+            if public >= MAX_PUBLIC_METHODS - PUBLIC_METHODS_WARNING:
+                warnings.append(
+                    f"{relative}: {public} public methods; gdlint stops at {MAX_PUBLIC_METHODS}"
+                )
+    return warnings
+
+
+def step_harness(root: Path = ROOT) -> str:
+    problems = harness_problems(root) + comment_problems(root) + attribution_problems(root)
     if problems:
         raise StepFailed("\n".join(problems))
-    return "tests clean up, every script has its uid"
+    warnings = cap_warnings(root)
+    for warning in warnings:
+        print(f"[harness] near a cap: {warning}")
+    return (
+        "tests clean up, every script has its uid, comments and commits are clean,"
+        f" {len(warnings)} near a lint cap"
+    )
+
+
+def tool_tests(folder: str, timeout: int) -> str:
+    """Run the Python tests in one folder (not the folders under it); return how many ran."""
+    python = sys.executable or "python"
+    command = [python, "-m", "unittest", "discover", "-s", folder, "-t", folder]
+    code, output = run(command, timeout=timeout)
+    if code != 0:
+        raise StepFailed(f"{folder} failed (exit {code})\n{tail(output)}")
+    tests = re.search(r"^Ran (\d+) tests?", output, re.MULTILINE)
+    return tests.group(1) if tests else "0"
 
 
 def step_art() -> str:
-    """The art pipeline's own tests, then the art and sound lints (specs 002, 021)."""
+    """The tool tests that need no Godot, then the art and sound lints."""
     python = sys.executable or "python"
-    code, output = run([python, "-m", "unittest", "discover", "-s", "tools/tests"], timeout=300)
-    if code != 0:
-        raise StepFailed(f"tools/tests failed (exit {code})\n{tail(output)}")
-    tests = re.search(r"^Ran (\d+) tests?", output, re.MULTILINE)
+    count = tool_tests("tools/tests", timeout=300)
     code, output = run([python, "tools/art.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
@@ -325,7 +521,6 @@ def step_art() -> str:
     code, output = run([python, "tools/sfx.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/sfx.py bake`\n{tail(output)}")
-    count = tests.group(1) if tests else "0"
     return f"{count} tool tests, {art}, {output.strip().splitlines()[-1]}"
 
 
@@ -345,16 +540,75 @@ def import_project() -> None:
         raise StepFailed(f"import failed (exit {code})\n{shown}")
 
 
-def step_compile() -> str:
+def ensure_imported() -> None:
+    """Import the project unless this process, or the dev.py that started it, already has.
+
+    Every step that runs Godot calls this, so a check imports once and a step run alone still
+    imports for itself.
+    """
+    if os.environ.get(IMPORTED) == "1":
+        return
     import_project()
+    os.environ[IMPORTED] = "1"
+
+
+def step_compile() -> str:
+    ensure_imported()
     code, output = godot(["-s", "res://tools/godot/compile_all.gd"], timeout=300)
     require_clean(code, output, "compile")
     return last_line(output, "[compile]")
 
 
-def step_tests(only: str | None = None) -> str:
+def step_tools() -> str:
+    """The tool tests that start Godot: the headless sim runs and the real shots."""
+    ensure_imported()
+    return f"{tool_tests(GODOT_TOOL_TESTS, timeout=1800)} tool tests that run Godot"
+
+
+def test_scripts(root: Path = ROOT) -> list[str]:
+    """Every GUT test script, as a path relative to [root]."""
+    return sorted(path.relative_to(root).as_posix() for path in (root / "tests").rglob("test_*.gd"))
+
+
+def parse_shard(text: str) -> tuple[int, int]:
+    """`I/N` as (I, N), refusing anything but 1 <= I <= N."""
+    match = re.fullmatch(r"(\d+)/(\d+)", text.strip())
+    if not match or not 1 <= int(match.group(1)) <= int(match.group(2)):
+        raise argparse.ArgumentTypeError(f"a shard is I/N with 1 <= I <= N, not {text!r}")
+    return int(match.group(1)), int(match.group(2))
+
+
+def shard_scripts(scripts: list[str], index: int, count: int) -> list[str]:
+    """The [index]-th of [count] parts of [scripts], the same whatever order they come in.
+
+    The slowest go first, each to the part with the least time so far (the lower part on a tie),
+    by the times in TEST_TIMES; a script it does not list counts as USUAL_TEST_SECONDS.
+    """
+    times: dict[str, float] = json.loads(TEST_TIMES.read_text(encoding="utf-8"))
+    parts: list[list[str]] = [[] for _ in range(count)]
+    loads = [0.0] * count
+    for script in sorted(scripts, key=lambda s: (-times.get(s, USUAL_TEST_SECONDS), s)):
+        lightest = loads.index(min(loads))
+        parts[lightest].append(script)
+        loads[lightest] += times.get(script, USUAL_TEST_SECONDS)
+    return sorted(parts[index - 1])
+
+
+def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) -> str:
+    ensure_imported()
     args = ["-s", "res://addons/gut/gut_cmdln.gd", "-gexit"]
-    if only:
+    which = ""
+    if shard:
+        index, count = shard
+        scripts = shard_scripts(test_scripts(), index, count)
+        scripts = [script for script in scripts if not only or only in Path(script).name]
+        which = f", shard {index}/{count}: {len(scripts)} script{'' if len(scripts) == 1 else 's'}"
+        if not scripts:
+            return f"no script in shard {index}/{count} matches {only!r}"
+        # Without the config file, whose folder would add every script back.
+        listed = ",".join(f"res://{script}" for script in scripts)
+        args += ["-gconfig=", "-glog=1", f"-gtest={listed}"]
+    elif only:
         args.append(f"-gselect={only}")
     # The whole suite takes about 12 minutes in CI and has taken 25 on a busy machine.
     code, output = godot(args, timeout=2700)
@@ -363,16 +617,18 @@ def step_tests(only: str | None = None) -> str:
     passing = re.search(r"^\s*Passing(?: Tests)?\s+(\d+)", output, re.MULTILINE)
     if not passing or int(passing.group(1)) == 0:
         raise StepFailed(f"no passing tests were reported\n{output}")
-    return f"{passing.group(1)} passing"
+    return f"{passing.group(1)} passing{which}"
 
 
 def step_data() -> str:
+    ensure_imported()
     code, output = godot(["-s", "res://tools/godot/validate_data.gd"], timeout=300)
     require_clean(code, output, "data validation")
     return last_line(output, "[data]")
 
 
 def step_boot() -> str:
+    ensure_imported()
     code, output = godot(["--quit-after", "120"], timeout=120)
     require_clean(code, output, "boot")
     return "120 frames, no errors"
@@ -389,6 +645,7 @@ STEPS: dict[str, Callable[[], str]] = {
     "harness": step_harness,
     "art": step_art,
     "compile": step_compile,
+    "tools": step_tools,
     "tests": step_tests,
     "data": step_data,
     "boot": step_boot,
@@ -398,7 +655,18 @@ STEPS: dict[str, Callable[[], str]] = {
 # --------------------------------------------------------------- commands
 
 
+def tree_state() -> str:
+    """The commit checked and whether the tree differs from it, for the first line of a run."""
+    code, head = run(["git", "rev-parse", "--short", "HEAD"], timeout=60)
+    if code != 0:
+        return "not in a git repository"
+    code, status = run(["git", "status", "--porcelain"], timeout=60)
+    changed = "with uncommitted changes" if code != 0 or status.strip() else "clean"
+    return f"on {head.strip()}, {changed}"
+
+
 def run_steps(names: list[str]) -> int:
+    print(f"[tree] {tree_state()}")
     for name in names:
         started = time.monotonic()
         try:
@@ -424,8 +692,9 @@ def command_check(args: argparse.Namespace) -> int:
 
 
 def command_test(args: argparse.Namespace) -> int:
+    print(f"[tree] {tree_state()}")
     try:
-        print(f"[tests] ok ({step_tests(args.only)})")
+        print(f"[tests] ok ({step_tests(args.only, args.shard)})")
     except StepFailed as failure:
         print(f"[tests] FAIL\n{failure}")
         return 1
@@ -533,7 +802,7 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append("--spend-talents=true")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
-        import_project()
+        ensure_imported()
         # About a minute of real time per ten hours of game time, plus start-up.
         timeout = 120 + int(args.minutes * 2)
         code, output = godot(["-s", "res://tools/godot/run_sim.gd", "--", *options], timeout)
@@ -560,6 +829,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     test = commands.add_parser("test", help="run the GUT tests")
     test.add_argument("--only", help="run only test scripts whose name contains this")
+    test.add_argument(
+        "--shard",
+        type=parse_shard,
+        metavar="I/N",
+        help="run only the I-th of N parts of the test scripts (with --only: of those it names)",
+    )
     test.set_defaults(handler=command_test)
 
     commands.add_parser("format", help="format scripts in place").set_defaults(
