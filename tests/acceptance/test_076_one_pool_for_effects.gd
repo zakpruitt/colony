@@ -299,7 +299,7 @@ func test_r2_every_kind_stops_at_its_budget() -> void:
 	fx.set_process(false)
 	fx.setup(world, sim)
 	var makers: Dictionary[StringName, Callable] = {
-		&"combat": fx._particle.bind(&"filler"),
+		&"combat": fx.new_particle.bind(&"filler"),
 		&"ability": fx.ability_effects._particle.bind(&"filler"),
 		&"spell": fx.spell_effects._particle.bind(&"filler"),
 		&"quest": fx.quest_effects._particle.bind(&"filler"),
@@ -320,7 +320,7 @@ func test_r2_every_kind_stops_at_its_budget() -> void:
 		assert_null(made, "%s: one more than its cap is not" % budget)
 		assert_eq(world.fx.count(budget), caps[budget], "%s: holds its cap" % budget)
 	assert_eq(fx.quest_effects.live_particles(), 120, "quest effects stop at theirs")
-	var guardian: FxParticle = fx._particle(&"guardian", CombatEffects.GUARDIAN_ALLOWANCE)
+	var guardian: FxParticle = fx.new_particle(&"guardian", CombatEffects.GUARDIAN_ALLOWANCE)
 	assert_not_null(guardian, "a guardian's death may go past combat's cap by its allowance")
 	assert_eq(world.effects_layer.get_child_count(), 300 + 150 + 120 + 120 + 1, "all on the layer")
 
