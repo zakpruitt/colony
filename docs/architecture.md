@@ -145,6 +145,20 @@ The picture is drawn in two layers, each in its own pixels.
   `WindowText.changes` (spec 075's test watches an idle screen with it). A closed shop, map, tally or
   hero window words nothing and is brought up to date as it opens; a hero window refreshes only the
   tab showing, and its Stats tab builds the hero's `Combatant` only when a stat's inputs change.
+  Spec 080 gives the frame's panels one base type, `FramePiece` (`game/ui/frame/frame_piece.gd`:
+  `advance(delta)`, `catch_up()`, `add_tips(tips)`): `PlacePanel`, `Countdown`, `Purse`,
+  `BossBarView`, `Ticker`, `GoalsView` and `StageList`, in `Hud.pieces`, added with `Hud.add_piece`
+  (on the frame, in the list, tipped) and placed in `Hud._lay_out_frame`; `Hud` advances them every
+  frame, catches them up after a stall and tips them once by walking the list. `HeroFrameView` is
+  not one. An idle frame does no work: `Hud` lays the frame out only when the room changes or a
+  piece's size or visibility does (`Hud.layouts` counts), words the status line and the road to
+  stable only when what they are made from changes (`Hud.worded`), `Goals` reads the goals again
+  only then (`Goals.built` counts the goals made) and an open Talents tab words itself and reads
+  its nodes' states only then (`HeroTalentsTab.worded`, `TalentTreeView.states_read`). "What they
+  are made from" is the simulation's tick, which moves with everything the simulation does, and
+  the few values a command or a test changes between ticks. One owner advances each thing that
+  moves: `Hud.advance` refreshes its `CrossingVeil` last, `UiRoot.advance` runs its `UiMoment`
+  after the bar, and `Main._process` runs the `Milestones`; none has a `_process` of its own.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
   party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is
