@@ -1,9 +1,9 @@
 # 079 — One base type for effect nodes, and room in the two biggest game files
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 076
-- **Pull request:** —
+- **Pull request:** [#78](https://github.com/zakpruitt/colony/pull/78)
 
 ## Intent
 
