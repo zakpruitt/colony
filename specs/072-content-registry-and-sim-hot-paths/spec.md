@@ -1,9 +1,9 @@
 # 072 — One content table, and less work per tick
 
-- **Status:** in-progress (approved 2026-11-19)
+- **Status:** landed (approved 2026-11-19)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 069
-- **Pull request:** —
+- **Pull request:** [#74](https://github.com/zakpruitt/colony/pull/74)
 
 ## Intent
 
