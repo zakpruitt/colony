@@ -428,9 +428,7 @@ func hash_parts() -> Array:
 			[key, fill.visit, fill.cleared_tick, fill.missed, _combatant_parts(fill.monsters)]
 		)
 	if battle != null:
-		parts.append(
-			[battle.tick, battle.result(), _combatant_parts(battle.heroes + battle.monsters)]
-		)
+		parts.append([battle.tick, battle.result(), _combatant_parts(battle.fighters())])
 	# Only when off their defaults or asked for, to keep the hash of a run without orders.
 	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
 	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:

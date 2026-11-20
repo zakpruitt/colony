@@ -10,19 +10,28 @@ const MAX_CHAIN: int = 4
 
 ## The first of [param c]'s actions that is off cooldown, whose condition holds and which has
 ## someone to aim at, or null. A healer with an ally to heal uses none aimed at an enemy: it
-## heals first. Whom the action aims at is left in [member Battle.ready_target].
+## heals first.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
-	battle.ready_target = null
 	var heal_first: bool = c.role == HeroClassDef.Role.HEALER and battle.hurt_ally(c) != null
 	for ability: AbilityDef in c.abilities:
-		if not ability.is_action() or battle.tick < c.action_ready_tick.get(ability.id, 0):
-			continue
-		if heal_first and not ability.aims_at_ally():
-			continue
-		var target: Combatant = aim(battle, c, ability)
-		if target != null and _condition_holds(battle, c, ability, target):
-			battle.ready_target = target
+		if ready_target(battle, c, ability, heal_first) != null:
 			return ability
+	return null
+
+
+## Whom [param c] would use [param ability] on now, or null unless it is an action off cooldown
+## with someone to aim at and its condition holds. With [param heal_first] (a healer with an
+## ally to heal) an action aimed at an enemy is not ready.
+static func ready_target(
+	battle: Battle, c: Combatant, ability: AbilityDef, heal_first: bool
+) -> Combatant:
+	if not ability.is_action() or battle.tick < c.action_ready_tick.get(ability.id, 0):
+		return null
+	if heal_first and not ability.aims_at_ally():
+		return null
+	var target: Combatant = aim(battle, c, ability)
+	if target != null and _condition_holds(battle, c, ability, target):
+		return target
 	return null
 
 
@@ -37,25 +46,22 @@ static func aim(battle: Battle, c: Combatant, ability: AbilityDef) -> Combatant:
 			return c
 		AbilityDef.Aim.WEAKEST_ALLY:
 			return _weakest(battle.allies_of(c))
-		AbilityDef.Aim.WEAKEST_ENEMY:
-			return _weakest(battle.aimable(c))
-		AbilityDef.Aim.FURTHEST_ENEMY:
-			var furthest: Combatant = null
-			var best: float = -1.0
-			for enemy: Combatant in battle.aimable(c):
-				if absf(enemy.x - c.x) > best:
-					furthest = enemy
-					best = absf(enemy.x - c.x)
-			return furthest
+		AbilityDef.Aim.WEAKEST_ENEMY, AbilityDef.Aim.FURTHEST_ENEMY:
+			return battle.best_enemy(c, ability.aim)
 	return battle.nearest_enemy(c)
 
 
 ## [param c] uses [param ability] on [param target]: an ABILITY_USED event (unless
 ## [param report] is false), then each effect in order on everyone it lands on. An effect that
 ## multiplies a strike belongs to the strike and is not done here. Returns false, with no
-## event, if no effect lands on anyone.
+## event, if no effect lands on anyone. [param chain] is how many passives deep the use is.
 static func use(
-	battle: Battle, c: Combatant, ability: AbilityDef, target: Combatant, report: bool = true
+	battle: Battle,
+	c: Combatant,
+	ability: AbilityDef,
+	target: Combatant,
+	report: bool = true,
+	chain: int = 0
 ) -> bool:
 	var lands: bool = false
 	for effect: AbilityEffect in ability.effects:
@@ -74,7 +80,7 @@ static func use(
 			# Worked out before any of them, so one that a passive set off by an earlier receiver
 			# has killed is passed over: nothing but a revive lands on the dead.
 			if receiver.is_alive() != reviving:
-				_apply(battle, c, ability, effect, receiver)
+				_apply(battle, c, ability, effect, receiver, chain)
 	return true
 
 
@@ -98,7 +104,7 @@ static func strike_boosts(battle: Battle, c: Combatant, target: Combatant) -> Ar
 
 ## Every fighter's passives that answer to the fight starting.
 static func fight_starts(battle: Battle) -> void:
-	for c: Combatant in battle.heroes + battle.monsters:
+	for c: Combatant in battle.fighters():
 		fire(battle, c, AbilityDef.Trigger.FIGHT_STARTS, c)
 
 
@@ -106,43 +112,50 @@ static func fight_starts(battle: Battle) -> void:
 ## health was [param before]. Landing a hit or a crit, and being hit, answer ordinary strikes
 ## and actions only; falling below a share, a kill and an ally's death answer any damage, a
 ## passive's or a status's too, so passives can set off passives: [constant MAX_CHAIN] limits
-## how deep.
+## how deep, [param chain] being how deep the damage already is.
 static func after_damage(
-	battle: Battle, source: Combatant, target: Combatant, before: float, crit: bool, via: Battle.Via
+	battle: Battle,
+	source: Combatant,
+	target: Combatant,
+	before: float,
+	crit: bool,
+	via: Battle.Via,
+	chain: int
 ) -> void:
 	if via == Battle.Via.STRIKE or via == Battle.Via.ACTION:
-		fire(battle, source, AbilityDef.Trigger.LANDS_HIT, target)
+		fire(battle, source, AbilityDef.Trigger.LANDS_HIT, target, 0.0, chain)
 		if crit:
-			fire(battle, source, AbilityDef.Trigger.LANDS_CRIT, target)
-		fire(battle, target, AbilityDef.Trigger.IS_HIT, source)
+			fire(battle, source, AbilityDef.Trigger.LANDS_CRIT, target, 0.0, chain)
+		fire(battle, target, AbilityDef.Trigger.IS_HIT, source, 0.0, chain)
 	if target.is_alive():
-		fire(battle, target, AbilityDef.Trigger.FALLS_BELOW, target, before)
+		fire(battle, target, AbilityDef.Trigger.FALLS_BELOW, target, before, chain)
 		return
-	fire(battle, source, AbilityDef.Trigger.KILLS, target)
+	fire(battle, source, AbilityDef.Trigger.KILLS, target, 0.0, chain)
 	for ally: Combatant in battle.allies_of(target):
 		if ally != target:
-			fire(battle, ally, AbilityDef.Trigger.ALLY_DIES, target)
+			fire(battle, ally, AbilityDef.Trigger.ALLY_DIES, target, 0.0, chain)
 
 
 ## Uses each of [param owner]'s passives that answer to [param trigger], on [param target].
 ## [param before] is the owner's share of health before the damage, for FALLS_BELOW. A passive
-## that lands on nobody is not used, and a once-a-fight one is not spent by it.
+## that lands on nobody is not used, and a once-a-fight one is not spent by it. [param chain] is
+## how many passives deep the moment already is: each passive used goes one deeper, and none is
+## used [constant MAX_CHAIN] deep.
 static func fire(
 	battle: Battle,
 	owner: Combatant,
 	trigger: AbilityDef.Trigger,
 	target: Combatant,
-	before: float = 0.0
+	before: float = 0.0,
+	chain: int = 0
 ) -> void:
-	if owner.abilities.is_empty() or not owner.is_alive() or battle.chain >= MAX_CHAIN:
+	if owner.abilities.is_empty() or not owner.is_alive() or chain >= MAX_CHAIN:
 		return
 	for ability: AbilityDef in owner.abilities:
 		if ability.boosts_strike() or not _answers(battle, owner, ability, trigger, before):
 			continue
-		battle.chain += 1
-		if use(battle, owner, ability, target) and ability.once_per_fight:
+		if use(battle, owner, ability, target, true, chain + 1) and ability.once_per_fight:
 			owner.spent[ability.id] = true
-		battle.chain -= 1
 
 
 ## True if [param owner]'s passive [param ability] answers [param trigger] now: its count of
@@ -252,7 +265,12 @@ static func _receivers(
 
 
 static func _apply(
-	battle: Battle, c: Combatant, ability: AbilityDef, effect: AbilityEffect, receiver: Combatant
+	battle: Battle,
+	c: Combatant,
+	ability: AbilityDef,
+	effect: AbilityEffect,
+	receiver: Combatant,
+	chain: int
 ) -> void:
 	match effect.does:
 		AbilityEffect.Does.DAMAGE:
@@ -264,7 +282,7 @@ static func _apply(
 				amount -= receiver.armor
 			amount *= receiver.taken_multiplier()
 			var via: Battle.Via = Battle.Via.ACTION if ability.is_action() else Battle.Via.PASSIVE
-			var dealt: int = battle.deal(c, receiver, maxi(1, roundi(amount)), false, via)
+			var dealt: int = battle.deal(c, receiver, maxi(1, roundi(amount)), false, via, chain)
 			if effect.life_steal > 0.0 and dealt > 0 and c.is_alive():
 				battle.heal(c, c, roundi(dealt * effect.life_steal))
 		AbilityEffect.Does.HEAL:
