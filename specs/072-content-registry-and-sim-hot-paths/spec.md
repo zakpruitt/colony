@@ -1,6 +1,6 @@
 # 072 — One content table, and less work per tick
 
-- **Status:** draft
+- **Status:** in-progress (approved 2026-11-19)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 069
 - **Pull request:** —

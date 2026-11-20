@@ -1,6 +1,6 @@
 # 076 — One pool for effects, one gate for old events
 
-- **Status:** draft
+- **Status:** in-progress (approved 2026-11-19)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 070, 071
 - **Pull request:** —
