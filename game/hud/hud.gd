@@ -445,6 +445,19 @@ static func area_tip() -> String:
 	)
 
 
+## The countdown's tooltip while the Hold order keeps the party from a guardian.
+static func holding_tip() -> String:
+	return (
+		"The Hold order keeps the party from the guardian: Orders (%s) sends it in."
+		% KeyBook.label(UiRoot.ORDERS)
+	)
+
+
+## What the countdown says comes next while the party holds.
+static func holding_next() -> String:
+	return "Orders (%s) to go in" % KeyBook.label(UiRoot.ORDERS)
+
+
 ## The gold count currently displayed.
 func shown_gold() -> int:
 	return _shown_gold
@@ -592,10 +605,7 @@ func _countdown_tip() -> String:
 	if note.begins_with("Further in"):
 		return "Time left until Auto takes the party a stage further."
 	if note == "Holding":
-		return (
-			"The Hold order keeps the party from the guardian: Orders (%s) sends it in."
-			% KeyBook.label(UiRoot.ORDERS)
-		)
+		return holding_tip()
 	if countdown.bar.visible:
 		return "Time left until this stage is safe."
 	if countdown.next_label.text.begins_with("staying"):
@@ -835,7 +845,7 @@ func _stall_ticks() -> int:
 func _stable_parts() -> PackedStringArray:
 	var e: Expedition = _simulation.expedition
 	if e.is_holding():
-		return PackedStringArray(["Holding", "Orders (%s) to go in" % KeyBook.label(UiRoot.ORDERS)])
+		return PackedStringArray(["Holding", holding_next()])
 	if e.state == Expedition.State.REVIVING:
 		return PackedStringArray(["Stable", ""])
 	if e.state == Expedition.State.JOURNEYING:

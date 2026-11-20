@@ -10,14 +10,45 @@ extends RefCounted
 
 ## Entries added beside the bar's own while the game runs ([method add]), after them in order.
 static var _added: Array[WindowEntry] = []
+## The bar's own entries made once without contents, for reading names and keys
+## ([method key_of], [method listed]).
+static var _named: Array[WindowEntry] = []
 
 
-## Every window on the bar, in order. Their contents are made with [param simulation], [param hud]
-## and [param tips] (the tooltip they share); without them (to read the names and keys) no
-## [member WindowEntry.make_content] may be called.
-static func entries(
-	simulation: Simulation = null, hud: Hud = null, tips: UiTip = null
-) -> Array[WindowEntry]:
+## Every window on the bar, in order, made anew: their contents are made with
+## [param simulation], [param hud] and [param tips] (the tooltip they share).
+static func entries(simulation: Simulation, hud: Hud, tips: UiTip) -> Array[WindowEntry]:
+	var made: Array[WindowEntry] = _own(simulation, hud, tips)
+	made.append_array(_added)
+	return made
+
+
+## Every window on the bar, in order, to read their names and keys: made once, so no
+## [member WindowEntry.make_content] of the bar's own may be called.
+static func listed() -> Array[WindowEntry]:
+	if _named.is_empty():
+		_named = _own(null, null, null)
+	var made: Array[WindowEntry] = _named.duplicate()
+	made.append_array(_added)
+	return made
+
+
+## The key of the window [param id], or 0 for no window on the bar.
+static func key_of(id: StringName) -> int:
+	if _named.is_empty():
+		_named = _own(null, null, null)
+	for entry: WindowEntry in _named:
+		if entry.id == id:
+			return entry.key
+	for entry: WindowEntry in _added:
+		if entry.id == id:
+			return entry.key
+	return 0
+
+
+## The bar's own entries, in order, their contents made with [param simulation], [param hud] and
+## [param tips].
+static func _own(simulation: Simulation, hud: Hud, tips: UiTip) -> Array[WindowEntry]:
 	var help := WindowEntry.new(
 		UiRoot.HELP,
 		HelpPanel.TITLE,
@@ -74,7 +105,6 @@ static func entries(
 	for owned: WindowEntry in [shop, map, tally]:
 		owned.advanced_elsewhere = true
 	var made: Array[WindowEntry] = [help, journal, orders, shop, map, tally]
-	made.append_array(_added)
 	return made
 
 

@@ -43,12 +43,14 @@ const ALIASES: Dictionary[String, Array] = {
 	"-": [KEY_MINUS, KEY_KP_SUBTRACT],
 	"+": [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD],
 }
+## Each key row's label by its action, read from [constant ROWS] once.
+static var _labels: Dictionary[StringName, String] = {}
 
 
 ## Every key in the help's order, each as [label, what it does], what it does led by when it
 ## applies ([code]Camp in front: buy that upgrade[/code]).
 static func entries() -> Array[Array]:
-	var windows: Array[WindowEntry] = WindowBook.entries()
+	var windows: Array[WindowEntry] = WindowBook.listed()
 	var named: Dictionary[StringName, bool] = {}
 	var made: Array[Array] = []
 	for row: Array in ROWS:
@@ -85,13 +87,14 @@ static func fresh_key(event: InputEvent) -> InputEventKey:
 ## The label of [param action]'s key, as the help shows it ("O", "U", "F"): an action of
 ## [constant ROWS] or a window's id. "" for one there is not.
 static func label(action: StringName) -> String:
-	for entry: WindowEntry in WindowBook.entries():
-		if entry.id == action:
-			return key_name(entry.key)
-	for row: Array in ROWS:
-		if row.size() > 1 and row[0] == action:
-			return row[1]
-	return ""
+	var key: int = WindowBook.key_of(action)
+	if key != 0:
+		return key_name(key as Key)
+	if _labels.is_empty():
+		for row: Array in ROWS:
+			if row.size() > 1:
+				_labels[row[0] as StringName] = row[1] as String
+	return _labels.get(action, "")
 
 
 ## The name a key is shown by ([code]H[/code], [code]F11[/code]).

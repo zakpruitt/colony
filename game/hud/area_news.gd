@@ -75,20 +75,20 @@ func visit_goals() -> Array[Goals.Goal]:
 	for id: StringName in to_visit:
 		var called: String = PlaceText.area_name(id)
 		var goal := Goals.Goal.new(
-			"visit/%s" % id,
-			Goals.Kind.VISIT,
-			"Visit " + called,
-			-1.0,
-			"",
-			(
-				"%s is open: send the party there from the Map (%s)."
-				% [called, KeyBook.label(AreaMapWindow.ID)]
-			)
+			"visit/%s" % id, Goals.Kind.VISIT, "Visit " + called, -1.0, "", visit_hint(called)
 		)
 		goal.area = id
 		goal.done = "Goal: visited " + called
 		goals.append(goal)
 	return goals
+
+
+## The visit goal's hint for the area [param called].
+static func visit_hint(called: String) -> String:
+	return (
+		"%s is open: send the party there from the Map (%s)."
+		% [called, KeyBook.label(AreaMapWindow.ID)]
+	)
 
 
 ## The id of the area at [param index] in [method Content.area_ids], or &"".

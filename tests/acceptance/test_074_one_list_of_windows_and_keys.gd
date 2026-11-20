@@ -304,14 +304,24 @@ func test_r6_no_sentence_spells_a_key_itself() -> void:
 						text.contains(spelled), "%s:%d spells %s: %s" % [path, i + 1, spelled, text]
 					)
 	assert_gt(read, 200, "the game's strings were read")
-	# The words on screen are as they were.
-	assert_eq(
-		Hud.speed_tip(), "How fast the game runs: click (or press F) for 1x, 2x or 4x.", "speed"
-	)
-	assert_eq(
-		DefeatNote.holding_tip(),
-		"The party stays away from guardians until Orders (O) sends it in."
-	)
+	# The words on screen are as they were, each sentence that asks KeyBook for a key in full.
+	var said: Dictionary[String, String] = {
+		Hud.area_tip(): "The area the party is in: click (or press W) to open the Map.",
+		Hud.speed_tip(): "How fast the game runs: click (or press F) for 1x, 2x or 4x.",
+		Hud.holding_tip():
+		"The Hold order keeps the party from the guardian: Orders (O) sends it in.",
+		Hud.holding_next(): "Orders (O) to go in",
+		Goals.upgrade_hint(): "Open the Camp (U) and spend gold on the whole party.",
+		Goals.holding_hint():
+		"The party is holding back on the Hold order: Orders (O) sends it in.",
+		AreaNews.visit_hint("The Claypits"):
+		"The Claypits is open: send the party there from the Map (W).",
+		DefeatNote.holding_tip():
+		"The party stays away from guardians until Orders (O) sends it in.",
+	}
+	assert_eq(said.size(), 8, "eight different sentences")
+	for text: String in said:
+		assert_eq(text, said[text], "the sentence on screen")
 	assert_eq(KeyBook.label(UiRoot.ORDERS), "O", "the orders' key")
 	assert_eq(KeyBook.label(ShopWindow.ID), "U", "the Camp's key")
 	assert_eq(KeyBook.label(AreaMapWindow.ID), "W", "the Map's key")
