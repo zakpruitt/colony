@@ -54,7 +54,8 @@ per-frame or per-tick path, or a loop that got slower, is a defect, not a matter
 - Type everything. A warning is a compile error here.
 - Run `python tools/dev.py check --only=format,boundary,harness,compile` often (under a minute) and
   `python tools/dev.py test --only=test_NNN` for your own tests. The whole suite takes fifteen to twenty
-  minutes: run it when you change something many tests stand on, not after every edit.
+  minutes on one machine (CI runs it in four shards, about five minutes): run it when you change something
+  many tests stand on, not after every edit.
 - `gdlint` allows 100 characters per line. A doc comment copied word for word from the spec's **Interfaces**
   can be longer; rewrap it (the signatures stay exact, the comment's line breaks do not matter).
 - Generating many files (abilities, trees) or editing with a Python script is fine, but on Windows Python

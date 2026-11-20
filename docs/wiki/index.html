@@ -296,7 +296,7 @@ showcase's leftovers, not the game.</p>
   <li>A frame holding two arrivals in different areas (a long return from time away) may draw the events
   between them in the last area.</li>
   <li>No monster has an ability yet: only heroes do.</li>
-  <li>The full check takes fifteen to twenty minutes.</li>
+  <li>The full check takes fifteen to twenty minutes on one machine. CI runs it as five jobs side by side, in about five minutes.</li>
 </ul>
 
 <h3>Not built yet <span class="tag planned">Planned</span></h3>
@@ -997,7 +997,7 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Play the game</td><td><code>godot --path .</code></td></tr>
   <tr><td>Open the editor</td><td><code>godot -e --path .</code></td></tr>
   <tr><td>Watch the showcase: every moment of the game, labelled, in about ninety seconds (it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
-  <tr><td>Run every check (what CI runs, fifteen to twenty minutes)</td><td><code>python tools/dev.py check</code></td></tr>
+  <tr><td>Run every check (what CI runs; fifteen to twenty minutes here, about five in CI's five jobs)</td><td><code>python tools/dev.py check</code></td></tr>
   <tr><td>Run only some check steps</td><td><code>python tools/dev.py check --only=compile,tests</code></td></tr>
   <tr><td>Run the tests</td><td><code>python tools/dev.py test</code></td></tr>
   <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
