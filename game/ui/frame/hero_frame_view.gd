@@ -98,6 +98,9 @@ var _skills_seen: int = 0
 var _worded: ShownValues = ShownValues.new()
 var _drawn: ShownValues = ShownValues.new()
 var _popped: float = 1.0
+## The hero's level when its microskills were last counted, and the count.
+var _learned_at: int = -1
+var _learned: int = 0
 
 
 ## A frame for [param hero], drawing its portraits from [param hud].
@@ -324,7 +327,10 @@ func level_pulse() -> float:
 ## Brings [member marker] up to date with [param hero] (marking the microskills its open Skills
 ## tab shows as seen, as the window does) and runs its pulse on by [param delta] seconds.
 func _refresh_marker(hero: Hero, delta: float) -> void:
-	var learned: int = HeroWindow.skills_learned(hero)
+	if hero.level != _learned_at:  # the microskills change only with the level
+		_learned_at = hero.level
+		_learned = hero.microskills().size()
+	var learned: int = _learned
 	var windows: HeroWindows = _hud.hero_windows if _hud != null else null
 	var shown: HeroWindow = windows.window_of(hero_id) if windows != null else null
 	if shown != null and shown.is_open() and shown.page() == HeroWindow.Page.SKILLS:

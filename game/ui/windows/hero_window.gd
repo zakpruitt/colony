@@ -113,6 +113,9 @@ var _shown: ShownValues = ShownValues.new()
 var _drawn_health: float = -1.0
 var _drawn_xp: float = -1.0
 var _drawn_down: bool = false
+## The hero's level when its microskills were last counted, and the count.
+var _learned_at: int = -1
+var _learned: int = 0
 
 
 ## The window of [param hero], the [param place]th hero of the party (from 0); [param tip] gives
@@ -351,16 +354,6 @@ static func unspent(hero: Hero) -> int:
 	return hero.talent_points() + hero.paragon_points()
 
 
-## How many microskills [param hero] has learned at its level, counted without a list.
-static func skills_learned(hero: Hero) -> int:
-	var def: HeroClassDef = hero.def()
-	var count: int = 0
-	for i: int in mini(def.microskills.size(), def.microskill_levels.size()):
-		if hero.level >= def.microskill_levels[i]:
-			count += 1
-	return count
-
-
 ## A distance in tiles as words: whole numbers without a decimal (7), others with one (6.5).
 static func tiles(distance: float) -> String:
 	if is_equal_approx(distance, roundf(distance)):
@@ -574,7 +567,10 @@ func _fit_holder() -> void:
 ## Brings the two tags up to date with [param hero] (counting what the open Skills tab shows as
 ## seen) and pins each to its tab's top right corner.
 func _refresh_tags(hero: Hero) -> void:
-	var learned: int = HeroWindow.skills_learned(hero)
+	if hero.level != _learned_at:  # the microskills change only with the level
+		_learned_at = hero.level
+		_learned = hero.microskills().size()
+	var learned: int = _learned
 	if _page == Page.SKILLS and is_open():
 		_skills_seen = learned
 	talents_tag.show_count(HeroWindow.unspent(hero), tab_buttons[Page.TALENTS])

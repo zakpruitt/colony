@@ -19,8 +19,8 @@ signal badge_changed(text: String)
 var closes_away: bool = true
 ## True from the content's opening to its closing, so [method _shown] runs once per opening.
 var _was_open: bool = false
-## What the window's tag says, as last told: "" for none.
-var _badge_text: String = ""
+## The count on the window's tag, as last told: 0 for none.
+var _badge: int = 0
 
 
 func _init() -> void:
@@ -89,14 +89,20 @@ func advance(_delta: float) -> void:
 	pass
 
 
-## Puts [param count] on the window's tag on the bar (no tag for 0), telling the bar only when it
-## changes.
+## The count on the window's tag on the bar, as last told: 0 for none. A window takes it as it is
+## built, since the content may have told it before anything listened.
+func badge() -> int:
+	return _badge
+
+
+## Puts [param count] on the window's tag on the bar (no tag for 0 or less), telling the bar only
+## when it changes.
 func _show_badge(count: int) -> void:
-	var text: String = str(count) if count > 0 else ""
-	if text == _badge_text:
+	var shown: int = maxi(count, 0)
+	if shown == _badge:
 		return
-	_badge_text = text
-	badge_changed.emit(text)
+	_badge = shown
+	badge_changed.emit(str(shown) if shown > 0 else "")
 
 
 ## Gives the content [param _tips], the tooltip it shares with the bar, for its controls.

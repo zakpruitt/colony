@@ -144,6 +144,9 @@ var _frame_room: Vector2 = Vector2(UiRoot.MIN_ROOM)
 var _seen_tick: int = -1
 ## True once [method lift_tip] has put the frame's tooltip on the UI layer.
 var _tip_lifted: bool = false
+## The gold count's words and the count they were made for: worded again only on a change.
+var _gold_text: String = ""
+var _gold_text_of: int = 0
 
 
 func _ready() -> void:
@@ -577,8 +580,10 @@ func _advance_gold(delta: float) -> void:
 func _show_gold() -> void:
 	var lift: float = 1.0 if _gold_bump > GOLD_BUMP_SECONDS / 2.0 else 0.0
 	var colour: StringName = &"white" if _gold_bump > 0.0 else &"yellow"
-	# Short, so the resources fit beside it.
-	purse.show_gold(UiFormat.short_count(_shown_gold), colour, lift, PlacePanel.HEIGHT)
+	if _gold_text.is_empty() or _shown_gold != _gold_text_of:
+		_gold_text_of = _shown_gold
+		_gold_text = UiFormat.short_count(_shown_gold)  # short, so the resources fit beside it
+	purse.show_gold(_gold_text, colour, lift, PlacePanel.HEIGHT)
 
 
 func _advance_depth(delta: float) -> void:

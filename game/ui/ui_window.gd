@@ -110,15 +110,16 @@ func _init(
 	content = body
 	var told: WindowContent = body as WindowContent
 	if told != null:
-		told.badge_changed.connect(_on_badge_changed)
+		badge = told.badge()
+		told.badge_changed.connect(_on_badge_changed.unbind(1))
 	margin.add_child(body)
 	# A window grows and shrinks with what it shows (the tally's open line).
 	body.minimum_size_changed.connect(_refit_later)
 	title = window_title
 
 
-func _on_badge_changed(text: String) -> void:
-	badge = text.to_int()
+func _on_badge_changed() -> void:
+	badge = (content as WindowContent).badge()
 
 
 func _gui_input(event: InputEvent) -> void:

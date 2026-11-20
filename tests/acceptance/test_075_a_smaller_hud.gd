@@ -346,7 +346,9 @@ func test_r5_a_closed_window_does_no_work() -> void:
 
 
 func test_r6_a_badge_follows_its_content() -> void:
-	assert_false(_has_method(UiButtonBar.new(), "_process"), "the bar has no _process of its own")
+	var made := UiButtonBar.new()
+	assert_false(_has_method(made, "_process"), "the bar has no _process of its own")
+	made.free()
 	for room: Vector2i in ROOMS:
 		var main: Main = _main(room)
 		var hud: Hud = main.hud
@@ -371,6 +373,26 @@ func test_r6_a_badge_follows_its_content() -> void:
 		main.ui.windows.open_window(AreaMapWindow.ID)
 		assert_false(map_tag.visible, "%s: and goes as the map opens" % what)
 		main.free()
+	# A loaded game that can already pay for an upgrade, or has an area it has not seen, shows the
+	# tags from the start: the window takes its content's tag as it is built.
+	var rich := Simulation.new(Main.SIMULATION_SEED)
+	rich.party.gold = 100_000
+	assert_true(SaveStore.new(_save_path).write(rich.to_save()), "the test's save was written")
+	for room: Vector2i in ROOMS:
+		var loaded: Main = make_main()
+		loaded.save_store = SaveStore.new(_save_path)
+		add_child_autofree(loaded)
+		loaded.driver.set_process(false)
+		loaded.world.set_process(false)
+		loaded.effects.set_process(false)
+		loaded.hud.set_process(false)
+		loaded.ui.set_room_for_test(room)
+		for i: int in 3:
+			_frame(loaded)
+		var tag: UiBadge = loaded.ui.bar.badges[ShopWindow.ID]
+		assert_true(tag.visible, "%s: a loaded game's shop tag shows" % room)
+		assert_eq(tag.count, loaded.hud.shop.affordable_count(), "%s: counting" % room)
+		loaded.free()
 
 
 static func _has_method(object: Object, method: String) -> bool:
