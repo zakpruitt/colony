@@ -90,5 +90,5 @@ State hashes and old saves stay as they are throughout. New rows go in this tabl
 |---|---|---|
 | 072 | [One content table, and less work per tick](072-content-registry-and-sim-hot-paths/spec.md): landed on dev, [#74](https://github.com/zakpruitt/colony/pull/74) | 069 |
 | 074 | [One list of windows, one list of keys](074-one-list-of-windows-and-keys/spec.md): landed on dev, [#73](https://github.com/zakpruitt/colony/pull/73) | 070, 071 |
-| 076 | [One pool for effects, one gate for old events](076-one-pool-for-effects/spec.md): in-progress | 070, 071 |
-| 075 | [A smaller Hud that works only when something changed](075-a-smaller-hud/spec.md): approved, starts after 074 and 076 land | 074, 076 |
+| 076 | [One pool for effects, one gate for old events](076-one-pool-for-effects/spec.md): landed on dev, [#75](https://github.com/zakpruitt/colony/pull/75) | 070, 071 |
+| 075 | [A smaller Hud that works only when something changed](075-a-smaller-hud/spec.md): in-progress | 074, 076 |

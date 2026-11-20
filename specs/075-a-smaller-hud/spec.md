@@ -1,6 +1,6 @@
 # 075 — A smaller Hud that works only when something changed
 
-- **Status:** approved (2026-11-19)
+- **Status:** in-progress (approved 2026-11-19)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 074, 076
 - **Pull request:** —
