@@ -227,20 +227,22 @@ and the same commands give the same run; a test asserts it.
 
 ## Content
 
-Classes, talents, items and monsters are custom `Resource` classes with typed `@export` fields, stored as text
-`.tres` files under `data/`. Adding content means adding a file, not code. Each content class defines
-`validate() -> PackedStringArray` (one line per problem); the `data` step of the check loads every resource
-and fails on any problem.
+Classes, talents, items and monsters are custom resource classes with typed `@export` fields, stored as text
+`.tres` files under `data/`. Adding content means adding a file, not code. Each content class extends
+`ContentDef` (`sim/defs/content_def.gd`), which declares `key()` (what `Content` finds the definition by: its
+`id`, or a talent tree's `class_id`, one tree a class) and `validate() -> PackedStringArray` (one line per
+problem). `ContentDef` has no exported field: each class keeps its own `id` and `display_name`. The `data`
+step of the check loads every resource under `data/`, validates each `ContentDef` and fails on any problem.
 
 `Content` (`sim/defs/content.gd`) loads them, once, from one table, `Content.KINDS`: a row per kind with
-its folder under `data/`, its definition class, the property a definition is found by (`id`, or
-`class_id` for talent trees, one a class) and how its ids are listed (`BY_ID`, `BY_ORDER` by the
-definitions' `order` then id, `BY_AREA` for resources). Each `…_ids()` getter returns the same read-only
-array every call: a caller that wants to change the list copies it (`.duplicate()`) first.
+its folder under `data/`, its definition class and how its ids are listed (`BY_ID`, `BY_ORDER` by the
+definitions' `order` then id, `BY_AREA` for resources); each definition is listed under its `key()`. Each
+`…_ids()` getter returns the same read-only array every call: a caller that wants to change the list
+copies it (`.duplicate()`) first.
 
-**Adding a kind of content:** make its `Resource` class under `sim/defs/` (typed `@export` fields, an `id`,
-`validate()`), its folder under `data/`, a value in `Content.Kind` and its row at the same place in
-`Content.KINDS` (a kind ordered by another comes after it), and its getters (`thing(id)` and
+**Adding a kind of content:** make its class under `sim/defs/` (extending `ContentDef`: typed `@export`
+fields, an `id`, `key()` and `validate()`), its folder under `data/`, a value in `Content.Kind` and its row
+at the same place in `Content.KINDS` (a kind ordered by another comes after it), and its getters (`thing(id)` and
 `thing_ids()`, each one line over `_find` and `_ids_of`). `test_072_content_table` fails until every folder
 under `data/` has exactly one row.
 
@@ -277,7 +279,7 @@ stable depth, with every chamber freshly populated.
   `{"safe": s, "furthest": f}`. An unknown or closed `area`, an unknown id in `open_areas` or `areas`, and a
   stage below 1 or a safe stage beyond the furthest are refused by name (`areas.claypits.safe`).
   Version 6 to 7 (spec 051, `TalentSave`) drops each hero's `training`, adds the gold spec 029 charged for
-  its ranks (`TalentSave.OLD_TRAINING_PRICES`) to the party's, and gives it `talents` (empty) and `paragon`
+  its ranks (the old prices `TalentSave` keeps) to the party's, and gives it `talents` (empty) and `paragon`
   (empty): every talent and paragon point its level earned is unspent. A version 6 rank that cannot be read is
   kept, and refused by name (`heroes[1].training`). A version 7 hero's `talents` must be a legal order of its
   class's tree no longer than its level earns (`heroes[2].talents[4]`, `heroes[1].talents`), and its
@@ -294,7 +296,10 @@ stable depth, with every chamber freshly populated.
   Hold the party's walking goal stops short of a living guardian's chamber (`PartyOrders.short_of`), it turns
   there and hunts on that level, and `Expedition.is_holding` says so. At their defaults the orders add nothing
   to the state hash. `EncounterRoll` holds the expedition's encounter roll, guardian lookup and fighters' hash
-  parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines.
+  parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines. Spec 078 holds that file to 900
+  lines: what a chamber holds on a visit (always empty, a guardian's, its side quest and its monsters)
+  is `ChamberRules`, and where the heroes stand and the anchor walks is `PartyPlaces`, both read-only
+  under `sim/expedition/`.
 - **Talents and paragon (spec 051).** See "Talent trees and paragon" below. `Simulation.take_talent`,
   `spend_paragon` and `reset_talents` apply on the next step, like `buy_upgrade`. A hero with no node and no
   paragon point spent adds nothing to the state hash.
@@ -396,8 +401,8 @@ neither unspent count is stored: `TalentRules.talent_points_at(level)` (one at e
 healing, maximum health and attack speed by `1 + points * TrainingDef.per_rank` (3%) of Power, Toughness and
 Quickness, after the camp upgrades. A node taken mid-fight waits for the next fight; a paragon point spent
 mid-fight changes the fighter at once, as spec 029's training did. A fresh start (`reset_talents`) costs
-`Simulation.RESET_GOLD_PER_LEVEL` (100) times the hero's level, is refused while `Expedition.battle` is set,
-and leaves paragon points alone. Events: `TALENT_POINT_GAINED` (from `Expedition._give_xp`, beside the
+`Simulation.reset_price(hero)`, a price per level times the hero's level, is refused while
+`Expedition.battle` is set, and leaves paragon points alone. Events: `TALENT_POINT_GAINED` (from `Expedition._give_xp`, beside the
 `LEVEL_UP` that earned it), `TALENT_TAKEN` (with `ability_id`), `PARAGON_SPENT`, `TALENTS_RESET`. Auto-buy
 never spends a point. When the expedition's 90-second limit ends a fight, it calls `Battle.end()` first, so
 every status ends with its event and no monster goes back to its chamber carrying one.
@@ -429,7 +434,7 @@ under the rest of the HUD, paints the dark and the title.
 Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists
 the ones it learns and the level of each, and a hero has one from that level on (`Hero.microskills()`), so
 nothing about them is saved. A side quest (`SideQuestDef`, `data/sidequests/`) is what a plain chamber holds
-in place of monsters on a visit, with chance `Expedition.SIDE_QUEST_SHARE`, rolled like the monsters from the
+in place of monsters on a visit, with chance `ChamberRules.SIDE_QUEST_SHARE`, rolled like the monsters from the
 seed, depth, chamber and visit only (`fork("sidequest/d/c/v")`). Reaching one, the living hero with its
 microskill (lowest id first, `Party.hero_with_microskill`) does it while the expedition is `WORKING`; the
 reward is `SideQuestDef.reward_at(depth)`, a number of average kills of that depth, and the chamber is cleared
@@ -464,8 +469,14 @@ or a passive; `Combatant.abilities` lists a fighter's: a hero's talents (spec 05
 - **Nothing lands on the dead** but a revive: the receivers of an effect are worked out once, and one
   that an earlier receiver's passive killed is passed over. An **untouchable** fighter takes nothing
   hostile from an enemy, and enemies aim at someone else while anyone else on its side stands
-  (`Battle.aimable`). `Battle.end()` ends every status with its event; the battle calls it as it ends,
+  (`Battle.best_enemy`). `Battle.end()` ends every status with its event; the battle calls it as it ends,
   and so does the expedition's time limit (spec 051).
+- **Nothing on the tick builds a list** (spec 078). `Battle.fighters()` is the one list of both
+  sides, made as the battle is; the passives and statuses walk it. A target is chosen in one pass
+  (`Battle.nearest_enemy`, `best_enemy`: the first in its side's order on a tie), a healer's hurt
+  ally is asked for once a tick, and `BattleAbilities.ready_target` says whom one action would
+  aim at. How deep passives are setting off passives travels with the call (`chain`, through
+  `Battle.deal`, `BattleAbilities.fire` and `use`), so nothing holds it between calls.
 - **All damage** goes through `Battle.deal`: a shield absorbs first (a `MISSED` event, flagged), then the
   `HIT` with its true source, then the passives. Ability damage and healing carry no roll and never crit;
   ordinary strikes roll as before, multiplied by mighty or weakened and marked. Statuses in points (shield,

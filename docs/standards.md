@@ -11,10 +11,10 @@ plug in.
 | To add a… | Do this | Where | What holds you to it |
 |---|---|---|---|
 | Hero class, monster, upgrade, ability, area, resource, side quest, microskill, talent tree | A `.tres` under `data/<kind>/`, named for its id | `data/` | `check`'s `data` step runs every definition's `validate()` |
-| Kind of content | A row in `Content.KINDS`, a `Content.Kind` name, its two getters, a def class with `validate()` | `sim/defs/content.gd` | spec 072's tests compare every getter with its folder |
+| Kind of content | A row in `Content.KINDS`, a `Content.Kind` name, its two getters, a def class extending `ContentDef` (`key()`, `validate()`) | `sim/defs/content.gd` | spec 072's tests compare every getter with its folder; spec 078's, every definition with its key |
 | Check on a definition | A function on `DefChecks` that returns problems | `sim/defs/def_checks.gd` | |
 | Check on a save field | `SaveChecks.check_whole` / `check_counts` | `sim/save_checks.gd` | spec 072's tests pin every problem's wording |
-| Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress` | gdlint: `Expedition` is at 20 public methods |
+| Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress`, `ChamberRules`, `PartyPlaces` | gdlint: `Expedition` is at 20 public methods; spec 078: `expedition.gd` at most 900 lines |
 | Window on the button bar | A `WindowEntry` in `WindowBook`, whose content extends `WindowContent` | `game/ui/windows/` | spec 074's tests: button, key, tooltip, help line |
 | Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | specs 030 and 074 |
 | Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; spec 079's `FxNode` test |
