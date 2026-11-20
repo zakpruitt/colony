@@ -15,9 +15,10 @@ extends PanelContainer
 ##
 ## [method refresh] reads everything from the simulation every frame the shop is open, and words
 ## and colours the card only when what it shows has changed; while the shop is closed only its
-## flash and stepping run on ([method run_on]). A purchase heard fresh fills its pip with a flash ([method start_flash]); the
-## player's own also steps the numbers to their new values ([method start_step]) while the shop
-## bursts the icon. Pointing at the card shows a card tooltip ([method card]).
+## flash and stepping run on ([method run_on]). A purchase heard fresh fills its pip with a flash
+## ([method start_flash]); the player's own also steps the numbers to their new values
+## ([method start_step]) while the shop bursts the icon. Pointing at the card shows a card tooltip
+## ([method card]).
 
 ## Seconds the numbers take to step to their new values after the player's purchase.
 const STEP_SECONDS: float = 0.3
