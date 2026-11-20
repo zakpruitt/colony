@@ -116,6 +116,11 @@ var _arrow_layer: Control
 ## Drawn over that, clipped to the rows: the strike through a beaten guardian's name and the
 ## party's diamond, so nothing covers them.
 var _marker_layer: Control
+## What the rows, the arrow and the marker layer showed when last drawn: each is drawn again only
+## when what it shows changes.
+var _rungs_shown: Array = []
+var _arrow_shown: Array = []
+var _marker_shown: Array = []
 
 
 func _init() -> void:
@@ -268,9 +273,7 @@ func advance(delta: float) -> void:
 		hovered = _under(_pointer)
 	_place_labels()
 	_show_hint()
-	_rungs.queue_redraw()
-	_arrow_layer.queue_redraw()
-	_marker_layer.queue_redraw()
+	_redraw_changed()
 
 
 ## True while the list is on screen.
@@ -584,6 +587,29 @@ func _place_labels() -> void:
 			&"font_color", Palette.color(&"steel" if beaten else &"white")
 		)
 		guardian.position = Vector2(NAME_X, row + _text_y())
+
+
+## Redraws each layer whose picture has changed since it was last drawn.
+func _redraw_changed() -> void:
+	var top: int = floori(_scroll)
+	var rows: Array = []
+	for depth: int in range(top, top + RUNGS + 1):
+		rows.append(marks(depth))
+		rows.append(ladder.guardian_name(depth))
+	var blink: bool = fmod(FLASH_SECONDS - _flash, BLINK_SECONDS) < BLINK_SECONDS / 2.0
+	var lit: int = _flash_depth if is_flashing(_flash_depth) and blink else 0
+	var rungs: Array = [_scroll, hovered, lit, rows]
+	if rungs != _rungs_shown:
+		_rungs_shown = rungs
+		_rungs.queue_redraw()
+	var arrow: Array = [arrow_rect(), arrow_points_up()]
+	if arrow != _arrow_shown:
+		_arrow_shown = arrow
+		_arrow_layer.queue_redraw()
+	var marker: Array = [_scroll, _party_at, _time < BOB_SECONDS / 2.0, rows]
+	if marker != _marker_shown:
+		_marker_shown = marker
+		_marker_layer.queue_redraw()
 
 
 ## Draws the rails and every row on show; the arrow, the strikes and the diamond are on layers

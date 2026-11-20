@@ -49,8 +49,8 @@ func setup(simulation: Simulation, world: World, hud: Hud, moment: UiMoment) -> 
 	_moment = moment
 	_area = simulation.expedition.place
 	_safe = simulation.expedition.last_stable_depth
-	if not world.sim_event.is_connected(hear):
-		world.sim_event.connect(hear)
+	if not world.sim_event.is_connected(_on_sim_event):
+		world.sim_event.connect(_on_sim_event)
 
 
 func _process(delta: float) -> void:
@@ -58,7 +58,7 @@ func _process(delta: float) -> void:
 
 
 ## Takes in one event, in the order the simulation reported it.
-func hear(event: SimEvent) -> void:
+func _on_sim_event(event: SimEvent) -> void:
 	if _moment == null:
 		return
 	if _world.catching_up():

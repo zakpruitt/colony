@@ -322,7 +322,7 @@ func test_r1_wipe_leaves_the_party() -> void:
 		assert_true(sprite.visible and sprite.is_dead(), "hero %d is shown, not yet up" % id)
 		assert_true(_world.fallen_party.is_standing(id), "hero %d stands up" % id)
 		var lit: bool = false
-		for particle: FxParticle in _fx._particles:
+		for particle: FxParticle in _fx.particles():
 			var column: bool = particle.shape == FxParticle.Shape.COLUMN
 			if column and particle.position.distance_to(feet) < 1.0:
 				lit = true
@@ -473,7 +473,7 @@ func _guardian_fight(depth: int, side: int) -> void:
 			var gap: float = drawn.x - hero.y - 1.0 if side > 0 else hero.x - drawn.y - 1.0
 			closest[id] = minf(closest[id], gap)
 		# Each damage number on the guardian (the only monster: not red, a hero's) starts over it.
-		for text: FxText in _fx._texts:
+		for text: FxText in _fx.texts():
 			if text.kind != &"damage" or numbers.has(text):
 				continue
 			if text.color == Palette.color(&"red"):
@@ -667,7 +667,7 @@ func test_r6_showcase() -> void:
 	var showcase: Showcase = _showcase()
 	_sim = showcase.main.simulation
 	_world = showcase.main.world
-	assert_has(Showcase.MOMENTS, &"guardian_fight", "the showcase has a guardian's moment")
+	assert_has(Showcase.names(), &"guardian_fight", "the showcase has a guardian's moment")
 
 	# The wipe: the fallen party lies in view, then is revived and stands up.
 	showcase.skip_to(&"wipe")

@@ -115,7 +115,7 @@ func _emit_old(
 
 ## True while the world shows the words [param words] (a banner of the effects).
 func _fx_text(main: Main, words: String) -> bool:
-	for text: FxText in main.effects._texts:
+	for text: FxText in main.effects.texts():
 		if text.text == words:
 			return true
 	return false

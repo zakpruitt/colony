@@ -146,8 +146,8 @@ The picture is drawn in two layers, each in its own pixels.
   path's name is tinted in it wherever the window says it, by a `WordTint` drawn over the label). A
   node's words are on its card (`UiTip.attach_card`) and in the `NextStrip` at the tree's foot; the
   paragon medallions sit under that, past the first view (`HeroTalentsTab.base_height()` leaves them
-  out, so two windows on Talents still sit side by side at 1280x720). `Main` connects the world's
-  `sim_event` to `HeroWindows.hear`, which turns a recent `TALENT_TAKEN`, `PARAGON_SPENT` or
+  out, so two windows on Talents still sit side by side at 1280x720). `HeroWindows.setup` is handed the
+  world and connects its own `_on_sim_event`, which turns a recent `TALENT_TAKEN`, `PARAGON_SPENT` or
   `MICROSKILL_LEARNED` into a burst and a banner through `UiMoment`.
 - **Pictures and the moment** (spec 063, `game/ui/`): every ability, upgrade, paragon stat and microskill
   has a 16x16 picture, a part named for its id in one of `assets/sprites/ui/pictures_<group>.png`;
@@ -485,8 +485,22 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   (fireball, meteor, ice shard) leaves on `ABILITY_STARTED` and arrives as the wind-up ends; the rest
   burst on `ABILITY_USED`. Flakes, flames, light, beams, shadow and a spark's jumps show only on the
   fighters the same tick's `HIT`, `HEALED`, `REVIVED` and `STATUS_BEGAN` events credit to the spell,
-  read through `AbilityEffects`' `AbilityCredit`. It keeps its own particle cap, as `AbilityEffects` does, and clears everything
-  on an interrupt or while the world catches up.
+  read through `AbilityEffects`' `AbilityCredit`. It clears everything on an interrupt or while the
+  world catches up.
+- **One pool, one gate, one guardian record** (spec 076). Every passing effect (texts, particles, coins,
+  motes, rings, resource icons) is added to the `World`'s `FxPool` (`World.fx`, `game/effects/fx_pool.gd`)
+  under a budget name; the pool parents it to `World.effects_layer`, advances it each frame (a node's
+  `advance(delta) -> bool` returns false when it is finished) and frees it. Four budgets are capped:
+  combat 300, ability 150, spell 120, quest 120 (`FxPool.CAPS`); a guardian's death may pass combat's
+  by its allowance. What a node follows or flies to is a callable on it (`FxText.follow`,
+  `FxCoin.target`, ...), and arrivals are its signals. Every view that starts a move, effect, sound or
+  flash for an event asks `World.may_animate(event)` (recent, and the world not catching up); only code
+  that clears what is running reads `World.catching_up()`. Catching up means a stall only: a sync
+  after more than `World.STALL_TICKS` ticks (times the speed) since the last. The world's first sync
+  and a move to another stage or area snap every sprite into place, but are not a catch-up, so what
+  they bring (an arrival's goal, a level up) still shows. Every listener connects its own
+  `_on_sim_event` in its own setup. `World.guardians` (`GuardianRecord`) knows which fighters are
+  guardians, updated from events, for the sounds and the combat effects alike.
 - An ordinary strike's draw back and step are stronger (`BODY_WINDUP_SHIFT`, `BODY_STRIKE_SHIFT`) and a
   ranged shot recoils; none of it changes a tick.
 

@@ -87,8 +87,8 @@ func test_r2_showcase_plays_every_moment() -> void:
 		showcase.advance(FRAME)
 	assert_true(showcase.done, "the pass finishes")
 	assert_lt(showcase.elapsed, PASS_LIMIT, "within %d seconds" % PASS_LIMIT)
-	assert_eq(seen, Showcase.MOMENTS, "every moment, in order")
-	for moment: StringName in Showcase.MOMENTS:
+	assert_eq(seen, Showcase.names(), "every moment, in order")
+	for moment: StringName in Showcase.names():
 		var happened: bool = showcase.evidence.get(moment, false)
 		assert_true(happened, "%s really happened in the simulation" % moment)
 
@@ -161,7 +161,7 @@ func test_r5_numbers_stay_readable() -> void:
 		fx.advance(FRAME)
 		clock += FRAME
 		var numbers: Array[FxText] = []
-		for text: FxText in fx._texts:
+		for text: FxText in fx.texts():
 			if text.kind == &"damage" and text.visible:
 				numbers.append(text)
 		shown = maxi(shown, numbers.size())

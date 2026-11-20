@@ -6,7 +6,8 @@ extends Node
 ## resource's place beside the gold, and each one's share is counted in as it arrives
 ## ([signal resource_collected]). A drop too old to animate is counted in at once.
 ##
-## [CombatEffects] makes it and advances it; it draws on [member World.effects_layer].
+## [CombatEffects] makes it; its icons are on [member World.effects_layer], through the world's
+## [FxPool], which moves them.
 
 ## One icon has reached its place: [param index] is the resource's position in
 ## [method Content.resource_ids], [param amount] the icon's share.
@@ -23,11 +24,12 @@ const SPREAD: float = 5.0
 ## [member fallback_target].
 var targets: Dictionary[int, Vector2] = {}
 var fallback_target: Vector2 = Vector2(600, 12)
+## Called with each icon after it moves, to keep it where it may be. [CombatEffects] sets it.
+var keep: Callable
 
 var _world: World
 ## Turns a screen pixel into the world pixel under it, through the world's camera.
 var _to_world: Callable
-var _icons: Array[FxResource] = []
 ## Where each character that fell lately stood, by id: a monster's sprite may be gone by the time
 ## its drop is heard.
 var _fallen_at: Dictionary[int, Vector2] = {}
@@ -46,23 +48,17 @@ func setup(world: World, to_world: Callable) -> void:
 		_world.sim_event.connect(_on_sim_event)
 
 
-## Moves every icon on by [param delta] seconds. Called by [CombatEffects]; tests call it.
-func advance(delta: float) -> void:
-	if _world == null:
-		return
+## Forgets where fighters fell before this frame. [CombatEffects] calls it each frame.
+func advance(_delta: float) -> void:
 	_fallen_at.clear()
-	for icon: FxResource in _icons.duplicate():
-		var screen: Vector2 = targets.get(icon.index, fallback_target)
-		var target: Vector2 = _to_world.call(screen) if _to_world.is_valid() else screen
-		if icon.advance(delta, target):
-			_icons.erase(icon)
-			icon.queue_free()
-			resource_collected.emit(icon.index, icon.share)
 
 
 ## The icons on their way.
 func live_icons() -> Array[FxResource]:
-	return _icons.duplicate()
+	var found: Array[FxResource] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"resource"))
+	return found
 
 
 ## How many icons a drop of [param amount] shows: one each, at most [constant ICONS_MAX].
@@ -76,7 +72,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		return
 	if event.kind != SimEvent.Kind.RESOURCE_GAINED:
 		return
-	if not _world.is_recent(event) or _world.effects_layer == null:
+	if not _world.may_animate(event) or _world.fx == null:
 		resource_collected.emit(event.target_id, event.amount)
 		return
 	var feet: Vector2 = _world.feet_position(event.source_id)
@@ -93,5 +89,13 @@ func _on_sim_event(event: SimEvent) -> void:
 		icon.name = "Resource"
 		var across: float = (i - (count - 1) / 2.0) * SPREAD
 		icon.start(feet + Vector2(across, -START_RAISE).round())
-		_world.effects_layer.add_child(icon)
-		_icons.append(icon)
+		icon.target = _target.bind(icon.index)
+		icon.follow = keep
+		icon.arrived.connect(resource_collected.emit)
+		_world.fx.add(icon, &"resource")
+
+
+## Where the icons of the resource at [param index] fly to now, in world pixels.
+func _target(index: int) -> Vector2:
+	var screen: Vector2 = targets.get(index, fallback_target)
+	return _to_world.call(screen) if _to_world.is_valid() else screen

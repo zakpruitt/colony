@@ -768,7 +768,7 @@ func test_r9_help_wiki_and_showcase() -> void:
 		assert_string_contains(wiki, phrase, "the wiki describes the %s" % phrase)
 	for pair: Array in [[&"shop", &"shop"], [&"area_map", &"map"]]:
 		var moment: StringName = pair[0]
-		assert_has(Showcase.MOMENTS, moment, "the showcase has a %s moment" % moment)
+		assert_has(Showcase.names(), moment, "the showcase has a %s moment" % moment)
 		var showcase: Showcase = (load(SHOWCASE) as PackedScene).instantiate() as Showcase
 		add_child_autofree(showcase)
 		showcase.set_process(false)

@@ -281,11 +281,7 @@ func may_start(event: SimEvent) -> bool:
 
 ## True when a moment may start for [param event] (null: for no event in particular) now.
 func _may_start(event: SimEvent) -> bool:
-	if world == null:
-		return true
-	if world.catching_up():
-		return false
-	return event == null or world.is_recent(event)
+	return world == null or event == null or world.may_animate(event)
 
 
 ## The pop's size at [param time] into a burst: up to [constant POP] at

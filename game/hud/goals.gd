@@ -522,7 +522,7 @@ static func _lower(skill: MicroskillDef) -> String:
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	if _world != null and not _world.is_recent(event):
+	if _world != null and not _world.may_animate(event):
 		_stale = true
 
 

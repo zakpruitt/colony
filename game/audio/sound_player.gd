@@ -55,8 +55,6 @@ var settings: SoundSettings
 
 var _world: World
 var _simulation: Simulation
-## The combatant ids of guardians seen in a fight, whose deaths play the fanfare instead.
-var _guardian_ids: Dictionary[int, bool] = {}
 var _streams: Dictionary = {}
 var _voices: Array[AudioStreamPlayer] = []
 ## When each voice's sound ends, on [member _now].
@@ -109,7 +107,6 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation) -> void
 
 func _process(delta: float) -> void:
 	_now += delta
-	_note_guardian()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -195,16 +192,8 @@ func _ensure_bus() -> void:
 	AudioServer.set_bus_send(bus, &"Master")
 
 
-## Remembers the guardian of the fight on now, if there is one.
-func _note_guardian() -> void:
-	var guardian: Combatant = CombatEffects.battle_guardian(_simulation)
-	if guardian != null:
-		_guardian_ids[guardian.id] = true
-
-
 func _on_sim_event(event: SimEvent) -> void:
-	_note_guardian()
-	if _world == null or not _world.is_recent(event):
+	if _world == null or not _world.may_animate(event):
 		if event.kind == SimEvent.Kind.GOLD_GAINED:
 			_stale_coins += 1
 		return
@@ -224,7 +213,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.GUARDIAN_SLAIN:
 			play(&"guardian_slain")
 		SimEvent.Kind.DIED:
-			if _guardian_ids.has(event.source_id):
+			if _world.guardians.has(event.source_id):
 				pass  # GUARDIAN_SLAIN plays the fanfare in its place.
 			elif event.source_id >= Expedition.FIRST_MONSTER_ID:
 				play(&"monster_die")

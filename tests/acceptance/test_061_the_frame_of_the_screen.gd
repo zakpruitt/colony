@@ -255,9 +255,9 @@ func test_r4_things_still_fly_to_it() -> void:
 		var flown: int = 0
 		var landed: bool = false
 		for frame: int in 300:
-			for coin: FxCoin in main.effects._coins:
+			for coin: FxCoin in main.effects.coins():
 				coin_end = _on_ui(main, coin)
-			for mote: FxMote in main.effects._motes:
+			for mote: FxMote in main.effects.motes():
 				mote_end = _on_ui(main, mote)
 			var flying: int = main.effects.resource_effects.live_icons().size()
 			for icon: FxResource in main.effects.resource_effects.live_icons():
@@ -718,7 +718,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 		road += ", " + hud.countdown.next_label.text
 	assert_eq(road, hud.stable_text(), "the countdown")
 	var flying: int = 0
-	for coin: FxCoin in main.effects._coins:
+	for coin: FxCoin in main.effects.coins():
 		flying += coin.share
 	assert_eq(hud.shown_gold() + flying, sim.party.gold, "the gold, but for coins in the air")
 	for id: StringName in Content.resource_ids():

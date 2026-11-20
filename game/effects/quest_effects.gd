@@ -6,10 +6,12 @@ extends Node
 ## <microskill>" over a hero. The coins and XP of a reward come from their own events, through
 ## [CombatEffects].
 ##
-## [CombatEffects] makes it, and advances it from its own [method CombatEffects.advance]. It
-## listens to [signal World.sim_event] and draws on [member World.effects_layer]. Events too old
-## to animate ([method World.is_recent]) show nothing.
+## [CombatEffects] makes it. It listens to [signal World.sim_event] and makes its words and
+## particles through the world's [FxPool], at most [constant MAX_PARTICLES] particles at once.
+## An event that may not animate ([method World.may_animate]) shows nothing.
 
+## The most particles these effects make at once.
+const MAX_PARTICLES: int = FxPool.QUEST
 ## The words' font multiples: a done quest and a sprung trap large, a miss and a lesson small.
 const DONE_SCALE: int = 2
 const MISS_SCALE: int = 1
@@ -43,8 +45,6 @@ const REWARD_COLOURS: Dictionary[SideQuestDef.Reward, StringName] = {
 var _world: World
 var _simulation: Simulation
 var _rng := RandomNumberGenerator.new()
-var _texts: Array[FxText] = []
-var _particles: Array[FxParticle] = []
 
 
 ## Call once, before the first advance.
@@ -56,22 +56,13 @@ func setup(world: World, simulation: Simulation) -> void:
 		_world.sim_event.connect(_on_sim_event)
 
 
-## Moves every effect on by [param delta] seconds.
-func advance(delta: float) -> void:
-	for bit: FxParticle in _particles.duplicate():
-		if not bit.advance(delta):
-			_particles.erase(bit)
-			bit.queue_free()
-	for text: FxText in _texts.duplicate():
-		if text.follow_id >= 0 and _world.character(text.follow_id) != null:
-			text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
-		if not text.advance(delta):
-			_texts.erase(text)
-			text.queue_free()
+## The particles these effects show now.
+func live_particles() -> int:
+	return _world.fx.count(&"quest")
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	if _world.quest_props == null or not _world.is_recent(event):
+	if _world.quest_props == null or not _world.may_animate(event):
 		return
 	match event.kind:
 		SimEvent.Kind.SIDE_QUEST_DONE:
@@ -129,7 +120,15 @@ func _learned(hero_id: int, skill_index: int) -> void:
 	text.z_index = 2
 	text.follow_id = hero_id
 	text.screen_offset = Vector2(0, -LEARNED_RAISE)
+	text.follow = _keep_over_hero
 	text.start(_world.feet_position(hero_id) + text.screen_offset)
+
+
+## After each advance, a text over a hero stays over it while it is there.
+func _keep_over_hero(text: FxText) -> bool:
+	if _world.character(text.follow_id) != null:
+		text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
+	return true
 
 
 ## The prop's colours flying out from its middle, with a puff.
@@ -140,6 +139,8 @@ func _burst(quest: StringName, feet: Vector2, height: float) -> void:
 	var middle: Vector2 = feet + Vector2(0, -roundf(height * 0.5))
 	for i: int in _rng.randi_range(BURST_MIN, BURST_MAX):
 		var bit: FxParticle = _particle(&"quest_burst")
+		if bit == null:
+			break
 		bit.color = colours[_rng.randi_range(0, colours.size() - 1)]
 		bit.size = _rng.randi_range(2, 3)
 		var angle: float = _rng.randf_range(PI * 1.1, PI * 1.9)
@@ -152,6 +153,8 @@ func _burst(quest: StringName, feet: Vector2, height: float) -> void:
 			middle + Vector2(_rng.randf_range(-4.0, 4.0), _rng.randf_range(-4.0, 4.0)).round()
 		)
 	var puff: FxParticle = _particle(&"quest_puff")
+	if puff == null:
+		return
 	puff.shape = FxParticle.Shape.PUFF
 	puff.color = Palette.color(&"white")
 	puff.size = CombatEffects.PUFF_SIZE
@@ -171,9 +174,8 @@ func _words(words: String, colour: StringName, factor: int, life: float, at: Vec
 	text.z_index = 2
 	text.life = life
 	text.velocity = Vector2(0, -RISE)
-	_world.effects_layer.add_child(text)
-	_texts.append(text)
 	text.start(at)
+	_world.fx.add(text, &"quest_text")
 	return text
 
 
@@ -181,9 +183,7 @@ func _particle(kind: StringName) -> FxParticle:
 	var made := FxParticle.new()
 	made.name = "QuestParticle"
 	made.kind = kind
-	_world.effects_layer.add_child(made)
-	_particles.append(made)
-	return made
+	return made if _world.fx.add(made, &"quest") else null
 
 
 # --- Reading -------------------------------------------------------------------

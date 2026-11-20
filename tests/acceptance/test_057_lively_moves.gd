@@ -261,7 +261,7 @@ func _guardian_fight(path: int) -> void:
 		# A blow's number shows in the frame its tick is heard (one frame old then), never later.
 		# (Spec 018 leaves out a number with nowhere clear to go: a few blows show none.)
 		var fresh: int = 0
-		for text: FxText in _fx._texts:
+		for text: FxText in _fx.texts():
 			if text.kind == &"damage" and text.age <= FRAME * 1.01:
 				fresh += 1
 		if fresh > 0 and hits == 0:

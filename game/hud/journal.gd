@@ -145,7 +145,7 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _sentences.size() > CAPACITY:
 		_times.resize(CAPACITY)
 		_sentences.resize(CAPACITY)
-	if _world == null or _world.is_recent(event):
+	if _world == null or _world.may_animate(event):
 		_ticker_line = sentence
 		_ticker_age = 0.0
 		ticker_changed.emit()

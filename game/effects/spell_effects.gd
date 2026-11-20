@@ -11,12 +11,12 @@ extends Node
 ## A flying spell leaves its caster in the wind-up's last moments (from ABILITY_STARTED), so it
 ## reaches its target as the wind-up ends; it bursts when ABILITY_USED says the spell landed, on
 ## that tick, wherever it has got to. Every other kind shows when it lands. Every particle is gone
-## within a second of landing; the effects layer holds them (they all pass).
+## within a second of landing; the world's [FxPool] holds them (they all pass).
 ##
 ## A stun or a death of the caster, or the death of the target, takes a spell still in flight away;
 ## the end of a fight takes every spell in flight; a wipe or a change of stage or area takes every
-## visual. Nothing starts in a frame catching up on a stall ([method World.catching_up]) or for an
-## event too old ([method World.is_recent]). [CombatEffects] makes and advances it.
+## visual. Nothing starts for an event that may not animate ([method World.may_animate]), and
+## everything goes while the world catches up on a stall. [CombatEffects] makes and advances it.
 ##
 ## A visual that shows on whom a spell lands (flakes, flames, light, a beam, shadow, a spark's
 ## jumps) shows only on the fighters the simulation says it reached: those its fighter's HIT,
@@ -24,7 +24,7 @@ extends Node
 ## reads them ([AbilityCredit]).
 
 ## The most particles these visuals make at once.
-const MAX_PARTICLES: int = 120
+const MAX_PARTICLES: int = FxPool.SPELL
 ## The kind of visual each ability shows; the kinds that fly; the colour family of each kind.
 const KINDS: Dictionary[StringName, StringName] = {
 	&"fireball": &"fireball",
@@ -97,7 +97,6 @@ var _credit: AbilityCredit
 var _reaching: Dictionary[String, Array] = {}
 var _reaching_tick: int = -1
 var _rng := RandomNumberGenerator.new()
-var _particles: Array[FxParticle] = []
 var _flights: Array[Flight] = []
 
 
@@ -129,24 +128,22 @@ func setup(world: World, simulation: Simulation, credit: AbilityCredit) -> void:
 		_world.sim_event.connect(_on_sim_event)
 
 
-## Moves every visual on by [param delta] real seconds. [CombatEffects] calls it each frame.
+## Moves every flight on by [param delta] real seconds; the pool moves the particles.
+## [CombatEffects] calls it each frame.
 func advance(delta: float) -> void:
-	if _world == null or _world.effects_layer == null:
+	if _world == null or _world.fx == null:
 		return
 	if _world.catching_up():
 		_clear()  # the picture jumps to the simulation's: nothing is left in the air
 		return
 	for flight: Flight in _flights.duplicate():
 		_fly(flight, delta)
-	for particle: FxParticle in _particles.duplicate():
-		if not particle.advance(delta):
-			_drop(particle)
 
 
 ## The particles of [param kind] showing now (a flight's head and trail among them).
 func particles(kind: StringName) -> Array[FxParticle]:
 	var found: Array[FxParticle] = []
-	for particle: FxParticle in _particles:
+	for particle: FxParticle in all_particles():
 		if particle.kind == kind:
 			found.append(particle)
 	return found
@@ -154,19 +151,22 @@ func particles(kind: StringName) -> Array[FxParticle]:
 
 ## Every particle showing now.
 func all_particles() -> Array[FxParticle]:
-	return _particles.duplicate()
+	var found: Array[FxParticle] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"spell"))
+	return found
 
 
 ## How many particles show now.
 func live() -> int:
-	return _particles.size()
+	return _world.fx.count(&"spell") if _world != null and _world.fx != null else 0
 
 
 # --- Events --------------------------------------------------------------------
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	var fresh: bool = _world.is_recent(event) and not _world.catching_up()
+	var fresh: bool = _world.may_animate(event)
 	if event.tick != _reaching_tick:
 		_reaching.clear()
 		_reaching_tick = event.tick
@@ -271,8 +271,8 @@ func _ground(id: int, as_target: bool) -> void:
 func _clear() -> void:
 	for flight: Flight in _flights.duplicate():
 		_end_flight(flight, true)
-	for particle: FxParticle in _particles.duplicate():
-		_drop(particle)
+	for particle: FxParticle in all_particles():
+		_world.fx.remove(particle)
 
 
 func _flight_of(source: int, ability: StringName) -> Flight:
@@ -285,12 +285,12 @@ func _flight_of(source: int, ability: StringName) -> Flight:
 ## Ends [param flight]: its head goes, and with [param whole] its trail too.
 func _end_flight(flight: Flight, whole: bool) -> void:
 	_flights.erase(flight)
-	if flight.head != null and _particles.has(flight.head):
-		_drop(flight.head)
+	if is_instance_valid(flight.head) and _world.fx.has(flight.head):
+		_world.fx.remove(flight.head)
 	if whole:
 		for bit: FxParticle in flight.bits:
-			if _particles.has(bit):
-				_drop(bit)
+			if is_instance_valid(bit) and _world.fx.has(bit):
+				_world.fx.remove(bit)
 
 
 # --- Flight --------------------------------------------------------------------
@@ -636,21 +636,10 @@ func _flash(kind: StringName, at: Vector2, color_name: StringName, size: int) ->
 
 
 func _particle(kind: StringName) -> FxParticle:
-	if _particles.size() >= MAX_PARTICLES:
-		return null
 	var made := FxParticle.new()
 	made.name = "Spell"
 	made.kind = kind
-	_world.effects_layer.add_child(made)
-	_particles.append(made)
-	return made
-
-
-func _drop(particle: FxParticle) -> void:
-	_particles.erase(particle)
-	if particle.get_parent() != null:
-		particle.get_parent().remove_child(particle)
-	particle.queue_free()
+	return made if _world.fx.add(made, &"spell") else null
 
 
 ## The world row just under the HUD's top band (the boss bar, the panels there).

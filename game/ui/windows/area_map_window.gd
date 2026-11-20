@@ -70,9 +70,7 @@ func _init() -> void:
 func setup(simulation: Simulation, world: World, hud: Hud) -> void:
 	_simulation = simulation
 	_hud = hud
-	news = AreaNews.new(simulation)
-	if world != null and not world.sim_event.is_connected(news.hear):
-		world.sim_event.connect(news.hear)
+	news = AreaNews.new(simulation, world)
 	for id: StringName in Content.area_ids():
 		var made := AreaMapRow.new(id)
 		made.clicked.connect(choose.bind(id))

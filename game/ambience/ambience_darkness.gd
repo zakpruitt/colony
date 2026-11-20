@@ -4,7 +4,8 @@ extends Node2D
 ## the world and the characters, that multiplies everything under it by the light at each pixel
 ## (darkness.gdshader). Its child LampGlow covers the same rectangle just after it and adds a
 ## share of the lamps' light back (glow.gdshader), so a dark back wall near a torch turns warm.
-## It is handed the lights in view each frame.
+## It is handed the lights in view each frame; it chooses and sorts them again, and redraws, only
+## when the view or the lights' places change, and otherwise only passes on their flicker.
 
 const DARKNESS: Shader = preload("res://game/ambience/darkness.gdshader")
 const GLOW: Shader = preload("res://game/ambience/glow.gdshader")
@@ -18,6 +19,13 @@ const GLOW_STRENGTH: float = 0.2
 const MARGIN: float = 32.0
 
 var _view_rect: Rect2
+## The lights handed over last, and each one's place, reach and core then (x, y, radius, core).
+var _given: Array[AmbienceLight] = []
+var _places: PackedVector4Array = []
+## The lights the shaders take now, and their shapes and colours as the shaders read them.
+var _near: Array[AmbienceLight] = []
+var _shapes: Array[Vector4] = []
+var _colors: Array[Vector4] = []
 var _darkness := ShaderMaterial.new()
 var _glow := ShaderMaterial.new()
 var _glow_node := Node2D.new()
@@ -25,6 +33,8 @@ var _glow_node := Node2D.new()
 
 func _init() -> void:
 	name = "Darkness"
+	_shapes.resize(MAX_LIGHTS)
+	_colors.resize(MAX_LIGHTS)
 	_darkness.shader = DARKNESS
 	material = _darkness
 	_glow.shader = GLOW
@@ -81,33 +91,60 @@ func set_zone(look: ZoneLook) -> void:
 ## Covers [param view_rect] (world pixels) and lights it with those of [param lights] that reach
 ## into it.
 func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
-	_view_rect = view_rect.grow(MARGIN)
-	var centre: Vector2 = view_rect.get_center()
-	var near: Array[AmbienceLight] = []
-	for light: AmbienceLight in lights:
+	var cover: Rect2 = view_rect.grow(MARGIN)
+	if cover != _view_rect or _moved(lights):
+		_view_rect = cover
+		_choose(view_rect.get_center())
+		queue_redraw()
+		_glow_node.queue_redraw()
+	for i: int in _near.size():
+		var light: AmbienceLight = _near[i]
+		var c: Color = light.color * light.energy
+		_colors[i] = Vector4(c.r, c.g, c.b, 1.0)
+	_set_both(&"light_color", _colors)
+
+
+## True when [param lights] are not those handed over last, or one has moved or changed its
+## reach or core; it then remembers them.
+func _moved(lights: Array[AmbienceLight]) -> bool:
+	var moved: bool = lights.size() != _given.size()
+	if moved:
+		_given.assign(lights)
+		_places.resize(lights.size())
+	for i: int in lights.size():
+		var light: AmbienceLight = lights[i]
+		var place := Vector4(light.position.x, light.position.y, light.radius, light.core)
+		if moved or _given[i] != light or _places[i] != place:
+			moved = true
+			_given[i] = light
+			_places[i] = place
+	return moved
+
+
+## Chooses the lights that reach into the view, the nearest to [param centre] if there are too
+## many, and hands the shaders their shapes.
+func _choose(centre: Vector2) -> void:
+	_near.clear()
+	for light: AmbienceLight in _given:
 		if _view_rect.grow(light.radius).has_point(light.position):
-			near.append(light)
-	if near.size() > MAX_LIGHTS:
-		near.sort_custom(
+			_near.append(light)
+	if _near.size() > MAX_LIGHTS:
+		_near.sort_custom(
 			func(a: AmbienceLight, b: AmbienceLight) -> bool:
 				return (
 					a.position.distance_squared_to(centre) < b.position.distance_squared_to(centre)
 				)
 		)
-		near.resize(MAX_LIGHTS)
-	var shapes: Array[Vector4] = []
-	var colors: Array[Vector4] = []
-	for light: AmbienceLight in near:
-		shapes.append(Vector4(light.position.x, light.position.y, light.radius, light.core))
-		var c: Color = light.color * light.energy
-		colors.append(Vector4(c.r, c.g, c.b, 1.0))
-	shapes.resize(MAX_LIGHTS)
-	colors.resize(MAX_LIGHTS)
-	_set_both(&"light_shape", shapes)
-	_set_both(&"light_color", colors)
-	_set_both(&"light_count", near.size())
-	queue_redraw()
-	_glow_node.queue_redraw()
+		_near.resize(MAX_LIGHTS)
+	for i: int in MAX_LIGHTS:
+		var shape := Vector4.ZERO
+		_colors[i] = Vector4.ZERO
+		if i < _near.size():
+			var light: AmbienceLight = _near[i]
+			shape = Vector4(light.position.x, light.position.y, light.radius, light.core)
+		_shapes[i] = shape
+	_set_both(&"light_shape", _shapes)
+	_set_both(&"light_count", _near.size())
 
 
 func _set_both(parameter: StringName, value: Variant) -> void:

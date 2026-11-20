@@ -9,12 +9,14 @@ extends Node2D
 ## [method advance] from a random stream seeded by the level.
 ##
 ## This node draws what is lit like the world (under the darkness, see [Ambience]); its child
-## Glow draws what shines on its own (flames, embers, glints, glowing props) over the darkness.
+## Buried draws the things in the earth, behind it and only when the level is built, as they never
+## move; its child Glow draws what shines on its own (flames, embers, glints, glowing props) over
+## the darkness.
 
 const DIR: String = "res://assets/sprites/ambience/"
 const TILE: int = LabyrinthView.TILE
-## Nodes a level adds to the tree: itself and its Glow.
-const NODES: int = 2
+## Nodes a level adds to the tree: itself, its Buried and its Glow.
+const NODES: int = 3
 ## Glow is drawn over the darkness, which is drawn at [constant Ambience.DARKNESS_Z].
 const GLOW_Z: int = 101
 
@@ -117,6 +119,8 @@ var lights: Array[AmbienceLight] = []
 ## How much light reaches each tile of the band (one pixel per tile, red channel): all of it in
 ## open space, less in the earth (see [constant AmbienceMood.EDGE_EXPOSURE]).
 var exposure: Image
+## How many times the buried things have been drawn (for tests).
+var buried_draws: int = 0
 
 var _seed: int
 ## Open tiles of the band and a one-tile border round it: 1 open, 0 earth.
@@ -126,6 +130,7 @@ var _band: int
 var _floor_px: float
 var _rng := RandomNumberGenerator.new()
 var _glow: Node2D
+var _buried: Node2D
 var _time: float = 0.0
 ## Columns a shaft runs through on this level, the one from above included.
 var _shaft_columns: Dictionary[int, bool] = {}
@@ -189,6 +194,11 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	_glint_timer = _rng.randf_range(GLINT_EVERY.x, GLINT_EVERY.y)
 	_gleam_timer = _rng.randf_range(GLEAM_EVERY.x, GLEAM_EVERY.y)
 
+	_buried = Node2D.new()
+	_buried.name = "Buried"
+	_buried.show_behind_parent = true
+	_buried.draw.connect(_draw_buried)
+	add_child(_buried)
 	_glow = Node2D.new()
 	_glow.name = "Glow"
 	_glow.z_index = GLOW_Z
@@ -879,10 +889,14 @@ func _spawn_glints(delta: float) -> void:
 # -------------------------------------------------------------------- drawing
 
 
-func _draw() -> void:
+func _draw_buried() -> void:
+	buried_draws += 1
 	var buried: PixelSheet = _sheet("buried")
 	for tile: Vector2i in details:
-		draw_texture(buried.part(details[tile]), Vector2(tile * TILE))
+		_buried.draw_texture(buried.part(details[tile]), Vector2(tile * TILE))
+
+
+func _draw() -> void:
 	for prop: AmbienceProp in torches:
 		_draw_prop(self, prop, prop.texture)
 	for prop: AmbienceProp in props:

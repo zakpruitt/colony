@@ -99,7 +99,7 @@ func _play_seconds(seconds: float, stepping: bool = true) -> void:
 ## The effects' texts of [param kind] still showing.
 func _texts(kind: StringName) -> Array[FxText]:
 	var found: Array[FxText] = []
-	for text: FxText in _fx._texts:
+	for text: FxText in _fx.texts():
 		if text.kind == kind:
 			found.append(text)
 	return found
@@ -270,7 +270,7 @@ func test_r3_guardian_death() -> void:
 	var bursts: int = 0
 	var t: float = 0.0
 	for i: int in 90:
-		for particle: FxParticle in _fx._particles:
+		for particle: FxParticle in _fx.particles():
 			if particle.kind == &"burst":
 				bursts += 1
 			if particle.kind != &"guardian" or seen.has(particle.get_instance_id()):
@@ -335,7 +335,7 @@ func test_r5_within_budget() -> void:
 			died = true
 			break
 	assert_true(died, "the guardian dies")
-	for filler: FxParticle in _fx._particles.duplicate():
+	for filler: FxParticle in _fx.particles().duplicate():
 		if filler.kind == &"filler":
 			filler.age = filler.life
 	for i: int in 120:

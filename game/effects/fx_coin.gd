@@ -1,8 +1,11 @@
 class_name FxCoin
 extends Node2D
 ## One coin of a gold gain: it spills out of a fallen monster in an arc, bounces on
-## the chamber floor, rests a moment, then flies to the gold target. [CombatEffects] creates it,
-## advances it with where the target is now, and emits the coin's share when it arrives.
+## the chamber floor, rests a moment, then flies to the gold target. [CombatEffects] creates it
+## and hears it arrive; the [FxPool] advances it.
+
+## It has reached its target, carrying [param amount] gold.
+signal arrived(amount: int)
 
 enum Phase { SPILL, REST, FLY }
 
@@ -27,6 +30,8 @@ const MAX_LIFE: float = 4.0
 
 ## Its share of the gain, in gold.
 var share: int = 1
+## Where it flies to now, in world pixels: () -> Vector2.
+var target: Callable
 var phase: Phase = Phase.SPILL
 var velocity: Vector2 = Vector2.ZERO
 ## The floor it bounces on, in world pixels, and whether it has touched it.
@@ -53,8 +58,16 @@ func start(at: Vector2) -> void:
 	queue_redraw()
 
 
-## Moves it on by [param delta] seconds toward [param target] (world pixels). True on arrival.
-func advance(delta: float, target: Vector2) -> bool:
+## Moves it on by [param delta] seconds toward its [member target]. False once it has arrived.
+func advance(delta: float) -> bool:
+	if _arrived(delta):
+		arrived.emit(share)
+		return false
+	return true
+
+
+func _arrived(delta: float) -> bool:
+	var goal: Vector2 = target.call() if target.is_valid() else _exact
 	age += delta
 	match phase:
 		Phase.SPILL:
@@ -74,11 +87,11 @@ func advance(delta: float, target: Vector2) -> bool:
 				phase = Phase.FLY
 		Phase.FLY:
 			_speed += FLY_ACCELERATION * delta
-			var gap: Vector2 = target - _exact
+			var gap: Vector2 = goal - _exact
 			var step: float = _speed * delta
 			if gap.length() <= maxf(step, ARRIVE):
-				_exact = target
-				position = target.round()
+				_exact = goal
+				position = goal.round()
 				return true
 			_exact += gap / gap.length() * step
 	position = _exact.round()

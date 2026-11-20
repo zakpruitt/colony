@@ -4,10 +4,11 @@ extends Node2D
 ## a hit-stop on a crit, monsters bursting, coins bouncing out and flying to the purse, XP motes,
 ## level-up bursts, bolt trails, and the beats of the loop (rest, wipe, revival, a stable depth).
 ##
-## It listens to [signal World.sim_event] and draws on [member World.effects_layer], so its effects
-## move with the world. Everything moves only in [method advance], from elapsed time, so a test can
-## step it exactly; [code]_process[/code] calls it once a frame, after the world has synced.
-## Every effect ends by shrinking, blinking or flying away, and frees itself.
+## It listens to [signal World.sim_event] and makes its effects through the world's [FxPool]
+## ([member World.fx]), on [member World.effects_layer], so they move with the world. Everything
+## moves only in [method advance], from elapsed time, so a test can step it exactly;
+## [code]_process[/code] calls it once a frame, after the world has synced, and it advances the
+## pool. Every effect ends by shrinking, blinking or flying away, and the pool frees it.
 
 ## One coin of a gold gain has reached the gold target; amount is that coin's share.
 signal coin_collected(amount: int)
@@ -16,7 +17,7 @@ signal coin_collected(amount: int)
 ## The most numbers on screen at once; further numbers are not shown.
 const MAX_NUMBERS: int = 40
 ## The most particles at once; further particles are not made.
-const MAX_PARTICLES: int = 300
+const MAX_PARTICLES: int = FxPool.COMBAT
 
 # Numbers.
 ## Font multiples of a number, and of a crit.
@@ -182,10 +183,6 @@ var _simulation: Simulation
 var _rng := RandomNumberGenerator.new()
 var _spark_texture: Texture2D
 
-var _texts: Array[FxText] = []
-var _particles: Array[FxParticle] = []
-var _coins: Array[FxCoin] = []
-var _motes: Array[FxMote] = []
 ## Where the last monster fell (its feet), for the XP and gold that follow its DIED.
 var _fallen_at: Vector2 = Vector2.ZERO
 ## Per bolt (instance id): where its trail last dropped a square; and the bolts already flashed.
@@ -198,9 +195,6 @@ var _z_in: Dictionary[int, float] = {}
 var _revival_due: bool = false
 ## Colours of each monster sheet, by its path.
 var _sheet_colors: Dictionary[String, PackedColorArray] = {}
-## The combatant ids of guardians seen in a fight, so their deaths and gold are known for theirs
-## after the battle itself is gone.
-var _guardian_ids: Dictionary[int, bool] = {}
 ## A guardian's burst waves still to come.
 var _waves: Array[FxGuardianWave] = []
 
@@ -236,6 +230,7 @@ func setup(world: World, simulation: Simulation) -> void:
 		resource_effects = ResourceEffects.new()
 		add_child(resource_effects)
 	resource_effects.setup(world, _screen_to_world)
+	resource_effects.keep = ability_effects.keep_drop_in_band
 	if spell_effects == null:
 		spell_effects = SpellEffects.new()
 		spell_effects.name = "SpellEffects"
@@ -243,57 +238,26 @@ func setup(world: World, simulation: Simulation) -> void:
 	spell_effects.setup(world, simulation, ability_effects.credit)
 
 
-## Advances every effect. Called every frame; tests call it.
+## Advances every effect, the world's whole [FxPool] last. Called every frame; tests call it.
 func advance(delta: float) -> void:
-	if _world == null or _world.effects_layer == null:
+	if _world == null or _world.fx == null:
 		return
-	quest_effects.advance(delta)
 	ability_effects.advance(delta)
 	spell_effects.advance(delta)
 	resource_effects.advance(delta)
-	ability_effects.keep_drops_in_band(resource_effects.live_icons())
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
-	_note_guardians()
 	_advance_waves(delta)
 	_follow_bolts()
 	_rest_z(delta)
-	for particle: FxParticle in _particles.duplicate():
-		if not particle.advance(delta):
-			_particles.erase(particle)
-			particle.queue_free()
-	for text: FxText in _texts.duplicate():
-		if text.on_screen:
-			text.set_anchor(_screen_to_world(_view_size() * 0.5 + text.screen_offset))
-		elif text.follow_id >= 0 and _world.character(text.follow_id) != null:
-			text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
-		if not text.advance(delta):
-			_texts.erase(text)
-			text.queue_free()
-	ability_effects.keep_in_band(_texts)  # off the health bars
-	var purse: Vector2 = _screen_to_world(gold_screen_target)
-	for coin: FxCoin in _coins.duplicate():
-		if coin.advance(delta, purse):
-			_coins.erase(coin)
-			coin.queue_free()
-			coin_collected.emit(coin.share)
-	for mote: FxMote in _motes.duplicate():
-		var hero: CharacterSprite = _world.character(mote.hero_id)
-		if hero == null:
-			_motes.erase(mote)
-			mote.queue_free()
-			continue
-		if mote.advance(delta, _mote_target(mote.hero_id)):
-			_flash(mote.position, Palette.color(&"cyan"), 5)
-			_motes.erase(mote)
-			mote.queue_free()
+	_world.fx.advance(delta)
 
 
 ## How many numbers are on screen.
 func live_numbers() -> int:
 	var count: int = 0
-	for text: FxText in _texts:
+	for text: FxText in texts():
 		if text.kind == &"damage" or text.kind == &"heal":
 			count += 1
 	return count
@@ -301,7 +265,39 @@ func live_numbers() -> int:
 
 ## How many particles exist.
 func live_particles() -> int:
-	return _particles.size()
+	return _world.fx.count(&"combat") if _world != null and _world.fx != null else 0
+
+
+## The words and numbers these effects show now, oldest first.
+func texts() -> Array[FxText]:
+	var found: Array[FxText] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"combat_text"))
+	return found
+
+
+## The particles these effects show now, oldest first.
+func particles() -> Array[FxParticle]:
+	var found: Array[FxParticle] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"combat"))
+	return found
+
+
+## The coins on their way now.
+func coins() -> Array[FxCoin]:
+	var found: Array[FxCoin] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"coin"))
+	return found
+
+
+## The XP motes on their way now.
+func motes() -> Array[FxMote]:
+	var found: Array[FxMote] = []
+	if _world != null and _world.fx != null:
+		found.assign(_world.fx.nodes(&"mote"))
+	return found
 
 
 ## The guardian in [param simulation]'s fight, or null when the fight has none (or there is no
@@ -318,15 +314,14 @@ static func battle_guardian(simulation: Simulation) -> Combatant:
 
 ## True for the combatant id of a guardian seen in a fight.
 func is_guardian(id: int) -> bool:
-	_note_guardians()
-	return _guardian_ids.has(id)
+	return _world.guardians.has(id)
 
 
 # --- Events --------------------------------------------------------------------
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	var recent: bool = _world.is_recent(event)
+	var recent: bool = _world.may_animate(event)
 	match event.kind:
 		SimEvent.Kind.HIT:
 			if recent:
@@ -499,8 +494,9 @@ func _xp(event: SimEvent) -> void:
 		mote.velocity = Vector2(_rng.randf_range(-60.0, 60.0), _rng.randf_range(-130.0, -80.0))
 		mote.age = -0.06 * i
 		mote.start(_fallen_at + Vector2(_rng.randf_range(-4.0, 4.0), -10.0).round())
-		_world.effects_layer.add_child(mote)
-		_motes.append(mote)
+		mote.target = _mote_target.bind(mote.hero_id)
+		mote.arrived.connect(_mote_arrived)
+		_world.fx.add(mote, &"mote")
 
 
 func _gold(event: SimEvent) -> void:
@@ -523,8 +519,9 @@ func _gold(event: SimEvent) -> void:
 			coin.rest_time = 0.6 + 0.04 * i
 		coin.age = _rng.randf_range(0.0, 0.3)
 		coin.start(feet + Vector2(_rng.randf_range(-3.0, 3.0), -12.0).round())
-		_world.effects_layer.add_child(coin)
-		_coins.append(coin)
+		coin.target = _purse
+		coin.arrived.connect(coin_collected.emit)
+		_world.fx.add(coin, &"coin")
 
 
 ## How many coins a gain of [param amount] gold shows: one per GOLD_PER_COIN, 1 to COINS_MAX.
@@ -574,6 +571,7 @@ func _level_up(hero_id: int) -> void:
 	words.follow_id = hero_id
 	words.screen_offset = Vector2(0, -LEVEL_UP_RAISE)
 	words.start(feet + words.screen_offset)
+	_show_text(words)
 
 
 func _banner(
@@ -587,21 +585,14 @@ func _banner(
 	banner.on_screen = true
 	banner.screen_offset = offset
 	banner.start(_screen_to_world(_view_size() * 0.5 + offset))
+	_show_text(banner)
 
 
 # --- Guardians -----------------------------------------------------------------
 
 
-## Remembers the guardian of the fight on now, if there is one.
-func _note_guardians() -> void:
-	var guardian: Combatant = battle_guardian(_simulation)
-	if guardian != null:
-		_guardian_ids[guardian.id] = true
-
-
 ## Its name, large, in the upper middle of the screen, the depth it guards under it, and a shake.
 func _announce(guardian: Combatant) -> void:
-	_guardian_ids[guardian.id] = true
 	var def: MonsterDef = Content.monster(guardian.def_id)
 	var title: FxText = _text(&"announce")
 	title.text = def.display_name.to_upper()
@@ -612,6 +603,7 @@ func _announce(guardian: Combatant) -> void:
 	title.on_screen = true
 	title.screen_offset = Vector2(0, -ANNOUNCE_RAISE)
 	title.start(_screen_to_world(_view_size() * 0.5 + title.screen_offset))
+	_show_text(title)
 	var line: FxText = _text(&"announce")
 	line.text = (
 		"GUARDIAN OF %s" % PlaceText.here(_simulation, _simulation.expedition.depth).to_upper()
@@ -623,6 +615,7 @@ func _announce(guardian: Combatant) -> void:
 	line.on_screen = true
 	line.screen_offset = Vector2(0, -ANNOUNCE_LINE_RAISE)
 	line.start(_screen_to_world(_view_size() * 0.5 + line.screen_offset))
+	_show_text(line)
 	_world.camera.shake(ANNOUNCE_SHAKE)
 
 
@@ -671,6 +664,7 @@ func _slain() -> void:
 	words.on_screen = true
 	words.screen_offset = Vector2(0, -SLAIN_RAISE)
 	words.start(_screen_to_world(_view_size() * 0.5 + words.screen_offset))
+	_show_text(words)
 
 
 func _revival_lights() -> void:
@@ -766,6 +760,7 @@ func _rest_z(delta: float) -> void:
 		z.sway = 2.0
 		z.sway_period = 0.9
 		z.start(sprite.position + Vector2(5, -28))
+		_show_text(z)
 
 
 # --- Making effects ------------------------------------------------------------
@@ -810,18 +805,18 @@ func _number(
 			break
 	if best_clash > 0.0:
 		# Nowhere is clear: like a number past the cap, it is not shown.
-		_texts.erase(number)
-		number.queue_free()
+		number.free()
 		return
 	number.velocity = best_velocity
 	number.start(best_at)
+	_show_text(number)
 
 
 ## How badly the path of [param number] (not yet shown) crosses the paths of the numbers showing:
 ## the most any of its boxes shares with theirs beyond NUMBER_OVERLAP, as a share; 0 when clear.
 func _clash(number: FxText) -> float:
 	var worst: float = 0.0
-	for other: FxText in _texts:
+	for other: FxText in texts():
 		if other == number or (other.kind != &"damage" and other.kind != &"heal"):
 			continue
 		var t: float = 0.0
@@ -858,26 +853,40 @@ func _shift_inside(number: FxText, view: Rect2) -> Vector2:
 	return shift.round()
 
 
+## A new text of [param kind], not yet shown: [method _show_text] puts it on the layer once it is
+## placed.
 func _text(kind: StringName) -> FxText:
 	var made := FxText.new()
 	made.name = "Text"
 	made.kind = kind
-	_world.effects_layer.add_child(made)
-	_texts.append(made)
+	made.follow = _keep_text
 	return made
+
+
+## Puts [param text] on the effects layer.
+func _show_text(text: FxText) -> void:
+	_world.fx.add(text, &"combat_text")
+
+
+## After each advance: a banner stays in the middle of the screen, a text over a fighter stays over
+## it, and every text but a banner keeps off the health bars.
+func _keep_text(text: FxText) -> bool:
+	if text.on_screen:
+		text.set_anchor(_screen_to_world(_view_size() * 0.5 + text.screen_offset))
+		return true
+	if text.follow_id >= 0 and _world.character(text.follow_id) != null:
+		text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
+	ability_effects.keep_text_in_band(text)
+	return true
 
 
 ## A new particle on the effects layer, or null at the cap, raised by [param allowance] (only a
 ## guardian's death passes one).
 func _particle(kind: StringName, allowance: int = 0) -> FxParticle:
-	if _particles.size() >= MAX_PARTICLES + allowance:
-		return null
 	var made := FxParticle.new()
 	made.name = "Particle"
 	made.kind = kind
-	_world.effects_layer.add_child(made)
-	_particles.append(made)
-	return made
+	return made if _world.fx.add(made, &"combat", allowance) else null
 
 
 ## A bright square that shrinks away in a moment, where something struck or arrived.
@@ -901,11 +910,22 @@ func _height(sprite: CharacterSprite) -> float:
 
 
 ## Where hero [param hero_id]'s XP motes fly to: its frame on the screen when the HUD has said where
-## that is, else its chest.
+## that is, else its chest; not finite once the hero has no sprite.
 func _mote_target(hero_id: int) -> Vector2:
+	if _world.character(hero_id) == null:
+		return Vector2.INF
 	if frame_screen_targets.has(hero_id):
 		return _screen_to_world(frame_screen_targets[hero_id])
 	return _chest(hero_id)
+
+
+func _mote_arrived(at: Vector2) -> void:
+	_flash(at, Palette.color(&"cyan"), 5)
+
+
+## Where coins fly to now, in world pixels.
+func _purse() -> Vector2:
+	return _screen_to_world(gold_screen_target)
 
 
 ## A point on a hero's chest, where motes fly to.

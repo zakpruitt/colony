@@ -320,7 +320,7 @@ func _on_sim_event(event: SimEvent) -> void:
 				_streak = 0
 		SimEvent.Kind.PARTY_WIPED:
 			wipe_line(event)
-			if _world != null and _world.is_recent(event):
+			if _world != null and _world.may_animate(event):
 				_tell()
 
 
