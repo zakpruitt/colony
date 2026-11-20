@@ -404,7 +404,7 @@ func add_tips(tip: UiTip) -> void:
 		var def: TrainingDef = Content.training(cell.id)
 		var text: String = (
 			"Put a paragon point into %s: %s."
-			% [def.display_name, UiFormat.lower_first(def.description)]
+			% [def.display_name, UiFormat.lower_first(def.description).trim_suffix(".")]
 		)
 		for control: Control in [cell.medallion, cell.name_label, cell.total_label]:
 			tip.attach(control, text)

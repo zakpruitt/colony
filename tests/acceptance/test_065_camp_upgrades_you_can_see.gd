@@ -23,7 +23,7 @@ const SHOWCASE: String = "res://game/dev/showcase.tscn"
 ## catch-up) and its moment run by hand.
 func _start(room: Vector2i = ROOM_LARGE) -> Main:
 	var main: Main = _main(room)
-	main.ui.moment.set_process(false)
+	main.ui.set_process(false)  # the moment's owner: it is run by hand
 	main.ui.tip.set_process(false)
 	_frame(main, 0)
 	return main
@@ -783,7 +783,6 @@ func test_r11_help_wiki_and_showcase() -> void:
 	var showcase: Showcase = (load(SHOWCASE) as PackedScene).instantiate() as Showcase
 	add_child_autofree(showcase)
 	showcase.set_process(false)
-	showcase.main.ui.moment.set_process(false)
 	showcase.skip_to(&"shop")
 	var start: float = showcase.elapsed
 	var headlines: Array[String] = []

@@ -40,10 +40,10 @@ static func clock(seconds: float) -> String:
 	return "%d:%02d" % [whole / 60, whole % 60]
 
 
-## [param text] as it reads inside a sentence: its first letter in lower case and no full stop at
-## its end ("Opens locks" is "opens locks").
+## [param text] with its first letter in lower case, to go inside a sentence ("Opens locks" is
+## "opens locks").
 static func lower_first(text: String) -> String:
-	return text.left(1).to_lower() + text.substr(1).trim_suffix(".") if not text.is_empty() else ""
+	return text.left(1).to_lower() + text.substr(1) if not text.is_empty() else ""
 
 
 ## Where [param control] is, as a rectangle in the screen's 640x360 pixels (where input events

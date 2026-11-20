@@ -112,7 +112,7 @@ The picture is drawn in two layers, each in its own pixels.
 - **The frame of the screen** (spec 061, `game/ui/frame/`): `PlacePanel` and `Countdown` at the top left,
   `Purse` (with the speed button) at the top right, `BossBarView` between them in a guardian fight, and a
   `HeroFrameView` per hero along the bottom. The `Hud` builds them under `Hud.screen_frame`, keeps making
-  their texts (`status_text`, `_stable_parts`, `PlaceText`) and lays them out each frame; `UiRoot.setup`
+  their texts (`status_text`, `_stable_parts`, `PlaceText`) and lays them out on a change; `UiRoot.setup`
   moves `screen_frame` onto the layer (`Hud.adopt_frame`, first child of `frame`, so windows draw over it)
   and `UiRoot._apply` sizes it to the room (`Hud.fit_frame`). A window under 1280x720 (whose UI room is
   under 960x540, as a headless test's 640x360 is) has the frame laid out at 960x540 and drawn scaled down
@@ -157,8 +157,9 @@ The picture is drawn in two layers, each in its own pixels.
   its nodes' states only then (`HeroTalentsTab.worded`, `TalentTreeView.states_read`). "What they
   are made from" is the simulation's tick, which moves with everything the simulation does, and
   the few values a command or a test changes between ticks. One owner advances each thing that
-  moves: `Hud.advance` refreshes its `CrossingVeil` last, `UiRoot.advance` runs its `UiMoment`
-  after the bar, and `Main._process` runs the `Milestones`; none has a `_process` of its own.
+  moves: `Hud.advance` refreshes its `CrossingVeil` last, and `UiRoot.advance` runs its `UiMoment`
+  after the bar and then the `Milestones` `Main` gives it (`UiRoot.milestones`), so a banner they
+  queue drops in on the next frame; none has a `_process` of its own.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
   party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is
@@ -210,8 +211,8 @@ The picture is drawn in two layers, each in its own pixels.
   banner growing to hold a sprite larger than the 48 pixel place), held until the next `advance` so that the areas opened on the same tick go
   on it rather than on a banner of their own; a level bursts the hero's frame and steps its level
   number up (`HeroFrameView.step_level`), a talent point pulses its tag (`pulse_tag`), a stage
-  further than the safe one it knows bursts and steps `Safe N` (`PlacePanel.step_safe`, run by
-  `Milestones.advance`, since the HUD gives the panel no time). All ask `UiMoment.may_start` first
+  further than the safe one it knows bursts and steps `Safe N` (`PlacePanel.step_safe`, run on by
+  `PlacePanel.run_step` from `Milestones.advance`, before the world syncs; the HUD gives it no time). All ask `UiMoment.may_start` first
   and are cleared when the world catches up (the hero frames by the HUD's own snap on a stall). Each
   of these events has its own sound, so every burst and banner here passes `quiet` (the last
   argument of `burst` and `announce_picture`) and the moment plays none.

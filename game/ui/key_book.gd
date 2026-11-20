@@ -43,9 +43,9 @@ const ALIASES: Dictionary[String, Array] = {
 	"-": [KEY_MINUS, KEY_KP_SUBTRACT],
 	"+": [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD],
 }
-## Each key row's label by its action, read from [constant ROWS] once.
 ## How many times a key's label has been asked for ([method label]), ever.
 static var asked: int = 0
+## Each key row's label by its action, read from [constant ROWS] once.
 static var _labels: Dictionary[StringName, String] = {}
 
 

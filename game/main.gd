@@ -115,8 +115,6 @@ func _process(delta: float) -> void:
 	if replay != null:
 		_catch_up()
 		return
-	if milestones != null:
-		milestones.advance(delta)
 	_save_in -= delta
 	if _save_in <= 0.0:
 		save_now()
@@ -218,6 +216,7 @@ func _start_play() -> void:
 	milestones = Milestones.new()  # a guardian, an area, a level, a safe stage
 	add_child(milestones)
 	milestones.setup(simulation, world, hud, ui.moment)
+	ui.milestones = milestones
 	ui.windows.open_waiting()  # under the away report, when there is one
 	_welcome()
 

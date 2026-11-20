@@ -21,9 +21,7 @@ const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 ## its milestones and moment run by hand.
 func _start(room: Vector2i = ROOM_LARGE) -> Main:
 	var main: Main = _main(room)
-	main.ui.moment.set_process(false)
 	main.ui.tip.set_process(false)
-	main.milestones.set_process(false)
 	main.simulation.set_auto_push(false)
 	_frame(main, 0)
 	_frame(main, 0)

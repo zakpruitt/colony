@@ -6,7 +6,8 @@ extends "res://tests/acceptance/frame_061_test_base.gd"
 const WATCHED_FRAMES: int = 120
 ## Where each panel of the frame stood before the frame's pieces had a base type, by room and
 ## moment: at rest, with a line in the ticker, on a journey (the countdown hidden) and in a
-## guardian fight (the boss bar up). Recorded from the code as it was.
+## guardian fight (the boss bar up, with its name and health inside it). Recorded from the code as
+## it was.
 const RECORDED: Dictionary[String, Dictionary] = {
 	"960x540 rest":
 	{
@@ -36,6 +37,8 @@ const RECORDED: Dictionary[String, Dictionary] = {
 	"960x540 guardian":
 	{
 		"boss": Rect2(415, 1, 268, 41),
+		"boss name": Rect2(100, 3, 69, 13),
+		"boss health": Rect2(91, 20, 87, 13),
 		"countdown": Rect2(312, 1, 97, 41),
 		"goals": Rect2(6, 48, 230, 115),
 		"place": Rect2(6, 1, 300, 41),
@@ -70,6 +73,8 @@ const RECORDED: Dictionary[String, Dictionary] = {
 	"1280x720 guardian":
 	{
 		"boss": Rect2(461, 1, 358, 41),
+		"boss name": Rect2(145, 3, 69, 13),
+		"boss health": Rect2(136, 20, 87, 13),
 		"countdown": Rect2(312, 1, 97, 41),
 		"goals": Rect2(6, 48, 230, 115),
 		"place": Rect2(6, 1, 300, 41),
@@ -116,6 +121,12 @@ func _rects(main: Main) -> Dictionary[String, Rect2]:
 	for key: String in named:
 		if named[key].visible:
 			rects[key] = Rect2(named[key].position, named[key].size)
+	if hud.boss_bar.visible:
+		for key: String in ["boss name", "boss health"]:
+			var label: Label = (
+				hud.boss_bar.name_label if key == "boss name" else hud.boss_bar.health_label
+			)
+			rects[key] = Rect2(label.position, label.size)
 	return rects
 
 
@@ -427,6 +438,41 @@ func _wait_seconds(seconds: float) -> void:
 	await get_tree().create_timer(seconds).timeout
 
 
+## The order the owners run in within a frame: a guardian's banner queued on a frame drops in on the
+## next one, and a safe stage's step is not run on the frame it starts.
+func test_r7_in_the_order_they_ran() -> void:
+	var main: Main = make_main()
+	add_child_autofree(main)
+	main.driver.set_process(false)
+	await _wait_seconds(0.2)
+	var sim: Simulation = main.simulation
+	var turn := WorldsTurn.new()
+	main.add_child(turn)  # after the world, before the effects and the HUD
+	var seen := FrameEnd.new()
+	main.add_child(seen)
+	seen.main = main
+	var safe: int = sim.expedition.last_stable_depth
+	turn.event = SimEvent.new(SimEvent.Kind.STABLE_DEPTH_REACHED, sim.tick, -1, -1, safe + 1)
+	for i: int in 4:
+		await get_tree().process_frame
+	var heard: int = turn.told_on
+	assert_gt(heard, 0, "the safe stage was heard during a frame")
+	var full: float = HeroFrameView.STEP_SECONDS
+	assert_eq(seen.safe_step(heard), full, "its step is not run on the frame it starts")
+	assert_lt(seen.safe_step(heard + 1), full, "it runs on the next")
+	var stage: int = Content.area(sim.expedition.place).guardian_stage
+	var guardian: StringName = EncounterRoll.guardian_at(Content.area(sim.expedition.place), stage)
+	var beaten: String = Milestones.beaten_text(Content.monster(guardian).display_name)
+	turn.event = SimEvent.new(SimEvent.Kind.GUARDIAN_SLAIN, sim.tick, -1, -1, stage)
+	for i: int in 5:
+		await get_tree().process_frame
+	heard = turn.told_on
+	assert_ne(seen.headline(heard), beaten, "no banner on the frame the fall is heard")
+	assert_ne(seen.headline(heard + 1), beaten, "nor on the frame it is queued")
+	assert_eq(seen.headline(heard + 2), beaten, "it drops in on the frame after")
+	main.free()
+
+
 # --- R8 ------------------------------------------------------------------------
 
 
@@ -463,3 +509,47 @@ class CountingPiece:
 
 	func add_tips(_tips: UiTip) -> void:
 		tipped += 1
+
+
+## Tells the world's listeners of [member event] as the world would: in its own turn of a frame,
+## noting the frame in [member told_on].
+class WorldsTurn:
+	extends Node
+
+	var event: SimEvent
+	var told_on: int = 0
+
+	func _init() -> void:
+		process_priority = 1
+
+	func _process(_delta: float) -> void:
+		if event == null:
+			return
+		var told: SimEvent = event
+		event = null
+		told_on = Engine.get_process_frames()
+		(get_parent() as Main).world.sim_event.emit(told)
+
+
+## Notes, after everything else has run in each frame, the moment's headline and the safe stage's
+## step, by frame.
+class FrameEnd:
+	extends Node
+
+	var main: Main
+	var _headlines: Dictionary[int, String] = {}
+	var _steps: Dictionary[int, float] = {}
+
+	func _init() -> void:
+		process_priority = 100
+
+	func _process(_delta: float) -> void:
+		var frame: int = Engine.get_process_frames()
+		_headlines[frame] = main.ui.moment.shown_headline()
+		_steps[frame] = main.hud.place_panel.safe_step
+
+	func headline(frame: int) -> String:
+		return _headlines.get(frame, "?")
+
+	func safe_step(frame: int) -> float:
+		return _steps.get(frame, -1.0)

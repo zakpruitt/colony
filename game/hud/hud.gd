@@ -269,20 +269,22 @@ func advance(delta: float) -> void:
 			frame.refresh(hero, delta)
 			if stalled:
 				frame.snap()
-	for piece: FramePiece in pieces:
-		piece.advance(delta)
 	if stalled:
-		for piece: FramePiece in pieces:
-			piece.catch_up()
 		_gold_bump = 0.0
 		_depth_emphasis = 0.0
 		_depth = _simulation.expedition.depth
+	# The journal before the stage list, which writes to it; the purse before the gold and the
+	# resources are shown from its counts.
+	journal.advance(delta)
+	for piece: FramePiece in pieces:
+		piece.advance(delta)
+		if stalled:
+			piece.catch_up()
 	_advance_gold(delta)
 	_advance_depth(delta)
 	_advance_shop(delta)
 	if hero_windows != null:
 		hero_windows.advance(delta)
-	journal.advance(delta)
 	goals.advance(delta)
 	tally.advance(delta)
 	area_map.advance(delta)

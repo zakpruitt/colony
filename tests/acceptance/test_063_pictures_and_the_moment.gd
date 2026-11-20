@@ -297,7 +297,6 @@ func test_r5_the_banner() -> void:
 		var what: String = "%s" % room
 		var main: Main = _settled(room)
 		var moment: UiMoment = main.ui.moment
-		moment.set_process(false)
 		main.sound.drain_started()
 		moment.announce(&"sharp_blades", "Sharp Blades, rank 5", "+25% damage and healing")
 		moment.advance(0.0)
@@ -361,7 +360,6 @@ func test_r5_the_banner() -> void:
 func test_r6_only_for_what_just_happened() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var moment: UiMoment = main.ui.moment
-	moment.set_process(false)
 	var sim: Simulation = main.simulation
 	raise_party(main.simulation, PARAGON_LEVEL)
 	var hero: Hero = sim.party.heroes[0]
@@ -515,7 +513,6 @@ func test_r8_two_sounds() -> void:
 		assert_true(player.play(sound), "%s again after 0.15 s" % sound)
 	# The burst plays the small one, the banner the grand one, neither twice within 0.15 s.
 	var moment: UiMoment = main.ui.moment
-	moment.set_process(false)
 	player._process(1.0)
 	player.drain_started()
 	var icon := UiIcon.new(&"power")
@@ -593,7 +590,6 @@ func test_r10_fits_both_rooms() -> void:
 		var main: Main = _settled(room)
 		var inside := Rect2(Vector2.ZERO, Vector2(room))
 		var moment: UiMoment = main.ui.moment
-		moment.set_process(false)
 		moment.announce(longest_id, longest_title, longest_body)
 		moment.advance(0.0)  # it drops in
 		moment.advance(1.0)  # and is down

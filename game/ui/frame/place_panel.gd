@@ -7,8 +7,8 @@ extends FramePiece
 ## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
 ## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
 ## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
-## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], which [Milestones]
-## calls; [method advance] runs it on).
+## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on by
+## [method run_step]; [Milestones] calls both).
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
 const HEIGHT: float = 41.0
@@ -138,8 +138,9 @@ func step_safe() -> void:
 	_show_step()
 
 
-## Runs the safe stage's step on by [param delta] seconds.
-func advance(delta: float) -> void:
+## Runs the safe stage's step on by [param delta] seconds. [Milestones] calls it every frame,
+## before the world syncs, not the HUD.
+func run_step(delta: float) -> void:
 	if safe_step <= 0.0:
 		return
 	safe_step = maxf(safe_step - delta, 0.0)
