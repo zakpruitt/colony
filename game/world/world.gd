@@ -219,8 +219,8 @@ func is_recent(event: SimEvent) -> bool:
 
 ## True during a sync that catches up on a stall (many ticks in one frame; not the world's first
 ## picture, which has nothing running to catch up on, nor a move to another stage or area, which
-## clears its own): it starts nothing, only brings the picture up to date. What clears its running effects then reads it; what starts
-## one asks [method may_animate].
+## clears its own): it starts nothing, only brings the picture up to date. What clears its running
+## effects then reads it; what starts one asks [method may_animate].
 func catching_up() -> bool:
 	return _catching_up
 
