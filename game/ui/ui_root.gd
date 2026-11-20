@@ -44,6 +44,8 @@ var windows: UiWindows
 var bar: UiButtonBar
 ## A window per hero, made by [method setup] when there is a HUD.
 var hero_windows: HeroWindows
+## The keys the front window answers, made by [method setup] when there is a HUD.
+var keys: WindowKeys
 
 ## The windows on the bar as [WindowBook] lists them, each with a window, made by
 ## [method setup].
@@ -130,6 +132,9 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		frame.add_child(hero_windows)
 		hero_windows.setup(simulation, self, tip, hud.world_view())
 		hud.hero_windows = hero_windows
+		keys = WindowKeys.new()
+		add_child(keys)
+		keys.setup(windows, hero_windows, hud.shop, hud.tally)
 	moment = UiMoment.new()  # over the windows, under the tips and the defeat note
 	frame.add_child(moment)
 	moment.fit_room(_room)
@@ -153,6 +158,8 @@ func advance(delta: float) -> void:
 	for content: WindowContent in _advanced:
 		if is_instance_valid(content):
 			content.advance(delta)
+	if bar != null:
+		bar.advance(delta)
 
 
 func _process(delta: float) -> void:
@@ -200,7 +207,7 @@ func _make_windows(simulation: Simulation, hud: Hud) -> Array[UiWindow]:
 func place_defaults() -> void:
 	if windows == null:
 		return
-	var top: float = ceilf(world_to_ui(Vector2(0, Hud.TOP_BAND)).y) + PLACE_GAP / 2.0
+	var top: float = ceilf(world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y) + PLACE_GAP / 2.0
 	for entry: WindowEntry in entries:
 		var shown: UiWindow = windows.window(entry.id)
 		if shown != null:
@@ -211,7 +218,7 @@ func place_defaults() -> void:
 
 ## The top of the hero frames' line in this layer's room, in the world's 640x360 screen pixels.
 func frames_top() -> float:
-	return ui_to_world(Vector2(0, Hud.frames_line(_room))).y
+	return ui_to_world(Vector2(0, HudFrame.frames_line(_room))).y
 
 
 ## How many screen pixels one UI pixel is.

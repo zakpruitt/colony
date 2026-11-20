@@ -114,7 +114,7 @@ func test_r2_the_countdown() -> void:
 		assert_lt(rect.position.x - place.end.x, 16.0, "%s: right beside it" % what)
 		assert_eq(rect.position.y, place.position.y, "%s: level with it" % what)
 		assert_string_starts_with(countdown.note_label.text, "Stable in ", "counting to stable")
-		assert_eq(countdown.note_label.text, "Stable in " + Hud.clock(e.seconds_to_stable()))
+		assert_eq(countdown.note_label.text, "Stable in " + UiFormat.clock(e.seconds_to_stable()))
 		assert_true(countdown.bar.is_visible_in_tree(), "over its bar")
 		assert_almost_eq(countdown.progress(), hud.stable_progress(), 0.001, "filled as far")
 		var bar: Rect2 = countdown.bar.get_global_rect()
@@ -397,7 +397,7 @@ func test_r5_the_bar_and_the_ticker_sit_on_the_frames() -> void:
 		assert_gt(bar.end.y, line - 8.0, "%s: just above them" % what)
 		main.hud.journal.announce("Something happened.")
 		main.hud.advance(STEP)
-		var ticker: Rect2 = Hud.on_screen(main.hud.ticker)
+		var ticker: Rect2 = UiFormat.on_screen(main.hud.ticker)
 		var on_ui := Rect2(ui.world_to_ui(ticker.position), ui.world_to_ui(ticker.size))
 		assert_true(main.hud.ticker.is_visible_in_tree(), "%s: the ticker shows" % what)
 		assert_lte(on_ui.end.y, line, "%s: the ticker above the frames" % what)
@@ -434,7 +434,10 @@ func test_r6_the_boss_bar() -> void:
 			bar.health_label.text,
 			(
 				"%s / %s"
-				% [Hud.group_thousands(guardian.health), Hud.group_thousands(guardian.max_health)]
+				% [
+					UiFormat.group_thousands(guardian.health),
+					UiFormat.group_thousands(guardian.max_health)
+				]
 			),
 			"its health as a number"
 		)
@@ -665,7 +668,7 @@ func test_r8_a_click_on_the_frame_goes_no_further() -> void:
 		# Over everything the world's viewport holds, a probe that hears every press reaching it.
 		var heard: Array[Vector2] = []
 		var probe := Control.new()
-		probe.size = Hud.SCREEN
+		probe.size = HudFrame.SCREEN
 		probe.mouse_filter = Control.MOUSE_FILTER_STOP
 		probe.gui_input.connect(
 			func(event: InputEvent) -> void:

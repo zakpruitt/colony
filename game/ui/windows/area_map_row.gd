@@ -180,7 +180,7 @@ func show_area(
 ## opening it gives while it is closed.
 func show_resource(held: int) -> void:
 	var plural: String = ResourceIcon.plural(Content.area(area_id).resource)
-	var text: String = "%s %s" % [Hud.group_thousands(held), plural]
+	var text: String = "%s %s" % [UiFormat.group_thousands(held), plural]
 	if not is_open:
 		text = "Gives " + plural
 	_show_text(resource_label, text, &"white" if is_open else &"steel")
@@ -256,4 +256,4 @@ func _add(
 func _show_text(label: Label, text: String, colour: StringName) -> void:
 	if label.text != text:
 		label.text = text
-	label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(label, colour)

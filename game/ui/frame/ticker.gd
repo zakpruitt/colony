@@ -51,7 +51,7 @@ func show_line(
 	if label.text != text:
 		label.text = text
 		label.reset_size()
-	label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(label, colour)
 	var width: float = maxf(UiText.width(text) - UiText.SPACING, 0.0) + PAD.x * 2.0 + 1.0
 	size = Vector2(width, HEIGHT)
 	var x: float = minf(floorf((room_width - width) / 2.0), right_limit - GAP - width)

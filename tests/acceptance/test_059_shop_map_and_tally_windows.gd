@@ -137,7 +137,7 @@ func test_r1_three_windows() -> void:
 	# The area's name still opens the map.
 	ui.windows.close_window(&"map")
 	await _frames()
-	click(Hud.on_screen(hud.place_panel.area_button).get_center())
+	click(UiFormat.on_screen(hud.place_panel.area_button).get_center())
 	assert_true(ui.windows.is_open(&"map"), "a click on the area's name opens the map")
 
 
@@ -177,7 +177,7 @@ func test_r2_the_shop_reads_at_a_glance() -> void:
 	var price: int = sim.upgrades.cost(ARMOR)
 	var clay: int = sim.upgrades.resource_cost(ARMOR)
 	assert_gt(clay, 1, "setup: rank 4 costs clay")
-	assert_string_contains(armor.buy_button.text, Hud.group_thousands(price), "the gold price")
+	assert_string_contains(armor.buy_button.text, UiFormat.group_thousands(price), "the gold price")
 	assert_string_contains(armor.buy_button.text, str(clay), "and the clay")
 	assert_eq(armor.buy_button.icon, ResourceIcon.texture(&"clay"), "with its icon")
 	assert_true(armor.buy_button.disabled, "disabled: too little clay")
@@ -353,7 +353,7 @@ func test_r4_the_tally_reads_at_a_glance() -> void:
 		var own: StringName = colours[0]
 		assert_eq(tally.bars[i].fill, own, "%s's bar in its colour" % hero.class_id)
 		var value: int = tally.tally.value(hero.id, Tally.Measure.DAMAGE, Tally.Span.SESSION)
-		assert_eq(tally.value_labels[i].text, Hud.group_thousands(value), "its number")
+		assert_eq(tally.value_labels[i].text, UiFormat.group_thousands(value), "its number")
 		assert_eq(tally.value_labels[i].horizontal_alignment, HORIZONTAL_ALIGNMENT_RIGHT)
 		var edge: float = tally.value_labels[i].get_global_rect().end.x
 		if right_edge >= 0.0:
@@ -607,7 +607,9 @@ func test_r7_true_in_a_crowded_frame() -> void:
 		var id: int = sim.party.heroes[i].id
 		var value: int = tally.tally.value(id, Tally.Measure.DAMAGE, Tally.Span.SESSION)
 		assert_gt(value, 0, "setup: hero %d has dealt damage" % id)
-		assert_eq(tally.value_labels[i].text, Hud.group_thousands(value), "hero %d's number" % id)
+		assert_eq(
+			tally.value_labels[i].text, UiFormat.group_thousands(value), "hero %d's number" % id
+		)
 
 
 # --- R8 ------------------------------------------------------------------------

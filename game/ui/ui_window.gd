@@ -41,7 +41,7 @@ var keycode: Key
 var icon: Texture2D
 ## A count the button bar shows on the window's button as an amber tag (the shop's upgrades
 ## the party can pay for, the map's areas opened since it was last open); 0 shows none.
-## The window's content sets it.
+## The window's content tells it ([signal WindowContent.badge_changed]).
 var badge: int = 0
 ## False for a window with no button on the bar (a hero's window opens from its frame).
 var on_bar: bool = true
@@ -108,10 +108,18 @@ func _init(
 		margin.add_theme_constant_override("margin_" + side, UiTheme.WINDOW_PAD)
 	column.add_child(margin)
 	content = body
+	var told: WindowContent = body as WindowContent
+	if told != null:
+		badge = told.badge()
+		told.badge_changed.connect(_on_badge_changed.unbind(1))
 	margin.add_child(body)
 	# A window grows and shrinks with what it shows (the tally's open line).
 	body.minimum_size_changed.connect(_refit_later)
 	title = window_title
+
+
+func _on_badge_changed() -> void:
+	badge = (content as WindowContent).badge()
 
 
 func _gui_input(event: InputEvent) -> void:

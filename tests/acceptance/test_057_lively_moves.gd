@@ -472,7 +472,7 @@ func test_r4_a_spell_shows_only_on_whom_it_reached() -> void:
 	_only_on(&"holy_beam", reached, [] as Array[int] + monsters.slice(1), "Smite")
 	for particle: FxParticle in _spells().particles(&"holy_beam"):
 		var box: Rect2 = _on_screen(particle.rect())
-		assert_gt(box.position.y, Hud.TOP_BAND, "the beam starts under the boss bar")
+		assert_gt(box.position.y, HudFrame.TOP_BAND, "the beam starts under the boss bar")
 		if particle.shape == FxParticle.Shape.COLUMN:
 			assert_gt(box.size.y, 40.0, "and falls from high above its target")
 

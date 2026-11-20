@@ -158,6 +158,9 @@ func hovered() -> StringName:
 func refresh(hero: Hero, delta: float) -> void:
 	var taken: Array[StringName] = hero.talents()
 	var walked: int = hero.path()
+	# The lines are drawn from the nodes' states, the path walked, the flashes and the closing:
+	# the view is drawn again only while one of them changes or plays.
+	var redraw: bool = walked != _walked or not _flashes.is_empty() or _closing >= 0
 	for made: TalentNode in nodes():
 		var stands: TalentNode.State = TalentNode.State.LOCKED
 		if taken.has(made.ability_id):
@@ -166,6 +169,7 @@ func refresh(hero: Hero, delta: float) -> void:
 			stands = TalentNode.State.CLOSED
 		elif hero.can_take(made.ability_id):
 			stands = TalentNode.State.AVAILABLE
+		redraw = redraw or made.state() != stands
 		made.show_state(stands)
 		made.advance(delta)
 	_walked = walked
@@ -178,7 +182,8 @@ func refresh(hero: Hero, delta: float) -> void:
 		if not is_visible_in_tree() or _closing_time >= CLOSE_SECONDS or not is_closed(_closing):
 			_finish_closing()
 	_show_closing()
-	queue_redraw()
+	if redraw:
+		queue_redraw()
 
 
 ## Makes the line into node [param ability_id] flash: it was just taken.

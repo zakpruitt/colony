@@ -296,7 +296,7 @@ func _check_depth_panel(what: String) -> void:
 				_hud.countdown.get_global_rect().encloses(label.get_global_rect()),
 				"%s: %s fits" % [what, label.name]
 			)
-	assert_lte(panel.end.y, Hud.TOP_BAND, "in the top band")
+	assert_lte(panel.end.y, HudFrame.TOP_BAND, "in the top band")
 	assert_false(panel.intersects(_hud.purse.get_global_rect()), "%s: clear of gold" % what)
 
 
@@ -556,7 +556,7 @@ func test_r6_it_fits() -> void:
 		_hud.countdown.get_global_rect().encloses(bar), "the stable bar is in the depth panel"
 	)
 	for rect: Rect2 in [ticker, bar]:
-		assert_true(Rect2(Vector2.ZERO, Hud.SCREEN).encloses(rect), "on the screen")
+		assert_true(Rect2(Vector2.ZERO, HudFrame.SCREEN).encloses(rect), "on the screen")
 	# (Spec 058: the journal is a window on the UI layer now, which floats over the HUD and the
 	# shop beside it, as the hero windows of spec 060 do; where windows go is tested there.)
 

@@ -68,7 +68,7 @@ func show_node(
 	WindowText.set_text(name_label, ability.display_name)
 	WindowText.set_text(kind_label, HeroTalentsTab.kind_text(id))
 	WindowText.set_text(stand_label, stand)
-	stand_label.add_theme_color_override(&"font_color", Palette.color(stand_colour))
+	WindowText.set_colour(stand_label, stand_colour)
 	learn_button.visible = learnable
 	var right: float = words_x + _words_width(learnable)
 	if learnable:

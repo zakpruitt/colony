@@ -79,7 +79,7 @@ func _init() -> void:
 	label = Label.new()
 	label.name = "Text"
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	label.add_theme_color_override(&"font_color", Palette.color(&"white"))
+	WindowText.set_colour(label, &"white")
 	_box.add_child(label)
 	_make_card()
 
@@ -378,7 +378,7 @@ func _show_card(card: Card) -> void:
 	var lines: Array[String] = WindowText.wrap(card.body, width)
 	WindowText.set_text(card_body, "\n".join(PackedStringArray(lines)))
 	WindowText.set_text(card_stand, card.stand)
-	card_stand.add_theme_color_override(&"font_color", Palette.color(card.stand_colour))
+	WindowText.set_colour(card_stand, card.stand_colour)
 	var y: float = 0.0
 	var inner_width: float = 0.0
 	for part: Label in [card_title, card_kind, card_body, card_stand]:

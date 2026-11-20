@@ -541,7 +541,7 @@ func _show_hint() -> void:
 	if _hint_risk.visible:
 		_hint_risk.text = parts[2]
 		var colour: StringName = DepthLadder.RISK_COLOURS[risk(hovered)]
-		_hint_risk.add_theme_color_override(&"font_color", Palette.color(colour))
+		WindowText.set_colour(_hint_risk, colour)
 	var panel: StyleBox = hint.get_theme_stylebox(&"panel")
 	var inner_width: float = GoalRow.ink(text)
 	var lines: int = 1
@@ -569,7 +569,7 @@ func _place_labels() -> void:
 			number.text = text
 			number.reset_size()
 		var colour: StringName = DepthLadder.RISK_COLOURS[risk(depth)]
-		number.add_theme_color_override(&"font_color", Palette.color(colour))
+		WindowText.set_colour(number, colour)
 		var row: float = floorf(rung_rect(depth).position.y - RUNGS_TOP)
 		var ink: float = UiText.width(text, true) - UiText.SPACING
 		number.position = Vector2(NUMBER_RIGHT - ink, row + _text_y())
@@ -583,9 +583,7 @@ func _place_labels() -> void:
 			guardian.text = named
 			guardian.reset_size()
 		var beaten: bool = guardian.visible and ladder.guardian_beaten(depth)
-		guardian.add_theme_color_override(
-			&"font_color", Palette.color(&"steel" if beaten else &"white")
-		)
+		WindowText.set_colour(guardian, &"steel" if beaten else &"white")
 		guardian.position = Vector2(NAME_X, row + _text_y())
 
 

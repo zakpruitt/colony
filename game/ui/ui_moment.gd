@@ -57,7 +57,7 @@ const BANNER_LINES: int = 2
 const SHORTENED: String = "..."
 ## The banner's top, in UI pixels: just under the top band of the frame of the screen, where the
 ## place panel, the boss bar and the purse stand.
-const BANNER_TOP: float = Hud.FRAME_TOP + PlacePanel.HEIGHT + Hud.FRAME_GAP
+const BANNER_TOP: float = HudFrame.FRAME_TOP + PlacePanel.HEIGHT + HudFrame.FRAME_GAP
 ## The sounds of a small gain and a grand one.
 const SMALL_SOUND: StringName = &"gain_small"
 const GRAND_SOUND: StringName = &"gain_grand"
@@ -405,16 +405,16 @@ static func picture_size(picture: Texture2D) -> Vector2:
 ## [member keep_clear] on each side (a frame gap short of it) or the room's edge, twice the nearer.
 func room_for_banner() -> float:
 	var middle: float = size.x / 2.0
-	var half: float = middle - Hud.FRAME_EDGE
+	var half: float = middle - HudFrame.FRAME_EDGE
 	var to_here: Transform2D = get_global_transform().affine_inverse()
 	for control: Control in keep_clear:
 		if not is_instance_valid(control) or not control.is_visible_in_tree():
 			continue
 		var box: Rect2 = to_here * control.get_global_rect()
 		if box.end.x <= middle:
-			half = minf(half, middle - box.end.x - Hud.FRAME_GAP)
+			half = minf(half, middle - box.end.x - HudFrame.FRAME_GAP)
 		elif box.position.x >= middle:
-			half = minf(half, box.position.x - middle - Hud.FRAME_GAP)
+			half = minf(half, box.position.x - middle - HudFrame.FRAME_GAP)
 	return floorf(half) * 2.0 - 2.0
 
 

@@ -36,7 +36,7 @@ static func label(text: String, color_name: StringName = &"white") -> Label:
 	made.text = text
 	made.add_theme_font_override(&"font", font())
 	made.add_theme_font_size_override(&"font_size", SIZE)
-	made.add_theme_color_override(&"font_color", Palette.color(color_name))
+	WindowText.set_colour(made, color_name)
 	made.add_theme_color_override(&"font_shadow_color", Palette.color(&"ink"))
 	made.add_theme_constant_override(&"shadow_offset_x", SHADOW_OFFSET)
 	made.add_theme_constant_override(&"shadow_offset_y", SHADOW_OFFSET)

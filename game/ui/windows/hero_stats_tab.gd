@@ -37,6 +37,9 @@ var reason_labels: Dictionary[StringName, Label] = {}
 
 var _simulation: Simulation
 var _hero_id: int = -1
+## What the stats were last worked out from: the hero's level, health and the multipliers of its
+## camp upgrades and paragon points. Only a change builds the hero's fighter again.
+var _shown: ShownValues = ShownValues.new()
 
 
 ## The tab of hero [param hero_id], [param width] UI pixels wide.
@@ -61,14 +64,24 @@ func refresh() -> void:
 	var hero: Hero = _simulation.party.hero(_hero_id) if _simulation != null else null
 	if hero == null:
 		return
+	_shown.begin()
+	_shown.see(hero.level)
+	_shown.see(hero.max_health())
+	_shown.see(_simulation.upgrades.multiplier(UpgradeDef.Stat.DAMAGE))
+	_shown.see(_simulation.upgrades.multiplier(UpgradeDef.Stat.HEALTH))
+	_shown.see(hero.paragon_rank(TrainingDef.Stat.POWER))
+	_shown.see(hero.paragon_rank(TrainingDef.Stat.TOUGHNESS))
+	_shown.see(hero.paragon_rank(TrainingDef.Stat.QUICKNESS))
+	if not _shown.changed():
+		return
 	var def: HeroClassDef = hero.def()
 	var fighter: Combatant = hero.combatant()
 	var power: Array[String] = _reasons(UpgradeDef.Stat.DAMAGE, hero, TrainingDef.Stat.POWER)
 	var tough: Array[String] = _reasons(UpgradeDef.Stat.HEALTH, hero, TrainingDef.Stat.TOUGHNESS)
 	var quick: Array[String] = _reasons(-1, hero, TrainingDef.Stat.QUICKNESS)
 	var none: Array[String] = []
-	_show(&"stat_health", Hud.group_thousands(hero.max_health()), tough)
-	_show(&"stat_damage", Hud.group_thousands(fighter.damage), power)
+	_show(&"stat_health", UiFormat.group_thousands(hero.max_health()), tough)
+	_show(&"stat_damage", UiFormat.group_thousands(fighter.damage), power)
 	_show(&"stat_armor", str(fighter.armor), none)
 	var speed: float = hero.paragon_multiplier(TrainingDef.Stat.QUICKNESS)
 	_show(&"stat_attack_speed", "%.1f/s" % (speed / maxf(def.attack_interval, 0.01)), quick)
@@ -78,7 +91,7 @@ func refresh() -> void:
 		reach = "%s tiles" % HeroWindow.tiles(def.attack_range)
 	_show(&"stat_range", reach, none)
 	var heals: bool = def.heal_power > 0
-	_show(&"stat_healing", Hud.group_thousands(fighter.heal_power), power)
+	_show(&"stat_healing", UiFormat.group_thousands(fighter.heal_power), power)
 	for label: Label in [
 		name_labels[&"stat_healing"], value_labels[&"stat_healing"], reason_labels[&"stat_healing"]
 	]:

@@ -175,5 +175,5 @@ func _apply() -> void:
 			colour = &"yellow"
 		State.CLOSED:
 			colour = DIM
-	name_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(name_label, colour)
 	queue_redraw()

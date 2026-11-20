@@ -104,10 +104,6 @@ func _draw() -> void:
 
 func _apply() -> void:
 	closed_label.visible = _closed
-	name_label.add_theme_color_override(
-		&"font_color", Palette.color(&"steel" if _closed else path_colour)
-	)
-	summary_label.add_theme_color_override(
-		&"font_color", Palette.color(&"slate" if _closed else &"silver")
-	)
+	WindowText.set_colour(name_label, &"steel" if _closed else path_colour)
+	WindowText.set_colour(summary_label, &"slate" if _closed else &"silver")
 	queue_redraw()

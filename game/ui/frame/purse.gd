@@ -3,7 +3,7 @@ extends Panel
 ## The purse at the top right, on the sharp layer: the game-speed button (lit above 1x), the gold
 ## with its coin, then each resource the party holds with its icon and count, in
 ## [method Content.resource_ids] order; one it has none of is not shown. Counts are
-## in the font's equal-width digits, shortened from 10,000 ([method Hud.short_count]).
+## in the font's equal-width digits, shortened from 10,000 ([method UiFormat.short_count]).
 ##
 ## The gold count is the HUD's ([method Hud.shown_gold]), which counts each coin in as it lands. The
 ## resource counts tick up the same way: a drop's icons ([ResourceEffects]) count in
@@ -35,6 +35,10 @@ var _effects: ResourceEffects
 var _shown: Dictionary[StringName, int] = {}
 var _since_icon: float = 0.0
 var _lift: float = 0.0
+## What the purse was last laid out from, and the width that gave: [method show_gold] lays it out
+## again only on a change.
+var _laid: ShownValues = ShownValues.new()
+var _width: float = 0.0
 
 
 func _init(coin: Texture2D = null) -> void:
@@ -112,6 +116,13 @@ func shown_ids() -> Array[StringName]:
 	return ids
 
 
+## Shows the game's speed, [param value], on the speed button: its label, lit above 1x. [Main]
+## calls it as the speed changes.
+func show_speed(value: int) -> void:
+	speed_button.text = "%dx" % value
+	speed_button.lit = value > 1
+
+
 ## Resource [param id]'s tooltip: [code]Clay: 3. Clay comes from the Claypits.[/code]
 func tip_text(id: StringName) -> String:
 	var held: int = _simulation.party.resource(id) if _simulation != null else 0
@@ -119,7 +130,7 @@ func tip_text(id: StringName) -> String:
 		"%s: %s. %s"
 		% [
 			ResourceIcon.title(id),
-			Hud.group_thousands(held),
+			UiFormat.group_thousands(held),
 			ResourceIcon.where_from(_simulation, id)
 		]
 	)
@@ -128,12 +139,25 @@ func tip_text(id: StringName) -> String:
 ## Shows the gold as [param text] in [param colour], lifted [param lift] UI pixels (its bump),
 ## lays the purse out at [param height] UI pixels tall and returns its width.
 func show_gold(text: String, colour: StringName, lift: float, height: float) -> float:
+	_laid.begin()
+	_laid.see(text)
+	_laid.see(colour)
+	_laid.see(lift)
+	_laid.see(height)
+	_laid.see(speed_button.text)
+	if _simulation != null:
+		for id: StringName in icons:
+			_laid.see(_simulation.party.resource(id))
+			_laid.see(shown(id))
+	if not _laid.changed():
+		return _width
 	if gold_label.text != text:
 		gold_label.text = text
 		gold_label.reset_size()
-	gold_label.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(gold_label, colour)
 	_lift = lift
-	return lay_out(height)
+	_width = lay_out(height)
+	return _width
 
 
 ## Lays the purse out from left to right at [param height] UI pixels tall, and returns its width:
@@ -152,7 +176,7 @@ func lay_out(height: float) -> float:
 			labels[id].visible = held
 			if not held:
 				continue
-			var text: String = Hud.short_count(shown(id))
+			var text: String = UiFormat.short_count(shown(id))
 			if labels[id].text != text:
 				labels[id].text = text
 				labels[id].reset_size()

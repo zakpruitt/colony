@@ -222,7 +222,7 @@ func test_r2_hover_says_it() -> void:
 		assert_true(ladder.hint.is_visible_in_tree(), "depth %d: a hint shows" % depth)
 		assert_eq(ladder.hint_text(), lines[depth], "depth %d: the hint as shown" % depth)
 		var hint: Rect2 = ladder.hint.get_global_rect()
-		assert_lte(hint.end.x, Hud.on_screen(ladder).position.x, "left of the ladder")
+		assert_lte(hint.end.x, UiFormat.on_screen(ladder).position.x, "left of the ladder")
 		var rows: int = 2 if lines[depth].contains("\n") else 1
 		assert_gte(hint.size.y, 4.0 + rows * 9.0, "depth %d: room for %d lines" % [depth, rows])
 		_mouse_leaves()
@@ -407,9 +407,9 @@ func test_r6_nothing_else_changes() -> void:
 	# Spec 062: on the sharp layer, at the frame's right edge under the purse, in UI pixels.
 	var rect: Rect2 = ladder.get_rect()
 	var room := Vector2(UiRoot.MIN_ROOM)  # a HUD alone lays its frame out at the least room
-	var top: float = Hud.FRAME_TOP + PlacePanel.HEIGHT + Hud.FRAME_GAP
+	var top: float = HudFrame.FRAME_TOP + PlacePanel.HEIGHT + HudFrame.FRAME_GAP
 	assert_eq(rect.size, Vector2(150, 312), "the list's size: 12 rows of 24 under its heading")
-	assert_eq(rect.position, Vector2(room.x - Hud.FRAME_EDGE - StageList.WIDTH, top), "place")
+	assert_eq(rect.position, Vector2(room.x - HudFrame.FRAME_EDGE - StageList.WIDTH, top), "place")
 	var hash_before: int = _sim.state_hash()
 	var target: int = _sim.expedition.target_depth
 	for i: int in 4:

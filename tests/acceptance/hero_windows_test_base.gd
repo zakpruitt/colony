@@ -36,7 +36,7 @@ func _frame_of(main: Main, hero: Hero) -> HeroFrameView:
 
 ## A real click on [param hero]'s frame, then a frame of the HUD.
 func _click_frame(main: Main, hero: Hero) -> void:
-	click(Hud.on_screen(_frame_of(main, hero)).get_center())
+	click(UiFormat.on_screen(_frame_of(main, hero)).get_center())
 	main.hud.advance(STEP)
 
 
@@ -154,7 +154,7 @@ func _state_name(state: TalentNode.State) -> String:
 ## and of the frames' line.
 func _check_clear(main: Main, shown: HeroWindow, what: String) -> void:
 	var rect: Rect2 = shown.get_global_rect()
-	var band: float = main.ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var band: float = main.ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
 	var frames: float = main.ui.world_to_ui(main.hud.frames[0].get_global_rect().position).y
 	assert_true(
 		Rect2(Vector2.ZERO, Vector2(main.ui.room())).encloses(rect), "%s: in the room" % what

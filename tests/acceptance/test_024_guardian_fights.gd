@@ -181,7 +181,7 @@ func test_r2_boss_bar() -> void:
 	# Inside the top band, between the panels, clear of the shop too.
 	var rect: Rect2 = bar.get_global_rect()
 	assert_gte(rect.position.y, 0.0, "inside the top band")
-	assert_lte(rect.end.y, Hud.TOP_BAND, "inside the top band")
+	assert_lte(rect.end.y, HudFrame.TOP_BAND, "inside the top band")
 	assert_gte(
 		rect.position.x, _hud.place_panel.get_global_rect().end.x, "right of the depth panel"
 	)

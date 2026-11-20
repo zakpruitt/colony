@@ -196,15 +196,15 @@ func _start_play() -> void:
 	hud = Hud.new()
 	hud.name = "Hud"
 	hud_layer.add_child(hud)
-	hud.setup(simulation, world, effects)
+	hud.setup(simulation, world, effects, _clock_label)
 	sound = SoundPlayer.new()
 	sound.name = "SoundPlayer"
 	sound.settings = settings
 	add_child(sound)
 	sound.setup(world, effects, simulation)
 	hud.purse.speed_button.pressed.connect(cycle_speed)
-	speed_changed.connect(hud.show_speed)
-	hud.show_speed(_speed)
+	speed_changed.connect(hud.purse.show_speed)
+	hud.purse.show_speed(_speed)
 	_apply_speed()
 	_show_clock()
 	_save_in = SAVE_SECONDS

@@ -135,13 +135,15 @@ func test_r1_a_card_per_upgrade() -> void:
 	var armor: ShopRow = _row(main, ARMOR)
 	var medicine: ShopRow = _row(main, MEDICINE)
 	assert_eq(blades.icon.state(), UiIcon.State.READY, "ready when the party can pay")
-	assert_eq(blades.buy_button.text, "%s gold" % Hud.group_thousands(sim.upgrades.cost(BLADES)))
+	assert_eq(
+		blades.buy_button.text, "%s gold" % UiFormat.group_thousands(sim.upgrades.cost(BLADES))
+	)
 	assert_null(blades.buy_button.icon, "gold alone before rank 4")
 	assert_eq(armor.icon.state(), UiIcon.State.LOCKED, "locked when it cannot")
 	var clay: int = sim.upgrades.resource_cost(ARMOR)
 	assert_eq(
 		armor.buy_button.text,
-		"%s gold + %d" % [Hud.group_thousands(sim.upgrades.cost(ARMOR)), clay],
+		"%s gold + %d" % [UiFormat.group_thousands(sim.upgrades.cost(ARMOR)), clay],
 		"the whole price"
 	)
 	assert_eq(armor.buy_button.icon, ResourceIcon.texture(CLAY), "the resource with its icon")
@@ -296,7 +298,7 @@ func test_r4_what_is_missing() -> void:
 	sim.party.gold = 0
 	_frame(main, 0)
 	assert_string_starts_with(
-		armor.needs_label.text, "Needs %s more gold and" % Hud.group_thousands(91), "both"
+		armor.needs_label.text, "Needs %s more gold and" % UiFormat.group_thousands(91), "both"
 	)
 	# Pointing at the card shows a card tooltip.
 	var tip: UiTip = main.ui.tip

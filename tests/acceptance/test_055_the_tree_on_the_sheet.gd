@@ -120,7 +120,7 @@ func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
 func _open_talents(hero: Hero) -> void:
 	for frame: HeroFrameView in _hud.frames:
 		if frame.hero_id == hero.id:
-			_click_at(Hud.on_screen(frame).get_center())
+			_click_at(UiFormat.on_screen(frame).get_center())
 	_hud.advance(STEP)
 	_click_at(_at(_sheet().tab_buttons[HeroWindow.Page.TALENTS]))
 	_hud.advance(STEP)
@@ -725,7 +725,7 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	)
 	_sheet().close()
 	_hud.advance(STEP)
-	mouse_move(Hud.on_screen(frame).get_center())
+	mouse_move(UiFormat.on_screen(frame).get_center())
 	_hud.advance(0.2)
 	_hud.advance(0.3)
 	assert_eq(
@@ -735,7 +735,7 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	)
 	mouse_move(AWAY)
 	_hud.advance(STEP)
-	mouse_move(Hud.on_screen(_hud.frames[1]).get_center())
+	mouse_move(UiFormat.on_screen(_hud.frames[1]).get_center())
 	_hud.advance(0.5)
 	assert_eq(_hud.frame_tip.shown_text(), "Click for details", "a hero with no path")
 
@@ -811,7 +811,7 @@ func test_r11_it_fits_and_is_explained() -> void:
 	# Spec 060: the sheet is a hero window in UI pixels, inside the room and over the frames' line
 	# no more (test_060's R7 and R10 check every class, both rooms and the longest data).
 	var screen := Rect2(Vector2.ZERO, Vector2(_ui.room()))
-	var top_band: float = _ui.world_to_ui(Vector2(0, Hud.TOP_BAND)).y
+	var top_band: float = _ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
 	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(class_id)

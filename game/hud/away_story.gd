@@ -51,10 +51,10 @@ static func duration(seconds: float) -> String:
 static func rows(report: AwayReport, party: Party) -> Array[Row]:
 	var made: Array[Row] = []
 	made.append(Row.new("Away", duration(report.seconds), &"white"))
-	made.append(Row.new("Gold", "+" + Hud.group_thousands(report.gold_gained), &"yellow"))
+	made.append(Row.new("Gold", "+" + UiFormat.group_thousands(report.gold_gained), &"yellow"))
 	_resource_rows(report, made)
 	made.append(Row.new(where(report), "", &"silver"))
-	made.append(Row.new("Slain", Hud.group_thousands(report.kills), &"silver"))
+	made.append(Row.new("Slain", UiFormat.group_thousands(report.kills), &"silver"))
 	made.append(Row.new("Wipes", str(report.wipes), &"silver"))
 	_quest_rows(report, made)
 	for hero: Hero in party.heroes:
@@ -72,7 +72,7 @@ static func rows(report: AwayReport, party: Party) -> Array[Row]:
 static func _quest_rows(report: AwayReport, made: Array[Row]) -> void:
 	if report.guardians_slain > 0:
 		made.append(
-			Row.new("Guardians slain", Hud.group_thousands(report.guardians_slain), &"amber")
+			Row.new("Guardians slain", UiFormat.group_thousands(report.guardians_slain), &"amber")
 		)
 		var deepest: String = (
 			Content.monster(report.deepest_guardian).display_name
@@ -82,11 +82,13 @@ static func _quest_rows(report: AwayReport, made: Array[Row]) -> void:
 		made.append(Row.new("Furthest guardian", deepest, &"amber"))
 	if report.side_quests_done > 0:
 		made.append(
-			Row.new("Side quests done", Hud.group_thousands(report.side_quests_done), &"green")
+			Row.new("Side quests done", UiFormat.group_thousands(report.side_quests_done), &"green")
 		)
 	if report.side_quests_missed > 0:
 		made.append(
-			Row.new("Side quests missed", Hud.group_thousands(report.side_quests_missed), &"orange")
+			Row.new(
+				"Side quests missed", UiFormat.group_thousands(report.side_quests_missed), &"orange"
+			)
 		)
 		if report.most_needed_microskill != &"":
 			var skill: String = Content.microskill(report.most_needed_microskill).display_name
@@ -100,7 +102,7 @@ static func _resource_rows(report: AwayReport, made: Array[Row]) -> void:
 	for id: StringName in Content.resource_ids():
 		var gained: int = report.resources_gained.get(id, 0)
 		if gained > 0:
-			parts.append("%s %s" % [Hud.group_thousands(gained), ResourceIcon.plural(id)])
+			parts.append("%s %s" % [UiFormat.group_thousands(gained), ResourceIcon.plural(id)])
 	if not parts.is_empty():
 		made.append(Row.new("Gathered", ", ".join(parts), &"tan"))
 	for id: StringName in report.resources_first:

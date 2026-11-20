@@ -290,7 +290,8 @@ func test_r2_a_short_crossing() -> void:
 			assert_true(shown_veil.is_visible_in_tree(), "the veil is shown")
 			assert_eq(shown_veil.darkness(), 1.0, "and dark")
 			assert_eq(
-				Rect2(shown_veil.global_position, shown_veil.size), Rect2(Vector2.ZERO, Hud.SCREEN)
+				Rect2(shown_veil.global_position, shown_veil.size),
+				Rect2(Vector2.ZERO, HudFrame.SCREEN)
 			)
 			assert_eq(shown_veil.title_label.text, "Mossy Hollow 2", "with the title")
 			dark_seen += 1

@@ -21,6 +21,9 @@ var bar: Control
 var next_label: Label
 
 var _progress: float = 0.0
+## The note and what comes next as last shown: the same words are not laid out again.
+var _note: String = ""
+var _next: String = ""
 
 
 func _init() -> void:
@@ -44,12 +47,17 @@ func _init() -> void:
 ## Shows [param note] over its bar, [param filled] (0 to 1) filled while it counts, and
 ## [param next] beside the bar; [param height] is the panel's.
 func show_road(note: String, next: String, filled: float, height: float) -> void:
+	if note == _note and next == _next and height == size.y:
+		if not is_equal_approx(_progress, filled):
+			_progress = filled
+			bar.queue_redraw()
+		return
+	_note = note
+	_next = next
 	var counting: bool = note.contains(" in ")
 	WindowText.set_text(note_label, note)
 	WindowText.set_text(next_label, next)
-	note_label.add_theme_color_override(
-		&"font_color", Palette.color(&"green" if note == "Stable" else &"silver")
-	)
+	WindowText.set_colour(note_label, &"green" if note == "Stable" else &"silver")
 	bar.visible = counting
 	if not is_equal_approx(_progress, filled):
 		_progress = filled

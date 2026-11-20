@@ -10,11 +10,17 @@ extends VBoxContainer
 ## it closes the "While you were away" report if [member closes_away] is set (but not as it opens
 ## under the report, left open last session), and [method _shown] lets it bring itself up to date.
 
+## Emitted when what the window's tag on the button bar says changes: [param text], or "" for no
+## tag.
+signal badge_changed(text: String)
+
 ## True when its opening closes the away report: the shop, the map and the tally do; help, the
 ## journal and the orders open beside it.
 var closes_away: bool = true
 ## True from the content's opening to its closing, so [method _shown] runs once per opening.
 var _was_open: bool = false
+## The count on the window's tag, as last told: 0 for none.
+var _badge: int = 0
 
 
 func _init() -> void:
@@ -81,6 +87,22 @@ func toggle() -> void:
 ## every frame by whoever made it ([UiRoot], or the [Hud] for its own); tests call it.
 func advance(_delta: float) -> void:
 	pass
+
+
+## The count on the window's tag on the bar, as last told: 0 for none. A window takes it as it is
+## built, since the content may have told it before anything listened.
+func badge() -> int:
+	return _badge
+
+
+## Puts [param count] on the window's tag on the bar (no tag for 0 or less), telling the bar only
+## when it changes.
+func _show_badge(count: int) -> void:
+	var shown: int = maxi(count, 0)
+	if shown == _badge:
+		return
+	_badge = shown
+	badge_changed.emit(str(shown) if shown > 0 else "")
 
 
 ## Gives the content [param _tips], the tooltip it shares with the bar, for its controls.

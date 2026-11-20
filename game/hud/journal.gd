@@ -29,6 +29,11 @@ const TICKER_SECONDS: float = 4.0
 ## Then its text steps down through these colours, each for FADE_STEP seconds, and it goes.
 const FADE_COLOURS: Array[StringName] = [&"silver", &"steel", &"slate"]
 const FADE_STEP: float = 0.2
+
+## The note after a defeat, whose first line is a wipe's line here; null for a line of the
+## journal's own. The [Hud] hands it over once it is made.
+var defeat_note: DefeatNote
+
 var _simulation: Simulation
 var _world: World
 ## Lines as written, newest first: the game time and the sentence.
@@ -182,9 +187,8 @@ func _sentence(event: SimEvent) -> String:
 		SimEvent.Kind.PARTY_WIPED:
 			# The defeat note's first line, what beat the party and where, then where it falls
 			# back to.
-			var hud: Hud = get_parent() as Hud
-			if hud != null and hud.defeat_note != null:
-				return hud.defeat_note.journal_line(event)
+			if defeat_note != null:
+				return defeat_note.journal_line(event)
 			var back_to: int = _simulation.expedition.last_stable_depth
 			sentence = "Wiped on %s, falling back to %s" % [_place(_depth), _place(back_to)]
 			if back_to == _depth:

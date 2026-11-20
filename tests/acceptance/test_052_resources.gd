@@ -201,7 +201,7 @@ func test_r3_the_party_keeps_a_count() -> void:
 		assert_true(panel.encloses(icon), "%s's icon is beside the gold, in its panel" % id)
 		assert_true(panel.encloses(purse.labels[id].get_global_rect()), "and its count")
 		assert_gt(icon.position.x, gold.end.x, "after the gold")
-	assert_lte(panel.end.y, Hud.TOP_BAND, "in the top band")
+	assert_lte(panel.end.y, HudFrame.TOP_BAND, "in the top band")
 	assert_eq(
 		_tip(purse.icons[GLOWCAPS]),
 		"Glowcaps: 12. Glowcaps come from Mossy Hollow.",
@@ -249,12 +249,12 @@ func test_r3_the_party_keeps_a_count() -> void:
 
 ## The top bar with counts too long to write out: they are shortened, and nothing overlaps.
 func test_r3_large_counts_fit_the_top_bar() -> void:
-	assert_eq(Hud.short_count(9_999), "9,999", "written out below 10,000")
-	assert_eq(Hud.short_count(12_345), "12.3k", "then shortened")
-	assert_eq(Hud.short_count(99_999), "99.9k", "rounded down, never more than it is")
-	assert_eq(Hud.short_count(123_456), "123k")
-	assert_eq(Hud.short_count(9_999_999), "9.9M")
-	assert_eq(Hud.short_count(123_456_789), "123M")
+	assert_eq(UiFormat.short_count(9_999), "9,999", "written out below 10,000")
+	assert_eq(UiFormat.short_count(12_345), "12.3k", "then shortened")
+	assert_eq(UiFormat.short_count(99_999), "99.9k", "rounded down, never more than it is")
+	assert_eq(UiFormat.short_count(123_456), "123k")
+	assert_eq(UiFormat.short_count(9_999_999), "9.9M")
+	assert_eq(UiFormat.short_count(123_456_789), "123M")
 	_sim = Simulation.new(SEED)
 	_sim.party.gold = 9_999_999
 	for id: StringName in Content.resource_ids():
@@ -269,7 +269,7 @@ func test_r3_large_counts_fit_the_top_bar() -> void:
 		parts.append(_hud.purse.icons[id])
 		parts.append(_hud.purse.labels[id])
 	var panel: Rect2 = _hud.purse.get_global_rect()
-	var screen := Rect2(Vector2.ZERO, Hud.SCREEN)
+	var screen := Rect2(Vector2.ZERO, HudFrame.SCREEN)
 	assert_true(screen.encloses(panel), "the gold's panel is on the screen: %s" % panel)
 	for i: int in parts.size():
 		var rect: Rect2 = parts[i].get_global_rect()

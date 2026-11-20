@@ -108,6 +108,14 @@ var _health_goal: float = 0.0
 var _xp_goal: float = 0.0
 ## The part of the class's icon sheet the portrait shows.
 var _portrait_part: StringName = &""
+## What the header was last worded from, and the bars' values when last drawn.
+var _shown: ShownValues = ShownValues.new()
+var _drawn_health: float = -1.0
+var _drawn_xp: float = -1.0
+var _drawn_down: bool = false
+## The hero's level when its microskills were last counted, and the count.
+var _learned_at: int = -1
+var _learned: int = 0
 
 
 ## The window of [param hero], the [param place]th hero of the party (from 0); [param tip] gives
@@ -121,7 +129,7 @@ func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	_simulation = simulation
 	_body = body
 	hero_id = hero.id
-	_icons = PixelSheet.load_sheet(Hud.ICONS_PATH)
+	_icons = PixelSheet.load_sheet(HudFrame.ICONS_PATH)
 	_skills_seen = hero.microskills().size()
 	_build_header()
 	_build_tabs(tip)
@@ -200,8 +208,9 @@ func settle() -> void:
 		queue.append_array(each.get_children())
 
 
-## Brings every line up to date with the hero and eases the bars. [HeroWindows] calls it every
-## frame for every open window; tests call it.
+## Brings the header and the open tab up to date with the hero and eases the bars, wording and
+## drawing only what has changed. [HeroWindows] calls it every frame for every open window; tests
+## call it.
 func advance(delta: float) -> void:
 	var hero: Hero = _hero()
 	if hero == null:
@@ -214,40 +223,28 @@ func advance(delta: float) -> void:
 	_xp_goal = HeroFrameView.xp_progress(hero)
 	_health.advance(_health_goal, delta)
 	_xp.advance(_xp_goal, delta)
-	WindowText.set_text(class_label, HeroTalentsTab.title(hero))
-	var walked: String = HeroTalentsTab.path_name(hero)
-	var tints: Dictionary[String, StringName] = {}
-	if not walked.is_empty():
-		tints[walked] = PathColours.of(hero.class_id, hero.path())
-	path_tint.show_words(tints)
-	var role: String = ROLE_WORDS.get(hero.def().role, "")
-	_set_line(&"role", role)
-	_set_line(&"level", "Level %d" % hero.level)
-	_set_line(&"health", "%d / %d" % [maxi(health, 0), max_health])
-	var floor_xp: int = Hero.xp_for_level(hero.level)
-	var next_xp: int = Hero.xp_for_level(hero.level + 1)
-	_set_line(
-		&"xp",
-		(
-			"%d / %d XP, %d to level %d"
-			% [hero.xp - floor_xp, next_xp - floor_xp, next_xp - hero.xp, hero.level + 1]
-		)
-	)
-	var doing: String = _activity(fighter)
-	_set_line(&"activity", doing)
-	var colour: StringName = DOING_COLOURS.get(doing.get_slice(" ", 0), &"silver")
-	_values[&"activity"].add_theme_color_override(&"font_color", Palette.color(colour))
-	_lay_out_header()
-	stats.refresh()
-	talents.refresh(delta)
-	skills.refresh()
-	_fit_holder()
+	_shown.begin()
+	_shown.see(hero.level)
+	_shown.see(hero.xp)
+	_shown.see(health)
+	_shown.see(max_health)
+	_shown.see(_down)
+	_shown.see(hero.path())
+	_shown.see(_simulation.expedition.state)
+	_shown.see(fighter.target_id if fighter != null else -1)
+	if _shown.changed():
+		_show_header(hero, fighter, health, max_health)
+	_refresh_page(delta)
 	_refresh_tags(hero)
 	var part: StringName = &"skull" if _down else hero.class_id
 	if part != _portrait_part:
 		_portrait_part = part
 		portrait.texture = _icons.part(part) if _icons.has_part(part) else null
-	_body.queue_redraw()
+	if _health.value != _drawn_health or _xp.value != _drawn_xp or _down != _drawn_down:
+		_drawn_health = _health.value
+		_drawn_xp = _xp.value
+		_drawn_down = _down
+		_body.queue_redraw()
 
 
 ## The open tab (or the one that will be open when the window next opens).
@@ -259,6 +256,7 @@ func page() -> Page:
 func open_page(which: Page) -> void:
 	_page = which
 	_show_page()
+	_refresh_page(0.0)  # a hidden tab is not kept up to date: it is right the moment it shows
 	var hero: Hero = _hero()
 	if hero != null:
 		_refresh_tags(hero)
@@ -299,6 +297,7 @@ func train_row(index: int) -> void:
 ## paragon stat's &"training_power" ([code]Power 2 +6%[/code]); and &"microskills", the Skills
 ## tab's lines, one per line.
 func line(key: StringName) -> String:
+	_bring_up(key)
 	var shown: Label = _line_label(key)
 	if shown != null:
 		return shown.text
@@ -308,6 +307,17 @@ func line(key: StringName) -> String:
 		if key == StringName("training_" + String(cell.id)):
 			return cell.text()
 	return stats.line(key) if HeroStatsTab.STAT_NAMES.has(key) else ""
+
+
+## Brings the tab that shows line [param key] up to date, open or not: a hidden tab is left alone
+## each frame, so it is read as it would show.
+func _bring_up(key: StringName) -> void:
+	if HeroStatsTab.STAT_NAMES.has(key):
+		stats.refresh()
+	elif key == &"microskills":
+		skills.refresh()
+	elif key in [&"talent_points", &"paragon_points"] or String(key).begins_with("training_"):
+		talents.refresh(0.0)
 
 
 ## The label that shows line [param key] whole, or null for a line made of several.
@@ -377,7 +387,7 @@ func _activity(fighter: Combatant) -> String:
 		return _fighting(fighter)
 	if DOING_WORDS.has(expedition.state):
 		return DOING_WORDS[expedition.state]
-	return Hud.STATE_WORDS.get(expedition.state, "")
+	return HudFrame.STATE_WORDS.get(expedition.state, "")
 
 
 func _fighting(fighter: Combatant) -> String:
@@ -456,6 +466,47 @@ func _add_line(key: StringName, colour: StringName, at: Vector2) -> void:
 	_values[key] = made
 
 
+## Words the header: the class and path, the role, the level, the numbers and what the hero does.
+func _show_header(hero: Hero, fighter: Combatant, health: int, max_health: int) -> void:
+	WindowText.set_text(class_label, HeroTalentsTab.title(hero))
+	var walked: String = HeroTalentsTab.path_name(hero)
+	var tints: Dictionary[String, StringName] = {}
+	if not walked.is_empty():
+		tints[walked] = PathColours.of(hero.class_id, hero.path())
+	path_tint.show_words(tints)
+	var role: String = ROLE_WORDS.get(hero.def().role, "")
+	_set_line(&"role", role)
+	_set_line(&"level", "Level %d" % hero.level)
+	_set_line(&"health", "%d / %d" % [maxi(health, 0), max_health])
+	var floor_xp: int = Hero.xp_for_level(hero.level)
+	var next_xp: int = Hero.xp_for_level(hero.level + 1)
+	_set_line(
+		&"xp",
+		(
+			"%d / %d XP, %d to level %d"
+			% [hero.xp - floor_xp, next_xp - floor_xp, next_xp - hero.xp, hero.level + 1]
+		)
+	)
+	var doing: String = _activity(fighter)
+	_set_line(&"activity", doing)
+	var colour: StringName = DOING_COLOURS.get(doing.get_slice(" ", 0), &"silver")
+	WindowText.set_colour(_values[&"activity"], colour)
+	_lay_out_header()
+
+
+## Brings the open tab up to date and runs its animations on by [param delta] seconds; the
+## hidden two do nothing.
+func _refresh_page(delta: float) -> void:
+	match _page:
+		Page.STATS:
+			stats.refresh()
+		Page.TALENTS:
+			talents.refresh(delta)
+		Page.SKILLS:
+			skills.refresh()
+	_fit_holder()
+
+
 func _set_line(key: StringName, text: String) -> void:
 	WindowText.set_text(_values[key], text)
 
@@ -507,19 +558,23 @@ func _fit_holder() -> void:
 	var tall: float = shown.size.y if shown != null else 0.0
 	if shown == talents:
 		tall -= HeroTalentsTab.ROW_HEIGHT
-	_holder.custom_minimum_size = Vector2(WIDTH, tall)
-	_holder.size = _holder.custom_minimum_size
+	if _holder.custom_minimum_size != Vector2(WIDTH, tall):
+		_holder.custom_minimum_size = Vector2(WIDTH, tall)
+	if _holder.size != _holder.custom_minimum_size:
+		_holder.size = _holder.custom_minimum_size
 
 
 ## Brings the two tags up to date with [param hero] (counting what the open Skills tab shows as
 ## seen) and pins each to its tab's top right corner.
 func _refresh_tags(hero: Hero) -> void:
+	if hero.level != _learned_at:  # the microskills change only with the level
+		_learned_at = hero.level
+		_learned = hero.microskills().size()
+	var learned: int = _learned
 	if _page == Page.SKILLS and is_open():
-		_skills_seen = hero.microskills().size()
+		_skills_seen = learned
 	talents_tag.show_count(HeroWindow.unspent(hero), tab_buttons[Page.TALENTS])
-	skills_tag.show_count(
-		maxi(hero.microskills().size() - _skills_seen, 0), tab_buttons[Page.SKILLS]
-	)
+	skills_tag.show_count(maxi(learned - _skills_seen, 0), tab_buttons[Page.SKILLS])
 
 
 func _draw_body() -> void:
@@ -575,17 +630,20 @@ class Tag:
 		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_theme_font_override(&"font", UiText.font(true))
 		add_theme_font_size_override(&"font_size", UiText.SIZE)
-		add_theme_color_override(&"font_color", Palette.color(&"ink"))
+		WindowText.set_colour(self, &"ink")
 		add_theme_constant_override(&"line_spacing", 0)
 		var box: StyleBoxFlat = UiTheme.box(&"yellow", &"amber", 2, 0)
 		add_theme_stylebox_override(&"normal", box)
 
 	## Shows [param shown] while above 0, on the top right corner of [param tab].
 	func show_count(shown: int, tab: UiButton) -> void:
+		var at: Vector2 = Vector2(tab.position.x + tab.size.x - 6.0, tab.position.y - 6.0)
+		if shown == count and visible == (shown > 0) and position == at:
+			return
 		count = shown
 		visible = shown > 0
 		var text_now: String = str(shown)
 		if text != text_now:
 			text = text_now
 		size = Vector2(UiText.width(text_now, true) - UiText.SPACING + 6, UiText.LINE_HEIGHT + 2)
-		position = Vector2(tab.position.x + tab.size.x - 6.0, tab.position.y - 6.0)
+		position = at

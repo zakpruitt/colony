@@ -4,6 +4,13 @@ extends RefCounted
 ## the text they show, lines exactly [constant UiText.LINE_HEIGHT] apart, words wrapped at spaces
 ## to a width so nothing is ever cut, and buttons as wide as their words. A window whose content
 ## is placed this way is laid out the moment it changes, with nothing left for a later frame.
+##
+## A label's text ([method set_text]) and colour ([method set_colour]) are set here and only when
+## they differ from what it shows, so an unchanged screen costs no redraw; [member changes] counts
+## the times either did change one.
+
+## How many times [method set_text] or [method set_colour] changed a label, since the game began.
+static var changes: int = 0
 
 
 ## A [Label] called [param label_name] showing [param text] in the UI font (its bold if
@@ -25,6 +32,7 @@ static func label(
 static func set_text(shown: Label, text: String) -> void:
 	if shown.text == text and shown.size != Vector2.ZERO:
 		return
+	changes += 1
 	shown.text = text
 	var bold: bool = shown.get_theme_font(&"font") == UiText.font(true)
 	var widest: int = 0
@@ -32,6 +40,15 @@ static func set_text(shown: Label, text: String) -> void:
 	for line: String in lines:
 		widest = maxi(widest, UiText.width(line, bold))
 	shown.size = Vector2(widest, lines.size() * UiText.LINE_HEIGHT)
+
+
+## Draws [param of]'s text in the palette colour [param colour], unless it already is.
+static func set_colour(of: Control, colour: StringName) -> void:
+	var wanted: Color = Palette.color(colour)
+	if of.has_theme_color_override(&"font_color") and of.get_theme_color(&"font_color") == wanted:
+		return
+	changes += 1
+	of.add_theme_color_override(&"font_color", wanted)
 
 
 ## How wide [param of]'s text inks in its own font (bold or not), in UI pixels: its width

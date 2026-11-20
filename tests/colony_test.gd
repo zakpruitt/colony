@@ -137,6 +137,16 @@ func save_path(tag: String = "", extension: String = "save") -> String:
 	return path
 
 
+## Every script under [param folder] and the folders in it, its text by its path, into
+## [param into].
+func scripts_in(folder: String, into: Dictionary[String, String]) -> void:
+	for child: String in DirAccess.get_directories_at(folder):
+		scripts_in(folder.path_join(child), into)
+	for file: String in DirAccess.get_files_at(folder):
+		if file.get_extension() == "gd":
+			into[folder.path_join(file)] = FileAccess.get_file_as_string(folder.path_join(file))
+
+
 func _delete_saved_files() -> void:
 	for path: String in _saved_paths:
 		for suffix: String in ["", SaveStore.BACKUP_SUFFIX, SaveStore.TEMP_SUFFIX]:

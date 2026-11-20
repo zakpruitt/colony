@@ -166,7 +166,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	var hud: Hud = main.hud
 	# Its old buttons, at their old places, still act on a real click.
 	var target: int = main.simulation.expedition.target_depth
-	click(Hud.on_screen(hud.place_panel.plus_button).get_center())
+	click(UiFormat.on_screen(hud.place_panel.plus_button).get_center())
 	main.simulation.step()
 	assert_eq(
 		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
@@ -177,7 +177,7 @@ func test_r2_the_old_hud_still_works() -> void:
 	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
 	press(KEY_ESCAPE)
 	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
-	click(Hud.on_screen(hud.frames[0]).get_center())
+	click(UiFormat.on_screen(hud.frames[0]).get_center())
 	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
 	press(KEY_U)
 	assert_true(hud.shop.is_open(), "U still opens the shop")
@@ -460,8 +460,8 @@ func test_r5_windows() -> void:
 	assert_eq(main.simulation.expedition.pace, pace, "the hidden Bold was not pressed")
 
 	# Nor the world or the old HUD: the target stage and the hero sheet are unchanged.
-	var plus: Vector2 = Hud.on_screen(main.hud.place_panel.plus_button).get_center()
-	var frame: Vector2 = Hud.on_screen(main.hud.frames[1]).get_center()
+	var plus: Vector2 = UiFormat.on_screen(main.hud.place_panel.plus_button).get_center()
+	var frame: Vector2 = UiFormat.on_screen(main.hud.frames[1]).get_center()
 	var target: int = main.simulation.expedition.target_depth
 	for under: Vector2 in [plus, frame]:
 		journal.place_at(ui.world_to_ui(under) - Vector2(60, 60), Vector2(ui.room()))

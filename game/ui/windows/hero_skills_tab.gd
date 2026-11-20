@@ -151,12 +151,10 @@ class Card:
 		level_label.visible = not has
 		var low: float = level_label.position.y + level_label.size.y if not has else slot.size.y
 		size = Vector2(_words_x + _width, maxf(bottom, low))
-		var dim: Color = Palette.color(TalentNode.DIM)
-		name_label.add_theme_color_override(&"font_color", Palette.color(&"white") if has else dim)
-		text_label.add_theme_color_override(&"font_color", Palette.color(&"silver") if has else dim)
-		answers_label.add_theme_color_override(
-			&"font_color", Palette.color(&"green") if has else dim
-		)
+		var dim: StringName = TalentNode.DIM
+		WindowText.set_colour(name_label, &"white" if has else dim)
+		WindowText.set_colour(text_label, &"silver" if has else dim)
+		WindowText.set_colour(answers_label, &"green" if has else dim)
 
 	static func _lower(text: String) -> String:
 		return text.left(1).to_lower() + text.substr(1) if not text.is_empty() else ""

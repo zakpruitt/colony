@@ -202,7 +202,7 @@ func _check_rows(sums: Dictionary[int, int], what: String) -> void:
 		var row: String = rows[i + 1]
 		var parts: PackedStringArray = row.split(" ")
 		assert_eq(parts[0], who, "%s: row %d is the %s" % [what, i, who])
-		assert_eq(parts[1], Hud.group_thousands(value), "%s: %s's number" % [what, who])
+		assert_eq(parts[1], UiFormat.group_thousands(value), "%s: %s's number" % [what, who])
 		var percent: int = parts[2].trim_suffix("%").to_int()
 		percent_sum += percent
 		if total > 0:

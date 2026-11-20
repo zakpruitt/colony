@@ -156,7 +156,7 @@ static func label(text: String, colour: StringName = &"silver", bold: bool = fal
 	made.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	made.add_theme_font_override(&"font", font(bold))
 	made.add_theme_font_size_override(&"font_size", SIZE)
-	made.add_theme_color_override(&"font_color", Palette.color(colour))
+	WindowText.set_colour(made, colour)
 	return made
 
 

@@ -141,7 +141,7 @@ func _click_at(at: Vector2) -> void:
 
 ## Clicks the middle of goal line [param index].
 func _click(index: int) -> void:
-	_click_at(Hud.on_screen(_hud.goals_view.rows[index]).get_center())
+	_click_at(UiFormat.on_screen(_hud.goals_view.rows[index]).get_center())
 
 
 ## Closes every panel the HUD has, and shows the ladder if L hid it.
@@ -312,7 +312,7 @@ func test_r2_looks_clickable() -> void:
 
 	# The highlight under the mouse, on that line only.
 	for i: int in lines.size():
-		mouse_move(Hud.on_screen(_hud.goals_view.rows[i]).get_center())
+		mouse_move(UiFormat.on_screen(_hud.goals_view.rows[i]).get_center())
 		_hud.advance(STEP)
 		for j: int in lines.size():
 			assert_eq(
@@ -355,7 +355,7 @@ func test_r2_looks_clickable() -> void:
 	_hud.advance(STEP)
 	var done: int = _line("Reach Mossy Hollow 3")
 	assert_true(goals.is_finished(done), "a finished goal")
-	mouse_move(Hud.on_screen(_hud.goals_view.rows[done]).get_center())
+	mouse_move(UiFormat.on_screen(_hud.goals_view.rows[done]).get_center())
 	_hud.advance(STEP)
 	assert_false(_hud.goals_view.rows[done].is_highlighted(), "a finished goal is not lit")
 
@@ -387,7 +387,7 @@ func test_r3_tooltip_says_so() -> void:
 			assert_lt(action.length(), 40, "%s: short: %s" % [line, action])
 			assert_eq(text, goals_now.hint(i) + " " + action, "%s: the hint, then the click" % line)
 			assert_true(
-				Rect2(Vector2.ZERO, Hud.SCREEN).encloses(Hud.on_screen(tip)),
+				Rect2(Vector2.ZERO, HudFrame.SCREEN).encloses(UiFormat.on_screen(tip)),
 				"%s: the tooltip fits on the screen" % line
 			)
 			seen[line.get_slice(" ", 0)] = action

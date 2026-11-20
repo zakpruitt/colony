@@ -48,10 +48,10 @@ func _old_text(report: AwayReport, party: Party) -> String:
 	var rows: PackedStringArray = [
 		"While you were away",
 		"Away %s" % AwayStory.duration(report.seconds),
-		"Gold +%s" % Hud.group_thousands(report.gold_gained),
+		"Gold +%s" % UiFormat.group_thousands(report.gold_gained),
 		"Mossy Hollow %d to %d" % [report.depth_before, report.depth_after],
 		# Spec 062 R5: a short list, a row each.
-		"Slain %s" % Hud.group_thousands(report.kills),
+		"Slain %s" % UiFormat.group_thousands(report.kills),
 		"Wipes %d" % report.wipes,
 	]
 	for hero: Hero in party.heroes:
@@ -227,10 +227,10 @@ func test_r5_it_still_fits() -> void:
 	await wait_process_frames(2)  # laid out (a hidden container is not)
 	panel.centre_in(room)
 	var rect := Rect2(panel.position, panel.size)
-	var frames_top: float = Hud.frames_line(UiRoot.MIN_ROOM)
+	var frames_top: float = HudFrame.frames_line(UiRoot.MIN_ROOM)
 	assert_gte(rect.position.x, 0.0, "inside the screen on the left")
 	assert_lte(rect.end.x, room.x, "and on the right")
-	assert_gte(rect.position.y, Hud.FRAME_TOP + PlacePanel.HEIGHT, "below the top band")
+	assert_gte(rect.position.y, HudFrame.FRAME_TOP + PlacePanel.HEIGHT, "below the top band")
 	assert_lte(rect.end.y, frames_top, "above the party frames")
 	var rows: int = panel.text().split("\n").size()
 	assert_gte(rows, 16, "every line is showing")

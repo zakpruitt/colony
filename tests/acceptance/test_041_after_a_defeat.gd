@@ -489,15 +489,15 @@ func _assert_out_of_the_way(when: String) -> void:
 	for i: int in _hud.frames.size():
 		parts["frame %d" % i] = _rect(_hud.frames[i])
 	var wiped: Rect2 = FxText.box("WIPED", PixelText.SIZE * (DefeatNote.WIPED_SCALE + 1))
-	wiped.position += Hud.SCREEN / 2.0
+	wiped.position += HudFrame.SCREEN / 2.0
 	parts["WIPED"] = wiped
-	parts["the centre line"] = Rect2(0.0, Hud.SCREEN.y / 2.0, Hud.SCREEN.x, 1.0)
+	parts["the centre line"] = Rect2(0.0, HudFrame.SCREEN.y / 2.0, HudFrame.SCREEN.x, 1.0)
 	assert_true(_hud.goals.is_shown(), "the goals are up %s" % when)
 	for part: String in parts:
 		assert_false(area.intersects(parts[part]), "the note keeps off the %s %s" % [part, when])
-	assert_gt(area.position.y, Hud.TOP_BAND, "below the top band %s" % when)
-	assert_lt(area.end.y, Hud.SCREEN.y / 2.0, "in the upper half %s" % when)
-	assert_almost_eq(area.get_center().x, Hud.SCREEN.x / 2.0, 1.0, "in the middle %s" % when)
+	assert_gt(area.position.y, HudFrame.TOP_BAND, "below the top band %s" % when)
+	assert_lt(area.end.y, HudFrame.SCREEN.y / 2.0, "in the upper half %s" % when)
+	assert_almost_eq(area.get_center().x, HudFrame.SCREEN.x / 2.0, 1.0, "in the middle %s" % when)
 
 
 func test_r5_nothing_after_time_away() -> void:

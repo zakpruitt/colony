@@ -154,8 +154,8 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - A headless run's window is 640x360, so a `Main` or a `UiRoot` a test does not size has a UI room of 640x360
   at a scale of 1: UI pixels are then world pixels, and anything laid out for the 960x540 it is promised
   overflows the bands. Call `ui.set_room_for_test(...)` where a place matters, compare a UI-layer piece with
-  an old-HUD one through `Hud.on_screen(control)` (screen pixels, never a camera's), and click one with
-  `Hud.on_screen(control).get_center()` (spec 061).
+  an old-HUD one through `UiFormat.on_screen(control)` (screen pixels, never a camera's), and click one with
+  `UiFormat.on_screen(control).get_center()` (spec 061).
 - A wrapping `Label`'s minimum height is right only once its container has sorted it, a frame later. A box
   sized from `get_combined_minimum_size()` the moment its text changes comes out hundreds of pixels tall:
   size it from the label's own `get_minimum_size()` after setting its width (`UiTip._show`, spec 061), and

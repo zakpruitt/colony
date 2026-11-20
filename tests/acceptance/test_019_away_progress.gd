@@ -185,7 +185,7 @@ func test_r5_report() -> void:
 	assert_not_null(main.world, "the game runs behind it")
 	var text: String = panel.text()
 	assert_string_contains(text, "30m")
-	assert_string_contains(text, Hud.group_thousands(report.gold_gained))
+	assert_string_contains(text, UiFormat.group_thousands(report.gold_gained))
 	assert_string_contains(text, "%d" % report.kills)
 	# Spec 062: a window on the UI layer, in the middle of its room.
 	var centre: Vector2 = panel.get_global_rect().get_center()

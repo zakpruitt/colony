@@ -9,7 +9,7 @@ extends WindowContent
 ## Clicking a hero's line opens its abilities under it, indented, each with a thin
 ## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950"), largest
 ## first. A second click closes it. [kbd]Q[/kbd] and [kbd]E[/kbd] change tab while the tally is the
-## front window (the HUD hears them).
+## front window ([WindowKeys] hears them).
 ##
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
 ## HUD is made: after time away the HUD is made only once the replay is over, so the time
@@ -403,7 +403,7 @@ func _build() -> void:
 	_fight_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_fight_label.custom_minimum_size = Vector2(WIDTH, 2 * UiText.LINE_HEIGHT)
 	add_child(_fight_label)
-	var icons: PixelSheet = PixelSheet.load_sheet(Hud.ICONS_PATH)
+	var icons: PixelSheet = PixelSheet.load_sheet(HudFrame.ICONS_PATH)
 	for hero: Hero in _simulation.party.heroes:
 		_build_hero(hero, icons)
 	for hero: Hero in _simulation.party.heroes:
@@ -500,7 +500,7 @@ func _ability_line(named: String, amount: int, fraction: float, class_id: String
 	var label: Label = UiText.label(named, &"silver")
 	label.custom_minimum_size.x = ability_name_width()
 	line.add_child(label)
-	var value: Label = UiText.label(Hud.group_thousands(amount), &"white")
+	var value: Label = UiText.label(UiFormat.group_thousands(amount), &"white")
 	value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	value.custom_minimum_size.x = UiText.width(LONGEST_NUMBER)
 	line.add_child(value)
@@ -535,7 +535,7 @@ func _refresh() -> void:
 	var percents: Array[int] = Tally.percents(amounts)
 	for i: int in mini(heroes.size(), _names.size()):
 		_goals[i] = float(amounts[i]) / largest if largest > 0 else 0.0
-		value_labels[i].text = Hud.group_thousands(amounts[i])
+		value_labels[i].text = UiFormat.group_thousands(amounts[i])
 		share_labels[i].text = "%d%%" % percents[i]
 		(hero_lines[i] as HeroLine).opened = heroes[i].id == _opened
 	_fight_label.text = _fight_text()
@@ -594,7 +594,7 @@ func _refresh_abilities() -> void:
 	for i: int in shown.size():
 		var labels: Array[Node] = ability_lines[i].find_children("*", "Label", true, false)
 		(labels[0] as Label).text = shown[i]
-		(labels[1] as Label).text = Hud.group_thousands(amounts[shown[i]])
+		(labels[1] as Label).text = UiFormat.group_thousands(amounts[shown[i]])
 		var bar: UiBar = ability_lines[i].find_children("*", "UiBar", true, false)[0] as UiBar
 		bar.fraction = float(amounts[shown[i]]) / largest if largest > 0 else 0.0
 
