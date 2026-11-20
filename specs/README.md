@@ -95,6 +95,6 @@ the lead: 077 on are provisional, land on `dev` only, and wait for his playtest 
 | 076 | [One pool for effects, one gate for old events](076-one-pool-for-effects/spec.md): landed on dev, [#75](https://github.com/zakpruitt/colony/pull/75) | 070, 071 |
 | 075 | [A smaller Hud that works only when something changed](075-a-smaller-hud/spec.md): landed on dev, [#76](https://github.com/zakpruitt/colony/pull/76) | 074, 076 |
 | 077 | [A faster check that holds the standards](077-a-faster-check/spec.md): landed on dev, [#77](https://github.com/zakpruitt/colony/pull/77), provisional | 071 |
-| 078 | [A base type for content, a cheaper fight tick, and room in Expedition](078-sim-base-types-and-headroom/spec.md): in-progress, provisional | 072 |
+| 078 | [A base type for content, a cheaper fight tick, and room in Expedition](078-sim-base-types-and-headroom/spec.md): landed on dev, [#79](https://github.com/zakpruitt/colony/pull/79), provisional | 072 |
 | 079 | [One base type for effect nodes, and room in the two biggest game files](079-effect-nodes-and-room-in-big-files/spec.md): landed on dev, [#78](https://github.com/zakpruitt/colony/pull/78), provisional | 076 |
 | 080 | [Frame pieces share a base type, and an idle frame does nothing](080-frame-pieces-and-an-idle-frame/spec.md): in-progress, provisional | 075, 079 |

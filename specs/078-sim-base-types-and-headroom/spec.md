@@ -1,9 +1,9 @@
 # 078 — A base type for content, a cheaper fight tick, and room in Expedition
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 072
-- **Pull request:** —
+- **Pull request:** [#79](https://github.com/zakpruitt/colony/pull/79)
 
 ## Intent
 
