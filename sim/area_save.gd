@@ -45,7 +45,7 @@ static func read(sim: Simulation, data: Dictionary) -> void:
 		var id_text: String = key
 		var entry: Dictionary = saved[key]
 		others[StringName(id_text)] = Vector2i(
-			Simulation._whole(entry["safe"]), Simulation._whole(entry["furthest"])
+			SaveChecks.whole(entry["safe"]), SaveChecks.whole(entry["furthest"])
 		)
 	sim.expedition.travel.restore(sim.expedition, StringName(area_text), open, others)
 
@@ -56,9 +56,7 @@ static func upgrade_5_to_6(data: Dictionary) -> Dictionary:
 	data["version"] = 6
 	data["area"] = String(AreaTravel.first_area())
 	data["areas"] = {}
-	var deepest: int = 0
-	if Simulation._is_whole(data.get("deepest_depth")):
-		deepest = Simulation._whole(data["deepest_depth"])
+	var deepest: int = SaveChecks.whole(data.get("deepest_depth"))
 	var open: Array = []
 	for id: StringName in Content.area_ids():
 		var way_in: int = _way_in(id)
@@ -100,12 +98,12 @@ static func check(problems: PackedStringArray, data: Dictionary) -> void:
 			problems.append("%s: not {safe, furthest}" % where)
 			continue
 		var entry: Dictionary = saved[key]
-		Simulation._check_whole(problems, entry, "safe", 1, where + ".")
-		Simulation._check_whole(problems, entry, "furthest", 1, where + ".")
+		SaveChecks.check_whole(problems, entry, "safe", 1, where + ".")
+		SaveChecks.check_whole(problems, entry, "furthest", 1, where + ".")
 		var safe: Variant = entry.get("safe")
 		var furthest: Variant = entry.get("furthest")
-		if Simulation._is_whole(safe) and Simulation._is_whole(furthest):
-			if Simulation._whole(safe) > Simulation._whole(furthest):
+		if SaveChecks.is_whole(safe) and SaveChecks.is_whole(furthest):
+			if SaveChecks.whole(safe) > SaveChecks.whole(furthest):
 				problems.append("%s.safe: beyond furthest" % where)
 
 

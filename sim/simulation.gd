@@ -15,8 +15,6 @@ const SAVE_VERSION: int = 8
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero.
 const _RESET_GOLD_PER_LEVEL: int = 100
-## The largest whole number a JSON float holds exactly (2^53).
-const _LARGEST_WHOLE: int = 9_007_199_254_740_992
 ## The kinds of talent command waiting in [member _pending_talents].
 const _TAKE: int = 0
 const _PARAGON: int = 1
@@ -370,13 +368,13 @@ static func from_save(data: Dictionary) -> Simulation:
 	if not save_problems(data).is_empty():
 		return null
 	var current: Dictionary = upgrade_save(data)
-	var sim := Simulation.new(_whole(current["seed"]))
-	sim._tick = _whole(current["tick"])
-	sim.party.gold = _whole(current["gold"])
+	var sim := Simulation.new(SaveChecks.whole(current["seed"]))
+	sim._tick = SaveChecks.whole(current["tick"])
+	sim.party.gold = SaveChecks.whole(current["gold"])
 	var ranks: Dictionary = current["upgrades"]
 	for key: Variant in ranks:
 		var id_text: String = key
-		sim.upgrades.set_rank(StringName(id_text), _whole(ranks[key]))
+		sim.upgrades.set_rank(StringName(id_text), SaveChecks.whole(ranks[key]))
 	var heroes: Array[Hero] = []
 	var saved_heroes: Array = current["heroes"]
 	for i: int in saved_heroes.size():
@@ -384,8 +382,8 @@ static func from_save(data: Dictionary) -> Simulation:
 		var class_text: String = saved["class"]
 		var hero := Hero.new(i + 1, Content.hero_class(StringName(class_text)))
 		hero.upgrades = sim.upgrades
-		hero.level = _whole(saved["level"])
-		hero.xp = _whole(saved["xp"])
+		hero.level = SaveChecks.whole(saved["level"])
+		hero.xp = SaveChecks.whole(saved["xp"])
 		# A saved hero's XP may pay for more levels than its saved level: take them now, silently,
 		# so the hero is what its XP earns. Health is filled below.
 		hero.gain_xp(0)
@@ -394,9 +392,9 @@ static func from_save(data: Dictionary) -> Simulation:
 		heroes.append(hero)
 	sim.party.heroes = heroes
 	var auto_push: bool = current["auto_push"]
-	var stable: int = _whole(current["last_stable_depth"])
-	var deepest: int = _whole(current["deepest_depth"])
-	var target: int = _whole(current["target_depth"])
+	var stable: int = SaveChecks.whole(current["last_stable_depth"])
+	var deepest: int = SaveChecks.whole(current["deepest_depth"])
+	var target: int = SaveChecks.whole(current["target_depth"])
 	AreaSave.read(sim, current)
 	ResourceSave.read(sim, current)
 	Arrival.from_save(sim.expedition, sim._tick, stable, deepest, target, auto_push)
@@ -415,20 +413,20 @@ static func from_save(data: Dictionary) -> Simulation:
 ## empty when it can. Never raises an error, whatever the dictionary holds.
 static func save_problems(data: Dictionary) -> PackedStringArray:
 	var problems := PackedStringArray()
-	if not _is_whole(data.get("version")):
+	if not SaveChecks.is_whole(data.get("version")):
 		problems.append("version: missing or not a whole number")
 		return problems
 	var current: Dictionary = upgrade_save(data)
-	var version: int = _whole(current.get("version"))
+	var version: int = SaveChecks.whole(current.get("version"))
 	if version != SAVE_VERSION:
 		problems.append("version: unknown version %d" % version)
 		return problems
-	if not _is_whole(current.get("seed")):
+	if not SaveChecks.is_whole(current.get("seed")):
 		problems.append("seed: missing or not a whole number")
-	_check_whole(problems, current, "tick", 0)
-	_check_whole(problems, current, "gold", 0)
+	SaveChecks.check_whole(problems, current, "tick", 0)
+	SaveChecks.check_whole(problems, current, "gold", 0)
 	for field: String in ["last_stable_depth", "deepest_depth", "target_depth"]:
-		_check_whole(problems, current, field, 1)
+		SaveChecks.check_whole(problems, current, field, 1)
 	if typeof(current.get("auto_push")) != TYPE_BOOL:
 		problems.append("auto_push: missing or not true or false")
 	if typeof(current.get("auto_buy")) != TYPE_BOOL:
@@ -444,7 +442,11 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 			_check_hero(problems, list[i], "heroes[%d]" % i)
 	var stable: Variant = current.get("last_stable_depth")
 	var deepest: Variant = current.get("deepest_depth")
-	if _is_whole(stable) and _is_whole(deepest) and _whole(stable) > _whole(deepest):
+	if (
+		SaveChecks.is_whole(stable)
+		and SaveChecks.is_whole(deepest)
+		and SaveChecks.whole(stable) > SaveChecks.whole(deepest)
+	):
 		problems.append("last_stable_depth: deeper than deepest_depth")
 	_check_upgrades(problems, current.get("upgrades"))
 	AreaSave.check(problems, current)
@@ -457,22 +459,22 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 ## for [method save_problems] to refuse. A later format adds a step here.
 static func upgrade_save(data: Dictionary) -> Dictionary:
 	var current: Dictionary = data.duplicate(true)
-	if not _is_whole(current.get("version")):
+	if not SaveChecks.is_whole(current.get("version")):
 		return current
 	# Each step turns version n into n + 1.
-	if _whole(current["version"]) == 1:
+	if SaveChecks.whole(current["version"]) == 1:
 		current = _save_1_to_2(current)
-	if _whole(current["version"]) == 2:
+	if SaveChecks.whole(current["version"]) == 2:
 		current = _save_2_to_3(current)
-	if _whole(current["version"]) == 3:
+	if SaveChecks.whole(current["version"]) == 3:
 		current = _save_3_to_4(current)
-	if _whole(current["version"]) == 4:
+	if SaveChecks.whole(current["version"]) == 4:
 		current = _save_4_to_5(current)
-	if _whole(current["version"]) == 5:
+	if SaveChecks.whole(current["version"]) == 5:
 		current = AreaSave.upgrade_5_to_6(current)
-	if _whole(current["version"]) == 6:
+	if SaveChecks.whole(current["version"]) == 6:
 		current = TalentSave.upgrade_6_to_7(current)
-	if _whole(current["version"]) == 7:
+	if SaveChecks.whole(current["version"]) == 7:
 		current = ResourceSave.upgrade_7_to_8(current)
 	return current
 
@@ -540,45 +542,17 @@ static func _check_upgrades(problems: PackedStringArray, value: Variant) -> void
 			problems.append("%s: unknown upgrade '%s'" % [where, id_text])
 			continue
 		var rank_value: Variant = ranks[key]
-		if not _is_whole(rank_value):
+		if not SaveChecks.is_whole(rank_value):
 			problems.append("%s: rank missing or not a whole number" % where)
-		elif _whole(rank_value) < 0:
-			problems.append("%s: rank %d is below 0" % [where, _whole(rank_value)])
-		elif _whole(rank_value) > def.max_rank:
+		elif SaveChecks.whole(rank_value) < 0:
+			problems.append("%s: rank %d is below 0" % [where, SaveChecks.whole(rank_value)])
+		elif SaveChecks.whole(rank_value) > def.max_rank:
 			problems.append(
-				"%s: rank %d is above the maximum %d" % [where, _whole(rank_value), def.max_rank]
+				(
+					"%s: rank %d is above the maximum %d"
+					% [where, SaveChecks.whole(rank_value), def.max_rank]
+				)
 			)
-
-
-## True for an int, or a float that is a whole number an int holds exactly.
-static func _is_whole(value: Variant) -> bool:
-	if typeof(value) == TYPE_INT:
-		return true
-	if typeof(value) != TYPE_FLOAT:
-		return false
-	var number: float = value
-	return is_finite(number) and number == floorf(number) and absf(number) <= _LARGEST_WHOLE
-
-
-## [param value] as an int; only for values [method _is_whole] accepts.
-static func _whole(value: Variant) -> int:
-	if typeof(value) == TYPE_FLOAT:
-		var number: float = value
-		return int(number)
-	var whole: int = value
-	return whole
-
-
-## Adds a problem unless [param data][[param field]] is a whole number of at least
-## [param least]. The problem names the field after [param where].
-static func _check_whole(
-	problems: PackedStringArray, data: Dictionary, field: String, least: int, where: String = ""
-) -> void:
-	var value: Variant = data.get(field)
-	if not _is_whole(value):
-		problems.append("%s%s: missing or not a whole number" % [where, field])
-	elif _whole(value) < least:
-		problems.append("%s%s: below %d" % [where, field, least])
 
 
 ## Adds a problem for each thing wrong with one saved hero, [param where] in the list.
@@ -595,9 +569,9 @@ static func _check_hero(problems: PackedStringArray, value: Variant, where: Stri
 		class_def = Content.hero_class(StringName(class_text as String))
 		if class_def == null:
 			problems.append("%s.class: unknown hero class '%s'" % [where, class_text])
-	_check_whole(problems, saved, "level", 1, where + ".")
-	_check_whole(problems, saved, "xp", 0, where + ".")
+	SaveChecks.check_whole(problems, saved, "level", 1, where + ".")
+	SaveChecks.check_whole(problems, saved, "xp", 0, where + ".")
 	var level: int = 0
-	if _is_whole(saved.get("level")) and _whole(saved["level"]) >= 1:
-		level = _whole(saved["level"])
+	if SaveChecks.is_whole(saved.get("level")) and SaveChecks.whole(saved["level"]) >= 1:
+		level = SaveChecks.whole(saved["level"])
 	TalentSave.check(problems, saved, class_def, level, where)
