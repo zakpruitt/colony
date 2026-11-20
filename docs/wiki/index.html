@@ -999,6 +999,7 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Watch the showcase: every moment of the game, labelled, in about ninety seconds (it never touches your save)</td><td><code>godot --path . res://game/dev/showcase.tscn</code></td></tr>
   <tr><td>Run every check (what CI runs; fifteen to twenty minutes here, about five in CI's five jobs)</td><td><code>python tools/dev.py check</code></td></tr>
   <tr><td>Run only some check steps</td><td><code>python tools/dev.py check --only=compile,tests</code></td></tr>
+  <tr><td>Run every check step but some (CI's fifth job leaves out the tests)</td><td><code>python tools/dev.py check --skip=tests</code></td></tr>
   <tr><td>Run the tests</td><td><code>python tools/dev.py test</code></td></tr>
   <tr><td>Run tests from one file</td><td><code>python tools/dev.py test --only=test_sim_rng</code></td></tr>
   <tr><td>Run one of four parts of the tests, as one CI job does</td><td><code>python tools/dev.py test --shard=1/4</code></td></tr>

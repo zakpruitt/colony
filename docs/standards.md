@@ -38,7 +38,7 @@ plug in.
   node looked up by name, no signal emitted for another object.
 - **Public means used elsewhere.** A constant or function nothing outside its file uses is private.
 - **A comment states a contract or a why.** No spec numbers, no history. `check`'s `harness` step reads
-  every comment in `sim/`, `game/` and `tools/`, and warns of a file or class near gdlint's caps.
+  every comment in `sim/`, `game/`, `tools/` and `tests/colony_test.gd`, and warns of a file or class near gdlint's caps.
 - **Nothing changes a state hash or an old save by accident.** A spec that means to says so.
 
 ## When the standard does not fit

@@ -100,7 +100,7 @@ incomplete, stop and report the question.
 | What | Command |
 |---|---|
 | Everything CI runs | `python tools/dev.py check` |
-| Some steps | `python tools/dev.py check --only=compile,tests` (steps: `format`, `boundary`, `harness`, `art`, `compile`, `tools`, `tests`, `data`, `boot`) |
+| Some steps | `python tools/dev.py check --only=compile,tests` or `--skip=tests` (steps: `format`, `boundary`, `harness`, `art`, `compile`, `tools`, `tests`, `data`, `boot`) |
 | Tests only | `python tools/dev.py test [--only=<part of a script name>] [--shard=I/N]` |
 | Format in place | `python tools/dev.py format` |
 | Rebuild the import cache (new worktree, new asset, new `class_name`) | `python tools/dev.py import` |
