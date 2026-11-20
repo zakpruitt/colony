@@ -121,11 +121,11 @@ func setup(
 
 ## Reads the goals from the simulation, celebrates a shown goal just achieved, runs the
 ## celebrations on by [param delta] seconds. Called every frame by the HUD; does nothing while
-## nothing it reads changed and no goal celebrates. Tests call it.
+## nothing it reads changed, no goal celebrates and no old event came. Tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
 		return
-	if not _read_from_changed() and not _celebrating():
+	if not _read_from_changed() and not _celebrating() and not _stale:
 		return
 	var current: Array[Goal] = applicable()
 	var quiet: bool = _stale
