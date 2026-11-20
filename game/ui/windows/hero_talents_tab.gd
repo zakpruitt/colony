@@ -19,8 +19,8 @@ extends Control
 ## first node of a path asks first, and only [code]Choose[/code] sends the command. A reset asks
 ## first, at its price, and the question goes when the price changes, a fight starts or the tab is
 ## hidden, so a reset is never charged at a price the player did not read. Every value is read from
-## the simulation at each [method refresh], so nothing goes stale across level-ups, commands or a
-## crowded frame.
+## the simulation at a [method refresh] after anything it reads changed, so nothing goes stale
+## across level-ups, commands or a crowded frame, and a still tab formats nothing.
 
 ## What the top row is asking, if anything.
 enum Asking { NOTHING, PATH, RESET }
@@ -70,6 +70,9 @@ var question_icons: Array[UiIcon] = []
 ## medallion per stat.
 var paragon_label: Label
 var paragon_cells: Array[ParagonCell] = []
+## How many times the tab has worded what it shows from the hero, ever: a frame where nothing it
+## reads changed adds nothing.
+var worded: int = 0
 
 var _simulation: Simulation
 var _hero_id: int = -1
@@ -86,6 +89,8 @@ var _tip: UiTip
 ## Each path's banner and pictures for the question before it.
 var _question_banners: Array[PathBanner] = []
 var _question_pictures: Array[Array] = [[], []]
+## What the tab last worded itself from.
+var _read_from: ShownValues = ShownValues.new()
 
 
 ## The tab of hero [param hero_id], [param width] UI pixels wide; [param tip] gives its controls
@@ -160,23 +165,29 @@ func base_height() -> float:
 	return _base_height
 
 
-## Brings everything up to date with the hero and runs the pulses and flashes on by
-## [param delta] seconds. The window calls it on every advance.
+## Brings everything up to date with the hero, when anything it reads changed, and runs the
+## pulses and flashes on by [param delta] seconds. The window calls it on every advance.
 func refresh(delta: float) -> void:
 	var hero: Hero = _hero()
 	if hero == null or tree == null:
 		return
-	tree.refresh(hero, delta)
-	if _asking == Asking.PATH and tree.state_of(_asked_node) != TalentNode.State.AVAILABLE:
-		_asking = Asking.NOTHING  # the node was taken, or cannot be: nothing to ask
-	if _asking == Asking.RESET:
-		if not reset_reason(hero).is_empty() or Simulation.reset_price(hero) != _asked_price:
-			_asking = Asking.NOTHING  # in a fight, too poor, or the price is not the one asked
-	if not is_visible_in_tree():
-		_asking = Asking.NOTHING
-	_refresh_top(hero)
-	_refresh_strip(hero, delta)
-	_refresh_paragon(hero, delta)
+	if _hero_changed(hero):
+		worded += 1
+		tree.show_hero(hero)
+		if _asking == Asking.PATH and tree.state_of(_asked_node) != TalentNode.State.AVAILABLE:
+			_asking = Asking.NOTHING  # the node was taken, or cannot be: nothing to ask
+		if _asking == Asking.RESET:
+			if not reset_reason(hero).is_empty() or Simulation.reset_price(hero) != _asked_price:
+				_asking = Asking.NOTHING  # in a fight, too poor, or the price is not the one asked
+		if not is_visible_in_tree():
+			_asking = Asking.NOTHING
+		_refresh_top(hero)
+		_refresh_strip(hero)
+		_refresh_paragon(hero)
+	tree.advance(delta)
+	strip.advance(delta)
+	for cell: ParagonCell in paragon_cells:
+		cell.advance(delta)
 
 
 ## What a click on node [param ability_id] does: one the hero can take now is taken, except the
@@ -392,7 +403,8 @@ func add_tips(tip: UiTip) -> void:
 	for cell: ParagonCell in paragon_cells:
 		var def: TrainingDef = Content.training(cell.id)
 		var text: String = (
-			"Put a paragon point into %s: %s." % [def.display_name, _lower(def.description)]
+			"Put a paragon point into %s: %s."
+			% [def.display_name, UiFormat.lower_first(def.description).trim_suffix(".")]
 		)
 		for control: Control in [cell.medallion, cell.name_label, cell.total_label]:
 			tip.attach(control, text)
@@ -403,6 +415,27 @@ func add_tips(tip: UiTip) -> void:
 
 func _hero() -> Hero:
 	return _simulation.party.hero(_hero_id) if _simulation != null else null
+
+
+## True when anything the tab words itself from has changed since it last did: the hero's level,
+## points, path and ranks, the gold and a fight (a reset's price and reason), the question asked,
+## the node under the mouse and whether the tab shows.
+func _hero_changed(hero: Hero) -> bool:
+	_read_from.begin()
+	_read_from.see(hero.level)
+	_read_from.see(hero.talent_points())
+	_read_from.see(hero.path())
+	_read_from.see(hero.paragon_points())
+	for cell: ParagonCell in paragon_cells:
+		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))
+	_read_from.see(_simulation.party.gold)
+	_read_from.see(_simulation.expedition.battle != null)
+	_read_from.see(_asking)
+	_read_from.see(_asked_node)
+	_read_from.see(_asked_price)
+	_read_from.see(tree.hovered())
+	_read_from.see(is_visible_in_tree())
+	return _read_from.changed()
 
 
 ## The first node before [param ability_id] in its order that [param hero] has not taken, or &"".
@@ -583,7 +616,7 @@ func _show_question_card(on: int) -> void:
 
 ## The strip: the node under the mouse; with none, the first the hero can take now; with none of
 ## those, the first not yet taken on the hero's way.
-func _refresh_strip(hero: Hero, delta: float) -> void:
+func _refresh_strip(hero: Hero) -> void:
 	var shown: StringName = tree.hovered()
 	if shown == &"":
 		for each: TalentNode in tree.nodes():
@@ -600,7 +633,6 @@ func _refresh_strip(hero: Hero, delta: float) -> void:
 		showing.slot.state() if showing != null else UiIcon.State.LOCKED,
 		hero.can_take(shown) and is_visible_in_tree()
 	)
-	strip.advance(delta)
 
 
 ## The first node [param hero] has not taken on its way through the tree (the trunk, then its path,
@@ -615,7 +647,7 @@ func _next_on_the_way(hero: Hero) -> StringName:
 	return way[way.size() - 1] if not way.is_empty() else &""
 
 
-func _refresh_paragon(hero: Hero, delta: float) -> void:
+func _refresh_paragon(hero: Hero) -> void:
 	var earned_all: bool = TalentRules.talent_points_at(hero.level) >= Hero.TALENT_POINTS
 	var text: String = (
 		"Paragon points come after level %d" % (Hero.TALENT_POINTS * Hero.TALENT_EVERY)
@@ -634,7 +666,7 @@ func _refresh_paragon(hero: Hero, delta: float) -> void:
 	var x: float = paragon_label.size.x + PARAGON_CELL_GAP * 2.0
 	for cell: ParagonCell in paragon_cells:
 		cell.visible = shown
-		cell.refresh(hero, delta)
+		cell.show_hero(hero)
 		cell.position.x = x
 		x += cell.size.x + PARAGON_CELL_GAP
 	var tall: float = _base_height
@@ -655,7 +687,3 @@ func _label(label_name: String, colour: StringName, parent: Control) -> Label:
 func _show(label: Label, text: String, colour: StringName) -> void:
 	WindowText.set_text(label, text)
 	WindowText.set_colour(label, colour)
-
-
-static func _lower(text: String) -> String:
-	return text.left(1).to_lower() + text.substr(1).trim_suffix(".") if not text.is_empty() else ""

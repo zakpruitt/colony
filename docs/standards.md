@@ -17,6 +17,7 @@ plug in.
 | Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress`, `ChamberRules`, `PartyPlaces` | gdlint: `Expedition` is at 20 public methods; spec 078: `expedition.gd` at most 900 lines |
 | Window on the button bar | A `WindowEntry` in `WindowBook`, whose content extends `WindowContent` | `game/ui/windows/` | spec 074's tests: button, key, tooltip, help line |
 | Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | specs 030 and 074 |
+| Panel of the screen's frame | A class that extends `FramePiece` (`advance`, `catch_up`, `add_tips`), added with `Hud.add_piece` and placed in `Hud._lay_out_frame` | `game/ui/frame/` | spec 080's new-piece and idle-frame tests |
 | Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; spec 079's `FxNode` test |
 | View that reacts to events | Its own `_on_sim_event`, connected in its own setup, asking `World.may_animate(event)` | | spec 076's old-event tests |
 | Label's text or colour | `WindowText.set_text` / `set_colour`, which set only on a change | `game/ui/windows/window_text.gd` | spec 075's idle-screen test |

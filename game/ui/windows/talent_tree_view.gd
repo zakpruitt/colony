@@ -49,6 +49,8 @@ var path_nodes: Array[Array] = [[], []]
 ## Each path's banner, and its name label (the banner's own, which carries its tooltip).
 var banners: Array[PathBanner] = []
 var path_labels: Array[Label] = []
+## How many times the nodes' states have been read from a hero ([method show_hero]), ever.
+var states_read: int = 0
 
 ## The fork's line, under the trunk.
 var _fork_y: float = 0.0
@@ -156,11 +158,17 @@ func hovered() -> StringName:
 ## Sets every node's state from [param hero] and runs the pulses, the flashes and a closing on by
 ## [param delta] seconds.
 func refresh(hero: Hero, delta: float) -> void:
+	show_hero(hero)
+	advance(delta)
+
+
+## Sets every node's state from [param hero]. The lines are drawn from the nodes' states and the
+## path walked: the view is drawn again when one of them changed.
+func show_hero(hero: Hero) -> void:
+	states_read += 1
 	var taken: Array[StringName] = hero.talents()
 	var walked: int = hero.path()
-	# The lines are drawn from the nodes' states, the path walked, the flashes and the closing:
-	# the view is drawn again only while one of them changes or plays.
-	var redraw: bool = walked != _walked or not _flashes.is_empty() or _closing >= 0
+	var redraw: bool = walked != _walked
 	for made: TalentNode in nodes():
 		var stands: TalentNode.State = TalentNode.State.LOCKED
 		if taken.has(made.ability_id):
@@ -171,12 +179,25 @@ func refresh(hero: Hero, delta: float) -> void:
 			stands = TalentNode.State.AVAILABLE
 		redraw = redraw or made.state() != stands
 		made.show_state(stands)
-		made.advance(delta)
 	_walked = walked
-	for id: StringName in _flashes.keys():
-		_flashes[id] -= delta
-		if _flashes[id] <= 0.0:
-			_flashes.erase(id)
+	if redraw:
+		queue_redraw()
+
+
+## Runs the pulses, the flashes and a closing on by [param delta] seconds: the view is drawn again
+## only while a flash or the closing plays.
+func advance(delta: float) -> void:
+	var redraw: bool = not _flashes.is_empty() or _closing >= 0
+	for made: TalentNode in trunk_nodes:
+		made.advance(delta)
+	for index: int in 2:
+		for made: TalentNode in path_nodes[index]:
+			made.advance(delta)
+	if not _flashes.is_empty():
+		for id: StringName in _flashes.keys():
+			_flashes[id] -= delta
+			if _flashes[id] <= 0.0:
+				_flashes.erase(id)
 	if _closing >= 0:
 		_closing_time += delta
 		if not is_visible_in_tree() or _closing_time >= CLOSE_SECONDS or not is_closed(_closing):

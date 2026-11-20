@@ -122,7 +122,9 @@ class Card:
 		for quest_id: StringName in Content.side_quest_ids():
 			var quest: SideQuestDef = Content.side_quest(quest_id)
 			if quest != null and quest.microskill == shown.id:
-				quests.append("%s (%s)" % [quest.display_name, _lower(quest.description)])
+				quests.append(
+					"%s (%s)" % [quest.display_name, UiFormat.lower_first(quest.description)]
+				)
 		var answers: String = "Answers: " + ", ".join(PackedStringArray(quests))
 		var lines: Array[String] = WindowText.wrap(answers, width)
 		answers_label.text = "\n".join(PackedStringArray(lines))
@@ -155,6 +157,3 @@ class Card:
 		WindowText.set_colour(name_label, &"white" if has else dim)
 		WindowText.set_colour(text_label, &"silver" if has else dim)
 		WindowText.set_colour(answers_label, &"green" if has else dim)
-
-	static func _lower(text: String) -> String:
-		return text.left(1).to_lower() + text.substr(1) if not text.is_empty() else ""

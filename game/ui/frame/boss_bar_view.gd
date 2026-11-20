@@ -1,5 +1,5 @@
 class_name BossBarView
-extends Panel
+extends FramePiece
 ## The guardian's health for the whole of a guardian fight, on the sharp
 ## layer at the top centre: its name in bold capitals over a wide bar with its health as a number
 ## on it ([code]1,234 / 2,000[/code]).
@@ -8,7 +8,7 @@ extends Panel
 ## in it and hides as soon as there is none (won, wiped, or anything else). The bar eases toward
 ## the guardian's health, a trail of lost health drains after it, and it flashes white for a moment
 ## on each recent hit. It moves only in [method advance], so a test can step it exactly; the
-## [Hud] places it.
+## [Hud] places it, and it centres its own texts as they change.
 
 ## The widest the panel grows, in UI pixels, and as a share of the room's width (so that, beside
 ## the place panel and the countdown, it can still sit near the centre at 960x540).
@@ -25,6 +25,8 @@ const EASE_SECONDS: float = 0.25
 const TRAIL_SECONDS: float = 0.7
 ## Seconds the bar flashes white after a hit.
 const FLASH_SECONDS: float = 0.08
+## Its tooltip, under the guardian's name.
+const TIP: String = "A guardian holds the way on: beat it to go further."
 
 var name_label: Label
 ## The guardian's health as a number, on the bar.
@@ -76,6 +78,7 @@ func advance(delta: float) -> void:
 		var def: MonsterDef = Content.monster(guardian.def_id)
 		name_label.text = def.display_name.to_upper() if def != null else ""
 		name_label.reset_size()
+		_centre_texts()
 	_shown.advance(fraction, delta)
 	_trail.advance(fraction, delta)
 	_flash = maxf(_flash - delta, 0.0)
@@ -89,12 +92,13 @@ func advance(delta: float) -> void:
 	if health_label.text != number:
 		health_label.text = number
 		health_label.reset_size()
+		_centre_texts()
 	visible = true
 	queue_redraw()
 
 
 ## The bar and its trail show the guardian's health at once, and a flash ends (after a stall).
-func snap() -> void:
+func catch_up() -> void:
 	var guardian: Combatant = _guardian()
 	if guardian == null:
 		return
@@ -110,11 +114,12 @@ func snap() -> void:
 func place(at: Vector2, width: float, height: float) -> void:
 	position = at
 	size = Vector2(width, height)
-	name_label.position = Vector2(floorf((width - WindowText.ink(name_label)) / 2.0), NAME_Y)
-	var bar: Rect2 = bar_rect()
-	health_label.position = Vector2(
-		floorf(bar.get_center().x - WindowText.ink(health_label) / 2.0), bar.position.y + 2.0
-	)
+	_centre_texts()
+
+
+## The bar's tooltip, under the guardian's name.
+func add_tips(tips: UiTip) -> void:
+	tips.attach(self, TIP, shown_name)
 
 
 ## Where the bar is drawn, in the panel.
@@ -140,6 +145,15 @@ func shown_name() -> String:
 ## True while the bar flashes from a hit.
 func is_flashing() -> bool:
 	return _flash > 0.0
+
+
+## Centres the name across the panel and the number on the bar.
+func _centre_texts() -> void:
+	name_label.position = Vector2(floorf((size.x - WindowText.ink(name_label)) / 2.0), NAME_Y)
+	var bar: Rect2 = bar_rect()
+	health_label.position = Vector2(
+		floorf(bar.get_center().x - WindowText.ink(health_label) / 2.0), bar.position.y + 2.0
+	)
 
 
 ## The guardian in the fight, or null when there is no guardian fight.

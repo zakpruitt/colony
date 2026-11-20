@@ -43,6 +43,8 @@ const ALIASES: Dictionary[String, Array] = {
 	"-": [KEY_MINUS, KEY_KP_SUBTRACT],
 	"+": [KEY_EQUAL, KEY_PLUS, KEY_KP_ADD],
 }
+## How many times a key's label has been asked for ([method label]), ever.
+static var asked: int = 0
 ## Each key row's label by its action, read from [constant ROWS] once.
 static var _labels: Dictionary[StringName, String] = {}
 
@@ -87,6 +89,7 @@ static func fresh_key(event: InputEvent) -> InputEventKey:
 ## The label of [param action]'s key, as the help shows it ("O", "U", "F"): an action of
 ## [constant ROWS] or a window's id. "" for one there is not.
 static func label(action: StringName) -> String:
+	asked += 1
 	var key: int = WindowBook.key_of(action)
 	if key != 0:
 		return key_name(key as Key)
@@ -95,6 +98,11 @@ static func label(action: StringName) -> String:
 			if row.size() > 1:
 				_labels[row[0] as StringName] = row[1] as String
 	return _labels.get(action, "")
+
+
+## True when [param key] is one of the keys [param key_label] stands for ([method keycodes]).
+static func stands_for(key: InputEventKey, key_label: String) -> bool:
+	return key != null and keycodes(key_label).has(key.keycode)
 
 
 ## The name a key is shown by ([code]H[/code], [code]F11[/code]).

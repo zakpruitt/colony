@@ -1,5 +1,5 @@
 class_name StageList
-extends Panel
+extends FramePiece
 ## The stage list on the sharp layer: the stages of this area as a column of [constant RUNGS] rows
 ## at the right edge, headed by the area's name, shallow at the top, with the party's stage always
 ## among them. What each stage is comes from [DepthLadder]; this draws it and hears the mouse.

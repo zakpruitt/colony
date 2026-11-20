@@ -233,7 +233,6 @@ func test_r2_a_short_crossing() -> void:
 		_show(sim, speed)
 		var veil := CrossingVeil.new()
 		add_child_autofree(veil)
-		veil.set_process(false)
 		veil.setup(_world)
 		var titles: Dictionary[String, bool] = {}
 		var title_frames: int = 0

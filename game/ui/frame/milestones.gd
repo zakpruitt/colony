@@ -53,10 +53,6 @@ func setup(simulation: Simulation, world: World, hud: Hud, moment: UiMoment) -> 
 		world.sim_event.connect(_on_sim_event)
 
 
-func _process(delta: float) -> void:
-	advance(delta)
-
-
 ## Takes in one event, in the order the simulation reported it.
 func _on_sim_event(event: SimEvent) -> void:
 	if _moment == null:
@@ -94,8 +90,8 @@ func _on_sim_event(event: SimEvent) -> void:
 
 
 ## Queues the banner of a guardian slain on an earlier frame and runs the safe stage's step on by
-## [param delta] seconds; while the world catches up, clears what is running instead. Called
-## every frame; tests call it.
+## [param delta] seconds; while the world catches up, clears what is running instead. Its maker
+## calls it every frame, after the moment ([member UiRoot.milestones]); tests call it.
 func advance(delta: float) -> void:
 	if _moment == null:
 		return
@@ -104,7 +100,7 @@ func advance(delta: float) -> void:
 		return
 	if _slain != null:
 		_announce_slain()
-	_hud.place_panel.advance(delta)
+	_hud.place_panel.run_step(delta)
 
 
 ## The picture of guardian [param monster_id] for a banner: its sprite as it stands, every part

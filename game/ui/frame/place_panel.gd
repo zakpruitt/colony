@@ -1,5 +1,5 @@
 class_name PlacePanel
-extends Panel
+extends FramePiece
 ## Where the party is, at the top left, on the sharp layer. Its top row: the area's
 ## name as a button (a click opens the area map; [member area_mark] counts the areas
 ## opened since the map was last opened), the stage in large digits, the target with its
@@ -7,8 +7,8 @@ extends Panel
 ## the party is doing and why ([method Hud.status_text], in the state's colour), and at the right
 ## the safe stage ([code]Safe 3[/code]): kept off the top row so the panel leaves the boss bar room
 ## at 960x540. The texts are the HUD's; this only draws them, and the HUD connects the buttons.
-## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on
-## by [method advance]; [Milestones] calls both).
+## A new safe stage steps [code]Safe N[/code] up in yellow ([method step_safe], run on by
+## [method run_step]; [Milestones] calls both).
 
 ## The panel's height; its rows' tops; the space inside its edge and between neighbours.
 const HEIGHT: float = 41.0
@@ -20,6 +20,16 @@ const GAP: float = 6.0
 const STAGE_SCALE: int = 2
 ## The least width of the Auto switch: as wide as "Auto off", so it does not jump.
 const AUTO_TEXTS: Array[String] = ["Auto on", "Auto off"]
+## Each control's tooltip.
+const STAGE_TIP: String = "The stage the party is on now."
+const STATUS_TIP: String = "What the party is doing right now, and why."
+const SAFE_TIP: String = "The last safe stage: a wipe sends the party back there."
+const TARGET_TIP: String = "The stage the party is heading for."
+const MINUS_TIP: String = "Set the target one stage back."
+const PLUS_TIP: String = "Set the target one stage further."
+const AUTO_TIP: String = (
+	"When on, the party goes a stage further each time it holds its target " + "long enough."
+)
 
 ## The area's name: a click opens the area map.
 var area_button: UiButton
@@ -128,9 +138,9 @@ func step_safe() -> void:
 	_show_step()
 
 
-## Runs the safe stage's step on by [param delta] seconds. [Milestones] calls it every frame, not
-## the HUD (which only calls [method show_place], with no time).
-func advance(delta: float) -> void:
+## Runs the safe stage's step on by [param delta] seconds. [Milestones] calls it every frame,
+## before the world syncs, not the HUD.
+func run_step(delta: float) -> void:
 	if safe_step <= 0.0:
 		return
 	safe_step = maxf(safe_step - delta, 0.0)
@@ -142,6 +152,19 @@ func stop_step() -> void:
 	if safe_step > 0.0:
 		safe_step = 0.0
 		_show_step()
+
+
+## The area's name tells the area and what a click does; each other control says what it is.
+func add_tips(tips: UiTip) -> void:
+	tips.attach(area_button, HudFrame.area_tip(), area_button.get_text)
+	tips.attach(stage_label, STAGE_TIP)
+	tips.attach(status_label, STATUS_TIP)
+	tips.attach(safe_label, SAFE_TIP)
+	tips.attach(target_label, TARGET_TIP)
+	tips.attach(target_caption, TARGET_TIP)
+	tips.attach(minus_button, MINUS_TIP)
+	tips.attach(plus_button, PLUS_TIP)
+	tips.attach(auto_button, AUTO_TIP)
 
 
 ## Lays the panel out from left to right and sizes it to fit.

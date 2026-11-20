@@ -118,10 +118,6 @@ func _init() -> void:
 	banner.add_child(banner_line)
 
 
-func _process(delta: float) -> void:
-	advance(delta)
-
-
 ## Gives the moment the whole room, [param room] UI pixels.
 func fit_room(room: Vector2i) -> void:
 	position = Vector2.ZERO
@@ -191,7 +187,8 @@ func shown_headline() -> String:
 	return _shown.headline if _shown != null else ""
 
 
-## Runs the bursts and the banners on by [param delta] seconds. Called every frame; tests call it.
+## Runs the bursts and the banners on by [param delta] seconds. Its maker calls it every frame
+## ([method UiRoot.advance]); tests call it.
 func advance(delta: float) -> void:
 	if world != null and world.catching_up():
 		_drop_all()

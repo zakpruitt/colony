@@ -5,12 +5,13 @@ extends Node
 ## node only decides what the goals say; [GoalsView] draws them on the sharp layer, under the place
 ## panel.
 ##
-## At each [method advance] it reads the simulation and lists the first [constant MOST] goals that
-## apply, in this order: beating the next guardian (when its depth is within
-## [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching the next
-## depth, spending a hero's talent points, the microskill nearest to being learned, training a
-## hero (spending its paragon points), and buying an upgrade. A shown
-## goal that is achieved (the guardian slain, the depth reached, the microskill learned) flashes,
+## At an [method advance] after anything they are read from changed (the simulation's tick, and
+## what a command or a test changes between ticks) it reads the simulation and lists the first
+## [constant MOST] goals that apply, in this order: beating the next guardian (when its depth is
+## within [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching
+## the next depth, spending a hero's talent points, the microskill nearest to being learned,
+## training a hero (spending its paragon points), and buying an upgrade. A shown goal that is
+## achieved (the guardian slain, the depth reached, the microskill learned) flashes,
 ## shows a tick for [constant CELEBRATE_SECONDS], writes a line in the journal and emits
 ## [signal goal_finished]; then the next goal takes its place. A goal achieved in a frame that
 ## brought old events ([method World.is_recent]: after a stall or time away) is replaced quietly.
@@ -25,7 +26,7 @@ extends Node
 
 ## A shown goal was achieved, in a recent frame: [param sentence] is its journal line.
 signal goal_finished(sentence: String)
-## The goals were read again (every [method advance]): the view lays itself out.
+## The goals were read again: the view lays itself out.
 signal refreshed
 
 ## The kinds of goal, in the order the tracker prefers them, but a visit to a new area comes first
@@ -55,6 +56,10 @@ const FLASH_SECONDS: float = 0.5
 const TITLE: String = "Goals"
 const HIDE_HINT: String = "G hide"
 
+## How many goals have been made, ever: a frame where nothing the goals are read from changed
+## adds none.
+static var built: int = 0
+
 ## The windows on the UI layer (the orders open there) and the hero windows a goal opens; null
 ## without a UI layer. The [Hud] hands them on as the layer gives them.
 var windows: UiWindows
@@ -75,6 +80,8 @@ var _wanted: bool = true
 var _stale: bool = false
 ## True while the tracker is shown (see [method is_shown]).
 var _on_screen: bool = true
+## What the goals were last read from: they are read again only when one of these changes.
+var _read_from: ShownValues = ShownValues.new()
 
 
 func _init() -> void:
@@ -113,10 +120,12 @@ func setup(
 
 
 ## Reads the goals from the simulation, celebrates a shown goal just achieved, runs the
-## celebrations on by [param delta] seconds. Called every frame by the HUD;
-## tests call it.
+## celebrations on by [param delta] seconds. Called every frame by the HUD; does nothing while
+## nothing it reads changed, no goal celebrates and no old event came. Tests call it.
 func advance(delta: float) -> void:
 	if _simulation == null:
+		return
+	if not _read_from_changed() and not _celebrating() and not _stale:
 		return
 	var current: Array[Goal] = applicable()
 	var quiet: bool = _stale
@@ -461,7 +470,10 @@ func _microskill_goal() -> Goal:
 		"%s learns %s at level %d" % [who, best_skill.display_name, best_level],
 		clampf(float(best.xp) / float(needed), 0.0, 1.0),
 		"%s XP to go" % UiFormat.group_thousands(maxi(best_left, 0)),
-		"%s: %s, learned with XP from fights." % [best_skill.display_name, _lower(best_skill)]
+		(
+			"%s: %s, learned with XP from fights."
+			% [best_skill.display_name, UiFormat.lower_first(best_skill.description)]
+		)
 	)
 	goal.target = best_level
 	goal.hero_id = best.id
@@ -538,9 +550,42 @@ func _achieved(goal: Goal) -> bool:
 	return false
 
 
-static func _lower(skill: MicroskillDef) -> String:
-	var text: String = skill.description
-	return text.left(1).to_lower() + text.substr(1) if not text.is_empty() else text
+## True when anything the goals are read from has changed since they were last read.
+func _read_from_changed() -> bool:
+	var e: Expedition = _simulation.expedition
+	_read_from.begin()
+	_read_from.see(_simulation.tick)
+	_read_from.see(_wanted)
+	_read_from.see(_simulation.party.gold)
+	_read_from.see(e.place)
+	_read_from.see(e.state)
+	_read_from.see(e.depth)
+	_read_from.see(e.target_depth)
+	_read_from.see(e.deepest_depth)
+	_read_from.see(e.auto_push)
+	_read_from.see(e.guardian_order)
+	_read_from.see(e.stable_seconds)
+	for hero: Hero in _simulation.party.heroes:
+		_read_from.see(hero.level)
+		_read_from.see(hero.xp)
+		_read_from.see(hero.talent_points())
+		_read_from.see(hero.paragon_points())
+	for id: StringName in Content.resource_ids():
+		_read_from.see(_simulation.party.resource(id))
+	for id: StringName in Content.upgrade_ids():
+		_read_from.see(_simulation.upgrades.rank(id))
+	if _area_map != null and _area_map.news != null:
+		_read_from.see(_area_map.news.to_visit.size())
+		_read_from.see(_area_map.news.visited.size())
+	return _read_from.changed()
+
+
+## True while a shown goal shows its tick.
+func _celebrating() -> bool:
+	for goal: Goal in _shown:
+		if goal.celebrate > 0.0:
+			return true
+	return false
 
 
 # --- Reacting and showing --------------------------------------------------------
@@ -600,6 +645,7 @@ class Goal:
 		detail_in: String,
 		hint_in: String
 	) -> void:
+		Goals.built += 1
 		key = key_in
 		kind = kind_in
 		sentence = sentence_in

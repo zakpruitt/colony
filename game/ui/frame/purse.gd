@@ -1,5 +1,5 @@
 class_name Purse
-extends Panel
+extends FramePiece
 ## The purse at the top right, on the sharp layer: the game-speed button (lit above 1x), the gold
 ## with its coin, then each resource the party holds with its icon and count, in
 ## [method Content.resource_ids] order; one it has none of is not shown. Counts are
@@ -21,6 +21,8 @@ const ENTRY_GAP: float = 8.0
 const ICON: Vector2 = Vector2(16, 16)
 ## The widest a row of counts runs before the next goes on a second row, in UI pixels.
 const ROW_WIDTH: float = 180.0
+## The purse's own tooltip, under its title.
+const GOLD_TIP: String = "Gold from fights, to spend in the Camp."
 
 ## The game's speed: "1x", "2x" or "4x", lit above 1x. [Main] connects its click.
 var speed_button: UiButton
@@ -134,6 +136,16 @@ func tip_text(id: StringName) -> String:
 			ResourceIcon.where_from(_simulation, id)
 		]
 	)
+
+
+## Each resource's icon and count say how many and where it comes from, the speed button what it
+## does; the rest of the purse is the gold's.
+func add_tips(tips: UiTip) -> void:
+	for id: StringName in Content.resource_ids():
+		tips.attach(icons[id], tip_text.bind(id))
+		tips.attach(labels[id], tip_text.bind(id))
+	tips.attach(speed_button, HudFrame.speed_tip())
+	tips.attach(self, GOLD_TIP, "Gold")
 
 
 ## Shows the gold as [param text] in [param colour], lifted [param lift] UI pixels (its bump),

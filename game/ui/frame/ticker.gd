@@ -1,5 +1,5 @@
 class_name Ticker
-extends Panel
+extends FramePiece
 ## The journal's newest line on the sharp layer: a one-line panel just
 ## above the hero frames, centred, in the UI font, while [method Journal.ticker_text] has a line;
 ## its text steps down through the journal's fade colours at the end. A left click on it emits

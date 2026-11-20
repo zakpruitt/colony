@@ -54,6 +54,9 @@ var entries: Array[WindowEntry] = []
 var tip: UiTip
 ## The moment a gain is marked, above the windows, made by [method setup].
 var moment: UiMoment
+## What marks the run's milestones through [member moment], given by [Main]; advanced right after
+## the moment, so a banner it queues drops in on the next frame. Null for none.
+var milestones: Milestones
 
 ## The HUD whose frame of the screen is on this layer, or null.
 var _hud: Hud
@@ -152,14 +155,18 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		hud.windows = windows
 
 
-## Advances the contents this layer made by [param delta] seconds. Called every frame; tests
-## call it.
+## Advances the contents this layer made, its bar, its [member moment] and then its
+## [member milestones] by [param delta] seconds. Called every frame; tests call it.
 func advance(delta: float) -> void:
 	for content: WindowContent in _advanced:
 		if is_instance_valid(content):
 			content.advance(delta)
 	if bar != null:
 		bar.advance(delta)
+	if moment != null:
+		moment.advance(delta)
+	if milestones != null:
+		milestones.advance(delta)
 
 
 func _process(delta: float) -> void:
