@@ -847,9 +847,9 @@ func test_r8_picked_up_part_way() -> void:
 
 
 func test_r9_in_the_showcase() -> void:
-	assert_has(Showcase.MOMENTS, &"four_areas", "a moment shows the four areas")
-	for moment: StringName in Showcase.MOMENTS:
-		var caption: String = Showcase.CAPTIONS[moment]
+	assert_has(Showcase.names(), &"four_areas", "a moment shows the four areas")
+	for moment: StringName in Showcase.names():
+		var caption: String = Showcase.caption(moment)
 		assert_null(
 			RegEx.create_from_string("(?i)" + DOWN_WORDS).search(caption), "caption: " + caption
 		)

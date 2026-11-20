@@ -911,7 +911,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		_since_coin = 0.0
 		_show_gold()
 		return
-	if _world != null and not _world.is_recent(event):
+	if not _fresh(event):
 		return
 	var frame: HeroFrameView = _frames_by_id.get(event.target_id, null)
 	if frame == null:
@@ -925,7 +925,7 @@ func _on_sim_event(event: SimEvent) -> void:
 
 ## True when [param event] may start a flash: it is recent and the world is not catching up.
 func _fresh(event: SimEvent) -> bool:
-	return _world == null or (_world.is_recent(event) and not _world.catching_up())
+	return _world == null or _world.may_animate(event)
 
 
 func _on_coin_collected(amount: int) -> void:

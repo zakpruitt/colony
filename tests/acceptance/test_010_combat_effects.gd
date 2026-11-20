@@ -4,7 +4,7 @@ extends ColonyTest
 ## Each test builds a World on a seeded simulation and the CombatEffects that listens to it, with
 ## both their _process turned off, feeds events through World.sim_event, and steps the effects with
 ## advance. Where a test needs what an effect is (its kind, colour, motion) it reads the effect's
-## own fields, and the effects' private lists (_texts, _particles, _coins, _motes).
+## own fields, and the effects' lists (texts(), particles(), coins(), motes()).
 
 const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
@@ -62,7 +62,7 @@ func _advance(seconds: float) -> void:
 
 func _texts(kind: StringName) -> Array[FxText]:
 	var found: Array[FxText] = []
-	for text: FxText in _fx._texts:
+	for text: FxText in _fx.texts():
 		if text.kind == kind:
 			found.append(text)
 	return found
@@ -70,7 +70,7 @@ func _texts(kind: StringName) -> Array[FxText]:
 
 func _particles(kind: StringName) -> Array[FxParticle]:
 	var found: Array[FxParticle] = []
-	for particle: FxParticle in _fx._particles:
+	for particle: FxParticle in _fx.particles():
 		if particle.kind == kind:
 			found.append(particle)
 	return found
@@ -160,10 +160,10 @@ func test_r2_heal_numbers() -> void:
 	assert_lt(numbers[0].position.y, start_y, "rising")
 
 	_advance(1.0)
-	var texts_before: int = _fx._texts.size()
+	var texts_before: int = _fx.texts().size()
 	var particles_before: int = _fx.live_particles()
 	_emit(SimEvent.Kind.HEALED, CLERIC, KNIGHT, 0)
-	assert_eq(_fx._texts.size(), texts_before, "a heal of 0 shows no number")
+	assert_eq(_fx.texts().size(), texts_before, "a heal of 0 shows no number")
 	assert_eq(_fx.live_particles(), particles_before, "and no sparkles")
 
 
@@ -243,7 +243,7 @@ func test_r5_monster_burst() -> void:
 	_advance(0.2)
 	assert_lt(puffs[0].current_size(), size, "that shrinks away")
 	_advance(0.2)
-	assert_false(_fx._particles.has(puffs[0]), "and is gone")
+	assert_false(_fx.particles().has(puffs[0]), "and is gone")
 	assert_gt(bits[0].velocity.y, -1000.0)
 	var outward: int = 0
 	for bit: FxParticle in bits:
@@ -262,7 +262,7 @@ func test_r6_coins() -> void:
 	var feet: Vector2 = _world.feet_position(monster)
 	_emit(SimEvent.Kind.DIED, monster)
 	_emit(SimEvent.Kind.GOLD_GAINED, monster, -1, 23)
-	var coins: Array[FxCoin] = _fx._coins.duplicate()
+	var coins: Array[FxCoin] = _fx.coins().duplicate()
 	assert_eq(coins.size(), 4, "one coin per 5 gold")
 	for coin: FxCoin in coins:
 		assert_lt(coin.position.distance_to(feet), 20.0, "out of the dead monster")
@@ -284,11 +284,11 @@ func test_r6_coins() -> void:
 	for share: int in _collected:
 		total += share
 	assert_eq(total, 23, "the shares add up to the gain")
-	assert_eq(_fx._coins.size(), 0)
+	assert_eq(_fx.coins().size(), 0)
 
 	_collected.clear()
 	_emit(SimEvent.Kind.GOLD_GAINED, monster, -1, 500)
-	assert_eq(_fx._coins.size(), 12, "at most 12 coins")
+	assert_eq(_fx.coins().size(), 12, "at most 12 coins")
 	_advance(6.0)
 	total = 0
 	for share: int in _collected:
@@ -302,7 +302,7 @@ func test_r7_xp_motes() -> void:
 	var from: Vector2 = _world.feet_position(monster)
 	_emit(SimEvent.Kind.DIED, monster)
 	_emit(SimEvent.Kind.XP_GAINED, -1, MAGE, 25)
-	var motes: Array[FxMote] = _fx._motes.duplicate()
+	var motes: Array[FxMote] = _fx.motes().duplicate()
 	assert_gte(motes.size(), 1, "motes rise from the monster")
 	for mote: FxMote in motes:
 		assert_eq(mote.hero_id, MAGE, "for the hero who gained it")
@@ -310,12 +310,12 @@ func test_r7_xp_motes() -> void:
 	var hero: Vector2 = _world.feet_position(MAGE)
 	var closest: float = INF
 	var waited: float = 0.0
-	while not _fx._motes.is_empty() and waited < 3.0:
-		for mote: FxMote in _fx._motes:
+	while not _fx.motes().is_empty() and waited < 3.0:
+		for mote: FxMote in _fx.motes():
 			closest = minf(closest, mote.position.distance_to(hero))
 		_advance(FRAME)
 		waited += FRAME
-	assert_eq(_fx._motes.size(), 0, "every mote arrives")
+	assert_eq(_fx.motes().size(), 0, "every mote arrives")
 	assert_lt(closest, 24.0, "at the hero")
 	var flashed: bool = false
 	for flash: FxParticle in _particles(&"flash"):
@@ -339,16 +339,16 @@ func test_r8_level_up() -> void:
 		gold = gold or bit.color == Palette.color(&"yellow") or bit.color == Palette.color(&"amber")
 	assert_true(gold, "gold")
 	var words: FxText = null
-	for text: FxText in _fx._texts:
+	for text: FxText in _fx.texts():
 		if text.text == "LEVEL UP":
 			words = text
 	assert_not_null(words, "LEVEL UP is shown")
 	assert_almost_eq(words.position.x, hero.x, 4.0, "over the hero")
 	assert_lt(words.position.y, hero.y - 20.0, "above them")
 	_advance(1.1)
-	assert_true(_fx._texts.has(words), "for about 1.2 seconds")
+	assert_true(_fx.texts().has(words), "for about 1.2 seconds")
 	_advance(0.15)
-	assert_false(_fx._texts.has(words), "then it goes")
+	assert_false(_fx.texts().has(words), "then it goes")
 
 
 func test_r9_bolt_trail_and_flash() -> void:
@@ -370,7 +370,7 @@ func test_r9_bolt_trail_and_flash() -> void:
 	_advance(0.08)
 	var shrank: bool = false
 	for i: int in trail.size():
-		if not _fx._particles.has(trail[i]) or trail[i].current_size() < sizes[i]:
+		if not _fx.particles().has(trail[i]) or trail[i].current_size() < sizes[i]:
 			shrank = true
 	assert_true(shrank, "of shrinking squares")
 	assert_eq(_particles(&"flash").size(), 0, "no flash in flight")
@@ -406,9 +406,9 @@ func test_r10_loop_beats() -> void:
 	assert_almost_eq(wiped.position.x, middle.x, 2.0, "centred")
 	assert_almost_eq(wiped.position.y, middle.y, 2.0, "centred")
 	_advance(Expedition.REVIVE_SECONDS - 0.1)
-	assert_true(_fx._texts.has(wiped), "for the revive delay")
+	assert_true(_fx.texts().has(wiped), "for the revive delay")
 	_advance(0.2)
-	assert_false(_fx._texts.has(wiped), "and then no longer")
+	assert_false(_fx.texts().has(wiped), "and then no longer")
 
 	_emit(SimEvent.Kind.PARTY_REVIVED, -1, -1, 1)
 	_advance(FRAME)
@@ -427,13 +427,13 @@ func test_r10_loop_beats() -> void:
 	assert_not_null(stable, "MOSSY HOLLOW 3 STABLE is shown")
 	assert_almost_eq(stable.position.x, middle.x, 2.0, "centred")
 	_advance(1.9)
-	assert_true(_fx._texts.has(stable), "for 2 seconds")
+	assert_true(_fx.texts().has(stable), "for 2 seconds")
 	_advance(0.2)
-	assert_false(_fx._texts.has(stable))
+	assert_false(_fx.texts().has(stable))
 
 
 func _find_text(words: String) -> FxText:
-	for text: FxText in _fx._texts:
+	for text: FxText in _fx.texts():
 		if text.text == words:
 			return text
 	return null
@@ -463,7 +463,7 @@ func test_r11_nothing_piles_up() -> void:
 	_world.sim_event.emit(old_death)
 	assert_eq(_fx.live_numbers(), numbers, "an old hit starts no number")
 	assert_eq(_fx.live_particles(), particles, "nor sparks, nor a burst")
-	assert_eq(_fx._coins.size(), 0, "old gold throws no coins")
+	assert_eq(_fx.coins().size(), 0, "old gold throws no coins")
 	assert_eq(_collected, [37] as Array[int], "but is credited at once")
 
 	_advance(5.0)
@@ -478,7 +478,7 @@ func test_r12_advance_drives_everything() -> void:
 	_emit(SimEvent.Kind.GOLD_GAINED, monster, -1, 10)
 	var number: FxText = _texts(&"damage")[0]
 	var spark: FxParticle = _particles(&"spark")[0]
-	var coin: FxCoin = _fx._coins[0]
+	var coin: FxCoin = _fx.coins()[0]
 	var where: Array[Vector2] = [number.position, spark.position, coin.position]
 	await wait_physics_frames(10)
 	assert_eq(number.position, where[0], "a number does not move by itself")

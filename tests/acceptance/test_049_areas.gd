@@ -784,7 +784,7 @@ func _view(sim: Simulation) -> Array[Node]:
 ## The z's floating over resting heroes.
 func _zs(fx: CombatEffects) -> int:
 	var count: int = 0
-	for text: FxText in fx._texts:
+	for text: FxText in fx.texts():
 		if text.kind == &"z":
 			count += 1
 	return count

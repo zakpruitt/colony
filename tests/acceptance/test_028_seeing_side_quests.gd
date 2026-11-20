@@ -665,8 +665,8 @@ func test_r11_showcase() -> void:
 		&"quest_done", &"quest_missed", &"tripwire_sprung", &"microskill_learned"
 	]
 	for moment: StringName in moments:
-		assert_has(Showcase.MOMENTS, moment, "%s is a moment" % moment)
-		assert_true(Showcase.CAPTIONS.has(moment), "%s is labelled" % moment)
+		assert_has(Showcase.names(), moment, "%s is a moment" % moment)
+		assert_true(Showcase.caption(moment) != "", "%s is labelled" % moment)
 	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
 	var seen: Array[StringName] = []
 	showcase.moment_started.connect(func(moment: StringName) -> void: seen.append(moment))

@@ -1,8 +1,11 @@
 class_name FxMote
 extends Node2D
 ## A mote of XP: it leaps out of a fallen monster, then homes in on the hero who
-## gained the XP. [CombatEffects] creates it, advances it with where the hero is now, and frees it
-## (with a tiny flash) when it arrives.
+## gained the XP. [CombatEffects] creates it and flashes where it arrives; the [FxPool] advances
+## it.
+
+## It has reached its hero, at [param at].
+signal arrived(at: Vector2)
 
 const SHEET_PATH: String = "res://assets/sprites/fx/mote.png"
 ## How fast it turns toward the hero (each second keeps e^-rate of its old heading).
@@ -17,6 +20,8 @@ const MAX_LIFE: float = 2.0
 
 ## The hero it flies to.
 var hero_id: int = -1
+## Where that hero is now, in world pixels: () -> Vector2, not finite once the hero is gone.
+var target: Callable
 var velocity: Vector2 = Vector2.ZERO
 var age: float = 0.0
 
@@ -34,20 +39,25 @@ func start(at: Vector2) -> void:
 	position = at.round()
 
 
-## Moves it on by [param delta] seconds toward [param target] (world pixels). True on arrival.
-func advance(delta: float, target: Vector2) -> bool:
+## Moves it on by [param delta] seconds toward its [member target]. False once it has arrived
+## or its hero has gone (it then goes unseen).
+func advance(delta: float) -> bool:
+	var goal: Vector2 = target.call() if target.is_valid() else _exact
+	if not goal.is_finite():
+		return false
 	age += delta
-	var gap: Vector2 = target - _exact
+	var gap: Vector2 = goal - _exact
 	var speed: float = SPEED + ACCELERATION * age
 	if gap.length() <= maxf(ARRIVE, speed * delta) or age >= MAX_LIFE:
-		_exact = target
-		position = target.round()
-		return true
+		_exact = goal
+		position = goal.round()
+		arrived.emit(position)
+		return false
 	var wanted: Vector2 = gap / gap.length() * speed
 	velocity = velocity.lerp(wanted, 1.0 - exp(-STEER * delta))
 	_exact += velocity * delta
 	position = _exact.round()
-	return false
+	return true
 
 
 func _draw() -> void:

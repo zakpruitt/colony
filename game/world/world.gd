@@ -67,6 +67,10 @@ var labyrinth_view: LabyrinthView
 var camera: WorldCamera
 ## World-space parent for effects, drawn above characters.
 var effects_layer: Node2D
+## Every passing effect on [member effects_layer], made and freed through it.
+var fx: FxPool
+## Which fighters are guardians, kept from the events.
+var guardians: GuardianRecord = GuardianRecord.new()
 ## Light, darkness and decoration around the labyrinth view.
 var ambience: Ambience
 ## The arrow over the party pointing toward its target depth.
@@ -107,6 +111,8 @@ var _last_tick: int = -1
 ## True for the sync in progress when it is to put every sprite (or only the heroes) in place.
 var _snap_all: bool = false
 var _snap_heroes: bool = false
+## True for the sync in progress when it catches up on a stall.
+var _catching_up: bool = false
 ## Seconds left in which character animation stands still (a crit's hit-stop).
 var _frozen: float = 0.0
 ## Heroes kept out of a fighting guardian's body.
@@ -149,6 +155,9 @@ func _ready() -> void:
 	effects_layer.z_index = EFFECTS_Z
 	effects_layer.z_as_relative = false
 	add_child(effects_layer)
+	fx = FxPool.new()
+	fx.setup(effects_layer)
+	guardians.note(simulation)
 	target_marker = TargetMarker.new()
 	target_marker.z_index = EFFECTS_Z
 	target_marker.z_as_relative = false
@@ -197,16 +206,23 @@ func feet_position(id: int) -> Vector2:
 	return fallen_party.feet_of(id, sprite.position) if sprite != null else Vector2.ZERO
 
 
-## False for an event so old (after a stall) that it should start no animation or effect. Listeners
-## to [signal sim_event] use this rather than working it out again.
+## True when [param event] may start a move, an effect, a sound or a flash: it is recent and the
+## world is not catching up. Every listener to [signal sim_event] asks this and nothing else.
+func may_animate(event: SimEvent) -> bool:
+	return is_recent(event) and not catching_up()
+
+
+## False for an event so old (after a stall) that it should start no animation or effect.
 func is_recent(event: SimEvent) -> bool:
 	return simulation != null and simulation.tick - event.tick <= ANIMATE_TICKS * maxi(speed, 1)
 
 
-## True during a sync that catches up on a stall (many ticks in one frame, or the first sync): it
-## starts no move or spell, only brings the picture up to date.
+## True during a sync that catches up on a stall (many ticks in one frame; not the world's first
+## picture, which has nothing running to catch up on, nor a move to another stage or area, which
+## clears its own): it starts nothing, only brings the picture up to date. What clears its running effects then reads it; what starts
+## one asks [method may_animate].
 func catching_up() -> bool:
-	return _snap_all
+	return _catching_up
 
 
 ## Holds every character's animation still for [param seconds] (a hit-stop): [method sync] goes on
@@ -222,7 +238,8 @@ func sync(delta: float) -> void:
 	if simulation == null or labyrinth_view == null:
 		return
 	var now: int = simulation.tick
-	_snap_all = _last_tick < 0 or now - _last_tick > STALL_TICKS * maxi(speed, 1)
+	_catching_up = _last_tick >= 0 and now - _last_tick > STALL_TICKS * maxi(speed, 1)
+	_snap_all = _last_tick < 0 or _catching_up
 	_snap_heroes = false
 	_snap_camera = false
 	_last_tick = now
@@ -236,7 +253,8 @@ func sync(delta: float) -> void:
 	if not arriving:
 		_catch_up_with_state(delta)
 	for event: SimEvent in simulation.drain_events():
-		_show(event, is_recent(event))
+		guardians.observe(event, simulation)
+		_show(event, may_animate(event))
 		crossing.heard(event)
 		sim_event.emit(event)
 	if labyrinth_view.labyrinth != simulation.labyrinth:
@@ -541,7 +559,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 			# A revival seen as it happens is acted out whole; one heard late, from where it has got to.
 			_snap_camera = not fallen_party.revived(0.0 if animate else age)
 			_snap_heroes = true
-	_fight_moves.heard(self, event, animate and not _snap_all)
+	_fight_moves.heard(self, event, animate)
 
 
 ## A wind-up of [param attacker] that struck by [param tick] is over.

@@ -186,7 +186,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		return
 	var row: ShopRow = rows[event.source_id]
 	var players: bool = _take_ask(row.id, event.tick)
-	if _world != null and (_world.catching_up() or not _world.is_recent(event)):
+	if _world != null and not _world.may_animate(event):
 		return  # a stale purchase: the card simply shows the truth
 	row.start_flash(event.amount)
 	if players:

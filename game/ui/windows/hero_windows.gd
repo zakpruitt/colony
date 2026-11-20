@@ -59,10 +59,12 @@ static func id_for(place: int) -> StringName:
 
 ## Call once, after the layer's windows exist: makes a window per hero of [param simulation],
 ## each the same size, and registers it with [param ui]'s windows. [param tip] gives the windows'
-## controls their tooltips (may be null).
-func setup(simulation: Simulation, ui: UiRoot, tip: UiTip) -> void:
+## controls their tooltips (may be null). The windows hear [param world]'s events (none with null).
+func setup(simulation: Simulation, ui: UiRoot, tip: UiTip, world: World = null) -> void:
 	_simulation = simulation
 	_ui = ui
+	if world != null and not world.sim_event.is_connected(_on_sim_event):
+		world.sim_event.connect(_on_sim_event)
 	var tallest: float = 0.0
 	for hero: Hero in simulation.party.heroes:
 		var made := HeroWindow.new(simulation, hero, _ids.size(), tip)
@@ -240,10 +242,9 @@ func open_ids() -> Array[int]:
 ## its open tree, the line into it lights and a banner names it (a path's first node names the
 ## path, and the other path closes before the player's eyes); a paragon point spent bursts
 ## its medallion, with a banner every tenth rank; a microskill learned gets a banner, and a burst on
-## its card while the hero's window is open on Skills. Nothing starts for an event that is not
-## recent or while the world catches up: the windows show the end state all the same. [Main]
-## connects it to the world's events.
-func hear(event: SimEvent) -> void:
+## its card while the hero's window is open on Skills. Nothing starts for an event that may not
+## animate: the windows show the end state all the same.
+func _on_sim_event(event: SimEvent) -> void:
 	var moment: UiMoment = _ui.moment if _ui != null else null
 	if moment == null:
 		return

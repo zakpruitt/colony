@@ -180,7 +180,7 @@ func _wait(seconds: float) -> void:
 ## The damage numbers showing, oldest first.
 func _numbers() -> Array[FxText]:
 	var found: Array[FxText] = []
-	for text: FxText in _fx._texts:
+	for text: FxText in _fx.texts():
 		if text.kind == &"damage" or text.kind == &"heal":
 			found.append(text)
 	return found

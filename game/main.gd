@@ -212,7 +212,6 @@ func _start_play() -> void:
 	ui.moment.world = world  # moments only for what just happened, with their sounds
 	ui.moment.sound = sound
 	ui.moment.keep_clear = [hud.goals_view, hud.ladder] as Array[Control]
-	world.sim_event.connect(ui.hero_windows.hear)  # a node taken, a point spent, a skill
 	hud.shop.moment = ui.moment  # a purchase bursts, a fifth rank gets a banner
 	milestones = Milestones.new()  # a guardian, an area, a level, a safe stage
 	add_child(milestones)

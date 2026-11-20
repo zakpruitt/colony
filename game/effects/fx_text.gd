@@ -3,7 +3,7 @@ extends Node2D
 ## A word or number of an effect in the pixel font, at a whole multiple of its size,
 ## with a 1-pixel-per-multiple ink shadow. It pops one size larger as it appears, moves in an arc
 ## (or drifts), and blinks out at the end of its life: it never fades. Its position is the centre
-## of its baseline. [CombatEffects] creates and advances it.
+## of its baseline. An effect class makes it; the [FxPool] advances it.
 
 ## Seconds a new text shows one size larger.
 const POP_TIME: float = 0.07
@@ -34,6 +34,10 @@ var screen_offset: Vector2 = Vector2.ZERO
 ## Drawn with an ink outline all round as well as its shadow (as ability names are), so it reads
 ## over any wall.
 var outline: bool = false
+## Its place in a stack of texts over one fighter, 0 lowest.
+var slot: int = 0
+## Called with the text after each advance, to put it where it belongs now; false ends it.
+var follow: Callable
 
 var _exact: Vector2
 
@@ -58,6 +62,9 @@ func advance(delta: float) -> bool:
 	_place()
 	var left: float = life - age
 	visible = left > BLINK_TIME or int(left / BLINK_STEP) % 2 == 0
+	if follow.is_valid():
+		var kept: bool = follow.call(self)
+		return kept
 	return true
 
 

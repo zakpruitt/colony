@@ -17,9 +17,10 @@ extends Node
 ##   (once a second for one shield, however many blows it takes).
 ##
 ## It listens to [signal World.sim_event] before [CombatEffects] does (that one asks it the colour
-## of a number), and draws on [member World.effects_layer]. Everything moves in [method advance],
-## from elapsed time, so a test can step it exactly. Names, words and [CombatEffects]' numbers keep
-## inside the band between the HUD's top and bottom, so they never cover a health bar.
+## of a number), and makes its names, words, rings and particles through the world's [FxPool].
+## Everything moves from elapsed time, so a test can step it exactly. Names, words and
+## [CombatEffects]' numbers keep inside the band between the HUD's top and bottom, so they never
+## cover a health bar.
 
 # Names.
 ## Seconds a name shows, and how fast it drifts up, in pixels a second.
@@ -53,7 +54,7 @@ const RING_EVERYONE: float = 4.0
 ## Seconds a pushed fighter's dust kicks.
 const DUST_SECONDS: float = 0.35
 ## The most particles these effects make at once.
-const MAX_PARTICLES: int = 150
+const MAX_PARTICLES: int = FxPool.ABILITY
 
 # Misses.
 const MISS_LIFE: float = 0.6
@@ -76,13 +77,6 @@ var _world: World
 var _simulation: Simulation
 var _rng := RandomNumberGenerator.new()
 var _spark_texture: Texture2D
-## The names showing, and the slot (0 lowest) each holds over its fighter.
-var _names: Array[FxText] = []
-var _slots: Dictionary[FxText, int] = {}
-## The words Miss and Blocked showing.
-var _words: Array[FxText] = []
-var _particles: Array[FxParticle] = []
-var _rings: Array[FxRing] = []
 ## Per fighter winding up an action: real seconds of wind-up left, and whom it is aimed at.
 var _glows: Dictionary[int, float] = {}
 var _aims: Dictionary[int, int] = {}
@@ -126,47 +120,31 @@ func setup(world: World, simulation: Simulation) -> void:
 	credit.statuses.power = _power
 
 
-## Advances every effect by [param delta] real seconds. [CombatEffects] calls it each frame.
+## Advances the glows, the dust and the marks by [param delta] real seconds; the pool moves the
+## rest. [CombatEffects] calls it each frame.
 func advance(delta: float) -> void:
-	if _world == null or _world.effects_layer == null:
+	if _world == null or _world.fx == null:
 		return
 	_glow_time += delta
 	_advance_glows(delta)
 	_advance_dust(delta)
-	_advance_names(delta)
-	for word: FxText in _words.duplicate():
-		if not word.advance(delta):
-			_words.erase(word)
-			word.queue_free()
-		else:
-			word.position += _band_shift(word.rect())
-	for particle: FxParticle in _particles.duplicate():
-		if not particle.advance(delta):
-			_particles.erase(particle)
-			particle.queue_free()
-	for ring: FxRing in _rings.duplicate():
-		if not ring.advance(delta):
-			_rings.erase(ring)
-			ring.queue_free()
 	marks.advance(delta)
 
 
-## Keeps each of [param shown] (texts on the effects layer, [CombatEffects]' numbers) inside the
-## band between the HUD's top and bottom, so none covers a health bar. Call after they move.
-func keep_in_band(shown: Array[FxText]) -> void:
-	for text: FxText in shown:
-		if not text.on_screen:
-			text.position += _band_shift(text.rect())
+## Keeps [param text] (a word on the effects layer, one of [CombatEffects]' numbers) inside the
+## band between the HUD's top and bottom, so it never covers a health bar. Call after it moves.
+func keep_text_in_band(text: FxText) -> bool:
+	text.position += _band_shift(text.rect())
+	return true
 
 
-## Keeps each of [param icons] (resource drops) inside that band while it rises and
-## hangs where the fighter fell; one flying to its place beside the gold crosses the screen to get
-## there, as a coin does, and is left alone.
-func keep_drops_in_band(icons: Array[FxResource]) -> void:
-	for icon: FxResource in icons:
-		if icon.phase == FxResource.Phase.RISE:
-			var box := Rect2(icon.position - ResourceIcon.SIZE / 2.0, ResourceIcon.SIZE)
-			icon.position += _band_shift(box)
+## Keeps [param icon] (a resource drop) inside that band while it rises and hangs where the
+## fighter fell; one flying to its place beside the gold crosses the screen to get there, as a coin
+## does, and is left alone.
+func keep_drop_in_band(icon: FxResource) -> void:
+	if icon.phase == FxResource.Phase.RISE:
+		var box := Rect2(icon.position - ResourceIcon.SIZE / 2.0, ResourceIcon.SIZE)
+		icon.position += _band_shift(box)
 
 
 ## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
@@ -180,33 +158,43 @@ func number_color(event: SimEvent, fallback: StringName) -> StringName:
 ## The names showing over fighter [param id], lowest first.
 func names_over(id: int) -> Array[String]:
 	var found: Array[String] = []
+	var names: Array[FxText] = _names()
 	for slot: int in MAX_NAMES:
-		for text: FxText in _names:
-			if text.follow_id == id and _slots[text] == slot:
+		for text: FxText in names:
+			if text.follow_id == id and text.slot == slot:
 				found.append(text.text)
 	return found
 
 
 ## Every name and word showing.
 func texts() -> Array[FxText]:
-	var found: Array[FxText] = []
-	found.append_array(_names)
-	found.append_array(_words)
+	var found: Array[FxText] = _names()
+	for word: Node2D in _world.fx.nodes(&"ability_word"):
+		found.append(word as FxText)
 	return found
 
 
 ## How many particles of [param kind] these effects have now.
 func particles(kind: StringName) -> int:
 	var count: int = 0
-	for particle: FxParticle in _particles:
-		if particle.kind == kind:
+	for particle: Node2D in _world.fx.nodes(&"ability"):
+		if (particle as FxParticle).kind == kind:
 			count += 1
 	return count
 
 
+## Every particle these effects have now.
+func all_particles() -> Array[FxParticle]:
+	var found: Array[FxParticle] = []
+	found.assign(_world.fx.nodes(&"ability"))
+	return found
+
+
 ## The rings showing.
 func rings() -> Array[FxRing]:
-	return _rings.duplicate()
+	var found: Array[FxRing] = []
+	found.assign(_world.fx.nodes(&"ring"))
+	return found
 
 
 ## True while fighter [param id] is lit for an action's wind-up.
@@ -219,7 +207,7 @@ func is_glowing(id: int) -> bool:
 
 func _on_sim_event(event: SimEvent) -> void:
 	credit.observe(event)
-	var recent: bool = _world.is_recent(event)
+	var recent: bool = _world.may_animate(event)
 	if event.tick != _push_tick:
 		_pushing.clear()
 	if _pushing.get(event.source_id, &"") != &"" and recent:
@@ -369,8 +357,7 @@ func _ring(event: SimEvent, effect: AbilityEffect) -> void:
 	ring.reach = (effect.radius if effect.radius > 0.0 else RING_EVERYONE) * World.TILE
 	ring.life = RING_LIFE
 	ring.position = from.position + Vector2(0, -1)
-	_world.effects_layer.add_child(ring)
-	_rings.append(ring)
+	_world.fx.add(ring, &"ring")
 
 
 ## [param event] follows a push by its fighter in the same tick: if it is that ability's (a status
@@ -407,10 +394,10 @@ func _miss(event: SimEvent) -> void:
 	word.velocity = Vector2(_rng.randf_range(-10.0, 10.0), -MISS_LEAP)
 	word.gravity = MISS_GRAVITY
 	word.z_index = 1
-	_world.effects_layer.add_child(word)
-	_words.append(word)
+	word.follow = keep_text_in_band
 	var height: float = _height(target) * CombatEffects.NUMBER_HEIGHT
 	word.start(target.position + Vector2(0, -roundf(height)))
+	_world.fx.add(word, &"ability_word")
 
 
 ## What a status's strength is a multiple of ([enum AbilityEffect.Scale]), for fighter
@@ -460,7 +447,7 @@ func _announce(id: int, ability: AbilityDef) -> void:
 	if _world.character(id) == null:
 		return
 	var over: Array[FxText] = []
-	for text: FxText in _names:
+	for text: FxText in _names():
 		if text.follow_id == id:
 			if text.text == ability.display_name:
 				text.age = 0.0
@@ -468,14 +455,14 @@ func _announce(id: int, ability: AbilityDef) -> void:
 			over.append(text)
 	var taken: Dictionary[int, bool] = {}
 	for text: FxText in over:
-		taken[_slots[text]] = true
+		taken[text.slot] = true
 	if over.size() >= MAX_NAMES:
 		var oldest: FxText = over[0]
 		for text: FxText in over:
 			if text.age > oldest.age:
 				oldest = text
-		taken.erase(_slots[oldest])
-		_drop_name(oldest)
+		taken.erase(oldest.slot)
+		_world.fx.remove(oldest)
 	var slot: int = 0
 	while taken.has(slot):
 		slot += 1
@@ -490,38 +477,32 @@ func _announce(id: int, ability: AbilityDef) -> void:
 	name_text.velocity = Vector2(0, -NAME_DRIFT)
 	name_text.follow_id = id
 	name_text.z_index = 2
-	_world.effects_layer.add_child(name_text)
-	_names.append(name_text)
-	_slots[name_text] = slot
+	name_text.slot = slot
+	name_text.follow = _place_name
 	_place_name(name_text)
+	_world.fx.add(name_text, &"ability_name")
 
 
-func _advance_names(delta: float) -> void:
-	for text: FxText in _names.duplicate():
-		var sprite: CharacterSprite = _world.character(text.follow_id)
-		if sprite == null or not sprite.visible or not text.advance(delta):
-			_drop_name(text)  # nothing is left over a fighter that has gone
-			continue
-		_place_name(text)
+## The names showing, oldest first.
+func _names() -> Array[FxText]:
+	var found: Array[FxText] = []
+	found.assign(_world.fx.nodes(&"ability_name"))
+	return found
 
 
-## Puts [param text] over its fighter's head in its slot, inside the band.
-func _place_name(text: FxText) -> void:
+## Puts [param text] over its fighter's head in its slot, inside the band; false (it goes) once
+## the fighter is gone, as nothing is left over a fighter that has gone.
+func _place_name(text: FxText) -> bool:
 	var sprite: CharacterSprite = _world.character(text.follow_id)
-	if sprite == null:
-		return
+	if sprite == null or not sprite.visible:
+		return false
 	var head: float = SpriteBounds.body_rect(sprite).position.y
-	var anchor := Vector2(sprite.position.x, head - NAME_RAISE - _slots[text] * NAME_STEP)
+	var anchor := Vector2(sprite.position.x, head - NAME_RAISE - text.slot * NAME_STEP)
 	text.set_anchor(anchor)
 	var shift: Vector2 = _band_shift(text.rect())
 	if shift != Vector2.ZERO:
 		text.set_anchor(anchor + shift)
-
-
-func _drop_name(text: FxText) -> void:
-	_names.erase(text)
-	_slots.erase(text)
-	text.queue_free()
+	return true
 
 
 ## The name colour of fighter [param id]: a hero's class colour (its tally bar's), a monster's
@@ -611,14 +592,10 @@ func _advance_dust(delta: float) -> void:
 
 
 func _particle(kind: StringName) -> FxParticle:
-	if _particles.size() >= MAX_PARTICLES:
-		return null
 	var made := FxParticle.new()
 	made.name = "Particle"
 	made.kind = kind
-	_world.effects_layer.add_child(made)
-	_particles.append(made)
-	return made
+	return made if _world.fx.add(made, &"ability") else null
 
 
 ## The canvas height of a character's sprite, in pixels.

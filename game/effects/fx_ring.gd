@@ -2,8 +2,8 @@ class_name FxRing
 extends Node2D
 ## A ring of an action that strikes many: squares of one palette colour on a flat
 ## ellipse round its position (a fighter's or target's feet), widening from a few pixels to
-## [member reach] and blinking out. Nothing is smooth or faded. [AbilityEffects] creates and
-## advances it.
+## [member reach] and blinking out. Nothing is smooth or faded. [AbilityEffects] creates it;
+## the [FxPool] advances it.
 
 ## How flat the ellipse is: its height over its width, so it lies on the floor.
 const FLAT: float = 0.35

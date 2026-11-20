@@ -170,6 +170,6 @@ func _draw() -> void:
 func _on_sim_event(event: SimEvent) -> void:
 	if event.kind != SimEvent.Kind.HIT or event.target_id != _guardian_id or _guardian_id < 0:
 		return
-	if _world != null and not _world.is_recent(event):
+	if _world != null and not _world.may_animate(event):
 		return
 	_flash = FLASH_SECONDS

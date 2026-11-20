@@ -541,7 +541,7 @@ func test_r8_told_like_gold() -> void:
 	assert_lt(_hud.purse.shown(GLOWCAPS), _sim.party.resource(GLOWCAPS), "not counted yet")
 	var first: FxResource = icons[0]
 	var start: Vector2 = first.position
-	_fx.resource_effects.advance(0.2)
+	_fx.advance(0.2)
 	assert_lt(first.position.y, start.y, "it rises")
 	var rose_on_screen: bool = false
 	for i: int in 300:

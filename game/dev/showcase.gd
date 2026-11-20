@@ -22,105 +22,43 @@ signal moment_started(moment: StringName)
 ## Emitted once, when the last moment is over.
 signal finished
 
-## The moments, in order.
-const MOMENTS: Array[StringName] = [
-	&"travelling",
-	&"crit",
-	&"monster_death",
-	&"heal",
-	&"level_up",
-	&"resting",
-	&"climb_down",
-	&"climb_up",
-	&"wipe",
-	&"revival",
-	&"depth_stable",
-	&"clay_fight",
-	&"stone_fight",
-	&"deep_fight",
-	&"guardian_fight",
-	&"knight_actions",
-	&"rogue_actions",
-	&"mage_actions",
-	&"cleric_actions",
-	&"statuses",
-	&"quest_done",
-	&"quest_missed",
-	&"tripwire_sprung",
-	&"microskill_learned",
-	&"shop",
-	&"area_map",
-	&"journey",
-	&"four_areas",
-	&"talent_tree",
-	&"away_report",
+## The moments, in order, one row each: its name, what the label says, the seconds it goes on
+## showing once seen, how it begins (&"x" calls _begin_x with its name; &"" for nothing), and how
+## it is known to have been seen: an event of that kind, or &"x", which calls _watch_x.
+const ROWS: Array[Array] = [
+	[&"travelling", "TRAVELLING IN A TUNNEL", 1.0, &"", &"travelling"],
+	[&"crit", "A FIGHT WITH A CRIT", 1.2, &"", &"crit"],
+	[&"monster_death", "A MONSTER DIES: COINS AND XP", 1.2, &"", SimEvent.Kind.GOLD_GAINED],
+	[&"heal", "THE CLERIC HEALS", 1.2, &"", &"heal"],
+	[&"level_up", "A LEVEL UP", 1.2, &"level_up", SimEvent.Kind.LEVEL_UP],
+	[&"resting", "RESTING", 1.5, &"", &"resting"],
+	[&"climb_down", "ON TO THE NEXT STAGE", 1.0, &"climb_down", &"climb"],
+	[&"climb_up", "BACK A STAGE", 1.0, &"climb_up", &"climb"],
+	[&"wipe", "THE PARTY IS WIPED", 1.8, &"wipe", SimEvent.Kind.PARTY_WIPED],
+	[&"revival", "THE REVIVAL", 1.5, &"", SimEvent.Kind.PARTY_REVIVED],
+	[&"depth_stable", "A STAGE BECOMES STABLE", 1.0, &"depth_stable", &"stable"],
+	[&"clay_fight", "A FIGHT IN THE CLAYPITS, FOR CLAY", 1.5, &"band", &"band"],
+	[&"stone_fight", "A FIGHT IN THE OLD CRYPT, FOR OLD BONES", 1.5, &"band", &"band"],
+	[&"deep_fight", "A FIGHT IN EMBER DEEP, FOR EMBERS", 1.5, &"band", &"band"],
+	# The fight, then the guardian falls and its banner shows.
+	[&"guardian_fight", "A GUARDIAN HOLDS THE WAY ON", 7.0, &"guardian", &"guardian"],
+	[&"knight_actions", "THE KNIGHT'S ACTIONS", 1.2, &"class", &"class"],
+	[&"rogue_actions", "THE ROGUE'S ACTIONS", 1.2, &"class", &"class"],
+	[&"mage_actions", "THE MAGE'S ACTIONS", 1.2, &"class", &"class"],
+	[&"cleric_actions", "THE CLERIC'S ACTIONS", 1.2, &"class", &"class"],
+	[&"statuses", "EVERY STATUS, ON A ROW OF FIGHTERS", 2.0, &"class", &"statuses"],
+	[&"quest_done", "A SIDE QUEST: THE ROGUE PICKS A LOCK", 1.0, &"quest", &"quest_done"],
+	[&"quest_missed", "A SIDE QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
+	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
+	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
+	[&"shop", "THE CAMP WINDOW: A FIFTH RANK BOUGHT", 2.5, &"shop", &"shop"],
+	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO", 1.5, &"area_map", &"area_map"],
+	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
+	[&"four_areas", "THE FOUR AREAS", 0.2, &"four_areas", &"four_areas"],
+	# The path's banner shows after the node's.
+	[&"talent_tree", "THE KNIGHT CHOOSES A PATH", 2.5, &"talent_tree", &"talent_tree"],
+	[&"away_report", "THE AWAY REPORT", 2.0, &"away_report", &"away_report"],
 ]
-## What the label says during each moment.
-const CAPTIONS: Dictionary[StringName, String] = {
-	&"travelling": "TRAVELLING IN A TUNNEL",
-	&"crit": "A FIGHT WITH A CRIT",
-	&"monster_death": "A MONSTER DIES: COINS AND XP",
-	&"heal": "THE CLERIC HEALS",
-	&"level_up": "A LEVEL UP",
-	&"resting": "RESTING",
-	&"climb_down": "ON TO THE NEXT STAGE",
-	&"climb_up": "BACK A STAGE",
-	&"wipe": "THE PARTY IS WIPED",
-	&"revival": "THE REVIVAL",
-	&"depth_stable": "A STAGE BECOMES STABLE",
-	&"clay_fight": "A FIGHT IN THE CLAYPITS, FOR CLAY",
-	&"stone_fight": "A FIGHT IN THE OLD CRYPT, FOR OLD BONES",
-	&"deep_fight": "A FIGHT IN EMBER DEEP, FOR EMBERS",
-	&"guardian_fight": "A GUARDIAN HOLDS THE WAY ON",
-	&"knight_actions": "THE KNIGHT'S ACTIONS",
-	&"rogue_actions": "THE ROGUE'S ACTIONS",
-	&"mage_actions": "THE MAGE'S ACTIONS",
-	&"cleric_actions": "THE CLERIC'S ACTIONS",
-	&"statuses": "EVERY STATUS, ON A ROW OF FIGHTERS",
-	&"quest_done": "A SIDE QUEST: THE ROGUE PICKS A LOCK",
-	&"quest_missed": "A SIDE QUEST NOBODY CAN DO",
-	&"tripwire_sprung": "A TRIPWIRE NOBODY SPOTS",
-	&"microskill_learned": "THE ROGUE LEARNS A MICROSKILL",
-	&"shop": "THE CAMP WINDOW: A FIFTH RANK BOUGHT",
-	&"area_map": "THE MAP: WHERE THE PARTY CAN GO",
-	&"journey": "A JOURNEY TO THE CLAYPITS",
-	&"four_areas": "THE FOUR AREAS",
-	&"talent_tree": "THE KNIGHT CHOOSES A PATH",
-	&"away_report": "THE AWAY REPORT",
-}
-## Seconds a moment goes on showing once what it is about has happened.
-const LINGER: Dictionary[StringName, float] = {
-	&"travelling": 1.0,
-	&"crit": 1.2,
-	&"monster_death": 1.2,
-	&"heal": 1.2,
-	&"level_up": 1.2,
-	&"resting": 1.5,
-	&"climb_down": 1.0,
-	&"climb_up": 1.0,
-	&"wipe": 1.8,
-	&"revival": 1.5,
-	&"depth_stable": 1.0,
-	&"clay_fight": 1.5,
-	&"stone_fight": 1.5,
-	&"deep_fight": 1.5,
-	&"guardian_fight": 7.0,  # the fight, then the guardian falls and its banner shows
-	&"knight_actions": 1.2,
-	&"rogue_actions": 1.2,
-	&"mage_actions": 1.2,
-	&"cleric_actions": 1.2,
-	&"statuses": 2.0,
-	&"quest_done": 1.0,
-	&"quest_missed": 1.0,
-	&"tripwire_sprung": 1.0,
-	&"microskill_learned": 1.0,
-	&"shop": 2.5,
-	&"area_map": 1.5,
-	&"journey": 1.2,
-	&"four_areas": 0.2,
-	&"talent_tree": 2.5,  # the path's banner shows after the node's
-	&"away_report": 2.0,
-}
 ## A moment whose event has not come after this many seconds is given up (and has no evidence).
 const GIVE_UP_SECONDS: float = 20.0
 ## How much faster than real time the simulation runs while the party walks to its next fight.
@@ -237,7 +175,7 @@ const TREE_STEP: float = 0.6
 
 ## The game, as the main scene builds it.
 var main: Main
-## The moment showing now (an index into MOMENTS), or MOMENTS.size() once the pass is over.
+## The moment showing now (an index into [method table]), or its size once the pass is over.
 var moment_index: int = -1
 ## Per moment: true once the matching state or event was really present in the simulation.
 var evidence: Dictionary[StringName, bool] = {}
@@ -298,9 +236,23 @@ func _process(delta: float) -> void:
 	advance(delta)
 
 
+## The moments' names, in order.
+static func names() -> Array[StringName]:
+	var found: Array[StringName] = []
+	for row: Array in ROWS:
+		found.append(row[0])
+	return found
+
+
+## What the label says during moment [param wanted], or "" for no moment.
+static func caption(wanted: StringName) -> String:
+	var index: int = names().find(wanted)
+	return ROWS[index][1] if index >= 0 else ""
+
+
 ## Starts the moment [param wanted] now, skipping those before it (for tests and a quick look).
 func skip_to(wanted: StringName) -> void:
-	var index: int = MOMENTS.find(wanted)
+	var index: int = names().find(wanted)
 	if index < 0 or done:
 		return
 	moment_index = index - 1
@@ -309,9 +261,12 @@ func skip_to(wanted: StringName) -> void:
 
 ## The moment showing now, or &"" once the pass is over.
 func moment() -> StringName:
-	if moment_index < 0 or moment_index >= MOMENTS.size():
-		return &""
-	return MOMENTS[moment_index]
+	return _row()[0] if not _row().is_empty() else &""
+
+
+## The row of the moment showing now (see [constant ROWS]), or an empty one.
+func _row() -> Array:
+	return ROWS[moment_index] if moment_index >= 0 and moment_index < ROWS.size() else []
 
 
 ## Moves the showcase on by [param delta] seconds: steers the simulation, steps it, and brings
@@ -325,7 +280,7 @@ func advance(delta: float) -> void:
 		speed = WALK_SPEED_UP
 	_steer()
 	main.driver.advance(roundi(delta * speed * 1_000_000.0))
-	_look()
+	_watch(null)
 	main.world.sync(delta)
 	main.effects.advance(delta)
 	_label_statuses()
@@ -334,8 +289,8 @@ func advance(delta: float) -> void:
 	_moment_time += delta
 	if _since_evidence >= 0.0:
 		_since_evidence += delta
-	var current: StringName = moment()
-	if _since_evidence >= LINGER[current] or _moment_time >= GIVE_UP_SECONDS:
+	var linger: float = _row()[2]
+	if _since_evidence >= linger or _moment_time >= GIVE_UP_SECONDS:
 		_end_moment()
 		_next_moment()
 
@@ -350,15 +305,16 @@ func _next_moment() -> void:
 	_steered.clear()
 	_moves_used.clear()
 	_actions_used = false
-	if moment_index >= MOMENTS.size():
+	var row: Array = _row()
+	if row.is_empty():
 		done = true
 		_caption.text = "THE SHOWCASE IS OVER"
 		finished.emit()
 		return
-	var current: StringName = moment()
-	_caption.text = "%d/%d  %s" % [moment_index + 1, MOMENTS.size(), CAPTIONS[current]]
-	_begin(current)
-	moment_started.emit(current)
+	_caption.text = "%d/%d  %s" % [moment_index + 1, ROWS.size(), row[1]]
+	if row[3] != &"":
+		call("_begin_%s" % row[3], row[0])
+	moment_started.emit(row[0])
 
 
 func _see() -> void:
@@ -367,112 +323,156 @@ func _see() -> void:
 		_since_evidence = 0.0
 
 
-## Sets the stage for [param current], the moment starting now.
-func _begin(current: StringName) -> void:
+## Tells the moment showing of [param event], or with null of the frame's state: it is seen once
+## its row says so.
+func _watch(event: SimEvent) -> void:
+	var row: Array = _row()
+	if done or row.is_empty():
+		return
+	if row[4] is int:
+		if event != null and event.kind == row[4]:
+			_see()
+	else:
+		call("_watch_%s" % row[4], event)
+
+
+# --- How each moment begins ---------------------------------------------------
+
+
+func _begin_level_up(_current: StringName) -> void:
+	# The front hero is one XP short of its next level: the next kill pays for it.
+	var hero: Hero = main.simulation.party.heroes[0]
+	hero.xp = Hero.xp_for_level(hero.level + 1) - 1
+
+
+func _begin_climb_down(_current: StringName) -> void:
+	_settle_now()
+	_cut_to_depth(CLIMB_DEPTH, CLIMB_DEPTH + 1)
+	_cut_to_shaft()
+
+
+func _begin_climb_up(_current: StringName) -> void:
+	main.simulation.set_target_depth(CLIMB_DEPTH)
+
+
+func _begin_wipe(_current: StringName) -> void:
+	for hero: Hero in main.simulation.party.heroes:
+		hero.health = 0
+
+
+func _begin_depth_stable(_current: StringName) -> void:
+	var expedition: Expedition = main.simulation.expedition
+	main.simulation.set_auto_push(false)
+	expedition.last_stable_depth = expedition.depth - 1
+	expedition.stable_seconds = 1.0
+
+
+func _begin_band(current: StringName) -> void:
+	main.simulation.expedition.stable_seconds = 600.0
+	_settle_now()
+	for hero: Hero in main.simulation.party.heroes:
+		hero.level = BAND_LEVELS[current]
+		hero.health = hero.max_health()
+	_cut_to_area(BAND_AREAS[current])
+	_cut_to_depth(BAND_STAGE, BAND_STAGE)
+	_cut_to_fight()
+
+
+## A class's moment, or the statuses': every hero at CLASS_LEVEL, the class's own hero with its
+## trunk and path taken.
+func _begin_class(current: StringName) -> void:
+	_settle_now()
+	_cut_to_area(AreaTravel.first_area())
+	for hero: Hero in main.simulation.party.heroes:
+		_set_level(hero, CLASS_LEVEL)
+		hero.set_talents([])
+		if CLASS_MOMENTS.get(current, &"") == hero.class_id:
+			var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+			var nodes: Array[StringName] = tree.trunk.duplicate()
+			nodes.append_array(tree.path_nodes(CLASS_PATHS[hero.class_id]))
+			hero.set_talents(nodes)
+	_cut_to_depth(CLASS_STAGE, CLASS_STAGE)
+	_cut_to_fight()
+
+
+func _begin_guardian(_current: StringName) -> void:
+	_settle_now()
+	_cut_to_area(AreaTravel.first_area())
+	for hero: Hero in main.simulation.party.heroes:
+		_set_level(hero, GUARDIAN_LEVEL)
+	_cut_to_depth(GUARDIAN_DEPTH, GUARDIAN_DEPTH + 1)
+	_cut_to_guardian()
+
+
+func _begin_quest(current: StringName) -> void:
+	_settle_now()
 	var sim: Simulation = main.simulation
-	var expedition: Expedition = sim.expedition
-	match current:
-		&"level_up":
-			# The front hero is one XP short of its next level: the next kill pays for it.
-			var hero: Hero = sim.party.heroes[0]
-			hero.xp = Hero.xp_for_level(hero.level + 1) - 1
-		&"climb_down":
-			_settle_now()
-			_cut_to_depth(CLIMB_DEPTH, CLIMB_DEPTH + 1)
-			_cut_to_shaft()
-		&"climb_up":
-			sim.set_target_depth(CLIMB_DEPTH)
-		&"wipe":
-			for hero: Hero in sim.party.heroes:
-				hero.health = 0
-		&"depth_stable":
-			sim.set_auto_push(false)
-			expedition.last_stable_depth = expedition.depth - 1
-			expedition.stable_seconds = 1.0
-		&"clay_fight", &"stone_fight", &"deep_fight":
-			expedition.stable_seconds = 600.0
-			_settle_now()
-			for hero: Hero in sim.party.heroes:
-				hero.level = BAND_LEVELS[current]
-				hero.health = hero.max_health()
-			_cut_to_area(BAND_AREAS[current])
-			_cut_to_depth(BAND_STAGE, BAND_STAGE)
-			_cut_to_fight()
-		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions", &"statuses":
-			_settle_now()
-			_cut_to_area(AreaTravel.first_area())
-			for hero: Hero in sim.party.heroes:
-				_set_level(hero, CLASS_LEVEL)
-				hero.set_talents([])
-				if CLASS_MOMENTS.get(current, &"") == hero.class_id:
-					var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-					var nodes: Array[StringName] = tree.trunk.duplicate()
-					nodes.append_array(tree.path_nodes(CLASS_PATHS[hero.class_id]))
-					hero.set_talents(nodes)
-			_cut_to_depth(CLASS_STAGE, CLASS_STAGE)
-			_cut_to_fight()
-		&"guardian_fight":
-			_settle_now()
-			_cut_to_area(AreaTravel.first_area())
-			for hero: Hero in sim.party.heroes:
-				_set_level(hero, GUARDIAN_LEVEL)
-			_cut_to_depth(GUARDIAN_DEPTH, GUARDIAN_DEPTH + 1)
-			_cut_to_guardian()
-		&"quest_done", &"quest_missed", &"tripwire_sprung", &"microskill_learned":
-			_settle_now()
-			for hero: Hero in sim.party.heroes:
-				_set_level(hero, QUEST_LEVEL)
-			var rogue: Hero = sim.party.hero(ROGUE)
-			if current != &"quest_done":
-				# Nobody else picks locks or spots traps: at level 1, neither does the rogue.
-				_set_level(rogue, 1)
-			if current == &"microskill_learned":
-				# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
-				rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
-			_cut_to_quest(QUEST_OF[current])
-		&"shop":
-			# The shop's window, gold for a few ranks, and the first row bought: Sharp Blades' fifth
-			# rank, so the card bursts and a banner drops in.
-			_settle_now()
-			sim.party.gold = SHOP_GOLD
-			sim.upgrades.set_rank(SHOP_UPGRADE, SHOP_RANK - 1)
-			var bones: StringName = Content.upgrade(SHOP_UPGRADE).resource
-			sim.party.set_resource(bones, sim.upgrades.resource_cost(SHOP_UPGRADE))
-			main.hud.shop.open()
-			main.hud.shop.buy_row(0)
-		&"area_map":
-			_settle_now()
-			expedition.travel.open[NEW_AREA] = true
-			main.hud.area_map.open()
-			main.hud.area_map.choose(NEW_AREA)
-		&"journey":
-			_settle_now()
-			_map_on_the_way = false
-			expedition.travel.open[NEW_AREA] = true  # on its own too, after skip_to
-			main.hud.area_map.open()
-			main.hud.area_map.choose(NEW_AREA)
-			main.hud.area_map.go()
-		&"four_areas":
-			_settle_now()
-			sim.set_auto_push(false)
-			for hero: Hero in sim.party.heroes:
-				_set_level(hero, AREA_LEVEL)
-			_area_turn = -1
-			_areas_seen.clear()
-		&"talent_tree":
-			# The knight at level 8 with two trunk nodes taken and two points to spend: one for the
-			# last trunk node, one for a path.
-			_settle_now()
-			var knight: Hero = sim.party.heroes[0]
-			_set_level(knight, TREE_LEVEL)
-			var trunk: Array[StringName] = Content.talent_tree(knight.class_id).trunk
-			knight.set_talents(trunk.slice(0, 2))
-			main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
-			_tree_clicks = 0
-		&"away_report":
-			# The report after time away, as a window over the game.
-			_settle_now()
-			main.away_window = main.ui.show_away(_away_report(), sim.party)
+	for hero: Hero in sim.party.heroes:
+		_set_level(hero, QUEST_LEVEL)
+	var rogue: Hero = sim.party.hero(ROGUE)
+	if current != &"quest_done":
+		# Nobody else picks locks or spots traps: at level 1, neither does the rogue.
+		_set_level(rogue, 1)
+	if current == &"microskill_learned":
+		# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
+		rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
+	_cut_to_quest(QUEST_OF[current])
+
+
+## The shop's window, gold for a few ranks, and the first row bought: Sharp Blades' fifth rank,
+## so the card bursts and a banner drops in.
+func _begin_shop(_current: StringName) -> void:
+	_settle_now()
+	var sim: Simulation = main.simulation
+	sim.party.gold = SHOP_GOLD
+	sim.upgrades.set_rank(SHOP_UPGRADE, SHOP_RANK - 1)
+	var bones: StringName = Content.upgrade(SHOP_UPGRADE).resource
+	sim.party.set_resource(bones, sim.upgrades.resource_cost(SHOP_UPGRADE))
+	main.hud.shop.open()
+	main.hud.shop.buy_row(0)
+
+
+func _begin_area_map(_current: StringName) -> void:
+	_settle_now()
+	main.simulation.expedition.travel.open[NEW_AREA] = true
+	main.hud.area_map.open()
+	main.hud.area_map.choose(NEW_AREA)
+
+
+func _begin_journey(_current: StringName) -> void:
+	_settle_now()
+	_map_on_the_way = false
+	main.simulation.expedition.travel.open[NEW_AREA] = true  # on its own too, after skip_to
+	main.hud.area_map.open()
+	main.hud.area_map.choose(NEW_AREA)
+	main.hud.area_map.go()
+
+
+func _begin_four_areas(_current: StringName) -> void:
+	_settle_now()
+	main.simulation.set_auto_push(false)
+	for hero: Hero in main.simulation.party.heroes:
+		_set_level(hero, AREA_LEVEL)
+	_area_turn = -1
+	_areas_seen.clear()
+
+
+## The knight at level 8 with two trunk nodes taken and two points to spend: one for the last
+## trunk node, one for a path.
+func _begin_talent_tree(_current: StringName) -> void:
+	_settle_now()
+	var knight: Hero = main.simulation.party.heroes[0]
+	_set_level(knight, TREE_LEVEL)
+	var trunk: Array[StringName] = Content.talent_tree(knight.class_id).trunk
+	knight.set_talents(trunk.slice(0, 2))
+	main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
+	_tree_clicks = 0
+
+
+## The report after time away, as a window over the game.
+func _begin_away_report(_current: StringName) -> void:
+	_settle_now()
+	main.away_window = main.ui.show_away(_away_report(), main.simulation.party)
 
 
 func _end_moment() -> void:
@@ -558,119 +558,151 @@ func _steer() -> void:
 					monster.health = 1
 
 
-## Records what the simulation's state shows this frame.
-func _look() -> void:
-	if done:
-		return
+# --- How each moment is seen --------------------------------------------------
+
+
+func _watch_travelling(event: SimEvent) -> void:
 	var expedition: Expedition = main.simulation.expedition
-	match moment():
-		&"travelling":
-			if expedition.state == Expedition.State.TRAVELLING and expedition.chamber() == null:
-				_see()
-		&"resting":
-			if expedition.state == Expedition.State.RESTING:
-				_see()
-		&"clay_fight", &"stone_fight", &"deep_fight":
-			if (
-				expedition.state == Expedition.State.FIGHTING
-				and expedition.battle != null
-				and expedition.place == BAND_AREAS[moment()]
-			):
-				_see()
-		&"guardian_fight":
-			var guardian: Combatant = GuardianSpacing.fighting_guardian(main.simulation)
-			if guardian != null:
-				_see()
-				if _since_evidence >= GUARDIAN_WATCH:
-					guardian.health = mini(guardian.health, 1)  # it falls, for its banner
-		&"area_map":
-			if main.hud.area_map.is_open():
-				_see()
-		&"journey":
-			# On the way, the map shows where to and how long.
-			if expedition.state == Expedition.State.JOURNEYING and not _map_on_the_way:
-				_map_on_the_way = true
-				main.hud.area_map.open()
-		&"four_areas":
-			_show_areas()
-		&"statuses":
-			var seen: Dictionary[int, bool] = {}
-			var marks: StatusMarks = main.effects.ability_effects.marks
-			for id: int in marks.book.fighters():
-				for kind: int in marks.shown(id):
-					seen[kind] = true
-			if seen.size() == AbilityEffect.Status.size():
-				_see()
-		&"talent_tree":
-			_click_through_tree()
-		&"away_report":
-			if is_instance_valid(main.away_window) and main.away_window.is_open():
-				_see()
+	if event == null and expedition.state == Expedition.State.TRAVELLING:
+		if expedition.chamber() == null:
+			_see()
+
+
+func _watch_crit(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.HIT and event.flag:
+		_see()
+
+
+func _watch_heal(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.HEALED and event.amount > 0:
+		_see()
+
+
+func _watch_resting(event: SimEvent) -> void:
+	if event == null and main.simulation.expedition.state == Expedition.State.RESTING:
+		_see()
+
+
+func _watch_climb(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.DEPTH_CHANGED:
+		var wanted: int = CLIMB_DEPTH + (1 if moment() == &"climb_down" else 0)
+		if event.amount == wanted:
+			_see()
+
+
+func _watch_band(event: SimEvent) -> void:
+	var expedition: Expedition = main.simulation.expedition
+	if (
+		event == null
+		and expedition.state == Expedition.State.FIGHTING
+		and expedition.battle != null
+		and expedition.place == BAND_AREAS[moment()]
+	):
+		_see()
+
+
+func _watch_guardian(event: SimEvent) -> void:
+	var guardian: Combatant = GuardianSpacing.fighting_guardian(main.simulation)
+	if event == null and guardian != null:
+		_see()
+		if _since_evidence >= GUARDIAN_WATCH:
+			guardian.health = mini(guardian.health, 1)  # it falls, for its banner
+
+
+func _watch_class(event: SimEvent) -> void:
+	if event == null or event.kind != SimEvent.Kind.ABILITY_USED:
+		return
+	var ability: AbilityDef = Content.ability(event.ability_id)
+	var hero: Hero = main.simulation.party.hero(event.source_id)
+	if ability == null or hero == null or not main.world.may_animate(event):
+		return
+	if hero.class_id == CLASS_MOMENTS[moment()]:
+		_moves_used[ability.move] = true
+		_actions_used = _actions_used or ability.is_action()
+		if _actions_used and _moves_used.size() >= CLASS_MOVES_SEEN:
+			_see()
+
+
+func _watch_statuses(event: SimEvent) -> void:
+	if event != null:
+		return
+	var seen: Dictionary[int, bool] = {}
+	var marks: StatusMarks = main.effects.ability_effects.marks
+	for id: int in marks.book.fighters():
+		for kind: int in marks.shown(id):
+			seen[kind] = true
+	if seen.size() == AbilityEffect.Status.size():
+		_see()
+
+
+func _watch_stable(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:
+		_see()
+
+
+func _watch_quest_done(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+		_see()
+
+
+func _watch_learned(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.MICROSKILL_LEARNED:
+		_see()
+
+
+func _watch_missed(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and not event.flag:
+		_see()
+
+
+func _watch_sprung(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and event.flag:
+		_see()
+
+
+func _watch_shop(event: SimEvent) -> void:
+	if event == null or event.kind != SimEvent.Kind.UPGRADE_BOUGHT:
+		return
+	if main.hud.shop.is_open() and event.amount == SHOP_RANK:
+		_see()
+
+
+func _watch_area_map(event: SimEvent) -> void:
+	if event == null and main.hud.area_map.is_open():
+		_see()
+
+
+## On the way, the map shows where to and how long; the arrival is the moment.
+func _watch_journey(event: SimEvent) -> void:
+	if event != null and event.kind == SimEvent.Kind.AREA_CHANGED:
+		_see()
+	var journeying: bool = main.simulation.expedition.state == Expedition.State.JOURNEYING
+	if event == null and journeying and not _map_on_the_way:
+		_map_on_the_way = true
+		main.hud.area_map.open()
+
+
+func _watch_four_areas(event: SimEvent) -> void:
+	if event == null:
+		_show_areas()
+
+
+func _watch_talent_tree(event: SimEvent) -> void:
+	if event == null:
+		_click_through_tree()
+		return
+	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
+	if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
+		_see()
+
+
+func _watch_away_report(event: SimEvent) -> void:
+	if event == null and is_instance_valid(main.away_window) and main.away_window.is_open():
+		_see()
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	if done:
-		return
-	match moment():
-		&"crit":
-			if event.kind == SimEvent.Kind.HIT and event.flag:
-				_see()
-		&"monster_death":
-			if event.kind == SimEvent.Kind.GOLD_GAINED:
-				_see()
-		&"heal":
-			if event.kind == SimEvent.Kind.HEALED and event.amount > 0:
-				_see()
-		&"level_up":
-			if event.kind == SimEvent.Kind.LEVEL_UP:
-				_see()
-		&"climb_down", &"climb_up":
-			if event.kind == SimEvent.Kind.DEPTH_CHANGED:
-				var wanted: int = CLIMB_DEPTH + (1 if moment() == &"climb_down" else 0)
-				if event.amount == wanted:
-					_see()
-		&"wipe":
-			if event.kind == SimEvent.Kind.PARTY_WIPED:
-				_see()
-		&"revival":
-			if event.kind == SimEvent.Kind.PARTY_REVIVED:
-				_see()
-		&"shop":
-			var bought: bool = event.kind == SimEvent.Kind.UPGRADE_BOUGHT
-			if bought and main.hud.shop.is_open() and event.amount == SHOP_RANK:
-				_see()
-		&"depth_stable":
-			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:
-				_see()
-		&"quest_done":
-			if event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
-				_see()
-		&"quest_missed":
-			if event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and not event.flag:
-				_see()
-		&"tripwire_sprung":
-			if event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and event.flag:
-				_see()
-		&"microskill_learned":
-			if event.kind == SimEvent.Kind.MICROSKILL_LEARNED:
-				_see()
-		&"journey":
-			if event.kind == SimEvent.Kind.AREA_CHANGED:
-				_see()
-		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions":
-			var ability: AbilityDef = Content.ability(event.ability_id)
-			var hero: Hero = main.simulation.party.hero(event.source_id)
-			if event.kind == SimEvent.Kind.ABILITY_USED and ability != null and hero != null:
-				var seen: bool = main.world.is_recent(event) and not main.world.catching_up()
-				if seen and hero.class_id == CLASS_MOMENTS[moment()]:
-					_moves_used[ability.move] = true
-					_actions_used = _actions_used or ability.is_action()
-					if _actions_used and _moves_used.size() >= CLASS_MOVES_SEEN:
-						_see()
-		&"talent_tree":
-			var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
-			if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
-				_see()
+	_watch(event)
 
 
 ## True while the moment waits for a fight the party is still walking to.
@@ -769,10 +801,10 @@ func _label_statuses() -> void:
 			_status_labels.append(made)
 		var label: Label = _status_labels[shown]
 		shown += 1
-		var names: PackedStringArray = []
+		var said: PackedStringArray = []
 		for kind: int in kinds:
-			names.append(ShownStatus.status_name(kind))
-		label.text = "\n".join(names)
+			said.append(ShownStatus.status_name(kind))
+		label.text = "\n".join(said)
 		label.reset_size()
 		var feet: Vector2 = (
 			(sprite.position - camera.position - camera.offset) * camera.zoom + view / 2.0

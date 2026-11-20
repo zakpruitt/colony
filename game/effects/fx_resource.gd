@@ -2,7 +2,10 @@ class_name FxResource
 extends Node2D
 ## One icon of a resource drop: it rises a little from where the monster fell,
 ## hangs a moment, then flies to the resource's place beside the gold. [ResourceEffects] creates
-## it, advances it with where its target is now, and counts its share in when it arrives.
+## it and counts its share in when it arrives; the [FxPool] advances it.
+
+## It has reached its place, carrying [param amount] of the resource at [param resource_index].
+signal arrived(resource_index: int, amount: int)
 
 enum Phase { RISE, FLY }
 
@@ -25,6 +28,10 @@ var phase: Phase = Phase.RISE
 var age: float = 0.0
 ## Where it started, in world pixels.
 var start_position: Vector2
+## Where it flies to now, in world pixels: () -> Vector2.
+var target: Callable
+## Called with the icon after each advance it goes on from, to keep it where it may be.
+var follow: Callable
 
 var _texture: Texture2D
 var _exact: Vector2
@@ -48,8 +55,18 @@ func start(at: Vector2) -> void:
 	queue_redraw()
 
 
-## Moves it on by [param delta] seconds toward [param target] (world pixels). True on arrival.
-func advance(delta: float, target: Vector2) -> bool:
+## Moves it on by [param delta] seconds toward its [member target]. False once it has arrived.
+func advance(delta: float) -> bool:
+	if _arrived(delta):
+		arrived.emit(index, share)
+		return false
+	if follow.is_valid():
+		follow.call(self)
+	return true
+
+
+func _arrived(delta: float) -> bool:
+	var goal: Vector2 = target.call() if target.is_valid() else _exact
 	age += delta
 	match phase:
 		Phase.RISE:
@@ -60,11 +77,11 @@ func advance(delta: float, target: Vector2) -> bool:
 				phase = Phase.FLY
 		Phase.FLY:
 			_speed += FLY_ACCELERATION * delta
-			var gap: Vector2 = target - _exact
+			var gap: Vector2 = goal - _exact
 			var step: float = _speed * delta
 			if gap.length() <= maxf(step, ARRIVE):
-				_exact = target
-				position = target.round()
+				_exact = goal
+				position = goal.round()
 				return true
 			_exact += gap / gap.length() * step
 	position = _exact.round()

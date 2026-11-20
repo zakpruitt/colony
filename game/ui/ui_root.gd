@@ -128,7 +128,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	if hud != null:  # the hero windows, each opened from its hero's frame
 		hero_windows = HeroWindows.new()
 		frame.add_child(hero_windows)
-		hero_windows.setup(simulation, self, tip)
+		hero_windows.setup(simulation, self, tip, hud._world)
 		hud.hero_windows = hero_windows
 	moment = UiMoment.new()  # over the windows, under the tips and the defeat note
 	frame.add_child(moment)

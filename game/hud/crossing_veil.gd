@@ -45,9 +45,12 @@ func darkness() -> float:
 	return _darkness_now()
 
 
-## Brings the veil and its title up to date with the world's crossing.
+## Brings the veil and its title up to date with the world's crossing. Hidden with no crossing
+## dark, it has nothing to do.
 func refresh() -> void:
 	var dark: float = _darkness_now()
+	if dark <= 0.0 and not visible:
+		return
 	visible = dark > 0.0
 	var text: String = _world.crossing.title() if _world != null and visible else ""
 	if title_label.text != text:

@@ -6,7 +6,7 @@ extends RefCounted
 ## that steps many ticks at once (4x, a hitch, a return from time away) hears its events one by
 ## one, so a guardian slain before a journey belongs to the area left, not the one reached.
 ##
-## It starts from the simulation (a loaded game) and then changes only through [method hear].
+## It starts from the simulation (a loaded game) and then changes only through the world's events.
 
 ## The area the events heard so far are in: AREA_CHANGED moves it.
 var here: StringName = &""
@@ -25,8 +25,11 @@ var watching: bool = false
 var _simulation: Simulation
 
 
-func _init(simulation: Simulation) -> void:
+## Starts from [param simulation] and hears [param world]'s events (none with null).
+func _init(simulation: Simulation, world: World = null) -> void:
 	_simulation = simulation
+	if world != null and not world.sim_event.is_connected(_on_sim_event):
+		world.sim_event.connect(_on_sim_event)
 	if simulation == null:
 		return
 	here = simulation.expedition.place
@@ -39,7 +42,7 @@ func _init(simulation: Simulation) -> void:
 
 
 ## Takes in one event, in the order the simulation reported it.
-func hear(event: SimEvent) -> void:
+func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
 		SimEvent.Kind.AREA_CHANGED:
 			here = area_at(event.amount)

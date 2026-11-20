@@ -101,7 +101,7 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 	_tell([bash, blow])
 	assert_gt(_abilities().particles(&"heavy"), 0, "Shield Bash lands heavy")
 	var largest: int = 0
-	for particle: FxParticle in _abilities()._particles:
+	for particle: FxParticle in _abilities().all_particles():
 		largest = maxi(largest, particle.size)
 	assert_gt(largest, 11, "its flash is larger than a crit's (11)")
 
@@ -759,6 +759,7 @@ func test_r8_still_readable() -> void:
 	_world.speed = 4
 	assert_true(_find_fight(5, 4, false, TOUGHER * 4), "a fight of four heroes and five monsters")
 	assert_eq(_sim.expedition.battle.monsters.size(), 5, "five monsters")
+	_frame()  # the world catches up on the hunt, which starts nothing (spec 076 R3)
 	var covering: Dictionary[FxText, int] = {}
 	var longest: int = 0
 	var unnamed: Array[String] = []
@@ -874,7 +875,7 @@ func test_r9_in_the_showcase() -> void:
 		&"knight_actions", &"rogue_actions", &"mage_actions", &"cleric_actions", &"statuses"
 	]
 	for moment: StringName in moments:
-		assert_has(Showcase.MOMENTS, moment, "%s is a moment" % moment)
+		assert_has(Showcase.names(), moment, "%s is a moment" % moment)
 	var scene: PackedScene = load("res://game/dev/showcase.tscn")
 	var showcase: Showcase = scene.instantiate() as Showcase
 	add_child_autofree(showcase)
