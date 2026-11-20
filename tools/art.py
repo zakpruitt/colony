@@ -277,7 +277,7 @@ def describe(sprite: Sprite) -> str:
         "parts": [name for name, _ in sprite.parts],
     }
     if sprite.part_pivots:
-        # Only when declared, so sheets without part pivots bake exactly as before spec 007.
+        # Only when declared, so a sheet without part pivots bakes with no pivots field at all.
         described["part_pivots"] = {
             name: list(sprite.part_pivots[name]) for name, _ in sprite.parts if name in sprite.part_pivots
         }

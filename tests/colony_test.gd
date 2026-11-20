@@ -1,6 +1,6 @@
 class_name ColonyTest
 extends GutTest
-## What every Colony test shares (spec 071): keys and the mouse pushed into the viewport as the
+## What every Colony test shares: keys and the mouse pushed into the viewport as the
 ## window would send them, heroes raised to a level, a simulation stepped until something holds,
 ## the main scene, and files of this process's own under user://, deleted after each test and
 ## after the last one.

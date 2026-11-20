@@ -10,7 +10,7 @@ runs in one Godot boot.
 
 ## Start from `ColonyTest`
 
-Every test script `extends ColonyTest` (`tests/colony_test.gd`, spec 071), directly or through a per-spec
+Every test script `extends ColonyTest` (`tests/colony_test.gd`), directly or through a per-spec
 base; `tests/unit/test_colony_test.gd` fails on one that does not. It holds what the tests used to copy:
 
 | Helper | Does |
@@ -72,7 +72,7 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   a `game/` class will not load against the old `sim/`), then `git checkout HEAD -- sim` and delete the
   recorder.
 - A change to the default game (tuning, timing) breaks every recorded hash at once, and they are in several
-  files with different intervals (016, 022 and 029 every 1500 ticks, 035 every 600). `grep -rn
+  files with different intervals (016 and 022 every 1500 ticks, 035 every 600, and others since). `grep -rn
   RECORDED_HASHES tests/` and re-run each test's own loop; a later merge can bring in a new one.
 - When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
   line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
@@ -85,7 +85,7 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   yourself: call the method with a delta, or step the sim directly.
 - `await get_tree().process_frame` resumes before that frame's `_process` calls have run. To see what a node's
   `_process` did, await two frames, or use GUT's `await wait_process_frames(2)`.
-- The headless window is tiny. Send keys and actions with `Input.parse_input_event`, not mouse positions.
+- The headless window is tiny: place a click from the control's own rect, never from a fixed screen point.
 - A mouse event pushed into the viewport (`get_viewport().push_input(event, true)`) does reach a HUD's
   `_gui_input` and its hover, but only if the HUD is on a `CanvasLayer` above GUT's own window (layer 128,
   whose panel otherwise takes every click) and not on the root canvas (where the world's camera moves it away
@@ -109,7 +109,7 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   piece (a goal row, the stage list, the ticker) must raise its `UiRoot` above GUT's window too
   (`ui.layer = 130`), not only the HUD's layer. Left at 20, the pushed events never reach the piece, and the
   failure can show up in a later script instead (spec 060's Tab tests failed only in the full run).
-- `python tools/dev.py test` prints only the last 150 lines. For a long failing run, call Godot with GUT
+- `python tools/dev.py test` prints only the last 400 lines. For a long failing run, call Godot with GUT
   yourself (`godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit -gselect=<part>`) and write
   the whole output to a file to read the failures.
 - A `CanvasLayer` that draws into another viewport (`custom_viewport`) must be given it before it enters the
@@ -145,7 +145,7 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   page is shown. Check the page (`is_visible_in_tree()` on the page), not the button: a control whose
   visibility a refresh sets lags one HUD frame, and a key pressed right after a level up finds it still hidden
   (spec 055 broke spec 030's `1-3` test this way).
-- The showcase's whole pass is held under 90 s by test_018 and runs close to it (89.5 s after spec 055). A new
+- The showcase's whole pass is held under `PASS_LIMIT` (150 s) by test_018. A new
   moment gets about a second: do its clicks at once and a few tenths apart, and keep its linger short. To
   measure, swap the `PASS_LIMIT` assert for `assert_lt(showcase.elapsed, 1.0)` locally, read the value, and
   restore it.
@@ -280,3 +280,10 @@ by value, not with `assert_eq` against ints.
   which file floods, run Godot directly with the output capped on disk:
   `timeout -k 5 300 godot --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit -gselect=<file> 2>&1 | head -c 2000000 > out.txt`
   and read its tail; stop a stray run by its process id (`Stop-Process -Id`), never by name.
+- **A view told by a signal needs a test that starts with the state already there.** A content that
+  announces its count during its own setup does so before anything listens (the `Hud` is set up before
+  `UiRoot`), and never again while the count stays the same: spec 075 lost the Camp tag on a loaded save this
+  way, and its test, which began from no gold, could not see it. Load a save that already has the state.
+- **A test that reads source text breaks on a harmless move.** Prefer asserting what is shown or returned.
+  When only the source can show it (no call to X anywhere), scan folders with `ColonyTest.scripts_in`, not
+  a fixed file path, and never grep another test's source.

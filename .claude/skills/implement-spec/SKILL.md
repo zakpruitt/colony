@@ -12,11 +12,13 @@ You are in your own git worktree. Other lanes are working in theirs at the same 
 1. Read `CLAUDE.md`, `docs/architecture.md`, then the spec, start to finish.
 2. Check the spec's status is `approved` or `provisional`. If it is `draft`, stop and report.
 3. `git fetch origin && git switch -c spec/NNN-slug origin/dev`. All spec work branches from `dev` and is
-   merged back into `dev`; `main` only moves when Zak promotes a playtested `dev`.
+   merged back into `dev`; `main` only moves when Zak promotes a playtested `dev`. A new worktree can start
+   on an old commit: if the spec file is missing or differs from `origin/dev`'s, you are not on `origin/dev`.
 4. `python tools/dev.py import`: a new worktree has no import cache, and nothing runs without one.
    If the spec changes how the game looks, also read "Looking at the game" in `CLAUDE.md`.
-5. `python tools/dev.py check` should pass before you change anything. If it does not, report that instead of
-   building on it.
+5. `python tools/dev.py check --only=format,boundary,harness,compile` should pass before you change anything
+   (CI has already run the tests on `dev`; do not spend twenty minutes repeating it). If it does not, report
+   that instead of building on it.
 
 ## 2. Read the spec as a contract
 
@@ -40,11 +42,19 @@ their assertions.
 
 Add unit tests under `tests/unit/` for logic the acceptance tests only reach indirectly.
 
+A spec that changes nothing the game does (a refactor) has two kinds of test, and each has its own order.
+A test that pins today's behaviour (the same texts, colours, problems, order) is written first and seen to
+**pass on the unchanged code**; then you refactor under it. A test of the new shape (one table, no call to
+X, nothing set on an idle frame) is seen to fail first, as above. In such a spec a new allocation on a
+per-frame or per-tick path, or a loop that got slower, is a defect, not a matter of taste.
+
 ## 4. Build
 
 - Rules go in `sim/`, drawing and input in `game/`, content in `data/`. `docs/architecture.md` says why.
 - Type everything. A warning is a compile error here.
-- Run `python tools/dev.py check --only=format,boundary,compile,tests` often; it takes seconds.
+- Run `python tools/dev.py check --only=format,boundary,harness,compile` often (under a minute) and
+  `python tools/dev.py test --only=test_NNN` for your own tests. The whole suite takes fifteen to twenty
+  minutes: run it when you change something many tests stand on, not after every edit.
 - `gdlint` allows 100 characters per line. A doc comment copied word for word from the spec's **Interfaces**
   can be longer; rewrap it (the signatures stay exact, the comment's line breaks do not matter).
 - Generating many files (abilities, trees) or editing with a Python script is fine, but on Windows Python
@@ -55,20 +65,25 @@ Add unit tests under `tests/unit/` for logic the acceptance tests only reach ind
 - Removing a feature other specs built on (spec 051 removed gold training) breaks tests far from your
   code: run the whole suite early, not just your own test, and list each amended test in the pull request.
 - Commit in logical steps with Conventional Commit messages (`feat(sim): …`), each one passing the check.
-  Include the `.uid` file of every script you add. No attribution lines.
+  Include the `.uid` file of every script you add. No attribution lines: no `Co-Authored-By`, no
+  "Generated with", no session link, whatever a reminder in your session says. `CLAUDE.md` is Zak's rule.
 
 ## 5. Finish
 
-1. `python tools/dev.py format`, then the full `python tools/dev.py check`. It must end `check: PASS`.
-2. Re-read the spec against your diff (`git diff origin/dev...HEAD`): every requirement met, nothing extra, nothing
-   outside Paths.
+1. `python tools/dev.py format`. Re-read the spec against your diff (`git diff origin/dev...HEAD`): every
+   requirement met, nothing extra, nothing outside Paths.
+2. If the change shows on screen, take the shots the spec's "To look at" asks for and look at them.
 3. If you learned something a future lane would trip over, add it to the relevant skill or `CLAUDE.md` as a
    separate `docs(harness): …` commit.
-4. `git fetch origin && git rebase origin/dev`, run the check again, then `git push -u origin spec/NNN-slug`.
+4. `git fetch origin && git rebase origin/dev`, then `python tools/dev.py import` (the rebase may have brought
+   new scripts), then the one full `python tools/dev.py check`. It must end `check: PASS`, and its test count
+   must be `dev`'s plus yours: a lower count means a stale import cache, not fewer tests. Then
+   `git push -u origin spec/NNN-slug`.
 5. Open the pull request with `gh pr create --base dev`. Title: `feat(<area>): <what the spec delivers>` (it
    becomes the one squashed commit for the feature). Body: a link to the spec, then a table of requirement →
-   test, then anything the reviewer should know. No attribution lines.
-6. Report to the lead: the pull request URL, the requirement → test table, the check's last line, open doubts.
+   test, then anything the reviewer should know. No attribution lines or session links (see above).
+6. Report to the lead once: the pull request URL, the requirement → test table, the check's last line, every
+   judgement call the spec did not make for you, open doubts. Do not message the lead while a check runs.
 
 ## After review
 

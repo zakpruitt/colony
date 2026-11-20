@@ -21,8 +21,13 @@ Answer these, in this order:
 3. **Paths.** Any file changed outside the spec's Paths.
 4. **Architecture.** Anything in `sim/` that depends on time, nodes or global random state in a way the
    boundary check would not catch; rules decided in `game/`; content written as code instead of data.
-5. **Correctness.** Bugs you can describe concretely: the input or state, and what goes wrong.
+5. **Correctness.** Bugs you can describe concretely: the input or state, and what goes wrong. Look at the
+   order things are set up in: a signal emitted before its listener connects, a value read before it is set.
+6. **Cost.** A new allocation (an array, a dictionary, a string) or a slower loop on a per-frame or per-tick
+   path must change before merging, not a suggestion; so must a rule of the simulation copied into `game/`.
+7. **Tests the spec did not allow to change.** Any edit to an existing test beyond what the spec permits.
 
 Report findings most serious first, each with `file:line`, what is wrong, and why it matters. Separate what
 must change before merging from what is only a suggestion. If a requirement is met and well tested, say so in
-one line. If you could not verify something, say that instead of guessing.
+one line. If you could not verify something, say that instead of guessing. You do not look at screenshots:
+say so, so the lead does.

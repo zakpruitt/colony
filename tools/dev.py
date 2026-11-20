@@ -48,7 +48,7 @@ TAIL_BYTES = 20_000
 # Lines Godot prints when a script or the engine reports an error.
 ERROR_MARKERS = ("SCRIPT ERROR", "Parse Error", "ERROR:")
 
-# The shared test base (spec 071), the one test script that may name a user:// path.
+# The shared test base, the one test script that may name a user:// path.
 SHARED_TEST_BASE = "tests/colony_test.gd"
 
 # Names the simulation may not use: they tie it to the scene tree, to real
@@ -321,7 +321,7 @@ def step_art() -> str:
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
     art = output.strip().splitlines()[-1]
-    # The sound lint (spec 021) belongs here too: sounds are baked from recipes like sprites.
+    # The sound lint belongs here too: sounds are baked from recipes like sprites.
     code, output = run([python, "tools/sfx.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/sfx.py bake`\n{tail(output)}")
@@ -451,7 +451,7 @@ def command_import(_args: argparse.Namespace) -> int:
     return 0
 
 
-# The world's own size, and the least room the UI layer is given (game/ui/ui_root.gd, spec 058).
+# The world's own size, and the least room the UI layer is given (game/ui/ui_root.gd).
 WORLD_SIZE = (640, 360)
 MIN_ROOM = (960, 540)
 
@@ -489,7 +489,7 @@ def shot_command(args: argparse.Namespace, out: str) -> list[str]:
         f"--out={out}",
         f"--seconds={args.seconds}",
         f"--count={args.count}",
-        # Spec 067: the window as the project opens it, never maximized or as the player left it.
+        # The window as the project opens it, never maximized or as the player left it.
         "--window-default",
     ]
     if args.scene:

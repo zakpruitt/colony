@@ -14,6 +14,10 @@ can say yes or no to each requirement from the code alone.
   `specs/README.md` for what has landed and what is in progress.
 - Settle the design questions with Zak in conversation first. Ask only what changes the spec; decide the rest
   and say what you decided.
+- Check every fact the spec states against the code before showing it: grep each count ("eight guards",
+  "30 calls in 20 files") and list the files, and grep `tests/` for every name the spec moves or removes.
+  Four of the seven cleanup specs stopped a lane or needed amending for a count or a path a grep would have
+  caught.
 - Size it: one lane, one pull request a person could review in one sitting. If the Paths list spans unrelated
   folders or the requirements pass about eight, split it.
 
@@ -30,6 +34,10 @@ Copy `specs/TEMPLATE.md` to `specs/NNN-slug/spec.md` (next free number) and add 
   either rewrite it until you can or list it for Zak's playtest. Include the failure case, not only the
   success: a requirement about surviving needs a test where the party does not.
 - **Out of scope** names the nearby things a keen implementer would be tempted to add.
+- **A spec that changes nothing the game does** says so in R1 and says how that is shown (the unedited
+  suite, a baseline to compare with). If it makes several variants into one, list what each variant does
+  today: "the one intended change" hid a second in spec 076. Old tests that read source text will break on a
+  harmless move; name them and say they may follow it.
 - **Paths** is the lane's fence. Check it against every spec currently `approved` or `in-progress`: no overlap.
   A spec that adds content (monsters, classes, items) must also fence in the existing tests that count or
   compare *all* of that content (`grep -rn "monster_ids()\|hero_class_ids()" tests/`): spec 013 stopped twice on

@@ -80,7 +80,7 @@ implementer lane builds exactly that.
 | 003 | [Labyrinth generation](003-labyrinth-generation/spec.md) | M1 | landed on dev, [#3](https://github.com/zakpruitt/colony/pull/3), provisional | — |
 | 001 | [Simulation clock and background ticking](001-sim-clock/spec.md) | M0 | landed, [#2](https://github.com/zakpruitt/colony/pull/2) | — |
 
-### In progress (2026-11-19)
+### The cleanup (2026-11-19 on)
 
 Zak asked for a cleanup: a codebase that is clean, idiomatic and easy to extend. It runs in rounds of
 "no behaviour change" specs: tidy (069 to 071), then structure (072, 074 to 076), then a fresh survey.

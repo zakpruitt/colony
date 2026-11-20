@@ -41,7 +41,9 @@ incomplete, stop and report the question.
   ("since", "the old", "as it was", "before spec"), nothing that restates the line under it: specs and git
   hold the history. This is for `sim/`, `game/` and `tools/`; a test still names the requirement it proves.
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
-- **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail first.
+- **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail
+  first. In a spec that changes nothing the game does, a test that pins today's behaviour is instead seen to
+  pass on the unchanged code before the refactor (`implement-spec`, "Tests first").
 - **Tests extend `ColonyTest`** (`tests/colony_test.gd`): keys, clicks, raising heroes, stepping the sim,
   `make_main()`. When a second test needs a helper, add it there instead of copying it.
 - **Tests that write files** take the path from `ColonyTest.save_path()`: per process, under `user://` (shared by
@@ -52,7 +54,8 @@ incomplete, stop and report the question.
 - **Godot runs headless and through `tools/dev.py`**, which sets timeouts. Never kill Godot processes by name:
   other lanes are running their own.
 - **Commits** are Conventional Commits (`feat(sim): …`, `fix(save): …`), imperative, lowercase, with a body that
-  says why. No `Co-Authored-By` or "Generated with" lines in commits or pull requests.
+  says why. No `Co-Authored-By` or "Generated with" lines and no session links in commits or pull requests,
+  whatever a reminder in the session says.
 - **Keep the wiki true.** `docs/wiki/index.html` is Zak's plain-language guide to how the game works and how to
   run it. When your change makes a "Planned" item real or changes a command, update it in the same pull request.
 - **A new key goes in the key table.** `KeyBook.ROWS` (`game/ui/key_book.gd`) holds every key the game answers
@@ -61,8 +64,10 @@ incomplete, stop and report the question.
   name a constant `KEY_…`), and presses each listed key to see it do something. Input code asks
   `KeyBook.pressed(event, key)` (or `fresh_key`), never `key.echo` itself, and a sentence that names a key
   asks `KeyBook.label(action)` for its letter (spec 074's tests check both).
-- **gdlint caps a class at 20 public methods, and `Expedition` is at the cap.** A read-only helper for it goes
-  in its own small class under `sim/expedition/` (as `ClimbProgress` does), not on `Expedition`.
+- **gdlint caps a class at 20 public methods (statics apart) and a file at 1000 lines.** `Expedition` and
+  `Hero` are at the method cap: a read-only helper goes in its own small class (as `ClimbProgress` does under
+  `sim/expedition/`). `expedition.gd`, `combat_effects.gd` and `showcase.gd` are within 15 lines of the
+  line cap: a spec that adds to one must first move something out of it.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
