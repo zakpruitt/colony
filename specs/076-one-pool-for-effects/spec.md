@@ -31,9 +31,9 @@ effect or listener gets both right by using them. What plays on screen in normal
   `_on_sim_event` and connected in its own `setup`: `AreaNews.hear`, `Milestones.hear` and
   `HeroWindows.hear` are renamed, and neither `Main` nor `AreaMapWindow` connects one for someone else.
   `FightMoves.heard` and `ZoneCrossing.heard` are called by `World` itself and keep their names.
-- **R5. One reader per fact.** `AbilityEffects` and `Tally` share one `AbilityCredit`; sound and
-  combat effects share one record of which fighters are guardians, updated from events, not scanned
-  each frame.
+- **R5. One reader per fact.** Sound and combat effects share one record of which fighters are
+  guardians, updated from events, not scanned each frame. (`AbilityEffects` and `Tally` keep an
+  `AbilityCredit` each: sharing one would show shield and burn amounts in tooltips that show none today.)
 - **R6. Still things are not redrawn.** `AmbienceLevel` redraws buried details only when the level
   changes, `AmbienceDarkness` sorts and allocates only when its lights change, `CrossingVeil` does no
   work while hidden, and `StageList` redraws a layer only when what it shows changed.
@@ -88,7 +88,8 @@ baseline; and the game after `F` at 4x for a minute, to see nothing lingering.
 - `game/effects/`, `game/world/`, `game/audio/`, `game/ambience/`, `game/entities/`, `game/dev/showcase.gd`
 - `game/main.gd` (wiring only)
 - In `game/hud/` and `game/ui/`: only the stale-event checks and handler names (R3, R4), and
-  `stage_list.gd` for R6. Lane 074 works in the same folders: touch nothing else there.
+  `stage_list.gd` and `crossing_veil.gd` for R6, and the one line in `ui_root.gd` that hands
+  `HeroWindows.setup` the world. Lane 074 works in the same folders: touch nothing else there.
 - `tests/` (R1's renames; `test_076_…` new)
 - `CLAUDE.md` (its stale-event rule names `may_animate`), `docs/architecture.md`
 
