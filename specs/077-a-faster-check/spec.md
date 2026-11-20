@@ -1,9 +1,9 @@
 # 077 — A faster check that holds the standards
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 071
-- **Pull request:** —
+- **Pull request:** [#77](https://github.com/zakpruitt/colony/pull/77)
 
 ## Intent
 
