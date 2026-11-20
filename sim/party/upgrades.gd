@@ -35,10 +35,15 @@ func resource_cost(id: StringName) -> int:
 ## True when [param party] can pay both prices of the next rank of [param id], its gold and its
 ## resource.
 func can_pay(id: StringName, party: Party) -> bool:
-	var price: int = cost(id)
+	# Asked of every upgrade each tick the shop or auto-buy looks, so the definition is found once.
+	var def: UpgradeDef = Content.upgrade(id)
+	if def == null:
+		return false
+	var held: int = rank(id)
+	var price: int = def.cost_at(held)
 	if price < 0 or price > party.gold:
 		return false
-	return has_resource_for(id, party)
+	return def.resource_cost_at(held) <= party.resource(def.resource)
 
 
 ## True when [param party] holds the resource the next rank of [param id] costs (true for a rank

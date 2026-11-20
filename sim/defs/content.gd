@@ -102,12 +102,12 @@ static var _loaded: bool = false
 
 ## The hero class with this id, or null if there is none.
 static func hero_class(id: StringName) -> HeroClassDef:
-	return _find(Kind.HEROES, id) as HeroClassDef
+	return _find(Kind.HEROES, id)
 
 
 ## The monster with this id, or null if there is none.
 static func monster(id: StringName) -> MonsterDef:
-	return _find(Kind.MONSTERS, id) as MonsterDef
+	return _find(Kind.MONSTERS, id)
 
 
 ## Every hero class id, sorted.
@@ -122,7 +122,7 @@ static func monster_ids() -> Array[StringName]:
 
 ## The camp upgrade with this id, or null if there is none.
 static func upgrade(id: StringName) -> UpgradeDef:
-	return _find(Kind.UPGRADES, id) as UpgradeDef
+	return _find(Kind.UPGRADES, id)
 
 
 ## Every camp upgrade id, in shop order (by [member UpgradeDef.order], then id).
@@ -132,7 +132,7 @@ static func upgrade_ids() -> Array[StringName]:
 
 ## The paragon stat with this id, or null if there is none.
 static func training(id: StringName) -> TrainingDef:
-	return _find(Kind.TRAINING, id) as TrainingDef
+	return _find(Kind.TRAINING, id)
 
 
 ## Every training id, in sheet order (by [member TrainingDef.order], then id).
@@ -142,7 +142,7 @@ static func training_ids() -> Array[StringName]:
 
 ## The microskill with this id, or null if there is none.
 static func microskill(id: StringName) -> MicroskillDef:
-	return _find(Kind.MICROSKILLS, id) as MicroskillDef
+	return _find(Kind.MICROSKILLS, id)
 
 
 ## Every microskill id, sorted.
@@ -152,7 +152,7 @@ static func microskill_ids() -> Array[StringName]:
 
 ## The side quest with this id, or null if there is none.
 static func side_quest(id: StringName) -> SideQuestDef:
-	return _find(Kind.SIDE_QUESTS, id) as SideQuestDef
+	return _find(Kind.SIDE_QUESTS, id)
 
 
 ## Every side quest id, sorted.
@@ -162,7 +162,7 @@ static func side_quest_ids() -> Array[StringName]:
 
 ## The area with this id, or null if there is none.
 static func area(id: StringName) -> AreaDef:
-	return _find(Kind.AREAS, id) as AreaDef
+	return _find(Kind.AREAS, id)
 
 
 ## Every area id, by [member AreaDef.order], then id.
@@ -172,7 +172,7 @@ static func area_ids() -> Array[StringName]:
 
 ## The ability with this id, or null if there is none.
 static func ability(id: StringName) -> AbilityDef:
-	return _find(Kind.ABILITIES, id) as AbilityDef
+	return _find(Kind.ABILITIES, id)
 
 
 ## Every ability id, sorted.
@@ -182,12 +182,12 @@ static func ability_ids() -> Array[StringName]:
 
 ## The talent tree of hero class [param class_id], or null if it has none.
 static func talent_tree(class_id: StringName) -> TalentTreeDef:
-	return _find(Kind.TALENTS, class_id) as TalentTreeDef
+	return _find(Kind.TALENTS, class_id)
 
 
 ## The resource with this id, or null if there is none.
 static func resource_def(id: StringName) -> ResourceDef:
-	return _find(Kind.RESOURCES, id) as ResourceDef
+	return _find(Kind.RESOURCES, id)
 
 
 ## Every resource id, in the order of the areas that give them, then by id.
@@ -203,15 +203,18 @@ static func area_of_resource(id: StringName) -> StringName:
 	return &""
 
 
-static func _find(kind: Kind, key: StringName) -> Resource:
-	_load()
-	return _defs[kind].get(key, null)
+## The definition of [param kind] found by [param key], or null. Asked thousands of times a
+## second, so it does no more than look up.
+static func _find(kind: Kind, key: StringName) -> Variant:
+	if not _loaded:
+		_load()
+	return _defs[kind].get(key)
 
 
 static func _ids_of(kind: Kind) -> Array[StringName]:
-	_load()
-	var ids: Array[StringName] = _ids[kind]
-	return ids
+	if not _loaded:
+		_load()
+	return _ids[kind]
 
 
 static func _load() -> void:
