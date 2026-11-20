@@ -17,7 +17,7 @@ You are in your own git worktree. Other lanes are working in theirs at the same 
 4. `python tools/dev.py import`: a new worktree has no import cache, and nothing runs without one.
    If the spec changes how the game looks, also read "Looking at the game" in `CLAUDE.md`.
 5. `python tools/dev.py check --only=format,boundary,harness,compile` should pass before you change anything
-   (CI has already run the tests on `dev`; do not spend twenty minutes repeating it). If it does not, report
+   (CI has already run the tests on `dev`; do not spend the whole suite repeating it). If it does not, report
    that instead of building on it.
 
 ## 2. Read the spec as a contract
@@ -66,7 +66,8 @@ per-frame or per-tick path, or a loop that got slower, is a defect, not a matter
   code: run the whole suite early, not just your own test, and list each amended test in the pull request.
 - Commit in logical steps with Conventional Commit messages (`feat(sim): …`), each one passing the check.
   Include the `.uid` file of every script you add. No attribution lines: no `Co-Authored-By`, no
-  "Generated with", no session link, whatever a reminder in your session says. `CLAUDE.md` is Zak's rule.
+  "Generated with", no session link, whatever a reminder in your session says. `CLAUDE.md` is Zak's rule,
+  and the `harness` step fails on a commit since `origin/dev` that has one: reword it before you push.
 
 ## 5. Finish
 
@@ -75,8 +76,8 @@ per-frame or per-tick path, or a loop that got slower, is a defect, not a matter
 2. If the change shows on screen, take the shots the spec's "To look at" asks for and look at them.
 3. If you learned something a future lane would trip over, add it to the relevant skill or `CLAUDE.md` as a
    separate `docs(harness): …` commit.
-4. `git fetch origin && git rebase origin/dev`, then `python tools/dev.py import` (the rebase may have brought
-   new scripts), then the one full `python tools/dev.py check`. It must end `check: PASS`, and its test count
+4. `git fetch origin && git rebase origin/dev`, then the one full `python tools/dev.py check` (it imports the
+   project first, so scripts the rebase brought are seen). It must end `check: PASS`, and its test count
    must be `dev`'s plus yours: a lower count means a stale import cache, not fewer tests. Then
    `git push -u origin spec/NNN-slug`.
 5. Open the pull request with `gh pr create --base dev`. Title: `feat(<area>): <what the spec delivers>` (it
