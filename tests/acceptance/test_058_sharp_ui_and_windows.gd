@@ -532,6 +532,10 @@ func test_r8_three_panels_become_windows() -> void:
 		assert_true(windows.is_open(id), "%s open beside the others" % id)
 	await _frames()
 	# Each panel once, on the UI layer: never shown twice.
+	var hud: Hud = main.hud
+	assert_eq(hud.find_children("*", "HelpPanel", true, false).size(), 0, "no help on the old HUD")
+	assert_eq(hud.find_children("*", "OrdersPanel", true, false).size(), 0, "no orders there")
+	assert_eq(hud.find_children("*", "JournalView", true, false).size(), 0, "no journal list there")
 	assert_eq(ui.frame.find_children("*", "HelpPanel", true, false).size(), 1, "one help")
 	assert_eq(ui.frame.find_children("*", "OrdersPanel", true, false).size(), 1, "one orders")
 	assert_eq(ui.frame.find_children("*", "JournalView", true, false).size(), 1, "one journal")

@@ -154,6 +154,14 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	assert_eq(map.stage_shown(), 4, "+ twice")
 	assert_eq(map.risk_label.text, "Within reach", "a stage not yet held, at the party's level")
 	assert_eq(map.go_button.text, "Travel to The Claypits 4")
+	_click_on(main, map.minus_button)
+	main.hud.advance(STEP)
+	await _frames()
+	_click_on(main, map.go_button)
+	_frame(main)
+	assert_eq(e.state, Expedition.State.JOURNEYING, "Go sends the party")
+	assert_eq(e.area, CLAYPITS, "to the Claypits")
+	assert_eq(e.travel.stage, 3, "stage 3")
 
 	# In the area the party is in, Go sets the target.
 	var other: Main = _start(ROOM_LARGE)
