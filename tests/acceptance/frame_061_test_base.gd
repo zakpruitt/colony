@@ -8,7 +8,6 @@ const ROOMS: Array[Vector2i] = [Vector2i(960, 540), Vector2i(1280, 720)]
 ## Window sizes giving each pairing of world and UI scale: 1 and 1, 3 and 2, 4 and 2.
 const WINDOWS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 const WIKI: String = "res://docs/wiki/index.html"
-const SHOWCASE: String = "res://game/dev/showcase.gd"
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -63,6 +62,49 @@ func _pieces(main: Main) -> Dictionary[String, Control]:
 ## Where [param node], a node of the world's viewport, is on the UI layer, in UI pixels.
 func _on_ui(main: Main, node: CanvasItem) -> Vector2:
 	return main.ui.world_to_ui(node.get_global_transform_with_canvas().origin)
+
+
+## The names of what on [param layer] draws over [param item]: anything later in the draw order
+## (the tree's, or a higher z) whose rectangle meets [param item]'s.
+func _drawn_over(layer: CanvasLayer, item: Control) -> Array[String]:
+	var order: Array[CanvasItem] = []
+	_in_draw_order(layer, order)
+	var box: Rect2 = item.get_global_rect()
+	var over: Array[String] = []
+	var after: bool = false
+	for other: CanvasItem in order:
+		if other == item:
+			after = true
+			continue
+		if item.is_ancestor_of(other) or other.is_ancestor_of(item):
+			continue
+		if not other.is_visible_in_tree():
+			continue
+		var later: bool = _z_of(other) > _z_of(item) or (after and _z_of(other) == _z_of(item))
+		var control: Control = other as Control
+		var rect: Rect2 = control.get_global_rect() if control != null else box
+		if later and rect.intersects(box) and rect.has_area():
+			over.append(String(other.get_path()))
+	return over
+
+
+func _in_draw_order(node: Node, order: Array[CanvasItem]) -> void:
+	for child: Node in node.get_children():
+		if child is CanvasItem:
+			order.append(child as CanvasItem)
+		_in_draw_order(child, order)
+
+
+func _z_of(item: CanvasItem) -> int:
+	var z: int = 0
+	var at: Node = item
+	while at is CanvasItem:
+		var canvas_item: CanvasItem = at as CanvasItem
+		z += canvas_item.z_index
+		if not canvas_item.z_as_relative:
+			break
+		at = at.get_parent()
+	return z
 
 
 ## The emitted events go to the world's listeners stamped with the current tick, so they are recent.

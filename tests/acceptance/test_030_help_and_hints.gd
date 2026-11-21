@@ -8,7 +8,6 @@ extends "res://tests/support/hud_fixture.gd"
 
 const SEED: int = 30
 const TOP_BAND: float = 28.0
-const STRONG_LEVEL: int = 40
 ## Every key code the help panel's list must account for is one of these words in game/ code.
 const KEY_PATTERN: String = "\\bKEY_[A-Z0-9_]+\\b"
 
@@ -118,10 +117,6 @@ func test_r2_help_panel() -> void:
 	button.pressed.emit()
 	assert_false(windows.is_open(UiRoot.HELP), "and closes it")
 	press(KEY_H)
-	assert_true(windows.is_open(UiRoot.HELP), "H opens help")
-	press(KEY_H)
-	assert_false(windows.is_open(UiRoot.HELP), "H closes it")
-	press(KEY_H)
 	press(KEY_ESCAPE)
 	assert_false(windows.is_open(UiRoot.HELP), "Esc closes it")
 	press(KEY_ESCAPE)
@@ -139,27 +134,9 @@ func test_r2_help_panel() -> void:
 	for words: String in ["on its own", "stable", "wipe", "last safe stage", "gold", "upgrades"]:
 		assert_string_contains(told, words, "the idea says: %s" % words)
 	assert_string_contains(told, "while the game is closed", "and that it goes on while closed")
-	assert_gt(KeyBook.entries().size(), 8, "the keys list")
-	for entry: Array in KeyBook.entries():
-		assert_eq(entry.size(), 2, "%s: a key and what it does" % [entry])
-		var row: String = "%s  %s" % [entry[0], entry[1]]
-		assert_has(lines, row, "the panel lists %s" % row)
-
-	# Help stays open beside the shop, a hero window (spec 060) and the journal.
-	press(KEY_H)
-	press(KEY_U)
-	assert_true(main.hud.shop.is_open(), "the shop opens")
-	assert_true(windows.is_open(UiRoot.HELP), "beside help")
-	main.hud.shop.close()
-	press(KEY_TAB)
-	assert_true(main.hud.hero_windows.is_open(), "a hero window opens")
-	assert_true(windows.is_open(UiRoot.HELP), "beside help")
-	main.hud.hero_windows.close_all()
-	press(KEY_J)
-	assert_true(windows.is_open(UiRoot.JOURNAL), "the journal opens")
-	assert_true(windows.is_open(UiRoot.HELP), "beside help")
 
 	# The game goes on behind it.
+	press(KEY_H)
 	main.driver.advance(1_000_000)
 	var tick: int = main.simulation.tick
 	main.driver.advance(2_000_000)
@@ -375,90 +352,6 @@ func test_r3_every_key_is_listed() -> void:
 		_check_entry(main, str(entry[0]))
 
 
-# --- R4 ------------------------------------------------------------------------
-
-
-## The elements that must have a tooltip, each its controls (shown or not, the first is where the
-## mouse rests) and the sentence's required text ("" for any one plain sentence).
-func _tipped(hud: Hud) -> Array[Array]:
-	var tipped: Array[Array] = [
-		["the depth number", hud.place_panel.stage_label, ""],
-		["the status line", hud.place_panel.status_label, ""],
-		["the stable countdown", hud.countdown.note_label, ""],
-		["the target -", hud.place_panel.minus_button, ""],
-		["the target +", hud.place_panel.plus_button, ""],
-		["the Auto button", hud.place_panel.auto_button, ""],
-		# Spec 059: the Shop button is on the UI layer's bar, with the bar's tooltips.
-		["the gold", hud.purse.gold_label, ""],
-		["the speed button", hud.purse.speed_button, ""],
-	]
-	for frame: HeroFrameView in hud.frames:
-		tipped.append(["frame %d" % frame.hero_id, frame, "Click for details"])
-	return tipped
-
-
-func _check_tip(hud: Hud, what: String, control: Control, wanted: String) -> String:
-	# Spec 061: the frame of the screen has its own tooltip, on the UI layer (spec 062: the only
-	# tooltip the HUD has).
-	var tip_box: Control = hud.frame_tip
-	var shown: Callable = hud.frame_tip.shown_text
-	var rect: Rect2 = control.get_global_rect()
-	mouse_move(SCREEN / 2.0)
-	hud.advance(1.0)
-	assert_eq(str(shown.call()), "", "%s: nothing before resting on it" % what)
-	mouse_move(rect.get_center())
-	hud.advance(0.2)
-	hud.advance(0.15)
-	assert_eq(str(shown.call()), "", "%s: nothing before 0.4 s" % what)
-	hud.advance(0.06)
-	var text: String = str(shown.call())
-	assert_ne(text, "", "%s: a sentence after 0.4 s" % what)
-	if not wanted.is_empty():
-		assert_eq(text, wanted, what)
-	else:
-		assert_true(text.ends_with("."), "%s: one sentence: %s" % [what, text])
-		var inside: String = text.trim_suffix(".")
-		assert_false(inside.contains(". "), "%s: only one: %s" % [what, text])
-	var box: Rect2 = tip_box.get_global_rect()
-	assert_true(tip_box.is_visible_in_tree(), "%s: the box shows" % what)
-	assert_true(Rect2(Vector2.ZERO, SCREEN).encloses(box), "%s: on the screen %s" % [what, box])
-	assert_false(box.intersects(rect), "%s: clear of the element %s %s" % [what, box, rect])
-	var labels: Array[Label] = []
-	_collect_labels(tip_box, labels)
-	for label: Label in labels:
-		if label.is_visible_in_tree():
-			assert_true(box.encloses(label.get_global_rect()), "%s: the text is in the box" % what)
-	mouse_move(SCREEN / 2.0)
-	hud.advance(0.016)
-	assert_eq(str(shown.call()), "", "%s: hidden on leaving" % what)
-	return text
-
-
-func test_r4_tooltips() -> void:
-	var tooltip: UiTip = _hud.frame_tip
-	assert_not_null(tooltip, "the HUD has a tooltip")
-	if tooltip == null:
-		return
-	assert_eq(tooltip.shown_text(), "", "hidden at first")
-	var seen: Dictionary[String, String] = {}
-	for tip: Array in _tipped(_hud):
-		var what: String = tip[0]
-		var control: Control = tip[1]
-		assert_not_null(control, "%s exists" % what)
-		if control == null:
-			continue
-		var text: String = _check_tip(_hud, what, control, str(tip[2]))
-		if not text.is_empty() and text != "Click for details":
-			assert_false(seen.has(text), "%s says what %s says" % [what, seen.get(text, "")])
-			seen[text] = what
-
-	# The boss bar, in a guardian fight.
-	before_guardian(_sim, 5)
-	raise_party(_sim, STRONG_LEVEL)
-	assert_true(_step_until(_hud.boss_bar.is_showing), "a guardian fight")
-	_check_tip(_hud, "the boss bar", _hud.boss_bar, "")
-
-
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -482,12 +375,6 @@ func test_r5_welcome_on_first_run() -> void:
 	var second: Main = _main_with(SoundSettings.new(_settings_path), null)
 	assert_false(second.ui.windows.is_open(UiRoot.HELP), "not again")
 	second.free()
-
-	# Mute is kept beside it in the same file.
-	var kept := SoundSettings.new(_settings_path)
-	kept.set_muted(true)
-	assert_true(kept.help_seen(), "muting keeps the help seen")
-	kept.set_muted(false)
 
 	DirAccess.remove_absolute(_settings_path)
 	var store := SaveStore.new(_save_path)

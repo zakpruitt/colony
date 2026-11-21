@@ -99,30 +99,6 @@ func _main_after_away(seconds: float, settings: SoundSettings) -> Main:
 # --- Seeing --------------------------------------------------------------------
 
 
-## The names of what on [param layer] draws over [param item]: anything later in the draw order
-## (the tree's, or a higher z) whose rectangle meets [param item]'s.
-func _drawn_over(layer: CanvasLayer, item: Control) -> Array[String]:
-	var order: Array[CanvasItem] = []
-	_in_draw_order(layer, order)
-	var box: Rect2 = item.get_global_rect()
-	var over: Array[String] = []
-	var after: bool = false
-	for other: CanvasItem in order:
-		if other == item:
-			after = true
-			continue
-		if item.is_ancestor_of(other) or other.is_ancestor_of(item):
-			continue
-		if not other.is_visible_in_tree():
-			continue
-		var later: bool = _z_of(other) > _z_of(item) or (after and _z_of(other) == _z_of(item))
-		var control: Control = other as Control
-		var rect: Rect2 = control.get_global_rect() if control != null else box
-		if later and rect.intersects(box) and rect.has_area():
-			over.append(String(other.get_path()))
-	return over
-
-
 ## True when [param top] is drawn over [param below] on their layer.
 func _is_over(layer: CanvasLayer, top: CanvasItem, below: CanvasItem) -> bool:
 	var order: Array[CanvasItem] = []
@@ -130,25 +106,6 @@ func _is_over(layer: CanvasLayer, top: CanvasItem, below: CanvasItem) -> bool:
 	if _z_of(top) != _z_of(below):
 		return _z_of(top) > _z_of(below)
 	return order.find(top) > order.find(below)
-
-
-func _in_draw_order(node: Node, order: Array[CanvasItem]) -> void:
-	for child: Node in node.get_children():
-		if child is CanvasItem:
-			order.append(child as CanvasItem)
-		_in_draw_order(child, order)
-
-
-func _z_of(item: CanvasItem) -> int:
-	var z: int = 0
-	var at: Node = item
-	while at is CanvasItem:
-		var canvas_item: CanvasItem = at as CanvasItem
-		z += canvas_item.z_index
-		if not canvas_item.z_as_relative:
-			break
-		at = at.get_parent()
-	return z
 
 
 ## A control over the whole world that records every press reaching it, in world pixels.

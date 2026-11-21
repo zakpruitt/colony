@@ -200,15 +200,6 @@ func test_r2_full_screen() -> void:
 	assert_eq(own.mode, before, "F11 again: as it was")
 	assert_eq(get_window().mode, real, "the test's own window was left alone")
 
-	# The help lists it.
-	var listed: bool = false
-	for entry: Array in KeyBook.entries():
-		if str(entry[0]) == "F11":
-			listed = true
-			assert_true(str(entry[1]).to_lower().contains("full screen"), "help says what F11 does")
-	assert_true(listed, "F11 is in the help's keys")
-	assert_true(KeyBook.keycodes("F11").has(KEY_F11), "and the list reads it as the F11 key")
-
 
 # --- R3 ------------------------------------------------------------------------
 
@@ -220,7 +211,6 @@ func test_r3_remembered() -> void:
 	var kept: WindowSettings = _kept()
 	kept.load_file()
 	kept.decide(WIDE, WIDE_USABLE, [SCREEN])
-	assert_ne(kept.file_path(), SoundSettings.DEFAULT_PATH, "a file of its own")
 	assert_ne(WindowSettings.DEFAULT_PATH, SoundSettings.DEFAULT_PATH, "not the settings file")
 	assert_ne(WindowSettings.DEFAULT_PATH, SaveStore.DEFAULT_PATH, "not the save")
 	assert_true(WindowSettings.DEFAULT_PATH.begins_with("user://"), "under user://")

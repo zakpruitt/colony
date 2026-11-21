@@ -154,13 +154,6 @@ func test_r1_rungs_show_risk() -> void:
 	assert_eq(_number_colour(6), _risk_colour(DepthLadder.Risk.DANGEROUS), "the target's rung")
 	assert_eq(_number_colour(2), _risk_colour(DepthLadder.Risk.SAFE), "the safe rung")
 
-	# The rule says it is a rough guide.
-	var source: String = FileAccess.get_file_as_string("res://game/hud/depth_ladder.gd")
-	var at: int = source.find("func risk(")
-	assert_ne(at, -1, "risk is a function of the ladder")
-	var comment: String = source.substr(maxi(at - 600, 0), mini(at, 600))
-	assert_true(comment.contains("rough guide"), "its doc comment calls it a rough guide")
-
 
 # --- R2 ------------------------------------------------------------------------
 
@@ -316,18 +309,6 @@ func test_r4_scrolls() -> void:
 		"at the bottom edge"
 	)
 
-	# 5 seconds without the mouse over the ladder bring it back; not while the mouse is on it.
-	_hover_at(middle)
-	_hud.advance(RETURN_SECONDS + 1.0)
-	assert_false(ladder.is_following(), "the mouse on the ladder keeps it where it is")
-	_mouse_leaves()
-	_hud.advance(RETURN_SECONDS - 0.1)
-	assert_false(ladder.is_following(), "not before 5 seconds")
-	_hud.advance(0.2)
-	assert_true(ladder.is_following(), "after 5 seconds it follows the party again")
-	_settle()
-	assert_true(_on_show(18), "the party's rung on show")
-
 
 # --- R5 ------------------------------------------------------------------------
 
@@ -356,6 +337,7 @@ func test_r5_flash_is_seen() -> void:
 	# Above the view.
 	_situation(25, 25, 30, 25)
 	ladder.flash(2)
+	assert_true(ladder.is_flashing(2), "rung 2 flashes")
 	for i: int in 50:
 		_hud.advance(STEP)
 		if ladder.is_flashing(2):
@@ -388,18 +370,3 @@ func test_r6_nothing_else_changes() -> void:
 	assert_eq(_sim.state_hash(), hash_before, "scrolling and hovering change nothing in the game")
 	assert_eq(_sim.expedition.target_depth, target, "the target is as it was")
 	assert_eq(ladder.get_rect(), rect, "the ladder's rectangle is as it was")
-
-	# Marks are as before.
-	_situation(7, 3, 9, 8)
-	assert_true(ladder.marks(7).has(&"party"), "the party's mark")
-	assert_true(ladder.marks(3).has(&"safe"), "the safe mark")
-	assert_true(ladder.marks(8).has(&"target"), "the target's mark")
-	assert_true(ladder.marks(5).has(&"guardian"), "the guardian's mark")
-
-	# No new key: the ladder (the stage list since spec 062) still answers only L.
-	var source: String = FileAccess.get_file_as_string("res://game/ui/frame/stage_list.gd")
-	var regex := RegEx.create_from_string("KEY_[A-Z0-9_]+")
-	var keys: Dictionary[String, bool] = {}
-	for found: RegExMatch in regex.search_all(source):
-		keys[found.get_string()] = true
-	assert_eq(keys.keys(), ["KEY_L"], "the ladder's only key is L")

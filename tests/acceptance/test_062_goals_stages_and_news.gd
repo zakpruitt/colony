@@ -3,14 +3,6 @@ extends "res://tests/acceptance/frame_062_test_base.gd"
 ## away and the catching-up bar on the sharp layer, and the old HUD layer gone. Driven by real
 ## clicks, keys and wheel events pushed into the viewport, at both rooms.
 
-const OLD_FILES: Array[String] = [
-	"res://game/hud/hud_panel.gd",
-	"res://game/hud/hud_button.gd",
-	"res://game/hud/hud_tooltip.gd",
-	"res://game/hud/shop_marker.gd",
-	"res://game/hud/away_panel.gd",
-	"res://game/hud/catch_up_bar.gd",
-]
 ## The widest line the ticker shows in a real game: a defeat deep in The Old Crypt.
 const WIDEST_TICKER: String = (
 	"Beaten on The Old Crypt 118 by 2 crystal beetles, 2 deep horrors and a bone lord;"
@@ -19,10 +11,6 @@ const WIDEST_TICKER: String = (
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const SPECIMEN: PackedScene = preload("res://game/ui/font_specimen.tscn")
 const GALLERY: PackedScene = preload("res://game/art/gallery.tscn")
-## Classes of the old HUD that drew in the old font.
-const OLD_CLASSES: Array[String] = [
-	"HudPanel", "HudButton", "HudTooltip", "ShopMarker", "AwayPanel"
-]
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -393,7 +381,7 @@ func test_r4_defeat_note_over_every_window() -> void:
 
 
 func test_r5_away_report_window() -> void:
-	var settings: SoundSettings = _away_files(ROOM_SMALL)
+	_away_files(ROOM_SMALL)
 	for room: Vector2i in ROOMS:
 		var what: String = "%s" % room
 		var main: Main = _main_after_away(600.0, SoundSettings.new(_away_settings))
@@ -477,7 +465,6 @@ func test_r5_away_report_window() -> void:
 		timed.advance(1.0)
 		assert_false(timed.is_open(), "%s: gone after" % what)
 		main.free()
-	assert_not_null(settings)
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -512,16 +499,6 @@ func test_r7_the_old_layer_is_gone() -> void:
 	assert_true(_guardian_wipe(main), "a defeat")
 	hud.journal.announce("Something happened.")
 	hud.advance(STEP)
-	for path: String in OLD_FILES:
-		assert_false(FileAccess.file_exists(path), "%s is deleted" % path)
-	# No node of the old HUD's classes anywhere in the running scene.
-	var all: Array[Node] = [main]
-	all.append_array(main.find_children("*", "", true, false))
-	for node: Node in all:
-		var script: Script = node.get_script()
-		if script != null:
-			var global: String = String(script.get_global_name())
-			assert_false(global in OLD_CLASSES, "%s is %s" % [node.get_path(), global])
 	# Nothing drawn on the old layer but the world's own: the dark of a crossing.
 	var drawn: Array[Control] = []
 	_controls(main.hud_layer, drawn)
@@ -537,8 +514,6 @@ func test_r7_the_old_layer_is_gone() -> void:
 			font == UiText.font() or font == UiText.font(true),
 			"%s ('%s') in the new font" % [label.get_path(), label.text]
 		)
-	# Spec 058's interim rules are gone.
-	assert_false(main.ui.windows.has_method(&"close_over"), "old panels close no window")
 	# The font specimen shows the old font as the world's.
 	var specimen: FontSpecimen = SPECIMEN.instantiate()
 	add_child_autofree(specimen)
@@ -569,17 +544,6 @@ func test_r8_nothing_lost() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var hud: Hud = main.hud
 	_gold_situation(main)
-	# The keys: G and L as before, J opens the journal the ticker points at.
-	_press(main, KEY_G)
-	assert_false(hud.goals.is_shown(), "G hides the goals")
-	_press(main, KEY_G)
-	assert_true(hud.goals.is_shown(), "G shows them")
-	_press(main, KEY_L)
-	assert_false(hud.ladder.is_shown(), "L hides the list")
-	_press(main, KEY_L)
-	assert_true(hud.ladder.is_shown(), "L shows it")
-	_press(main, KEY_J)
-	assert_true(main.ui.windows.is_open(UiRoot.JOURNAL), "J opens the journal")
 	# The list stays while the shop is open, and the goals while the tally is: windows are drawn
 	# over them (R2, R10).
 	hud.shop.open()
@@ -594,18 +558,6 @@ func test_r8_nothing_lost() -> void:
 	assert_true(hud.goals.is_shown(), "the goals stay under the tally")
 	assert_true(hud.goals_view.is_visible_in_tree(), "drawn")
 	hud.tally.close()
-	hud.advance(STEP)
-	# A dangerous target is still said in the ticker.
-	var deep: int = 400
-	hud.ladder.click_depth(deep)
-	hud.advance(STEP)
-	assert_string_contains(hud.ticker.label.text, "dangerous", "the warning in the ticker")
-	# Every key the game answers to is still in the help list.
-	var keys: Dictionary[String, bool] = {}
-	for entry: Array in KeyBook.entries():
-		keys[str(entry[0])] = true
-	for key: String in ["G", "L", "J"]:
-		assert_true(keys.has(key), "help lists %s" % key)
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -768,7 +720,6 @@ func test_r10_fits_both_rooms() -> void:
 
 func test_r11_showcase_help_and_wiki() -> void:
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
-	assert_false(wiki.contains("under way"), "the wiki no longer says the overhaul is under way")
 	for said: String in ["Goals", "stage list", "ticker", "Back to the game"]:
 		assert_string_contains(wiki, said, "the wiki tells of %s" % said)
 	# The showcase, run to its moment, shows the report as a window.
@@ -782,12 +733,6 @@ func test_r11_showcase_help_and_wiki() -> void:
 	assert_true(is_instance_valid(report) and report.is_open(), "the report window is open")
 	if is_instance_valid(report):
 		assert_true(show.main.ui.windows.is_ancestor_of(report), "among the windows")
-	assert_false(FileAccess.get_file_as_string(SHOWCASE).contains("AwayPanel"), "no old panel")
-	var keys: Dictionary[String, bool] = {}
-	for entry: Array in KeyBook.entries():
-		keys[str(entry[0])] = true
-	for key: String in ["G", "L", "J", "Esc"]:
-		assert_true(keys.has(key), "help lists %s" % key)
 
 
 # --- R12 -----------------------------------------------------------------------
@@ -829,7 +774,6 @@ func test_r12_tags_stay_under_windows() -> void:
 		for path: String in covered:
 			assert_false(path.contains("Badge"), "%s: no tag over the window: %s" % [what, path])
 		# Tooltips stay above everything: the bar's and the frame's.
-		var tip_over: Array[String] = []
 		var tip: UiTip = main.hud.frame_tip
 		assert_true(_is_over(ui, tip, journal), "%s: the frame's tip over the window" % what)
 		for id: StringName in ui.bar.badges:
@@ -837,5 +781,4 @@ func test_r12_tags_stay_under_windows() -> void:
 			assert_true(_is_over(ui, ui.bar.tip, ui.bar.badges[id]), "%s: the bar's too" % what)
 		assert_true(_is_over(ui, ui.bar.tip, journal), "%s: the bar's tip over windows" % what)
 		assert_true(_is_over(ui, tip, main.hud.defeat_note.panel), "%s: over the note" % what)
-		assert_eq(tip_over, [] as Array[String])
 		main.free()

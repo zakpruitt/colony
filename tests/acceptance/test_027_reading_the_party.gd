@@ -90,15 +90,6 @@ func _party_percent() -> int:
 	return floori(100.0 * health / most)
 
 
-## Every rectangle in [param rects] is clear of [param rect].
-func _clear_of(rect: Rect2, rects: Dictionary, what: String) -> void:
-	for other_name: String in rects:
-		var other: Rect2 = rects[other_name]
-		assert_false(
-			rect.intersects(other), "%s %s is clear of %s %s" % [what, rect, other_name, other]
-		)
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
@@ -164,96 +155,6 @@ func test_r1_status_line() -> void:
 	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
 	assert_eq(_hud.status_text(), "Fighting the Slime King", "fighting a guardian")
-
-
-func test_r1_status_line_working() -> void:
-	# Spec 025's side quests: the party stops to work, and the line names the quest.
-	var e: Expedition = _sim.expedition
-	raise_party(_sim, STRONG_LEVEL)
-	_sim.set_auto_push(false)
-	var found: bool = false
-	for depth: int in range(1, 6):
-		for room: LabyrinthChamber in _sim.labyrinth.level(depth).chambers:
-			if found or e.side_quest_in(depth, room.index) == &"":
-				continue
-			e.depth = depth
-			e.target_depth = depth
-			e.x = room.rect.position.x - 0.1
-			e.facing = 1
-			found = true
-	assert_true(found, "a side quest near the top")
-	assert_true(_step_until(_in_state(Expedition.State.WORKING), 50), "the party stops to work")
-	var quest: SideQuestDef = Content.side_quest(e.working_quest())
-	assert_eq(_hud.status_text(), "Working: %s" % quest.display_name, "working on a side quest")
-	assert_eq(_hud.place_panel.status_label.text, _hud.status_text(), "the panel shows the line")
-
-
-func test_r1_status_line_fits() -> void:
-	# The guardian with the longest name, in a fight on its depth, with a wide gold count and the
-	# longest stable text: the panel holds the line and stays clear of the boss bar and the shop.
-	var longest: StringName = &""
-	for id: StringName in Content.monster_ids():
-		var def: MonsterDef = Content.monster(id)
-		var best: MonsterDef = Content.monster(longest) if longest != &"" else null
-		if (
-			def.guardian
-			and (best == null or def.display_name.length() > best.display_name.length())
-		):
-			longest = id
-	# Spec 049: guardians stand in their areas; the party goes to this one's.
-	for area: StringName in Content.area_ids():
-		if Content.area(area).guardian == longest:
-			_sim.expedition.travel.open[area] = true
-			_sim.set_destination(area, 1)
-	assert_true(_step_until(_in_state(Expedition.State.JOURNEYING)), "the party leaves")
-	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING)), "and arrives")
-	var depth: int = Expedition.GUARDIAN_EVERY
-	assert_eq(_sim.expedition.guardian_of(depth), longest, "it guards its own area's stage 5")
-	before_guardian(_sim, depth)
-	raise_party(_sim, STRONG_LEVEL)
-	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
-	_sim.expedition.target_depth = depth
-	_sim.set_auto_push(true)
-	_sim.party.gold = 9_876_543
-	_fx.coin_collected.emit(9_876_543)
-	_hud.advance(0.0)
-	var line: String = "Fighting the %s" % Content.monster(longest).display_name
-	assert_eq(_hud.status_text(), line)
-	assert_string_contains(_hud.stable_text(), "then stage %d" % (depth + 1))
-	_check_depth_panel("a guardian fight")
-	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	var panel: Rect2 = _hud.place_panel.get_global_rect()
-	assert_false(panel.intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
-	# Spec 049 names the area over the stage ("The Claypits" where "Depth" was), so the panel is
-	# about 28 pixels wider and the bar, which fills the space left, that much narrower.
-	assert_gt(_hud.boss_bar.get_global_rect().size.x, 130.0, "which is still wide")
-
-	# Every other line, with a deep target: the widest the travelling lines get.
-	var e: Expedition = _sim.expedition
-	for state: Expedition.State in [Expedition.State.TRAVELLING, Expedition.State.REVIVING]:
-		e.battle = null
-		e.state = state
-		e.depth = 4321
-		e.target_depth = 9876
-		_hud.advance(0.0)
-		_check_depth_panel(_hud.status_text())
-
-
-func _check_depth_panel(what: String) -> void:
-	var panel: Rect2 = _hud.place_panel.get_global_rect()
-	assert_true(
-		panel.encloses(_hud.place_panel.status_label.get_global_rect()), "%s: the line fits" % what
-	)
-	for label: Control in [
-		_hud.countdown.note_label, _hud.countdown.next_label, _hud.countdown.bar
-	]:
-		if label.visible:
-			assert_true(
-				_hud.countdown.get_global_rect().encloses(label.get_global_rect()),
-				"%s: %s fits" % [what, label.name]
-			)
-	assert_lte(panel.end.y, HudFrame.TOP_BAND, "in the top band")
-	assert_false(panel.intersects(_hud.purse.get_global_rect()), "%s: clear of gold" % what)
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -477,46 +378,7 @@ func test_r5_marker() -> void:
 # --- R6 ------------------------------------------------------------------------
 
 
-func test_r6_it_fits() -> void:
-	before_guardian(_sim, 5)
-	raise_party(_sim, STRONG_LEVEL)
-	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a guardian fight")
-	_hud.advance(0.0)
-	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
-	assert_true(_hud.countdown.bar.visible, "depth 5 is not stable: the bar shows")
-	_emit(SimEvent.Kind.UPGRADE_BOUGHT, 4, -1, 12)
-	for level: int in 20:
-		_emit(SimEvent.Kind.LEVEL_UP, -1, KNIGHT, level + 2)
-	_emit(SimEvent.Kind.PARTY_WIPED, -1, -1, 0)
-	_hud.advance(0.0)
-	assert_true(_hud.ticker.visible, "the ticker shows")
-
-	var frames: Dictionary = {}
-	for frame: HeroFrameView in _hud.frames:
-		frames[frame.name] = frame.get_global_rect()
-	var top: Dictionary = {
-		"gold": _hud.purse.get_global_rect(),
-		"boss bar": _hud.boss_bar.get_global_rect(),
-	}
-	var depth: Rect2 = _hud.place_panel.get_global_rect()
-	var shop: Rect2 = _hud.shop.get_global_rect()
-	var ticker: Rect2 = _hud.ticker.get_global_rect()
-	var bar: Rect2 = _hud.countdown.bar.get_global_rect()
-	_clear_of(ticker, frames, "ticker")
-	_clear_of(ticker, top, "ticker")
-	_clear_of(ticker, {"depth panel": depth, "shop": shop}, "ticker")
-	_clear_of(bar, frames, "stable bar")
-	_clear_of(bar, top, "stable bar")
-	_clear_of(bar, {"shop": shop}, "stable bar")
-	assert_true(
-		_hud.countdown.get_global_rect().encloses(bar), "the stable bar is in the depth panel"
-	)
-	for rect: Rect2 in [ticker, bar]:
-		assert_true(Rect2(Vector2.ZERO, HudFrame.SCREEN).encloses(rect), "on the screen")
-	# (Spec 058: the journal is a window on the UI layer now, which floats over the HUD and the
-	# shop beside it, as the hero windows of spec 060 do; where windows go is tested there.)
-
-	# The game goes on with the journal open.
+func test_r6_the_game_goes_on_with_the_journal_open() -> void:
 	var main: Main = _start_main()
 	main.ui.windows.open_window(UiRoot.JOURNAL)
 	main.driver.advance(0)

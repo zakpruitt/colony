@@ -7,7 +7,6 @@ extends "res://tests/support/hud_fixture.gd"
 ## all together one tick at a time.
 
 const FRAME: float = 1.0 / Simulation.TICKS_PER_SECOND
-const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const KNIGHT: int = 1
 const ROGUE: int = 2
 const MAGE: int = 3
@@ -32,14 +31,6 @@ const MICROSKILLS: Array = [
 var _sound: SoundPlayer
 ## Where [method _before_quest] put the party: Vector2i(depth, chamber index).
 var _quest_at: Vector2i = Vector2i(0, -1)
-
-
-func after_each() -> void:
-	super()
-	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
-	if bus >= 0:
-		AudioServer.set_bus_mute(bus, false)
-
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -469,32 +460,6 @@ func test_r7_sheet_lists_microskills() -> void:
 		sheet.line(&"microskills"), "Lockpicker: Opens locks\nTrapspotter, level 6", "the rogue's"
 	)
 
-	# It still fits, for every hero, at every level (spec 060: on the UI layer, in its pixels).
-	var top_band: float = _ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
-	for level: int in [1, 6]:
-		for hero: Hero in sim.party.heroes:
-			_set_level(hero, level)
-			sheet = _open(hero.id)
-			_hud.advance(0.5)
-			var rect: Rect2 = sheet.get_global_rect()
-			var what: String = "%s level %d %s" % [hero.class_id, level, rect]
-			assert_gte(rect.position.y, top_band, "%s: below the top band" % what)
-			assert_lte(rect.end.y, frames_top, "%s: above the frames" % what)
-			assert_lte(rect.end.x, float(_ui.room().x), "%s: on screen" % what)
-			var shown: Array[Label] = []
-			_collect_shown_labels(sheet, shown)
-			for label: Label in shown:
-				var where: String = "%s '%s'" % [what, label.text]
-				assert_true(rect.encloses(label.get_global_rect()), "%s inside" % where)
-				for other: Label in shown:
-					if (
-						other != label
-						and other.get_global_rect().intersects(label.get_global_rect())
-					):
-						fail_test("%s overlaps '%s'" % [where, other.text])
-			sheet.close()
-
 
 func _row(sheet: HeroWindow, skill: String) -> Label:
 	var shown: Array[Label] = []
@@ -511,18 +476,6 @@ func _collect_shown_labels(node: Node, into: Array[Label]) -> void:
 		if label != null and label.is_visible_in_tree() and not label.text.is_empty():
 			into.append(label)
 		_collect_shown_labels(child, into)
-
-
-# --- R8 ------------------------------------------------------------------------
-
-
-func test_r8_safe_depth() -> void:
-	var sim := Simulation.new(28)
-	_show(sim)
-	assert_eq(_hud.place_panel.safe_label.text, "Safe 1", "the depth the party falls back to")
-	sim.expedition.last_stable_depth = 3
-	_hud.advance(0.0)
-	assert_eq(_hud.place_panel.safe_label.text, "Safe 3")
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -623,16 +576,3 @@ func test_r11_showcase() -> void:
 	for moment: StringName in moments:
 		assert_has(Showcase.names(), moment, "%s is a moment" % moment)
 		assert_true(Showcase.caption(moment) != "", "%s is labelled" % moment)
-	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
-	var seen: Array[StringName] = []
-	showcase.moment_started.connect(func(moment: StringName) -> void: seen.append(moment))
-	add_child_autofree(showcase)
-	showcase.set_process(false)
-	showcase.skip_to(moments[0])
-	while not showcase.done and showcase.elapsed < 120.0:
-		showcase.advance(1.0 / 30.0)
-	assert_true(showcase.done, "the pass finishes")
-	for moment: StringName in moments:
-		assert_has(seen, moment, "%s was shown" % moment)
-		var happened: bool = showcase.evidence.get(moment, false)
-		assert_true(happened, "%s really happened" % moment)

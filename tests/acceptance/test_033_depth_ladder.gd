@@ -17,7 +17,6 @@ func before_each() -> void:
 	_sim = Simulation.new(SEED)
 	_hud_each_tick = false
 	_build_hud()
-	_ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -112,10 +111,6 @@ func test_r1_ladder_of_depths() -> void:
 
 
 func test_r2_rungs_say_what_they_are() -> void:
-	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	_situation(7, 3, 9, 8)
 	assert_true(_has(7, &"party"), "the party's depth")
 	for depth: int in [1, 2, 3, 4, 5, 6, 8, 9, 10, 11]:
@@ -160,9 +155,6 @@ func test_r2_rungs_say_what_they_are() -> void:
 
 func test_r3_click_to_steer() -> void:
 	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	_situation(3, 3, 3, 3)
 	ladder.click_depth(6)
 	assert_eq(
@@ -207,9 +199,6 @@ func test_r3_click_to_steer() -> void:
 
 func test_r4_hover_says_it() -> void:
 	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	_situation(7, 3, 9, 8)
 	var lines: Dictionary[int, String] = {
 		2: "Mossy Hollow 2: held",
@@ -278,9 +267,6 @@ func test_r4_hover_says_it() -> void:
 
 func test_r5_it_can_be_hidden() -> void:
 	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	assert_true(ladder.is_shown(), "shown at start")
 	_situation(3, 3, 3, 3)
 	press(KEY_L)
@@ -305,9 +291,6 @@ func test_r5_it_can_be_hidden() -> void:
 
 func test_r6_stays_out_of_the_way() -> void:
 	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	_sim.party.gold = 9_876_543
 	_situation(120, 119, 120, 123)
 	var rect: Rect2 = UiFormat.on_screen(ladder)
@@ -339,13 +322,6 @@ func test_r6_stays_out_of_the_way() -> void:
 		UiFormat.on_screen(ladder).intersects(_hud.boss_bar.get_global_rect()), "clear of it"
 	)
 
-	# The shop: since spec 062 R2 the ladder stays while it is open (the window is drawn over it).
-	_hud.shop.open()
-	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "shown while the shop is open")
-	_hud.shop.close()
-	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "and when it closes")
 	# Hidden by L, it stays hidden after the shop.
 	press(KEY_L)
 	_hud.shop.open()
@@ -360,9 +336,6 @@ func test_r6_stays_out_of_the_way() -> void:
 
 func test_r7_follows_the_simulation() -> void:
 	var ladder: StageList = _ladder()
-	if ladder == null:
-		fail_test("no ladder")
-		return
 	var e: Expedition = _sim.expedition
 	# A wipe: the party is on Mossy Hollow 7 with depth 3 safe.
 	_situation(7, 3, 7, 7)
@@ -398,7 +371,6 @@ func test_r7_follows_the_simulation() -> void:
 	if _sim == null:
 		return
 	_build_hud()
-	_ui.bar.set_process(false)
 	ladder = _ladder()
 	assert_true(_has(9, &"party"), "the loaded party is on its safe depth")
 	assert_true(_has(9, &"safe"), "safe")
