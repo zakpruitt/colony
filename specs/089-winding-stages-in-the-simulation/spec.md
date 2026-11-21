@@ -22,7 +22,8 @@ run on it, but the game still makes the flat shape, because nothing on screen ca
   rows tall (`Labyrinth.band_height()`; a flat one's is `LEVEL_HEIGHT`) and `LEVEL_WIDTH` wide, with three
   floor rows 10 rows apart. Its main route is 7 to 10 chambers in route order (`chambers[0]` is where the
   party arrives, the last is where the way on leaves), on 2 or 3 of the floors. Chambers are 10 to 22 wide
-  and 4 to 8 tall, each standing on its floor row. No two open rectangles overlap, and two that are not
+  and 4 to 8 tall, each standing on its floor row. No two open rectangles overlap (but a ladder, whose
+  last row is the floor row of the room it comes down into), and two that are not
   joined have at least one row or column of earth between them; every open tile is at least one tile inside
   the band. All the numbers are named constants.
 - **R3. Rooms are joined by tunnels and ladders, and the route doubles back.** Chambers next to each other
@@ -54,7 +55,8 @@ run on it, but the game still makes the flat shape, because nothing on screen ca
   safe stage and went on; it reached at least stage 3; and the run twice from the same seed ends in the
   same state hash. Side quests are met in plain rooms as today.
 - **R8. The tool can ask for it.** `python tools/dev.py sim --winding …` runs the same summary on a winding
-  simulation. The lane's report gives, for seeds 1 to 5 at 30 minutes with `--buy-upgrades
+  simulation. The summary has no state hash and gains no field: the tool's test tells the two
+  shapes apart by the summaries themselves. The lane's report gives, for seeds 1 to 5 at 30 minutes with `--buy-upgrades
   --spend-talents`, flat beside winding: the stage reached, the safe stage, each hero's level, the gold
   and the wipes. (The numbers are for the lead and Zak: retuning is not this spec's.)
 
