@@ -29,7 +29,7 @@ the test audit of 2026-11-20; nothing the game does changes.
 ## Requirements
 
 - **R1. Three rules are harness checks.** `check`'s `harness` step fails, naming the file and line, when:
-  a script under `game/` other than `game/ui/key_book.gd` reads `.echo`; a script under `game/hud`,
+  a script under `game/` other than `game/ui/key_book.gd` reads `.echo` or calls `is_echo(`; a script under `game/hud`,
   `game/ui`, `game/effects`, `game/save` or `game/main.gd`, other than `game/ui/windows/window_text.gd`,
   calls `add_theme_color_override("font_color"` outside a comment; a test script under `tests/unit` or
   `tests/acceptance` does not extend `ColonyTest`, itself or through its bases. Today's tree passes.
@@ -78,7 +78,10 @@ the test audit of 2026-11-20; nothing the game does changes.
   - `test_art_font.py::test_r3_other_categories_are_unchanged`: cut 65-72. Survivors: `test_art.py`'s
     `test_r4_lint_accepts_a_correct_sprite` and `test_r4_lint_rejects_outline_gap_at_canvas_edge`.
   - `test_077::test_r4_art_starts_no_godot` calls the real `step_art`, which runs every tool test again:
-    after this spec one `check` runs the tool tests once.
+    after this spec one `check` runs the tool tests once. What that test held stays held: the `art` step
+    runs its tool tests with `GODOT` naming a program that fails, so a tool test outside
+    `tools/tests/godot/` that starts Godot fails the real `check`, and `test_077` sees that environment
+    on the command `step_art` runs.
 - **R7. The harness says where rules live.** `CLAUDE.md`'s key rule and its `expedition.gd` sentence name
   the harness instead of spec 074's and 078's tests; `docs/standards.md` likewise; the
   `godot-headless-test` skill says a rule about source text is a `harness` check, never a GUT test.
@@ -94,7 +97,7 @@ Names in `tools/dev.py` are the lane's; report them. A rule's message says what 
 | R1 | `tools/tests/test_082_text_rules.py`: `test_r1_an_echo_read_outside_key_book_fails`, `test_r1_a_font_colour_set_by_hand_fails`, `test_r1_a_comment_does_not_count`, `test_r1_a_test_script_off_the_base_fails` | a temp tree with the realistic mistake fails naming file and line; the allowed file and a comment pass |
 | R2 | same file: `test_r2_a_file_over_its_cap_fails`, `test_r2_a_class_over_its_methods_fails`, `test_r2_at_the_cap_passes` | a temp tree one line or one method over fails; at the cap it passes |
 | R3 to R6 | (lane's report) | each row as done or left, with the reason; the list of test names before and after |
-| R6 | `test_082_text_rules.py::test_r6_the_art_step_runs_the_tool_tests_once` | `step_art` with `run` patched starts the tool tests once |
+| R6 | `test_082_text_rules.py::test_r6_a_tool_test_that_starts_godot_fails_the_art_step` | a temp tool test that calls `dev.godot` fails when run as the `art` step runs its tool tests; it does not fail on `dev`'s `step_art` |
 
 ## Out of scope
 
@@ -106,7 +109,7 @@ Names in `tools/dev.py` are the lane's; report them. A rule's message says what 
 
 ## Paths
 
-- `tools/dev.py`, `tools/tests/`
+- `tools/dev.py`, `tools/tests/`, `tools/local_test_helpers.json` (entries naming a removed script)
 - `tests/acceptance/test_069_sim_tidy.gd`, `test_070_game_tidy.gd` (and `.uid`), `test_072_content_table.gd`,
   `test_074_one_list_of_windows_and_keys.gd`, `test_075_a_smaller_hud.gd`, `test_076_one_pool_for_effects.gd`,
   `test_078_sim_base_types.gd`, `test_079_effect_nodes.gd`, `test_080_frame_pieces.gd`
