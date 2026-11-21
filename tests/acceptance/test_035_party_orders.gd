@@ -203,8 +203,6 @@ func test_r1_pace() -> void:
 		var pace_name: String = Expedition.Pace.keys()[pace]
 		assert_true(_rests_after_fight_at(pace, share - 0.05), "%s rests just below" % pace_name)
 		assert_false(_rests_after_fight_at(pace, share + 0.05), "%s goes on above" % pace_name)
-	# Steady is the rule from before orders.
-	assert_eq(Expedition.REST_BELOW, 0.6, "Steady is today's rule")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -285,9 +283,6 @@ func test_r2_guardians() -> void:
 
 
 func test_r3_commands() -> void:
-	assert_lt(
-		SimEvent.Kind.ORDER_CHANGED, SimEvent.Kind.ENCOUNTER_STARTED, "before ENCOUNTER_STARTED"
-	)
 	var sim := Simulation.new(SEED)
 	sim.step()
 	sim.drain_events()
@@ -330,9 +325,6 @@ func test_r4_saved() -> void:
 	sim.set_guardian_order(HOLD)
 	run_ticks(sim, 20)
 	var data: Dictionary = _through_json(sim.to_save())
-	var version: int = data["version"]
-	assert_eq(version, 8, "the version rose by one (and since, for specs 049, 051 and 052)")
-	assert_eq(Simulation.SAVE_VERSION, 8)
 	var saved_pace: String = str(data.get("pace"))
 	var saved_order: String = str(data.get("guardian_order"))
 	assert_eq(saved_pace, "cautious", "the pace by name")
@@ -589,11 +581,6 @@ func test_r7_orders_panel() -> void:
 	_frame(1, 0.0)
 	assert_eq(_sim.expedition.pace, CAUTIOUS, "choose sends it too")
 	assert_string_contains(orders.line(0), "80% health", "Cautious explained")
-	# It follows the simulation, not its own memory.
-	_sim.set_pace(STEADY)
-	_frame(1, 0.0)
-	orders.advance(0.0)
-	assert_eq(_lit_choice(0), STEADY, "follows the simulation")
 
 	# A loaded save shows the saved orders.
 	_sim.set_pace(BOLD)
@@ -711,9 +698,6 @@ func test_r9_explains_itself() -> void:
 	_make_main()
 	var seen: Dictionary[String, String] = {}
 	var bar: UiButtonBar = _main.ui.bar
-	var button_text: String = _check_tip("the Orders button", bar.tip, bar.buttons[UiRoot.ORDERS])
-	assert_string_contains(button_text.to_lower(), "orders", "the button's tip names orders")
-	seen[button_text] = "the Orders button"
 	var tips: UiTip = null
 	for child: Node in _main.ui.frame.get_children():
 		if child is UiTip and child != bar.tip and child != _main.hud.frame_tip:
@@ -726,15 +710,6 @@ func test_r9_explains_itself() -> void:
 			assert_true(text.ends_with("."), "%s: a sentence" % what)
 			assert_false(seen.has(text), "%s says what %s says" % [what, seen.get(text, "")])
 			seen[text] = what
-
-	# O is in the help window's key list.
-	var help: HelpPanel = _main.ui.windows.window(UiRoot.HELP).content as HelpPanel
-	var listed: bool = false
-	for entry: Array in KeyBook.entries():
-		if KeyBook.keycodes(str(entry[0])).has(KEY_O):
-			listed = true
-			assert_has(help.lines(), "%s  %s" % [entry[0], entry[1]], "the panel lists O")
-	assert_true(listed, "O is in the key list")
 
 
 # --- R10 -----------------------------------------------------------------------

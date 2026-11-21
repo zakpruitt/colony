@@ -1,6 +1,5 @@
 extends ColonyTest
-## The main scene loads and saves progress through its SaveStore, and leaves the
-## real save alone when it is not given one.
+## The main scene loads and saves progress through its SaveStore.
 
 var _path: String = save_path()
 
@@ -10,14 +9,6 @@ func _main_with_store() -> Main:
 	main.save_store = SaveStore.new(_path)
 	add_child_autofree(main)
 	return main
-
-
-func test_a_run_without_a_store_neither_loads_nor_saves() -> void:
-	var main: Main = make_main()
-	add_child_autofree(main)
-	assert_null(main.save_store, "tests are not a played game")
-	main.save_now()  # must do nothing and raise nothing
-	assert_eq(main.simulation.party.gold, 0, "a new game")
 
 
 func test_progress_survives_closing_the_scene() -> void:

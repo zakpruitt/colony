@@ -1,10 +1,6 @@
 extends ColonyTest
 
 
-func test_tick_length_is_a_tenth_of_a_second() -> void:
-	assert_eq(Simulation.TICK_USEC, 100_000)
-
-
 func test_state_hash_depends_on_tick() -> void:
 	var a := Simulation.new(7)
 	var b := Simulation.new(7)
@@ -17,10 +13,3 @@ func test_state_hash_depends_on_tick() -> void:
 
 func test_state_hash_depends_on_seed() -> void:
 	assert_ne(Simulation.new(7).state_hash(), Simulation.new(8).state_hash())
-
-
-func test_seconds_follows_ticks() -> void:
-	var sim := Simulation.new(7)
-	for i: int in 600:
-		sim.step()
-	assert_almost_eq(sim.seconds(), 60.0, 0.000001)

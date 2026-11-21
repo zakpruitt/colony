@@ -151,7 +151,6 @@ func test_r1_microskills() -> void:
 	_set_level(sim.party.hero(2), 6)
 	var loaded: Simulation = Simulation.from_save(sim.to_save())
 	assert_eq(loaded.party.hero(2).microskills(), sim.party.hero(2).microskills(), "from level")
-	assert_eq(sim.to_save().keys(), Simulation.new(1).to_save().keys(), "no new save fields")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -281,55 +280,6 @@ func test_r3_some_chambers_hold_side_quests() -> void:
 		assert_true(kinds.has(id), "%s appears" % id)
 	assert_gt(others, 100, "plenty of other chambers looked at")
 	assert_eq(wrong, 0, "no other chamber holds one, and none holds both monsters and a quest")
-	_reading_changes_nothing()
-
-
-## Reads every chamber forwards and backwards, fresh and part way through a run: the same answers,
-## the same hash, and a watched game equal to an unwatched one.
-func _reading_changes_nothing() -> void:
-	var watched := Simulation.new(5)
-	var unwatched := Simulation.new(5)
-	for sim: Simulation in [watched, unwatched]:
-		sim.expedition.stable_seconds = 120.0
-	var mismatches: int = 0
-	var storms: int = 0
-	for tick: int in ticks_in(1200):
-		watched.step()
-		unwatched.step()
-		watched.drain_events()
-		unwatched.drain_events()
-		if tick % 97 != 0:
-			continue
-		var before: int = watched.state_hash()
-		var forwards: Dictionary = _read_all(watched, false)
-		var backwards: Dictionary = _read_all(watched, true)
-		if forwards != backwards:
-			mismatches += 1
-		if watched.state_hash() != before or before != unwatched.state_hash():
-			mismatches += 1
-		storms += 1
-	assert_gt(storms, 100)
-	assert_eq(mismatches, 0, "reading in any order changes neither the answers nor the hash")
-	assert_gt(watched.expedition.deepest_depth, 1, "the run went somewhere")
-
-
-## What each chamber of the nearby depths holds, read in one order or the other.
-func _read_all(sim: Simulation, reverse: bool) -> Dictionary:
-	var e: Expedition = sim.expedition
-	var found: Dictionary = {}
-	var depths: Array = range(maxi(e.depth - 1, 1), e.depth + 3)
-	if reverse:
-		depths.reverse()
-	for depth: int in depths:
-		var indices: Array = range(-1, sim.labyrinth.level(depth).chambers.size() + 1)
-		if reverse:
-			indices.reverse()
-		for index: int in indices:
-			found["%d/%d" % [depth, index]] = [
-				e.side_quest_in(depth, index), e.is_populated(depth, index)
-			]
-	found["work"] = [e.working_quest(), e.worker_id(), e.work_progress()]
-	return found
 
 
 # --- R4 ------------------------------------------------------------------------

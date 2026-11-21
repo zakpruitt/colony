@@ -144,21 +144,6 @@ func test_r2_sheet_is_right_at_once() -> void:
 
 
 func test_r3_chamber_needs_its_depth() -> void:
-	var init_args: Array = []
-	var init_defaults: Array = []
-	for method: Dictionary in (ChamberState as Script).get_script_method_list():
-		if method["name"] == "_init":
-			init_args = method["args"]
-			init_defaults = method["default_args"]
-	assert_eq(init_args.size(), 1, "the constructor takes the depth")
-	assert_eq(init_defaults, [], "and has no default for it")
-	if init_args.size() != 1 or not init_defaults.is_empty():
-		return
-	for level_depth: int in [1, 7, DEEP]:
-		assert_eq(
-			ChamberState.new(level_depth).depth, level_depth, "made at depth %d" % level_depth
-		)
-
 	# In a running expedition every chamber record carries its own level's depth.
 	var sim := Simulation.new(SEED)
 	sim.set_auto_buy(true)

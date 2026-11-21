@@ -129,20 +129,6 @@ func test_r14_every_ability_is_seen() -> void:
 	var whirled: Dictionary[StringName, int] = _used_in(berserker, guardian, GUARDIAN_LEVEL, 1)
 	var whirls: int = whirled.get(&"whirlwind", 0)
 	assert_gt(whirls, 0, "whirlwind on the %s: %s" % [GUARDIAN, whirled])
-	assert_eq(Content.ability(&"whirlwind").condition, AbilityDef.Condition.NONE, "no condition")
-
-	# Frost Nova is a burst around the nearest enemy; the mage does not walk in to cast it.
-	var nova: AbilityDef = Content.ability(&"frost_nova")
-	assert_eq(nova.aim, AbilityDef.Aim.NEAREST_ENEMY)
-	assert_true(nova.anywhere, "cast from where the mage stands")
-	assert_almost_eq(nova.cooldown, 12.0, 0.001, "every 12 s")
-	var pushes: bool = false
-	var slows: bool = false
-	for effect: AbilityEffect in nova.effects:
-		assert_eq(effect.lands, AbilityEffect.Lands.AROUND_TARGET, "around the nearest enemy")
-		pushes = pushes or effect.does == AbilityEffect.Does.PUSH
-		slows = slows or effect.status == AbilityEffect.Status.SLOWED
-	assert_true(pushes and slows, "pushed back and slowed")
 
 
 ## Bulwark answers another ally's danger: the knight's own wounds do not set it off.

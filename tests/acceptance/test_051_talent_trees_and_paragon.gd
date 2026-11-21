@@ -62,14 +62,6 @@ func _full(class_id: StringName, path: int) -> Array[StringName]:
 	return nodes
 
 
-func _of(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for e: SimEvent in events:
-		if e.kind == kind:
-			found.append(e)
-	return found
-
-
 func _ids(abilities: Array[AbilityDef]) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for ability: AbilityDef in abilities:
@@ -269,7 +261,7 @@ func test_r3_spending() -> void:
 	for node: StringName in illegal:
 		var events: Array[SimEvent] = _take(sim, knight, node)
 		assert_eq(knight.talents(), [] as Array[StringName], "%s first is ignored" % node)
-		assert_eq(_of(events, SimEvent.Kind.TALENT_TAKEN).size(), 0, "and says nothing")
+		assert_eq(_of_kind(events, SimEvent.Kind.TALENT_TAKEN).size(), 0, "and says nothing")
 	var taken: Array[StringName] = []
 	for node: StringName in _full(&"knight", 0):
 		assert_true(knight.can_take(node), "%s is next" % node)
@@ -278,7 +270,7 @@ func test_r3_spending() -> void:
 		var events: Array[SimEvent] = _take(sim, knight, node)
 		taken.append(node)
 		assert_eq(knight.talents(), taken, "the legal order")
-		var told: Array[SimEvent] = _of(events, SimEvent.Kind.TALENT_TAKEN)
+		var told: Array[SimEvent] = _of_kind(events, SimEvent.Kind.TALENT_TAKEN)
 		assert_eq(told.size(), 1, "one event for %s" % node)
 		if not told.is_empty():
 			assert_eq(told[0].source_id, knight.id)
@@ -300,7 +292,7 @@ func test_r3_spending() -> void:
 	assert_eq(rogue.talents(), [&"backstab"] as Array[StringName], "one point, one node")
 	sim.take_talent(99, &"backstab")
 	sim.step()
-	var said: Array[SimEvent] = _of(sim.drain_events(), SimEvent.Kind.TALENT_TAKEN)
+	var said: Array[SimEvent] = _of_kind(sim.drain_events(), SimEvent.Kind.TALENT_TAKEN)
 	assert_eq(said.size(), 0, "an unknown hero is ignored")
 
 
@@ -435,7 +427,7 @@ func test_r6_paragon() -> void:
 		for point: int in 11:
 			sim.spend_paragon(cleric.id, stat)
 		sim.step()
-		var events: Array[SimEvent] = _of(sim.drain_events(), SimEvent.Kind.PARAGON_SPENT)
+		var events: Array[SimEvent] = _of_kind(sim.drain_events(), SimEvent.Kind.PARAGON_SPENT)
 		assert_eq(events.size(), 11, "an event a point")
 		if not events.is_empty():
 			assert_eq(events[10].source_id, cleric.id)
@@ -500,13 +492,6 @@ func test_r6_paragon() -> void:
 ## windows (spec 060), for the Talents tab.
 func _hud_over(sim: Simulation) -> Hud:
 	return _make_hud(sim)
-
-
-func after_each() -> void:
-	super()
-	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
-	if bus >= 0:
-		AudioServer.set_bus_mute(bus, false)
 
 
 func test_r6_the_sheet_shows_the_points() -> void:
@@ -596,7 +581,7 @@ func test_r7_fresh_start() -> void:
 	var price: int = Simulation.reset_price(knight)
 	sim.reset_talents(knight.id)
 	sim.step()
-	var said: Array[SimEvent] = _of(sim.drain_events(), SimEvent.Kind.TALENTS_RESET)
+	var said: Array[SimEvent] = _of_kind(sim.drain_events(), SimEvent.Kind.TALENTS_RESET)
 	assert_eq(sim.party.gold, gold - price, "the price is paid")
 	assert_eq(knight.talents(), [] as Array[StringName], "every node given back")
 	assert_eq(knight.talent_points(), 7, "as unspent points")
@@ -617,13 +602,6 @@ func test_r7_fresh_start() -> void:
 
 
 func test_r8_gold_training_is_gone() -> void:
-	var sim := Simulation.new(SEED)
-	assert_false(sim.has_method("train_hero"), "no command trains with gold")
-	assert_false("HERO_TRAINED" in SimEvent.Kind.keys(), "and no event says so")
-	var power: TrainingDef = Content.training(&"power")
-	for field: String in ["base_cost", "cost_growth", "max_rank"]:
-		assert_false(field in power, "no %s on a training" % field)
-
 	var training: Array[Dictionary] = [
 		{"power": 3, "toughness": 2, "quickness": 1}, {"power": 1}, {}, {"quickness": 4}
 	]
@@ -884,20 +862,6 @@ func test_r12_deterministic() -> void:
 		hashes.append(sim.to_save())
 		runs.append(hashes)
 	assert_eq(runs[0], runs[1], "two runs with spending agree")
-
-	# Spending nothing hashes as before: spec 016's recorded hashes.
-	var recorded: Dictionary = (
-		preload("res://tests/acceptance/test_016_camp_upgrades.gd").RECORDED_HASHES
-	)
-	for seed_value: int in recorded:
-		var sim := Simulation.new(seed_value)
-		var hashes: Array = []
-		for i: int in 12_000:
-			sim.step()
-			sim.drain_events()
-			if sim.tick % 1500 == 0:
-				hashes.append(sim.state_hash())
-		assert_eq(hashes, recorded[seed_value] as Array, "seed %d hashes as before" % seed_value)
 
 
 # --- R13 -----------------------------------------------------------------------

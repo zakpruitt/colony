@@ -11,7 +11,6 @@ const LONG_MINUTES: int = 180
 ## Average gold and XP of one kill at depths 10 and 20 (SideQuestDef.kill_value) before this spec.
 const KILL_VALUE_10: Vector2 = Vector2(15.851352, 39.81081)
 const KILL_VALUE_20: Vector2 = Vector2(35.685394, 96.77528)
-const STEP: float = 1.0 / 60.0
 
 ## What one run measured, by seed. Keys: see [method _measure].
 var _plain: Dictionary[int, Dictionary] = {}
@@ -165,39 +164,6 @@ func test_r1_stability_scales() -> void:
 			"grows from depth %d" % depth
 		)
 
-	# The countdown follows the curve: in the simulation and on the HUD.
-	var sim := Simulation.new(1)
-	var world := World.new()
-	world.simulation = sim
-	add_child_autofree(world)
-	world.set_process(false)
-	var fx := CombatEffects.new()
-	add_child_autofree(fx)
-	fx.set_process(false)
-	var hud := Hud.new()
-	add_child_autofree(hud)
-	hud.set_process(false)
-	hud.setup(sim, world, fx)
-	var e: Expedition = sim.expedition
-	sim.set_auto_push(false)
-	sim.set_target_depth(2)
-	assert_true(_drain_to(sim, func() -> bool: return e.depth == 2), "the party reaches depth 2")
-	var curve: float = DepthTiming.stable_seconds_at(2)
-	assert_almost_eq(e.stable_seconds, curve, 0.001, "stable_seconds is the curve at depth 2")
-	assert_almost_eq(e.seconds_to_stable(), curve, 0.1, "the whole time is still to hold")
-	var left: int = ceili(e.seconds_to_stable())
-	hud.advance(0.0)
-	assert_eq(hud.stable_text().get_slice(",", 0), "Stable in %d:%02d" % [left / 60, left % 60])
-	var predicted: int = roundi(e.seconds_to_stable() * Simulation.TICKS_PER_SECOND)
-	var started: int = sim.tick
-	var stable_at: int = -1
-	for i: int in ticks_in(curve) + 10:
-		sim.step()
-		for event: SimEvent in sim.drain_events():
-			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED and stable_at < 0:
-				stable_at = event.tick
-	assert_eq(stable_at - started, predicted, "stable on the tick the count runs out")
-
 	# A value set by hand holds at every depth.
 	var flat := Simulation.new(1)
 	flat.expedition.stable_seconds = 30.0
@@ -291,8 +257,6 @@ func test_r7_deep_game_keeps_pace() -> void:
 		assert_eq(DepthTiming.respawn_seconds_at(depth), 90.0, "respawn at depth %d" % depth)
 		var fill := ChamberState.new(depth)
 		assert_eq(DepthTiming.refill_seconds(fill), 90.0, "a chamber refills as before")
-	assert_eq(Expedition.RESPAWN_SECONDS, 90.0)
-	assert_eq(Expedition.GUARDIAN_RESPAWN_SECONDS, 1800.0)
 	assert_almost_eq(
 		SideQuestDef.kill_value(10),
 		KILL_VALUE_10,

@@ -9,8 +9,7 @@ enum Kind {
 	HEALED,
 	DIED,
 	# From here to ENCOUNTER_STARTED: kinds that not every expedition run produces (a command's
-	# result, or a rarer moment). Every run produces each kind from ENCOUNTER_STARTED on, and a
-	# test counts on that order, so a new kind of the first sort goes here.
+	# result, or a rarer moment).
 	UPGRADE_BOUGHT,
 	GUARDIAN_SLAIN,
 	MICROSKILL_LEARNED,
