@@ -55,6 +55,15 @@ ERROR_MARKERS = ("SCRIPT ERROR", "Parse Error", "ERROR:")
 
 # The shared test base, the one test script that may name a user:// path.
 SHARED_TEST_BASE = "tests/colony_test.gd"
+# The fixtures tests extend or make, held to the comment rule as the base is.
+TEST_FIXTURES = "tests/support"
+
+# A helper defined in more test scripts than this belongs in a fixture or the base.
+MAX_HELPER_COPIES = 2
+# The helper names allowed in more test scripts than that, each with its reason: {name: reason}.
+LOCAL_TEST_HELPERS = "tools/local_test_helpers.json"
+# Functions every test script may define: GUT's hooks.
+GUT_HOOKS = ("before_all", "after_all", "before_each", "after_each")
 
 # Set once a process has imported the project; a dev.py started under it skips its own import.
 IMPORTED = "COLONY_PROJECT_IMPORTED"
@@ -347,6 +356,34 @@ def harness_problems(root: Path = ROOT) -> list[str]:
             problems.append(
                 f"{script}: mentions user:// but neither it nor a base it extends defines after_all"
             )
+    return problems + helper_copy_problems(texts, root)
+
+
+def helper_copy_problems(texts: dict[str, str], root: Path = ROOT) -> list[str]:
+    """Each helper defined in more than MAX_HELPER_COPIES test scripts, unless LOCAL_TEST_HELPERS
+    allows its name. GUT's hooks and test_ functions are every script's own.
+    """
+    allowed_path = root / LOCAL_TEST_HELPERS
+    allowed: dict[str, str] = {}
+    if allowed_path.is_file():
+        allowed = json.loads(allowed_path.read_text(encoding="utf-8"))
+    defined: dict[str, list[str]] = {}
+    for script, text in texts.items():
+        if not script.startswith("tests/"):
+            continue
+        names = set(re.findall(r"^(?:static\s+)?func\s+(\w+)", text, re.MULTILINE))
+        for name in names:
+            if name in GUT_HOOKS or name.startswith("test_"):
+                continue
+            defined.setdefault(name, []).append(script)
+    problems: list[str] = []
+    for name, scripts in sorted(defined.items()):
+        if len(scripts) > MAX_HELPER_COPIES and name not in allowed:
+            problems.append(
+                f"{name} is defined in {len(scripts)} test scripts ({', '.join(sorted(scripts))});"
+                f" share it from a fixture under {TEST_FIXTURES}/ or ColonyTest, or list it with"
+                f" its reason in {LOCAL_TEST_HELPERS}"
+            )
     return problems
 
 
@@ -427,6 +464,7 @@ def comment_scripts(root: Path) -> list[Path]:
                 found.append(path)
     if (root / SHARED_TEST_BASE).is_file():
         found.append(root / SHARED_TEST_BASE)
+    found.extend(sorted((root / TEST_FIXTURES).rglob("*.gd")))
     return found
 
 
