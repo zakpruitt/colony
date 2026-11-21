@@ -151,7 +151,9 @@ class Imports(unittest.TestCase):
         fake = FakeGodot()
         real_run = dev.run
 
-        def run(command: list[str], timeout: int) -> tuple[int, str]:
+        def run(
+            command: list[str], timeout: int, env: dict[str, str] | None = None
+        ) -> tuple[int, str]:
             if command[0] == "git":
                 return real_run(command, timeout)
             return 0, "Ran 7 tests\n\nOK\n"
@@ -183,9 +185,13 @@ class ArtStep(unittest.TestCase):
             raise AssertionError(f"the art step started Godot: {args}")
 
         commands: list[list[str]] = []
+        envs: list[dict[str, str]] = []
 
-        def run(command: list[str], timeout: int) -> tuple[int, str]:
+        def run(
+            command: list[str], timeout: int, env: dict[str, str] | None = None
+        ) -> tuple[int, str]:
             commands.append(list(command))
+            envs.append(dict(env or {}))
             return 0, "Ran 7 tests\n\nOK\n"
 
         # The step's own commands, not run: this file is one of the tool tests it would start.
@@ -198,6 +204,17 @@ class ArtStep(unittest.TestCase):
         discovered = [command for command in commands if "unittest" in command]
         self.assertEqual(len(discovered), 1, commands)
         self.assertEqual(discovered[0][-4:], ["-s", "tools/tests", "-t", "tools/tests"])
+        # The tool tests run with GODOT naming a program that fails on Godot's arguments, so one
+        # among them that starts Godot fails the real check.
+        godot = envs[commands.index(discovered[0])].get("GODOT")
+        self.assertTrue(godot, f"the tool tests are given a GODOT: {envs}")
+        started = subprocess.run(
+            [godot, "--headless", "--path", str(ROOT), "--version"],
+            capture_output=True,
+            timeout=60,
+            check=False,
+        )
+        self.assertNotEqual(started.returncode, 0, f"{godot} fails as Godot")
         # unittest looks under a folder only if it is a package: the tests that start Godot are not.
         self.assertFalse((ROOT / dev.GODOT_TOOL_TESTS / "__init__.py").exists())
         self.assertIn("tools", dev.STEPS)

@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import contextlib
 import io
+import os
+import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -50,6 +53,15 @@ READS_ECHO = (
     "\tvar key := event as InputEventKey\n"
     "\tif key != null and key.pressed and not key.echo and key.keycode == KEY_G:\n"
     "\t\tvisible = not visible\n"
+)
+# The same guard through the event's method: is_echo() on line 5.
+ASKS_IS_ECHO = (
+    "extends Node\n"
+    "\n"
+    "\n"
+    "func _unhandled_input(event: InputEvent) -> void:\n"
+    "\tif event.is_pressed() and not event.is_echo() and event.is_action(&\"ui_cancel\"):\n"
+    "\t\tvisible = false\n"
 )
 # A label coloured by hand, the call on line 6.
 COLOURS_BY_HAND = (
@@ -119,6 +131,13 @@ class TextRules(TempTree):
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("game/world/world.gd:6:", problems[0])
         self.assertIn("KeyBook.pressed", problems[0], "it says what to do instead")
+        self.fails_the_step()
+
+        self.write("game/world/world.gd", ASKS_KEY_BOOK)
+        self.write("game/ui/ui_windows.gd", ASKS_IS_ECHO)
+        problems = dev.rule_problems(self.root)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("game/ui/ui_windows.gd:5:", problems[0], "is_echo() is a read too")
         self.fails_the_step()
 
     def test_r1_a_font_colour_set_by_hand_fails(self) -> None:
@@ -235,20 +254,79 @@ class Caps(TempTree):
         self.assertIn("game/ui/ui_root.gd", problems[0])
 
 
+# A tool test put among those that need no Godot, which starts Godot and wants it to work.
+STARTS_GODOT = (
+    "import sys\n"
+    "import unittest\n"
+    "\n"
+    "sys.path.insert(0, {tools!r})\n"
+    "import dev\n"
+    "\n"
+    "\n"
+    "class StartsGodot(unittest.TestCase):\n"
+    "    def test_the_version_prints(self) -> None:\n"
+    "        code, output = dev.godot(['--version'], timeout=60)\n"
+    "        self.assertEqual(code, 0, output)\n"
+)
+
+
 class ArtStep(unittest.TestCase):
-    def test_r6_the_art_step_runs_the_tool_tests_once(self) -> None:
-        commands: list[list[str]] = []
+    def setUp(self) -> None:
+        self._folder = tempfile.TemporaryDirectory()
+        self.folder = Path(self._folder.name)
+        tests = self.folder / "tests"
+        tests.mkdir()
+        (tests / "test_starts_godot.py").write_text(
+            STARTS_GODOT.format(tools=str(TOOLS)), encoding="utf-8"
+        )
+        self.tests = tests
+        # A Godot that does what it is asked, so the made-up test passes wherever Godot is real.
+        if os.name == "nt":
+            self.godot = self.folder / "godot.cmd"
+            self.godot.write_text("@exit /b 0\r\n", encoding="utf-8")
+        else:
+            self.godot = self.folder / "godot"
+            self.godot.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            self.godot.chmod(0o755)
 
-        def run(command: list[str], timeout: int) -> tuple[int, str]:
-            commands.append(list(command))
-            return 0, "Ran 7 tests\n\nOK\n"
+    def tearDown(self) -> None:
+        self._folder.cleanup()
 
-        with mock.patch.object(dev, "run", run):
-            summary = dev.step_art()
-        tests = [command for command in commands if "unittest" in command]
-        self.assertEqual(len(tests), 1, commands)
-        self.assertIn("tools/tests", tests[0])
-        self.assertIn("7 tool tests", summary)
+    def run_tool_tests(
+        self, command: list[str], timeout: int, env: dict[str, str] | None = None
+    ) -> tuple[int, str]:
+        """The art step's tool tests run for real on the made-up folder, with the environment
+        the step gives them; its lints pass untouched."""
+        if "unittest" not in command:
+            return 0, "ok\n"
+        self.runs += 1
+        folder = str(self.tests)
+        command = [folder if part == "tools/tests" else part for part in command]
+        done = subprocess.run(
+            command,
+            cwd=dev.ROOT,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+            env={**os.environ, "GODOT": str(self.godot), **(env or {})},
+            check=False,
+        )
+        return done.returncode, done.stdout + done.stderr
+
+    def test_r6_a_tool_test_that_starts_godot_fails_the_art_step(self) -> None:
+        # Outside the step, the made-up test passes: its Godot works.
+        self.runs = 0
+        python = sys.executable or "python"
+        discover = [python, "-m", "unittest", "discover", "-s", "tools/tests", "-t", "tools/tests"]
+        code, output = self.run_tool_tests(discover, 120)
+        self.assertEqual(code, 0, output)
+
+        self.runs = 0
+        with mock.patch.object(dev, "run", self.run_tool_tests):
+            with self.assertRaises(dev.StepFailed) as failed:
+                dev.step_art()
+        self.assertEqual(self.runs, 1, "the tool tests ran once")
+        self.assertIn("test_the_version_prints", str(failed.exception))
 
 
 if __name__ == "__main__":

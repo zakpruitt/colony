@@ -113,7 +113,9 @@ class R1BakeAndLint(unittest.TestCase):
     def test_the_art_step_runs_the_sfx_lint(self) -> None:
         commands: list[list[str]] = []
 
-        def run(command: list[str], timeout: int) -> tuple[int, str]:
+        def run(
+            command: list[str], timeout: int, env: dict[str, str] | None = None
+        ) -> tuple[int, str]:
             commands.append(list(command))
             return 0, "Ran 7 tests\n\nOK\n"
 

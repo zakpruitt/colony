@@ -178,19 +178,28 @@ def godot_binary() -> str:
     raise StepFailed("Godot not found: put it on PATH or set GODOT")
 
 
-def run(command: list[str], timeout: int) -> tuple[int, str]:
-    """Run a command from the project root; return its exit code and output."""
-    return run_capped(command, timeout, MAX_OUTPUT_BYTES)
+def run(command: list[str], timeout: int, env: dict[str, str] | None = None) -> tuple[int, str]:
+    """Run a command from the project root, with [env] set over this process's environment;
+    return its exit code and output."""
+    return run_capped(command, timeout, MAX_OUTPUT_BYTES, env)
 
 
-def run_capped(command: list[str], timeout: int, max_bytes: int) -> tuple[int, str]:
+def run_capped(
+    command: list[str], timeout: int, max_bytes: int, env: dict[str, str] | None = None
+) -> tuple[int, str]:
     """As run(), with the output kept in a file and the run stopped if it grows past max_bytes.
 
     A test that prints an error every frame once wrote gigabytes into this process's memory and
     starved every other lane on the machine, so the output goes to disk and has a limit.
     """
     with tempfile.TemporaryFile() as sink:
-        process = subprocess.Popen(command, cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            stdout=sink,
+            stderr=subprocess.STDOUT,
+            env={**os.environ, **env} if env else None,
+        )
         deadline = time.monotonic() + timeout
         problem = ""
         while process.poll() is None:
@@ -441,11 +450,11 @@ def rule_problems(root: Path = ROOT) -> list[str]:
     """Three rules about what a script's text may say, on the scripts git tracks under [root];
     each problem names its file and line, and what to do instead.
 
-    Under game/ only KEY_GUARD reads a key event's `.echo`. In LABEL_CODE only LABEL_SETTER
-    overrides a label's font colour. A script under TEST_FOLDERS extends TEST_BASE_CLASS, itself
-    or through its bases. Comments are not read.
+    Under game/ only KEY_GUARD reads a key event's echo (`.echo` or `is_echo(`). In LABEL_CODE
+    only LABEL_SETTER overrides a label's font colour. A script under TEST_FOLDERS extends
+    TEST_BASE_CLASS, itself or through its bases. Comments are not read.
     """
-    echo = re.compile(r"\.echo\b")
+    echo = re.compile(r"\.echo\b|\bis_echo\(")
     font_colour = re.compile(r'add_theme_color_override\(\s*&?"font_color"')
     texts = {
         script: (root / script).read_text(encoding="utf-8")
@@ -464,7 +473,7 @@ def rule_problems(root: Path = ROOT) -> list[str]:
             for number, line in enumerate(code, 1):
                 if echo.search(line):
                     problems.append(
-                        f"{script}:{number}: reads a key event's .echo; ask"
+                        f"{script}:{number}: reads a key event's echo; ask"
                         " KeyBook.pressed(event, key) or KeyBook.fresh_key(event)"
                     )
         if script.startswith(LABEL_CODE) and script != LABEL_SETTER:
@@ -676,11 +685,12 @@ def step_harness(root: Path = ROOT) -> str:
     )
 
 
-def tool_tests(folder: str, timeout: int) -> str:
-    """Run the Python tests in one folder (not the folders under it); return how many ran."""
+def tool_tests(folder: str, timeout: int, env: dict[str, str] | None = None) -> str:
+    """Run the Python tests in one folder (not the folders under it), with [env] set; return
+    how many ran."""
     python = sys.executable or "python"
     command = [python, "-m", "unittest", "discover", "-s", folder, "-t", folder]
-    code, output = run(command, timeout=timeout)
+    code, output = run(command, timeout=timeout, env=env)
     if code != 0:
         raise StepFailed(f"{folder} failed (exit {code})\n{tail(output)}")
     tests = re.search(r"^Ran (\d+) tests?", output, re.MULTILINE)
@@ -690,7 +700,9 @@ def tool_tests(folder: str, timeout: int) -> str:
 def step_art() -> str:
     """The tool tests that need no Godot, then the art and sound lints."""
     python = sys.executable or "python"
-    count = tool_tests("tools/tests", timeout=300)
+    # GODOT is Python here, which exits with an error on Godot's arguments: a tool test that
+    # starts Godot belongs in GODOT_TOOL_TESTS, and one left here fails instead.
+    count = tool_tests("tools/tests", timeout=300, env={"GODOT": python})
     code, output = run([python, "tools/art.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
