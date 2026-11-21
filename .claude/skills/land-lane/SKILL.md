@@ -51,5 +51,13 @@ description: For the lead session - spawn an implementer lane for an approved Co
   yours and not the lane's. If you rule on it to keep things moving, tell him at once what to look for.
 - **Two pull requests conflict.** The Paths lists overlapped, which is a spec mistake. Land one, have the other
   lane rebase, and fix whichever spec was wrong.
+- **A lane finished but no report came.** A lane hands back once; a report written before the push, or after
+  it was resumed, is lost. Look at `gh pr list` and the worktree's `git log` and `git status`, then ask the
+  lane (SendMessage) for what is missing. Tell a lane to push and open the pull request before it reports.
+- **A spec that removes or moves tests.** Tell the reviewer what is must-fix: a removed assert whose named
+  survivor does not make it in a situation at least as hard (a signal emitted is not a real click; the same
+  stage is not another stage; an icon's name is not its texture). An audit that calls a test a duplicate is a
+  lead, not a cut list: in the cleanup of specs 082 to 087 about one such row in five was wrong. Compare the
+  number of `func test_` under `tests/` with CI's passing count before merging.
 - **A lane is stuck or going in circles.** Stop it, read what it did, and decide whether the spec, the harness
   or the brief was at fault before spawning another.
