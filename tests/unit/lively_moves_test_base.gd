@@ -103,7 +103,7 @@ func _only_on(kind: StringName, on: int, others: Array[int], label: String) -> v
 	for other: int in others:
 		var at: float = _world.character(other).position.x
 		if absf(at - x) < 24.0:
-			continue  # standing too close to tell apart
+			continue  # a neighbour within 24 px is held by the first loop's 12 px
 		for particle: FxParticle in shown:
 			assert_gt(absf(particle.position.x - at), 12.0, "%s leaves %d out" % [label, other])
 

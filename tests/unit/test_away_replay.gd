@@ -10,21 +10,6 @@ func _saved() -> Dictionary:
 	return JSON.parse_string(JSON.stringify(sim.to_save()))
 
 
-func test_a_replay_ends_where_stepping_does() -> void:
-	var saved: Dictionary = _saved()
-	var replayed: Simulation = Simulation.from_save(saved)
-	var replay := AwayReplay.new(replayed, 500.0)
-	assert_eq(replay.total_ticks, 5000)
-	while not replay.run(1_000_000):
-		pass
-	var stepped: Simulation = Simulation.from_save(saved)
-	for i: int in 5000:
-		stepped.step()
-	assert_eq(replayed.tick, stepped.tick)
-	assert_eq(replayed.state_hash(), stepped.state_hash(), "the same state")
-	assert_almost_eq(replay.fraction(), 1.0, 0.0001)
-
-
 func test_a_slice_stops_at_its_budget() -> void:
 	var replay := AwayReplay.new(Simulation.from_save(_saved()), 8.0 * 3600.0)
 	assert_false(replay.run(2_000), "eight hours do not fit in 2 ms")

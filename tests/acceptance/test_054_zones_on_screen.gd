@@ -226,7 +226,7 @@ func test_r2_a_short_crossing() -> void:
 	main.world.set_process(false)
 	_sim = main.simulation
 	_world = main.world
-	_events = []
+	_hear_events()
 	_frames_played = 0
 	_near_the_way_on(_sim, 1)
 	var veils: Array[Node] = main.hud.find_children("CrossingVeil", "CrossingVeil", false, false)
@@ -236,6 +236,7 @@ func test_r2_a_short_crossing() -> void:
 	var shown_veil: CrossingVeil = veils[0] as CrossingVeil
 	assert_eq(shown_veil.get_index(), 0, "first, so the rest of the HUD is drawn over it")
 	var dark_seen: int = 0
+	var changed: bool = false
 	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		shown_veil.refresh()
@@ -249,7 +250,9 @@ func test_r2_a_short_crossing() -> void:
 			assert_eq(shown_veil.title_label.text, "Mossy Hollow 2", "with the title")
 			dark_seen += 1
 		if _has(events, SimEvent.Kind.DEPTH_CHANGED):
+			changed = true
 			break
+	assert_true(changed, "the party changed stage")
 	assert_gt(dark_seen, 5, "the game's own veil was dark in the crossing")
 	assert_false(shown_veil.visible, "and hidden once it is over")
 

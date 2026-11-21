@@ -2,7 +2,6 @@ extends ColonyTest
 ## Spec 009, pixel font and the UI theme. R3 (the lint's font category) is tested in
 ## tools/tests/test_art.py.
 
-const FONT_PATH: String = "res://assets/fonts/pixel.png"
 const THEME_PATH: String = "res://game/ui/theme.tres"
 const MAIN_SCENE_PATH: String = "res://game/main.tscn"
 const SPECIMEN: String = "res://game/ui/font_specimen.tscn"

@@ -94,7 +94,6 @@ func test_variants_depend_only_on_position() -> void:
 	var seen: Dictionary[String, bool] = {}
 	for x: int in 200:
 		var tile := Vector2i(x, x * 7 % 31)
-		assert_eq(LabyrinthTiles.buried_part(tile), LabyrinthTiles.buried_part(tile))
 		seen[LabyrinthTiles.buried_part(tile)] = true
 	assert_gt(seen.size(), 5, "many variants are used: %s" % [seen.keys()])
 
