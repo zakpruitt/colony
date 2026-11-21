@@ -329,5 +329,82 @@ class ArtStep(unittest.TestCase):
         self.assertIn("test_the_version_prints", str(failed.exception))
 
 
+ESC = "\x1b"
+# GUT's output for two scripts, as the tests step reads it; {risky} and {pending} are the lines
+# GUT prints under a test that made no assert or called pending(), or nothing.
+GUT_OUTPUT = (
+    "res://tests/acceptance/test_one.gd\n"
+    "* test_a_frame_moves\n"
+    "* test_handlers_have_one_name\n"
+    "{risky}"
+    "2/2 passed.\n"
+    "res://tests/unit/test_two.gd\n"
+    "* test_waits_for_later\n"
+    "{pending}"
+    "* test_saves\n"
+    f"{ESC}[1m2/2 passed.\n"
+    f"{ESC}[33m==============================================\n"
+    f"{ESC}[0m{ESC}[33m= Run Summary\n"
+    f"{ESC}[0m{ESC}[33m==============================================\n"
+    "{summary}"
+    "Totals\n"
+    "------\n"
+    "Scripts               2\n"
+    "Tests                 4\n"
+    "Passing Tests         {passing}\n"
+    "{totals}"
+    "Asserts             120\n"
+)
+RISKY = f"{ESC}[33m    [Risky]:  {ESC}[0mtest_handlers_have_one_name did not assert\n"
+PENDING = f"{ESC}[33m    [Pending]:  {ESC}[0mnot yet\n"
+
+
+def gut_output(risky: bool, pending: bool) -> str:
+    """GUT_OUTPUT with a risky test in the first script, a pending one in the second, or neither."""
+    summary = ""
+    if risky:
+        summary += f"{ESC}[0m- test_handlers_have_one_name\n{ESC}[33m    [Risky]:  Did not assert\n"
+    if pending:
+        summary += f"{ESC}[0m- test_waits_for_later\n{ESC}[33m    [Pending]:  not yet\n"
+    unasserted = int(risky) + int(pending)
+    return GUT_OUTPUT.format(
+        risky=RISKY if risky else "",
+        pending=PENDING if pending else "",
+        summary=summary,
+        passing=4 - unasserted,
+        totals=f"Risky/Pending         {unasserted}\n" if unasserted else "",
+    )
+
+
+class TestsStep(unittest.TestCase):
+    def step(self, output: str) -> str:
+        """The tests step's verdict on GUT's [output], Godot itself not started."""
+        with (
+            mock.patch.object(dev, "godot", lambda args, timeout: (0, output)),
+            mock.patch.object(dev, "ensure_imported", lambda: None),
+        ):
+            return dev.step_tests()
+
+    def test_r8_a_test_without_an_assert_fails_the_tests_step(self) -> None:
+        self.assertEqual(self.step(gut_output(False, False)), "4 passing")
+
+        with self.assertRaises(dev.StepFailed) as failed:
+            self.step(gut_output(True, False))
+        message = str(failed.exception)
+        self.assertIn("res://tests/acceptance/test_one.gd::test_handlers_have_one_name", message)
+        self.assertNotIn("test_a_frame_moves", message)
+        self.assertNotIn("test_saves", message)
+
+        with self.assertRaises(dev.StepFailed) as failed:
+            self.step(gut_output(False, True))
+        self.assertIn("res://tests/unit/test_two.gd::test_waits_for_later", str(failed.exception))
+
+        with self.assertRaises(dev.StepFailed) as failed:
+            self.step(gut_output(True, True))
+        message = str(failed.exception)
+        self.assertIn("test_handlers_have_one_name", message)
+        self.assertIn("test_waits_for_later", message)
+
+
 if __name__ == "__main__":
     unittest.main()

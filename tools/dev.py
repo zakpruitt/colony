@@ -785,6 +785,33 @@ def shard_scripts(scripts: list[str], index: int, count: int) -> list[str]:
     return sorted(parts[index - 1])
 
 
+def unasserted_tests(output: str) -> list[str]:
+    """The tests GUT's [output] reports as risky (no assert) or pending, as "script::test".
+
+    GUT counts such a test as neither passing nor failing, so it would pass the step unseen. While
+    it runs, GUT prints each script's path, then "* <test>" for each test and a "[Risky]" or
+    "[Pending]" line under one that is either; its totals give "Risky/Pending <count>".
+    """
+    found: list[str] = []
+    script = test = ""
+    for raw in output.splitlines():
+        line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
+        if line.startswith("= Run Summary"):
+            break
+        if re.fullmatch(r"res://\S+\.gd", line):
+            script, test = line, ""
+        elif line.startswith("* "):
+            test = line[2:].strip()
+        elif line.startswith(("[Risky]", "[Pending]")):
+            named = f"{script}::{test or '(the script)'}"
+            if named not in found:
+                found.append(named)
+    totals = re.search(r"^\s*Risky/Pending\s+(\d+)", output, re.MULTILINE)
+    if totals and int(totals.group(1)) > 0 and not found:
+        found.append(f"{totals.group(1)} risky or pending tests (GUT did not name them)")
+    return found
+
+
 def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) -> str:
     args = ["-s", "res://addons/gut/gut_cmdln.gd", "-gexit"]
     which = ""
@@ -811,6 +838,12 @@ def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) ->
     code, output = godot(args, timeout=2700)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
         raise StepFailed(f"tests failed (exit {code})\n{tail(output, 400)}")
+    unasserted = unasserted_tests(output)
+    if unasserted:
+        raise StepFailed(
+            "these tests asserted nothing (GUT's risky) or are pending: give each an assert that"
+            " always runs, or delete it\n" + "\n".join(unasserted)
+        )
     passing = re.search(r"^\s*Passing(?: Tests)?\s+(\d+)", output, re.MULTILINE)
     if not passing or int(passing.group(1)) == 0:
         raise StepFailed(f"no passing tests were reported\n{output}")
