@@ -99,11 +99,11 @@ the lead: 077 on are provisional, land on `dev` only, and wait for his playtest 
 | 079 | [One base type for effect nodes, and room in the two biggest game files](079-effect-nodes-and-room-in-big-files/spec.md): landed on dev, [#78](https://github.com/zakpruitt/colony/pull/78), provisional | 076 |
 | 080 | [Frame pieces share a base type, and an idle frame does nothing](080-frame-pieces-and-an-idle-frame/spec.md): landed on dev, [#80](https://github.com/zakpruitt/colony/pull/80), provisional | 075, 079 |
 | 081 | [Shared test fixtures, and a check that keeps helpers shared](081-shared-test-fixtures/spec.md): landed on dev, [#81](https://github.com/zakpruitt/colony/pull/81), provisional | 071, 077, 080 |
-| 082 | [Text rules live in the harness; proofs that a refactor happened go](082-text-rules-in-the-harness/spec.md): in-progress, provisional | 081 |
+| 082 | [Text rules live in the harness; proofs that a refactor happened go](082-text-rules-in-the-harness/spec.md): landed on dev, [#82](https://github.com/zakpruitt/colony/pull/82), provisional | 081 |
 | 083 | [Simulation tests that each prove something](083-sim-tests-that-prove-something/spec.md): in-progress, provisional | 081 |
 | 084 | [The hero window and the talent tree, tested once](084-hero-window-tests-once/spec.md): landed on dev, [#83](https://github.com/zakpruitt/colony/pull/83), provisional | 081 |
 | 085 | [The shop, the map, the tally and the bar, tested once](085-window-tests-once/spec.md): in-progress, provisional | 081 |
-| 086 | [The frame of the screen, tested once and on the screen the game shows](086-frame-tests-once/spec.md): provisional | 081 |
+| 086 | [The frame of the screen, tested once and on the screen the game shows](086-frame-tests-once/spec.md): in-progress, provisional | 081 |
 | 087 | [World, effects and time-away tests that hold](087-world-tests-that-hold/spec.md): provisional | 081 |
 
 On 2026-11-20 Zak asked for the tests to be cleaned up ("clear and purposeful, very intentional"; he

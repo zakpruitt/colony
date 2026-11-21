@@ -1,6 +1,6 @@
 # 086 — The frame of the screen, tested once and on the screen the game shows
 
-- **Status:** provisional
+- **Status:** in-progress (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
 - **Pull request:** —

@@ -1,9 +1,9 @@
 # 082 — Text rules live in the harness; proofs that a refactor happened go
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#82](https://github.com/zakpruitt/colony/pull/82)
 
 ## Intent
 
