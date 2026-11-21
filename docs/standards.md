@@ -14,6 +14,7 @@ plug in.
 | Kind of content | A row in `Content.KINDS`, a `Content.Kind` name, its two getters, a def class extending `ContentDef` (`key()`, `validate()`) | `sim/defs/content.gd` | spec 072's tests compare every getter with its folder; spec 078's, every definition with its key |
 | Check on a definition | A function on `DefChecks` that returns problems | `sim/defs/def_checks.gd` | |
 | Check on a save field | `SaveChecks.check_whole` / `check_counts` | `sim/save_checks.gd` | spec 072's tests pin every problem's wording |
+| Question about place on a stage (where a distance is, which chamber, which way, where a party arrives or leaves) | Ask the stage's `StageCourse` (`LabyrinthLevel.course`); a level of a new shape builds its own with `begin` and `line_to` | `sim/labyrinth/stage_course.gd` | spec 088's tests walk a course that bends; nothing under `sim/expedition/` names a level's floor row, tunnels or shafts |
 | Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress`, `ChamberRules`, `PartyPlaces` | gdlint: `Expedition` is at 20 public methods; `check`'s `harness` step: `expedition.gd` at most 900 lines |
 | Window on the button bar | A `WindowEntry` in `WindowBook`, whose content extends `WindowContent` | `game/ui/windows/` | spec 074's tests: button, key, tooltip, help line |
 | Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | spec 030's tests (every key listed and pressed); `check`'s `harness` step (only `KeyBook` reads `.echo`) |

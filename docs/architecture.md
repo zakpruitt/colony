@@ -314,7 +314,10 @@ stable depth, with every chamber freshly populated.
   parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines. Spec 078 holds that file to 900
   lines: what a chamber holds on a visit (always empty, a guardian's, its side quest and its monsters)
   is `ChamberRules`, and where the heroes stand and the anchor walks is `PartyPlaces`, both read-only
-  under `sim/expedition/`.
+  under `sim/expedition/`. `PartyPlaces` asks the stage's course (below) for every place:
+  `PartyPlaces.anchor(run)` is the anchor's feet in world tiles, `world_facing(run)` the way the party
+  faces in the world, `of` a hero's feet (in line behind the anchor along the course) and `walk_goal`
+  the distance the anchor walks toward.
 - **Talents and paragon (spec 051).** See "Talent trees and paragon" below. `Simulation.take_talent`,
   `spend_paragon` and `reset_talents` apply on the next step, like `buy_upgrade`. A hero with no node and no
   paragon point spent adds nothing to the state hash.
@@ -338,6 +341,38 @@ stable depth, with every chamber freshly populated.
   a read works out the visit the chamber is on and takes its monsters from a roll cache outside the hash.
   Monster ids come from where the monster waits (`Expedition.monster_id`: depth, chamber, visit and place in
   the encounter), not from the order anything was asked for.
+
+## The course
+
+Spec 088. Every `LabyrinthLevel` has a `course`, a `StageCourse` (`sim/labyrinth/stage_course.gd`): the
+line a party walks through that stage, built with `begin` and `line_to` from straight runs (level along
+a floor, or straight up a ladder), each run in a chamber or in none. A place on it is a **distance**
+from its first point. The course knows its two ends (`start`, `end`), where a party from the stage
+before arrives (`entry`) and where the way on leaves (`exit`), and answers every question about place:
+`point_at` (feet in world tiles), `heading_at` (1 right, -1 left, 0 on a ladder), `on_ladder`,
+`chamber_at`, `stretch_of` (the first and last distance inside a chamber) and `distance_in` (the
+distance of a world column on a chamber's floor). Feet at column c stand on the tile from c to c + 1:
+where two level runs meet, the point belongs to the run on its right, and where a ladder meets a floor,
+to the floor.
+
+`Expedition.x` is the party's distance along the course of its stage, and `Expedition.facing` the way
+it travels along it (1 toward `end`, -1 toward `start`), not a direction in the world. The expedition's
+scripts (`sim/expedition/`) take every place from the course and from a chamber's own rectangle
+(`LabyrinthChamber.floor_columns`, `floor_row`): a party revived, loaded or arriving stands at `entry`
+facing `exit` (`Arrival`); sent on it walks to `exit`, sent back to `entry`, and at its target from one
+end to the other; the guardian's chamber is the one `exit` is in, and the chambers `entry` and `exit`
+are in are otherwise always empty (`ChamberRules`); under Hold it turns one tile of course short of the
+guardian's chamber's stretch. A fight stays in world columns on its chamber's floor row: the heroes
+enter from the side the course brought them (`PartyPlaces.world_facing`), and after a win the anchor is
+at `distance_in` of the front hero's column.
+
+On the levels `Labyrinth` makes, the course is the floor row and the distance is the world column, from
+the first chamber's first floor column to the last chamber's last, with `exit` the middle of the shaft
+down and `entry` the middle of the shaft from above (at depth 1, the middle of the START chamber); a
+climb between stages keeps `x`, the shaft being one column through both. `LabyrinthLevel.floor_y`,
+`tunnels`, `shaft_down`, `shaft_chamber()` and `Labyrinth.shaft_column()` describe only that shape and
+are read by `game/` alone: nothing under `sim/expedition/` names them. `game/` still reads `Expedition.x`
+as a column, which it is on every level the game makes.
 
 ## Pace by depth
 

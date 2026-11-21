@@ -11,6 +11,11 @@ var kind: Kind
 var rect: Rect2i
 
 
+## The chamber's floor row: the lowest open row of its rectangle.
+func floor_row() -> int:
+	return rect.end.y - 1
+
+
 ## The first (x) and last (y) open column of the chamber's floor.
 func floor_columns() -> Vector2i:
 	return Vector2i(rect.position.x, rect.end.x - 1)

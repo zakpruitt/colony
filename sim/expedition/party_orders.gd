@@ -36,12 +36,19 @@ static func needs_rest(heroes: Array[Hero], pace: Expedition.Pace) -> bool:
 
 
 ## [param goal], or the column just outside [param room] if the walk from [param from] to
-## [param goal] would enter it: where a party under Hold turns back from a guardian's chamber.
+## [param goal] would enter it (see [method short_of_stretch]).
 static func short_of(room: LabyrinthChamber, from: float, goal: float) -> float:
 	if room == null:
 		return goal
-	var first: float = room.floor_columns().x
-	var last: float = room.floor_columns().y
+	return short_of_stretch(Vector2(room.floor_columns()), from, goal)
+
+
+## [param goal], or the place one tile outside [param stretch] (the first and last place inside
+## a chamber, as [method StageCourse.stretch_of] gives them) if the walk from [param from] to
+## [param goal] would enter it: where a party under Hold turns back from a guardian's chamber.
+static func short_of_stretch(stretch: Vector2, from: float, goal: float) -> float:
+	var first: float = stretch.x
+	var last: float = stretch.y
 	if goal > from and from < first and goal > first - 1.0:
 		return first - 1.0
 	if goal < from and from > last and goal < last + 1.0:

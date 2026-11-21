@@ -126,7 +126,31 @@ func _generate(depth: int) -> LabyrinthLevel:
 			)
 		)
 	result.shaft_down = Rect2i(down, result.floor_y + 1, SHAFT_WIDTH, LEVEL_HEIGHT)
+	result.course = _course_of(result, up if depth > 1 else -1, down)
 	return result
+
+
+## The course of a level on one floor row: along it from the first chamber's first floor column
+## to the last chamber's last, the distance being the column. A party arrives in the middle of
+## the shaft from above at column [param up] (with none, -1, in the middle of the first
+## chamber) and leaves by the middle of the shaft at column [param down].
+func _course_of(made: LabyrinthLevel, up: int, down: int) -> StageCourse:
+	var course := StageCourse.new()
+	var row: float = made.floor_y
+	var first: LabyrinthChamber = made.chambers[0]
+	var last: LabyrinthChamber = made.chambers[made.chambers.size() - 1]
+	course.begin(Vector2(first.floor_columns().x, row), first.floor_columns().x)
+	for chamber: LabyrinthChamber in made.chambers:
+		if chamber == last:
+			course.line_to(Vector2(chamber.floor_columns().y, row), chamber.index)
+		else:
+			# A column is in a chamber up to its far wall, and in the tunnel from there.
+			course.line_to(Vector2(chamber.rect.end.x, row), chamber.index)
+			course.line_to(Vector2(made.chambers[chamber.index + 1].rect.position.x, row))
+	var arrival: Vector2i = first.floor_columns()
+	course.entry = up + SHAFT_WIDTH / 2.0 if up >= 0 else (arrival.x + arrival.y) / 2.0
+	course.exit = down + SHAFT_WIDTH / 2.0
+	return course
 
 
 ## Column spans [start, end) from left to right: chamber, tunnel, chamber, ..., chamber.

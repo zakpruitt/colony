@@ -10,6 +10,8 @@ var chambers: Array[LabyrinthChamber] = []
 ## Left to right; tunnels[i] joins chambers[i] and chambers[i + 1].
 var tunnels: Array[Rect2i] = []
 var shaft_down: Rect2i
+## The line a party walks through this level; every question about place on it is asked here.
+var course: StageCourse
 
 
 ## The chamber whose columns include this one, or null inside a tunnel or solid earth.

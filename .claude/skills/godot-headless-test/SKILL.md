@@ -256,6 +256,9 @@ by value, not with `assert_eq` against ints.
   a `Variant`; write `var x: int = dict.get(k)`. The same goes for elements of an untyped `Array` or
   `Dictionary` passed straight to a typed parameter, `assert_eq` included (`requires the subtype "Variant" but
   the supertype "Variant" was provided`): copy the element into a typed local first.
+- `[14.5500001907349] expected to equal [14.55]`: a `Vector2` holds 32-bit floats, a `float` 64. A
+  position read back from one (`Expedition.hero_position(id).x`) is not `==` the `float` it was made from
+  (`Combatant.x`) unless that is a whole or half tile: use `assert_almost_eq`, or compare two `Vector2`s.
 - `Trying to assign an array of type "Array" to a variable of type "Array[StringName]"` at run time, though
   the script compiled: a ternary of array literals (`var c: Array[StringName] = [&"a"] if x else [&"b"]`)
   makes a plain `Array`; only a literal assigned directly is typed. Put each list in a typed `const` and pick
