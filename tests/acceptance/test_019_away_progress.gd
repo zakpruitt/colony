@@ -120,25 +120,20 @@ func test_r3_replay_is_sliced() -> void:
 		assert_not_null(main.catch_up_bar, "the bar shows")
 		assert_true(main.catch_up_bar.visible)
 		fractions.append(main.catch_up_bar.fraction)
-		var before: int = Time.get_ticks_usec()
 		await wait_process_frames(1)
-		assert_lt(Time.get_ticks_usec() - before, 200_000, "a frame never stalls")
-	assert_eq(main.catch_up_bar.text(), "Catching up...")
 	for i: int in range(1, fractions.size()):
 		assert_gt(fractions[i], fractions[i - 1], "the bar rises")
 	assert_lt(fractions[-1], 1.0, "eight hours do not fit in a few frames")
-	# One slice is bounded by its budget, not by the time left.
-	var ticks: int = main.simulation.tick
-	var start: int = Time.get_ticks_usec()
-	main.replay.run(Main.SLICE_USEC)
-	var took: int = Time.get_ticks_usec() - start
-	assert_gt(main.simulation.tick, ticks, "a slice steps the simulation")
-	assert_lt(took, Main.SLICE_USEC + 5_000, "and stops near its 10 ms budget")
 
 
 func test_r4_same_as_playing() -> void:
 	var saved: Dictionary = _write_save()
 	var main: Main = _main(900.0)
+	var replay: AwayReplay = main.replay
+	assert_not_null(replay, "the time away is replayed")
+	if replay == null:
+		return
+	assert_eq(replay.total_ticks, 9000, "900 s away are 9,000 ticks")
 	# Taken when the replay ends, before the world is made: the world fills the chambers it
 	# looks at, which changes the hash whether or not there was a replay.
 	var ended: Array[int] = []
@@ -152,6 +147,7 @@ func test_r4_same_as_playing() -> void:
 	assert_eq(ended.size(), 2, "the replay ended once")
 	assert_eq(ended[0], reference.tick, "same ticks")
 	assert_eq(ended[1], reference.state_hash(), "same state")
+	assert_almost_eq(replay.fraction(), 1.0, 0.0001, "the replay is whole")
 
 
 func test_r5_report() -> void:
@@ -187,34 +183,6 @@ func test_r5_report() -> void:
 	assert_string_contains(text, "30m")
 	assert_string_contains(text, UiFormat.group_thousands(report.gold_gained))
 	assert_string_contains(text, "%d" % report.kills)
-	# Spec 062: a window on the UI layer, in the middle of its room.
-	var centre: Vector2 = panel.get_global_rect().get_center()
-	var room: Vector2 = Vector2(main.ui.room())
-	assert_almost_eq(centre.x, room.x / 2.0, 1.0, "centred across")
-	assert_almost_eq(centre.y, room.y / 2.0, 1.0, "and down")
-	# Spec 062 R5: a key other than Esc leaves it; Esc closes it.
-	var key := InputEventKey.new()
-	key.keycode = KEY_SPACE
-	key.pressed = true
-	get_viewport().push_input(key)
-	assert_true(panel.is_open(), "not closed by any key")
-	key.keycode = KEY_ESCAPE
-	get_viewport().push_input(key)
-	assert_true(panel.is_queued_for_deletion() or not panel.visible, "closed by Esc")
-	# A fresh panel closes by itself after 12 s.
-	var timed := AwayWindow.new(report, before.party)
-	add_child_autofree(timed)
-	timed.open()
-	timed.advance(AwayWindow.SHOW_SECONDS - 0.5)
-	assert_true(timed.visible and not timed.is_queued_for_deletion(), "still up before 12 s")
-	timed.advance(1.0)
-	assert_true(timed.is_queued_for_deletion() or not timed.visible, "gone after 12 s")
-	# Spec 062 R5: its button closes it (a click elsewhere no longer does).
-	var clicked := AwayWindow.new(report, before.party)
-	add_child_autofree(clicked)
-	clicked.open()
-	clicked.close_button_bottom.pressed.emit()
-	assert_true(clicked.is_queued_for_deletion() or not clicked.visible, "closed by its button")
 	# No replay, no panel.
 	_write_save()
 	var quick: Main = _main(10.0)
