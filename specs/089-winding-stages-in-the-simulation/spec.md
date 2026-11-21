@@ -1,6 +1,6 @@
 # 089 — Winding stages in the simulation
 
-- **Status:** draft
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 088
 - **Pull request:** —
@@ -130,4 +130,5 @@ In `tests/acceptance/test_089_winding_stages.gd` (extends `ColonyTest`):
 
 ## Open questions
 
-None, once 088 has landed and its interfaces are checked against this text.
+None. (088 landed as #88; its `StageCourse`, `PartyPlaces.course`, `Arrival.facing(course, at)` and
+`ChamberRules.way_on_room` are what this spec builds on.)

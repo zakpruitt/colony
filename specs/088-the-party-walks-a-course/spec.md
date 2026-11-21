@@ -1,9 +1,9 @@
 # 088 — The party walks a course
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 078
-- **Pull request:** —
+- **Pull request:** [#88](https://github.com/zakpruitt/colony/pull/88)
 
 ## Intent
 

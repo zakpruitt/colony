@@ -125,8 +125,8 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 
 | Spec | Status | Depends on |
 |---|---|---|
-| 088 | [The party walks a course](088-the-party-walks-a-course/spec.md): in-progress | 078 |
-| 089 | [Winding stages in the simulation](089-winding-stages-in-the-simulation/spec.md) (a second shape of level, used by nothing yet): draft | 088 |
+| 088 | [The party walks a course](088-the-party-walks-a-course/spec.md): landed on dev, [#88](https://github.com/zakpruitt/colony/pull/88), provisional | 078 |
+| 089 | [Winding stages in the simulation](089-winding-stages-in-the-simulation/spec.md) (a second shape of level, used by nothing yet): in-progress | 088 |
 | 090 | [A winding stage, drawn](090-a-winding-stage-drawn/spec.md) (rooms on their floors, ladders, doorways, light, the camera's limits, a preview scene): draft | 089 |
 | 091 | The party on a winding stage (monsters, props, the fallen and the crossing on their room's floor; the camera follows up and down): to write | 090 |
 | 092 | The game plays winding stages (the switch; the flat generator and the un-zoned view go): to write | 091 |
