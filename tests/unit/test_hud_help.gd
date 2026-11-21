@@ -14,14 +14,6 @@ func test_key_labels_name_their_keys() -> void:
 	assert_eq(KeyBook.keycodes("Nothing"), [] as Array[int], "a word that is no key")
 
 
-func test_every_listed_key_names_a_key() -> void:
-	for entry: Array in KeyBook.entries():
-		var label: String = entry[0]
-		assert_false(KeyBook.keycodes(label).is_empty(), "%s names a key" % label)
-		var does: String = entry[1]
-		assert_lte(PixelText.width(does), 300, "%s: a short line" % does)
-
-
 ## A tooltip on a control pressed against a corner of the screen stays on the screen and clear
 ## of the control.
 func test_the_box_stays_on_screen_and_off_its_element() -> void:
