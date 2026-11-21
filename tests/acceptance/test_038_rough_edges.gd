@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/play_fixture.gd"
 ## Acceptance tests for specs/038-rough-edges-on-screen/spec.md, one per requirement.
 ##
 ## Each test builds a World with CombatEffects on a seeded simulation, their clocks turned off,
@@ -8,13 +8,9 @@ extends ColonyTest
 
 const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
-const FRAMES_PER_TICK: int = 6
-const TILE: float = 16.0
 const HERO_IDS: Array[int] = [1, 2, 3, 4]
 const KNIGHT: int = 1
 const ROGUE: int = 2
-## The longest any wait here lasts, in simulation ticks (five minutes).
-const LIMIT_TICKS: int = 3000
 const GUARDIAN_DEPTH: int = 5
 const STRONG_LEVEL: int = 40
 ## At its closest, in some pose, the front melee hero's pixels come within this many of the
@@ -66,73 +62,16 @@ const MONSTER_REFERENCE: Array[Vector2] = [
 	Vector2(757.6, 192.0),
 ]
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _events: Array[SimEvent] = []
-var _frame: int = 0
 ## The opaque pixels of each baked part, by its sheet and region (R3, spec 048 R7).
 var _part_pixels: Dictionary[String, Array] = {}
 
 
 func before_each() -> void:
 	_events = []
-	_frame = 0
+	_frames_played = 0
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _show(simulation: Simulation, speed: int = 1) -> void:
-	_sim = simulation
-	_world = World.new()
-	_world.simulation = simulation
-	_world.speed = speed
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, simulation)
-	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
-
-
-## One frame: the simulation steps (speed times) every FRAMES_PER_TICK frames, then the world
-## and the effects move on by FRAME. Returns the events passed on in it.
-func _play_frame() -> Array[SimEvent]:
-	var before: int = _events.size()
-	if _frame % FRAMES_PER_TICK == 0:
-		for i: int in maxi(_world.speed, 1):
-			_sim.step()
-	_frame += 1
-	_world.sync(FRAME)
-	_fx.advance(FRAME)
-	return _events.slice(before)
-
-
-func _has(events: Array[SimEvent], kind: SimEvent.Kind) -> bool:
-	for event: SimEvent in events:
-		if event.kind == kind:
-			return true
-	return false
-
-
-## Plays frames until an event of [param kind] is passed on: true, or false at the limit.
-func _play_until(kind: SimEvent.Kind) -> bool:
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
-		if _has(_play_frame(), kind):
-			return true
-	return false
-
-
-func _feet(hero_id: int) -> Vector2:
-	var tiles: Vector2 = _sim.expedition.hero_position(hero_id)
-	return Vector2(tiles.x * TILE, (tiles.y + 1.0) * TILE)
-
-
-func _wipe() -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.health = 0
 
 
 ## True for a sprite lying in its death pose: shown, dead, on its back (a quarter turn over).
@@ -159,9 +98,9 @@ func _party_in_view() -> bool:
 ## The party on depth 2, its depth 1 stable and depth 2 not, travelling: a wipe now revives it
 ## on depth 1, a level up and part of the band away.
 func _travelling_on_depth_two(speed: int = 1) -> void:
-	_show(Simulation.new(SEED), speed)
+	_show(Simulation.new(SEED), speed, true)
 	_sim.set_target_depth(2)
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		var e: Expedition = _sim.expedition
 		if e.depth == 2 and e.state == Expedition.State.TRAVELLING:
@@ -176,32 +115,15 @@ func _travelling_on_depth_two(speed: int = 1) -> void:
 ## with Auto off: a wipe now revives it on the same stage, part of the band away. The camera's
 ## travel is told on one stage; spec 054 R8 makes a revival on another a crossing (test_054).
 func _away_on_stage_one(speed: int) -> void:
-	_show(Simulation.new(SEED), speed)
+	_show(Simulation.new(SEED), speed, true)
 	_sim.set_auto_push(false)
 	var home: float = _sim.expedition.revival_place().x
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		var e: Expedition = _sim.expedition
 		if absf(e.x - home) >= 24.0 and e.state == Expedition.State.TRAVELLING:
 			break
 	assert_eq(_sim.expedition.depth, 1, "the party is on stage 1")
-
-
-## Puts the party just outside the guardian's chamber on [param depth] (the Slime King's on depth
-## 5 by default), walking in, as spec 024's tests do. The way down is on the right on odd depths
-## and on the left on even ones, so the guardian is on that side of the party.
-func _before_guardian(depth: int = GUARDIAN_DEPTH) -> void:
-	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if lair.index > 0:
-		e.x = lair.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = lair.rect.end.x
-		e.facing = -1
 
 
 ## The leftmost and rightmost columns of [param pixels] (x, y).
@@ -275,10 +197,10 @@ func _overlaps() -> Array[String]:
 
 
 func test_r1_wipe_leaves_the_party() -> void:
-	_show(Simulation.new(SEED))
+	_show(Simulation.new(SEED), 1, true)
 	for i: int in 120:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	# The collapse plays, then each hero lies where it fell, in its death pose.
 	for i: int in roundi(0.5 / FRAME):
@@ -294,7 +216,7 @@ func test_r1_wipe_leaves_the_party() -> void:
 	var empty: int = 0
 	var revived: bool = false
 	var last_camera: Vector2 = _world.camera.position
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		if _has(events, SimEvent.Kind.PARTY_REVIVED):
 			revived = true
@@ -359,7 +281,7 @@ func test_r1_wipe_leaves_the_party() -> void:
 ## camera's story; returns nothing, asserts as it goes.
 func _camera_story(speed: int) -> void:
 	_away_on_stage_one(speed)
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	var fallen: FallenParty = _world.fallen_party
 	assert_true(fallen.is_telling(), "the wipe is told")
@@ -386,7 +308,7 @@ func _camera_story(speed: int) -> void:
 	var fastest: float = 0.0
 	var last: Vector2 = start
 	var revived: bool = false
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		seconds += FRAME * speed
 		var now: Vector2 = _world.camera.position
@@ -442,12 +364,12 @@ func test_r3_heroes_at_the_guardian() -> void:
 ## Plays the fight with the guardian of [param depth], which stands on [param side] of the party,
 ## checking the heroes against its body on every frame, as drawn.
 func _guardian_fight(depth: int, side: int) -> void:
-	_frame = 0
+	_frames_played = 0
 	_events = []
 	_sim = Simulation.new(SEED)
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(depth)
-	_show(_sim)
+	before_guardian(_sim, depth)
+	_show(_sim, 1, true)
 	assert_eq(_sim.expedition.facing, side, "the guardian of depth %d is on that side" % depth)
 	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "the guardian's fight starts")
 	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
@@ -460,7 +382,7 @@ func _guardian_fight(depth: int, side: int) -> void:
 	var numbers: Dictionary[FxText, bool] = {}
 	var off_body: Array[String] = []
 	var frames: int = 0
-	while frames < LIMIT_TICKS * FRAMES_PER_TICK:
+	while frames < LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		frames += 1
 		if GuardianSpacing.fighting_guardian(_sim) == null:
@@ -503,7 +425,7 @@ func _guardian_fight(depth: int, side: int) -> void:
 
 
 func test_r3_ordinary_fights_are_unchanged() -> void:
-	_show(Simulation.new(SEED))
+	_show(Simulation.new(SEED), 1, true)
 	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "a fight starts")
 	assert_null(GuardianSpacing.fighting_guardian(_sim), "an ordinary one")
 	var moved: Array[String] = []
@@ -542,7 +464,7 @@ func _quest_far_away(level: int, quest: StringName) -> Vector2i:
 					hero.level = level
 					hero.xp = Hero.xp_for_level(level)
 					hero.health = hero.max_health()
-				_show(sim)
+				_show(sim, 1, true)
 				_play_frame()
 				return Vector2i(depth, room.index)
 	fail_test("no seed has a %s far along depth 2 or 3" % quest)
@@ -581,7 +503,7 @@ func test_r4_side_quests_in_the_dark() -> void:
 	# Walking in, nobody able: within the light it has no glint; it keeps one once passed.
 	var lit: bool = false
 	var missed: bool = false
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		var near: bool = (
 			stone.position.distance_to(_world.ambience.party_light_position)
@@ -618,7 +540,7 @@ func test_r4_a_done_quest_loses_its_glint() -> void:
 func test_r5_nothing_else_moves() -> void:
 	var alone := Simulation.new(SEED)
 	var watched := Simulation.new(SEED)
-	_show(watched)
+	_show(watched, 1, true)
 	var ticks: int = 10 * 60 * Simulation.TICKS_PER_SECOND
 	for i: int in ticks:
 		alone.step()
@@ -627,12 +549,15 @@ func test_r5_nothing_else_moves() -> void:
 		_fx.advance(1.0 / Simulation.TICKS_PER_SECOND)
 	assert_eq(watched.state_hash(), alone.state_hash(), "watching changes nothing in ten minutes")
 
-	_show(Simulation.new(SEED))
+	_show(Simulation.new(SEED), 1, true)
 	var trace: Array[Vector2] = []
 	var since: int = 0
 	var started: bool = false
-	_frame = 0
-	while _frame < LIMIT_TICKS * FRAMES_PER_TICK and trace.size() < MONSTER_REFERENCE.size():
+	_frames_played = 0
+	while (
+		_frames_played < LIMIT_TICKS_5_MIN * FRAMES_PER_TICK
+		and trace.size() < MONSTER_REFERENCE.size()
+	):
 		_play_frame()
 		var battle: Battle = _sim.expedition.battle
 		started = started or battle != null

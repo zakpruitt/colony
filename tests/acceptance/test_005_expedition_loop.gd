@@ -12,19 +12,6 @@ const HOUR_TICKS: int = 36_000
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ticks(seconds: float) -> int:
-	return roundi(seconds * Simulation.TICKS_PER_SECOND)
-
-
-## Steps [param count] ticks and returns every event they produced.
-func _run(sim: Simulation, count: int) -> Array[SimEvent]:
-	var events: Array[SimEvent] = []
-	for i: int in count:
-		sim.step()
-		events.append_array(sim.drain_events())
-	return events
-
-
 ## Steps until an event of [param kind] appears (that step included), at most [param limit] ticks.
 func _run_until(sim: Simulation, kind: SimEvent.Kind, limit: int) -> Array[SimEvent]:
 	var events: Array[SimEvent] = []
@@ -36,14 +23,6 @@ func _run_until(sim: Simulation, kind: SimEvent.Kind, limit: int) -> Array[SimEv
 			return events
 	fail_test("no %s within %d ticks" % [SimEvent.Kind.keys()[kind], limit])
 	return events
-
-
-func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for e: SimEvent in events:
-		if e.kind == kind:
-			found.append(e)
-	return found
 
 
 func _level(sim: Simulation, depth: int) -> LabyrinthLevel:
@@ -163,7 +142,7 @@ func test_r2_party_walks_in_formation() -> void:
 	var sim := Simulation.new(SEED)
 	var e: Expedition = sim.expedition
 	var start_x: float = e.x
-	_run(sim, 10)
+	run_ticks(sim, 10)
 	assert_eq(e.state, Expedition.State.TRAVELLING)
 	assert_almost_eq(
 		absf(e.x - start_x), Expedition.PARTY_SPEED, EPSILON, "PARTY_SPEED tiles in 1 s"
@@ -188,7 +167,7 @@ func test_r3_descends_ascends_and_patrols() -> void:
 	var shaft: float = sim.labyrinth.shaft_column(1) + Labyrinth.SHAFT_WIDTH / 2.0  # spec 015
 
 	sim.set_target_depth(2)
-	var events: Array[SimEvent] = _run_until(sim, SimEvent.Kind.DEPTH_CHANGED, _ticks(1800))
+	var events: Array[SimEvent] = _run_until(sim, SimEvent.Kind.DEPTH_CHANGED, ticks_in(1800))
 	assert_eq(e.depth, 2, "climbed down")
 	assert_eq(_of_kind(events, SimEvent.Kind.DEPTH_CHANGED)[0].amount, 2)
 	assert_almost_eq(e.x, shaft, EPSILON, "lands at the shaft's middle")
@@ -196,7 +175,7 @@ func test_r3_descends_ascends_and_patrols() -> void:
 	assert_eq(_of_kind(events, SimEvent.Kind.PARTY_WIPED).size(), 0)
 
 	sim.set_target_depth(1)
-	_run_until(sim, SimEvent.Kind.DEPTH_CHANGED, _ticks(1800))
+	_run_until(sim, SimEvent.Kind.DEPTH_CHANGED, ticks_in(1800))
 	assert_eq(e.depth, 1, "climbed back up")
 	assert_almost_eq(e.x, shaft, EPSILON, "arrives at the top of the shaft")
 
@@ -207,7 +186,7 @@ func test_r3_descends_ascends_and_patrols() -> void:
 	var turned_right: int = 0
 	var turned_left: int = 0
 	var facing: int = e.facing
-	for i: int in _ticks(600):
+	for i: int in ticks_in(600):
 		sim.step()
 		sim.drain_events()
 		if e.facing != facing and e.state == Expedition.State.TRAVELLING:
@@ -278,7 +257,7 @@ func test_r4_battle_starts_on_entering_a_populated_chamber() -> void:
 	var walker := Simulation.new(SEED)
 	walker.expedition.stable_seconds = 120.0
 	var fights: int = 0
-	for i: int in _ticks(1200):
+	for i: int in ticks_in(1200):
 		walker.step()
 		if not _of_kind(walker.drain_events(), SimEvent.Kind.ENCOUNTER_STARTED).is_empty():
 			fights += 1
@@ -481,7 +460,7 @@ func test_r8_levels() -> void:
 
 	# In play, the expedition levels heroes and reports each level.
 	var sim := Simulation.new(SEED)
-	var events: Array[SimEvent] = _run(sim, _ticks(900))
+	var events: Array[SimEvent] = run_ticks(sim, ticks_in(900))
 	var level_ups: Array[SimEvent] = _of_kind(events, SimEvent.Kind.LEVEL_UP)
 	assert_gt(level_ups.size(), 0, "heroes levelled in 15 minutes")
 	var reached: Dictionary[int, int] = {1: 1, 2: 1, 3: 1, 4: 1}
@@ -510,7 +489,7 @@ func test_r9_rest_heals_then_moves_on() -> void:
 	for hero: Hero in sim.party.heroes:
 		start[hero.id] = hero.health
 	var x: float = e.x
-	_run(sim, 10)
+	run_ticks(sim, 10)
 	assert_eq(e.x, x, "rests where it stands")
 	for hero: Hero in sim.party.heroes:
 		var expected: int = mini(
@@ -520,7 +499,7 @@ func test_r9_rest_heals_then_moves_on() -> void:
 		assert_eq(hero.health, expected, "hero %d heals at the rest rate" % hero.id)
 	assert_gt(sim.party.hero(4).health, 0, "the dead hero is healed too")
 
-	_run_until(sim, SimEvent.Kind.REST_ENDED, _ticks(60))
+	_run_until(sim, SimEvent.Kind.REST_ENDED, ticks_in(60))
 	for hero: Hero in sim.party.heroes:
 		assert_eq(hero.health, hero.max_health(), "hero %d full" % hero.id)
 	assert_eq(e.state, Expedition.State.TRAVELLING, "travel resumes")
@@ -552,7 +531,7 @@ func test_r10_cleared_chamber_refills() -> void:
 	var cleared: int = sim.tick
 	assert_false(e.is_populated(1, index), "empty once cleared")
 	assert_eq(e.monsters_in(1, index).size(), 0)
-	var refill: int = cleared + _ticks(DepthTiming.respawn_seconds_at(1))
+	var refill: int = cleared + ticks_in(DepthTiming.respawn_seconds_at(1))
 	while sim.tick < refill - 1:
 		sim.step()
 		sim.drain_events()
@@ -596,11 +575,11 @@ func test_r11_wipe_falls_back_and_keeps_progress() -> void:
 	assert_eq(e.state, Expedition.State.REVIVING)
 	assert_null(e.battle)
 
-	_run(sim, _ticks(Expedition.REVIVE_SECONDS) - 1)
+	run_ticks(sim, ticks_in(Expedition.REVIVE_SECONDS) - 1)
 	assert_eq(e.state, Expedition.State.REVIVING, "still down before the delay")
 	sim.step()
 	var revived: Array[SimEvent] = _of_kind(sim.drain_events(), SimEvent.Kind.PARTY_REVIVED)
-	assert_eq(sim.tick - wiped_at, _ticks(Expedition.REVIVE_SECONDS), "revived after the delay")
+	assert_eq(sim.tick - wiped_at, ticks_in(Expedition.REVIVE_SECONDS), "revived after the delay")
 	assert_eq(_amounts(revived, SimEvent.Kind.PARTY_REVIVED), [2], "revived on depth 2")
 	assert_eq(e.depth, 2, "back on the last stable depth")
 	assert_eq(e.target_depth, 2, "which is the new target")
@@ -641,43 +620,43 @@ func test_r12_last_stable_depth() -> void:
 	var sim := _on_depth_two(30.0)
 	var e: Expedition = sim.expedition
 	assert_eq(e.last_stable_depth, 1, "starts at 1")
-	var events: Array[SimEvent] = _run(sim, _ticks(30) - 1)
+	var events: Array[SimEvent] = run_ticks(sim, ticks_in(30) - 1)
 	assert_eq(e.last_stable_depth, 1, "not yet")
 	assert_eq(_of_kind(events, SimEvent.Kind.STABLE_DEPTH_REACHED).size(), 0)
-	events = _run(sim, 1)
+	events = run_ticks(sim, 1)
 	assert_eq(e.last_stable_depth, 2, "stable after stable_seconds")
 	assert_eq(_amounts(events, SimEvent.Kind.STABLE_DEPTH_REACHED), [2], "reported once")
 
 	# Leaving the depth restarts the count.
 	var leaver := _on_depth_two(60.0)
-	_run(leaver, _ticks(20))
+	run_ticks(leaver, ticks_in(20))
 	leaver.set_target_depth(1)
-	_run_until(leaver, SimEvent.Kind.DEPTH_CHANGED, _ticks(40))
+	_run_until(leaver, SimEvent.Kind.DEPTH_CHANGED, ticks_in(40))
 	leaver.set_target_depth(2)
-	_run_until(leaver, SimEvent.Kind.DEPTH_CHANGED, _ticks(300))
+	_run_until(leaver, SimEvent.Kind.DEPTH_CHANGED, ticks_in(300))
 	var arrived: int = leaver.tick
-	_run_until(leaver, SimEvent.Kind.STABLE_DEPTH_REACHED, _ticks(120))
-	assert_eq(leaver.tick - arrived, _ticks(60), "the count started again on return")
+	_run_until(leaver, SimEvent.Kind.STABLE_DEPTH_REACHED, ticks_in(120))
+	assert_eq(leaver.tick - arrived, ticks_in(60), "the count started again on return")
 
 	# A wipe restarts the count.
 	var wiped := _on_depth_two(60.0)
-	_run(wiped, _ticks(40))
+	run_ticks(wiped, ticks_in(40))
 	_force_wipe(wiped)
-	_run_until(wiped, SimEvent.Kind.PARTY_REVIVED, _ticks(30))
+	_run_until(wiped, SimEvent.Kind.PARTY_REVIVED, ticks_in(30))
 	assert_eq(wiped.expedition.depth, 1, "fell back to depth 1")
 	assert_eq(wiped.expedition.last_stable_depth, 1, "depth 2 never became stable")
 	wiped.set_target_depth(2)
-	_run_until(wiped, SimEvent.Kind.DEPTH_CHANGED, _ticks(600))
+	_run_until(wiped, SimEvent.Kind.DEPTH_CHANGED, ticks_in(600))
 	var back: int = wiped.tick
-	_run_until(wiped, SimEvent.Kind.STABLE_DEPTH_REACHED, _ticks(120))
-	assert_eq(wiped.tick - back, _ticks(60), "the time before the wipe did not count")
+	_run_until(wiped, SimEvent.Kind.STABLE_DEPTH_REACHED, ticks_in(120))
+	assert_eq(wiped.tick - back, ticks_in(60), "the time before the wipe did not count")
 
 	# It never moves shallower.
 	var deep := Simulation.new(SEED)
 	deep.expedition.last_stable_depth = 3
 	deep.expedition.stable_seconds = 10.0
 	deep.set_auto_push(false)
-	var none: Array[SimEvent] = _run(deep, _ticks(60))
+	var none: Array[SimEvent] = run_ticks(deep, ticks_in(60))
 	assert_eq(deep.expedition.last_stable_depth, 3)
 	assert_eq(_of_kind(none, SimEvent.Kind.STABLE_DEPTH_REACHED).size(), 0)
 
@@ -689,9 +668,9 @@ func test_r13_auto_push_and_commands() -> void:
 	var sim := Simulation.new(SEED)
 	assert_true(sim.expedition.auto_push, "auto-push is on by default")
 	sim.expedition.stable_seconds = 30.0
-	_run(sim, _ticks(30) - 1)
+	run_ticks(sim, ticks_in(30) - 1)
 	assert_eq(sim.expedition.target_depth, 1, "not yet")
-	var events: Array[SimEvent] = _run(sim, 1)
+	var events: Array[SimEvent] = run_ticks(sim, 1)
 	assert_eq(sim.expedition.target_depth, 2, "pushed after stable_seconds at the target")
 	assert_eq(_amounts(events, SimEvent.Kind.TARGET_DEPTH_CHANGED), [2], "reported once")
 
@@ -699,7 +678,7 @@ func test_r13_auto_push_and_commands() -> void:
 	held.expedition.stable_seconds = 30.0
 	held.set_auto_push(false)
 	assert_false(held.expedition.auto_push)
-	var quiet: Array[SimEvent] = _run(held, _ticks(90))
+	var quiet: Array[SimEvent] = run_ticks(held, ticks_in(90))
 	assert_eq(held.expedition.target_depth, 1, "no push with auto-push off")
 	assert_eq(_of_kind(quiet, SimEvent.Kind.TARGET_DEPTH_CHANGED).size(), 0)
 
@@ -717,13 +696,13 @@ func test_r13_auto_push_and_commands() -> void:
 	# A wipe restarts the count toward the next push.
 	var fallen := Simulation.new(SEED)
 	fallen.expedition.stable_seconds = 30.0
-	_run(fallen, _ticks(20))
+	run_ticks(fallen, ticks_in(20))
 	_force_wipe(fallen)
-	_run_until(fallen, SimEvent.Kind.PARTY_REVIVED, _ticks(30))
+	_run_until(fallen, SimEvent.Kind.PARTY_REVIVED, ticks_in(30))
 	assert_eq(fallen.expedition.depth, 1, "revived on the target depth")
 	var revived_at: int = fallen.tick
-	_run_until(fallen, SimEvent.Kind.TARGET_DEPTH_CHANGED, _ticks(60))
-	assert_eq(fallen.tick - revived_at, _ticks(30), "a full stable_seconds after the revival")
+	_run_until(fallen, SimEvent.Kind.TARGET_DEPTH_CHANGED, ticks_in(60))
+	assert_eq(fallen.tick - revived_at, ticks_in(30), "a full stable_seconds after the revival")
 
 
 # --- R14 -----------------------------------------------------------------------
@@ -801,7 +780,7 @@ func test_r15_ids() -> void:
 	var lowest: int = 1 << 62
 	var fight: Battle = null
 	var battles: int = 0
-	for i: int in _ticks(1800):
+	for i: int in ticks_in(1800):
 		sim.step()
 		sim.drain_events()
 		var now: Battle = sim.expedition.battle
@@ -830,7 +809,7 @@ func test_r15_ids() -> void:
 func test_r16_hero_positions() -> void:
 	var sim := Simulation.new(SEED)
 	var e: Expedition = sim.expedition
-	_run(sim, 5)
+	run_ticks(sim, 5)
 	var floor_y: float = _level(sim, 1).floor_y
 	for rank: int in 4:
 		assert_eq(e.hero_position(rank + 1), Vector2(e.x - e.facing * rank, floor_y), "travelling")
@@ -851,7 +830,7 @@ func test_r16_hero_positions() -> void:
 	_approach(resting, 1, _populated(resting, 1))
 	resting.party.hero(4).health = 0
 	_run_until(resting, SimEvent.Kind.REST_STARTED, 3000)
-	_run(resting, 3)
+	run_ticks(resting, 3)
 	var r: Expedition = resting.expedition
 	assert_eq(r.state, Expedition.State.RESTING)
 	for rank: int in 4:
@@ -867,7 +846,7 @@ func test_r16_hero_positions() -> void:
 	var bottom: float = _level(climber, 2).floor_y
 	var climbing_ticks: int = 0
 	var last_y: float = -INF
-	for i: int in _ticks(1800):
+	for i: int in ticks_in(1800):
 		climber.step()
 		climber.drain_events()
 		if climber.expedition.state != Expedition.State.CLIMBING:

@@ -232,7 +232,7 @@ func test_r2_a_revive_in_a_real_fight() -> void:
 	var frames: int = 0
 	while _fighting() and frames < 60 * 300 and not seen:
 		var start: int = _heard.size()
-		_play_frame()
+		_play_at_speed()
 		frames += 1
 		for event: SimEvent in _heard.slice(start):
 			if event.kind == SimEvent.Kind.REVIVED:
@@ -515,7 +515,7 @@ func test_r6_the_tally_knows_abilities() -> void:
 			if not _find_fight(2):
 				break
 			fights += 1
-			for tick: int in LIMIT_TICKS:
+			for tick: int in FIGHT_LIMIT_TICKS:
 				_sim.step()
 				if tick % 3 == 0:
 					_frame()
@@ -625,7 +625,7 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	var monsters: Array[int] = []
 	for monster: Combatant in _sim.expedition.battle.monsters:
 		monsters.append(monster.id)
-	for i: int in LIMIT_TICKS:
+	for i: int in FIGHT_LIMIT_TICKS:
 		if not _fighting():
 			break
 		_sim.step()

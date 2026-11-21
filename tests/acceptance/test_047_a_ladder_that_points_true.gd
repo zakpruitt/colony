@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/047-a-ladder-that-points-true/spec.md, one per requirement (R7 is in
 ## test_043_a_ladder_that_warns.gd, test_r3_dangerous_click).
 ##
@@ -8,40 +8,17 @@ extends ColonyTest
 ## mouse notifications, as the GUI delivers them.
 
 const SEED: int = 1
-const STEP: float = 1.0 / 60.0
 ## Seconds without the mouse over the ladder before it follows the party again.
 const RETURN_SECONDS: float = 5.0
 const STRONG_LEVEL: int = 40
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_build_hud(false)
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _ladder() -> StageList:
-	return _hud.ladder
 
 
 ## Puts the expedition in a situation: the party on [param depth], the last stable depth
@@ -56,12 +33,6 @@ func _situation(depth: int, stable: int, deepest: int, target: int) -> void:
 	e.target_depth = target
 	_hud.advance(STEP)
 	_settle()
-
-
-## Lets the ladder's scroll come to rest.
-func _settle() -> void:
-	for i: int in 120:
-		_hud.advance(STEP)
 
 
 ## The top of the ladder as drawn, a depth (fractional while it scrolls), read from a rung's place.
@@ -81,15 +52,6 @@ func _move_to(at: Vector2) -> void:
 	var event := InputEventMouseMotion.new()
 	event.position = at
 	_ladder()._gui_input(event)
-
-
-func _click_at(at: Vector2) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		_ladder()._gui_input(event)
 
 
 ## One notch of the mouse wheel over the ladder at [param at]: down is deeper.
@@ -258,7 +220,7 @@ func test_r3_stays_where_put() -> void:
 	assert_eq(ladder.first_depth(), top + 1, "the ladder stays where it was put")
 
 	# The arrow's click.
-	_click_at(ladder.arrow_rect().get_center())
+	_click_ladder(ladder.arrow_rect().get_center())
 	assert_true(ladder.is_following(), "the arrow's click brings it back")
 
 	# The timer: one notch ahead again, the mouse gone, the party descends onto the view.
@@ -293,7 +255,7 @@ func _part_way() -> bool:
 		hero.health = hero.max_health()
 	# Deepest 20, so the ladder has room to scroll below the party.
 	_situation(8, 8, 20, 9)
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_10_MIN:
 		_sim.step()
 		for frame: int in 6:  # in frames, so the short ease is caught on its way
 			_hud.advance(STEP / 6.0)

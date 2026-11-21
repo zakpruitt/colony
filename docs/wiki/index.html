@@ -1040,7 +1040,7 @@ wipes.</p>
   <tr><th>Step</th><th>Fails when</th></tr>
   <tr><td><code>format</code></td><td>Code is not formatted, or breaks a lint rule</td></tr>
   <tr><td><code>boundary</code></td><td>Something in <code>sim/</code> uses graphics, a clock or global randomness</td></tr>
-  <tr><td><code>harness</code></td><td>A test that writes files does not clean up after its last test, a script has no <code>.uid</code> file committed beside it, a comment names a spec or tells history, or a commit on the branch carries an attribution line or a session link. It also warns, without failing, of a file or class close to the lint's limits</td></tr>
+  <tr><td><code>harness</code></td><td>A test that writes files does not clean up after its last test, a script has no <code>.uid</code> file committed beside it, a comment names a spec or tells history, a commit on the branch carries an attribution line or a session link, or a test helper is copied into a third test file instead of shared from <code>tests/support/</code> (names that are really different helpers are listed in <code>tools/local_test_helpers.json</code>). It also warns, without failing, of a file or class close to the lint's limits</td></tr>
   <tr><td><code>art</code></td><td>A sprite breaks the style rules or is out of date with its text file; or a sound is missing, out of date, longer than 1.2 s or too loud</td></tr>
   <tr><td><code>compile</code></td><td>Any script has an error or a warning (warnings count as errors)</td></tr>
   <tr><td><code>tools</code></td><td>A tool test that runs Godot fails: the headless sim runs and the real screenshots</td></tr>

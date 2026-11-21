@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/039-the-countdown-tells-the-truth/spec.md, one per requirement.
 ##
 ## The HUD tests build a World on a seeded simulation with the CombatEffects and the Hud on it,
@@ -7,10 +7,7 @@ extends ColonyTest
 ## from the expedition or from [DepthTiming].
 
 const SEED: int = 39
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
 const GUARDIAN_DEPTH: int = 5
 ## State hashes every 600 ticks over the first 10 minutes of a default game, recorded on dev before
 ## this spec (R5).
@@ -45,11 +42,6 @@ const RECORDED_HASHES: Dictionary = {
 	],
 }
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-
 
 func before_each() -> void:
 	_build(SEED)
@@ -67,18 +59,7 @@ func after_each() -> void:
 
 func _build(seed_value: int) -> void:
 	_sim = Simulation.new(seed_value)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_build_hud(false)
 
 
 ## "m:ss" for [param seconds], rounded up, as the HUD writes a countdown.
@@ -119,14 +100,9 @@ func _holding() -> void:
 	_hud.advance(Goals.CELEBRATE_SECONDS + 0.1)
 
 
-## The goal line reading [param sentence], or -1.
-func _line(sentence: String) -> int:
-	return _hud.goals.lines().find(sentence)
-
-
 ## Steps [param sim] until its target depth rises above [param from]; the tick it rose, or -1.
 func _tick_target_rises(sim: Simulation, from: int) -> int:
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_10_MIN:
 		sim.step()
 		sim.drain_events()
 		if sim.expedition.target_depth > from:
@@ -145,7 +121,7 @@ func test_r1_seconds_to_push() -> void:
 		# At depth 1 from the start, then at depth 2 once the party has arrived there.
 		for depth: int in [1, 2]:
 			var where: String = "seed %d, depth %d" % [seed_value, depth]
-			for i: int in LIMIT_TICKS:
+			for i: int in LIMIT_TICKS_10_MIN:
 				if e.depth == depth and e.target_depth == depth:
 					if e.state == Expedition.State.TRAVELLING:
 						break
@@ -323,7 +299,7 @@ func test_r4_new_game() -> void:
 	var last_note: String = ""
 	var last_progress: float = -1.0
 	var last_target: int = e.target_depth
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_10_MIN:
 		last_note = _hud.countdown.note_label.text
 		last_progress = goals.progress(_line("Reach Mossy Hollow 2"))
 		last_target = e.target_depth

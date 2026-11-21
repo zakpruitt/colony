@@ -3,7 +3,7 @@ extends "res://tests/acceptance/hero_windows_test_base.gd"
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## and drives the hero windows with real clicks and keys pushed into the viewport (the helpers are
-## in hero_windows_test_base.gd and ui_layer_test_base.gd); the simulation is stepped after each
+## in hero_windows_test_base.gd and MainFixture); the simulation is stepped after each
 ## command and checked.
 
 # --- R1 ------------------------------------------------------------------------
@@ -142,7 +142,7 @@ func test_r3_tabs() -> void:
 	var tab: Rect2 = first.tab_buttons[HeroWindow.Page.TALENTS].get_global_rect()
 	assert_true(first.talents_tag.get_global_rect().intersects(tab), "on the tab")
 	_click(main, first.talents.node(Content.talent_tree(&"knight").trunk[0]))
-	_tick(main)
+	_frame(main)
 	assert_eq(first.talents_tag.text, "1", "one left")
 	set_level_keeping_health(mage, 3)
 	var second: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
@@ -188,7 +188,7 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 	knight.set_talents(_walked(&"knight", 0, 4))
 	main.hud.advance(STEP)
 	_press(main, KEY_U)
-	_tick(main)
+	_frame(main)
 	var shop: UiWindow = windows.window(ShopWindow.ID)
 	assert_true(shop.is_open(), "U opens the shop")
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
@@ -219,7 +219,7 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 		var measure: Tally.Measure = tally.measure()
 		var page: HeroWindow.Page = shown.page()
 		_press(main, KEY_1)
-		_tick(main)  # a command lands on the next tick
+		_frame(main)  # a command lands on the next tick
 		var bought: int = 1 if front == "shop" else 0
 		var trained: int = 1 if front == "hero" else 0
 		var why: String = "the %s in front" % front
@@ -229,11 +229,11 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 		var points: int = knight.paragon_rank(TrainingDef.Stat.POWER)
 		assert_eq(points, power + trained, "1, %s: a paragon point" % why)
 		_press(main, KEY_B)
-		_tick(main)
+		_frame(main)
 		assert_eq(sim.auto_buy, auto != (front == "shop"), "B, %s: auto-buy" % why)
 		if sim.auto_buy:
 			sim.set_auto_buy(false)
-			_tick(main)
+			_frame(main)
 		_press(main, KEY_E)
 		var tally_tab: Tally.Measure = tally.measure()
 		var moved: bool = front == "tally"
@@ -284,7 +284,7 @@ func test_r4_stats_with_reasons() -> void:
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.QUICKNESS)
-	_tick(main)
+	_frame(main)
 	var fighter: Combatant = cleric.combatant()
 	assert_eq(
 		shown.line(&"stat_damage"),
@@ -395,22 +395,22 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	var tab: HeroTalentsTab = shown.talents
 	assert_eq(tab.points_label.text, "2 points to spend", "the unspent points")  # spec 064 R7
 	_click(main, tab.node(tree.trunk[0]))
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "a click takes a node")
 	_click(main, tab.node(tree.trunk[1]))
-	_tick(main)
+	_frame(main)
 	assert_eq(tab.points_label.text, "Next point at level 6", "the next point's level")
 	set_level_keeping_health(knight, 8)
 	_click(main, tab.node(tree.trunk[2]))
-	_tick(main)
+	_frame(main)
 	_click(main, tab.node(tree.path_b[0]))
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.PATH, "the question before a path")
 	assert_eq(tab.ask_label.text, "Choose Berserker? This closes Guardian.", "in words")
 	assert_true(tab.choose_button.is_visible_in_tree(), "with its answers")
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.path(), -1, "asking sends nothing")
 	_click(main, tab.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.path(), 1, "Choose sends it")
 	main.simulation.party.gold = RICH
 	main.hud.advance(STEP)
@@ -421,10 +421,10 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	# Spec 064 R9: the medallion, under the tree past the first view (test_064's R9 scrolls to it
 	# and clicks it with the mouse).
 	tab.paragon_cells[0].medallion.clicked.emit()
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 1, "+1")
 	_press(main, KEY_2)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "key 2 on the front Talents tab")
 	# Keys 1 to 3 belong to the front hero window, on its Talents tab only.
 	var mage: Hero = _hero(main, &"mage")
@@ -432,21 +432,21 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	var front: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
 	assert_eq(main.ui.windows.front(), front, "the mage's in front, on Stats")
 	_press(main, KEY_3)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.QUICKNESS), 0, "not the window behind")
 	assert_eq(mage.paragon_rank(TrainingDef.Stat.QUICKNESS), 0, "not on Stats")
 	_click(main, front.tab_buttons[HeroWindow.Page.TALENTS])
 	_press(main, KEY_3)
-	_tick(main)
+	_frame(main)
 	assert_eq(mage.paragon_rank(TrainingDef.Stat.QUICKNESS), 1, "the front one, on Talents")
 	_click(main, shown.title_label)  # the knight's window to the front again
 	while main.simulation.expedition.battle != null:
-		_tick(main)
+		_frame(main)
 	_click(main, tab.reset_button)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.RESET, "the question before a reset")
 	assert_eq(tab.ask_label.text, "Reset the Knight's tree for 1,700 gold?", "with its price")
 	_click(main, tab.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [] as Array[StringName], "reset")
 	assert_eq(main.simulation.party.gold, RICH - 1700, "for its price")
 
@@ -488,7 +488,7 @@ func test_r5_a_question_seen_without_scrolling() -> void:
 	assert_eq(shown.scroll.scroll_vertical, scrolled, "the view stays where it was")
 	assert_true(view.encloses(first.get_global_rect()), "the node clicked still in view")
 	_click(main, shown.talents.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(mage.path(), 1, "Choose sends it")
 
 
@@ -629,10 +629,10 @@ func test_r8_nothing_lost() -> void:
 	var tab: HeroTalentsTab = shown.talents
 	for id: StringName in tree.trunk:
 		_click(main, tab.node(id))
-		_tick(main)
+		_frame(main)
 	assert_eq(knight.talents(), tree.trunk, "take_talent, click by click")
 	tab.paragon_cells[1].medallion.clicked.emit()  # spec 064 R9: the medallion
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "spend_paragon")
 	# A reset is never charged at a price the player did not read.
 	_click(main, tab.reset_button)
@@ -641,27 +641,27 @@ func test_r8_nothing_lost() -> void:
 	main.hud.advance(STEP)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the question goes")
 	tab.confirm()
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), tree.trunk, "nothing reset at a price never read")
 	assert_eq(sim.party.gold, RICH, "nothing charged")
 	_click(main, tab.reset_button)
 	var ticks: int = 0
 	while sim.expedition.battle == null and ticks < LIMIT_TICKS:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	assert_not_null(sim.expedition.battle, "a fight")
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a fight starts: the question goes")
 	tab.confirm()
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), tree.trunk, "nothing reset in a fight")
 	assert_eq(sim.party.gold, RICH, "nothing charged in a fight")
 	while sim.expedition.battle != null and ticks < LIMIT_TICKS * 2:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	var gold: int = sim.party.gold
 	_click(main, tab.reset_button)
 	_click(main, tab.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [] as Array[StringName], "reset_talents, read and answered")
 	assert_eq(sim.party.gold, gold - 1800, "at the price read")
 	_click_frame(main, knight)
@@ -683,7 +683,7 @@ func test_r8_nothing_lost() -> void:
 		fighter.health = 0
 	ticks = 0
 	while sim.expedition.state != Expedition.State.REVIVING and ticks < LIMIT_TICKS:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	main.hud.advance(STEP)
 	var offered: Array[String] = main.hud.defeat_note.suggestions()

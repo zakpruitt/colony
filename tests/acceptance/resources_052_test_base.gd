@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## The fixture both of spec 052's acceptance test files extend: its constants, the HUD built
 ## on a seeded simulation, and the helpers they share. It holds no tests itself.
 ##
@@ -7,7 +7,6 @@ extends ColonyTest
 ## frame at a time.
 
 const SEED: int = 42
-const STEP: float = 1.0 / 60.0
 const MOSSY: StringName = &"mossy_hollow"
 const CLAYPITS: StringName = &"claypits"
 const CRYPT: StringName = &"old_crypt"
@@ -52,12 +51,6 @@ const CLAY_MINUTES: float = 5.0
 ## R2: kills of each size rolled for a drop.
 const KILLS: int = 200
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## Spec 059: the shop and the map are windows on the UI layer, over the HUD's layer.
-var _ui: UiRoot
 var _heard: Array[SimEvent] = []
 
 
@@ -70,37 +63,10 @@ func after_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	var layer := CanvasLayer.new()
-	layer.layer = 129
-	add_child_autofree(layer)
-	_hud = Hud.new()
-	layer.add_child(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_ui = UiRoot.new()
-	_ui.layer = 130
-	add_child_autofree(_ui)
-	_ui.setup(_sim, _hud, null)
+func _build_hud(with_ui: bool = true, layered: bool = true) -> void:
+	super(with_ui, layered)
+	_frame_parts = [_fx.advance, _hud.advance, _ui.bar.advance]
 	_world.sim_event.connect(func(event: SimEvent) -> void: _heard.append(event))
-
-
-## One frame of the view, after [param ticks] steps of the simulation.
-func _frame(ticks: int = 1, delta: float = STEP) -> void:
-	for i: int in ticks:
-		_sim.step()
-	_world.sync(delta)
-	_fx.advance(delta)
-	_hud.advance(delta)
-	_ui.bar.advance(delta)
 
 
 func _index(id: StringName) -> int:
@@ -206,18 +172,6 @@ func _offers_upgrade_goal() -> bool:
 		if goal.kind == Goals.Kind.UPGRADE:
 			return true
 	return false
-
-
-## Puts the party at the start of stage [param depth] of Mossy Hollow, hunting, [param stable]
-## its safe stage (as spec 041's tests do).
-func _hunting_on(depth: int, stable: int) -> void:
-	var e: Expedition = _sim.expedition
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.x = _sim.labyrinth.level(depth).chambers[0].rect.position.x
-	e.deepest_depth = maxi(e.deepest_depth, depth)
-	e.last_stable_depth = stable
-	e.target_depth = depth
 
 
 ## Plays to the next fight and loses it, a frame a tick. True once the party is down.

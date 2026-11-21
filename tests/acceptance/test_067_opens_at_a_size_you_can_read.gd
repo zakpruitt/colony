@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/067-opens-at-a-size-you-can-read/spec.md, one per requirement.
 ##
 ## A headless run has no real window to maximize, so what [WindowSettings] decides is tested

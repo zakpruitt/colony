@@ -66,8 +66,7 @@ func _lose_next_fight(main: Main) -> bool:
 ## A wipe by the guardian of stage 5, the party weak, holding a fortune.
 func _guardian_wipe(main: Main) -> bool:
 	main.simulation.party.gold = RICH
-	_before_guardian(main, GUARDIAN_DEPTH)
-	main.simulation.expedition.last_stable_depth = GUARDIAN_DEPTH - 1
+	before_guardian(main.simulation, GUARDIAN_DEPTH, 0.0, false, true)
 	return _lose_next_fight(main)
 
 

@@ -6,8 +6,6 @@ extends ColonyTest
 ## The Old Crypt's guardian, at its own level: Whirlwind must be used on it.
 const GUARDIAN: StringName = &"bone_lord"
 const GUARDIAN_LEVEL: int = 15
-## The 90-second limit, in ticks.
-const LIMIT_TICKS: int = 900
 ## R14: the play each seed and path is watched for, how long an ability must have been held to
 ## count, and how often an action must be used by then.
 const SEEN_MINUTES: int = 30
@@ -90,7 +88,7 @@ func _used_in(
 		monsters.append(Combatant.from_monster(def, monster_level, 100 + i))
 	var battle := Battle.new(heroes, monsters, 0.0, 14.0, true, SimRng.new(seed_value))
 	var used: Dictionary[StringName, int] = {}
-	while battle.result() == Battle.Result.ONGOING and battle.tick < LIMIT_TICKS:
+	while battle.result() == Battle.Result.ONGOING and battle.tick < LIMIT_TICKS_90_S:
 		battle.step()
 		for e: SimEvent in battle.drain_events():
 			if e.kind == SimEvent.Kind.ABILITY_USED and e.source_id < 100:

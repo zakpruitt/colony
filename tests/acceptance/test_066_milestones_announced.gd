@@ -19,6 +19,10 @@ const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 
 ## A main scene laid out for [param room], its world synced twice (so it is not catching up) and
 ## its milestones and moment run by hand.
+func before_each() -> void:
+	_frame_parts = [&"effects", &"sound", &"hud", &"milestones", &"moment"]
+
+
 func _start(room: Vector2i = ROOM_LARGE) -> Main:
 	var main: Main = _main(room)
 	main.ui.tip.set_process(false)
@@ -27,18 +31,6 @@ func _start(room: Vector2i = ROOM_LARGE) -> Main:
 	_frame(main, 0)
 	assert_false(main.world.catching_up(), "the world has caught up")
 	return main
-
-
-## A frame of [param ticks] ticks: the simulation, then all that shows it.
-func _frame(main: Main, ticks: int = 1, delta: float = STEP) -> void:
-	for i: int in ticks:
-		main.simulation.step()
-	main.world.sync(delta)
-	main.effects.advance(delta)
-	main.sound._process(delta)  # its clock: a voice is free again once its sound has ended
-	main.hud.advance(delta)
-	main.milestones.advance(delta)
-	main.ui.moment.advance(delta)
 
 
 ## Frames of one tick until [param done] is true, at most [param ticks]; true if it came true.
@@ -76,7 +68,7 @@ func _slay_guardian(main: Main, stage: int = GUARDIAN_STAGE, level: int = STRONG
 		if event.kind == SimEvent.Kind.GUARDIAN_SLAIN:
 			slain[0] = true
 	main.world.sim_event.connect(heard)
-	_before_guardian(main, stage)
+	before_guardian(main.simulation, stage)
 	raise_party(main.simulation, level)
 	var met: bool = _frames_until(
 		main, func() -> bool: return GuardianSpacing.fighting_guardian(main.simulation) != null
@@ -97,10 +89,6 @@ func _headlines(main: Main, seconds: float = 8.0) -> Array[String]:
 		if not headline.is_empty() and (shown.is_empty() or shown[-1] != headline):
 			shown.append(headline)
 	return shown
-
-
-func _colour(label: Label) -> Color:
-	return label.get_theme_color(&"font_color")
 
 
 ## An event of [param kind] stamped [param ticks_ago] ticks before now, sent as the world sends.

@@ -653,7 +653,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	# takes longer than 4x keeps a wipe recent), and the note tells of the lost fight from them.
 	var fresh: Main = _main(ROOM_SMALL)
 	var fe: Expedition = fresh.simulation.expedition
-	_before_guardian(fresh, GUARDIAN_DEPTH)
+	before_guardian(fresh.simulation, GUARDIAN_DEPTH)
 	fe.last_stable_depth = GUARDIAN_DEPTH - 1
 	assert_true(_fight(fresh), "a guardian fight")
 	var guardian: String = Content.monster(fe.guardian_of(GUARDIAN_DEPTH)).display_name

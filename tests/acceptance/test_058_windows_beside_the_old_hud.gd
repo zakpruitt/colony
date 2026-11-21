@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, R5 to R8 (the rest are in
 ## test_058_sharp_ui_and_windows.gd): the windows in both rooms a player has, 960x540 and
 ## 1280x720, where they open, what moves or closes them, and the goals beside them.

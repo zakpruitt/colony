@@ -139,7 +139,7 @@ func test_r2_the_countdown() -> void:
 		)
 		# Holding.
 		main.simulation.set_guardian_order(Expedition.GuardianOrder.HOLD)
-		_before_guardian(main, Expedition.GUARDIAN_EVERY)
+		before_guardian(main.simulation, Expedition.GUARDIAN_EVERY)
 		main.simulation.step()
 		hud.advance(STEP)
 		if e.is_holding():

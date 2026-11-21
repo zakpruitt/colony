@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/040-orders-that-hold/spec.md, one per requirement. R4 lives in
 ## test_035_party_orders.gd (test_r8_status_and_journal) and R6 is the recorded-hash tests.
 
@@ -15,10 +15,6 @@ const INTO_CLIMB: int = 5
 const PACE_TEXTS: Array[String] = ["Cautious", "Steady", "Bold"]
 const GUARDIAN_TEXTS: Array[String] = ["Challenge", "Hold"]
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 ## An orders panel on [member _sim], made on its own: spec 058 moved it from the HUD into a window
 ## on the UI layer.
 var _orders: OrdersPanel
@@ -34,21 +30,8 @@ func after_each() -> void:
 	_hud = null
 
 
-func _make_hud(sim: Simulation) -> void:
-	_sim = sim
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_hud.advance(0.0)
+func _make_orders(sim: Simulation) -> void:
+	_make_hud(sim, false)
 	_orders = OrdersPanel.new()
 	add_child_autofree(_orders)
 	_orders.set_process(false)
@@ -230,7 +213,7 @@ func test_r1_hold_on_the_ladder() -> void:
 
 
 func test_r2_panel_shows_the_simulation() -> void:
-	_make_hud(Simulation.new(SEED))
+	_make_orders(Simulation.new(SEED))
 	var orders: OrdersPanel = _orders
 	# A click, then a different command before the step: the simulation ends on the command.
 	orders.choose(PartyOrders.PACE, Expedition.Pace.BOLD)
@@ -293,7 +276,7 @@ func test_r5_names_live_in_the_view() -> void:
 	assert_eq(OrdersPanel.PACE_NAMES, PACE_TEXTS, "the panel holds the pace names")
 	assert_eq(OrdersPanel.GUARDIAN_NAMES, GUARDIAN_TEXTS, "and the guardian orders' names")
 
-	_make_hud(Simulation.new(SEED))
+	_make_orders(Simulation.new(SEED))
 	var shown: Array[String] = []
 	for row: Array in _orders.choice_buttons:
 		for button: UiButton in row:

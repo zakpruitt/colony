@@ -17,12 +17,8 @@ const PARAGON_LEVEL: int = 17
 func _game(room: Vector2i = ROOM_LARGE) -> Main:
 	var main: Main = _main(room)
 	for i: int in SEED_TICKS:
-		_tick(main)
+		_frame(main)
 	return main
-
-
-func _tree(class_id: StringName) -> TalentTreeDef:
-	return Content.talent_tree(class_id)
 
 
 func _view(shown: HeroWindow) -> TalentTreeView:
@@ -149,15 +145,6 @@ func _into_view(main: Main, shown: HeroWindow, control: Control) -> void:
 		await _frames()
 
 
-## Steps the simulation [param ticks] times in one frame, then syncs the world and the HUD once: a
-## stall the world catches up on when [param ticks] is more than a few.
-func _stall(main: Main, ticks: int) -> void:
-	for i: int in ticks:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
-
-
 ## Opens [param hero]'s window on Talents with its trunk taken, has it choose its first path now and
 ## checks the other starts closing with the line into the chosen node lit; returns the window.
 func _choose_now(main: Main, hero: Hero) -> HeroWindow:
@@ -166,7 +153,7 @@ func _choose_now(main: Main, hero: Hero) -> HeroWindow:
 	hero.set_talents(tree.trunk)
 	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 	main.simulation.take_talent(hero.id, tree.path_a[0])
-	_tick(main)
+	_frame(main)
 	assert_true(_view(shown).is_closing(), "%s: the other path closing" % hero.class_id)
 	assert_true(_view(shown).is_lit(tree.path_a[0]), "%s: the line lit" % hero.class_id)
 	return shown
@@ -204,10 +191,18 @@ func _answer_defeat(main: Main, text: String) -> bool:
 		fighter.health = 0
 	var ticks: int = 0
 	while main.simulation.expedition.state != Expedition.State.REVIVING and ticks < LIMIT_TICKS:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	var at: int = main.hud.defeat_note.suggestions().find(text)
 	if at < 0:
 		return false
 	_click(main, main.hud.defeat_note.buttons[at])
 	return true
+
+
+## The last line of the card of [param view]'s node [param id]: how it stands.
+func _stands(main: Main, view: TalentTreeView, id: StringName) -> String:
+	_point(main, view.node(id).slot)
+	var said: String = main.ui.tip.card_stand.text
+	_point_away(main)
+	return said

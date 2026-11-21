@@ -142,7 +142,7 @@ func _full_trees_of(simulation: Simulation) -> void:
 ## first fight from now: the tick it ended on, or -1.
 func _first_fight_end(simulation: Simulation, watched: bool) -> int:
 	var fought: bool = false
-	for i: int in LIMIT_TICKS:
+	for i: int in FIGHT_LIMIT_TICKS:
 		simulation.step()
 		if watched:
 			for f: int in 6:

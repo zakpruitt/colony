@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/030-help-and-hints/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -7,37 +7,21 @@ extends ColonyTest
 ## named for this process, and deletes them.
 
 const SEED: int = 30
-const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
 const STRONG_LEVEL: int = 40
 ## Every key code the help panel's list must account for is one of these words in game/ code.
 const KEY_PATTERN: String = "\\bKEY_[A-Z0-9_]+\\b"
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 var _was_muted: bool = false
 var _settings_path: String = save_path("", "settings")
 var _save_path: String = save_path()
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_10_MIN
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_tick_seconds = 0.0
+	_build_hud(false)
 	_hud.advance(0.0)
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	_was_muted = bus >= 0 and AudioServer.is_bus_mute(bus)
@@ -51,52 +35,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-## Steps the simulation until [param done] returns true (true), or the limit (false). The world
-## and the HUD are brought up to date after each tick, as a frame would.
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.0)
-		_hud.advance(0.0)
-		if done.call():
-			return true
-	return false
-
-
-func _fighting() -> bool:
-	return _sim.expedition.state == Expedition.State.FIGHTING and _sim.expedition.battle != null
-
-
-## Sets the party up just before the guardian of [param depth].
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-func _collect_labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label:
-			into.append(child)
-		_collect_labels(child, into)
-
-
-func _frames_top(hud: Hud) -> float:
-	var top: float = SCREEN.y
-	for frame: HeroFrameView in hud.frames:
-		top = minf(top, frame.get_global_rect().position.y)
-	return top
-
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -132,7 +70,7 @@ func test_r1_frames_show_live_health() -> void:
 		if event.kind == SimEvent.Kind.DIED and event.source_id == hero.id:
 			died[0] = true
 	_world.sim_event.connect(on_event)
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_10_MIN:
 		if fighter.is_alive():
 			fighter.health = 1
 		_sim.step()
@@ -515,7 +453,7 @@ func test_r4_tooltips() -> void:
 			seen[text] = what
 
 	# The boss bar, in a guardian fight.
-	_before_guardian(5)
+	before_guardian(_sim, 5)
 	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_hud.boss_bar.is_showing), "a guardian fight")
 	_check_tip(_hud, "the boss bar", _hud.boss_bar, "")

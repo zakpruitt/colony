@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/053-the-area-map/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -6,7 +6,6 @@ extends ColonyTest
 ## known place by hand, and drives the map through its methods, the keys and the mouse.
 
 const SEED: int = 42
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 60
 ## Where the mouse is when it is over nothing of the HUD's.
 const AWAY: Vector2 = Vector2(320, 200)
@@ -15,13 +14,6 @@ const MOSSY: StringName = &"mossy_hollow"
 const CRYPT: StringName = &"old_crypt"
 const EMBER: StringName = &"ember_deep"
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## Spec 059: the map is a window on the UI layer, over the HUD's layer.
-var _ui: UiRoot
-
 
 func after_each() -> void:
 	super()
@@ -29,28 +21,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	var layer := CanvasLayer.new()
-	layer.layer = 129
-	add_child_autofree(layer)
-	_hud = Hud.new()
-	layer.add_child(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_ui = UiRoot.new()
-	_ui.layer = 130
-	add_child_autofree(_ui)
-	_ui.setup(_sim, _hud, null)
 
 
 ## A simulation in Mossy Hollow, safe at [param safe] and furthest at [param furthest].
@@ -62,26 +32,6 @@ func _mossy(safe: int, furthest: int) -> void:
 
 func _map() -> AreaMapWindow:
 	return _hud.area_map
-
-
-func _colour(label: Label) -> Color:
-	return label.get_theme_color(&"font_color")
-
-
-func _click_at(at: Vector2) -> void:
-	click(at)
-	mouse_move(AWAY)
-
-
-## Clicks [param control]; one on the UI layer (spec 059) once its window has laid out, through
-## the UI's scale.
-func _click(control: Control) -> void:
-	if not _ui.frame.is_ancestor_of(control):
-		_click_at(control.get_global_rect().get_center())
-		return
-	await get_tree().process_frame  # the window refits to what it shows, then lays out
-	await get_tree().process_frame
-	_click_at(_ui.ui_to_world(control.get_global_rect().get_center()))
 
 
 ## The tooltip shown after resting the mouse on [param control], a piece of the frame of the
@@ -125,29 +75,6 @@ func _journal_at(sentence: String) -> int:
 	return -1
 
 
-## Puts the party on [param depth] just outside its guardian's chamber, walking in, no auto-push.
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.deepest_depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-## One frame: a tick of the simulation, then the world and the HUD.
-func _frame() -> void:
-	_sim.step()
-	_world.sync(0.1)
-	_hud.advance(0.1)
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
@@ -158,7 +85,7 @@ func test_r1_a_map_of_every_area() -> void:
 	# Spec 052 R12: the map reads the beaten guardians from the simulation, which a game that got
 	# here by playing would hold.
 	_sim.expedition.travel.guardians_beaten[MOSSY] = true
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_hud.advance(STEP)
 	assert_true(_map().is_open(), "the map opens")
@@ -201,7 +128,7 @@ func test_r1_a_map_of_every_area() -> void:
 
 func test_r2_closed_areas() -> void:
 	_mossy(1, 1)
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_hud.advance(STEP)
 	var clay: AreaMapRow = _map().row(CLAYPITS)
@@ -223,7 +150,7 @@ func test_r2_closed_areas() -> void:
 	for thumb: MonsterThumb in mossy.thumbs:
 		assert_false(thumb.dim, "an open area's monsters are not")
 
-	await _click(clay)
+	await _click(clay, 2)
 	_hud.advance(STEP)
 	assert_eq(_map().chosen(), &"", "a click on a closed area chooses nothing")
 	assert_eq(_map().stage_shown(), 0, "and shows no stage")
@@ -232,7 +159,7 @@ func test_r2_closed_areas() -> void:
 	assert_eq(_map().chosen(), &"", "nor does choose()")
 	assert_true(clay.mouse_default_cursor_shape == Control.CURSOR_ARROW, "no hand over it")
 
-	await _click(mossy)
+	await _click(mossy, 2)
 	_hud.advance(STEP)
 	assert_eq(_map().chosen(), MOSSY, "a click on an open area chooses it")
 
@@ -245,7 +172,7 @@ func test_r3_sending_the_party() -> void:
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(2, 4)
 	set_party_level(_sim, STRONG_LEVEL)
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_map().choose(CLAYPITS)
 	_hud.advance(STEP)
@@ -273,7 +200,7 @@ func test_r3_sending_the_party() -> void:
 
 	# Within the area the party is in, Go sets the target as the ladder does.
 	_mossy(3, 5)
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_map().choose(MOSSY)
 	assert_eq(_map().stage_shown(), 3, "starts at the safe stage here too")
@@ -295,7 +222,7 @@ func test_r4_the_warning_travels() -> void:
 	_mossy(3, 6)
 	set_party_level(_sim, 5)
 	_sim.expedition.travel.open[CLAYPITS] = true
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_map().choose(MOSSY)
 	_hud.advance(STEP)
@@ -340,7 +267,7 @@ func test_r4_warned_once_per_destination() -> void:
 	set_party_level(_sim, 2)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.stages[CLAYPITS] = Vector2i(1, 3)
-	_build_hud()
+	_build_hud(true, true)
 	var first: String = "Target set to The Claypits 2: dangerous for level 2 heroes"
 	var second: String = "Target set to The Claypits 3: dangerous for level 2 heroes"
 	_send(CLAYPITS, 2)
@@ -363,7 +290,7 @@ func test_r4_warned_once_per_destination() -> void:
 	# The area the party is in: Mossy Hollow 4 is level 4, dangerous for level-1 heroes.
 	_mossy(1, 5)
 	set_party_level(_sim, 1)
-	_build_hud()
+	_build_hud(true, true)
 	var here: String = "Target set to Mossy Hollow 4: dangerous for level 1 heroes"
 	_send(MOSSY, 4)
 	assert_eq(_journal_count(here), 1, "a dangerous Go here is warned")
@@ -389,7 +316,7 @@ func test_r5_on_the_way() -> void:
 	set_party_level(_sim, STRONG_LEVEL)
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_sim.expedition.travel.open[CRYPT] = true
-	_build_hud()
+	_build_hud(true, true)
 	_map().open()
 	_map().choose(CLAYPITS)
 	_map().go()
@@ -427,16 +354,16 @@ func test_r5_on_the_way() -> void:
 
 func test_r6_somewhere_new() -> void:
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	set_party_level(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	_hud.advance(STEP)
 	assert_false(_map().has_mark(), "no mark in a new game")
 	assert_eq(_hud.goals.lines().find("Visit The Claypits"), -1, "no goal yet")
 	for i: int in 3000:
 		if _sim.is_area_open(CLAYPITS):
 			break
-		_frame()
+		_frame(1, 0.1)
 	assert_true(_sim.is_area_open(CLAYPITS), "setup: the Slime King is beaten")
 	_hud.advance(STEP)
 	assert_gte(_journal_at("The Claypits is open"), 0, "the journal says so")
@@ -457,7 +384,7 @@ func test_r6_somewhere_new() -> void:
 	for i: int in 400:
 		if _sim.expedition.place == CLAYPITS:
 			break
-		_frame()
+		_frame(1, 0.1)
 	assert_eq(_sim.expedition.place, CLAYPITS, "setup: arrived")
 	_hud.advance(STEP)
 	assert_gte(_journal_at("Goal: visited The Claypits"), 0, "the goal is done")
@@ -475,7 +402,7 @@ func test_r6_opened_before_this_session() -> void:
 	# it as unseen until the map is opened.
 	_mossy(6, 7)
 	_sim.expedition.travel.open[CLAYPITS] = true
-	_build_hud()
+	_build_hud(true, true)
 	_hud.advance(STEP)
 	assert_gte(_hud.goals.lines().find("Visit The Claypits"), 0, "the goal")
 	assert_true(_map().has_mark(), "and the mark")
@@ -488,15 +415,15 @@ func test_r6_opened_before_this_session() -> void:
 
 func test_r6_opened_while_the_map_is_open() -> void:
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	set_party_level(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	_map().open()
 	_hud.advance(STEP)
 	for i: int in 3000:
 		if _sim.is_area_open(CLAYPITS):
 			break
-		_frame()
+		_frame(1, 0.1)
 	assert_true(_sim.is_area_open(CLAYPITS), "setup: opened with the map open")
 	assert_true(_map().is_open(), "setup: the map stayed open")
 	_map().close()
@@ -510,9 +437,9 @@ func test_r6_opened_while_the_map_is_open() -> void:
 func test_r7_true_in_a_crowded_frame() -> void:
 	# The Slime King's death, the journey and the arrival, all stepped before a single frame.
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	set_party_level(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	_world.sync(0.1)
 	_hud.advance(STEP)
 	var sent: bool = false
@@ -551,9 +478,9 @@ func test_r7_a_frame_that_ends_on_the_road() -> void:
 	# live state already names the Claypits (Expedition.area), the events still have the party
 	# in Mossy Hollow, where the guardian fell.
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	set_party_level(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	_world.sync(0.1)
 	_hud.advance(STEP)
 	for i: int in 4000:
@@ -585,7 +512,7 @@ func test_r7_a_frame_that_ends_on_the_road() -> void:
 func test_r8_found_and_explained() -> void:
 	_mossy(2, 3)
 	_sim.expedition.travel.open[CLAYPITS] = true
-	_build_hud()
+	_build_hud(true, true)
 	_hud.advance(STEP)
 	var listed: bool = false
 	for entry: Array in KeyBook.entries():
@@ -598,7 +525,7 @@ func test_r8_found_and_explained() -> void:
 	press(KEY_W)
 	press(KEY_ESCAPE)
 	assert_false(_map().is_open(), "Esc closes it")
-	await _click(_hud.place_panel.area_button)
+	await _click(_hud.place_panel.area_button, 2)
 	assert_true(_map().is_open(), "a click on the area's name opens it")
 	_hud.advance(STEP)
 

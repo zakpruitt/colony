@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/055-the-tree-on-the-sheet/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -9,9 +9,7 @@ extends ColonyTest
 ## at the world point under it ([method UiRoot.ui_to_world]).
 
 const SEED: int = 55
-const STEP: float = 1.0 / 60.0
 const RICH: int = 1_000_000
-const LIMIT_TICKS: int = 30_000
 ## Where the mouse is when it is over nothing of the HUD's.
 const AWAY: Vector2 = Vector2(420, 200)
 const NOWHERE: Vector2 = Vector2(-1000, -1000)
@@ -21,16 +19,13 @@ const ROOM: Vector2i = Vector2i(1280, 720)
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const GUARDIAN_DEPTH: int = 5
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-var _ui: UiRoot
-
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_mouse_rest = AWAY
+	_build_hud(true, true)
+	_ui.set_room_for_test(ROOM)
+	_hud.advance(0.0)
 
 
 func after_each() -> void:
@@ -42,32 +37,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	# On a layer of its own, as Main has it, above GUT's runner (layer 128), whose window would
-	# take the mouse.
-	var layer := CanvasLayer.new()
-	layer.layer = 129
-	add_child_autofree(layer)
-	_hud = Hud.new()
-	layer.add_child(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.layer = 130  # over the HUD, as Main has it
-	_ui.setup(_sim, _hud, null)
-	_ui.set_room_for_test(ROOM)
-	_hud.advance(0.0)
 
 
 ## The front hero window (spec 060: the sheet is a window per hero), or null when none is open.
@@ -103,10 +72,6 @@ func _hero(class_id: StringName) -> Hero:
 	return null
 
 
-func _tree(class_id: StringName) -> TalentTreeDef:
-	return Content.talent_tree(class_id)
-
-
 ## The trunk and the first [param steps] nodes of path [param path] of [param class_id]'s tree.
 func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
 	var tree: TalentTreeDef = _tree(class_id)
@@ -126,20 +91,7 @@ func _open_talents(hero: Hero) -> void:
 	_hud.advance(STEP)
 
 
-## One frame of one tick: the simulation, the world, the HUD.
-func _frame() -> void:
-	_sim.step()
-	_world.sync(STEP)
-	_hud.advance(STEP)
-
-
-## Clicks the left button at [param at], in screen pixels, then moves the mouse away.
-func _click_at(at: Vector2) -> void:
-	click(at)
-	mouse_move(AWAY)
-
-
-func _click(control: Control) -> void:
+func _click_and_show(control: Control) -> void:
 	_click_at(_at(control))
 	_hud.advance(STEP)
 
@@ -148,7 +100,7 @@ func _click_node(ability_id: StringName) -> void:
 	var node: TalentNode = _tab().node(ability_id)
 	assert_not_null(node, "%s is on the tab" % ability_id)
 	if node != null:
-		_click(node)
+		_click_and_show(node)
 
 
 func _state(ability_id: StringName) -> TalentNode.State:
@@ -164,35 +116,6 @@ func _journal_has(sentence: String) -> bool:
 		if line.ends_with(sentence):
 			return true
 	return false
-
-
-## Steps a tick per frame until [param done] returns true (true), or the limit (false).
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		_hud.advance(0.1)
-		if done.call():
-			return true
-	return false
-
-
-## Puts the party just outside the guardian's chamber on [constant GUARDIAN_DEPTH], walking in, as
-## spec 041's tests do.
-func _before_guardian() -> void:
-	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.deepest_depth = maxi(e.deepest_depth, GUARDIAN_DEPTH)
-	e.last_stable_depth = GUARDIAN_DEPTH - 1
-	e.target_depth = GUARDIAN_DEPTH + 1
-	if lair.index > 0:
-		e.x = lair.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = lair.rect.end.x
-		e.facing = -1
 
 
 ## Every Control under [param node] (and itself).
@@ -449,13 +372,13 @@ func test_r4_taking_a_node() -> void:
 	assert_false(_tab().reset_button.is_visible_in_tree(), "in the reset's place")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "asking sends nothing")
-	_click(_tab().not_yet_button)
+	_click_and_show(_tab().not_yet_button)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "Not yet: no question")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "Not yet sends nothing")
 	assert_eq(knight.path(), -1, "both paths open")
 	_click_node(tree.path_b[0])
-	_click(_tab().choose_button)
+	_click_and_show(_tab().choose_button)
 	_frame()
 	assert_eq(knight.talents(), _walked(&"knight", 1, 1), "Choose sends the command")
 	assert_eq(knight.path(), 1, "a Berserker")
@@ -467,7 +390,7 @@ func test_r4_taking_a_node() -> void:
 	# While the page is hidden its handlers do nothing, whatever reaches them.
 	set_level_keeping_health(knight, 14)
 	_sim.party.gold = RICH
-	_click(_sheet().tab_buttons[HeroWindow.Page.STATS])
+	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.STATS])
 	_tab().press_node(tree.path_b[2])
 	_tab().press_reset()
 	_tab().confirm()
@@ -537,17 +460,17 @@ func test_r6_a_fresh_start() -> void:
 		_tab().reset_reason_label.get_global_rect().end.x <= reset.get_global_rect().position.x
 	)
 	# It asks first.
-	_click(reset)
+	_click_and_show(reset)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "it asks")
 	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "the question")
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "asking resets nothing")
-	_click(_tab().not_yet_button)
+	_click_and_show(_tab().not_yet_button)
 	_frame()
 	assert_eq(knight.talents(), tree.trunk, "Not yet resets nothing")
-	_click(reset)
+	_click_and_show(reset)
 	assert_eq(_tab().choose_button.text, "Reset", "the answer says what it does")
-	_click(_tab().choose_button)
+	_click_and_show(_tab().choose_button)
 	_frame()
 	assert_eq(knight.talents(), [] as Array[StringName], "reset")
 	assert_eq(_sim.party.gold, RICH - 800, "for its price")
@@ -556,18 +479,18 @@ func test_r6_a_fresh_start() -> void:
 	var gold: int = _sim.party.gold
 	knight.set_talents(tree.trunk)
 	_hud.advance(STEP)
-	_click(reset)
+	_click_and_show(reset)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked again")
-	_click(_sheet().tab_buttons[HeroWindow.Page.STATS])
+	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.STATS])
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "another tab: the question goes")
-	_click(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
+	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "and does not come back")
-	_click(reset)
+	_click_and_show(reset)
 	_hud.hero_windows.window_of(knight.id).close()
 	_hud.advance(STEP)
 	_open_talents(knight)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "the sheet closed: gone")
-	_click(reset)
+	_click_and_show(reset)
 	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "asked at 800")
 	set_level_keeping_health(knight, 17)
 	_hud.advance(STEP)
@@ -580,11 +503,11 @@ func test_r6_a_fresh_start() -> void:
 	# A path question goes with the tab too.
 	_click_node(tree.path_b[0])
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.PATH, "a path question")
-	_click(_sheet().tab_buttons[HeroWindow.Page.SKILLS])
+	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.SKILLS])
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "another tab: it goes")
-	_click(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
+	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
 	# In a fight: an open question goes when the fight starts.
-	_click(reset)
+	_click_and_show(reset)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked before the fight")
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a fight")
@@ -650,7 +573,7 @@ func test_r8_the_game_points_at_it() -> void:
 	var row: int = _hud.goals.lines().find(sentence)
 	assert_gte(row, 0, "a goal: %s" % [_hud.goals.lines()])
 	if row >= 0:
-		_click(_hud.goals_view.rows[row])
+		_click_and_show(_hud.goals_view.rows[row])
 		assert_true(_hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
 		assert_eq(_sheet().hero_id, knight.id, "in front")
 		assert_eq(_sheet().page(), HeroWindow.Page.TALENTS, "on its Talents tab")
@@ -659,7 +582,7 @@ func test_r8_the_game_points_at_it() -> void:
 	knight.set_talents(_tree(&"knight").trunk)
 	_hud.advance(STEP)
 	_click_node(&"whirlwind")
-	_click(_tab().choose_button)
+	_click_and_show(_tab().choose_button)
 	_frame()
 	assert_true(_journal_has("The Knight is now a Berserker"), "the journal notes the path")
 	set_level_keeping_health(knight, 10)  # a point to spend again
@@ -693,7 +616,7 @@ func test_r8_the_game_points_at_it() -> void:
 	assert_true(_step_until(standing), "the party stands")
 	set_level_keeping_health(knight, 15)
 	_sim.party.gold = RICH
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	assert_true(_step_until(fighting), "the guardian fight")
 	assert_ne(_sim.expedition.guardian_of(GUARDIAN_DEPTH), &"", "a guardian")
 	for fighter: Combatant in _sim.expedition.battle.heroes:
@@ -717,7 +640,7 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	_open_talents(knight)
 	assert_eq(_sheet().line(&"class"), "Knight", "no path yet")
 	_click_node(&"whirlwind")
-	_click(_tab().choose_button)
+	_click_and_show(_tab().choose_button)
 	_frame()
 	assert_eq(_sheet().line(&"class"), "Knight, Berserker", "at the top of the sheet")
 	assert_true(

@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/010-combat-effects/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation and the CombatEffects that listens to it, with
@@ -13,22 +13,12 @@ const ROGUE: int = 2
 const MAGE: int = 3
 const CLERIC: int = 4
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
 var _collected: Array[int] = []
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
+	_build_world()
 	_collected = []
 	_fx.coin_collected.connect(func(amount: int) -> void: _collected.append(amount))
 
@@ -45,27 +35,11 @@ func _emit(
 	return event
 
 
-## The id of a monster the world shows.
-func _monster() -> int:
-	for id: int in _world._monsters:
-		if _world.character(id) != null:
-			return id
-	return -1
-
-
 func _advance(seconds: float) -> void:
 	var left: float = seconds
 	while left > 0.0:
 		_fx.advance(minf(FRAME, left))
 		left -= FRAME
-
-
-func _texts(kind: StringName) -> Array[FxText]:
-	var found: Array[FxText] = []
-	for text: FxText in _fx.texts():
-		if text.kind == kind:
-			found.append(text)
-	return found
 
 
 func _particles(kind: StringName) -> Array[FxParticle]:

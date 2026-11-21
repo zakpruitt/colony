@@ -44,14 +44,6 @@ func _played() -> Simulation:
 	return sim
 
 
-func _through_json(data: Dictionary) -> Dictionary:
-	var parsed: Variant = JSON.parse_string(JSON.stringify(data))
-	assert_true(parsed is Dictionary, "the save parses back to a dictionary")
-	if parsed is Dictionary:
-		return parsed
-	return {}
-
-
 ## Valid save data, written by hand: two heroes, last stable depth 3.
 func _valid() -> Dictionary:
 	return {

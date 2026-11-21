@@ -67,12 +67,12 @@ func _start_main() -> Main:
 	# Far enough in that an event can be old.
 	for i: int in World.ANIMATE_TICKS * 4:
 		_main.simulation.step()
-	_frame()
+	_step_frame()
 	return _main
 
 
 ## One quiet frame: the world shows the simulation, the effects move on.
-func _frame() -> void:
+func _step_frame() -> void:
 	_main.simulation.step()
 	_main.world.sync(FRAME)
 	_main.effects.advance(FRAME)
@@ -107,7 +107,7 @@ func _start_fight() -> void:
 	for i: int in 6000:
 		if sim.expedition.battle != null and _monster() > 0:
 			break
-		_frame()
+		_step_frame()
 	assert_not_null(sim.expedition.battle, "(a fight)")
 	var fighters: Array[Combatant] = []
 	fighters.append_array(sim.expedition.battle.heroes)
@@ -116,7 +116,7 @@ func _start_fight() -> void:
 		fighter.max_health *= 1000
 		fighter.health = fighter.max_health
 	_main.hud.boss_bar._guardian_id = _monster()
-	_frame()
+	_step_frame()
 	assert_false(_main.world.catching_up(), "(the world is caught up)")
 
 
@@ -336,7 +336,7 @@ func test_r2_the_layer_empties_after_quiet() -> void:
 	)
 	var busy: int = 0
 	for i: int in 6000:
-		_frame()
+		_step_frame()
 		busy = maxi(busy, _main.world.fx.count())
 		if died[0] and sim.expedition.state == Expedition.State.FIGHTING:
 			break

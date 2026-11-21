@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/035-party-orders/spec.md, one per requirement.
 ##
 ## The HUD tests build a World on a seeded simulation with the CombatEffects and the Hud on it,
@@ -60,7 +60,6 @@ const RECORDED_HASHES: Dictionary = {
 	],
 }
 const SEED: int = 1
-const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
 const STRONG_LEVEL: int = 40
 const GUARDIAN_DEPTH: int = 5
@@ -76,10 +75,6 @@ const BOLD: Expedition.Pace = Expedition.Pace.BOLD
 const CHALLENGE: Expedition.GuardianOrder = Expedition.GuardianOrder.CHALLENGE
 const HOLD: Expedition.GuardianOrder = Expedition.GuardianOrder.HOLD
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 ## The orders panel the tests look at: the main scene's Orders window's content (spec 058 moved
 ## the panel onto the UI layer), or one made on its own over a loaded save.
 var _orders: OrdersPanel
@@ -112,47 +107,10 @@ func _make_main() -> Main:
 	_world = _main.world
 	_fx = _main.effects
 	_hud = _main.hud
+	_frame_parts = [_hud.advance]
 	_orders = _main.ui.windows.window(UiRoot.ORDERS).content as OrdersPanel
 	_hud.advance(0.0)
 	return _main
-
-
-func _make_hud(sim: Simulation) -> void:
-	_sim = sim
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_hud.advance(0.0)
-
-
-## One tick, with the world and the HUD brought up to date as a frame would.
-func _tick() -> void:
-	_sim.step()
-	_world.sync(0.0)
-	_hud.advance(0.0)
-
-
-func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for event: SimEvent in events:
-		if event.kind == kind:
-			found.append(event)
-	return found
-
-
-func _through_json(data: Dictionary) -> Dictionary:
-	var parsed: Variant = JSON.parse_string(JSON.stringify(data))
-	assert_true(parsed is Dictionary, "the save survives JSON")
-	return parsed as Dictionary
 
 
 func _any_names(problems: PackedStringArray, field: String) -> bool:
@@ -186,22 +144,6 @@ func _mouth(sim: Simulation, depth: int) -> float:
 	return shaft.rect.position.x - 1.0 if shaft.index > 0 else float(shaft.rect.end.x)
 
 
-## Puts the party on [param depth], [param back] tiles short of its guardian's chamber, walking
-## toward it with a deeper target and auto-push off.
-func _before_guardian(sim: Simulation, depth: int, back: float = 0.0) -> void:
-	var e: Expedition = sim.expedition
-	var shaft: LabyrinthChamber = sim.labyrinth.level(depth).shaft_chamber()
-	sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0 - back
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x + back
-		e.facing = -1
-
-
 func _in_guardian_chamber(sim: Simulation, depth: int) -> bool:
 	var e: Expedition = sim.expedition
 	if e.depth != depth:
@@ -219,15 +161,6 @@ func _fighting_guardian(sim: Simulation) -> bool:
 		if def != null and def.guardian:
 			return true
 	return false
-
-
-## Every event of [param sim] over [param ticks] ticks.
-func _run(sim: Simulation, ticks: int) -> Array[SimEvent]:
-	var events: Array[SimEvent] = []
-	for i: int in ticks:
-		sim.step()
-		events.append_array(sim.drain_events())
-	return events
 
 
 ## The party fights a chamber on stage 1 at [param pace], every hero at [param share] of its health
@@ -285,7 +218,7 @@ func test_r2_guardians() -> void:
 	e.stable_seconds = 60.0
 	sim.set_guardian_order(HOLD)
 	sim.step()
-	_before_guardian(sim, GUARDIAN_DEPTH, 6.0)
+	before_guardian(sim, GUARDIAN_DEPTH, 6.0)
 	var mouth: float = _mouth(sim, GUARDIAN_DEPTH)
 	var turned_at_mouth: bool = false
 	var stable: bool = false
@@ -337,7 +270,7 @@ func test_r2_guardians() -> void:
 	# A beaten guardian's chamber is crossed under Hold.
 	sim.set_guardian_order(HOLD)
 	sim.step()
-	_before_guardian(sim, GUARDIAN_DEPTH, 6.0)
+	before_guardian(sim, GUARDIAN_DEPTH, 6.0)
 	var crossed: bool = false
 	for i: int in 3000:
 		sim.step()
@@ -395,7 +328,7 @@ func test_r4_saved() -> void:
 	var sim := Simulation.new(SEED)
 	sim.set_pace(CAUTIOUS)
 	sim.set_guardian_order(HOLD)
-	_run(sim, 20)
+	run_ticks(sim, 20)
 	var data: Dictionary = _through_json(sim.to_save())
 	var version: int = data["version"]
 	assert_eq(version, 8, "the version rose by one (and since, for specs 049, 051 and 052)")
@@ -481,7 +414,7 @@ func test_r5_defaults_change_nothing() -> void:
 ## One hour of [param sim] at stable_seconds 120: [rests, wipes].
 func _hour_counts(sim: Simulation) -> Array[int]:
 	sim.expedition.stable_seconds = 120.0
-	var events: Array[SimEvent] = _run(sim, HOUR_TICKS)
+	var events: Array[SimEvent] = run_ticks(sim, HOUR_TICKS)
 	var rests: int = _of_kind(events, SimEvent.Kind.REST_STARTED).size()
 	var wipes: int = _of_kind(events, SimEvent.Kind.PARTY_WIPED).size()
 	return [rests, wipes]
@@ -561,7 +494,7 @@ func test_r6_they_do_what_they_say() -> void:
 		assert_gte(level, SWITCH_LEVEL, "seed %d: the heroes reach level 9" % seed_value)
 		switched.set_guardian_order(CHALLENGE)
 		var slain_at: int = -1
-		for event: SimEvent in _run(switched, 6000):
+		for event: SimEvent in run_ticks(switched, 6000):
 			if event.kind == SimEvent.Kind.GUARDIAN_SLAIN and slain_at < 0:
 				slain_at = event.tick
 				beaten += 1
@@ -644,27 +577,27 @@ func test_r7_orders_panel() -> void:
 	(orders.choice_buttons[0][BOLD] as UiButton).pressed.emit()
 	assert_eq(_lit_choice(0), BOLD, "Bold lit at once")
 	assert_string_contains(orders.line(0), "40% health", "Bold explained")
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(_sim.expedition.pace, BOLD, "the command reached the simulation")
 	(orders.choice_buttons[1][HOLD] as UiButton).pressed.emit()
-	_tick()
+	_frame(1, 0.0)
 	orders.advance(0.0)
 	assert_eq(_sim.expedition.guardian_order, HOLD, "Hold reached the simulation")
 	assert_eq(_lit_choice(1), HOLD, "Hold lit")
 	assert_eq(orders.line(1), OrdersPanel.LINES[1][HOLD], "Hold explained")
 	orders.choose(0, CAUTIOUS)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(_sim.expedition.pace, CAUTIOUS, "choose sends it too")
 	assert_string_contains(orders.line(0), "80% health", "Cautious explained")
 	# It follows the simulation, not its own memory.
 	_sim.set_pace(STEADY)
-	_tick()
+	_frame(1, 0.0)
 	orders.advance(0.0)
 	assert_eq(_lit_choice(0), STEADY, "follows the simulation")
 
 	# A loaded save shows the saved orders.
 	_sim.set_pace(BOLD)
-	_tick()
+	_frame(1, 0.0)
 	var loaded: Simulation = Simulation.from_save(_through_json(_sim.to_save()))
 	var loaded_orders := OrdersPanel.new()
 	add_child_autofree(loaded_orders)
@@ -705,11 +638,11 @@ func test_r7_orders_panel() -> void:
 
 
 func test_r8_status_and_journal() -> void:
-	_make_hud(Simulation.new(SEED))
+	_make_hud(Simulation.new(SEED), false)
 	raise_party(_sim, STRONG_LEVEL)
 	_sim.set_guardian_order(HOLD)
-	_tick()
-	_before_guardian(_sim, GUARDIAN_DEPTH, 3.0)
+	_frame(1, 0.0)
+	before_guardian(_sim, GUARDIAN_DEPTH, 3.0)
 	var guardian: MonsterDef = Content.monster(_sim.expedition.guardian_of(GUARDIAN_DEPTH))
 	var wanted: String = "Holding at the %s" % guardian.display_name
 	assert_eq(wanted, "Holding at the Slime King", "the first guardian")
@@ -720,7 +653,7 @@ func test_r8_status_and_journal() -> void:
 	var hunting_seen: bool = false
 	var facing: int = _sim.expedition.facing
 	for i: int in 600:
-		_tick()
+		_frame(1, 0.0)
 		if _sim.expedition.state != Expedition.State.TRAVELLING:
 			continue
 		assert_eq(_hud.status_text(), wanted, "holding while travelling, tick %d" % i)
@@ -734,49 +667,35 @@ func test_r8_status_and_journal() -> void:
 	assert_true(hunting_seen, "and hunts on, still holding")
 	# Challenge: no longer holding. (Spec 040 R4: the party is certainly travelling here.)
 	_sim.set_guardian_order(CHALLENGE)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling under Challenge")
 	assert_eq(_hud.status_text(), "Heading on to stage 6", "heading on again")
 	# With the target here, it only hunts.
 	_sim.set_guardian_order(HOLD)
 	_sim.set_target_depth(GUARDIAN_DEPTH)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "travelling with the target here")
 	assert_eq(_hud.status_text(), "Hunting on stage 5", "not holding with the target here")
 
 	# The journal writes a line for an order change.
 	_sim.set_pace(BOLD)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(_hud.journal.lines()[0].get_slice("  ", 1), "Ordered a Bold pace", "the pace line")
 	_sim.set_guardian_order(CHALLENGE)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(
 		_hud.journal.lines()[0].get_slice("  ", 1),
 		"Ordered to challenge guardians",
 		"the guardian line"
 	)
 	_sim.set_guardian_order(HOLD)
-	_tick()
+	_frame(1, 0.0)
 	assert_eq(
 		_hud.journal.lines()[0].get_slice("  ", 1), "Ordered to hold at guardians", "Hold's line"
 	)
 
 
 # --- R9 ------------------------------------------------------------------------
-
-
-func _collect_labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label:
-			into.append(child)
-		_collect_labels(child, into)
-
-
-func _frames_top() -> float:
-	var top: float = SCREEN.y
-	for frame: HeroFrameView in _hud.frames:
-		top = minf(top, frame.get_global_rect().position.y)
-	return top
 
 
 ## The tooltip sentence [param control] has on the UI layer, checking it is one plain sentence.
@@ -875,14 +794,14 @@ func test_r10_it_fits() -> void:
 	await _check_fits("with a lot of gold")
 	_orders.choose(0, BOLD)
 	_orders.choose(1, HOLD)
-	_tick()
+	_frame(1, 0.0)
 	await _check_fits("with the longest lines")
 	_orders.choose(1, CHALLENGE)
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(_sim, GUARDIAN_DEPTH)
+	before_guardian(_sim, GUARDIAN_DEPTH)
 	var fighting: bool = false
 	for i: int in 600:
-		_tick()
+		_frame(1, 0.0)
 		if _hud.boss_bar.is_showing():
 			fighting = true
 			break

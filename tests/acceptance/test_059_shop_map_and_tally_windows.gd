@@ -1,12 +1,11 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/059-shop-map-and-tally-windows/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## puts the simulation where it wants it by hand and steps it a tick at a time (the world and the
 ## HUD after each), and drives the three windows with real keys and clicks (helpers in
-## ui_layer_test_base.gd), checking the simulation after each command.
+## MainFixture), checking the simulation after each command.
 
-const LIMIT_TICKS: int = 30000
 const STRONG_LEVEL: int = 60
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
@@ -41,14 +40,6 @@ func _window(main: Main, id: StringName) -> UiWindow:
 	return main.ui.windows.window(id)
 
 
-## A frame of [param ticks] ticks of the simulation, then the world and the HUD.
-func _frame(main: Main, ticks: int = 1) -> void:
-	for i: int in ticks:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
-
-
 func _count(kind: SimEvent.Kind) -> int:
 	var count: int = 0
 	for event: SimEvent in _events:
@@ -75,17 +66,6 @@ func _shown(main: Main, id: StringName) -> Array[String]:
 	var found: Array[String] = []
 	_texts(_window(main, id).content, found)
 	return found
-
-
-func _labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label and (child as Label).is_visible_in_tree():
-			into.append(child as Label)
-		_labels(child, into)
-
-
-func _colour(label: Label) -> Color:
-	return label.get_theme_color(&"font_color")
 
 
 func _bold(label: Label) -> bool:

@@ -26,10 +26,6 @@ func before_all() -> void:
 		_bought[seed_value] = _measure(seed_value, true, LONG_MINUTES)
 
 
-func _ticks(seconds: float) -> int:
-	return roundi(seconds * Simulation.TICKS_PER_SECOND)
-
-
 ## Runs a new game for [param minutes], with auto-buy on if [param buying], and returns what the
 ## requirements ask about, in game seconds where it is a time (absent when it did not happen).
 func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
@@ -44,14 +40,14 @@ func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
 	var guardian_fight: bool = false
 	var guardian_losses: int = 0
 	var cheapest_upgrade: int = _cheapest_upgrade(sim)
-	for i: int in _ticks(minutes * 60.0):
+	for i: int in ticks_in(minutes * 60.0):
 		sim.step()
 		var now: float = sim.seconds()
 		if sim.party.gold >= cheapest_upgrade and not found.has("upgrade"):
 			found["upgrade"] = now
-		if sim.tick == _ticks(600.0):
+		if sim.tick == ticks_in(600.0):
 			found["ranks_10"] = _ranks(sim)
-		if sim.tick <= _ticks(1200.0) and e.state == Expedition.State.TRAVELLING and _dead(sim):
+		if sim.tick <= ticks_in(1200.0) and e.state == Expedition.State.TRAVELLING and _dead(sim):
 			dead += 1
 		for event: SimEvent in sim.drain_events():
 			match event.kind:
@@ -85,7 +81,7 @@ func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
 			found["level_%d" % level] = levelled[level].values().max()
 	found["battles_2"] = battles_2
 	found["busy_10"] = busy_10
-	found["dead_share"] = float(dead) / _ticks(1200.0)
+	found["dead_share"] = float(dead) / ticks_in(1200.0)
 	found["losses_before_win"] = guardian_losses
 	found["deepest"] = e.deepest_depth
 	return found
@@ -147,7 +143,7 @@ func _report(runs: Dictionary[int, Dictionary], keys: Array[String]) -> String:
 
 
 ## [method ColonyTest.step_until], at most 20,000 ticks, dropping the events as it goes.
-func _step_until(sim: Simulation, done: Callable, limit: int = 20_000) -> bool:
+func _drain_to(sim: Simulation, done: Callable, limit: int = 20_000) -> bool:
 	var drained: Callable = func() -> bool:
 		sim.drain_events()
 		return done.call()
@@ -185,7 +181,7 @@ func test_r1_stability_scales() -> void:
 	var e: Expedition = sim.expedition
 	sim.set_auto_push(false)
 	sim.set_target_depth(2)
-	assert_true(_step_until(sim, func() -> bool: return e.depth == 2), "the party reaches depth 2")
+	assert_true(_drain_to(sim, func() -> bool: return e.depth == 2), "the party reaches depth 2")
 	var curve: float = DepthTiming.stable_seconds_at(2)
 	assert_almost_eq(e.stable_seconds, curve, 0.001, "stable_seconds is the curve at depth 2")
 	assert_almost_eq(e.seconds_to_stable(), curve, 0.1, "the whole time is still to hold")
@@ -195,7 +191,7 @@ func test_r1_stability_scales() -> void:
 	var predicted: int = roundi(e.seconds_to_stable() * Simulation.TICKS_PER_SECOND)
 	var started: int = sim.tick
 	var stable_at: int = -1
-	for i: int in _ticks(curve) + 10:
+	for i: int in ticks_in(curve) + 10:
 		sim.step()
 		for event: SimEvent in sim.drain_events():
 			if event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED and stable_at < 0:
@@ -208,7 +204,7 @@ func test_r1_stability_scales() -> void:
 	flat.set_auto_push(false)
 	flat.set_target_depth(2)
 	var f: Expedition = flat.expedition
-	assert_true(_step_until(flat, func() -> bool: return f.depth == 2), "the party reaches depth 2")
+	assert_true(_drain_to(flat, func() -> bool: return f.depth == 2), "the party reaches depth 2")
 	assert_almost_eq(f.seconds_to_stable(), 30.0, 0.1, "30 s at depth 2")
 	f.depth = 7
 	assert_eq(f.stable_seconds, 30.0, "and at depth 7")

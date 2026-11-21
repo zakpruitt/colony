@@ -1,9 +1,8 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## What the acceptance tests of spec 060 (the hero windows) share: their constants and helpers, on
-## top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays under gdlint's length.
+## top of MainFixture's. Kept apart so the tests' own file stays under gdlint's length.
 
 const RICH: int = 1_000_000
-const LIMIT_TICKS: int = 30_000
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const WIKI: String = "res://docs/wiki/index.html"
@@ -37,13 +36,6 @@ func _frame_of(main: Main, hero: Hero) -> HeroFrameView:
 ## A real click on [param hero]'s frame, then a frame of the HUD.
 func _click_frame(main: Main, hero: Hero) -> void:
 	click(UiFormat.on_screen(_frame_of(main, hero)).get_center())
-	main.hud.advance(STEP)
-
-
-## One frame of one tick: the simulation, the world, the HUD.
-func _tick(main: Main) -> void:
-	main.simulation.step()
-	main.world.sync(STEP)
 	main.hud.advance(STEP)
 
 
@@ -141,7 +133,7 @@ func _visible_point(main: Main, shown: UiWindow) -> Vector2:
 func _fight(main: Main) -> Battle:
 	var ticks: int = 0
 	while main.simulation.expedition.battle == null and ticks < LIMIT_TICKS:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	return main.simulation.expedition.battle
 

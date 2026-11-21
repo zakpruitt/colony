@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/043-a-ladder-that-warns/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -7,38 +7,17 @@ extends ColonyTest
 ## delivers events to it.
 
 const SEED: int = 1
-const STEP: float = 1.0 / 60.0
 const CLICK_HINT: String = "Click to send the party here"
 ## Seconds without the mouse over the ladder before it follows the party again.
 const RETURN_SECONDS: float = 5.0
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_build_hud(false)
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _ladder() -> StageList:
-	return _hud.ladder
 
 
 ## Makes the party's lowest hero level [param lowest]: the first hero at it, the rest higher.
@@ -65,12 +44,6 @@ func _situation(depth: int, stable: int, deepest: int, target: int) -> void:
 	_settle()
 
 
-## Lets the ladder's scroll come to rest.
-func _settle() -> void:
-	for i: int in 120:
-		_hud.advance(STEP)
-
-
 ## The label showing [param depth]'s number, or null.
 func _number(depth: int) -> Label:
 	for child: Node in _ladder().get_node("Rungs").get_children():
@@ -88,15 +61,6 @@ func _number_colour(depth: int) -> Color:
 
 func _risk_colour(risk: DepthLadder.Risk) -> Color:
 	return Palette.color(DepthLadder.RISK_COLOURS[risk])
-
-
-func _click_at(at: Vector2) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		_ladder()._gui_input(event)
 
 
 ## The mouse moved onto the ladder at [param at]: the GUI tells it the mouse entered (spec 047
@@ -237,7 +201,7 @@ func test_r3_dangerous_click() -> void:
 	_levels(3)
 	_situation(2, 2, 2, 2)
 	var line: String = "Target set to Mossy Hollow 6: dangerous for level 3 heroes"
-	_click_at(ladder.rung_rect(6).get_center())
+	_click_ladder(ladder.rung_rect(6).get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 6, "a dangerous click still sets the target")
@@ -250,18 +214,18 @@ func test_r3_dangerous_click() -> void:
 
 	# Spec 047 R7: a second click on the same dangerous target writes nothing...
 	var lines_before: int = _hud.journal.lines().size()
-	_click_at(ladder.rung_rect(6).get_center())
+	_click_ladder(ladder.rung_rect(6).get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 6, "the second click keeps the target")
 	assert_eq(_hud.journal.lines().size(), lines_before, "the second click writes nothing")
 	assert_eq(_count(line), 1, "still once")
 	# ... and a change away and back writes it again.
-	_click_at(ladder.rung_rect(4).get_center())
+	_click_ladder(ladder.rung_rect(4).get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 4, "changed away")
-	_click_at(ladder.rung_rect(6).get_center())
+	_click_ladder(ladder.rung_rect(6).get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 6, "and back")
@@ -272,7 +236,7 @@ func test_r3_dangerous_click() -> void:
 	assert_eq(_hud.journal.ticker_text(), "", "the ticker has gone")
 	var written: int = _hud.journal.lines().size()
 	for depth: int in [1, 4]:
-		_click_at(ladder.rung_rect(depth).get_center())
+		_click_ladder(ladder.rung_rect(depth).get_center())
 		_sim.step()
 		_hud.advance(STEP)
 		assert_eq(
@@ -331,7 +295,7 @@ func test_r4_scrolls() -> void:
 	assert_lte(arrow.position.y, StageList.RUNGS_TOP + 2.0, "at the top edge, toward the party")
 	assert_true(ladder.arrow_points_up(), "pointing up")
 	var hash_before: int = _sim.state_hash()
-	_click_at(arrow.get_center())
+	_click_ladder(arrow.get_center())
 	assert_eq(_sim.state_hash(), hash_before, "a click on the arrow sets no target")
 	assert_eq(_sim.expedition.target_depth, 3, "the target is unchanged")
 	assert_true(ladder.is_following(), "following again")

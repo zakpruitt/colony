@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/046-notes-that-stay-true/spec.md, one per requirement (R10 is the
 ## amended tests of specs 041 and 045).
 ##
@@ -8,25 +8,17 @@ extends ColonyTest
 ## hero's fighter at 0 health once it starts.
 
 const SEED: int = 41
-const STEP: float = 1.0 / 60.0
 const GUARDIAN_DEPTH: int = 5
 const DEEP: int = 7
 const SAFE: int = 4
 const RICH: int = 1_000_000
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 3000
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## Every event the world has told of since the HUD was made, oldest first.
-var _events: Array[SimEvent] = []
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_5_MIN
 	_sim = Simulation.new(SEED)
 	_build_hud()
+	_hear_events()
 
 
 func after_each() -> void:
@@ -38,78 +30,8 @@ func after_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _build_hud() -> void:
-	_events.clear()
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	var ui := UiRoot.new()  # spec 059: the tally is a window on the UI layer
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
-	_world.sim_event.connect(_on_event)
-
-
-func _on_event(event: SimEvent) -> void:
-	_events.append(event)
-
-
 func _note() -> DefeatNote:
 	return _hud.defeat_note
-
-
-## One frame of one tick: the simulation, the world, the HUD.
-func _frame() -> void:
-	_sim.step()
-	_world.sync(STEP)
-	_hud.advance(STEP)
-
-
-## Steps a tick per frame until [param done] returns true (true), or the limit (false).
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		_hud.advance(0.1)
-		if done.call():
-			return true
-	return false
-
-
-## Puts the party just outside the guardian's chamber on Mossy Hollow 5, walking in, no auto-push.
-func _before_guardian() -> void:
-	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.deepest_depth = maxi(e.deepest_depth, GUARDIAN_DEPTH)
-	e.last_stable_depth = SAFE
-	e.target_depth = GUARDIAN_DEPTH + 1
-	if lair.index > 0:
-		e.x = lair.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = lair.rect.end.x
-		e.facing = -1
-
-
-## Puts the party at the start of [param depth], hunting there, with [param stable] its safe depth.
-func _hunting_on(depth: int, stable: int) -> void:
-	var e: Expedition = _sim.expedition
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.x = _sim.labyrinth.level(depth).chambers[0].rect.position.x
-	e.deepest_depth = maxi(e.deepest_depth, depth)
-	e.last_stable_depth = stable
-	e.target_depth = depth
 
 
 func _fighting() -> bool:
@@ -127,27 +49,6 @@ func _doom_next_fight() -> bool:
 	for fighter: Combatant in _sim.expedition.battle.heroes:
 		fighter.health = 0
 	return true
-
-
-## Plays until the next fight starts, then loses it: the party is wiped. True once it is.
-func _lose_next_fight() -> bool:
-	return _doom_next_fight() and _step_until(_reviving)
-
-
-func _guardian_wipe() -> bool:
-	_before_guardian()
-	return _lose_next_fight()
-
-
-## Plays on until the revived heroes have stood up.
-func _until_standing() -> bool:
-	var standing: Callable = func() -> bool:
-		return not _reviving() and not _world.fallen_party.is_telling()
-	return _step_until(standing)
-
-
-func _guardian_name() -> String:
-	return Content.monster(_sim.expedition.guardian_of(GUARDIAN_DEPTH)).display_name
 
 
 func _journal_sentence() -> String:
@@ -189,13 +90,15 @@ func _is_hero(id: int) -> bool:
 
 
 func test_r1_one_frame_defeat() -> void:
-	var beaten: String = "Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH]
-	_before_guardian()
+	var beaten: String = (
+		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH]
+	)
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	assert_true(_doom_next_fight(), "a guardian fight starts, and is lost")
 	# The defeat, the wipe and the revival stepped with no frame between, as a stall or 4x
 	# brings them: the HUD hears of all three after the party is back on its safe depth.
 	var wiped: bool = false
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_5_MIN:
 		_sim.step()
 		wiped = wiped or _reviving()
 		if wiped and not _reviving():
@@ -219,7 +122,7 @@ func test_r1_one_frame_defeat() -> void:
 	assert_eq(_note().wipe_line(wipe), beaten, "the note remembers the depth of the lost fight")
 	# Then a defeat watched frame by frame: the second by the same guardian.
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "beaten by the guardian again")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "beaten by the guardian again")
 	assert_eq(_first_line(), beaten + " (2 times)", "counted as the second in a row")
 
 
@@ -228,7 +131,7 @@ func test_r1_one_frame_defeat() -> void:
 
 func test_r2_holding_is_true() -> void:
 	_sim.party.gold = 0
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_eq(_note().suggestions(), ["Hold here"] as Array[String], "only Hold, with no gold")
 	var hold: UiButton = _note().buttons[0]
 	assert_eq(_tip_of(hold), DefeatNote.TIPS[DefeatNote.Help.HOLD], "the Hold tooltip")
@@ -269,7 +172,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 	var rogue: Hero = _sim.party.heroes[1]
 	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
 	_spend_talents(rogue)
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var shown: Array[String] = _note().suggestions()
 	assert_eq(shown.size(), 3, "train, buy, hold")
 	assert_eq(shown[1], "Buy an upgrade", "the second is the shop")
@@ -298,7 +201,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 
 func test_r4_panel_does_not_use_time() -> void:
 	_sim.party.gold = RICH
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_true(_until_standing(), "the heroes stand")
 	_linger(1.0)
 	assert_true(_note().is_shown(), "the note lingers")
@@ -320,7 +223,7 @@ func test_r4_panel_does_not_use_time() -> void:
 
 func test_r5_old_defeat_leaves_the_note() -> void:
 	_sim.party.gold = 0
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var lines: Array[String] = _note().lines()
 	var helps: Array[String] = _note().suggestions()
 	assert_eq(lines.size(), 2, "a line and a reason")
@@ -347,12 +250,12 @@ func test_r5_old_defeat_leaves_the_note() -> void:
 
 
 func test_r6_journal_keeps_what_it_said() -> void:
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_eq(
 		_journal_sentence(),
 		(
 			"Beaten by the %s on Mossy Hollow %d; falling back to Mossy Hollow %d"
-			% [_guardian_name(), GUARDIAN_DEPTH, SAFE]
+			% [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH, SAFE]
 		),
 		"the note's line and where the party falls back to"
 	)
@@ -371,7 +274,7 @@ func test_r7_started_mid_fight() -> void:
 	# watching, blows are struck, and only then is the HUD made.
 	var running := Simulation.new(SEED)
 	var struck: int = 0
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_5_MIN:
 		running.step()
 		for event: SimEvent in running.drain_events():
 			if event.kind == SimEvent.Kind.HIT and running.expedition.battle != null:
@@ -381,6 +284,7 @@ func test_r7_started_mid_fight() -> void:
 	assert_not_null(running.expedition.battle, "fighting when the HUD is made")
 	_sim = running
 	_build_hud()
+	_hear_events()
 	var depth: int = _sim.expedition.depth
 	var tally: TallyWindow = _hud.tally
 	tally.open()
@@ -524,12 +428,3 @@ func test_r9_help_row() -> void:
 	# Spec 058 shortened the row to fit the help window's column on one line, and spec 060 again
 	# (the sheet became hero windows, and Shift+Tab widened the key column); it still names both.
 	assert_eq(text, "Hero window or Tally: change tab", "the Q E row")  # spec 068 R2: Tally
-
-
-## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
-## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
-func _spend_talents(hero: Hero) -> void:
-	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

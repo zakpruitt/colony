@@ -32,24 +32,6 @@ const HOUR_TICKS: int = 36_000
 var _quest_at: Vector2i = Vector2i(0, -1)
 
 
-func _ticks(seconds: float) -> int:
-	return roundi(seconds * Simulation.TICKS_PER_SECOND)
-
-
-func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for event: SimEvent in events:
-		if event.kind == kind:
-			found.append(event)
-	return found
-
-
-func _set_level(hero: Hero, level: int) -> void:
-	hero.level = level
-	hero.xp = Hero.xp_for_level(level)
-	hero.health = hero.max_health()
-
-
 ## A simulation whose party stands one step outside a chamber holding [param kind] on its first
 ## visit, at [param min_depth] or a little deeper, walking in, with auto-push off. Its place is
 ## left in [member _quest_at].
@@ -311,7 +293,7 @@ func _reading_changes_nothing() -> void:
 		sim.expedition.stable_seconds = 120.0
 	var mismatches: int = 0
 	var storms: int = 0
-	for tick: int in _ticks(1200):
+	for tick: int in ticks_in(1200):
 		watched.step()
 		unwatched.step()
 		watched.drain_events()
@@ -384,7 +366,7 @@ func test_r4_the_party_does_it() -> void:
 	assert_eq(e.worker_id(), 2, "the lowest hero id with the microskill")
 	assert_almost_eq(e.work_progress(), 0.0, 0.001)
 	var x_working: float = e.x
-	var work_ticks: int = _ticks(def.work_seconds)
+	var work_ticks: int = ticks_in(def.work_seconds)
 	for i: int in work_ticks / 2:
 		sim.step()
 	assert_almost_eq(e.work_progress(), float(work_ticks / 2) / work_ticks, 0.001, "half way")
@@ -403,7 +385,7 @@ func test_r4_the_party_does_it() -> void:
 	# Refilled after the usual respawn time, and not before. The expedition is stepped on its own
 	# so the party, still in the chamber, does not walk away first.
 	var done_tick: int = sim.tick
-	var respawn: int = _ticks(DepthTiming.respawn_seconds_at(at.x))  # quicker near the surface
+	var respawn: int = ticks_in(DepthTiming.respawn_seconds_at(at.x))  # quicker near the surface
 	e.step(done_tick + respawn - 1)
 	assert_eq(e.side_quest_in(at.x, at.y), &"", "still empty just before the respawn time")
 	assert_false(e.is_populated(at.x, at.y))
@@ -435,7 +417,7 @@ func test_r5_the_party_passes() -> void:
 	var started: int = 0
 	var entries: int = 0
 	var inside: bool = true
-	for i: int in _ticks(1800):
+	for i: int in ticks_in(1800):
 		if entries < 1:
 			rogue.xp = 0  # the rogue stays level 1 for one more pass
 		sim.step()
@@ -519,7 +501,7 @@ func test_r6_events() -> void:
 	if started.size() == 1:
 		assert_eq(started[0].source_id, 3, "the worker")
 		assert_eq(started[0].target_id, quests.find(&"rune_stone"), "the quest's position")
-		assert_eq(started[0].amount, _ticks(Content.side_quest(&"rune_stone").work_seconds))
+		assert_eq(started[0].amount, ticks_in(Content.side_quest(&"rune_stone").work_seconds))
 	var ticks: Array[int] = [0]
 	events = _work_out(sim, ticks)
 	var done: Array[SimEvent] = _of_kind(events, SimEvent.Kind.SIDE_QUEST_DONE)
@@ -590,7 +572,7 @@ func test_r6_events() -> void:
 	var rogue: Hero = sim.party.hero(2)
 	rogue.xp = Hero.xp_for_level(2) - 1
 	var found: Array[SimEvent] = []
-	for i: int in _ticks(600):
+	for i: int in ticks_in(600):
 		sim.step()
 		found = _of_kind(sim.drain_events(), SimEvent.Kind.MICROSKILL_LEARNED)
 		if not found.is_empty():

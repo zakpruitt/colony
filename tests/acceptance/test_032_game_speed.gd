@@ -48,25 +48,6 @@ static func _describe(event: SimEvent) -> String:
 	)
 
 
-## Raises every hero to [param level] at full health and puts the party just outside the
-## guardian's chamber on depth 5, walking in (as the spec 024 tests do).
-func _before_guardian(sim: Simulation) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(STRONG_LEVEL) - hero.xp)
-		hero.health = hero.max_health()
-	var e: Expedition = sim.expedition
-	var shaft: LabyrinthChamber = sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
-	sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.target_depth = GUARDIAN_DEPTH + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
@@ -155,7 +136,8 @@ func test_r2_button_and_key() -> void:
 
 	# A guardian's fight, so the boss bar shows.
 	var sim: Simulation = main.simulation
-	_before_guardian(sim)
+	raise_party(sim, STRONG_LEVEL)
+	before_guardian(sim, GUARDIAN_DEPTH)
 	var showing: bool = false
 	for i: int in 3000:
 		sim.step()

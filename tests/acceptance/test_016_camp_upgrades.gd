@@ -47,11 +47,6 @@ const EPSILON: float = 0.0001
 # --- Helpers -------------------------------------------------------------------
 
 
-## [method ColonyTest.step_until], at most 20,000 ticks unless told otherwise.
-func _step_until(sim: Simulation, done: Callable, limit: int = 20_000) -> bool:
-	return step_until(sim, done, limit)
-
-
 func _events_of(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
 	var found: Array[SimEvent] = []
 	for event: SimEvent in events:
@@ -197,8 +192,8 @@ func test_r4_upgrades_change_the_game() -> void:
 	var strong := Simulation.new(9)
 	strong.upgrades.set_rank(&"sharp_blades", 4)  # +20%
 	strong.upgrades.set_rank(&"stout_armor", 6)  # +30%
-	assert_true(_step_until(plain, func() -> bool: return plain.expedition.battle != null))
-	assert_true(_step_until(strong, func() -> bool: return strong.expedition.battle != null))
+	assert_true(step_until(plain, func() -> bool: return plain.expedition.battle != null, 20_000))
+	assert_true(step_until(strong, func() -> bool: return strong.expedition.battle != null, 20_000))
 	if plain.expedition.battle != null and strong.expedition.battle != null:
 		for hero: Hero in plain.party.heroes:
 			var a: Combatant = plain.expedition.battle.combatant(hero.id)
@@ -227,8 +222,8 @@ func test_r4_upgrades_change_the_game() -> void:
 	var resting_b := Simulation.new(9)
 	var is_resting: Callable = func(s: Simulation) -> bool:
 		return s.expedition.state == Expedition.State.RESTING
-	assert_true(_step_until(resting_a, is_resting.bind(resting_a)), "the party rests")
-	assert_true(_step_until(resting_b, is_resting.bind(resting_b)))
+	assert_true(step_until(resting_a, is_resting.bind(resting_a), 20_000), "the party rests")
+	assert_true(step_until(resting_b, is_resting.bind(resting_b), 20_000))
 	assert_eq(resting_a.tick, resting_b.tick, "the same rest")
 	resting_b.upgrades.set_rank(&"field_medicine", 5)  # +50%, applies at once
 	var start: Array[int] = []
@@ -274,7 +269,7 @@ func test_r4_upgrades_change_the_game() -> void:
 		climber.set_target_depth(2)
 		var climbing: Callable = func() -> bool:
 			return climber.expedition.state == Expedition.State.CLIMBING
-		assert_true(_step_until(climber, climbing), "the party climbs")
+		assert_true(step_until(climber, climbing, 20_000), "the party climbs")
 		var y: float = climber.expedition.hero_position(1).y
 		climber.step()
 		climber.step()

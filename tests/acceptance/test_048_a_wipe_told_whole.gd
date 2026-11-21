@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/play_fixture.gd"
 ## Acceptance tests for specs/048-a-wipe-told-whole/spec.md, one per requirement (R7 is in
 ## test_038_rough_edges.gd, test_r3_heroes_at_the_guardian).
 ##
@@ -8,25 +8,16 @@ extends ColonyTest
 
 const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
-const FRAMES_PER_TICK: int = 6
-const TILE: float = 16.0
 const HERO_IDS: Array[int] = [1, 2, 3, 4]
 const KNIGHT: int = 1
-## The longest any wait here lasts, in simulation ticks (five minutes).
-const LIMIT_TICKS: int = 3000
 const TICKS: int = Simulation.TICKS_PER_SECOND
 ## How far from where it revives, in tiles, the party is when it is wiped.
 const AWAY: float = 24.0
 
-var _sim: Simulation
-var _world: World
-var _events: Array[SimEvent] = []
-var _frame: int = 0
-
 
 func before_each() -> void:
 	_events = []
-	_frame = 0
+	_frames_played = 0
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -41,52 +32,9 @@ func _make_world(simulation: Simulation, speed: int) -> World:
 	return world
 
 
-func _show(simulation: Simulation, speed: int = 1) -> void:
-	_sim = simulation
-	_world = _make_world(simulation, speed)
-	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
-
-
-## One frame: the simulation steps (speed times) every FRAMES_PER_TICK frames, then the world
-## moves on by FRAME. Returns the events passed on in it.
-func _play_frame() -> Array[SimEvent]:
-	var before: int = _events.size()
-	if _frame % FRAMES_PER_TICK == 0:
-		for i: int in maxi(_world.speed, 1):
-			_sim.step()
-	_frame += 1
-	_world.sync(FRAME)
-	return _events.slice(before)
-
-
-func _has(events: Array[SimEvent], kind: SimEvent.Kind) -> bool:
-	for event: SimEvent in events:
-		if event.kind == kind:
-			return true
-	return false
-
-
-## Plays frames until an event of [param kind] is passed on: true, or false at the limit.
-func _play_until(kind: SimEvent.Kind) -> bool:
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
-		if _has(_play_frame(), kind):
-			return true
-	return false
-
-
-func _feet(hero_id: int) -> Vector2:
-	var tiles: Vector2 = _sim.expedition.hero_position(hero_id)
-	return Vector2(tiles.x * TILE, (tiles.y + 1.0) * TILE)
-
-
-func _wipe(simulation: Simulation = null) -> void:
-	for hero: Hero in (simulation if simulation != null else _sim).party.heroes:
-		hero.health = 0
-
-
 ## Steps the simulation alone until its party is down; returns how many ticks that took.
 func _step_until_down(simulation: Simulation) -> int:
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_5_MIN:
 		simulation.step()
 		if simulation.expedition.state == Expedition.State.REVIVING:
 			return i + 1
@@ -107,12 +55,6 @@ func _all_lying() -> bool:
 	return true
 
 
-## Where the camera rests on [param target]: kept inside the band, as it always is.
-func _rest(target: Vector2) -> Vector2:
-	var half: float = _world.get_viewport_rect().size.x * 0.5 / _world.camera.zoom.x
-	return Vector2(clampf(target.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half)), target.y)
-
-
 ## Where the world frames the fallen party: on its front hero, lying.
 func _on_the_fallen() -> Vector2:
 	var knight: CharacterSprite = _world.character(KNIGHT)
@@ -130,7 +72,7 @@ func _away_on_stage_one(simulation: Simulation, world: bool, speed: int = 1) -> 
 	if world:
 		_show(simulation, speed)
 	var home: float = _sim.expedition.revival_place().x
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		if world:
 			_play_frame()
 		elif i % FRAMES_PER_TICK == 0:
@@ -153,7 +95,7 @@ func _told_to_the_end(distance: float, label: String) -> void:
 	var arrived: int = -1
 	var revived: int = -1
 	var moved: int = 0
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		if _has(events, SimEvent.Kind.PARTY_REVIVED):
 			revived = i
@@ -184,7 +126,7 @@ func _told_to_the_end(distance: float, label: String) -> void:
 func test_r1_starts_from_where_it_is() -> void:
 	# A world made while the party is down, its wipe 1.8 s ago and drained unseen (time away).
 	_away_on_stage_one(Simulation.new(SEED), false)
-	_wipe()
+	_wipe(_sim)
 	var down: int = _step_until_down(_sim)
 	assert_gt(down, 0, "the party is down")
 	for i: int in 18:
@@ -215,9 +157,9 @@ func test_r1_starts_from_where_it_is() -> void:
 
 	# A wipe heard as an old event, after a stall of 1.1 s: the camera holds on the fallen.
 	_events = []
-	_frame = 0
+	_frames_played = 0
 	_away_on_stage_one(Simulation.new(SEED), true)
-	_wipe()
+	_wipe(_sim)
 	var ticks: int = _step_until_down(_sim)
 	for i: int in 11:
 		_sim.step()
@@ -245,15 +187,15 @@ func test_r2_a_stall_keeps_the_camera() -> void:
 	var steady_world: World = _make_world(steady, 1)
 	steady.set_auto_push(false)
 	_away_on_stage_one(Simulation.new(SEED), true)
-	for i: int in _frame:
+	for i: int in _frames_played:
 		if i % FRAMES_PER_TICK == 0:
 			steady.step()
 		steady_world.sync(FRAME)
 	assert_eq(steady.state_hash(), _sim.state_hash(), "the two are the same game")
 	_wipe(steady)
-	_wipe()
+	_wipe(_sim)
 	var frames: int = 0
-	while _sim.expedition.state != Expedition.State.REVIVING and frames < LIMIT_TICKS:
+	while _sim.expedition.state != Expedition.State.REVIVING and frames < LIMIT_TICKS_5_MIN:
 		for sim: Simulation in [steady, _sim]:
 			sim.step()
 		for i: int in FRAMES_PER_TICK:
@@ -311,9 +253,9 @@ func test_r3_camera_arrives_first() -> void:
 		for late: bool in [false, true]:
 			var label: String = "%dx, %s" % [speed, "seen 2 s late" if late else "seen at once"]
 			_events = []
-			_frame = 0
+			_frames_played = 0
 			_away_on_stage_one(Simulation.new(SEED), true, speed)
-			_wipe()
+			_wipe(_sim)
 			if late:
 				var ticks: int = _step_until_down(_sim)
 				for i: int in 2 * TICKS:
@@ -325,7 +267,7 @@ func test_r3_camera_arrives_first() -> void:
 			var destination: Vector2 = _rest(_world.fallen_party.destination())
 			var arrived: int = -1
 			var revived: int = -1
-			for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+			for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 				if _has(_play_frame(), SimEvent.Kind.PARTY_REVIVED):
 					revived = i
 					break
@@ -342,7 +284,7 @@ func test_r4_second_wipe_starts_clean() -> void:
 	_show(Simulation.new(SEED))
 	for i: int in 120:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	assert_true(_play_until(SimEvent.Kind.PARTY_REVIVED), "and revived")
 	for i: int in roundi(FallenParty.STAND_SECONDS / 2.0 / FRAME):
@@ -350,7 +292,7 @@ func test_r4_second_wipe_starts_clean() -> void:
 	var over: float = absf(_world.character(KNIGHT).rotation)
 	assert_true(_world.fallen_party.is_standing(KNIGHT), "the heroes are standing up")
 	assert_between(over, 0.2, PI / 2.0 - 0.2, "half way up")
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "wiped again as they stand")
 	for i: int in roundi(0.5 / FRAME):
 		_play_frame()
@@ -403,7 +345,7 @@ func test_r6_far_cut_waits() -> void:
 	_sim.expedition.deepest_depth = 8
 	for i: int in 30:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	var wiped_at: int = _sim.tick
 	var destination: Vector2 = _rest(_world.fallen_party.destination())
@@ -415,7 +357,7 @@ func test_r6_far_cut_waits() -> void:
 	var seconds: float = 0.0
 	var revived: bool = false
 	var dark: float = -1.0
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		seconds = float(_sim.tick - wiped_at) / TICKS
 		var now: Vector2 = _world.camera.position

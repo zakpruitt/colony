@@ -17,11 +17,6 @@ func _world(sim: Simulation) -> World:
 	return world
 
 
-func _wipe(sim: Simulation) -> void:
-	for hero: Hero in sim.party.heroes:
-		hero.health = 0
-
-
 func test_a_far_revival_is_a_cut() -> void:
 	var sim := Simulation.new(1)
 	var world: World = _world(sim)

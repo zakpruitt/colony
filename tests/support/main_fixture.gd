@@ -1,7 +1,8 @@
+class_name MainFixture
 extends ColonyTest
-## What spec 058's acceptance tests share: a main scene laid out for a chosen room, and the mouse
-## and keys pushed into the viewport as the window would send them. Not a test file itself (GUT
-## runs only test_*.gd); the spec's tests extend it.
+## A test of the played game: the main scene laid out for a chosen room, its own processing off,
+## and played by hand a frame at a time ([method _frame]); the mouse and keys pushed into the
+## viewport as the window would send them.
 ##
 ## Mouse events are at the world's 640x360 coordinates ([method UiRoot.ui_to_world] turns a UI
 ## point into one). Nothing here touches the real settings or save file: each test that needs one
@@ -17,6 +18,9 @@ const STEP: float = 1.0 / 60.0
 var _settings_path: String = save_path("", "settings")
 @warning_ignore("unused_private_class_variable")
 var _save_path: String = save_path()
+## What [method _frame] moves on after the world, in order, unless a call names others: any of
+## &"effects", &"sound", &"hud", &"milestones" and &"moment" (the UI layer's).
+var _frame_parts: Array[StringName] = [&"hud"]
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -37,6 +41,42 @@ func _main(room: Vector2i = ROOM_SMALL, settings: SoundSettings = null) -> Main:
 	main.hud_layer.layer = 129
 	main.ui.layer = 130
 	return main
+
+
+## One frame of [param main]: [param ticks] ticks stepped, the world synced, then each of
+## [param parts] (none named: [member _frame_parts]) moved on, all by [param delta] seconds.
+func _frame(main: Main, ticks: int = 1, delta: float = STEP, parts: Array[StringName] = []) -> void:
+	for i: int in ticks:
+		main.simulation.step()
+	main.world.sync(delta)
+	var named: Array[StringName] = _frame_parts if parts.is_empty() else parts
+	var calls: Array[Callable] = frame_calls(main, named)
+	for i: int in calls.size():
+		if not calls[i].is_valid():
+			fail_test("no part of a frame is called %s" % named[i])
+			continue
+		calls[i].call(delta)
+
+
+## What moves on in a frame of [param main] for each of [param parts], in their order: an invalid
+## Callable for a name that is no part.
+static func frame_calls(main: Main, parts: Array[StringName]) -> Array[Callable]:
+	var calls: Array[Callable] = []
+	for part: StringName in parts:
+		match part:
+			&"effects":
+				calls.append(main.effects.advance)
+			&"sound":
+				calls.append(main.sound._process)  # its clock: a voice is free once its sound ends
+			&"hud":
+				calls.append(main.hud.advance)
+			&"milestones":
+				calls.append(main.milestones.advance)
+			&"moment":
+				calls.append(main.ui.moment.advance)
+			_:
+				calls.append(Callable())
+	return calls
 
 
 ## A left click at [param at], a point in UI pixels on [param ui].
@@ -87,3 +127,11 @@ func _controls(node: Node, into: Array[Control]) -> void:
 func _frames() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
+
+
+## Appends to [param into] every Label under [param node] that is on show.
+func _labels(node: Node, into: Array[Label]) -> void:
+	for child: Node in node.get_children():
+		if child is Label and (child as Label).is_visible_in_tree():
+			into.append(child as Label)
+		_labels(child, into)

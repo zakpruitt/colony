@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/021-sound-effects/spec.md, one per requirement (R1 is in Python:
 ## tools/tests/test_021_sound_effects.py).
 ##
@@ -29,22 +29,12 @@ const SOUNDS: Array[StringName] = [
 
 var _settings_path: String = save_path("", "settings")
 var _save_path: String = save_path()
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
 var _sound: SoundPlayer
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
+	_build_world()
 	_sound = _player()
 
 

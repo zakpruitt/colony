@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/042-goals-you-can-click/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, and
@@ -8,23 +8,15 @@ extends ColonyTest
 ## into the viewport at the line, as the window would send it.
 
 const SEED: int = 42
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
 const RICH: int = 1_000_000
 ## Where the mouse is when it is over nothing of the HUD's.
 const AWAY: Vector2 = Vector2(320, 200)
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## The UI layer, as Main has it: help, the journal and the orders are windows on it (spec 058).
-var _ui: UiRoot
-
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 
 
 func after_each() -> void:
@@ -36,30 +28,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	# On a layer of its own, as Main has it, so the world's camera does not move it; above GUT's
-	# runner (layer 128), whose window would take the mouse.
-	var layer := CanvasLayer.new()
-	layer.layer = 129
-	add_child_autofree(layer)
-	_hud = Hud.new()
-	layer.add_child(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.layer = 130  # spec 062: the goals are on this layer, which must be over GUT's too
-	_ui.setup(_sim, _hud, null)
 
 
 func _level(hero: Hero, level: int) -> void:
@@ -121,10 +89,6 @@ func _trainee() -> Hero:
 	return null
 
 
-func _line(sentence: String) -> int:
-	return _hud.goals.lines().find(sentence)
-
-
 func _line_starting(start: String) -> int:
 	var lines: Array[String] = _hud.goals.lines()
 	for i: int in lines.size():
@@ -133,14 +97,8 @@ func _line_starting(start: String) -> int:
 	return -1
 
 
-## Clicks the left button at [param at], in screen pixels, as the window would.
-func _click_at(at: Vector2) -> void:
-	click(at)
-	mouse_move(AWAY)
-
-
 ## Clicks the middle of goal line [param index].
-func _click(index: int) -> void:
+func _click_goal(index: int) -> void:
 	_click_at(UiFormat.on_screen(_hud.goals_view.rows[index]).get_center())
 
 
@@ -183,7 +141,7 @@ func _do(how: String, index: int) -> void:
 	if how == "press":
 		_hud.goals.press(index)
 	else:
-		_click(index)
+		_click_goal(index)
 	_hud.advance(STEP)
 
 
@@ -226,7 +184,7 @@ func test_r1_click_a_goal() -> void:
 
 	# A microskill: that hero's sheet, on the Skills tab.
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	goals = _hud.goals
 	sheet = _hud.hero_windows
 	var learner: Hero = _microskill_situation()
@@ -341,7 +299,7 @@ func test_r2_looks_clickable() -> void:
 		assert_lte(price.end.x, arrow.position.x, "%s: after the price" % lines[i])
 	# The other kinds have none.
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	goals = _hud.goals
 	_microskill_situation()
 	_situation(2, 2, 2)
@@ -402,7 +360,7 @@ func test_r3_tooltip_says_so() -> void:
 	assert_true(str(seen.get("Reach", "")).contains("ladder"), "the depth's: %s" % [seen])
 
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	goals = _hud.goals
 	tooltip = _hud.frame_tip
 	var hero: Hero = _microskill_situation()
@@ -476,7 +434,7 @@ func test_r4_nothing_else_changes() -> void:
 
 	# The orders panel and its button.
 	_sim = Simulation.new(SEED)
-	_build_hud()
+	_build_hud(true, true)
 	goals = _hud.goals
 	sheet = _hud.hero_windows
 	_situation(2, 2, 2)
@@ -542,7 +500,7 @@ func test_r4_nothing_else_changes() -> void:
 		goals.press(i)
 		_hud.advance(STEP)
 		_close_all()
-		_click(i)
+		_click_goal(i)
 		_hud.advance(STEP)
 	_close_all()
 	assert_eq(_sim.state_hash(), hash_before, "no click changed the simulation")
@@ -557,12 +515,3 @@ func test_r4_nothing_else_changes() -> void:
 		keys[found.get_string()] = true
 	var named: Array[String] = keys.keys()
 	assert_eq(named, ["KEY_G"] as Array[String], "the tracker's only key is G")
-
-
-## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
-## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
-func _spend_talents(hero: Hero) -> void:
-	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

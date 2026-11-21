@@ -25,16 +25,40 @@ base; `tests/unit/test_colony_test.gd` fails on one that does not. It holds what
 | `step_until(simulation, done, limit)` | steps until `done` is true, checking first; fails the test after `limit` ticks |
 | `make_main()` | the main scene, instantiated, not in the tree, no save store or settings |
 | `save_path(tag = "", extension = "save")` | a per-process file under `user://`, deleted with its `.bak` and `.tmp` after each test and after the last |
+| `before_guardian(simulation, depth, back, reached, held)` | the party just short of `depth`'s guardian, walking in, auto-push off |
+| `run_ticks(simulation, ticks)`, `ticks_in(seconds)`, `_of_kind(events, kind)` | ticks with their events; seconds as ticks; the events of a kind |
+| `LIMIT_TICKS`, `LIMIT_TICKS_10_MIN`, `_5_MIN`, `_3_MIN`, `_90_S` | ceilings for a loop that waits on the simulation |
 
-**When a second test needs a helper, add it to `ColonyTest`; do not copy it** (copies of `_key` and
-`_mouse` are checked for). A helper that is one test's alone stays in that file. A copy that does something
+## Then a fixture (`tests/support/`)
+
+A test that builds more than the simulation extends a fixture instead, which brings the build and the frame:
+
+| Fixture | Reach for it when the test | Gives |
+|---|---|---|
+| `HudFixture` | drives a World, its CombatEffects and the Hud (and the UI layer) without `Main` | `_build_hud(with_ui, layered)`, `_make_hud(sim, …)`, `_frame(ticks, delta)` over `_frame_parts`, `_step_until(done)`, `_click_at` / `_click`, `_hear_events()` into `_events` |
+| `PlayFixture` (a `HudFixture`) | plays frames as the game does, a tick every `FRAMES_PER_TICK` | `_show(sim, speed, with_effects)`, `_play_frame()`, `_play_until(kind)` |
+| `MainFixture` | needs the whole main scene in a UI room (`ROOM_SMALL`, `ROOM_LARGE`) | `_main(room)`, `_frame(main, ticks)` over `_frame_parts`, `_click(main, control)`, `_press`, `_drag` |
+
+Extend one by its path (`extends "res://tests/support/hud_fixture.gd"`): `test_colony_test.gd` follows
+`extends` by path or the name `ColonyTest` to check every script reaches the base, not other class names.
+Set what a frame moves and how long a wait lasts in `before_each` (`_frame_parts`, `_frame_ticks`,
+`_tick_seconds`, `_hud_each_tick`, `_step_limit`, `_mouse_rest`) rather than writing your own `_frame` or
+`_step_until`. A shared helper's limit is a claim the test makes ("within ten minutes"): when you move a
+script onto a fixture, keep the bounds it had, never the fixture's longer default. `tests/unit/test_fixtures.gd` pins what each one does.
+
+**When a second test needs a helper, put it on the fixture it belongs to, or on `ColonyTest`; do not copy
+it.** The `harness` step fails when a function of one name is defined in more than two test scripts; a name
+that is really several different helpers is listed in `tools/local_test_helpers.json` with why and the
+scripts that define it (another script defining it fails again). A helper
+that is one test's alone stays in that file. A copy that does something
 slightly different (another step order, a frame of the HUD after) is a local helper built on the shared one,
 not a change to the shared one. Do not name a local or a parameter after a `ColonyTest` method (`press`,
 `click`): it shadows it, a warning, so an error. A script that overrides `after_each` or `after_all` calls
 `super()` in it, or its `save_path` files are left behind. A constant named `MAIN_SCENE` is the base's.
 
 A spec whose tests share more than that gets a base of its own, named `*_test_base.gd` (GUT loads only
-`test_*.gd`, so a base named `test_…` is loaded as an empty test), that `extends ColonyTest`.
+`test_*.gd`, so a base named `test_…` is loaded as an empty test), that extends `ColonyTest` or the fixture
+its tests need, and holds only that spec's own helpers.
 
 ```
 python tools/dev.py test                  # all tests
