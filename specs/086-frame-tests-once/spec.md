@@ -1,9 +1,9 @@
 # 086 — The frame of the screen, tested once and on the screen the game shows
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#86](https://github.com/zakpruitt/colony/pull/86)
 
 ## Intent
 
