@@ -364,9 +364,12 @@ func test_r4_handlers_have_one_name() -> void:
 	for connection: Dictionary in _main.world.sim_event.get_connections():
 		var handler: Callable = connection["callable"]
 		hears.append(handler.get_method())
+	assert_gt(hears.size(), 10, "the listeners hear the world's events: %s" % [hears])
 	for method: String in hears:
-		if method != "_on_sim_event":
-			assert_true(method.begins_with("<anonymous"), "%s hears the world's events" % method)
+		assert_true(
+			method == "_on_sim_event" or method.begins_with("<anonymous"),
+			"%s hears the world's events" % method
+		)
 
 
 # --- R6 ------------------------------------------------------------------------
