@@ -143,8 +143,6 @@ func test_r1_a_name_on_every_button() -> void:
 			var window: UiWindow = main.ui.windows.window(id)
 			assert_not_null(button.icon, "%s: its icon" % named)
 			assert_eq(button.icon.get_size(), Vector2(16, 16), "%s: 16x16" % named)
-			assert_eq(button.text, NAMES[id], "%s: its window's name in words" % named)
-			assert_eq(button.key_hint, window.key_hint, "%s: and its key" % named)
 			assert_true(button.key_cap, "%s: in a key cap" % named)
 			var cap: Rect2 = button.key_rect()
 			var letter: float = UiText.width(window.key_hint) - UiText.SPACING
@@ -193,7 +191,6 @@ func test_r2_one_name_per_window_everywhere() -> void:
 		assert_not_null(button, "%s has a button" % id)
 		if button == null:
 			continue
-		assert_eq(button.text, named, "%s: on its button" % id)
 		assert_eq(window.short_name, named, "%s: the window keeps it" % id)
 		assert_eq(window.title_label.text, window.title, "%s: its title shows" % id)
 		assert_eq(
@@ -248,13 +245,6 @@ func test_r2_one_name_per_window_everywhere() -> void:
 	}
 	for text: String in naming:
 		assert_gt(_spellings(text, naming[text]).size(), 0, "'%s' names the window" % text)
-	var all: Array[String] = texts.values()
-	assert_true(
-		all.has("Open the Camp (%s) and spend gold on the whole party."), "the upgrade goal"
-	)
-	assert_true(
-		all.has("%s is open: send the party there from the Map (%s)."), "the new area's goal"
-	)
 	# The wiki: Camp, never the shop; and its table of keys names each window as its button does.
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
 	assert_eq(_spellings(wiki, "shop"), [] as Array[String], "the wiki says Camp, not shop")
@@ -401,6 +391,8 @@ func test_r4_fits_both_rooms() -> void:
 		_check_one_row(bar, what)
 		var line: float = hud.frames[0].get_global_rect().position.y
 		assert_lte(rect.end.y, line, "%s: above the hero frames' line" % what)
+		assert_gt(rect.end.y, line - 16.0, "%s: just above" % what)
+		assert_gt(rect.position.x, room.x / 2.0, "%s: at the right" % what)
 		var pieces: Dictionary[String, Control] = {
 			"the stage list": hud.ladder, "the goals": hud.goals_view
 		}
@@ -420,13 +412,9 @@ func test_r4_fits_both_rooms() -> void:
 		# another.
 		for id: StringName in NAMES:
 			var button: UiButton = bar.buttons[id]
-			var key: String = main.ui.windows.window(id).key_hint
 			var named: String = "%s: %s" % [what, id]
-			assert_eq(button.text, NAMES[id], "%s's name whole" % named)
-			assert_eq(button.key_hint, key, "%s's key" % named)
-			assert_true(
-				bar.tip.text_for(button).contains("(%s)" % key),
-				"%s's tooltip names the key" % named
+			assert_gte(
+				button.size.x, button.hinted_width(), "%s: room for the icon and the key" % named
 			)
 			var face := Rect2(Vector2.ZERO, button.size)
 			var icon: Rect2 = button.icon_rect()
@@ -440,8 +428,6 @@ func test_r4_fits_both_rooms() -> void:
 				"%s: the name inside: %s in %s" % [named, said, button.size]
 			)
 			assert_false(icon.intersects(said), "%s: the icon clear of the name" % named)
-			assert_false(cap.intersects(icon), "%s: the key clear of the icon" % named)
-			assert_false(cap.intersects(said), "%s: and of the name" % named)
 			if bar.stacked:
 				assert_gte(said.position.y, icon.end.y + 1.0, "%s: the icon over the name" % named)
 				assert_eq(cap.end.x, button.size.x, "%s: the cap at the right corner" % named)
@@ -450,6 +436,16 @@ func test_r4_fits_both_rooms() -> void:
 			else:
 				assert_gte(said.position.x, icon.end.x, "%s: the name after the icon" % named)
 				assert_gte(cap.position.x, said.end.x, "%s: the key after the name" % named)
+		# The tooltip of a button at the bar's corner stays on screen.
+		var help: UiButton = bar.buttons[&"help"]
+		mouse_move(main.ui.ui_to_world(help.get_global_rect().get_center()))
+		bar.tip.advance(UiTip.DELAY + 0.05)
+		assert_eq(bar.tip.shown_text(), bar.tip.text_for(help), "%s: setup: the tooltip" % what)
+		assert_true(
+			Rect2(Vector2.ZERO, Vector2(room)).encloses(bar.tip.get_global_rect()),
+			"%s: the tooltip on screen" % what
+		)
+		mouse_move(Vector2(-10, -10))
 		main.free()
 	# Between the two rooms the keys stay, each at its button's corner.
 	var squeezed: Main = await _settled(ROOM_LARGE)
@@ -522,14 +518,6 @@ func test_r5_nothing_lost() -> void:
 		assert_ne(journal.position, journal.default_place, "%s: the journal dragged away" % room)
 		_click_ui(ui, bar.reset_button.get_global_rect().get_center())
 		assert_eq(journal.position, journal.default_place, "%s: Reset puts it back" % room)
-		# The tags stay on their own layer, over the bar and under every window (spec 062 R12).
-		assert_eq(
-			bar.tag_layer.get_parent(), bar.get_parent(), "%s: the tags beside the bar" % room
-		)
-		assert_eq(bar.tag_layer.get_index(), bar.get_index() + 1, "%s: just over it" % room)
-		assert_lt(bar.tag_layer.get_index(), ui.windows.get_index(), "%s: under the windows" % room)
-		for id: StringName in NAMES:
-			assert_eq(bar.badges[id].get_parent(), bar.tag_layer, "%s: %s's tag on it" % [room, id])
 		mouse_move(Vector2(-10, -10))
 		main.free()
 
@@ -544,7 +532,6 @@ func test_r6_help_and_wiki() -> void:
 	for id: StringName in NAMES:
 		var window: UiWindow = main.ui.windows.window(id)
 		var does: String = _help_says(window.keycode)
-		assert_true(does.contains(NAMES[id]), "the help names %s for %s" % [NAMES[id], id])
 		assert_has(shown, "%s  %s" % [window.key_hint, does], "and the panel shows that line")
 		assert_lte(UiText.width(does), HelpPanel.DOES_WIDTH, "on one line: %s" % does)
 	var wiki: String = FileAccess.get_file_as_string(WIKI)

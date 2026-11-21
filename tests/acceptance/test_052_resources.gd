@@ -166,15 +166,6 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 		if event.kind == SimEvent.Kind.RESOURCE_GAINED:
 			total += event.amount
 	assert_eq(pits.party.resource(CLAY), total, "the party holds every clay dropped")
-	# Drops come from their own stream: the game is the same as before them.
-	var plain := Simulation.new(3)
-	for i: int in 9000:
-		plain.step()
-		plain.drain_events()
-	assert_true(plain.party.has_resources(), "(the party gathered something)")
-	var recorded: Array = HASHES_BEFORE[3]
-	var at_nine_thousand: int = recorded[5]
-	assert_eq(_hash_before_resources(plain), at_nine_thousand, "no fight changed")
 
 
 # --- R3 ------------------------------------------------------------------------

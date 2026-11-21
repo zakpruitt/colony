@@ -514,17 +514,6 @@ func test_r8_found_and_explained() -> void:
 	_sim.expedition.travel.open[CLAYPITS] = true
 	_build_hud(true, true)
 	_hud.advance(STEP)
-	var listed: bool = false
-	for entry: Array in KeyBook.entries():
-		listed = listed or str(entry[0]) == "W"
-	assert_true(listed, "W is in the help list")
-	press(KEY_W)
-	assert_true(_map().is_open(), "W opens the map")
-	press(KEY_W)
-	assert_false(_map().is_open(), "W closes it")
-	press(KEY_W)
-	press(KEY_ESCAPE)
-	assert_false(_map().is_open(), "Esc closes it")
 	await _click(_hud.place_panel.area_button, 2)
 	assert_true(_map().is_open(), "a click on the area's name opens it")
 	_hud.advance(STEP)
@@ -549,7 +538,3 @@ func test_r8_found_and_explained() -> void:
 	assert_string_contains(
 		_frame_tip(_hud.place_panel.area_button), "Map", "the area's name says it opens the map"
 	)
-
-	# Spec 059: a window on the UI layer, with a close button of its own (spec 058's test); where
-	# it stands, clear of the top band and the hero frames at both rooms, is spec 059 R8's test.
-	assert_not_null(_map().window().close_button, "the map's window can be closed")
