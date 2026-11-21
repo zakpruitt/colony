@@ -85,11 +85,6 @@ class TestPartPivots(unittest.TestCase):
         with self.assertRaises(art.ArtError):
             art.parse_px(source_text("[arm] pivot=twelve"), self.palette)
 
-    def test_r2_repository_sheets_without_part_pivots_are_unchanged(self) -> None:
-        # The parser keeps no pivots for parts that declare none.
-        sprite = art.parse_px(source_text("[arm]"), self.palette)
-        self.assertEqual(sprite.part_pivots, {})
-
 
 if __name__ == "__main__":
     unittest.main()

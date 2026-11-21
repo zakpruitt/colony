@@ -11,7 +11,7 @@ runs in one Godot boot.
 ## Start from `ColonyTest`
 
 Every test script `extends ColonyTest` (`tests/colony_test.gd`), directly or through a per-spec
-base; `tests/unit/test_colony_test.gd` fails on one that does not. It holds what the tests used to copy:
+base; `check`'s `harness` step fails on one under `tests/unit` or `tests/acceptance` that does not. It holds what the tests used to copy:
 
 | Helper | Does |
 |---|---|
@@ -39,8 +39,8 @@ A test that builds more than the simulation extends a fixture instead, which bri
 | `PlayFixture` (a `HudFixture`) | plays frames as the game does, a tick every `FRAMES_PER_TICK` | `_show(sim, speed, with_effects)`, `_play_frame()`, `_play_until(kind)` |
 | `MainFixture` | needs the whole main scene in a UI room (`ROOM_SMALL`, `ROOM_LARGE`) | `_main(room)`, `_frame(main, ticks)` over `_frame_parts`, `_click(main, control)`, `_press`, `_drag` |
 
-Extend one by its path (`extends "res://tests/support/hud_fixture.gd"`): `test_colony_test.gd` follows
-`extends` by path or the name `ColonyTest` to check every script reaches the base, not other class names.
+Extend one by its path (`extends "res://tests/support/hud_fixture.gd"`): the `harness` step follows
+`extends` by path or class name to check every script reaches `ColonyTest`.
 Set what a frame moves and how long a wait lasts in `before_each` (`_frame_parts`, `_frame_ticks`,
 `_tick_seconds`, `_hud_each_tick`, `_step_limit`, `_mouse_rest`) rather than writing your own `_frame` or
 `_step_until`. A shared helper's limit is a claim the test makes ("within ten minutes"): when you move a
@@ -315,6 +315,12 @@ by value, not with `assert_eq` against ints.
   announces its count during its own setup does so before anything listens (the `Hud` is set up before
   `UiRoot`), and never again while the count stays the same: spec 075 lost the Camp tag on a loaded save this
   way, and its test, which began from no gold, could not see it. Load a save that already has the state.
-- **A test that reads source text breaks on a harmless move.** Prefer asserting what is shown or returned.
-  When only the source can show it (no call to X anywhere), scan folders with `ColonyTest.scripts_in`, not
-  a fixed file path, and never grep another test's source.
+- **A rule about source text is a `harness` check, never a GUT test.** A GUT test asserts what is shown or
+  returned. A standing rule only the source can show (no call to X outside one file, a file under a cap)
+  goes in `tools/dev.py`: a check in `rule_problems` that names the file and line and says what to do
+  instead, or a row in `CAPS`, with a test in `tools/tests/` that builds a made-up tree with the mistake in
+  it (`test_082_text_rules.py`). A test that only proves a refactor happened (a name is gone, a call
+  moved) is not written: it fails on a harmless rename and catches nothing new; the reviewer reads the diff.
+- **`check` runs each lint on the repository once.** A tool test tries the lint on a made-up tree; it does
+  not run it on the repository again, and it does not call a real step that runs the tool tests (patch
+  `dev.run` and read the commands, as `test_077`'s art step test does).

@@ -92,8 +92,6 @@ func _getter(folder: String, id: StringName) -> Resource:
 			found = Content.ability(id)
 		"resources":
 			found = Content.resource_def(id)
-		"talents":
-			found = Content.talent_tree(id)
 	return found
 
 

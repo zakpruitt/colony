@@ -386,13 +386,6 @@ func test_r6_an_open_talents_tab_is_still() -> void:
 
 
 func test_r7_one_owner_advances() -> void:
-	for path: String in [
-		"res://game/hud/crossing_veil.gd",
-		"res://game/ui/frame/milestones.gd",
-		"res://game/ui/ui_moment.gd",
-	]:
-		var text: String = FileAccess.get_file_as_string(path)
-		assert_false(text.contains("func _process("), "%s has no _process" % path.get_file())
 	# A milestone and a moment, through Main's own frames.
 	var main: Main = make_main()
 	add_child_autofree(main)
@@ -471,27 +464,6 @@ func test_r7_in_the_order_they_ran() -> void:
 	assert_ne(seen.headline(heard + 1), beaten, "nor on the frame it is queued")
 	assert_eq(seen.headline(heard + 2), beaten, "it drops in on the frame after")
 	main.free()
-
-
-# --- R8 ------------------------------------------------------------------------
-
-
-func test_r8_small_leftovers() -> void:
-	var texts: Dictionary[String, String] = {}
-	scripts_in("res://game", texts)
-	var lowering: Array[String] = []
-	var clicks: Array[String] = []
-	var declares := RegEx.create_from_string("func \\w*lower\\w*\\(")
-	for path: String in texts:
-		for found: RegExMatch in declares.search_all(texts[path]):
-			lowering.append(path)
-		for i: int in texts[path].count('"Click for details"'):
-			clicks.append(path)
-	assert_eq(lowering, ["res://game/ui/ui_format.gd"], "one lowering helper, on UiFormat")
-	assert_eq(clicks.size(), 1, "one 'Click for details': %s" % [clicks])
-	assert_false(ShownValues.new().has_method("forget"), "ShownValues has no forget")
-	var hud_text: String = FileAccess.get_file_as_string("res://game/hud/hud.gd")
-	assert_false(hud_text.contains("KEY_"), "the HUD names no key code: KeyBook has them")
 
 
 class CountingPiece:

@@ -159,14 +159,6 @@
       "tests/unit/ability_kit_test_base.gd"
     ]
   },
-  "_scripts": {
-    "reason": "three listers of scripts with different roots and return types",
-    "scripts": [
-      "tests/acceptance/talent_tree_test_base.gd",
-      "tests/acceptance/test_069_sim_tidy.gd",
-      "tests/acceptance/test_070_game_tidy.gd"
-    ]
-  },
   "_send": {
     "reason": "three different sends: the party to an area, the area map's go, an effect probe",
     "scripts": [

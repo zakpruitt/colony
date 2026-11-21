@@ -3,36 +3,11 @@ extends ColonyTest
 ## and the `dev.py sim` runs; R5 is for the reviewer.
 
 const ARCHITECTURE: String = "res://docs/architecture.md"
-const EXPEDITION: String = "res://sim/expedition/expedition.gd"
 ## R3: how many fights are watched, and for how many ticks each at most.
 const FIGHTS: int = 200
 const FIGHT_TICKS: int = 120
 ## R2: the place of the talent trees, found by their class, in [method _kinds].
 const TALENTS_ROW: int = 8
-## R4: Expedition's public methods today.
-const EXPEDITION_METHODS: Array[String] = [
-	"step",
-	"command_target_depth",
-	"command_pace",
-	"command_guardian_order",
-	"level_at",
-	"is_holding",
-	"drain_events",
-	"chamber",
-	"hero_position",
-	"is_populated",
-	"monsters_in",
-	"monster_id",
-	"guardian_of",
-	"seconds_to_stable",
-	"revival_place",
-	"seconds_to_push",
-	"side_quest_in",
-	"working_quest",
-	"worker_id",
-	"work_progress",
-	"hash_parts",
-]
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -270,31 +245,6 @@ func test_r3_targets_are_chosen_as_before() -> void:
 			battle.step()
 	assert_gt(asked, FIGHTS * 50, "many choices were made")
 	assert_eq(wrong, PackedStringArray(), "every choice as before")
-
-
-func test_r3_nothing_joins_the_sides_on_the_tick() -> void:
-	var scripts: Dictionary[String, String] = {}
-	scripts_in("res://sim/combat", scripts)
-	assert_gt(scripts.size(), 0, "the combat scripts")
-	var joins: PackedStringArray = []
-	for path: String in scripts:
-		for line: String in scripts[path].split("\n"):
-			if line.contains("heroes + ") or line.contains("+ monsters"):
-				joins.append("%s: %s" % [path.get_file(), line.strip_edges()])
-	assert_eq(joins, PackedStringArray(["battle.gd: _fighters = heroes + monsters"]), "one join")
-
-
-func test_r4_expedition_has_room() -> void:
-	var text: String = FileAccess.get_file_as_string(EXPEDITION)
-	assert_lte(text.count("\n"), 900, "expedition.gd is at most 900 lines")
-	var public := RegEx.create_from_string("(?m)^(?:static )?func ([a-z]\\w*)")
-	var found: Array[String] = []
-	for m: RegExMatch in public.search_all(text):
-		found.append(m.get_string(1))
-	var expected: Array[String] = EXPEDITION_METHODS.duplicate()
-	found.sort()
-	expected.sort()
-	assert_eq(found, expected, "Expedition's public methods are today's")
 
 
 func test_r6_no_private_constant_is_documented() -> void:

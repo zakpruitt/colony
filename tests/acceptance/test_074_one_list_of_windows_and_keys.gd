@@ -1,7 +1,6 @@
 extends "res://tests/support/main_fixture.gd"
-## Acceptance tests for specs/074-one-list-of-windows-and-keys/spec.md, one per requirement. The
-## window and key tests run the main scene at both rooms; the code tests read every script under
-## res://game.
+## Acceptance tests for specs/074-one-list-of-windows-and-keys/spec.md, run on the main scene at
+## both rooms. That only KeyBook reads a key's echo is held by the check's harness step.
 
 const ROOMS: Array[Vector2i] = [ROOM_SMALL, ROOM_LARGE]
 ## Each bar window as today: its button's word, its key cap, its tooltip and its help line.
@@ -259,51 +258,10 @@ func test_r5_help_lists_the_keys_in_the_same_order() -> void:
 	assert_eq(from_table, HELP_KEYS, "built from the table")
 
 
-func test_r5_keys_are_guarded_one_way() -> void:
-	var texts: Dictionary[String, String] = {}
-	scripts_in("res://game", texts)
-	assert_gt(texts.size(), 100, "the game's scripts were read")
-	var guarded: Array[String] = []
-	for path: String in texts:
-		if texts[path].contains(".echo"):
-			guarded.append(path)
-	assert_eq(guarded, ["res://game/ui/key_book.gd"] as Array[String], "only KeyBook asks")
-	# The guards that were written by hand ask it.
-	for path: String in [
-		"res://game/audio/sound_player.gd",
-		"res://game/hud/goals.gd",
-		"res://game/hud/hud.gd",
-		"res://game/main.gd",
-		"res://game/ui/frame/stage_list.gd",
-		"res://game/ui/ui_windows.gd",
-		"res://game/window_settings.gd",
-		"res://game/world/world.gd",
-	]:
-		assert_true(texts[path].contains("KeyBook."), "%s asks KeyBook" % path)
-
-
 # --- R6 ------------------------------------------------------------------------
 
 
 func test_r6_no_sentence_spells_a_key_itself() -> void:
-	var quoted := RegEx.new()
-	quoted.compile('"((?:[^"\\\\]|\\\\.)*)"')
-	var texts: Dictionary[String, String] = {}
-	scripts_in("res://game", texts)
-	var read: int = 0
-	for path: String in texts:
-		var lines: PackedStringArray = texts[path].split("\n")
-		for i: int in lines.size():
-			if lines[i].strip_edges().begins_with("#"):
-				continue
-			for found: RegExMatch in quoted.search_all(lines[i]):
-				read += 1
-				var text: String = found.get_string(1)
-				for spelled: String in ["(O)", "(U)", "(W)", "press F"]:
-					assert_false(
-						text.contains(spelled), "%s:%d spells %s: %s" % [path, i + 1, spelled, text]
-					)
-	assert_gt(read, 200, "the game's strings were read")
 	# The words on screen are as they were, each sentence that asks KeyBook for a key in full.
 	var said: Dictionary[String, String] = {
 		HudFrame.area_tip(): "The area the party is in: click (or press W) to open the Map.",

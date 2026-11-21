@@ -14,17 +14,19 @@ plug in.
 | Kind of content | A row in `Content.KINDS`, a `Content.Kind` name, its two getters, a def class extending `ContentDef` (`key()`, `validate()`) | `sim/defs/content.gd` | spec 072's tests compare every getter with its folder; spec 078's, every definition with its key |
 | Check on a definition | A function on `DefChecks` that returns problems | `sim/defs/def_checks.gd` | |
 | Check on a save field | `SaveChecks.check_whole` / `check_counts` | `sim/save_checks.gd` | spec 072's tests pin every problem's wording |
-| Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress`, `ChamberRules`, `PartyPlaces` | gdlint: `Expedition` is at 20 public methods; spec 078: `expedition.gd` at most 900 lines |
+| Read-only question about the expedition | A small class under `sim/expedition/` | as `ClimbProgress`, `ChamberRules`, `PartyPlaces` | gdlint: `Expedition` is at 20 public methods; `check`'s `harness` step: `expedition.gd` at most 900 lines |
 | Window on the button bar | A `WindowEntry` in `WindowBook`, whose content extends `WindowContent` | `game/ui/windows/` | spec 074's tests: button, key, tooltip, help line |
-| Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | specs 030 and 074 |
+| Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | spec 030's tests (every key listed and pressed); `check`'s `harness` step (only `KeyBook` reads `.echo`) |
 | Panel of the screen's frame | A class that extends `FramePiece` (`advance`, `catch_up`, `add_tips`), added with `Hud.add_piece` and placed in `Hud._lay_out_frame` | `game/ui/frame/` | spec 080's new-piece and idle-frame tests |
-| Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; spec 079's `FxNode` test |
+| Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; `FxPool.add` takes nothing but an `FxNode` |
 | View that reacts to events | Its own `_on_sim_event`, connected in its own setup, asking `World.may_animate(event)` | | spec 076's old-event tests |
-| Label's text or colour | `WindowText.set_text` / `set_colour`, which set only on a change | `game/ui/windows/window_text.gd` | spec 075's idle-screen test |
+| Label's text or colour | `WindowText.set_text` / `set_colour`, which set only on a change | `game/ui/windows/window_text.gd` | spec 075's idle-screen test; `check`'s `harness` step (a font colour set by hand in the UI's code) |
 | Number or time shown to the player | `UiFormat` | `game/ui/ui_format.gd` | spec 075 |
 | Tag on a bar button | `WindowContent._show_badge(count)` | | spec 075's badge test |
-| Showcase moment | A row in `Showcase.ROWS`; how it begins and is seen in `ShowcaseMoments` | `game/dev/` | spec 076 |
-| Test | `extends ColonyTest`, or the fixture that builds what it drives: `HudFixture` (World, effects, Hud, UI layer), `PlayFixture` (frames as played), `MainFixture` (the main scene in a UI room); a helper two tests need goes on the fixture or `ColonyTest` | `tests/colony_test.gd`, `tests/support/` | `check`'s `harness` step (a third copy of a helper fails, `tools/local_test_helpers.json` lists the names that are different helpers); `tests/unit/test_fixtures.gd` |
+| Showcase moment | A row in `Showcase.ROWS`; how it begins and is seen in `ShowcaseMoments` | `game/dev/` | spec 018's test plays every row |
+| Test | `extends ColonyTest`, or the fixture that builds what it drives: `HudFixture` (World, effects, Hud, UI layer), `PlayFixture` (frames as played), `MainFixture` (the main scene in a UI room); a helper two tests need goes on the fixture or `ColonyTest` | `tests/colony_test.gd`, `tests/support/` | `check`'s `harness` step (a script under `tests/unit` or `tests/acceptance` that does not reach `ColonyTest` fails, and so does a third copy of a helper; `tools/local_test_helpers.json` lists the names that are different helpers); `tests/unit/test_fixtures.gd` |
+| Rule about what source text may say | A check in `rule_problems`, with a test that builds a made-up tree; never a GUT test that reads scripts | `tools/dev.py`, `tools/tests/` | `check`'s `harness` step |
+| Cap on one file's lines or public methods | A row in `CAPS` | `tools/dev.py` | `check`'s `harness` step |
 | Tool test | A `test_*.py` in `tools/tests/`, or in `tools/tests/godot/` if it starts Godot | | `check`'s `art` step; its `tools` step |
 | Sprite | A `.px` file, baked | `create-sprite` skill | `check`'s `art` step |
 | Sound | A `.sfx` recipe, baked | `tools/sfx.py` | the sound lint |
@@ -39,7 +41,8 @@ plug in.
   node looked up by name, no signal emitted for another object.
 - **Public means used elsewhere.** A constant or function nothing outside its file uses is private.
 - **A comment states a contract or a why.** No spec numbers, no history. `check`'s `harness` step reads
-  every comment in `sim/`, `game/`, `tools/`, `tests/colony_test.gd` and `tests/support/`, and warns of a file or class near gdlint's caps.
+  every comment in `sim/`, `game/`, `tools/`, `tests/colony_test.gd` and `tests/support/`, holds the files in `CAPS` to their own caps, and warns of a
+  file or class near gdlint's.
 - **Nothing changes a state hash or an old save by accident.** A spec that means to says so.
 
 ## When the standard does not fit

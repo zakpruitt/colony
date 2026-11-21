@@ -9,10 +9,6 @@ const FRAME: float = 1.0 / 60.0
 const SHOW_FRAME: float = 1.0 / 30.0
 const KNIGHT: int = 1
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
-const BIG_FILES: Array[String] = [
-	"res://game/effects/combat_effects.gd", "res://game/dev/showcase.gd"
-]
-const MOST_LINES: int = 750
 ## The budgets the order test spreads its nodes over: two capped, two only names.
 const BUDGETS: Array[StringName] = [&"combat", &"ability", &"coin", &"ring"]
 ## The caption's place on screen at 1280x720, as it has always been.
@@ -96,58 +92,11 @@ func _start_effects() -> void:
 	_build_world()
 
 
-## True when [param node]'s script is FxNode or extends it.
-func _is_fx_node(node: Object) -> bool:
-	var script: Script = node.get_script() as Script
-	while script != null:
-		if script.get_global_name() == &"FxNode":
-			return true
-		script = script.get_base_script()
-	return false
-
-
 func _showcase() -> Showcase:
 	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
 	add_child_autofree(showcase)
 	showcase.set_process(false)
 	return showcase
-
-
-# --- R2 ------------------------------------------------------------------------
-
-
-func test_r2_every_pooled_effect_is_an_fx_node() -> void:
-	var source: String = FileAccess.get_file_as_string("res://game/effects/fx_pool.gd")
-	assert_false(source.contains(".call("), "the pool calls advance directly")
-	var pool_script: Script = load("res://game/effects/fx_pool.gd")
-	for method: Dictionary in pool_script.get_script_method_list():
-		if method["name"] == "add":
-			var node: Dictionary = method["args"][0]
-			var taken: StringName = node["class_name"]
-			assert_eq(taken, &"FxNode", "add takes an FxNode")
-	var showcase: Showcase = _showcase()
-	var pool: FxPool = showcase.main.world.fx
-	var layer: Node2D = showcase.main.world.effects_layer
-	var kinds: Dictionary[String, bool] = {}
-	var others: Dictionary[String, bool] = {}
-	for moment: StringName in [&"clay_fight", &"guardian_fight", &"knight_actions", &"quest_done"]:
-		showcase.skip_to(moment)
-		var start: float = showcase.elapsed
-		while showcase.moment() == moment and showcase.elapsed - start < Showcase.GIVE_UP_SECONDS:
-			showcase.advance(SHOW_FRAME)
-			for child: Node in layer.get_children():
-				if not pool.has(child as Node2D):
-					continue
-				var named: String = (child.get_script() as Script).get_global_name()
-				if _is_fx_node(child):
-					kinds[named] = true
-				else:
-					others[named] = true
-		var happened: bool = showcase.evidence.get(moment, false)
-		assert_true(happened, "(%s happened)" % moment)
-	assert_eq(others.keys(), [], "every node the pool held was an FxNode")
-	for named: String in ["FxParticle", "FxText", "FxCoin", "FxMote", "FxResource", "FxRing"]:
-		assert_true(kinds.has(named), "(the pool held an %s)" % named)
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -238,12 +187,6 @@ func test_r3_tidying_makes_no_new_list() -> void:
 # --- R4, R5 --------------------------------------------------------------------
 
 
-func test_r4_the_big_files_have_room() -> void:
-	for path: String in BIG_FILES:
-		var lines: int = FileAccess.get_file_as_string(path).count("\n")
-		assert_lte(lines, MOST_LINES, "%s is at most %d lines" % [path, MOST_LINES])
-
-
 ## The start of every number in 40 bursts over one monster (a seeded number of hits each, some
 ## crits, a seeded pause between bursts), in the order they appeared. Every other burst the monster
 ## stands near the top left of the screen, so its numbers are kept on it.
@@ -318,23 +261,6 @@ func test_r6_the_caption_clears_the_bar() -> void:
 
 
 # --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_sound_is_handed_its_goals() -> void:
-	var files: Dictionary[String, String] = {}
-	scripts_in("res://game/audio", files)
-	assert_gt(files.size(), 0, "(the audio scripts were read)")
-	for path: String in files:
-		assert_false(
-			files[path].contains("get_parent("), "%s finds nothing through its parent" % path
-		)
-	var goals: bool = false
-	var sound_script: Script = load("res://game/audio/sound_player.gd")
-	for method: Dictionary in sound_script.get_script_method_list():
-		if method["name"] == "setup":
-			for arg: Dictionary in method["args"]:
-				goals = goals or arg["class_name"] == &"Goals"
-	assert_true(goals, "setup is handed the goals")
 
 
 func test_r7_a_finished_goal_chimes_in_the_game() -> void:

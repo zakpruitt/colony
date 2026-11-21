@@ -107,6 +107,30 @@ FILE_LINES_WARNING = 15
 MAX_PUBLIC_METHODS = 20
 PUBLIC_METHODS_WARNING = 1
 
+# Caps tighter than gdlint's, a row each: the script, what is counted in it, the most allowed.
+LINES = "lines"
+PUBLIC_METHODS = "public methods"
+CAPS: tuple[tuple[str, str, int], ...] = (
+    ("sim/expedition/expedition.gd", LINES, 900),
+    ("game/effects/combat_effects.gd", LINES, 750),
+    ("game/dev/showcase.gd", LINES, 750),
+    ("game/hud/hud.gd", PUBLIC_METHODS, 15),
+)
+# What to do about a script over its cap, by what is counted.
+CAP_ADVICE = {
+    LINES: "move a part of it into a script of its own",
+    PUBLIC_METHODS: "move what others share from it into a class of its own",
+}
+
+# The one script that reads a key event's echo: every other asks it whether a press is fresh.
+KEY_GUARD = "game/ui/key_book.gd"
+# The UI's code, where a label's colour goes through one setter, and the setter's own script.
+LABEL_CODE = ("game/hud/", "game/ui/", "game/effects/", "game/save/", "game/main.gd")
+LABEL_SETTER = "game/ui/windows/window_text.gd"
+# The folders whose scripts are tests or their bases, and the class each one reaches.
+TEST_FOLDERS = ("tests/unit/", "tests/acceptance/")
+TEST_BASE_CLASS = "ColonyTest"
+
 # Names the simulation may not use: they tie it to the scene tree, to real
 # time, or to the global random state, any of which breaks headless,
 # repeatable runs. See docs/architecture.md.
@@ -154,19 +178,28 @@ def godot_binary() -> str:
     raise StepFailed("Godot not found: put it on PATH or set GODOT")
 
 
-def run(command: list[str], timeout: int) -> tuple[int, str]:
-    """Run a command from the project root; return its exit code and output."""
-    return run_capped(command, timeout, MAX_OUTPUT_BYTES)
+def run(command: list[str], timeout: int, env: dict[str, str] | None = None) -> tuple[int, str]:
+    """Run a command from the project root, with [env] set over this process's environment;
+    return its exit code and output."""
+    return run_capped(command, timeout, MAX_OUTPUT_BYTES, env)
 
 
-def run_capped(command: list[str], timeout: int, max_bytes: int) -> tuple[int, str]:
+def run_capped(
+    command: list[str], timeout: int, max_bytes: int, env: dict[str, str] | None = None
+) -> tuple[int, str]:
     """As run(), with the output kept in a file and the run stopped if it grows past max_bytes.
 
     A test that prints an error every frame once wrote gigabytes into this process's memory and
     starved every other lane on the machine, so the output goes to disk and has a limit.
     """
     with tempfile.TemporaryFile() as sink:
-        process = subprocess.Popen(command, cwd=ROOT, stdout=sink, stderr=subprocess.STDOUT)
+        process = subprocess.Popen(
+            command,
+            cwd=ROOT,
+            stdout=sink,
+            stderr=subprocess.STDOUT,
+            env={**os.environ, **env} if env else None,
+        )
         deadline = time.monotonic() + timeout
         problem = ""
         while process.poll() is None:
@@ -400,6 +433,87 @@ def helper_copy_problems(texts: dict[str, str], root: Path = ROOT) -> list[str]:
     return problems
 
 
+def reaches_test_base(script: str, texts: dict[str, str], class_names: dict[str, str]) -> bool:
+    """Whether [script]'s chain of `extends` reaches TEST_BASE_CLASS, by name or through bases."""
+    current: str | None = script
+    seen: set[str] = set()
+    while current is not None and current in texts and current not in seen:
+        seen.add(current)
+        named = re.search(r"^extends\s+(\S+)", texts[current], re.MULTILINE)
+        if current == SHARED_TEST_BASE or (named and named.group(1) == TEST_BASE_CLASS):
+            return True
+        current = script_parent(texts[current], class_names)
+    return False
+
+
+def rule_problems(root: Path = ROOT) -> list[str]:
+    """Three rules about what a script's text may say, on the scripts git tracks under [root];
+    each problem names its file and line, and what to do instead.
+
+    Under game/ only KEY_GUARD reads a key event's echo (`.echo` or `is_echo(`). In LABEL_CODE
+    only LABEL_SETTER overrides a label's font colour. A script under TEST_FOLDERS extends
+    TEST_BASE_CLASS, itself or through its bases. Comments are not read.
+    """
+    echo = re.compile(r"\.echo\b|\bis_echo\(")
+    font_colour = re.compile(r'add_theme_color_override\(\s*&?"font_color"')
+    texts = {
+        script: (root / script).read_text(encoding="utf-8")
+        for script in tracked_files("*.gd", root)
+        if (root / script).is_file()
+    }
+    class_names: dict[str, str] = {}
+    for script, text in texts.items():
+        match = re.search(r"^class_name\s+(\w+)", text, re.MULTILINE)
+        if match:
+            class_names[match.group(1)] = script
+    problems: list[str] = []
+    for script, text in texts.items():
+        code = [line[: len(line) - len(gd_comment(line))] for line in text.splitlines()]
+        if script.startswith("game/") and script != KEY_GUARD:
+            for number, line in enumerate(code, 1):
+                if echo.search(line):
+                    problems.append(
+                        f"{script}:{number}: reads a key event's echo; ask"
+                        " KeyBook.pressed(event, key) or KeyBook.fresh_key(event)"
+                    )
+        if script.startswith(LABEL_CODE) and script != LABEL_SETTER:
+            joined = "\n".join(code)
+            for found in font_colour.finditer(joined):
+                number = joined.count("\n", 0, found.start()) + 1
+                problems.append(
+                    f"{script}:{number}: sets a label's font colour by hand; call"
+                    " WindowText.set_colour(label, colour), which sets it only on a change"
+                )
+        if script.startswith(TEST_FOLDERS) and not reaches_test_base(script, texts, class_names):
+            extends = [n for n, line in enumerate(code, 1) if line.startswith("extends")]
+            problems.append(
+                f"{script}:{extends[0] if extends else 1}: does not extend {TEST_BASE_CLASS};"
+                f" extend it, a fixture under {TEST_FIXTURES}/ or a base built on one"
+            )
+    return problems
+
+
+def public_methods(text: str) -> int:
+    """A script's public methods as gdlint counts them: no leading _, not static."""
+    return len(re.findall(r"^func\s+[A-Za-z]", text, re.MULTILINE))
+
+
+def cap_problems(root: Path = ROOT) -> list[str]:
+    """Each script of CAPS under [root] that is over its cap."""
+    problems: list[str] = []
+    for script, counted, most in CAPS:
+        path = root / script
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        count = public_methods(text) if counted == PUBLIC_METHODS else len(text.splitlines())
+        if count > most:
+            problems.append(
+                f"{script}: {count} {counted}; it is held to {most}: {CAP_ADVICE[counted]}"
+            )
+    return problems
+
+
 def gd_comment(line: str) -> str:
     """The comment on one GDScript line, from its # to the end, or "" if it has none."""
     quote = ""
@@ -546,8 +660,7 @@ def cap_warnings(root: Path = ROOT) -> list[str]:
             lines = len(text.splitlines())
             if lines >= MAX_FILE_LINES - FILE_LINES_WARNING:
                 warnings.append(f"{relative}: {lines} lines; gdlint stops at {MAX_FILE_LINES}")
-            # gdlint counts a class's functions without a leading _, not its static ones.
-            public = len(re.findall(r"^func\s+[A-Za-z]", text, re.MULTILINE))
+            public = public_methods(text)
             if public >= MAX_PUBLIC_METHODS - PUBLIC_METHODS_WARNING:
                 warnings.append(
                     f"{relative}: {public} public methods; gdlint stops at {MAX_PUBLIC_METHODS}"
@@ -560,6 +673,7 @@ def step_harness(root: Path = ROOT) -> str:
     shown = " ".join(commits).replace("-1 HEAD", "HEAD alone (no origin/dev)") or "none"
     print(f"[harness] commits read for attribution lines: {shown}")
     problems = harness_problems(root) + comment_problems(root) + attribution_problems(root)
+    problems += rule_problems(root) + cap_problems(root)
     if problems:
         raise StepFailed("\n".join(problems))
     warnings = cap_warnings(root)
@@ -567,15 +681,16 @@ def step_harness(root: Path = ROOT) -> str:
         print(f"[harness] near a cap: {warning}")
     return (
         "tests clean up, every script has its uid, comments and commits are clean,"
-        f" {len(warnings)} near a lint cap"
+        f" the text rules and {len(CAPS)} file caps hold, {len(warnings)} near a lint cap"
     )
 
 
-def tool_tests(folder: str, timeout: int) -> str:
-    """Run the Python tests in one folder (not the folders under it); return how many ran."""
+def tool_tests(folder: str, timeout: int, env: dict[str, str] | None = None) -> str:
+    """Run the Python tests in one folder (not the folders under it), with [env] set; return
+    how many ran."""
     python = sys.executable or "python"
     command = [python, "-m", "unittest", "discover", "-s", folder, "-t", folder]
-    code, output = run(command, timeout=timeout)
+    code, output = run(command, timeout=timeout, env=env)
     if code != 0:
         raise StepFailed(f"{folder} failed (exit {code})\n{tail(output)}")
     tests = re.search(r"^Ran (\d+) tests?", output, re.MULTILINE)
@@ -585,7 +700,9 @@ def tool_tests(folder: str, timeout: int) -> str:
 def step_art() -> str:
     """The tool tests that need no Godot, then the art and sound lints."""
     python = sys.executable or "python"
-    count = tool_tests("tools/tests", timeout=300)
+    # GODOT is Python here, which exits with an error on Godot's arguments: a tool test that
+    # starts Godot belongs in GODOT_TOOL_TESTS, and one left here fails instead.
+    count = tool_tests("tools/tests", timeout=300, env={"GODOT": python})
     code, output = run([python, "tools/art.py", "lint"], timeout=300)
     if code != 0:
         raise StepFailed(f"fix these, then `python tools/art.py bake`\n{tail(output)}")
@@ -668,6 +785,33 @@ def shard_scripts(scripts: list[str], index: int, count: int) -> list[str]:
     return sorted(parts[index - 1])
 
 
+def unasserted_tests(output: str) -> list[str]:
+    """The tests GUT's [output] reports as risky (no assert) or pending, as "script::test".
+
+    GUT counts such a test as neither passing nor failing, so it would pass the step unseen. While
+    it runs, GUT prints each script's path, then "* <test>" for each test and a "[Risky]" or
+    "[Pending]" line under one that is either; its totals give "Risky/Pending <count>".
+    """
+    found: list[str] = []
+    script = test = ""
+    for raw in output.splitlines():
+        line = re.sub(r"\x1b\[[0-9;]*m", "", raw).strip()
+        if line.startswith("= Run Summary"):
+            break
+        if re.fullmatch(r"res://\S+\.gd", line):
+            script, test = line, ""
+        elif line.startswith("* "):
+            test = line[2:].strip()
+        elif line.startswith(("[Risky]", "[Pending]")):
+            named = f"{script}::{test or '(the script)'}"
+            if named not in found:
+                found.append(named)
+    totals = re.search(r"^\s*Risky/Pending\s+(\d+)", output, re.MULTILINE)
+    if totals and int(totals.group(1)) > 0 and not found:
+        found.append(f"{totals.group(1)} risky or pending tests (GUT did not name them)")
+    return found
+
+
 def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) -> str:
     args = ["-s", "res://addons/gut/gut_cmdln.gd", "-gexit"]
     which = ""
@@ -694,6 +838,12 @@ def step_tests(only: str | None = None, shard: tuple[int, int] | None = None) ->
     code, output = godot(args, timeout=2700)
     if code != 0 or error_lines(output, ("SCRIPT ERROR", "Parse Error")):
         raise StepFailed(f"tests failed (exit {code})\n{tail(output, 400)}")
+    unasserted = unasserted_tests(output)
+    if unasserted:
+        raise StepFailed(
+            "these tests asserted nothing (GUT's risky) or are pending: give each an assert that"
+            " always runs, or delete it\n" + "\n".join(unasserted)
+        )
     passing = re.search(r"^\s*Passing(?: Tests)?\s+(\d+)", output, re.MULTILINE)
     if not passing or int(passing.group(1)) == 0:
         raise StepFailed(f"no passing tests were reported\n{output}")
