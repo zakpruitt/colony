@@ -111,3 +111,24 @@ suspected broken and unneeded tests). Every test was read and given a verdict; 0
 audit could show is a duplicate, stale, unable to fail or a proof that a refactor happened, and fix the
 tests that hide a failure. They cut no test whose worth is a judgement (balance runs, recorded baselines,
 the un-zoned labyrinth view): those wait for Zak.
+
+### The dungeon overhaul (2026-11-21 on)
+
+Zak asked for stages that are more interesting to look at, about twice as long and mysterious to explore,
+with chances for the party to leave the main way: side paths a microskill opens, leading to a cache. He
+chose: winding caves (a stage two or three floors tall, ladders, a route that doubles back, side paths off
+it; fights stay on a flat room floor); the party takes every side path it can open, with an order to press
+on instead; a cache pays what exists already (the area's resource, gold, XP); the safe timers stay. The
+lead's decisions: the work lands in steps that each leave `dev` playable, the new shape first behind a
+switch the game does not use, then on screen, then switched on with the flat generator and the un-zoned
+view removed. All are provisional, land on `dev` only, and wait for his playtest.
+
+| Spec | Status | Depends on |
+|---|---|---|
+| 088 | [The party walks a course](088-the-party-walks-a-course/spec.md): in-progress | 078 |
+| 089 | Winding stages in the simulation (a second shape of level, used by nothing yet): to write | 088 |
+| 090 | Winding stages on screen (floors per room, ladders, a camera that follows up and down): to write | 089 |
+| 091 | The game plays winding stages (the switch; the flat generator and the un-zoned view go): to write | 090 |
+| 092 | Side paths and caches (gates a microskill opens, the Explore and Press on order): to write | 091 |
+| 093 | Side paths on screen (gates, caches, sealed ways and what would open them): to write | 092 |
+| 094 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 091 |
