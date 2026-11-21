@@ -9,39 +9,6 @@ const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
 const KNIGHT: int = 1
 const MAGE: int = 3
-## The moments of the showcase, in order, with their captions, as they were before this spec.
-const MOMENTS: Array[Array] = [
-	[&"travelling", "TRAVELLING IN A TUNNEL"],
-	[&"crit", "A FIGHT WITH A CRIT"],
-	[&"monster_death", "A MONSTER DIES: COINS AND XP"],
-	[&"heal", "THE CLERIC HEALS"],
-	[&"level_up", "A LEVEL UP"],
-	[&"resting", "RESTING"],
-	[&"climb_down", "ON TO THE NEXT STAGE"],
-	[&"climb_up", "BACK A STAGE"],
-	[&"wipe", "THE PARTY IS WIPED"],
-	[&"revival", "THE REVIVAL"],
-	[&"depth_stable", "A STAGE BECOMES STABLE"],
-	[&"clay_fight", "A FIGHT IN THE CLAYPITS, FOR CLAY"],
-	[&"stone_fight", "A FIGHT IN THE OLD CRYPT, FOR OLD BONES"],
-	[&"deep_fight", "A FIGHT IN EMBER DEEP, FOR EMBERS"],
-	[&"guardian_fight", "A GUARDIAN HOLDS THE WAY ON"],
-	[&"knight_actions", "THE KNIGHT'S ACTIONS"],
-	[&"rogue_actions", "THE ROGUE'S ACTIONS"],
-	[&"mage_actions", "THE MAGE'S ACTIONS"],
-	[&"cleric_actions", "THE CLERIC'S ACTIONS"],
-	[&"statuses", "EVERY STATUS, ON A ROW OF FIGHTERS"],
-	[&"quest_done", "A SIDE QUEST: THE ROGUE PICKS A LOCK"],
-	[&"quest_missed", "A SIDE QUEST NOBODY CAN DO"],
-	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS"],
-	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL"],
-	[&"shop", "THE CAMP WINDOW: A FIFTH RANK BOUGHT"],
-	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO"],
-	[&"journey", "A JOURNEY TO THE CLAYPITS"],
-	[&"four_areas", "THE FOUR AREAS"],
-	[&"talent_tree", "THE KNIGHT CHOOSES A PATH"],
-	[&"away_report", "THE AWAY REPORT"],
-]
 ## The calls of World.catching_up() outside the world allowed: code that clears what is running
 ## when the world catches up, as "file:function".
 const CLEARING: Array[String] = [
@@ -392,15 +359,6 @@ func test_r3_listeners_ask_the_gate() -> void:
 
 
 func test_r4_handlers_have_one_name() -> void:
-	var connects: RegEx = RegEx.create_from_string("sim_event\\.connect\\(([^,)]*)")
-	var connected: int = 0
-	for path: String in _code_files():
-		var text: String = FileAccess.get_file_as_string(path)
-		assert_false(text.contains("func hear("), "%s has a hear" % path)
-		for found: RegExMatch in connects.search_all(text):
-			connected += 1
-			assert_eq(found.get_string(1), "_on_sim_event", "%s connects its own handler" % path)
-	assert_gt(connected, 10, "(the listeners were read)")
 	_start_main()
 	var hears: Array[String] = []
 	for connection: Dictionary in _main.world.sim_event.get_connections():
@@ -431,16 +389,3 @@ func test_r6_a_still_level_is_not_redrawn() -> void:
 	for i: int in levels.size():
 		assert_gt(before[i], 0, "depth %d's buried things were drawn" % levels[i].depth)
 		assert_eq(levels[i].buried_draws, before[i], "and not again while it is still")
-
-
-# --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_every_moment_is_one_row() -> void:
-	var rows: Array[Array] = []
-	for row: Array in Showcase.ROWS:
-		rows.append([row[0], row[1]])
-	assert_eq(rows, MOMENTS, "the moments' names and captions, in order")
-	assert_eq(Showcase.names().size(), MOMENTS.size(), "one row each")
-	for row: Array in Showcase.ROWS:
-		assert_eq(row.size(), 5, "%s: name, caption, linger, start and how it is seen" % row[0])

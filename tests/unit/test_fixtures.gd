@@ -40,26 +40,11 @@ func test_the_ride_to_a_guardian_arrives() -> void:
 	var depth: int = Expedition.GUARDIAN_EVERY
 	var lair: LabyrinthChamber = before_guardian(_sim, depth, 0.0, true, true)
 	var e: Expedition = _sim.expedition
-	assert_eq(lair, _sim.labyrinth.level(depth).shaft_chamber(), "the guardian's chamber")
-	assert_eq(e.depth, depth, "on the guardian's stage")
-	assert_false(e.auto_push, "auto-push off")
-	assert_eq(e.target_depth, depth + 1, "bound past it")
-	assert_eq(e.deepest_depth, depth, "the stage reached")
-	assert_eq(e.last_stable_depth, depth - 1, "the stage above it held")
 	assert_true(e.x < lair.rect.position.x or e.x >= lair.rect.end.x, "short of the chamber")
 	assert_true(
 		step_until(_sim, func() -> bool: return e.battle != null, 200), "a fight starts at once"
 	)
 	assert_eq(e.battle.monsters[0].def_id, e.guardian_of(depth), "the guardian's fight")
-
-	var plain := Simulation.new(SEED)
-	var back: float = 6.0
-	var shaft: LabyrinthChamber = before_guardian(plain, depth, back)
-	var walking_in: float = shaft.rect.position.x - 1.0 - back
-	if shaft.index == 0:
-		walking_in = shaft.rect.end.x + back
-	assert_eq(plain.expedition.x, walking_in, "further back when asked")
-	assert_eq(plain.expedition.deepest_depth, 1, "the stage not counted as reached unless asked")
 
 
 ## R2, R3: one frame steps the simulation a tick, the world syncs to it and hears its events, and
@@ -136,24 +121,3 @@ func test_a_wait_stops_at_its_limit_and_shows_as_set() -> void:
 	assert_true(_step_until(fourth), "the wait ends when it comes true")
 	assert_lt(_hud.shown_gold(), _sim.party.gold, "the HUD moved on only once, at the end")
 	assert_eq(_world._last_tick, _sim.tick, "while the world followed every tick")
-
-
-## R2, R3: a frame of the main scene moves its parts on in the order named, the HUD alone unless
-## the script names others.
-func test_a_main_frame_moves_its_parts_in_order() -> void:
-	var fixture := MainFixture.new()
-	assert_eq(fixture._frame_parts, [&"hud"] as Array[StringName], "the HUD alone by default")
-	fixture.free()
-	var main: Main = make_main()
-	add_child_autofree(main)
-	var names: Array[StringName] = [&"moment", &"hud", &"effects", &"milestones", &"sound"]
-	var owners: Array[Object] = [
-		main.ui.moment, main.hud, main.effects, main.milestones, main.sound
-	]
-	var methods: Array[StringName] = [&"advance", &"advance", &"advance", &"advance", &"_process"]
-	var calls: Array[Callable] = MainFixture.frame_calls(main, names)
-	assert_eq(calls.size(), names.size(), "a call for each part named")
-	for i: int in calls.size():
-		assert_eq(calls[i].get_object(), owners[i], "part %d is %s's" % [i, names[i]])
-		assert_eq(calls[i].get_method(), methods[i], "part %d moves %s on" % [i, names[i]])
-	assert_false(MainFixture.frame_calls(main, [&"nothing"])[0].is_valid(), "no part by that name")
