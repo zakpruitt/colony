@@ -1,9 +1,9 @@
 # 083 — Simulation tests that each prove something
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#84](https://github.com/zakpruitt/colony/pull/84)
 
 ## Intent
 

@@ -1,6 +1,6 @@
 # 087 — World, effects and time-away tests that hold
 
-- **Status:** provisional
+- **Status:** in-progress (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
 - **Pull request:** —
