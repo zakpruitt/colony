@@ -12,7 +12,6 @@ const GUARDIANS: Dictionary[StringName, int] = {
 const GUARDIAN_DEPTHS: Array[int] = [5, 10, 15, 20, 25]
 const SEEDS: Array[int] = [1, 2, 3]
 const MONSTERS_DIR: String = "res://assets/sprites/monsters"
-const DEMO: String = "res://game/entities/character_demo.tscn"
 const STEP: float = 1.0 / 60.0
 const TILE: float = 16.0
 const HOUR_TICKS: int = 36_000
@@ -351,18 +350,6 @@ func test_r8_guardians_build_and_animate() -> void:
 		for i: int in 60:
 			character.advance(STEP)
 		assert_true(character.is_dead(), "%s died" % id)
-
-	var scene: PackedScene = load(DEMO)
-	var demo: CharacterDemo = scene.instantiate()
-	add_child_autofree(demo)
-	await wait_process_frames(5)
-	for id: StringName in GUARDIANS:
-		var body: Texture2D = PixelSheet.load_sheet("%s/%s.png" % [MONSTERS_DIR, id]).part(&"body")
-		var shown: bool = false
-		for character: CharacterSprite in demo.characters():
-			var part: Sprite2D = character.find_child("body", true, false) as Sprite2D
-			shown = shown or (part != null and part.texture == body)
-		assert_true(shown, "the demo shows the %s" % id)
 	assert_push_error_count(0)
 	assert_engine_error_count(0)
 

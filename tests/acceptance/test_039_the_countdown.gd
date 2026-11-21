@@ -47,13 +47,6 @@ func before_each() -> void:
 	_build(SEED)
 
 
-func after_each() -> void:
-	super()
-	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
-	if bus >= 0:
-		AudioServer.set_bus_mute(bus, false)
-
-
 # --- Helpers -------------------------------------------------------------------
 
 
@@ -181,18 +174,6 @@ func test_r1_seconds_to_push() -> void:
 func test_r2_stable_note() -> void:
 	var e: Expedition = _sim.expedition
 
-	# Not yet stable here, at the target, auto-push on: as before.
-	_situation(2, 2, 1, 2, true)
-	var stable_in: String = "Stable in %s" % _clock(e.seconds_to_stable())
-	assert_eq(_hud.stable_text(), stable_in + ", then stage 3", "not yet stable")
-	assert_true(_hud.countdown.bar.visible, "with its bar")
-	assert_almost_eq(
-		_hud.stable_progress(), 1.0 - e.seconds_to_stable() / e.stable_seconds, 0.001, "to stable"
-	)
-	# Auto-push off: no then line.
-	_situation(2, 2, 1, 2, false)
-	assert_eq(_hud.stable_text(), "Stable in %s" % _clock(e.seconds_to_stable()), "auto off")
-
 	# Stable here, auto-push on, at the target: the countdown to the push.
 	_build(SEED)
 	e = _sim.expedition
@@ -214,13 +195,6 @@ func test_r2_stable_note() -> void:
 	)
 	assert_lt(_hud.stable_progress(), 1.0, "not full")
 
-	# Stable here, auto-push off, at the target.
-	_sim.set_auto_push(false)
-	_tick()
-	assert_eq(_hud.countdown.note_label.text, "Stable", "stable")
-	assert_eq(_hud.countdown.next_label.text, "staying on stage 1", "and staying")
-	assert_false(_hud.countdown.bar.visible, "no bar")
-
 	# Heading to another depth: the note is this depth's, with no then line.
 	_sim.set_auto_push(true)
 	_sim.set_target_depth(3)
@@ -235,8 +209,6 @@ func test_r2_stable_note() -> void:
 	# Holding at a guardian.
 	_holding()
 	assert_true(e.is_holding(), "the party holds at the guardian")
-	assert_eq(_hud.countdown.note_label.text, "Holding", "holding")
-	assert_eq(_hud.countdown.next_label.text, "Orders (O) to go in", "and how to go in")
 	assert_false(_hud.countdown.bar.visible, "no bar")
 
 

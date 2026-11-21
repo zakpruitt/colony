@@ -29,12 +29,18 @@ func _nearby(sim: Simulation) -> Array[int]:
 	return depths
 
 
-## Asks for the monsters of every chamber of the nearby levels, as the world does.
+## Asks for the monsters and the side quest of every chamber of the nearby levels, and for the
+## work under way, as the world does.
 func _watch(sim: Simulation) -> void:
+	var e: Expedition = sim.expedition
 	for depth: int in _nearby(sim):
 		for index: int in sim.labyrinth.level(depth).chambers.size():
-			if sim.expedition.is_populated(depth, index):
-				sim.expedition.monsters_in(depth, index)
+			e.side_quest_in(depth, index)
+			if e.is_populated(depth, index):
+				e.monsters_in(depth, index)
+	e.working_quest()
+	e.worker_id()
+	e.work_progress()
 
 
 ## Every read the expedition offers, many times over, in no particular order.
@@ -46,9 +52,13 @@ func _storm(sim: Simulation) -> void:
 			var count: int = sim.labyrinth.level(maxi(depth, 1)).chambers.size()
 			for index: int in range(-1, count + 1):
 				e.is_populated(depth, index)
+				e.side_quest_in(depth, index)
 				e.monsters_in(depth, index)
 				e.monsters_in(depth, index)
 		e.chamber()
+		e.working_quest()
+		e.worker_id()
+		e.work_progress()
 		for id: int in [1, 2, 3, 4, 999, Expedition.FIRST_MONSTER_ID]:
 			e.hero_position(id)
 		e.hash_parts()
@@ -144,7 +154,6 @@ func _sorted(found: Dictionary[String, Array]) -> Array:
 func test_r3_ids_come_from_place() -> void:
 	var asked := _sim(SEEDS[1])
 	var other := _sim(SEEDS[1])
-	var checks: int = 0
 	for minute: int in 12:
 		for i: int in TICKS_PER_MINUTE:
 			asked.step()
@@ -182,8 +191,6 @@ func test_r3_ids_come_from_place() -> void:
 				total += 1
 		assert_eq(all.size(), total, "every id at minute %d is unique" % minute)
 		assert_gt(forward.size(), 1, "several chambers hold monsters")
-		checks += 1
-	assert_eq(checks, 12)
 
 
 # --- R5 ------------------------------------------------------------------------

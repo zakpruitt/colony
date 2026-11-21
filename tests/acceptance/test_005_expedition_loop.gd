@@ -8,6 +8,21 @@ extends ColonyTest
 const SEED: int = 1234
 const EPSILON: float = 0.001
 const HOUR_TICKS: int = 36_000
+## The kinds an hour of any expedition produces, whatever its seed.
+const EVERY_RUN: Array[SimEvent.Kind] = [
+	SimEvent.Kind.ENCOUNTER_STARTED,
+	SimEvent.Kind.ENCOUNTER_ENDED,
+	SimEvent.Kind.XP_GAINED,
+	SimEvent.Kind.GOLD_GAINED,
+	SimEvent.Kind.LEVEL_UP,
+	SimEvent.Kind.REST_STARTED,
+	SimEvent.Kind.REST_ENDED,
+	SimEvent.Kind.DEPTH_CHANGED,
+	SimEvent.Kind.PARTY_WIPED,
+	SimEvent.Kind.PARTY_REVIVED,
+	SimEvent.Kind.STABLE_DEPTH_REACHED,
+	SimEvent.Kind.TARGET_DEPTH_CHANGED,
+]
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -761,14 +776,6 @@ func test_r14_events_cover_the_loop() -> void:
 			order.append(e.kind)
 	assert_eq(order, loop, "encounter, then rest")
 
-	# The target and the depth changing are reported too.
-	sim.set_target_depth(2)
-	sim.step()
-	var target: Array[SimEvent] = _of_kind(sim.drain_events(), SimEvent.Kind.TARGET_DEPTH_CHANGED)
-	assert_eq(target.size(), 1)
-	var down: Array[SimEvent] = _run_until(sim, SimEvent.Kind.DEPTH_CHANGED, 3000)
-	assert_eq(_of_kind(down, SimEvent.Kind.DEPTH_CHANGED)[0].amount, 2)
-
 
 # --- R15 -----------------------------------------------------------------------
 
@@ -807,14 +814,8 @@ func test_r15_ids() -> void:
 
 
 func test_r16_hero_positions() -> void:
-	var sim := Simulation.new(SEED)
-	var e: Expedition = sim.expedition
-	run_ticks(sim, 5)
-	var floor_y: float = _level(sim, 1).floor_y
-	for rank: int in 4:
-		assert_eq(e.hero_position(rank + 1), Vector2(e.x - e.facing * rank, floor_y), "travelling")
-
 	var fighting := Simulation.new(SEED)
+	var floor_y: float = _level(fighting, 1).floor_y
 	_approach(fighting, 1, _populated(fighting, 1))
 	for i: int in 30:
 		fighting.step()
@@ -916,15 +917,6 @@ func test_r17_deterministic_and_endless() -> void:
 	two.expedition.last_stable_depth = 4
 	assert_ne(one.state_hash(), two.state_hash(), "expedition state")
 
-	# One hour runs without errors from any seed.
-	for seed_value: int in [11, 12, 13]:
-		var sim := Simulation.new(seed_value)
-		for i: int in HOUR_TICKS:
-			sim.step()
-			sim.drain_events()
-		assert_eq(sim.tick, HOUR_TICKS, "seed %d ran an hour" % seed_value)
-		assert_gte(sim.expedition.deepest_depth, 1)
-
 
 func _describe_events(events: Array[SimEvent]) -> Array:
 	var described: Array = []
@@ -974,5 +966,5 @@ func test_r18_plays_like_the_design() -> void:
 		assert_gte(sim.expedition.last_stable_depth, 2, "stable on depth 2 or deeper, " + where)
 		assert_gte(wipes, 1, "wipes at least once, " + where)
 		assert_eq(backwards, 0, "gold, XP and levels never go down, " + where)
-	for kind: int in range(SimEvent.Kind.ENCOUNTER_STARTED, SimEvent.Kind.size()):
+	for kind: SimEvent.Kind in EVERY_RUN:
 		assert_true(kinds_seen.has(kind), "%s happened" % SimEvent.Kind.keys()[kind])

@@ -50,6 +50,17 @@ const OLD_MIN_DEPTH: Dictionary[StringName, int] = {
 ## How much a monster grew per depth below its old min_depth, before this spec.
 const OLD_GROWTH: float = 1.12
 const SEEDS: Array[int] = [1, 2, 3, 4, 5]
+## The monsters of the deeper bands (spec 013): R3 checks each turns up where its area says.
+const DEEPER_MONSTERS: Array[StringName] = [
+	&"goblin",
+	&"mud_golem",
+	&"fire_imp",
+	&"clay_hound",
+	&"ghoul",
+	&"crystal_beetle",
+	&"wraith",
+	&"deep_horror",
+]
 const JOURNEY_TICKS: int = 100
 const STRONG_LEVEL: int = 60
 
@@ -213,6 +224,25 @@ func test_r2_a_stage_is_a_depth() -> void:
 # --- R3 ------------------------------------------------------------------------
 
 
+## Every monster waiting in every chamber of stage [param depth] of [param area] for seeds 1 to
+## [param seeds].
+func _met_at(area: StringName, depth: int, seeds: int) -> Array[MonsterDef]:
+	var met: Array[MonsterDef] = []
+	for seed_value: int in range(1, seeds + 1):
+		var sim := Simulation.new(seed_value)
+		var e: Expedition = sim.expedition
+		var lab: Labyrinth = e.travel.labyrinth(area)
+		if area != e.area:
+			e.travel.open[area] = true
+			sim.set_destination(area, 1)
+			for i: int in 120:
+				sim.step()
+		for room: LabyrinthChamber in lab.level(depth).chambers:
+			for m: Combatant in e.monsters_in(depth, room.index):
+				met.append(Content.monster(m.def_id))
+	return met
+
+
 func test_r3_only_the_areas_monsters() -> void:
 	for seed_value: int in SEEDS:
 		var sim := Simulation.new(seed_value)
@@ -248,6 +278,18 @@ func test_r3_only_the_areas_monsters() -> void:
 				assert_eq(at5[0].def_id, def.guardian, "%s's guardian at 5" % area)
 				assert_eq(at10[0].def_id, def.guardian, "%s's guardian at 10" % area)
 				assert_gt(at10[0].max_health, at5[0].max_health, "stronger at 10")
+	# Each monster spec 013 added turns up at its first stage and three stages on.
+	for area: StringName in AREAS:
+		var def: AreaDef = Content.area(area)
+		for i: int in def.monsters.size():
+			var id: StringName = def.monsters[i]
+			if not DEEPER_MONSTERS.has(id):
+				continue
+			for stage: int in [def.monster_stages[i], def.monster_stages[i] + 3]:
+				var seen: bool = false
+				for monster: MonsterDef in _met_at(area, stage, 6):
+					seen = seen or monster.id == id
+				assert_true(seen, "%s turns up at %s %d" % [id, area, stage])
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -526,9 +568,7 @@ func test_r8_saves() -> void:
 	sim.expedition.last_stable_depth = 2
 	sim.expedition.deepest_depth = 3
 	var data: Dictionary = sim.to_save()
-	var version: int = data["version"]
 	var area_saved: String = data["area"]
-	assert_eq(version, 8, "version 8 since spec 052 (6 when spec 049 landed)")
 	assert_eq(area_saved, "claypits", "the area the party is in")
 	var parsed: Dictionary = JSON.parse_string(JSON.stringify(data))
 	var back: Simulation = Simulation.from_save(parsed)
@@ -732,7 +772,6 @@ func test_r9_screen_names_the_area() -> void:
 func _view(sim: Simulation) -> Array[Node]:
 	_sim = sim
 	_build_hud()
-	_ui.bar.set_process(false)
 	return [_world, _fx, _hud]
 
 

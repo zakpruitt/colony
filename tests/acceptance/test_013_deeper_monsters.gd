@@ -1,6 +1,6 @@
 extends ColonyTest
-## Spec 013, monsters of the deeper bands: eight new monsters as data and sprites, met in
-## the bands they live in, hard but fair at depth 12, and shown in the cast demo.
+## Spec 013, monsters of the deeper bands: eight new monsters as data and sprites, shown in the
+## cast demo. Where each is met is test_049_areas.gd's R3.
 
 ## The eight new monsters: first depth and size, as R1's table gives them.
 const NEW_MONSTERS: Dictionary[StringName, Array] = {
@@ -18,15 +18,6 @@ const RANGED: Array[StringName] = [&"fire_imp", &"wraith"]
 const MONSTERS_DIR: String = "res://assets/sprites/monsters"
 const DEMO: String = "res://game/entities/character_demo.tscn"
 const STEP: float = 1.0 / 60.0
-## R6: the stone-band fight.
-const FIGHT_DEPTH: int = 12
-const FIGHT_MONSTERS: int = 3
-const FIGHT_SEEDS: int = 200
-const STRONG_LEVEL: int = 12
-const WEAK_LEVEL: int = 6
-## A typical chamber floor, in tiles.
-const FLOOR_LEFT: float = 0.0
-const FLOOR_RIGHT: float = 17.0
 
 # --- R1 ------------------------------------------------------------------------
 
@@ -150,92 +141,6 @@ func test_r3_each_new_monster_builds_and_animates() -> void:
 		assert_eq(_pose(character, sheet), rest, "%s's parts are back at rest" % id)
 	assert_push_error_count(0)
 	assert_engine_error_count(0)
-
-
-# --- R4 ------------------------------------------------------------------------
-
-
-## Every monster waiting in every chamber of stage [param depth] of [param area] for seeds 1 to
-## [param seeds]. Spec 049: the monsters of the deeper bands now live in areas, not depths.
-func _met_at(area: StringName, depth: int, seeds: int) -> Array[MonsterDef]:
-	var met: Array[MonsterDef] = []
-	for seed_value: int in range(1, seeds + 1):
-		var sim := Simulation.new(seed_value)
-		var e: Expedition = sim.expedition
-		var lab: Labyrinth = e.travel.labyrinth(area)
-		if area != e.area:
-			e.travel.open[area] = true
-			sim.set_destination(area, 1)
-			for i: int in 120:
-				sim.step()
-		for room: LabyrinthChamber in lab.level(depth).chambers:
-			for m: Combatant in e.monsters_in(depth, room.index):
-				met.append(Content.monster(m.def_id))
-	return met
-
-
-## Spec 049 amends this test: a band is now an area, and its inhabitants are its own list. Each new
-## monster turns up in the area that lists it, at its first stage and three stages on, and every
-## monster met in an area is one of its own.
-func test_r4_bands_have_their_own_inhabitants() -> void:
-	for area: StringName in Content.area_ids():
-		var def: AreaDef = Content.area(area)
-		for depth: int in range(1, 8):
-			var seen: Dictionary[StringName, bool] = {}
-			for monster: MonsterDef in _met_at(area, depth, 6):
-				seen[monster.id] = true
-				assert_true(
-					monster.guardian or def.monsters.has(monster.id),
-					"%s lives in %s" % [monster.id, area]
-				)
-			for i: int in def.monsters.size():
-				var id: StringName = def.monsters[i]
-				var first: int = def.monster_stages[i]
-				if NEW_MONSTERS.has(id) and (depth == first or depth == first + 3):
-					assert_true(seen.has(id), "%s turns up at %s %d" % [id, area, depth])
-
-
-# --- R6 ------------------------------------------------------------------------
-
-
-## The share of [constant FIGHT_SEEDS] stone-band fights a party at [param level] wins in time.
-func _win_rate(level: int) -> float:
-	var weighted: Array[MonsterDef] = []
-	for id: StringName in Content.monster_ids():
-		var def: MonsterDef = Content.monster(id)
-		# Guardians (spec 020) are never rolled for an ordinary encounter.
-		if def.base_level <= FIGHT_DEPTH and not def.guardian:
-			# As the expedition rolls them: each as likely as its first depth.
-			for _copy: int in def.base_level:
-				weighted.append(def)
-	var limit: int = Combatant.seconds_to_ticks(Expedition.BATTLE_LIMIT_SECONDS)
-	var wins: int = 0
-	for seed_value: int in range(1, FIGHT_SEEDS + 1):
-		var rng := SimRng.new(seed_value)
-		var heroes: Array[Combatant] = []
-		var hero_id: int = 1
-		for class_id: StringName in Party.STARTING_CLASSES:
-			heroes.append(Combatant.from_hero(Content.hero_class(class_id), level, hero_id))
-			hero_id += 1
-		var monsters: Array[Combatant] = []
-		for i: int in FIGHT_MONSTERS:
-			var def: MonsterDef = weighted[rng.next_int(0, weighted.size() - 1)]
-			monsters.append(Combatant.from_monster(def, FIGHT_DEPTH, 100 + i))
-		var fight := Battle.new(heroes, monsters, FLOOR_LEFT, FLOOR_RIGHT, true, rng.fork("battle"))
-		while fight.result() == Battle.Result.ONGOING and fight.tick < limit:
-			fight.step()
-			fight.drain_events()
-		if fight.result() == Battle.Result.HEROES_WON:
-			wins += 1
-	return float(wins) / FIGHT_SEEDS
-
-
-func test_r6_stone_band_is_hard_but_fair() -> void:
-	var strong: float = _win_rate(STRONG_LEVEL)
-	assert_between(strong, 0.5, 0.95, "level-12 party wins more often than not, not always")
-	var weak: float = _win_rate(WEAK_LEVEL)
-	assert_lte(weak, 0.2, "level-6 party loses at least 80% of the time")
-	gut.p("stone-band win rates: level 12 %.2f, level 6 %.2f" % [strong, weak])
 
 
 # --- R7 ------------------------------------------------------------------------

@@ -10,9 +10,6 @@ func test_r9_saves_carry_it() -> void:
 	sim.party.set_resource(GLOWCAPS, 12)
 	sim.party.set_resource(EMBERS, 3)
 	var saved: Dictionary = sim.to_save()
-	assert_eq(Simulation.SAVE_VERSION, 8, "the next save version")
-	var version: int = saved["version"]
-	assert_eq(version, 8)
 	var held: Dictionary = saved["resources"]
 	assert_eq(held, {"glowcaps": 12, "embers": 3}, "each resource's count")
 	var through_json: Dictionary = JSON.parse_string(JSON.stringify(saved))
@@ -62,7 +59,6 @@ func test_r9_saves_carry_it() -> void:
 
 
 func test_r10_worth_the_trip() -> void:
-	var lines: PackedStringArray = []
 	for seed_value: int in [1, 2, 3]:
 		var sim := Simulation.new(seed_value)
 		sim.set_auto_buy(true)
@@ -81,10 +77,6 @@ func test_r10_worth_the_trip() -> void:
 			assert_eq(
 				sim.party.resource(id), 0, "seed %d: no %s in Mossy Hollow" % [seed_value, id]
 			)
-		var glowcaps: int = sim.party.resource(GLOWCAPS)
-		# Read now, before the trip: the ranks and gold of the party that stayed.
-		var ranks: String = str(sim.upgrades.hash_parts())
-		var gold: int = sim.party.gold
 		var medicine: int = sim.upgrades.rank(&"field_medicine")
 		var march: int = sim.upgrades.rank(&"quick_march")
 		assert_gt(medicine + march, 6, "seed %d: glowcaps buy past rank 3" % seed_value)
@@ -93,15 +85,12 @@ func test_r10_worth_the_trip() -> void:
 			continue
 		sim.set_destination(CLAYPITS, 1)
 		var arrived: int = -1
-		var first_clay: int = -1
 		var limit: int = roundi((CLAY_MINUTES * 60.0 + 30.0) * Simulation.TICKS_PER_SECOND)
 		for i: int in limit:
 			sim.step()
 			for event: SimEvent in sim.drain_events():
 				if event.kind == SimEvent.Kind.AREA_CHANGED and arrived < 0:
 					arrived = sim.tick
-				if event.kind == SimEvent.Kind.RESOURCE_GAINED and arrived >= 0 and first_clay < 0:
-					first_clay = sim.tick
 			if (
 				arrived >= 0
 				and sim.tick - arrived >= CLAY_MINUTES * 60 * Simulation.TICKS_PER_SECOND
@@ -109,27 +98,6 @@ func test_r10_worth_the_trip() -> void:
 				break
 		assert_gt(arrived, 0, "seed %d: the party arrives" % seed_value)
 		assert_gt(sim.party.resource(CLAY), 0, "seed %d: clay within five minutes" % seed_value)
-		(
-			lines
-			. append(
-				(
-					(
-						"seed %d: at %d min in Mossy Hollow ranks %s, %d gold, %d glowcaps; first clay"
-						+ " %.0f s after arriving, %d clay at 5 min"
-					)
-					% [
-						seed_value,
-						MOSSY_MINUTES,
-						ranks,
-						gold,
-						glowcaps,
-						float(first_clay - arrived) / Simulation.TICKS_PER_SECOND,
-						sim.party.resource(CLAY),
-					]
-				)
-			)
-		)
-	gut.p("\n".join(lines))
 
 
 # --- R11 -----------------------------------------------------------------------

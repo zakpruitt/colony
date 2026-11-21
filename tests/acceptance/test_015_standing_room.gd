@@ -7,6 +7,8 @@ const SEED: int = 1234
 const EPSILON: float = 0.0001
 ## A duration long enough that it never comes round in a test.
 const NEVER: float = 100_000.0
+## Steps a fight here is given to end: as many ticks as the expedition lets a battle run.
+var _fight_limit: int = Combatant.seconds_to_ticks(Expedition.BATTLE_LIMIT_SECONDS)
 
 # --- Helpers -----------------------------------------------------------------
 
@@ -78,7 +80,6 @@ func _nearest_monster(battle: Battle, x: float) -> float:
 func test_r1_same_side_keeps_spacing() -> void:
 	var kinds: Array[StringName] = [&"slime", &"goblin", &"skeleton", &"cave_bat", &"spider"]
 	var problems: Array[String] = []
-	var battles: int = 0
 	for seed_value: int in range(1, 51):
 		var rng := SimRng.new(seed_value)
 		var count: int = 3 + seed_value % 3
@@ -90,14 +91,17 @@ func test_r1_same_side_keeps_spacing() -> void:
 		var battle := Battle.new(
 			_starting_party(), monsters, 0.0, width, seed_value % 2 == 0, SimRng.new(seed_value)
 		)
-		battles += 1
+		var steps: int = 0
 		while battle.result() == Battle.Result.ONGOING:
+			if steps >= _fight_limit:
+				fail_test("seed %d: the fight did not end in %d steps" % [seed_value, steps])
+				return
 			battle.step()
+			steps += 1
 			battle.drain_events()
 			for side: Array[Combatant] in [battle.heroes, battle.monsters]:
 				for p: String in _crowded(side):
 					problems.append("seed %d tick %d: %s" % [seed_value, battle.tick, p])
-	assert_eq(battles, 50)
 	assert_eq(problems.size(), 0, "standing allies too close: %s" % [problems.slice(0, 5)])
 
 
@@ -196,14 +200,18 @@ func test_r4_stays_in_the_span() -> void:
 			_starting_party(), monsters, left, right, from_left, SimRng.new(SEED)
 		)
 		var outside: Array[String] = []
+		var steps: int = 0
 		while battle.result() == Battle.Result.ONGOING:
+			if steps >= _fight_limit:
+				fail_test("the fight did not end in %d steps" % steps)
+				return
 			battle.step()
+			steps += 1
 			battle.drain_events()
 			for c: Combatant in battle.heroes + battle.monsters:
 				if c.x < left - EPSILON or c.x > right + EPSILON:
 					outside.append("tick %d: %d at %.3f" % [battle.tick, c.id, c.x])
 		assert_eq(outside.size(), 0, "left the span: %s" % [outside.slice(0, 5)])
-		assert_ne(battle.result(), Battle.Result.ONGOING, "the fight finished")
 
 
 # --- R6 ------------------------------------------------------------------------
