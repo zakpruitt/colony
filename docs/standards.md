@@ -24,7 +24,7 @@ plug in.
 | Number or time shown to the player | `UiFormat` | `game/ui/ui_format.gd` | spec 075 |
 | Tag on a bar button | `WindowContent._show_badge(count)` | | spec 075's badge test |
 | Showcase moment | A row in `Showcase.ROWS`; how it begins and is seen in `ShowcaseMoments` | `game/dev/` | spec 076 |
-| Test | `extends ColonyTest`; a helper two tests need goes on it | `tests/colony_test.gd` | `check`'s `harness` step |
+| Test | `extends ColonyTest`, or the fixture that builds what it drives: `HudFixture` (World, effects, Hud, UI layer), `PlayFixture` (frames as played), `MainFixture` (the main scene in a UI room); a helper two tests need goes on the fixture or `ColonyTest` | `tests/colony_test.gd`, `tests/support/` | `check`'s `harness` step (a third copy of a helper fails, `tools/local_test_helpers.json` lists the names that are different helpers); `tests/unit/test_fixtures.gd` |
 | Tool test | A `test_*.py` in `tools/tests/`, or in `tools/tests/godot/` if it starts Godot | | `check`'s `art` step; its `tools` step |
 | Sprite | A `.px` file, baked | `create-sprite` skill | `check`'s `art` step |
 | Sound | A `.sfx` recipe, baked | `tools/sfx.py` | the sound lint |
@@ -39,7 +39,7 @@ plug in.
   node looked up by name, no signal emitted for another object.
 - **Public means used elsewhere.** A constant or function nothing outside its file uses is private.
 - **A comment states a contract or a why.** No spec numbers, no history. `check`'s `harness` step reads
-  every comment in `sim/`, `game/`, `tools/` and `tests/colony_test.gd`, and warns of a file or class near gdlint's caps.
+  every comment in `sim/`, `game/`, `tools/`, `tests/colony_test.gd` and `tests/support/`, and warns of a file or class near gdlint's caps.
 - **Nothing changes a state hash or an old save by accident.** A spec that means to says so.
 
 ## When the standard does not fit

@@ -46,7 +46,9 @@ incomplete, stop and report the question.
   first. In a spec that changes nothing the game does, a test that pins today's behaviour is instead seen to
   pass on the unchanged code before the refactor (`implement-spec`, "Tests first").
 - **Tests extend `ColonyTest`** (`tests/colony_test.gd`): keys, clicks, raising heroes, stepping the sim,
-  `make_main()`. When a second test needs a helper, add it there instead of copying it.
+  `make_main()`, directly or through a fixture in `tests/support/` (`HudFixture`, `PlayFixture`,
+  `MainFixture`: the build and the frame; the `godot-headless-test` skill says which). When a second test
+  needs a helper, put it on the fixture or `ColonyTest` instead of copying it: `harness` fails on a third copy.
 - **Tests that write files** take the path from `ColonyTest.save_path()`: per process, under `user://` (shared by
   every worktree on the machine), deleted with its backups in `after_each` and in `after_all` (a `Main` with a
   save store saves again when GUT frees it, which is after `after_each` has run). An override of either calls
