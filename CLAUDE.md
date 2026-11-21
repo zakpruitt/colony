@@ -65,14 +65,20 @@ incomplete, stop and report the question.
   to (a bar window's key is its `WindowEntry`'s, in `WindowBook`); the help's list is `KeyBook.entries()`.
   Spec 030's R3 test reads every `KEY_…` name in `game/` and fails on one the table does not cover (so do not
   name a constant `KEY_…`), and presses each listed key to see it do something. Input code asks
-  `KeyBook.pressed(event, key)` (or `fresh_key`), never `key.echo` itself, and a sentence that names a key
-  asks `KeyBook.label(action)` for its letter (spec 074's tests check both).
+  `KeyBook.pressed(event, key)` (or `fresh_key`), never `key.echo` itself (the `harness` step fails on a
+  `.echo` read under `game/` outside `key_book.gd`), and a sentence that names a key asks
+  `KeyBook.label(action)` for its letter.
 - **gdlint caps a class at 20 public methods (statics apart) and a file at 1000 lines.** `Expedition` and
   `Hero` are at the method cap: a read-only helper goes in its own small class (as `ClimbProgress` does under
-  `sim/expedition/`). `expedition.gd` is held to 900 lines by spec 078's test: a spec that adds to it must
-  first move a read-only part out of it. A test file is held under 985 lines (spec 081's
-  `test_r4_no_test_file_is_near_the_cap`, run in the `art` step, not by `test`): when asserts move into one
-  near that, move a whole check into its test base (`talent_tree_test_base.gd` exists for `test_064`).
+  `sim/expedition/`). `expedition.gd` is held to 900 lines by the `harness` step: a spec that adds to it must
+  first move a read-only part out of it. The tighter caps (that one, 750 lines for `combat_effects.gd` and
+  `showcase.gd`, 15 public methods for `hud.gd`) are one table, `CAPS` in `tools/dev.py`; a new cap is a row.
+  A test file is held under 985 lines (spec 081's `test_r4_no_test_file_is_near_the_cap`, run in the `art`
+  step, not by `test`): when asserts move into one near that, move a whole check into its test base
+  (`talent_tree_test_base.gd` exists for `test_064`).
+- **A rule about source text is a `harness` check, not a GUT test** (`rule_problems` in `tools/dev.py`, tried
+  on a made-up tree in `tools/tests/`). A label's colour goes through `WindowText.set_colour` and a test
+  script extends `ColonyTest` the same way: the step names the file and line.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
