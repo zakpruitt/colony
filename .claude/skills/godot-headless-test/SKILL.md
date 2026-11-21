@@ -41,12 +41,15 @@ A test that builds more than the simulation extends a fixture instead, which bri
 
 Extend one by its path (`extends "res://tests/support/hud_fixture.gd"`): `test_colony_test.gd` follows
 `extends` by path or the name `ColonyTest` to check every script reaches the base, not other class names.
-Set what a frame moves in `before_each` (`_frame_parts`, `_frame_ticks`, `_tick_seconds`, `_mouse_rest`)
-rather than writing your own `_frame`. `tests/unit/test_fixtures.gd` pins what each one does.
+Set what a frame moves and how long a wait lasts in `before_each` (`_frame_parts`, `_frame_ticks`,
+`_tick_seconds`, `_hud_each_tick`, `_step_limit`, `_mouse_rest`) rather than writing your own `_frame` or
+`_step_until`. A shared helper's limit is a claim the test makes ("within ten minutes"): when you move a
+script onto a fixture, keep the bounds it had, never the fixture's longer default. `tests/unit/test_fixtures.gd` pins what each one does.
 
 **When a second test needs a helper, put it on the fixture it belongs to, or on `ColonyTest`; do not copy
 it.** The `harness` step fails when a function of one name is defined in more than two test scripts; a name
-that is really several different helpers is listed, with why, in `tools/local_test_helpers.json`. A helper
+that is really several different helpers is listed in `tools/local_test_helpers.json` with why and the
+scripts that define it (another script defining it fails again). A helper
 that is one test's alone stays in that file. A copy that does something
 slightly different (another step order, a frame of the HUD after) is a local helper built on the shared one,
 not a change to the shared one. Do not name a local or a parameter after a `ColonyTest` method (`press`,
