@@ -1,10 +1,10 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/058-sharp-ui-and-windows/spec.md, one per requirement (more for R5
 ## to R8, beside the old HUD, are in test_058_windows_beside_the_old_hud.gd).
 ##
 ## Most tests run the main scene with its processing turned off and step it by hand, the UI layer
 ## laid out for a chosen room ([method UiRoot.set_room_for_test]); the helpers are in
-## ui_layer_test_base.gd.
+## MainFixture.
 
 const SPECIMEN: PackedScene = preload("res://game/ui/font_specimen.tscn")
 ## The window sizes R1 lists: each with its world scale, its UI scale and its room.

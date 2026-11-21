@@ -1,8 +1,8 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/065-camp-upgrades-you-can-see/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off and the UI layer laid out for a chosen
-## room (helpers in ui_layer_test_base.gd), puts the simulation where it wants it by hand, steps it
+## room (helpers in MainFixture), puts the simulation where it wants it by hand, steps it
 ## a tick at a time (the world and the HUD after each), and drives the shop with real clicks and
 ## keys, checking the simulation after each command.
 

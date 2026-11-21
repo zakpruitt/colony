@@ -35,12 +35,6 @@ func _situation(depth: int, stable: int, deepest: int, target: int) -> void:
 	_settle()
 
 
-## Lets the ladder's scroll come to rest.
-func _settle() -> void:
-	for i: int in 120:
-		_hud.advance(STEP)
-
-
 ## The top of the ladder as drawn, a depth (fractional while it scrolls), read from a rung's place.
 func _scroll() -> float:
 	return (StageList.RUNGS_TOP - _ladder().rung_rect(0).position.y) / StageList.PITCH

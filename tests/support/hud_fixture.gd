@@ -36,6 +36,8 @@ var _frame_seconds: float = STEP
 var _events: Array[SimEvent] = []
 ## The seconds the world and HUD move on by for each tick [method _step_until] steps.
 var _tick_seconds: float = 0.1
+## The most ticks [method _step_until] steps unless a call gives them.
+var _step_limit: int = LIMIT_TICKS
 ## Whether the HUD follows each tick [method _step_until] steps (by [member _tick_seconds]), or
 ## only once it ends (by a [constant STEP]).
 var _hud_each_tick: bool = true
@@ -179,6 +181,44 @@ func _frames_top(hud: Hud = null) -> float:
 	return top
 
 
+## The name of the guardian of [param depth], as the data has it.
+func _guardian_name(depth: int) -> String:
+	return Content.monster(_sim.expedition.guardian_of(depth)).display_name
+
+
+## Plays until the next fight starts, then loses it: the party is wiped. True once it is.
+func _lose_next_fight() -> bool:
+	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
+	if not _step_until(fighting):
+		return false
+	for fighter: Combatant in _sim.expedition.battle.heroes:
+		fighter.health = 0
+	var down: Callable = func() -> bool: return _sim.expedition.state == Expedition.State.REVIVING
+	return _step_until(down)
+
+
+## Rides to the guardian of [param depth] (reached, the stage above held) and loses to it.
+func _guardian_wipe(depth: int) -> bool:
+	before_guardian(_sim, depth, 0.0, true, true)
+	return _lose_next_fight()
+
+
+## Plays on until the revived heroes have stood up.
+func _until_standing() -> bool:
+	var standing: Callable = func() -> bool:
+		return (
+			_sim.expedition.state != Expedition.State.REVIVING
+			and not _world.fallen_party.is_telling()
+		)
+	return _step_until(standing)
+
+
+## Two seconds of the HUD, so what eases on it has come to rest.
+func _settle() -> void:
+	for i: int in 120:
+		_hud.advance(STEP)
+
+
 # --- Playing -------------------------------------------------------------------
 
 
@@ -195,10 +235,10 @@ func _frame(ticks: int = -1, delta: float = NAN) -> void:
 
 
 ## Steps the simulation a tick at a time until [param done] returns true (true), or for
-## [param ticks] ticks (false), the world following each tick and the HUD as
-## [member _hud_each_tick] says.
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
+## [param ticks] ticks (a negative count: [member _step_limit]) (false), the world following each
+## tick and the HUD as [member _hud_each_tick] says.
+func _step_until(done: Callable, ticks: int = -1) -> bool:
+	for i: int in _step_limit if ticks < 0 else ticks:
 		_sim.step()
 		_world.sync(_tick_seconds)
 		if _hud_each_tick:

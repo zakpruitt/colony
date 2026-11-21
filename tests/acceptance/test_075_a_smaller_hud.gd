@@ -1,4 +1,4 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/075-a-smaller-hud/spec.md, one per requirement. The screen tests run
 ## the main scene at both rooms; the code tests read every script under res://game.
 

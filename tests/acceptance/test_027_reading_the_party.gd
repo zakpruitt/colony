@@ -15,6 +15,7 @@ var _was_muted: bool = false
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_10_MIN
 	_sim = Simulation.new(SEED)
 	_build_hud(false)
 	_main = null

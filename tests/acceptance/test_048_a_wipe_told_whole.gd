@@ -32,11 +32,6 @@ func _make_world(simulation: Simulation, speed: int) -> World:
 	return world
 
 
-func _wipe(simulation: Simulation = null) -> void:
-	for hero: Hero in (simulation if simulation != null else _sim).party.heroes:
-		hero.health = 0
-
-
 ## Steps the simulation alone until its party is down; returns how many ticks that took.
 func _step_until_down(simulation: Simulation) -> int:
 	for i: int in LIMIT_TICKS_5_MIN:
@@ -131,7 +126,7 @@ func _told_to_the_end(distance: float, label: String) -> void:
 func test_r1_starts_from_where_it_is() -> void:
 	# A world made while the party is down, its wipe 1.8 s ago and drained unseen (time away).
 	_away_on_stage_one(Simulation.new(SEED), false)
-	_wipe()
+	_wipe(_sim)
 	var down: int = _step_until_down(_sim)
 	assert_gt(down, 0, "the party is down")
 	for i: int in 18:
@@ -164,7 +159,7 @@ func test_r1_starts_from_where_it_is() -> void:
 	_events = []
 	_frames_played = 0
 	_away_on_stage_one(Simulation.new(SEED), true)
-	_wipe()
+	_wipe(_sim)
 	var ticks: int = _step_until_down(_sim)
 	for i: int in 11:
 		_sim.step()
@@ -198,7 +193,7 @@ func test_r2_a_stall_keeps_the_camera() -> void:
 		steady_world.sync(FRAME)
 	assert_eq(steady.state_hash(), _sim.state_hash(), "the two are the same game")
 	_wipe(steady)
-	_wipe()
+	_wipe(_sim)
 	var frames: int = 0
 	while _sim.expedition.state != Expedition.State.REVIVING and frames < LIMIT_TICKS_5_MIN:
 		for sim: Simulation in [steady, _sim]:
@@ -260,7 +255,7 @@ func test_r3_camera_arrives_first() -> void:
 			_events = []
 			_frames_played = 0
 			_away_on_stage_one(Simulation.new(SEED), true, speed)
-			_wipe()
+			_wipe(_sim)
 			if late:
 				var ticks: int = _step_until_down(_sim)
 				for i: int in 2 * TICKS:
@@ -289,7 +284,7 @@ func test_r4_second_wipe_starts_clean() -> void:
 	_show(Simulation.new(SEED))
 	for i: int in 120:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	assert_true(_play_until(SimEvent.Kind.PARTY_REVIVED), "and revived")
 	for i: int in roundi(FallenParty.STAND_SECONDS / 2.0 / FRAME):
@@ -297,7 +292,7 @@ func test_r4_second_wipe_starts_clean() -> void:
 	var over: float = absf(_world.character(KNIGHT).rotation)
 	assert_true(_world.fallen_party.is_standing(KNIGHT), "the heroes are standing up")
 	assert_between(over, 0.2, PI / 2.0 - 0.2, "half way up")
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "wiped again as they stand")
 	for i: int in roundi(0.5 / FRAME):
 		_play_frame()
@@ -350,7 +345,7 @@ func test_r6_far_cut_waits() -> void:
 	_sim.expedition.deepest_depth = 8
 	for i: int in 30:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	var wiped_at: int = _sim.tick
 	var destination: Vector2 = _rest(_world.fallen_party.destination())

@@ -16,6 +16,7 @@ const RICH: int = 1_000_000
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_5_MIN
 	_sim = Simulation.new(SEED)
 	_build_hud()
 	_ui.bar.set_process(false)
@@ -26,35 +27,6 @@ func before_each() -> void:
 
 func _note() -> DefeatNote:
 	return _hud.defeat_note
-
-
-## Plays until the next fight starts, then loses it: the party is wiped. True once it is.
-func _lose_next_fight() -> bool:
-	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
-	if not _step_until(fighting):
-		return false
-	for fighter: Combatant in _sim.expedition.battle.heroes:
-		fighter.health = 0
-	var down: Callable = func() -> bool: return _sim.expedition.state == Expedition.State.REVIVING
-	return _step_until(down)
-
-
-## Plays on until the revived heroes have stood up.
-func _until_standing() -> bool:
-	var standing: Callable = func() -> bool:
-		var e: Expedition = _sim.expedition
-		return e.state != Expedition.State.REVIVING and not _world.fallen_party.is_telling()
-	return _step_until(standing)
-
-
-func _guardian_wipe() -> bool:
-	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
-	return _lose_next_fight()
-
-
-## The Slime King's name, as the data has it.
-func _guardian_name() -> String:
-	return Content.monster(_sim.expedition.guardian_of(GUARDIAN_DEPTH)).display_name
 
 
 func _lowest_level() -> int:
@@ -111,11 +83,11 @@ func _rect(control: Control) -> Rect2:
 func test_r1_defeat_note() -> void:
 	assert_not_null(_note(), "the HUD has a defeat note")
 	assert_false(_note().is_shown(), "nothing shows before a defeat")
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_true(_note().is_shown(), "the note shows after the wipe")
 	assert_eq(
 		_first_line(),
-		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH],
+		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH],
 		"it says the guardian beat the party, and where"
 	)
 	var revived: Callable = func() -> bool:
@@ -228,7 +200,7 @@ func test_r3_offers_help() -> void:
 	# A guardian, gold and a paragon point to spend: train, buy, hold, in that order, at most three.
 	_sim.party.gold = RICH
 	_rogue_with_a_point()
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var trainee: Hero = _trainee()
 	assert_not_null(trainee, "a hero can be trained")
 	var expected: Array[String] = [
@@ -319,14 +291,16 @@ func test_r3_offers_help() -> void:
 
 
 func test_r4_repeats_are_counted() -> void:
-	var beaten: String = "Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH]
-	assert_true(_guardian_wipe(), "the first defeat")
+	var beaten: String = (
+		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH]
+	)
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the first defeat")
 	assert_eq(_first_line(), beaten, "no count the first time")
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "the second")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the second")
 	assert_eq(_first_line(), beaten + " (2 times)", "counted from the second")
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "the third")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the third")
 	assert_eq(_first_line(), beaten + " (3 times)", "and the third")
 	assert_true(_until_standing(), "the heroes stand")
 
@@ -335,10 +309,10 @@ func test_r4_repeats_are_counted() -> void:
 		SimEvent.Kind.GUARDIAN_SLAIN, _sim.tick, Expedition.FIRST_MONSTER_ID, -1, GUARDIAN_DEPTH
 	)
 	_world.sim_event.emit(slain)
-	assert_true(_guardian_wipe(), "beaten again after a victory")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "beaten again after a victory")
 	assert_eq(_first_line(), beaten, "the count starts again")
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "and again")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "and again")
 	assert_eq(_first_line(), beaten + " (2 times)", "counted from there")
 
 
@@ -348,7 +322,7 @@ func test_r4_repeats_are_counted() -> void:
 func test_r5_out_of_the_way() -> void:
 	_sim.party.gold = RICH
 	_rogue_with_a_point()
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var note: DefeatNote = _note()
 	assert_eq(note.suggestions().size(), 3, "three buttons, the widest note")
 
@@ -480,10 +454,10 @@ func test_r5_nothing_after_time_away() -> void:
 func test_r6_journal() -> void:
 	# The note's first line, then where the party falls back to (spec 046 R6).
 	var back: String = "; falling back to Mossy Hollow %d" % SAFE
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_eq(_journal_sentence(), _first_line() + back, "the journal's line is the note's first")
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "and again")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "and again")
 	assert_eq(_journal_sentence(), _first_line() + back, "with the count")
 	assert_true(_journal_sentence().ends_with("(2 times)" + back), "counted")
 	assert_true(_until_standing(), "the heroes stand")

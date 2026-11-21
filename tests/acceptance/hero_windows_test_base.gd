@@ -1,6 +1,6 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## What the acceptance tests of spec 060 (the hero windows) share: their constants and helpers, on
-## top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays under gdlint's length.
+## top of MainFixture's. Kept apart so the tests' own file stays under gdlint's length.
 
 const RICH: int = 1_000_000
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]

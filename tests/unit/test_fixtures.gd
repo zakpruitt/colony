@@ -97,3 +97,63 @@ func test_a_played_frame_moves_everything_once() -> void:
 	assert_eq(_sim.tick, tick + 24, "a tick every %d frames of play" % FRAMES_PER_TICK)
 	assert_eq(_frames_played, played, "every frame counted")
 	assert_eq(told, _events, "each told the events it passed on")
+
+
+## R2, R3: a wait gives up after its script's limit (fifty minutes unless the script says) or the
+## call's; the world follows each tick, and the HUD each tick by the script's seconds, or once at
+## the end when the script says.
+func test_a_wait_stops_at_its_limit_and_shows_as_set() -> void:
+	_build_hud(false)
+	_hud.advance(0.0)
+	assert_eq(_step_limit, LIMIT_TICKS, "a wait is fifty minutes long unless the script says")
+	var never: Callable = func() -> bool: return false
+	_step_limit = 40
+	var tick: int = _sim.tick
+	assert_false(_step_until(never), "a wait that never ends gives up")
+	assert_eq(_sim.tick, tick + 40, "after the script's limit")
+	assert_false(_step_until(never, 5), "and after the call's")
+	assert_eq(_sim.tick, tick + 45, "when it gives one")
+	assert_eq(_world._last_tick, _sim.tick, "the world followed")
+
+	var count: Array[int] = [0]
+	var fourth: Callable = func() -> bool:
+		count[0] += 1
+		return count[0] % 4 == 0
+	_sim.party.gold += 1000
+	_tick_seconds = 1.0
+	assert_true(_step_until(fourth), "the wait ends when it comes true")
+	assert_eq(_hud.shown_gold(), _sim.party.gold, "four ticks of a second each: the gold caught up")
+
+	_sim.party.gold += 1000
+	_tick_seconds = 0.5
+	assert_true(_step_until(fourth), "the wait ends when it comes true")
+	assert_lt(_hud.shown_gold(), _sim.party.gold, "four ticks of half a second: not yet")
+
+	_hud.advance(Hud.GOLD_CATCH_UP_SECONDS)
+	_sim.party.gold += 1000
+	_tick_seconds = 1.0
+	_hud_each_tick = false
+	assert_true(_step_until(fourth), "the wait ends when it comes true")
+	assert_lt(_hud.shown_gold(), _sim.party.gold, "the HUD moved on only once, at the end")
+	assert_eq(_world._last_tick, _sim.tick, "while the world followed every tick")
+
+
+## R2, R3: a frame of the main scene moves its parts on in the order named, the HUD alone unless
+## the script names others.
+func test_a_main_frame_moves_its_parts_in_order() -> void:
+	var fixture := MainFixture.new()
+	assert_eq(fixture._frame_parts, [&"hud"] as Array[StringName], "the HUD alone by default")
+	fixture.free()
+	var main: Main = make_main()
+	add_child_autofree(main)
+	var names: Array[StringName] = [&"moment", &"hud", &"effects", &"milestones", &"sound"]
+	var owners: Array[Object] = [
+		main.ui.moment, main.hud, main.effects, main.milestones, main.sound
+	]
+	var methods: Array[StringName] = [&"advance", &"advance", &"advance", &"advance", &"_process"]
+	var calls: Array[Callable] = MainFixture.frame_calls(main, names)
+	assert_eq(calls.size(), names.size(), "a call for each part named")
+	for i: int in calls.size():
+		assert_eq(calls[i].get_object(), owners[i], "part %d is %s's" % [i, names[i]])
+		assert_eq(calls[i].get_method(), methods[i], "part %d moves %s on" % [i, names[i]])
+	assert_false(MainFixture.frame_calls(main, [&"nothing"])[0].is_valid(), "no part by that name")

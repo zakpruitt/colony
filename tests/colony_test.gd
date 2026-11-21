@@ -12,8 +12,8 @@ extends GutTest
 ## more than two test scripts. A script that overrides after_each or after_all calls super() in
 ## it, or its files are left behind.
 ##
-## The helpers named with a leading underscore keep the names the tests called them by when each
-## script had its own; they are for the scripts that extend this.
+## The helpers named with a leading underscore are for the scripts that extend this, which call
+## them by those names.
 
 const MAIN_SCENE: PackedScene = preload("res://game/main.tscn")
 
@@ -259,3 +259,33 @@ func _set_level(hero: Hero, level: int) -> void:
 ## The colour [param label] writes in.
 static func _colour(label: Label) -> Color:
 	return label.get_theme_color(&"font_color")
+
+
+## Every hero of [param sim] at 0 health.
+static func _wipe(sim: Simulation) -> void:
+	for hero: Hero in sim.party.heroes:
+		hero.health = 0
+
+
+## A monster to fight in a test: small, level 1, 100 health, 5 damage a second, slow; each of
+## [param overrides] (a field's name to its value) set over that.
+static func make_monster_def(overrides: Dictionary = {}) -> MonsterDef:
+	var def := MonsterDef.new()
+	def.id = &"test_monster"
+	def.display_name = "Test monster"
+	def.size = MonsterDef.Size.SMALL
+	def.base_level = 1
+	def.max_health = 100
+	def.damage = 5
+	def.armor = 0
+	def.attack_interval = 1.0
+	def.windup = 0.3
+	def.attack_range = 1.0
+	def.move_speed = 1.0
+	def.crit_chance = 0.0
+	def.xp = 1
+	def.gold_min = 1
+	def.gold_max = 2
+	for key: String in overrides:
+		def.set(key, overrides[key])
+	return def

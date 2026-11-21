@@ -44,12 +44,6 @@ func _situation(depth: int, stable: int, deepest: int, target: int) -> void:
 	_settle()
 
 
-## Lets the ladder's scroll come to rest.
-func _settle() -> void:
-	for i: int in 120:
-		_hud.advance(STEP)
-
-
 ## The label showing [param depth]'s number, or null.
 func _number(depth: int) -> Label:
 	for child: Node in _ladder().get_node("Rungs").get_children():

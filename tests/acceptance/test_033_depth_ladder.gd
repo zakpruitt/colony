@@ -13,6 +13,7 @@ const STATES: Array[StringName] = [&"held", &"visited", &"unreached"]
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_10_MIN
 	_sim = Simulation.new(SEED)
 	_hud_each_tick = false
 	_build_hud()

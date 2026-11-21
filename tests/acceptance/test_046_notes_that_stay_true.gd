@@ -15,6 +15,7 @@ const RICH: int = 1_000_000
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_5_MIN
 	_sim = Simulation.new(SEED)
 	_build_hud()
 	_hear_events()
@@ -48,27 +49,6 @@ func _doom_next_fight() -> bool:
 	for fighter: Combatant in _sim.expedition.battle.heroes:
 		fighter.health = 0
 	return true
-
-
-## Plays until the next fight starts, then loses it: the party is wiped. True once it is.
-func _lose_next_fight() -> bool:
-	return _doom_next_fight() and _step_until(_reviving)
-
-
-func _guardian_wipe() -> bool:
-	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
-	return _lose_next_fight()
-
-
-## Plays on until the revived heroes have stood up.
-func _until_standing() -> bool:
-	var standing: Callable = func() -> bool:
-		return not _reviving() and not _world.fallen_party.is_telling()
-	return _step_until(standing)
-
-
-func _guardian_name() -> String:
-	return Content.monster(_sim.expedition.guardian_of(GUARDIAN_DEPTH)).display_name
 
 
 func _journal_sentence() -> String:
@@ -110,7 +90,9 @@ func _is_hero(id: int) -> bool:
 
 
 func test_r1_one_frame_defeat() -> void:
-	var beaten: String = "Beaten by the %s on Mossy Hollow %d" % [_guardian_name(), GUARDIAN_DEPTH]
+	var beaten: String = (
+		"Beaten by the %s on Mossy Hollow %d" % [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH]
+	)
 	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	assert_true(_doom_next_fight(), "a guardian fight starts, and is lost")
 	# The defeat, the wipe and the revival stepped with no frame between, as a stall or 4x
@@ -140,7 +122,7 @@ func test_r1_one_frame_defeat() -> void:
 	assert_eq(_note().wipe_line(wipe), beaten, "the note remembers the depth of the lost fight")
 	# Then a defeat watched frame by frame: the second by the same guardian.
 	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(), "beaten by the guardian again")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "beaten by the guardian again")
 	assert_eq(_first_line(), beaten + " (2 times)", "counted as the second in a row")
 
 
@@ -149,7 +131,7 @@ func test_r1_one_frame_defeat() -> void:
 
 func test_r2_holding_is_true() -> void:
 	_sim.party.gold = 0
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_eq(_note().suggestions(), ["Hold here"] as Array[String], "only Hold, with no gold")
 	var hold: UiButton = _note().buttons[0]
 	assert_eq(_tip_of(hold), DefeatNote.TIPS[DefeatNote.Help.HOLD], "the Hold tooltip")
@@ -190,7 +172,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 	var rogue: Hero = _sim.party.heroes[1]
 	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
 	_spend_talents(rogue)
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var shown: Array[String] = _note().suggestions()
 	assert_eq(shown.size(), 3, "train, buy, hold")
 	assert_eq(shown[1], "Buy an upgrade", "the second is the shop")
@@ -219,7 +201,7 @@ func test_r3_click_does_what_was_aimed() -> void:
 
 func test_r4_panel_does_not_use_time() -> void:
 	_sim.party.gold = RICH
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_true(_until_standing(), "the heroes stand")
 	_linger(1.0)
 	assert_true(_note().is_shown(), "the note lingers")
@@ -241,7 +223,7 @@ func test_r4_panel_does_not_use_time() -> void:
 
 func test_r5_old_defeat_leaves_the_note() -> void:
 	_sim.party.gold = 0
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	var lines: Array[String] = _note().lines()
 	var helps: Array[String] = _note().suggestions()
 	assert_eq(lines.size(), 2, "a line and a reason")
@@ -268,12 +250,12 @@ func test_r5_old_defeat_leaves_the_note() -> void:
 
 
 func test_r6_journal_keeps_what_it_said() -> void:
-	assert_true(_guardian_wipe(), "the party loses to the guardian")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
 	assert_eq(
 		_journal_sentence(),
 		(
 			"Beaten by the %s on Mossy Hollow %d; falling back to Mossy Hollow %d"
-			% [_guardian_name(), GUARDIAN_DEPTH, SAFE]
+			% [_guardian_name(GUARDIAN_DEPTH), GUARDIAN_DEPTH, SAFE]
 		),
 		"the note's line and where the party falls back to"
 	)

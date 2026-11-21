@@ -37,35 +37,13 @@ func _hero_def(role: HeroClassDef.Role, overrides: Dictionary = {}) -> HeroClass
 	return def
 
 
-func _monster_def(overrides: Dictionary = {}) -> MonsterDef:
-	var def := MonsterDef.new()
-	def.id = &"test_monster"
-	def.display_name = "Test monster"
-	def.size = MonsterDef.Size.SMALL
-	def.base_level = 1
-	def.max_health = 100
-	def.damage = 5
-	def.armor = 0
-	def.attack_interval = 1.0
-	def.windup = 0.3
-	def.attack_range = 1.0
-	def.move_speed = 1.0
-	def.crit_chance = 0.0
-	def.xp = 1
-	def.gold_min = 1
-	def.gold_max = 2
-	for key: String in overrides:
-		def.set(key, overrides[key])
-	return def
-
-
 ## A monster that stands still and never finishes an attack.
 func _dummy(health: int = 10_000, overrides: Dictionary = {}) -> MonsterDef:
 	var values: Dictionary = {
 		"max_health": health, "windup": NEVER, "attack_range": 1000.0, "move_speed": 0.0
 	}
 	values.merge(overrides, true)
-	return _monster_def(values)
+	return make_monster_def(values)
 
 
 func _heroes(list: Array) -> Array[Combatant]:
@@ -177,7 +155,7 @@ func test_r1_shipped_content_is_valid() -> void:
 
 func test_r1_validate_reports_each_problem() -> void:
 	assert_eq(_hero_def(HeroClassDef.Role.TANK).validate().size(), 0, "the base hero is valid")
-	assert_eq(_monster_def().validate().size(), 0, "the base monster is valid")
+	assert_eq(make_monster_def().validate().size(), 0, "the base monster is valid")
 	var common: Array[Dictionary] = [
 		{"id": &""},
 		{"display_name": ""},
@@ -193,14 +171,14 @@ func test_r1_validate_reports_each_problem() -> void:
 	for bad: Dictionary in common:
 		var hero: PackedStringArray = _hero_def(HeroClassDef.Role.TANK, bad).validate()
 		assert_eq(hero.size(), 1, "hero %s gives one problem: %s" % [bad, hero])
-		var monster: PackedStringArray = _monster_def(bad).validate()
+		var monster: PackedStringArray = make_monster_def(bad).validate()
 		assert_eq(monster.size(), 1, "monster %s gives one problem: %s" % [bad, monster])
 	var monster_only: Array[Dictionary] = [
 		{"gold_min": 5, "gold_max": 4},
 		{"base_level": 0},
 	]
 	for bad: Dictionary in monster_only:
-		var monster: PackedStringArray = _monster_def(bad).validate()
+		var monster: PackedStringArray = make_monster_def(bad).validate()
 		assert_eq(monster.size(), 1, "monster %s gives one problem: %s" % [bad, monster])
 	var healer_without_heal: PackedStringArray = (
 		_hero_def(HeroClassDef.Role.HEALER, {"heal_power": 0}).validate()
@@ -218,7 +196,9 @@ func test_r1_validate_reports_each_problem() -> void:
 		0,
 		"only a healer needs heal power"
 	)
-	var many: PackedStringArray = _monster_def({"id": &"", "damage": 0, "base_level": 0}).validate()
+	var many: PackedStringArray = (
+		make_monster_def({"id": &"", "damage": 0, "base_level": 0}).validate()
+	)
 	assert_eq(many.size(), 3, "each problem is its own line")
 
 
@@ -248,7 +228,7 @@ func test_r2_combatants_scale_with_level_and_depth() -> void:
 	assert_true(hero.is_alive())
 	assert_almost_eq(hero.health_fraction(), 1.0, 0.0001)
 
-	var monster_def := _monster_def(
+	var monster_def := make_monster_def(
 		{"id": &"brute", "base_level": 2, "max_health": 100, "damage": 10}
 	)
 	var monster := Combatant.from_monster(monster_def, 4, 9)
@@ -262,7 +242,7 @@ func test_r2_combatants_scale_with_level_and_depth() -> void:
 	assert_eq(monster.role, HeroClassDef.Role.MELEE, "a short-ranged monster is melee")
 	var at_home := Combatant.from_monster(monster_def, 2, 10)
 	assert_eq(at_home.max_health, 100, "no growth at its own depth")
-	var spitter := Combatant.from_monster(_monster_def({"attack_range": 5.0}), 1, 11)
+	var spitter := Combatant.from_monster(make_monster_def({"attack_range": 5.0}), 1, 11)
 	assert_eq(spitter.role, HeroClassDef.Role.RANGED, "a long-ranged monster is ranged")
 
 	var twin_a := Combatant.from_hero(hero_def, 1, 1)
@@ -285,7 +265,7 @@ func test_r3_line_up() -> void:
 		var melee := Combatant.from_hero(_hero_def(HeroClassDef.Role.MELEE), 1, 4)
 		var monsters: Array[Combatant] = []
 		for i: int in 3:
-			monsters.append(Combatant.from_monster(_monster_def(), 1, 10 + i))
+			monsters.append(Combatant.from_monster(make_monster_def(), 1, 10 + i))
 		var battle := Battle.new(
 			_heroes([healer, ranged, tank, melee]), monsters, 2.0, 18.0, from_left, SimRng.new(SEED)
 		)
@@ -500,7 +480,7 @@ func test_r7_melee_lands_at_once_projectiles_fly() -> void:
 	)
 	var tank := Combatant.from_hero(_hero_def(HeroClassDef.Role.TANK, {"damage": 1}), 1, 2)
 	var killer := Combatant.from_monster(
-		_monster_def(
+		make_monster_def(
 			{
 				"max_health": 10_000,
 				"damage": 1000,
@@ -688,7 +668,7 @@ func test_r9_death_and_result() -> void:
 	var monsters: Array[Combatant] = []
 	for i: int in 5:
 		monsters.append(
-			Combatant.from_monster(_monster_def({"max_health": 30, "damage": 3}), 1, 10 + i)
+			Combatant.from_monster(make_monster_def({"max_health": 30, "damage": 3}), 1, 10 + i)
 		)
 	var battle := _battle(heroes, monsters)
 	var dead: Dictionary = {}
@@ -725,7 +705,7 @@ func test_r9_death_and_result() -> void:
 
 	# The other way round.
 	var lone := Combatant.from_hero(_hero_def(HeroClassDef.Role.MELEE, {"max_health": 20}), 1, 1)
-	var brute := Combatant.from_monster(_monster_def({"max_health": 1000, "damage": 15}), 1, 10)
+	var brute := Combatant.from_monster(make_monster_def({"max_health": 1000, "damage": 15}), 1, 10)
 	battle = _battle([lone], [brute])
 	_run(battle)
 	assert_eq(battle.result(), Battle.Result.MONSTERS_WON)
@@ -734,7 +714,7 @@ func test_r9_death_and_result() -> void:
 
 	# Nobody can reach anybody: a stalemate ends at MAX_TICKS as a monster win.
 	var stuck := Combatant.from_hero(_hero_def(HeroClassDef.Role.MELEE, {"move_speed": 0.0}), 1, 1)
-	var rooted := Combatant.from_monster(_monster_def({"move_speed": 0.0}), 1, 10)
+	var rooted := Combatant.from_monster(make_monster_def({"move_speed": 0.0}), 1, 10)
 	battle = _battle([stuck], [rooted])
 	for i: int in Battle.MAX_TICKS - 1:
 		battle.step()
@@ -757,7 +737,7 @@ func test_r10_events_tell_the_whole_story() -> void:
 		1
 	)
 	var spitter := Combatant.from_monster(
-		_monster_def(
+		make_monster_def(
 			{
 				"max_health": 3,
 				"damage": 1,

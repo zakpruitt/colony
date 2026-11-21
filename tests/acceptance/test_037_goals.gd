@@ -12,6 +12,7 @@ const TOP_BAND: float = 28.0
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_10_MIN
 	_sim = Simulation.new(SEED)
 	_hud_each_tick = false
 	_build_hud()
@@ -60,11 +61,11 @@ func _situation(depth: int, deepest: int, stable: int) -> void:
 	e.target_depth = depth
 	e.auto_push = true
 	_hud.advance(STEP)
-	_settle()
+	_past_celebration()
 
 
 ## Lets any goal finished by jumping from one situation to the next have its moment and go.
-func _settle() -> void:
+func _past_celebration() -> void:
 	_hud.advance(STEP)
 	_hud.advance(Goals.CELEBRATE_SECONDS + 0.1)
 
@@ -98,10 +99,6 @@ func _cheapest_upgrade() -> int:
 		if price > 0 and (cheapest == 0 or price < cheapest):
 			cheapest = price
 	return cheapest
-
-
-func _guardian_name(depth: int) -> String:
-	return Content.monster(_sim.expedition.guardian_of(depth)).display_name
 
 
 func _sentences(goals: Array[Goals.Goal]) -> Array[String]:
@@ -371,7 +368,7 @@ func test_r3_finished_goal() -> void:
 	for other: Hero in _sim.party.heroes:
 		if other != hero:
 			_level(other, STRONG_LEVEL)
-	_settle()
+	_past_celebration()
 	var who: String = hero.def().display_name
 	var skill_line: String = "%s learns %s at level %d" % [who, skill.display_name, skill_level]
 	var index: int = goals.lines().find(skill_line)
@@ -494,7 +491,7 @@ func test_r5_explains_itself() -> void:
 		_situation(deepest, deepest, deepest - 1)
 		if deepest == 1:
 			_level(hero, STRONG_LEVEL)
-			_settle()
+			_past_celebration()
 		for i: int in goals.lines().size():
 			var line: String = goals.lines()[i]
 			tooltip.point_at(UiTip.NOWHERE)

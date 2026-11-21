@@ -18,6 +18,7 @@ var _save_path: String = save_path()
 
 
 func before_each() -> void:
+	_step_limit = LIMIT_TICKS_10_MIN
 	_sim = Simulation.new(SEED)
 	_tick_seconds = 0.0
 	_build_hud(false)

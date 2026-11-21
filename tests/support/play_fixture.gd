@@ -4,9 +4,9 @@ extends "res://tests/support/hud_fixture.gd"
 ## every [constant FRAMES_PER_TICK] frames: [method _show] makes the world (and, when asked, the
 ## CombatEffects), [method _play_frame] plays a frame and returns the events told in it.
 
-## Frames a tick lasts at 60 frames a second and 10 ticks a second.
 ## A tile's size in world pixels.
 const TILE: float = 16.0
+## Frames a tick lasts at 60 frames a second and 10 ticks a second.
 const FRAMES_PER_TICK: int = 6
 
 ## Frames [method _play_frame] has played since [method _show].

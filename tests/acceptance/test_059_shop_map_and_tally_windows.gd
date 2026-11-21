@@ -1,10 +1,10 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/059-shop-map-and-tally-windows/spec.md, one per requirement.
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## puts the simulation where it wants it by hand and steps it a tick at a time (the world and the
 ## HUD after each), and drives the three windows with real keys and clicks (helpers in
-## ui_layer_test_base.gd), checking the simulation after each command.
+## MainFixture), checking the simulation after each command.
 
 const STRONG_LEVEL: int = 60
 const BLADES: StringName = &"sharp_blades"

@@ -49,20 +49,34 @@ func _frame(main: Main, ticks: int = 1, delta: float = STEP, parts: Array[String
 	for i: int in ticks:
 		main.simulation.step()
 	main.world.sync(delta)
-	for part: StringName in _frame_parts if parts.is_empty() else parts:
+	var named: Array[StringName] = _frame_parts if parts.is_empty() else parts
+	var calls: Array[Callable] = frame_calls(main, named)
+	for i: int in calls.size():
+		if not calls[i].is_valid():
+			fail_test("no part of a frame is called %s" % named[i])
+			continue
+		calls[i].call(delta)
+
+
+## What moves on in a frame of [param main] for each of [param parts], in their order: an invalid
+## Callable for a name that is no part.
+static func frame_calls(main: Main, parts: Array[StringName]) -> Array[Callable]:
+	var calls: Array[Callable] = []
+	for part: StringName in parts:
 		match part:
 			&"effects":
-				main.effects.advance(delta)
+				calls.append(main.effects.advance)
 			&"sound":
-				main.sound._process(delta)  # its clock: a voice is free again once its sound ends
+				calls.append(main.sound._process)  # its clock: a voice is free once its sound ends
 			&"hud":
-				main.hud.advance(delta)
+				calls.append(main.hud.advance)
 			&"milestones":
-				main.milestones.advance(delta)
+				calls.append(main.milestones.advance)
 			&"moment":
-				main.ui.moment.advance(delta)
+				calls.append(main.ui.moment.advance)
 			_:
-				fail_test("no part of a frame is called %s" % part)
+				calls.append(Callable())
+	return calls
 
 
 ## A left click at [param at], a point in UI pixels on [param ui].

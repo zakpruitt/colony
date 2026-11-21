@@ -11,6 +11,8 @@ const MAGE: int = 3
 const CLERIC: int = 4
 const HERO_IDS: Array[int] = [KNIGHT, ROGUE, MAGE, CLERIC]
 const TPS: int = Simulation.TICKS_PER_SECOND
+## The most ticks these tests wait for a fight, or for one to end.
+const FIGHT_LIMIT_TICKS: int = 20_000
 ## The heroes' level in the fights of full trees (every talent point earned), and the path each
 ## class takes: the ones with a status that works each second (bleeding, burning).
 const TREE_LEVEL: int = 14
@@ -166,7 +168,7 @@ func _full_trees(paths: Dictionary[StringName, int] = PATHS) -> void:
 ## least [param monsters] monsters; others on the way are ended at once. The monsters of the fight
 ## found get [param tougher] times their health. True if one was found.
 func _find_fight(monsters: int, ticks: int = 1, sync: bool = true, tougher: int = TOUGHER) -> bool:
-	for i: int in LIMIT_TICKS:
+	for i: int in FIGHT_LIMIT_TICKS:
 		_sim.step()
 		if sync and i % ticks == 0:
 			_frame()

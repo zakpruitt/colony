@@ -74,11 +74,6 @@ func before_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-func _wipe() -> void:
-	for hero: Hero in _sim.party.heroes:
-		hero.health = 0
-
-
 ## True for a sprite lying in its death pose: shown, dead, on its back (a quarter turn over).
 func _lying(sprite: CharacterSprite) -> bool:
 	var flat: bool = is_equal_approx(absf(sprite.rotation), PI / 2.0)
@@ -129,23 +124,6 @@ func _away_on_stage_one(speed: int) -> void:
 		if absf(e.x - home) >= 24.0 and e.state == Expedition.State.TRAVELLING:
 			break
 	assert_eq(_sim.expedition.depth, 1, "the party is on stage 1")
-
-
-## Puts the party just outside the guardian's chamber on [param depth] (the Slime King's on depth
-## 5 by default), walking in, as spec 024's tests do. The way down is on the right on odd depths
-## and on the left on even ones, so the guardian is on that side of the party.
-func _before_guardian(depth: int = GUARDIAN_DEPTH) -> void:
-	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if lair.index > 0:
-		e.x = lair.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = lair.rect.end.x
-		e.facing = -1
 
 
 ## The leftmost and rightmost columns of [param pixels] (x, y).
@@ -222,7 +200,7 @@ func test_r1_wipe_leaves_the_party() -> void:
 	_show(Simulation.new(SEED), 1, true)
 	for i: int in 120:
 		_play_frame()
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	# The collapse plays, then each hero lies where it fell, in its death pose.
 	for i: int in roundi(0.5 / FRAME):
@@ -303,7 +281,7 @@ func test_r1_wipe_leaves_the_party() -> void:
 ## camera's story; returns nothing, asserts as it goes.
 func _camera_story(speed: int) -> void:
 	_away_on_stage_one(speed)
-	_wipe()
+	_wipe(_sim)
 	assert_true(_play_until(SimEvent.Kind.PARTY_WIPED), "the party is wiped")
 	var fallen: FallenParty = _world.fallen_party
 	assert_true(fallen.is_telling(), "the wipe is told")
@@ -390,7 +368,7 @@ func _guardian_fight(depth: int, side: int) -> void:
 	_events = []
 	_sim = Simulation.new(SEED)
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(depth)
+	before_guardian(_sim, depth)
 	_show(_sim, 1, true)
 	assert_eq(_sim.expedition.facing, side, "the guardian of depth %d is on that side" % depth)
 	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_STARTED), "the guardian's fight starts")

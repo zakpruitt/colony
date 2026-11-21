@@ -1,8 +1,8 @@
-extends "res://tests/acceptance/ui_layer_test_base.gd"
+extends "res://tests/support/main_fixture.gd"
 ## Acceptance tests for specs/068-a-button-bar-that-says-what-it-opens/spec.md, one per
 ## requirement. Each runs the main scene laid out for a room ([method UiRoot.set_room_for_test]),
 ## measures the bar's rectangles there and drives it with real clicks and keys (the helpers are in
-## ui_layer_test_base.gd).
+## MainFixture).
 
 const ROOMS: Array[Vector2i] = [ROOM_SMALL, ROOM_LARGE]
 ## The word each window's button says (R1), in the bar's order.

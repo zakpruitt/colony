@@ -3,7 +3,7 @@ extends "res://tests/acceptance/hero_windows_test_base.gd"
 ##
 ## Each test runs the main scene with its processing off, the UI layer laid out for a chosen room,
 ## and drives the hero windows with real clicks and keys pushed into the viewport (the helpers are
-## in hero_windows_test_base.gd and ui_layer_test_base.gd); the simulation is stepped after each
+## in hero_windows_test_base.gd and MainFixture); the simulation is stepped after each
 ## command and checked.
 
 # --- R1 ------------------------------------------------------------------------

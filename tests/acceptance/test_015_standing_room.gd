@@ -11,28 +11,6 @@ const NEVER: float = 100_000.0
 # --- Helpers -----------------------------------------------------------------
 
 
-func _monster_def(overrides: Dictionary = {}) -> MonsterDef:
-	var def := MonsterDef.new()
-	def.id = &"test_monster"
-	def.display_name = "Test monster"
-	def.size = MonsterDef.Size.SMALL
-	def.base_level = 1
-	def.max_health = 100
-	def.damage = 5
-	def.armor = 0
-	def.attack_interval = 1.0
-	def.windup = 0.3
-	def.attack_range = 1.0
-	def.move_speed = 2.0
-	def.crit_chance = 0.0
-	def.xp = 1
-	def.gold_min = 1
-	def.gold_max = 2
-	for key: String in overrides:
-		def.set(key, overrides[key])
-	return def
-
-
 func _hero_def(role: HeroClassDef.Role, overrides: Dictionary = {}) -> HeroClassDef:
 	var def := HeroClassDef.new()
 	def.id = &"test_hero"
@@ -133,7 +111,9 @@ func test_r2_held_back_fighters_still_strike() -> void:
 	)
 	var monsters: Array[Combatant] = []
 	for i: int in 4:
-		monsters.append(Combatant.from_monster(_monster_def({"damage": 1}), 1, 10 + i))
+		monsters.append(
+			Combatant.from_monster(make_monster_def({"damage": 1, "move_speed": 2.0}), 1, 10 + i)
+		)
 	var battle := Battle.new(_typed([hero]), monsters, 0.0, 16.0, true, SimRng.new(SEED))
 	# The farthest monster walks at most the span, then winds up within one interval.
 	var budget: int = Combatant.seconds_to_ticks(16.0 / 2.0 + 0.3 + 1.0)
@@ -150,7 +130,7 @@ func test_r2_held_back_fighters_still_strike() -> void:
 	var knight := Combatant.from_hero(Content.hero_class(&"knight"), 1, 1)
 	var rogue := Combatant.from_hero(Content.hero_class(&"rogue"), 1, 2)
 	var dummy := Combatant.from_monster(
-		_monster_def({"max_health": 100_000, "windup": NEVER, "move_speed": 0.0}), 1, 10
+		make_monster_def({"max_health": 100_000, "windup": NEVER, "move_speed": 0.0}), 1, 10
 	)
 	battle = Battle.new(_typed([knight, rogue]), _typed([dummy]), 0.0, 16.0, true, SimRng.new(SEED))
 	var struck: Dictionary[int, bool] = {}
@@ -181,7 +161,7 @@ func test_r3_front_line_order() -> void:
 		var party: Array[Combatant] = _starting_party()
 		var monsters: Array[Combatant] = []
 		for i: int in 3:
-			var def := _monster_def({"max_health": 100_000, "damage": 1})
+			var def := make_monster_def({"max_health": 100_000, "damage": 1, "move_speed": 2.0})
 			monsters.append(Combatant.from_monster(def, 1, 10 + i))
 		var battle := Battle.new(party, monsters, 0.0, 16.0, from_left, SimRng.new(SEED))
 		for t: int in Combatant.seconds_to_ticks(5.0):
@@ -207,7 +187,11 @@ func test_r4_stays_in_the_span() -> void:
 	for from_left: bool in [true, false]:
 		var monsters: Array[Combatant] = []
 		for i: int in 5:
-			monsters.append(Combatant.from_monster(_monster_def({"damage": 3}), 1, 10 + i))
+			monsters.append(
+				Combatant.from_monster(
+					make_monster_def({"damage": 3, "move_speed": 2.0}), 1, 10 + i
+				)
+			)
 		var battle := Battle.new(
 			_starting_party(), monsters, left, right, from_left, SimRng.new(SEED)
 		)
