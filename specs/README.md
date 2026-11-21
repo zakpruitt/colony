@@ -104,7 +104,7 @@ the lead: 077 on are provisional, land on `dev` only, and wait for his playtest 
 | 084 | [The hero window and the talent tree, tested once](084-hero-window-tests-once/spec.md): landed on dev, [#83](https://github.com/zakpruitt/colony/pull/83), provisional | 081 |
 | 085 | [The shop, the map, the tally and the bar, tested once](085-window-tests-once/spec.md): landed on dev, [#85](https://github.com/zakpruitt/colony/pull/85), provisional | 081 |
 | 086 | [The frame of the screen, tested once and on the screen the game shows](086-frame-tests-once/spec.md): landed on dev, [#86](https://github.com/zakpruitt/colony/pull/86), provisional | 081 |
-| 087 | [World, effects and time-away tests that hold](087-world-tests-that-hold/spec.md): in-progress, provisional | 081 |
+| 087 | [World, effects and time-away tests that hold](087-world-tests-that-hold/spec.md): landed on dev, [#87](https://github.com/zakpruitt/colony/pull/87), provisional | 081 |
 
 On 2026-11-20 Zak asked for the tests to be cleaned up ("clear and purposeful, very intentional"; he
 suspected broken and unneeded tests). Every test was read and given a verdict; 082 to 087 remove what the

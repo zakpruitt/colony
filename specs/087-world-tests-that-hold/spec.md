@@ -1,9 +1,9 @@
 # 087 — World, effects and time-away tests that hold
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#87](https://github.com/zakpruitt/colony/pull/87)
 
 ## Intent
 
