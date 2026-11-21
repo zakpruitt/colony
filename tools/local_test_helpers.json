@@ -1,37 +1,258 @@
 {
-  "_any_names": "two helpers: one finds a field anywhere in a problem, the talent tests' only at its start",
-  "_band_top": "three helpers on different things: a generated band, a drawn band, a stage's top in world pixels",
-  "_battle": "three battle builders, each with its own heroes, monsters and placement",
-  "_check_fits": "three checks of different things fitting: a hero window, the orders panel, the game's window",
-  "_count": "counts of different things: the events heard, an events list, a journal sentence",
-  "_describe": "three describers of different things: a level, an event as an array, an event as a string",
-  "_emit": "each sends the events its spec's tests need, with its own arguments and age",
-  "_event": "three event makers with different arguments and ticks",
-  "_guardian_fight": "three different guardian fights: in the main scene, checked frame by frame, played for moves",
-  "_guardian_name": "one names the guardian of a given depth, two that of their spec's guardian depth",
-  "_guardian_wipe": "a wipe at the guardian in the main scene, and one on a bare HUD; they build different things",
-  "_hero": "six helpers that find or make a hero from different things (index, class, id, save data, sprite)",
-  "_hero_def": "the ability kit's hero has fewer fields set than the combat tests' one, which its tests rely on",
-  "_ids": "ids of different things: fighters' ids, fighters' def ids, abilities' ids",
-  "_kinds": "three helpers on different things: event kinds, events of a kind, content tables",
-  "_level": "three ways to level a hero (with or without paragon spent) and one that returns a labyrinth level",
-  "_lose_next_fight": "each loses a fight its own way: in the main scene, by stepping, by dooming the fight",
-  "_main": "the main-scene fixture's laid-out Main, and two tests' own Main built on a save of their own",
-  "_monster": "a monster sprite by id, the first monster id, the main scene's monster on show",
-  "_monster_def": "the three test monsters differ in speed and the fields they set, which their tests rely on",
-  "_row": "rows of different things: a shop row, a skill label, a main-scene shop row, the bar's buttons",
-  "_run": "runs of different things: a battle, a sprite, ambience, the main scene's effects",
-  "_scripts": "three listers of scripts with different roots and return types",
-  "_send": "three different sends: the party to an area, the area map's go, an effect probe",
-  "_settle": "settles different things: the stage list, the goals' celebration, the window settings",
-  "_settled": "three main scenes settled for different things: the world, the bar, the bar with sound settings",
-  "_situation": "each spec puts the expedition in the situation its tests need: different arguments and what it advances",
-  "_start": "three main scenes started for different things: events heard, the moment, the milestones",
-  "_state": "states of different things: the expedition, a ladder rung, a talent node",
-  "_tell": "three helpers that tell events their own way: to the world, to an ability credit, to the status book",
-  "_texts": "texts of different things: effect texts of a kind, a node's labels, the shown labels and buttons",
-  "_view": "views of different things: the labyrinth, a talent tree, the camera's rect, a world with its HUD",
-  "_watch": "watches different things: kills and drops, monster ids, the stage list's hint",
-  "_wipe": "a wipe of the test's own party, of an optional one, of a given one",
-  "_world": "each builds the world its tests need, with different settings and ambience"
+  "_any_names": {
+    "reason": "two helpers: one finds a field anywhere in a problem, the talent tests' only at its start",
+    "scripts": [
+      "tests/acceptance/test_014_save_progress.gd",
+      "tests/acceptance/test_022_auto_buy.gd",
+      "tests/acceptance/test_035_party_orders.gd",
+      "tests/acceptance/test_051_talent_trees_and_paragon.gd"
+    ]
+  },
+  "_band_top": {
+    "reason": "three helpers on different things: a generated band, a drawn band, a stage's top in world pixels",
+    "scripts": [
+      "tests/acceptance/test_003_labyrinth_generation.gd",
+      "tests/acceptance/test_006_labyrinth_view.gd",
+      "tests/acceptance/test_054_zones_on_screen.gd"
+    ]
+  },
+  "_battle": {
+    "reason": "three battle builders, each with its own heroes, monsters and placement",
+    "scripts": [
+      "tests/acceptance/test_004_combat_core.gd",
+      "tests/unit/abilities_on_screen_test_base.gd",
+      "tests/unit/ability_kit_test_base.gd"
+    ]
+  },
+  "_check_fits": {
+    "reason": "three checks of different things fitting: a hero window, the orders panel, the game's window",
+    "scripts": [
+      "tests/acceptance/hero_windows_test_base.gd",
+      "tests/acceptance/test_035_party_orders.gd",
+      "tests/acceptance/test_067_opens_at_a_size_you_can_read.gd"
+    ]
+  },
+  "_count": {
+    "reason": "counts of different things: the events heard, an events list, a journal sentence",
+    "scripts": [
+      "tests/acceptance/test_031_away_report.gd",
+      "tests/acceptance/test_043_a_ladder_that_warns.gd",
+      "tests/acceptance/test_045_the_party_tally.gd",
+      "tests/acceptance/test_054_zones_on_screen.gd",
+      "tests/acceptance/test_059_shop_map_and_tally_windows.gd"
+    ]
+  },
+  "_describe": {
+    "reason": "three describers of different things: a level, an event as an array, an event as a string",
+    "scripts": [
+      "tests/acceptance/test_003_labyrinth_generation.gd",
+      "tests/acceptance/test_004_combat_core.gd",
+      "tests/acceptance/test_032_game_speed.gd"
+    ]
+  },
+  "_emit": {
+    "reason": "each sends the events its spec's tests need, with its own arguments and age",
+    "scripts": [
+      "tests/acceptance/frame_061_test_base.gd",
+      "tests/acceptance/test_010_combat_effects.gd",
+      "tests/acceptance/test_011_hud.gd",
+      "tests/acceptance/test_021_sound_effects.gd",
+      "tests/acceptance/test_027_reading_the_party.gd",
+      "tests/acceptance/test_037_goals.gd"
+    ]
+  },
+  "_event": {
+    "reason": "three event makers with different arguments and ticks",
+    "scripts": [
+      "tests/acceptance/test_008_world_integration.gd",
+      "tests/unit/abilities_on_screen_test_base.gd",
+      "tests/unit/test_hud_tally.gd"
+    ]
+  },
+  "_guardian_fight": {
+    "reason": "three different guardian fights: in the main scene, checked frame by frame, played for moves",
+    "scripts": [
+      "tests/acceptance/frame_061_test_base.gd",
+      "tests/acceptance/test_038_rough_edges.gd",
+      "tests/acceptance/test_057_lively_moves.gd"
+    ]
+  },
+  "_hero": {
+    "reason": "six helpers that find or make a hero from different things (index, class, id, save data, sprite)",
+    "scripts": [
+      "tests/acceptance/hero_windows_test_base.gd",
+      "tests/acceptance/test_007_character_sprites.gd",
+      "tests/acceptance/test_026_hero_sheet.gd",
+      "tests/acceptance/test_034_hero_sheet_tabs.gd",
+      "tests/acceptance/test_055_the_tree_on_the_sheet.gd",
+      "tests/acceptance/test_072_content_table.gd",
+      "tests/unit/ability_kit_test_base.gd"
+    ]
+  },
+  "_hero_def": {
+    "reason": "the ability kit's hero has fewer fields set than the combat tests' one, which its tests rely on",
+    "scripts": [
+      "tests/acceptance/test_004_combat_core.gd",
+      "tests/acceptance/test_015_standing_room.gd",
+      "tests/unit/ability_kit_test_base.gd"
+    ]
+  },
+  "_ids": {
+    "reason": "ids of different things: fighters' ids, fighters' def ids, abilities' ids",
+    "scripts": [
+      "tests/acceptance/test_005_expedition_loop.gd",
+      "tests/acceptance/test_020_guardians.gd",
+      "tests/acceptance/test_051_talent_trees_and_paragon.gd"
+    ]
+  },
+  "_kinds": {
+    "reason": "three helpers on different things: event kinds, events of a kind, content tables",
+    "scripts": [
+      "tests/acceptance/test_044_old_saves_level_up.gd",
+      "tests/acceptance/test_049_areas.gd",
+      "tests/acceptance/test_078_sim_base_types.gd"
+    ]
+  },
+  "_level": {
+    "reason": "three ways to level a hero (with or without paragon spent) and one that returns a labyrinth level",
+    "scripts": [
+      "tests/acceptance/frame_062_test_base.gd",
+      "tests/acceptance/test_005_expedition_loop.gd",
+      "tests/acceptance/test_037_goals.gd",
+      "tests/acceptance/test_042_goals_you_can_click.gd"
+    ]
+  },
+  "_main": {
+    "reason": "the main-scene fixture's laid-out Main, and two tests' own Main built on a save of their own",
+    "scripts": [
+      "tests/acceptance/test_019_away_progress.gd",
+      "tests/acceptance/test_032_game_speed.gd",
+      "tests/support/main_fixture.gd"
+    ]
+  },
+  "_monster": {
+    "reason": "a monster sprite by id, the first monster id, the main scene's monster on show",
+    "scripts": [
+      "tests/acceptance/test_007_character_sprites.gd",
+      "tests/acceptance/test_021_sound_effects.gd",
+      "tests/acceptance/test_076_one_pool_for_effects.gd",
+      "tests/support/hud_fixture.gd"
+    ]
+  },
+  "_row": {
+    "reason": "rows of different things: a shop row, a skill label, a main-scene shop row, the bar's buttons",
+    "scripts": [
+      "tests/acceptance/test_017_upgrade_shop.gd",
+      "tests/acceptance/test_028_seeing_side_quests.gd",
+      "tests/acceptance/test_065_camp_upgrades_you_can_see.gd",
+      "tests/acceptance/test_068_a_button_bar_that_says_what_it_opens.gd"
+    ]
+  },
+  "_run": {
+    "reason": "runs of different things: a battle, a sprite, ambience, the main scene's effects",
+    "scripts": [
+      "tests/acceptance/test_004_combat_core.gd",
+      "tests/acceptance/test_007_character_sprites.gd",
+      "tests/acceptance/test_012_ambient_life.gd",
+      "tests/acceptance/test_013_deeper_monsters.gd",
+      "tests/acceptance/test_018_seeing_the_loop.gd",
+      "tests/unit/ability_kit_test_base.gd"
+    ]
+  },
+  "_scripts": {
+    "reason": "three listers of scripts with different roots and return types",
+    "scripts": [
+      "tests/acceptance/talent_tree_test_base.gd",
+      "tests/acceptance/test_069_sim_tidy.gd",
+      "tests/acceptance/test_070_game_tidy.gd"
+    ]
+  },
+  "_send": {
+    "reason": "three different sends: the party to an area, the area map's go, an effect probe",
+    "scripts": [
+      "tests/acceptance/test_049_areas.gd",
+      "tests/acceptance/test_053_the_area_map.gd",
+      "tests/acceptance/test_076_one_pool_for_effects.gd"
+    ]
+  },
+  "_settled": {
+    "reason": "three main scenes settled for different things: the world, the bar, the bar with sound settings",
+    "scripts": [
+      "tests/acceptance/test_063_pictures_and_the_moment.gd",
+      "tests/acceptance/test_068_a_button_bar_that_says_what_it_opens.gd",
+      "tests/acceptance/test_074_one_list_of_windows_and_keys.gd"
+    ]
+  },
+  "_situation": {
+    "reason": "each spec puts the expedition in the situation its tests need: different arguments and what it advances",
+    "scripts": [
+      "tests/acceptance/frame_062_test_base.gd",
+      "tests/acceptance/test_033_depth_ladder.gd",
+      "tests/acceptance/test_037_goals.gd",
+      "tests/acceptance/test_039_the_countdown.gd",
+      "tests/acceptance/test_042_goals_you_can_click.gd",
+      "tests/acceptance/test_043_a_ladder_that_warns.gd",
+      "tests/acceptance/test_047_a_ladder_that_points_true.gd"
+    ]
+  },
+  "_start": {
+    "reason": "three main scenes started for different things: events heard, the moment, the milestones",
+    "scripts": [
+      "tests/acceptance/test_059_shop_map_and_tally_windows.gd",
+      "tests/acceptance/test_065_camp_upgrades_you_can_see.gd",
+      "tests/acceptance/test_066_milestones_announced.gd"
+    ]
+  },
+  "_state": {
+    "reason": "states of different things: the expedition, a ladder rung, a talent node",
+    "scripts": [
+      "tests/acceptance/test_008_world_integration.gd",
+      "tests/acceptance/test_033_depth_ladder.gd",
+      "tests/acceptance/test_055_the_tree_on_the_sheet.gd"
+    ]
+  },
+  "_tell": {
+    "reason": "three helpers that tell events their own way: to the world, to an ability credit, to the status book",
+    "scripts": [
+      "tests/unit/abilities_on_screen_test_base.gd",
+      "tests/unit/test_ability_credit.gd",
+      "tests/unit/test_status_book.gd"
+    ]
+  },
+  "_texts": {
+    "reason": "texts of different things: effect texts of a kind, a node's labels, the shown labels and buttons",
+    "scripts": [
+      "tests/acceptance/talent_tree_test_base.gd",
+      "tests/acceptance/test_059_shop_map_and_tally_windows.gd",
+      "tests/support/hud_fixture.gd"
+    ]
+  },
+  "_view": {
+    "reason": "views of different things: the labyrinth, a talent tree, the camera's rect, a world with its HUD",
+    "scripts": [
+      "tests/acceptance/talent_tree_test_base.gd",
+      "tests/acceptance/test_006_labyrinth_view.gd",
+      "tests/acceptance/test_038_rough_edges.gd",
+      "tests/acceptance/test_049_areas.gd",
+      "tests/unit/test_labyrinth_view.gd"
+    ]
+  },
+  "_watch": {
+    "reason": "watches different things: kills and drops, monster ids, the stage list's hint",
+    "scripts": [
+      "tests/acceptance/resources_052_test_base.gd",
+      "tests/acceptance/test_023_steady_monster_ids.gd",
+      "tests/acceptance/test_047_a_ladder_that_points_true.gd"
+    ]
+  },
+  "_world": {
+    "reason": "each builds the world its tests need, with different settings and ambience",
+    "scripts": [
+      "tests/acceptance/test_008_world_integration.gd",
+      "tests/acceptance/test_012_ambient_life.gd",
+      "tests/acceptance/test_023_steady_monster_ids.gd",
+      "tests/unit/test_world.gd",
+      "tests/unit/test_world_fallen.gd"
+    ]
+  }
 }

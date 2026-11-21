@@ -361,12 +361,15 @@ def harness_problems(root: Path = ROOT) -> list[str]:
 
 def helper_copy_problems(texts: dict[str, str], root: Path = ROOT) -> list[str]:
     """Each helper defined in more than MAX_HELPER_COPIES test scripts, unless LOCAL_TEST_HELPERS
-    allows its name. GUT's hooks and test_ functions are every script's own.
+    lists its name with every script that defines it ({name: {"reason", "scripts"}}): a script
+    the entry does not name is a copy like any other. GUT's hooks and test_ functions are every
+    script's own.
     """
     allowed_path = root / LOCAL_TEST_HELPERS
-    allowed: dict[str, str] = {}
+    allowed: dict[str, set[str]] = {}
     if allowed_path.is_file():
-        allowed = json.loads(allowed_path.read_text(encoding="utf-8"))
+        for name, entry in json.loads(allowed_path.read_text(encoding="utf-8")).items():
+            allowed[name] = set(entry.get("scripts", [])) if isinstance(entry, dict) else set()
     defined: dict[str, list[str]] = {}
     for script, text in texts.items():
         if not script.startswith("tests/"):
@@ -378,12 +381,22 @@ def helper_copy_problems(texts: dict[str, str], root: Path = ROOT) -> list[str]:
             defined.setdefault(name, []).append(script)
     problems: list[str] = []
     for name, scripts in sorted(defined.items()):
-        if len(scripts) > MAX_HELPER_COPIES and name not in allowed:
-            problems.append(
-                f"{name} is defined in {len(scripts)} test scripts ({', '.join(sorted(scripts))});"
-                f" share it from a fixture under {TEST_FIXTURES}/ or ColonyTest, or list it with"
-                f" its reason in {LOCAL_TEST_HELPERS}"
-            )
+        if len(scripts) <= MAX_HELPER_COPIES:
+            continue
+        if name in allowed:
+            unlisted = sorted(set(scripts) - allowed[name])
+            if unlisted:
+                problems.append(
+                    f"{name} is also defined in {', '.join(unlisted)}, which {LOCAL_TEST_HELPERS}"
+                    " does not list for it; share it, or add the script to its entry if it is"
+                    " another helper again"
+                )
+            continue
+        problems.append(
+            f"{name} is defined in {len(scripts)} test scripts ({', '.join(sorted(scripts))});"
+            f" share it from a fixture under {TEST_FIXTURES}/ or ColonyTest, or list it with"
+            f" its reason and scripts in {LOCAL_TEST_HELPERS}"
+        )
     return problems
 
 

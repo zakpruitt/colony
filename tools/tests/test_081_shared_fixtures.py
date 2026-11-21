@@ -61,13 +61,23 @@ class SharedHelpers(unittest.TestCase):
             self.write(script, HELPER.format(index))
         self.assertEqual(len(dev.harness_problems(self.root)), 1)
 
-        reasons = {"_helper": "each script's helper reads a different made-up thing"}
-        self.write(dev.LOCAL_TEST_HELPERS, json.dumps(reasons))
+        entry = {"reason": "each script's helper reads a different made-up thing"}
+        allowed = {"_helper": {**entry, "scripts": list(SCRIPTS)}}
+        self.write(dev.LOCAL_TEST_HELPERS, json.dumps(allowed))
         self.assertEqual(dev.harness_problems(self.root), [])
+
+        # The entry names its scripts: a fourth defining the name is a copy like any other.
+        self.write("tests/unit/test_four.gd", HELPER.format(4))
+        problems = dev.harness_problems(self.root)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("_helper", problems[0])
+        self.assertIn("tests/unit/test_four.gd", problems[0])
+        for script in SCRIPTS:
+            self.assertNotIn(script, problems[0])
 
     def test_r5_todays_tree_passes(self) -> None:
         self.assertEqual(dev.harness_problems(dev.ROOT), [])
-        allowed: dict[str, str] = json.loads(
+        allowed: dict[str, dict] = json.loads(
             (dev.ROOT / dev.LOCAL_TEST_HELPERS).read_text(encoding="utf-8")
         )
         shared = (
@@ -76,8 +86,11 @@ class SharedHelpers(unittest.TestCase):
         ).split()
         for name in shared:
             self.assertNotIn(name, allowed, "a copied helper the spec shares is not allowed")
-        for name, reason in allowed.items():
-            self.assertTrue(reason.strip(), f"{name} is allowed with its reason")
+        for name, entry in allowed.items():
+            self.assertTrue(entry["reason"].strip(), f"{name} is allowed with its reason")
+            self.assertGreater(len(entry["scripts"]), dev.MAX_HELPER_COPIES, f"{name} names its scripts")
+            for script in entry["scripts"]:
+                self.assertTrue((dev.ROOT / script).is_file(), f"{name}: {script} exists")
 
     def test_r4_no_test_file_is_near_the_cap(self) -> None:
         for path in sorted((dev.ROOT / "tests").rglob("*.gd")):
