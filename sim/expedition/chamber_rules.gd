@@ -10,8 +10,8 @@ const SIDE_QUEST_SHARE: float = 0.3
 
 
 ## True if chamber [param chamber_index] of [param level] never holds monsters or a side quest: the
-## START chamber, and the chambers a shaft leaves from or lands in, unless a guardian of
-## [param area] holds it.
+## START chamber, and the chambers a party arrives in and the way on leaves from, unless a
+## guardian of [param area] holds it.
 static func always_empty(
 	labyrinth: Labyrinth, area: AreaDef, level: LabyrinthLevel, chamber_index: int
 ) -> bool:
@@ -19,24 +19,23 @@ static func always_empty(
 		return true
 	if is_guardians(labyrinth, area, level.depth, chamber_index):
 		return false
-	var shaft: LabyrinthChamber = level.shaft_chamber()
-	if shaft != null and shaft.index == chamber_index:
-		return true
-	if level.depth > 1:
-		var landing: LabyrinthChamber = level.chamber_at(labyrinth.shaft_column(level.depth - 1))
-		if landing != null and landing.index == chamber_index:
-			return true
-	return false
+	var line: StageCourse = level.course
+	return chamber_index == way_on_room(line) or chamber_index == line.chamber_at(line.entry)
 
 
-## True for the shaft chamber of a stage of [param area] that a guardian holds.
+## Index of the chamber the way on leaves [param line] from, which a guardian holds on its
+## stages; -1 if it leaves from no chamber.
+static func way_on_room(line: StageCourse) -> int:
+	return line.chamber_at(line.exit)
+
+
+## True for the chamber the way on leaves from, on a stage of [param area] that a guardian holds.
 static func is_guardians(
 	labyrinth: Labyrinth, area: AreaDef, level_depth: int, chamber_index: int
 ) -> bool:
-	if EncounterRoll.guardian_at(area, level_depth) == &"":
+	if chamber_index < 0 or EncounterRoll.guardian_at(area, level_depth) == &"":
 		return false
-	var shaft: LabyrinthChamber = labyrinth.level(level_depth).shaft_chamber()
-	return shaft != null and shaft.index == chamber_index
+	return way_on_room(labyrinth.level(level_depth).course) == chamber_index
 
 
 ## The visit a chamber with record [param fill] (null if none) is on at [param tick]: the next one

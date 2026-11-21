@@ -6,22 +6,18 @@ extends RefCounted
 ## [method Expedition.revival_place] and the expedition's own placing share one rule.
 
 
-## The column the party arrives at on [param level_depth] of [param labyrinth]: the middle of the
-## START chamber at depth 1, otherwise where the shaft from above lands.
+## Where the party arrives on [param level_depth] of [param labyrinth], as a distance along that
+## stage's course: its [member StageCourse.entry].
 static func column(labyrinth: Labyrinth, level_depth: int) -> float:
-	if level_depth > 1:
-		return labyrinth.shaft_column(level_depth - 1) + Labyrinth.SHAFT_WIDTH / 2.0
-	var level: LabyrinthLevel = labyrinth.level(1)
-	for room: LabyrinthChamber in level.chambers:
-		if room.kind == LabyrinthChamber.Kind.START:
-			var floor_span: Vector2i = room.floor_columns()
-			return (floor_span.x + floor_span.y) / 2.0
-	return level.chambers[0].floor_columns().x
+	return labyrinth.level(level_depth).course.entry
 
 
-## The way a party placed at [param at_column] faces: into the level, 1 right or -1 left.
-static func facing(at_column: float) -> int:
-	return 1 if at_column < Labyrinth.LEVEL_WIDTH / 2.0 else -1
+## The way a party placed at [param at] on [param line] faces along it (1 toward its end, -1
+## toward its start): toward the way on, or, standing at the way on, back toward where a party
+## arrives.
+static func facing(line: StageCourse, at: float) -> int:
+	var toward: float = line.entry if is_equal_approx(at, line.exit) else line.exit
+	return 1 if toward >= at else -1
 
 
 ## Stands [param run], a new expedition, up from saved progress at simulation tick [param tick]:

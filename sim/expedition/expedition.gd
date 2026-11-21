@@ -3,10 +3,10 @@ extends RefCounted
 ## The party's journey through the labyrinth, one tick at a time: travel,
 ## climbing between levels, fights, rewards, rest, and falling back after a wipe.
 ##
-## Positions are world tiles, x right and y down. A column [code]c[/code] is the
-## position [code]x = c[/code]; a chamber's floor runs from its first open column to its last
-## ([method LabyrinthChamber.floor_columns]). Feet stand on the level's floor row
-## ([member LabyrinthLevel.floor_y]).
+## The party's place is a distance along its stage's [StageCourse], the line it walks; every
+## question about place is asked of that course ([PartyPlaces] turns it into world tiles, x right
+## and y down). A fight is in world columns on its chamber's own floor
+## ([method LabyrinthChamber.floor_columns], [method LabyrinthChamber.floor_row]).
 ##
 ## Some plain chambers hold a side quest instead of monsters: a hero with its
 ## microskill does it while the party stands WORKING, and without one the party walks past.
@@ -36,7 +36,7 @@ const FIRST_MONSTER_ID: int = 100
 const _CHAMBER_SPAN: int = 8
 const VISIT_SPAN: int = 64
 const _SLOT_SPAN: int = 8
-## Every level whose depth is a multiple of this has a guardian holding its shaft chamber.
+## Every level whose depth is a multiple of this has a guardian holding its way on.
 const GUARDIAN_EVERY: int = 5
 ## How long a beaten guardian's chamber stays empty, instead of RESPAWN_SECONDS.
 const GUARDIAN_RESPAWN_SECONDS: float = 1800.0
@@ -55,7 +55,8 @@ var state: State = State.TRAVELLING
 ## stages of the area it is in.
 var area: StringName
 var depth: int = 1
-## The party anchor: column on the floor, and which way it faces (1 right, -1 left).
+## The party anchor: its distance along the stage's course, and the way it travels along it
+## (1 toward the course's end, -1 toward its start).
 var x: float
 var facing: int = 1
 var target_depth: int = 1
@@ -146,8 +147,8 @@ var _climb_to_y: float = 0.0
 var _rest_ticks: int = 0
 var _rest_start: Dictionary[int, int] = {}
 var _revive_tick: int = 0
-## Where each hero fell in the last wipe.
-var _fallen: Dictionary[int, float] = {}
+## Where each hero fell in the last wipe, in world tiles.
+var _fallen: Dictionary[int, Vector2] = {}
 
 ## The tick from which the party has been on [member _timer_depth] without a wipe.
 var _depth_since: int = 0
@@ -157,7 +158,7 @@ var _target_since: int = 0
 var _timer_target: int = 1
 
 
-## An expedition for [param party] standing in the middle of the START chamber of the first
+## An expedition for [param party] standing where a party arrives on the first
 ## area's stage 1; [param first_labyrinth] is that area's labyrinth. [param rng] is the
 ## expedition's own stream; encounters and battles fork from it.
 func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
@@ -168,10 +169,8 @@ func _init(first_labyrinth: Labyrinth, party: Party, rng: SimRng) -> void:
 	_here = Content.area(AreaTravel.first_area())
 	area = _here.id
 	_areas = AreaTravel.new(first_labyrinth)
-	# The middle of the START chamber, by Arrival's rule so revival and loading agree with it.
-	x = Arrival.column(_labyrinth, 1)
-	facing = 1 if _labyrinth.level(1).shaft_down.position.x >= x else -1
-	_entered_key = _key_here()
+	# By Arrival's rule, so revival and loading agree with it.
+	_place(Arrival.column(_labyrinth, 1))
 
 
 ## Advances the expedition to simulation tick [param tick].
@@ -236,7 +235,7 @@ func drain_events() -> Array[SimEvent]:
 	return drained
 
 
-## The chamber the party is in or fighting in, or null in a tunnel or shaft.
+## The chamber the party is in or fighting in, or null in a tunnel or on a ladder.
 func chamber() -> LabyrinthChamber:
 	var level: LabyrinthLevel = _labyrinth.level(depth)
 	match state:
@@ -245,7 +244,8 @@ func chamber() -> LabyrinthChamber:
 		State.FIGHTING:
 			if _battle_key.x == depth and _battle_key.y >= 0:
 				return level.chambers[_battle_key.y]
-	return level.chamber_at(floori(x))
+	var index: int = level.course.chamber_at(x)
+	return level.chambers[index] if index >= 0 else null
 
 
 ## Feet position of a hero in world tiles (see [method PartyPlaces.of]).
@@ -271,7 +271,7 @@ func is_populated(level_depth: int, chamber_index: int) -> bool:
 
 
 ## The monsters waiting in this chamber (empty if it is not populated).
-## Their y is the level's floor. Asking changes nothing in the game.
+## They stand on the chamber's floor row. Asking changes nothing in the game.
 func monsters_in(level_depth: int, chamber_index: int) -> Array[Combatant]:
 	if not is_populated(level_depth, chamber_index):
 		return []
@@ -308,10 +308,11 @@ func seconds_to_stable() -> float:
 	return DepthTiming.stable_left(self, _tick, _depth_since, _timer_depth)
 
 
-## Where the party arrives when revived: column (x), depth (y), facing (z). Changes nothing.
+## Where the party arrives when revived: course distance (x), depth (y), facing (z). Changes
+## nothing.
 func revival_place() -> Vector3:
-	var column: float = Arrival.column(_labyrinth, last_stable_depth)
-	return Vector3(column, last_stable_depth, Arrival.facing(column))
+	var line: StageCourse = _labyrinth.level(last_stable_depth).course
+	return Vector3(line.entry, last_stable_depth, Arrival.facing(line, line.entry))
 
 
 ## Seconds until auto-push raises the target depth; 0.0 when it is off or the party is
@@ -530,18 +531,17 @@ func _reset_trail() -> void:
 	_turn_facing = 0
 
 
-## Puts the anchor at [param column] on the current depth, facing into the level.
-func _place(column: float) -> void:
-	x = column
-	facing = Arrival.facing(x)
+## Puts the anchor at distance [param at] of the current depth's course, facing the way on.
+func _place(at: float) -> void:
+	x = at
+	facing = Arrival.facing(PartyPlaces.course(self), x)
 	_reset_trail()
 	_entered_key = _key_here()
 
 
 ## The chamber the anchor stands in, as Vector2i(depth, index); index -1 in a tunnel.
 func _key_here() -> Vector2i:
-	var here: LabyrinthChamber = _labyrinth.level(depth).chamber_at(floori(x))
-	return Vector2i(depth, here.index if here != null else -1)
+	return Vector2i(depth, PartyPlaces.course(self).chamber_at(x))
 
 
 # --- Climbing ------------------------------------------------------------------
@@ -550,9 +550,11 @@ func _key_here() -> Vector2i:
 func _start_climb(direction: int) -> void:
 	state = State.CLIMBING
 	_climb_direction = direction
-	_climb_from_y = _labyrinth.level(depth).floor_y
+	var here: StageCourse = PartyPlaces.course(self)
+	var there: StageCourse = _labyrinth.level(depth + direction).course
+	_climb_from_y = here.point_at(here.exit if direction > 0 else here.entry).y
 	_climb_y = _climb_from_y
-	_climb_to_y = _labyrinth.level(depth + direction).floor_y
+	_climb_to_y = there.point_at(there.entry if direction > 0 else there.exit).y
 
 
 func _climb() -> void:
@@ -592,8 +594,8 @@ func _exists(level_depth: int, chamber_index: int) -> bool:
 func _guardian_alive(level_depth: int) -> bool:
 	if level_depth < 1 or guardian_of(level_depth) == &"":
 		return false
-	var shaft: LabyrinthChamber = _labyrinth.level(level_depth).shaft_chamber()
-	return shaft != null and is_populated(level_depth, shaft.index)
+	var room: int = ChamberRules.way_on_room(_labyrinth.level(level_depth).course)
+	return room >= 0 and is_populated(level_depth, room)
 
 
 ## The monsters of that visit, rolled once and kept until the party meets them.
@@ -651,7 +653,7 @@ func _start_battle(room: LabyrinthChamber) -> void:
 		fill.monsters,
 		room.floor_columns().x,
 		room.floor_columns().y,
-		facing > 0,
+		PartyPlaces.world_facing(self) > 0,
 		_rng.fork("battle/%d" % _battle_count)
 	)
 	state = State.FIGHTING
@@ -763,7 +765,8 @@ func _end_battle(won: bool) -> void:
 		hero.health = clampi(fighter.health, 0, hero.max_health()) if won else 0
 	var fill: ChamberState = _chambers[_battle_key]
 	_emit(SimEvent.Kind.ENCOUNTER_ENDED, -1, -1, _battle_key.y, won)
-	var room: LabyrinthChamber = _labyrinth.level(_battle_key.x).chambers[_battle_key.y]
+	var level: LabyrinthLevel = _labyrinth.level(_battle_key.x)
+	var room: LabyrinthChamber = level.chambers[_battle_key.y]
 	var fought: Battle = battle
 	battle = null
 	_battle_key = Vector2i(0, -1)
@@ -771,7 +774,7 @@ func _end_battle(won: bool) -> void:
 		fill.cleared_tick = _tick
 		fill.monsters = []
 		# The party gathers where its front hero stands.
-		x = fought.combatant(_party.heroes[0].id).x
+		x = level.course.distance_in(room.index, fought.combatant(_party.heroes[0].id).x)
 		_reset_trail()
 		if PartyOrders.needs_rest(_party.heroes, pace):
 			_start_rest()
@@ -790,7 +793,7 @@ func _end_battle(won: bool) -> void:
 	fill.monsters = survivors
 	_fallen.clear()
 	for fighter: Combatant in fought.heroes:
-		_fallen[fighter.id] = fighter.x
+		_fallen[fighter.id] = Vector2(fighter.x, room.floor_row())
 	_wipe()
 
 
@@ -831,8 +834,9 @@ func _heal_resting() -> bool:
 
 func _wipe() -> void:
 	if state != State.REVIVING and _fallen.is_empty():
-		for hero: Hero in _party.heroes:
-			_fallen[hero.id] = hero_position(hero.id).x
+		for rank: int in _party.heroes.size():
+			var id: int = _party.heroes[rank].id
+			_fallen[id] = PartyPlaces.fallen(self, id, rank)
 	for hero: Hero in _party.heroes:
 		hero.health = 0
 	state = State.REVIVING
