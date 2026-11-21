@@ -137,6 +137,13 @@ func test_r2_a_bent_course_knows_its_places() -> void:
 	assert_eq(course.distance_in(1, 2.0), BentLabyrinth.END, "clamped to the room's stretch")
 	assert_eq(course.distance_in(0, 99.0), BentLabyrinth.LADDER_TOP, "at either end")
 
+	var short := StageCourse.new()
+	short.begin(Vector2(2.0, 5.0), 0.0)
+	short.line_to(Vector2(2.4, 5.0), 0)
+	assert_eq(short.heading_at(0.2), 1, "a run under half a tile long is level")
+	assert_false(short.on_ladder(0.2), "not a ladder")
+	assert_almost_eq(short.point_at(0.2).x, 2.2, 0.001, "and is walked along the floor")
+
 
 ## R2 (a chamber is half-open): feet at column c stand on the tile from c to c + 1, whichever way
 ## the course walks a floor, so the column of a chamber's far wall is the tunnel's.

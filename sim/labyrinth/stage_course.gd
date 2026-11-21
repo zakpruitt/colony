@@ -23,6 +23,8 @@ var _rooms: PackedInt32Array = PackedInt32Array()
 var _headings: PackedInt32Array = PackedInt32Array()
 var _ways: PackedInt32Array = PackedInt32Array()
 var _bases: PackedFloat64Array = PackedFloat64Array()
+## Each chamber's stretch, worked out the first time it is asked for and kept until the line grows.
+var _stretches: Dictionary[int, Vector2] = {}
 
 
 ## Starts the line at [param at], which is at [param distance] (a flat level starts at its column).
@@ -33,6 +35,7 @@ func begin(at: Vector2, distance: float) -> void:
 	_headings.clear()
 	_ways.clear()
 	_bases.clear()
+	_stretches.clear()
 	start = distance
 	end = distance
 	entry = distance
@@ -49,7 +52,8 @@ func line_to(at: Vector2, chamber_index: int = -1) -> void:
 	var length: float = absf(at.x - from.x) if level else absf(at.y - from.y)
 	if is_zero_approx(length):
 		return
-	var way: int = signi(roundi(at.x - from.x)) if level else signi(roundi(at.y - from.y))
+	var way: int = int(signf(at.x - from.x)) if level else int(signf(at.y - from.y))
+	_stretches.clear()
 	_rooms.append(chamber_index)
 	_headings.append(way if level else 0)
 	_ways.append(way)
@@ -90,6 +94,8 @@ func chamber_at(distance: float) -> int:
 ## where they stand on the first and the last tile of its floor that the line crosses. Both are
 ## [member start] for a chamber the line does not pass.
 func stretch_of(chamber_index: int) -> Vector2:
+	if _stretches.has(chamber_index):
+		return _stretches[chamber_index]
 	var first: float = start
 	var last: float = start
 	var found: bool = false
@@ -107,7 +113,8 @@ func stretch_of(chamber_index: int) -> Vector2:
 			first = low
 		last = high
 		found = true
-	return Vector2(first, last)
+	_stretches[chamber_index] = Vector2(first, last)
+	return _stretches[chamber_index]
 
 
 ## The distance at which the line crosses world column [param column] on the floor of chamber
@@ -131,9 +138,8 @@ func distance_in(chamber_index: int, column: float) -> float:
 ## the floor where a ladder meets one, and otherwise to the run on its right in the world.
 func _run_at(distance: float) -> int:
 	var at: float = clampf(distance, start, end)
-	var run: int = 0
-	while run < _rooms.size() - 1 and at >= _marks[run + 1]:
-		run += 1
+	# The last corner at or before it starts its run; the line's end is on the last run.
+	var run: int = clampi(_marks.bsearch(at, false) - 1, 0, _rooms.size() - 1)
 	if run == 0 or at > _marks[run]:
 		return run
 	var before: int = _headings[run - 1]
