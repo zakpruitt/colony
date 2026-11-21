@@ -90,6 +90,7 @@ func test_r1_opening_and_closing() -> void:
 		"visibly: its edge differs from an unmarked frame's"
 	)
 	_click_view(first)
+	assert_false(windows.is_open(), "none open")
 	press(KEY_ESCAPE)
 	assert_false(windows.is_open(), "and does not open one")
 
