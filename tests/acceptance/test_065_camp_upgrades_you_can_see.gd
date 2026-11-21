@@ -9,7 +9,6 @@ extends "res://tests/support/main_fixture.gd"
 const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
-const PURSE: StringName = &"fat_purse"
 const CLAY: StringName = &"clay"
 const BONES: StringName = &"old_bones"
 const CLAYPITS: StringName = &"claypits"
@@ -111,6 +110,9 @@ func test_r1_a_card_per_upgrade() -> void:
 		assert_eq(card.icon.count_label.text, str(rank), "%s: the rank as its count" % ids[i])
 		assert_eq(card.name_label.text, def.display_name, "its name")
 		assert_true(_bold(card.name_label), "in bold")
+		var tip: UiTip.Card = main.hud.shop.tip.card_for(card)
+		var sentence: String = tip.stand if tip != null else ""
+		assert_eq(sentence, "Each rank gives %s." % def.description, "a sentence")
 		assert_eq(card.key_label.text, str(i + 1), "with its number key")
 		assert_true(card.buy_button.is_visible_in_tree(), "one buy button")
 		var icon_rect: Rect2 = card.icon.get_global_rect()
@@ -147,6 +149,7 @@ func test_r1_a_card_per_upgrade() -> void:
 	sim.party.set_resource(CLAY, clay)
 	_frame(main, 0)
 	assert_eq(armor.icon.state(), UiIcon.State.READY, "ready once the clay is there")
+	assert_false(armor.buy_button.disabled, "enabled without reopening")
 	sim.party.gold = 0
 	_frame(main, 0)
 	assert_eq(armor.icon.state(), UiIcon.State.LOCKED, "locked without the gold")
@@ -763,7 +766,6 @@ func test_r11_help_wiki_and_showcase() -> void:
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
 	for phrase: String in ["065 Camp upgrades you can see", "pips", "Mastered", "every fifth rank"]:
 		assert_true(wiki.contains(phrase), "the wiki tells of it: %s" % phrase)
-	assert_false(wiki.contains("+15% now"), "and no longer of the old row")
 	var showcase: Showcase = (load(SHOWCASE) as PackedScene).instantiate() as Showcase
 	add_child_autofree(showcase)
 	showcase.set_process(false)

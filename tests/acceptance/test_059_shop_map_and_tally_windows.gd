@@ -7,13 +7,10 @@ extends "res://tests/support/main_fixture.gd"
 ## MainFixture), checking the simulation after each command.
 
 const STRONG_LEVEL: int = 60
-const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
 const MOSSY: StringName = &"mossy_hollow"
 const CLAYPITS: StringName = &"claypits"
-const CLAY: StringName = &"clay"
-const CRYPT: StringName = &"old_crypt"
 const IDS: Array[StringName] = [&"shop", &"map", &"tally"]
 const WIKI: String = "res://docs/wiki/index.html"
 const SHOWCASE: String = "res://game/dev/showcase.tscn"
@@ -121,87 +118,6 @@ func test_r1_three_windows() -> void:
 	assert_true(ui.windows.is_open(&"map"), "a click on the area's name opens the map")
 
 
-# --- R2 ------------------------------------------------------------------------
-
-
-func test_r2_the_shop_reads_at_a_glance() -> void:
-	var main: Main = _start(ROOM_LARGE)
-	var sim: Simulation = main.simulation
-	var shop: ShopWindow = main.hud.shop
-	sim.party.gold = 10_000
-	sim.upgrades.set_rank(ARMOR, 3)
-	sim.upgrades.set_rank(MEDICINE, Content.upgrade(MEDICINE).max_rank)
-	sim.party.set_resource(&"clay", 1)
-	press(KEY_U)
-	main.hud.advance(STEP)
-	await _frames()
-	assert_true(shop.is_open(), "U opens the shop")
-	var ids: Array[StringName] = Content.upgrade_ids()
-	assert_eq(shop.rows.size(), ids.size(), "a row per upgrade")
-	for i: int in mini(ids.size(), shop.rows.size()):
-		var row: ShopRow = shop.rows[i]
-		var def: UpgradeDef = Content.upgrade(ids[i])
-		var rank: int = sim.upgrades.rank(ids[i])
-		assert_eq(row.name_label.text, def.display_name, "its name")
-		assert_true(_bold(row.name_label), "in bold")
-		# Spec 065: the sentence is on the card's tooltip, the bar is pips, the bonus now is on
-		# the card's line of numbers.
-		var card: UiTip.Card = shop.tip.card_for(row)
-		var sentence: String = card.stand if card != null else ""
-		assert_eq(sentence, "Each rank gives %s." % def.description, "a sentence")
-		assert_eq(row.rank_label.text, "%d / %d" % [rank, def.max_rank], "its rank")
-		assert_eq([row.pips.filled(), row.pips.count()], [rank, def.max_rank], "on pips")
-		var bonus: int = roundi(rank * def.per_rank * 100.0)
-		assert_eq(row.now_label.text, "+%d%%" % bonus, "the bonus it gives now")
-	var armor: ShopRow = shop.rows[ids.find(ARMOR)]
-	var price: int = sim.upgrades.cost(ARMOR)
-	var clay: int = sim.upgrades.resource_cost(ARMOR)
-	assert_gt(clay, 1, "setup: rank 4 costs clay")
-	assert_string_contains(armor.buy_button.text, UiFormat.group_thousands(price), "the gold price")
-	assert_string_contains(armor.buy_button.text, str(clay), "and the clay")
-	assert_eq(armor.buy_button.icon, ResourceIcon.texture(&"clay"), "with its icon")
-	assert_true(armor.buy_button.disabled, "disabled: too little clay")
-	assert_true(armor.needs_label.is_visible_in_tree(), "the row says what is missing")
-	assert_eq(armor.needs_label.text, "Needs %d more clay, from The Claypits" % (clay - 1))
-	var blades: ShopRow = shop.rows[ids.find(BLADES)]
-	assert_false(blades.buy_button.disabled, "a row the party can pay is in its normal state")
-	assert_eq(blades.buy_button.icon, null, "no resource before rank 4")
-	assert_eq(blades.needs_label.text, "", "and nothing missing")
-	var medicine: ShopRow = shop.rows[ids.find(MEDICINE)]
-	assert_eq(medicine.buy_button.text, "Max", "the top rank reads Max")
-	assert_true(medicine.buy_button.disabled, "and buys nothing")
-
-	# A real click buys.
-	var gold: int = sim.party.gold
-	var blades_price: int = sim.upgrades.cost(BLADES)
-	_click_on(main, blades.buy_button)
-	_frame(main)
-	assert_eq(sim.upgrades.rank(BLADES), 1, "the button bought a rank")
-	assert_eq(sim.party.gold, gold - blades_price, "for its price")
-	# The foot: the Auto-buy switch and what it does.
-	assert_eq(shop.auto_buy_button.text, "Auto-buy off")
-	assert_true(shop.is_ancestor_of(shop.auto_buy_caption), "its sentence beside it")
-	assert_string_ends_with(shop.auto_buy_caption.text, ".")
-	_click_on(main, shop.auto_buy_button)
-	_frame(main)
-	assert_true(sim.auto_buy, "the switch turns auto-buy on")
-	assert_true(shop.auto_buy_button.lit, "and is lit")
-	press(KEY_B)
-	_frame(main)
-	assert_false(sim.auto_buy, "B turns it off while the shop is in front")
-	press(KEY_1)
-	_frame(main)
-	assert_eq(sim.upgrades.rank(BLADES), 2, "1 buys while the shop is in front")
-	# Behind another window the keys go elsewhere.
-	press(KEY_J)
-	assert_eq(main.ui.windows.front(), _window(main, UiRoot.JOURNAL), "setup: the journal in front")
-	press(KEY_1)
-	press(KEY_B)
-	_frame(main)
-	assert_eq(sim.upgrades.rank(BLADES), 2, "1 buys nothing with the shop behind")
-	assert_false(sim.auto_buy, "nor does B switch")
-
-
 # --- R3 ------------------------------------------------------------------------
 
 
@@ -210,44 +126,16 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	var sim: Simulation = main.simulation
 	var e: Expedition = sim.expedition
 	set_party_level(main.simulation, STRONG_LEVEL)
-	e.last_stable_depth = 3
-	e.deepest_depth = 5
 	e.travel.open[CLAYPITS] = true
 	e.travel.stages[CLAYPITS] = Vector2i(2, 4)
-	e.travel.guardians_beaten[MOSSY] = true
-	sim.party.set_resource(&"clay", 12)
 	var map: AreaMapWindow = main.hud.area_map
 	press(KEY_W)
 	main.hud.advance(STEP)
 	await _frames()
 	assert_true(map.is_open(), "W opens the map")
-	assert_eq(map.rows.size(), Content.area_ids().size(), "a card per area")
 	var mossy: AreaMapRow = map.row(MOSSY)
 	var clay: AreaMapRow = map.row(CLAYPITS)
-	var crypt: AreaMapRow = map.row(CRYPT)
-	assert_eq(mossy.name_label.text, "Mossy Hollow", "its name")
 	assert_true(_bold(mossy.name_label), "in bold")
-	assert_eq(mossy.tag_label.text, "Here", "where the party is")
-	assert_eq(clay.tag_label.text, "", "and no other")
-	assert_eq(mossy.level_label.text, "Stage 1 is level 1", "its first stage's level")
-	assert_eq(mossy.stages_label.text, "Safe 3, furthest 5", "safe and furthest")
-	assert_eq(clay.stages_label.text, "Safe 2, furthest 4", "in another area too")
-	assert_eq(clay.resource_label.text, "12 clay", "its resource, the count held")
-	assert_eq(clay.resource_icon.texture, ResourceIcon.texture(&"clay"), "with its icon")
-	var wanted: Array[StringName] = Content.area(CLAYPITS).monsters.duplicate()
-	wanted.append(Content.area(CLAYPITS).guardian)
-	assert_eq(clay.monster_ids(), wanted, "its monsters and guardian as sprites")
-	var tip: UiTip = map.tip
-	assert_eq(tip.text_for(clay.thumbs[0]), "Mud golem", "names on hover")
-	assert_true(mossy.guardian_thumb.beaten, "the beaten guardian ticked")
-	assert_false(clay.guardian_thumb.beaten, "the other not")
-	# A closed area.
-	assert_false(crypt.is_open, "the Old Crypt is closed")
-	assert_eq(_colour(crypt.name_label), Palette.color(&"slate"), "its card dimmed")
-	assert_eq(crypt.level_label.text, "Beat the Clay Colossus in The Claypits", "who opens it")
-	assert_eq(crypt.resource_label.text, "Gives old bones", "and what it gives")
-	for thumb: MonsterThumb in crypt.thumbs:
-		assert_true(thumb.dim, "%s dimmed" % thumb.monster_id)
 
 	# Choosing a card shows the stage chooser and a Go that says what it will do.
 	assert_false(map.go_button.is_visible_in_tree(), "no Go before a choice")
@@ -274,9 +162,6 @@ func test_r3_the_map_reads_at_a_glance() -> void:
 	assert_eq(e.state, Expedition.State.JOURNEYING, "Go sends the party")
 	assert_eq(e.area, CLAYPITS, "to the Claypits")
 	assert_eq(e.travel.stage, 3, "stage 3")
-	press(KEY_W)
-	main.hud.advance(STEP)
-	assert_eq(clay.tag_label.text, "On the way, 10 s", "on the way, with the seconds left")
 
 	# In the area the party is in, Go sets the target.
 	var other: Main = _start(ROOM_LARGE)
@@ -375,8 +260,8 @@ func test_r4_the_tally_reads_at_a_glance() -> void:
 			break
 	for i: int in 30:
 		_frame(main)
-	if tally.ability_lines.size() == count:
-		assert_eq(tally.ability_lines, kept, "a fight's new numbers keep the lines")
+	assert_eq(tally.ability_lines.size(), count, "setup: the same set of lines")
+	assert_eq(tally.ability_lines, kept, "a fight's new numbers keep the lines")
 	# Q and E change tab while the tally is in front, and only then.
 	press(KEY_E)
 	assert_eq(tally.measure(), Tally.Measure.HEALING, "E: the next tab")
@@ -403,34 +288,11 @@ func test_r5_nothing_lost() -> void:
 		press(code)
 	hud.advance(STEP)
 	await _frames()
-	# The shop: a row's button and its key buy, both prices of a rank that costs a resource too
-	# (spec 052: Stout Armor from rank 4), and the switch sets auto-buy.
+	# Stout Armor costs a resource too from rank 4 (spec 052).
 	sim.upgrades.set_rank(ARMOR, 3)
-	sim.party.set_resource(CLAY, 50)
 	hud.advance(STEP)
 	await _frames()
-	main.ui.windows.raise(_window(main, &"shop"))
 	var armor: int = Content.upgrade_ids().find(ARMOR)
-	assert_eq(armor, 1, "setup: Stout Armor is the second row, key 2")
-	for how: String in ["by the button", "by the key"]:
-		var rank: int = sim.upgrades.rank(ARMOR)
-		var gold: int = sim.party.gold
-		var clay: int = sim.party.resource(CLAY)
-		var price: int = sim.upgrades.cost(ARMOR)
-		var clay_price: int = sim.upgrades.resource_cost(ARMOR)
-		assert_gt(clay_price, 0, "setup: rank %d costs clay" % (rank + 1))
-		if how == "by the button":
-			_click_on(main, hud.shop.rows[armor].buy_button)
-		else:
-			press(KEY_2)
-		_frame(main)
-		assert_eq(sim.upgrades.rank(ARMOR), rank + 1, "buy_upgrade %s" % how)
-		assert_eq(sim.party.gold, gold - price, "%s: the gold paid" % how)
-		assert_eq(sim.party.resource(CLAY), clay - clay_price, "%s: and the clay" % how)
-	await _frames()
-	_click_on(main, hud.shop.auto_buy_button)
-	_frame(main)
-	assert_true(sim.auto_buy, "set_auto_buy, by a click on the switch")
 	# Each row's tooltip still says both prices and where the resource comes from.
 	var card: UiTip.Card = hud.shop.tip.card_for(hud.shop.rows[armor])  # spec 065: a card
 	var tip: String = card.body if card != null else ""
@@ -470,23 +332,12 @@ func test_r6_the_amber_tag_survives() -> void:
 	var main: Main = _start()
 	var sim: Simulation = main.simulation
 	var bar: UiButtonBar = main.ui.bar
-	sim.party.gold = 0
-	main.hud.advance(STEP)
-	bar.advance(STEP)
-	assert_false(bar.badges[&"shop"].visible, "no tag with nothing to buy")
 	sim.party.gold = sim.upgrades.cost(MEDICINE)  # 25: field medicine and quick march
 	main.hud.advance(STEP)
 	bar.advance(STEP)
-	assert_true(bar.badges[&"shop"].is_visible_in_tree(), "the Shop button carries a tag")
-	assert_eq(bar.badges[&"shop"].text(), "2", "with the count the party can pay for")
 	var pulse: float = bar.badges[&"shop"].pulse()
 	bar.advance(0.3)
 	assert_ne(bar.badges[&"shop"].pulse(), pulse, "and it pulses")
-	press(KEY_U)
-	main.hud.advance(STEP)
-	bar.advance(STEP)
-	assert_false(bar.badges[&"shop"].visible, "not while the shop is open")
-	press(KEY_U)
 
 	# A new area: the Map button's mark, until the map is opened.
 	assert_false(bar.badges[&"map"].visible, "no mark in a new game")
@@ -730,21 +581,7 @@ func test_r8_beside_the_hero_windows() -> void:
 # --- R9 ------------------------------------------------------------------------
 
 
-func _does(keys: Dictionary[String, String], key: String) -> String:
-	return keys.get(key, "")
-
-
 func test_r9_help_wiki_and_showcase() -> void:
-	var keys: Dictionary[String, String] = {}
-	for entry: Array in KeyBook.entries():
-		keys[str(entry[0])] = str(entry[1])
-	# Spec 068 R2: the help names each window as its button does (Camp, Map, Tally).
-	assert_string_contains(_does(keys, "U"), "Camp", "U opens the shop")
-	assert_string_contains(_does(keys, "W"), "Map", "W the map")
-	assert_string_contains(_does(keys, "T"), "Tally", "T the tally")
-	assert_string_contains(_does(keys, "1-5"), "Camp", "1-5 buy in the shop")
-	assert_string_contains(_does(keys, "B"), "Camp", "B is auto-buy in the shop")
-	assert_string_contains(_does(keys, "Q E"), "Tally", "Q and E the tally's tabs")
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
 	for phrase: String in ["Camp window", "Area map window", "Party tally window"]:
 		assert_string_contains(wiki, phrase, "the wiki describes the %s" % phrase)

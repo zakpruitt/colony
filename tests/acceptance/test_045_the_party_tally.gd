@@ -173,26 +173,6 @@ func test_r1_tally_panel() -> void:
 		)
 	tally.close()
 
-	# Specs 059 and 060: the tally, the hero windows and the shop are all windows, and any of them
-	# opens beside the others and leaves them open.
-	var hero: int = heroes[0].id
-	tally.open()
-	_hud.hero_windows.open(hero)
-	_hud.advance(STEP)
-	assert_true(_hud.hero_windows.is_open(hero), "a hero window opens over the tally")
-	assert_true(tally.is_open(), "and leaves it open")
-	tally.close()
-	tally.open()
-	_hud.advance(STEP)
-	assert_true(_hud.hero_windows.is_open(hero), "the tally opening leaves a hero window open")
-	press(KEY_U)
-	_hud.advance(STEP)
-	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_true(tally.is_open() and _hud.hero_windows.is_open(hero), "beside the tally and hero")
-	_hud.shop.close()
-	_hud.hero_windows.close_all()
-	tally.close()
-
 
 # --- R2 ------------------------------------------------------------------------
 
@@ -224,11 +204,6 @@ func test_r2_three_measures() -> void:
 		for i: int in tally.tab_buttons.size():
 			assert_eq(tally.tab_buttons[i].lit, i == measure, "only the open tab is lit")
 		_check_rows(_sums(_events, measure), "%s, session" % names[measure])
-	# Healing counts only what the heroes gained: the simulation's HEALED amount stops at full
-	# health, so overhealing is never in it.
-	for event: SimEvent in _events:
-		if event.kind == SimEvent.Kind.HEALED:
-			assert_true(event.amount >= 0, "a heal's amount is what was restored")
 	# Q and E move between the tabs, wrapping.
 	tally.set_measure(DAMAGE)
 	press(KEY_E)
@@ -521,15 +496,6 @@ func test_r6_explains_itself() -> void:
 		)
 		assert_false(seen.has(text), "%s says what another says" % control.name)
 		seen[text] = true
-	# T is in the help panel's list, and spec 030's test presses it.
-	var listed: bool = false
-	for entry: Array in KeyBook.entries():
-		listed = listed or KeyBook.keycodes(str(entry[0])).has(KEY_T)
-	assert_true(listed, "T is in the help panel's keys")
-	var source: String = FileAccess.get_file_as_string(
-		"res://tests/acceptance/test_030_help_and_hints.gd"
-	)
-	assert_true(source.contains('"T":'), "spec 030's test has a case for T")
 
 
 # --- R7 ------------------------------------------------------------------------

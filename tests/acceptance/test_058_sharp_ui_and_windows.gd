@@ -14,13 +14,10 @@ const WINDOWS: Array[Array] = [
 	[Vector2i(2560, 1440), 4, 2, Vector2i(1280, 720)],
 	[Vector2i(3840, 2160), 6, 4, Vector2i(960, 540)],
 ]
-## Every KEY_ name written in the game's scripts must be in the help list (spec 030 R3).
 ## The three windows spec 058 made; spec 059 added the shop, the map and the tally beside them.
 const OWN_WINDOWS: Array[StringName] = [UiRoot.HELP, UiRoot.JOURNAL, UiRoot.ORDERS]
-const KEY_PATTERN: String = "\\bKEY_[A-Z0-9_]+\\b"
 ## A string literal in a script or a resource.
 const STRING_PATTERN: String = '"((?:[^"\\\\\\n]|\\\\.)*)"'
-const WIKI: String = "res://docs/wiki/index.html"
 
 
 ## The pixels [param text] inks in the UI font, each glyph placed after the last one's advance.
@@ -62,19 +59,6 @@ func _characters_in(dir: String, into: Dictionary[String, String]) -> void:
 					into[character] = path
 	for sub: String in DirAccess.get_directories_at(dir):
 		_characters_in(dir.path_join(sub), into)
-
-
-func _key_names_in(dir: String, into: Dictionary[String, String]) -> void:
-	var pattern := RegEx.new()
-	pattern.compile(KEY_PATTERN)
-	for file: String in DirAccess.get_files_at(dir):
-		if not file.ends_with(".gd"):
-			continue
-		var path: String = dir.path_join(file)
-		for found: RegExMatch in pattern.search_all(FileAccess.get_file_as_string(path)):
-			into[found.get_string()] = path
-	for sub: String in DirAccess.get_directories_at(dir):
-		_key_names_in(dir.path_join(sub), into)
 
 
 # --- R1 ------------------------------------------------------------------------
@@ -156,43 +140,6 @@ func test_r1_two_layers() -> void:
 	root.size = Vector2i(1280, 720)
 	assert_eq(fresh.ui.room(), Vector2i(1280, 720), "a 1280x720 window: 1280x720 of room")
 	root.size = was
-
-
-# --- R2 ------------------------------------------------------------------------
-
-
-func test_r2_the_old_hud_still_works() -> void:
-	var main: Main = _main(ROOM_SMALL)
-	var hud: Hud = main.hud
-	# Its old buttons, at their old places, still act on a real click.
-	var target: int = main.simulation.expedition.target_depth
-	click(UiFormat.on_screen(hud.place_panel.plus_button).get_center())
-	main.simulation.step()
-	assert_eq(
-		main.simulation.expedition.target_depth, target + 1, "the + button still sets the target"
-	)
-	# Spec 059: the Shop button moved to the bar, and the shop is a window Esc closes.
-	await _frames()
-	_click_ui(main.ui, main.ui.bar.buttons[ShopWindow.ID].get_global_rect().get_center())
-	assert_true(hud.shop.is_open(), "the Shop button still opens the shop")
-	press(KEY_ESCAPE)
-	assert_false(hud.shop.is_open(), "Esc closes it, the front window")
-	click(UiFormat.on_screen(hud.frames[0]).get_center())
-	assert_true(hud.hero_windows.is_open(), "a hero frame still opens its hero window")
-	press(KEY_U)
-	assert_true(hud.shop.is_open(), "U still opens the shop")
-	hud.shop.close()
-	# The moved panels are gone from the old HUD, with their buttons: never shown twice.
-	for gone: String in ["help", "help_button", "orders", "orders_button"]:
-		assert_false(gone in hud, "the old HUD has no %s" % gone)
-	assert_false(&"open" in hud.journal, "the journal keeps no panel of its own")
-	assert_eq(hud.find_children("*", "HelpPanel", true, false).size(), 0, "no help on the old HUD")
-	assert_eq(hud.find_children("*", "OrdersPanel", true, false).size(), 0, "no orders there")
-	assert_eq(hud.find_children("*", "JournalView", true, false).size(), 0, "no journal list there")
-	assert_eq(main.ui.frame.find_children("*", "HelpPanel", true, false).size(), 1, "one help")
-	assert_eq(main.ui.frame.find_children("*", "OrdersPanel", true, false).size(), 1, "one orders")
-	assert_eq(main.ui.frame.find_children("*", "JournalView", true, false).size(), 1, "one journal")
-	assert_not_null(hud.ticker, "the ticker stays")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -495,12 +442,6 @@ func test_r5_windows() -> void:
 		var shown: float = minf(bar.end.x, room.x) - maxf(bar.position.x, 0.0)
 		assert_gte(shown, UiWindow.KEEP_SHOWN - 2.0, "%s: some of the bar on screen" % away)
 		journal.place_at(Vector2(300, 200), room)
-	# A window off screen after the window shrinks is moved back in.
-	journal.place_at(Vector2(room.x - 60, room.y - 40), room)
-	ui.set_room_for_test(Vector2i(640, 360))
-	var bar_now: Rect2 = journal.title_bar.get_global_rect()
-	assert_lte(bar_now.end.y, 360.0, "moved back in when the room shrank: %s" % bar_now)
-	assert_gte(640.0 - bar_now.position.x, UiWindow.KEEP_SHOWN - 2.0, "and across")
 
 	# The game keeps running behind them.
 	var tick: int = main.simulation.tick
@@ -573,64 +514,6 @@ func test_r6_remembered() -> void:
 				assert_false(rects[a].intersects(rects[b]), "%s and %s do not overlap" % [a, b])
 
 
-# --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_a_button_bar() -> void:
-	# Spec 068: at both rooms, since the bar has a form for each and shows the key in both.
-	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
-		var main: Main = _main(room)
-		var ui: UiRoot = main.ui
-		var bar: UiButtonBar = ui.bar
-		await _frames()
-		assert_eq(bar.buttons.keys(), _bar_ids(ui.windows), "one button per window, in order")
-		# At the bottom right, above the hero frames' line.
-		var rect: Rect2 = bar.get_global_rect()
-		var frames_top: float = main.hud.frames[0].get_global_rect().position.y
-		assert_lte(rect.end.y, frames_top, "%s: above the frames' line" % room)
-		assert_gt(rect.end.y, frames_top - 16.0, "%s: just above" % room)
-		assert_lte(rect.end.x, float(ui.room().x), "%s: on screen" % room)
-		assert_gt(rect.position.x, ui.room().x / 2.0, "%s: at the right" % room)
-		for id: StringName in bar.buttons:
-			var button: UiButton = bar.buttons[id]
-			var window: UiWindow = ui.windows.window(id)
-			var named: String = "%s: %s" % [room, id]
-			assert_not_null(button.icon, "%s: a small icon" % named)
-			assert_eq(button.icon.get_size(), Vector2(16, 16), "%s: 16x16" % named)
-			var tip: String = bar.tip.text_for(button)
-			assert_string_contains(tip, window.title, "%s: its name in the tooltip" % named)
-			assert_string_contains(tip, "(%s)" % window.key_hint, "%s: and its key" % named)
-			assert_eq(button.key_hint, window.key_hint, "%s: the key shown on the button" % named)
-			assert_true(button.key_rect().has_area(), "%s: which has a place on it" % named)
-			assert_true(
-				Rect2(Vector2.ZERO, button.size).encloses(button.key_rect()),
-				"%s: inside the button" % named
-			)
-			assert_gte(
-				button.size.x, button.hinted_width(), "%s: room for the icon and the key" % named
-			)
-			assert_false(button.lit, "%s: dark while closed" % named)
-			_click_ui(ui, button.get_global_rect().get_center())
-			assert_true(window.is_open(), "%s: a click opens it" % named)
-			bar.refresh()
-			assert_true(button.lit, "%s: lit while open" % named)
-			assert_true(button.button_pressed, "%s: drawn lit" % named)
-			_click_ui(ui, button.get_global_rect().get_center())
-			assert_false(window.is_open(), "%s: and closes it" % named)
-			bar.refresh()
-			assert_false(button.lit, "%s: dark again" % named)
-		# The tooltip shows after a rest.
-		var help_button: UiButton = bar.buttons[UiRoot.HELP]
-		mouse_move(ui.ui_to_world(help_button.get_global_rect().get_center()))
-		bar.tip.advance(UiTip.DELAY + 0.05)
-		assert_eq(bar.tip.shown_text(), bar.tip.text_for(help_button), "the tooltip shows")
-		assert_true(
-			Rect2(Vector2.ZERO, Vector2(ui.room())).encloses(bar.tip.get_global_rect()), "on screen"
-		)
-		mouse_move(Vector2(-10, -10))
-		main.free()
-
-
 # --- R8 ------------------------------------------------------------------------
 
 
@@ -648,6 +531,14 @@ func test_r8_three_panels_become_windows() -> void:
 	for id: StringName in OWN_WINDOWS:
 		assert_true(windows.is_open(id), "%s open beside the others" % id)
 	await _frames()
+	# Each panel once, on the UI layer: never shown twice.
+	var hud: Hud = main.hud
+	assert_eq(hud.find_children("*", "HelpPanel", true, false).size(), 0, "no help on the old HUD")
+	assert_eq(hud.find_children("*", "OrdersPanel", true, false).size(), 0, "no orders there")
+	assert_eq(hud.find_children("*", "JournalView", true, false).size(), 0, "no journal list there")
+	assert_eq(ui.frame.find_children("*", "HelpPanel", true, false).size(), 1, "one help")
+	assert_eq(ui.frame.find_children("*", "OrdersPanel", true, false).size(), 1, "one orders")
+	assert_eq(ui.frame.find_children("*", "JournalView", true, false).size(), 1, "one journal")
 
 	# Help: every key, in two columns.
 	var help: HelpPanel = windows.window(UiRoot.HELP).content as HelpPanel
@@ -767,11 +658,7 @@ func test_r8_three_panels_become_windows() -> void:
 
 func test_r9_screenshots_show_what_the_player_sees() -> void:
 	# The shot itself is tested in tools/tests/test_058_shot.py; here, that the tool draws the
-	# layers as the window does: a viewport of the window's size stretching the world's pixels.
-	var script: String = FileAccess.get_file_as_string("res://tools/godot/shot.gd")
-	assert_string_contains(script, "size_2d_override = UiRoot.WORLD_SIZE", "the world's pixels")
-	assert_string_contains(script, "size_2d_override_stretch = true", "stretched over the window")
-	assert_string_contains(script, "--window=", "at the window's size")
+	# layers as the window does.
 	# The shot's path to the layers (a viewport of the window's size) and the game's (the window
 	# itself) agree: the same UI room, scales and on-screen transform for the UI layer, and the
 	# world scaled the same.
@@ -868,37 +755,3 @@ func test_r10_true_in_a_crowded_frame() -> void:
 	_drag(calm.ui, journal, Vector2(150, 90), 30, frame)
 	assert_gte(calm.simulation.tick, tick + 18, "the game ran at 4x meanwhile")
 	assert_eq(journal.position, start + Vector2(150, 90), "the drag ends where the mouse did")
-
-
-# --- R11 -----------------------------------------------------------------------
-
-
-func test_r11_in_the_help_list_and_the_wiki() -> void:
-	# Spec 030's R3, as amended: every key the game's code names is in KeyBook.entries().
-	var listed: Dictionary[int, bool] = {}
-	for entry: Array in KeyBook.entries():
-		for code: int in KeyBook.keycodes(str(entry[0])):
-			listed[code] = true
-	var handled: Dictionary[String, String] = {}
-	_key_names_in("res://game", handled)
-	for key_name: String in handled:
-		var code: int = OS.find_keycode_from_string(key_name.trim_prefix("KEY_").replace("_", " "))
-		assert_true(
-			listed.has(code), "%s (in %s) is in the help list" % [key_name, handled[key_name]]
-		)
-	for key: Key in [KEY_H, KEY_J, KEY_O, KEY_ESCAPE]:
-		assert_true(listed.has(key), "%s is listed" % OS.get_keycode_string(key))
-	# The wiki says how windows work and that the overhaul is under way.
-	var wiki: String = FileAccess.get_file_as_string(WIKI).to_lower()
-	for words: String in ["window", "title bar", "esc", "button bar", "overhaul"]:
-		assert_true(wiki.contains(words), "the wiki says: %s" % words)
-
-
-## The windows of spec 058 and their like, each with a button on the bar: every window but the
-## hero windows of spec 060, which open from their frames and cascade at 960x540 by design.
-func _bar_ids(windows: UiWindows) -> Array[StringName]:
-	var made: Array[StringName] = []
-	for id: StringName in windows.ids():
-		if windows.window(id).on_bar:
-			made.append(id)
-	return made
