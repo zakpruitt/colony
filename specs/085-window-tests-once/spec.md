@@ -1,9 +1,9 @@
 # 085 — The shop, the map, the tally and the bar, tested once
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#85](https://github.com/zakpruitt/colony/pull/85)
 
 ## Intent
 
