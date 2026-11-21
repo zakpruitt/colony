@@ -49,7 +49,9 @@ the test audit of 2026-11-20; nothing the game does changes.
   - `test_074::test_r6_no_sentence_spells_a_key_itself`: cut 289-306; the sentences as shown (308-328) stay.
   - `test_075::test_r2_nobody_borrows_from_the_hud`: cut 129-135.
   - `test_075::test_r3_the_hud_is_handed_what_it_needs`: cut 156-168; the keys (170-192) stay.
-  - `test_076::test_r4_handlers_have_one_name`: cut 395-403; the live signal's half stays.
+  - `test_076::test_r4_handlers_have_one_name`: cut 395-403; the live signal's half stays, and asserts
+    without a condition: more than ten handlers hear the world's events, and each is `_on_sim_event` or
+    anonymous (as cut, its one assert ran only for a wrongly named handler, so the test asserted nothing).
   - `test_078::test_r3_nothing_joins_the_sides_on_the_tick`.
   - `test_079::test_r7_sound_is_handed_its_goals`.
   - `test_080::test_r7_one_owner_advances`: cut 389-395.
@@ -86,6 +88,9 @@ the test audit of 2026-11-20; nothing the game does changes.
   the harness instead of spec 074's and 078's tests; `docs/standards.md` likewise; the
   `godot-headless-test` skill says a rule about source text is a `harness` check, never a GUT test.
 
+- **R8. A test that asserts nothing fails the check.** `check`'s `tests` step (and `dev.py test`) fails,
+  naming the test, when GUT reports a test as risky (it made no assert) or pending. Today's tree has none.
+
 ## Interfaces
 
 Names in `tools/dev.py` are the lane's; report them. A rule's message says what to do instead.
@@ -97,6 +102,7 @@ Names in `tools/dev.py` are the lane's; report them. A rule's message says what 
 | R1 | `tools/tests/test_082_text_rules.py`: `test_r1_an_echo_read_outside_key_book_fails`, `test_r1_a_font_colour_set_by_hand_fails`, `test_r1_a_comment_does_not_count`, `test_r1_a_test_script_off_the_base_fails` | a temp tree with the realistic mistake fails naming file and line; the allowed file and a comment pass |
 | R2 | same file: `test_r2_a_file_over_its_cap_fails`, `test_r2_a_class_over_its_methods_fails`, `test_r2_at_the_cap_passes` | a temp tree one line or one method over fails; at the cap it passes |
 | R3 to R6 | (lane's report) | each row as done or left, with the reason; the list of test names before and after |
+| R8 | `test_082_text_rules.py::test_r8_a_test_without_an_assert_fails_the_tests_step` | GUT output with a risky test fails the step naming it; the same output with none passes |
 | R6 | `test_082_text_rules.py::test_r6_a_tool_test_that_starts_godot_fails_the_art_step` | a temp tool test that calls `dev.godot` fails when run as the `art` step runs its tool tests; it does not fail on `dev`'s `step_art` |
 
 ## Out of scope
