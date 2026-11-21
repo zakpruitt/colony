@@ -25,6 +25,9 @@ the test audit of 2026-11-20; nothing the game does changes.
 - "Fix" changes a test so that it can fail: break the game code the fixed assert is about, see the test
   fail, restore the code, and say in the report what was broken and what the failure said.
 - No other assert changes, and no bound on a wait is raised.
+- A cut never leaves a test with no assert that always runs (GUT calls such a test risky and counts it
+  as neither passed nor failed). If a row would, stop on that row and report it. The number of tests
+  passing equals the number of `func test_` under `tests/`.
 
 ## Requirements
 

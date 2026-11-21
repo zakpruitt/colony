@@ -1,9 +1,9 @@
 # 084 — The hero window and the talent tree, tested once
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
-- **Pull request:** —
+- **Pull request:** [#83](https://github.com/zakpruitt/colony/pull/83)
 
 ## Intent
 

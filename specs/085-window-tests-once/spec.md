@@ -1,6 +1,6 @@
 # 085 — The shop, the map, the tally and the bar, tested once
 
-- **Status:** provisional
+- **Status:** in-progress (provisional)
 - **Milestone:** M8 (cleanup)
 - **Depends on:** 081
 - **Pull request:** —
