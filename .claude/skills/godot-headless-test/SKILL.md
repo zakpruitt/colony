@@ -105,6 +105,14 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - A change to the default game (tuning, timing) breaks every recorded hash at once, and they are in several
   files with different intervals (016 and 022 every 1500 ticks, 035 every 600, and others since). `grep -rn
   RECORDED_HASHES tests/` and re-run each test's own loop; a later merge can bring in a new one.
+- Bound a battle loop by its own step count, not `battle.tick`, and fail the test at the limit:
+  `Battle.step()` stops moving the tick once the battle has a result, so a broken `result()` spins forever
+  with the tick standing still.
+- Tests run through `tools/dev.py`. The one exception is seeing a guard on an endless loop fail: with the
+  loop made endless, `dev.py test` runs the whole file and any other unbounded loop in it hangs until the
+  timeout, so run only the guarded test, by hand, under `timeout` (`-gunit_test_name=<test>`). If `timeout`
+  stops `godot_console`, the `godot.exe` under it keeps running: stop it by its process id (its command line
+  names your worktree), never by name.
 - When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
   line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
   Windows writes CRLF; when editing files from a script, read and write bytes.
