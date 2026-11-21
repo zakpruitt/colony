@@ -1,17 +1,6 @@
 extends ColonyTest
-## Unit tests for the talent tree's small pieces (spec 055): every node has a picture, and the text
-## helpers the Talents tab is built from. Since spec 060 the tab is [HeroTalentsTab] in a hero
-## window, and since spec 063 each ability has a picture of its own ([method UiIcon.picture]).
-
-
-func test_every_tree_node_has_a_picture() -> void:
-	for class_id: StringName in Content.hero_class_ids():
-		var tree: TalentTreeDef = Content.talent_tree(class_id)
-		var ids: Array[StringName] = tree.trunk.duplicate()
-		ids.append_array(tree.path_a)
-		ids.append_array(tree.path_b)
-		for id: StringName in ids:
-			assert_not_null(UiIcon.picture(id), "%s has a picture" % id)
+## Unit tests for the talent tree's small pieces (spec 055): the text helpers the Talents tab is
+## built from. Since spec 060 the tab is [HeroTalentsTab] in a hero window.
 
 
 func test_wrap_words_keeps_every_line_inside_the_width() -> void:

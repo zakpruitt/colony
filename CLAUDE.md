@@ -70,7 +70,9 @@ incomplete, stop and report the question.
 - **gdlint caps a class at 20 public methods (statics apart) and a file at 1000 lines.** `Expedition` and
   `Hero` are at the method cap: a read-only helper goes in its own small class (as `ClimbProgress` does under
   `sim/expedition/`). `expedition.gd` is held to 900 lines by spec 078's test: a spec that adds to it must
-  first move a read-only part out of it.
+  first move a read-only part out of it. A test file is held under 985 lines (spec 081's
+  `test_r4_no_test_file_is_near_the_cap`, run in the `art` step, not by `test`): when asserts move into one
+  near that, move a whole check into its test base (`talent_tree_test_base.gd` exists for `test_064`).
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.

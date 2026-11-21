@@ -291,24 +291,6 @@ func reset_reason(hero: Hero) -> String:
 	return ""
 
 
-## Why [param hero] cannot take node [param ability_id] now, or "" when it can (or has).
-static func reason(hero: Hero, ability_id: StringName) -> String:
-	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
-	if tree_def == null or not tree_def.has_node(ability_id):
-		return ""
-	var taken: Array[StringName] = hero.talents()
-	if taken.has(ability_id) or hero.can_take(ability_id):
-		return ""
-	var on: int = tree_def.path_of(ability_id)
-	if on >= 0 and hero.path() >= 0 and hero.path() != on:
-		return "The %s path is closed" % tree_def.path_names[on]
-	var missing: StringName = _missing_before(hero, tree_def, ability_id)
-	if missing != &"":
-		return "Take %s first" % Content.ability(missing).display_name
-	# Next in order, and not open to it: the only thing missing is a point.
-	return "No talent point"
-
-
 ## How node [param ability_id] stands for [param hero], in words:
 ## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code],
 ## [code]No points: the next comes at level 9[/code] or [code]Guardian was not chosen[/code].
