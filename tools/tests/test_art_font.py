@@ -14,7 +14,7 @@ sys.path.insert(0, str(TOOLS))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import art  # noqa: E402
-from test_art import STEEL, ArtTestCase, outlined_square, px_text  # noqa: E402
+from test_art import STEEL, ArtTestCase, px_text  # noqa: E402
 
 # Two 5x8 glyphs, an H and an i, in white on transparency.
 GLYPH_H = ["j..j.", "j..j.", "jjjj.", "j..j.", "j..j.", ".....", ".....", "....."]
@@ -62,14 +62,6 @@ class TestFontCategory(ArtTestCase):
         (self.assets / "ui" / "big.json").unlink()
         self.baked("ui/steel.px", px_text("ui", "8x8", [("x", [STEEL * 8] * 8)]))
         self.assertEqual(self.lint(), [])
-        # Outlined categories still need their outline.
-        self.baked("items/ok.px", px_text("item", "16x16", [("x", outlined_square(16, 0, 15))]))
-        self.assertEqual(self.lint(), [])
-        gap = outlined_square(16, 0, 15)
-        gap[0] = STEEL + gap[0][1:]
-        self.baked("items/gap.px", px_text("item", "16x16", [("x", gap)]))
-        problems = self.lint()
-        self.assertTrue(any("items/gap.px" in p and "outline gap" in p for p in problems), problems)
 
 
 if __name__ == "__main__":

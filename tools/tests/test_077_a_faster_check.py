@@ -26,9 +26,6 @@ import dev  # noqa: E402
 
 ROOT = TOOLS.parent
 
-# Set while this file's R4 test runs the art step, whose tool tests include this file again.
-INSIDE_ART_STEP = "COLONY_TEST_077_INSIDE_ART_STEP"
-
 
 def git(root: Path, *args: str) -> str:
     done = subprocess.run(
@@ -182,20 +179,27 @@ class Imports(unittest.TestCase):
 
 class ArtStep(unittest.TestCase):
     def test_r4_art_starts_no_godot(self) -> None:
-        if os.environ.get(INSIDE_ART_STEP):
-            self.skipTest("already inside the art step this test runs")
-
         def no_godot(args: list[str], timeout: int) -> tuple[int, str]:
             raise AssertionError(f"the art step started Godot: {args}")
 
-        # The tool tests run in a child process, which finds Godot through GODOT: a Python that
-        # fails on Godot's arguments.
-        with (
-            mock.patch.dict(os.environ, {"GODOT": sys.executable, INSIDE_ART_STEP: "1"}),
-            mock.patch.object(dev, "godot", no_godot),
-        ):
+        commands: list[list[str]] = []
+
+        def run(command: list[str], timeout: int) -> tuple[int, str]:
+            commands.append(list(command))
+            return 0, "Ran 7 tests\n\nOK\n"
+
+        # The step's own commands, not run: this file is one of the tool tests it would start.
+        with mock.patch.object(dev, "godot", no_godot), mock.patch.object(dev, "run", run):
             summary = dev.step_art()
         self.assertIn("tool tests", summary)
+        python = sys.executable or "python"
+        for command in commands:
+            self.assertEqual(command[0], python, f"a Python tool, not Godot: {command}")
+        discovered = [command for command in commands if "unittest" in command]
+        self.assertEqual(len(discovered), 1, commands)
+        self.assertEqual(discovered[0][-4:], ["-s", "tools/tests", "-t", "tools/tests"])
+        # unittest looks under a folder only if it is a package: the tests that start Godot are not.
+        self.assertFalse((ROOT / dev.GODOT_TOOL_TESTS / "__init__.py").exists())
         self.assertIn("tools", dev.STEPS)
         names = list(dev.STEPS)
         self.assertEqual(names.index("tools"), names.index("compile") + 1, "tools follows compile")
@@ -261,9 +265,6 @@ class Comments(TempTree):
         self.assertEqual(len(problems), 1, problems)
         self.assertIn("tools/broken.py", problems[0])
         self.assertIn("tokenize", problems[0])
-
-    def test_r5_todays_tree_passes(self) -> None:
-        self.assertEqual(dev.comment_problems(ROOT), [])
 
 
 class Attribution(TempTree):

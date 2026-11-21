@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 TOOLS = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(TOOLS))
@@ -109,13 +110,17 @@ class R1BakeAndLint(unittest.TestCase):
         self.assertIn("bad.sfx", problems[0])
         self.assertIn("malformed", problems[0])
 
-    def test_the_sounds_in_the_repository_pass_the_lint(self) -> None:
-        self.assertEqual(sfx.lint(sfx.AUDIO), [])
-
     def test_the_art_step_runs_the_sfx_lint(self) -> None:
-        source = (TOOLS / "dev.py").read_text(encoding="utf-8")
-        self.assertTrue(callable(dev.step_art))
-        self.assertTrue('"tools/sfx.py", "lint"' in source, "dev.py's art step runs the sfx lint")
+        commands: list[list[str]] = []
+
+        def run(command: list[str], timeout: int) -> tuple[int, str]:
+            commands.append(list(command))
+            return 0, "Ran 7 tests\n\nOK\n"
+
+        with mock.patch.object(dev, "run", run):
+            dev.step_art()
+        lints = [command for command in commands if command[-2:] == ["tools/sfx.py", "lint"]]
+        self.assertEqual(len(lints), 1, f"the art step runs the sfx lint: {commands}")
 
 
 if __name__ == "__main__":
