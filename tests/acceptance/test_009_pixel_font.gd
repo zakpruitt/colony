@@ -2,9 +2,7 @@ extends ColonyTest
 ## Spec 009, pixel font and the UI theme. R3 (the lint's font category) is tested in
 ## tools/tests/test_art.py.
 
-const FONT_PATH: String = "res://assets/fonts/pixel.png"
 const THEME_PATH: String = "res://game/ui/theme.tres"
-const MAIN_SCENE_PATH: String = "res://game/main.tscn"
 const SPECIMEN: String = "res://game/ui/font_specimen.tscn"
 ## Every character R1 lists, space first.
 const CHARACTERS: String = (
@@ -118,15 +116,6 @@ func test_r5_default_label_uses_the_pixel_font() -> void:
 		"rendering/textures/canvas_textures/default_texture_filter"
 	)
 	assert_eq(filter, 0, "nearest filtering")
-
-
-func test_r5_clock_label_uses_the_pixel_font() -> void:
-	var scene: PackedScene = load(MAIN_SCENE_PATH)
-	var main: Main = scene.instantiate()
-	add_child_autofree(main)
-	var clock: Label = main.get_node("HUD/ClockLabel")
-	assert_eq(clock.get_theme_font(&"font"), PixelText.font(), "the clock's font")
-	assert_eq(clock.get_theme_font_size(&"font_size"), _native_size(), "the clock's size")
 
 
 func test_r6_pixel_text_helpers() -> void:

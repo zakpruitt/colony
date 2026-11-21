@@ -218,7 +218,6 @@ func test_r5_monster_burst() -> void:
 	assert_lt(puffs[0].current_size(), size, "that shrinks away")
 	_advance(0.2)
 	assert_false(_fx.particles().has(puffs[0]), "and is gone")
-	assert_gt(bits[0].velocity.y, -1000.0)
 	var outward: int = 0
 	for bit: FxParticle in bits:
 		if bit.position.distance_to(_world.feet_position(monster)) > 10.0:

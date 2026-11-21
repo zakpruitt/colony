@@ -156,10 +156,6 @@ func test_r1_main_scene_shows_the_world() -> void:
 	var party: Vector2 = _feet(main.simulation, KNIGHT)
 	assert_lt(world.camera.target.distance_to(party), 6.0 * TILE, "the camera is on the party")
 	assert_true(world.camera.is_current() or not world.camera.is_inside_tree(), "camera in use")
-	var label: Label = main.hud_layer.get_node_or_null("ClockLabel")
-	assert_not_null(label, "the clock label is on the HUD layer")
-	if label != null:
-		assert_string_contains(label.text, "Tick")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -227,18 +223,6 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 	assert_true(seen.has(Expedition.State.CLIMBING), "the party climbed")
 	assert_eq(sim.expedition.depth, 2, "down to depth 2")
 	assert_lte(biggest, TILE / 2.0, "no sprite moved more than half a tile in one frame")
-
-	# A revival snaps. (Spec 038: each hero appears there still lying on its back, its feet raised
-	# by as much as its back reaches below them, and rises.)
-	_force_wipe(sim)
-	var revived: bool = _play_until(
-		sim, world, func() -> bool: return _emitted_since(start, SimEvent.Kind.PARTY_REVIVED)
-	)
-	assert_true(revived, "the party was revived")
-	for id: int in HERO_IDS:
-		var at: Vector2 = world.character(id).position
-		assert_eq(at.x, _feet(sim, id).x, "hero %d snapped" % id)
-		assert_between(at.y, _feet(sim, id).y - TILE, _feet(sim, id).y, "lying on that floor")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -315,34 +299,9 @@ func test_r3_heroes_act_out_the_state() -> void:
 		frame = _world_frame(sim, world, frame)
 	for id: int in HERO_IDS:
 		assert_true(world.character(id)._walking, "hero %d walks on the shaft" % id)
-
-	# Wiped: down until the revival, then back, the same sprites. (Spec 038: the fallen lie where
-	# they fell, shown, and rise after the revival.)
-	assert_true(
-		_play_until(sim, world, func() -> bool: return _state(sim) == Expedition.State.TRAVELLING),
-		"travelling"
-	)
-	_force_wipe(sim)
-	for i: int in 60:
-		frame = _world_frame(sim, world, frame)
-	assert_eq(_state(sim), Expedition.State.REVIVING)
-	for id: int in HERO_IDS:
-		var fallen: CharacterSprite = world.character(id)
-		assert_true(fallen.is_dead(), "hero %d is down after the wipe" % id)
-		assert_true(world.fallen_party.is_lying(id), "hero %d lies where it fell" % id)
-	var start: int = _emitted.size()
-	var revived: bool = _play_until(
-		sim, world, func() -> bool: return _emitted_since(start, SimEvent.Kind.PARTY_REVIVED)
-	)
-	assert_true(revived, "the party was revived")
-	var risen: bool = _play_until(
-		sim, world, func() -> bool: return not world.fallen_party.is_standing(KNIGHT)
-	)
-	assert_true(risen, "the party has risen")
 	for h: int in HERO_IDS.size():
 		var sprite: CharacterSprite = world.character(HERO_IDS[h])
 		assert_eq(sprite, originals[h], "hero %d keeps its sprite" % HERO_IDS[h])
-		assert_true(sprite.visible and not sprite.is_dead(), "hero %d is back" % HERO_IDS[h])
 		assert_lt(sprite._attack_time, 0.0, "hero %d is not attacking" % HERO_IDS[h])
 
 

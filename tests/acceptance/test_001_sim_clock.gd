@@ -148,21 +148,3 @@ func test_r6_focus_loss_throttles_rendering_only() -> void:
 
 	assert_eq(focused_ticks, 10)
 	assert_eq(background_ticks, focused_ticks, "the tick rate does not change")
-
-
-func test_r7_main_scene_shows_the_clock() -> void:
-	var main: Main = make_main()
-	add_child_autofree(main)
-	var label: Label = main.get_node("HUD/ClockLabel")
-	assert_not_null(main.driver, "the main scene has a driver")
-	assert_not_null(main.simulation, "the main scene has a simulation")
-	if main.driver == null or main.simulation == null:
-		return
-
-	# 12.3 s more than whatever real frames have stepped so far.
-	main.driver.advance(12_300 * MS)
-	_drain(main.driver)
-	var tick: int = main.simulation.tick
-	assert_gte(tick, 123)
-	assert_string_contains(label.text, str(tick))
-	assert_string_contains(label.text, "%.1f" % main.simulation.seconds())

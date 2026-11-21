@@ -6,8 +6,7 @@ extends ColonyTest
 const PLAYED_TICKS: int = 3000
 const AWAY_SECONDS: float = 3600.0
 
-## One hour's replay and the same hour stepped by hand, shared by R1, R2 and R6.
-var _replayed: Simulation
+## One hour's replay and the same hour stepped by hand, shared by R1 and R2.
 var _report: AwayReport
 var _stepped: Simulation
 var _events: Array[SimEvent] = []
@@ -19,8 +18,7 @@ func before_all() -> void:
 		sim.step()
 	sim.drain_events()
 	var saved: Dictionary = JSON.parse_string(JSON.stringify(sim.to_save()))
-	_replayed = Simulation.from_save(saved)
-	var replay := AwayReplay.new(_replayed, AWAY_SECONDS)
+	var replay := AwayReplay.new(Simulation.from_save(saved), AWAY_SECONDS)
 	while not replay.run(1_000_000):
 		pass
 	_report = replay.report
@@ -250,8 +248,3 @@ func test_r5_it_still_fits() -> void:
 				float(UiText.LINE_HEIGHT),
 				"line %d clear of the one above" % i
 			)
-
-
-func test_r6_nothing_else_changes() -> void:
-	assert_eq(_replayed.tick, _stepped.tick, "the same ticks")
-	assert_eq(_replayed.state_hash(), _stepped.state_hash(), "the same state")

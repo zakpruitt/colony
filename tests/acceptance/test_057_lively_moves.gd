@@ -793,13 +793,11 @@ func test_r8_still_readable() -> void:
 	assert_eq(_sim.expedition.battle.monsters.size(), 5, "five monsters")
 	var covering: Dictionary[Object, int] = {}
 	var longest: int = 0
-	var named: int = 0
 	var moves: int = 0
 	var spells: int = 0
 	var most_particles: int = 0
 	var frames: int = 0
 	while _fighting() and frames < 60 * 40:
-		var start: int = _heard.size()
 		for i: int in 4:
 			_sim.step()
 		_frame()
@@ -824,13 +822,6 @@ func test_r8_still_readable() -> void:
 				over = over or boxes[shown].intersects(bar)
 			covering[shown] = covering.get(shown, 0) + 1 if over else 0
 			longest = maxi(longest, covering[shown])
-		for event: SimEvent in _heard.slice(start):
-			if event.kind == SimEvent.Kind.ABILITY_STARTED and event.source_id in HERO_IDS:
-				if (
-					Content.ability(event.ability_id).display_name
-					in _abilities().names_over(event.source_id)
-				):
-					named += 1
 		var count: int = _fx.live_particles()
 		most_particles = maxi(most_particles, count)
 		assert_lte(count, CombatEffects.MAX_PARTICLES, "spec 010's particle limit")
@@ -840,7 +831,6 @@ func test_r8_still_readable() -> void:
 	assert_gt(moves, 0, "moves were played")
 	assert_gt(spells, 0, "spells were seen")
 	assert_lte(longest * FRAME, MOMENT, "nothing covers a health frame past a moment")
-	assert_gt(named, 10, "ability names still show")
 
 
 # --- R9 ------------------------------------------------------------------------

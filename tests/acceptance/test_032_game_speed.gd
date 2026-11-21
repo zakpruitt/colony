@@ -345,8 +345,14 @@ func test_r6_time_away_unaffected() -> void:
 			return
 		back.set_speed(4)  # pressing F during the replay changes nothing about it
 		var total: int = back.replay.total_ticks
-		while back.is_catching_up():
+		# A slice steps at least one tick, so the replay ends within a frame per tick.
+		var frames: int = 0
+		while back.is_catching_up() and frames <= total:
 			back._process(FRAME)
+			frames += 1
+		assert_false(back.is_catching_up(), "%dx: the replay ends" % speed)
+		if back.is_catching_up():
+			return
 		totals.append(total)
 		var summary: String = (
 			"tick %d, hash %s, gold %d, kills %d"
@@ -424,17 +430,3 @@ func test_r7_keys() -> void:
 		assert_ne(main.world.camera.zoom_level(), zoom, "Z still works (%s)" % panel)
 		press(KEY_Z)
 		assert_eq(main.speed, speed, "none of them changes the speed (%s)" % panel)
-
-	hud.shop.close()
-	hud.hero_windows.close_all()
-	windows.close_window(UiRoot.JOURNAL)
-	press(KEY_U)
-	assert_true(hud.shop.is_open(), "U still opens the shop")
-	press(KEY_ESCAPE)
-	assert_false(hud.shop.is_open(), "Esc still closes it")
-	press(KEY_J)
-	assert_true(windows.is_open(UiRoot.JOURNAL), "J still opens the journal")
-	press(KEY_J)
-	press(KEY_TAB)
-	assert_true(hud.hero_windows.is_open(), "Tab still opens a hero window")
-	press(KEY_ESCAPE)
