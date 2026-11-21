@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/play_fixture.gd"
 ## Acceptance tests for specs/024-guardian-fights/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation, with the CombatEffects, the Hud (and its
@@ -8,101 +8,33 @@ extends ColonyTest
 ## each move on by STEP. Events are recorded as the world passes them on.
 
 const SEED: int = 1
-const STEP: float = 1.0 / 60.0
-const FRAMES_PER_TICK: int = 6
 const GUARDIAN_DEPTH: int = 5
 const STRONG_LEVEL: int = 40
 const SLIME_KING_SHEET: String = "res://assets/sprites/monsters/slime_king.png"
-## The longest a test waits for a fight to start or end, in simulation ticks.
-const FIGHT_TICKS: int = 3000
 
 var _settings_path: String = save_path("", "settings")
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 var _sound: SoundPlayer
-var _events: Array[SimEvent] = []
-var _frame: int = 0
 
 
 func before_each() -> void:
-	_events = []
-	_frame = 0
+	_frames_played = 0
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_build_hud(false)
 	_sound = SoundPlayer.new()
 	_sound.settings = SoundSettings.new(_settings_path)
 	add_child_autofree(_sound)
 	_sound.set_process(false)
 	_sound.setup(_world, _fx, _sim, null)
-	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
+	_frame_parts = [_fx.advance, _hud.advance, _sound._process]
+	_hear_events()
 
 
 # --- Helpers -------------------------------------------------------------------
 
 
-## Puts the party on the guardian's depth just outside its chamber, walking in, no auto-push.
-func _before_guardian() -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.target_depth = GUARDIAN_DEPTH + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-## One frame: the simulation steps every FRAMES_PER_TICK frames (if [param stepping]), and
-## everything else moves on by STEP.
-func _play_frame(stepping: bool = true) -> void:
-	if stepping and _frame % FRAMES_PER_TICK == 0:
-		_sim.step()
-	_frame += 1
-	_world.sync(STEP)
-	_fx.advance(STEP)
-	_hud.advance(STEP)
-	_sound._process(STEP)
-
-
-## Plays frames until an event of [param kind] has been passed on (true), or the limit.
-func _play_until(kind: SimEvent.Kind, ticks: int = FIGHT_TICKS) -> bool:
-	_events = []
-	for i: int in ticks * FRAMES_PER_TICK:
-		_play_frame()
-		for event: SimEvent in _events:
-			if event.kind == kind:
-				return true
-	return false
-
-
 func _play_seconds(seconds: float, stepping: bool = true) -> void:
 	for i: int in roundi(seconds / STEP):
 		_play_frame(stepping)
-
-
-## The effects' texts of [param kind] still showing.
-func _texts(kind: StringName) -> Array[FxText]:
-	var found: Array[FxText] = []
-	for text: FxText in _fx.texts():
-		if text.kind == kind:
-			found.append(text)
-	return found
 
 
 func _words(kind: StringName) -> Array[String]:
@@ -123,7 +55,7 @@ func _guardian_events(kind: SimEvent.Kind) -> Array[SimEvent]:
 ## Starts the fight with the Slime King with a strong party; true once it has begun.
 func _start_guardian_fight(level: int = STRONG_LEVEL) -> bool:
 	raise_party(_sim, level)
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH)
 	return _play_until(SimEvent.Kind.ENCOUNTER_STARTED)
 
 
@@ -234,7 +166,7 @@ func test_r3_guardian_death() -> void:
 	var palette: PackedColorArray = CombatEffects.sheet_colors(load(SLIME_KING_SHEET) as Texture2D)
 	var died: bool = false
 	var started: Array[StringName] = []
-	for i: int in FIGHT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_events = []
 		_play_frame()
 		started.append_array(_sound.drain_started())
@@ -326,7 +258,7 @@ func test_r5_within_budget() -> void:
 	var most_particles: int = 0
 	var most_numbers: int = 0
 	var died: bool = false
-	for i: int in FIGHT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_events = []
 		_play_frame()
 		most_particles = maxi(most_particles, _fx.live_particles())

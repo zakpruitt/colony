@@ -1,33 +1,19 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/011-hud/spec.md, one per requirement.
 
 const SEED: int = 11
-const SCREEN: Vector2 = Vector2(640, 360)
 const TOP_BAND: float = 28.0
 const BOTTOM_BAND: float = 40.0
 const KNIGHT: int = 1
 const MAGE: int = 3
 
-var _sim: Simulation
-var _world: World
 var _effects: CombatEffects
-var _hud: Hud
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_effects = CombatEffects.new()
-	add_child_autofree(_effects)
-	_effects.setup(_world, _sim)
-	_effects.set_process(false)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _effects)
+	_build_hud(false)
+	_effects = _fx
 	_hud.advance(0.0)
 
 

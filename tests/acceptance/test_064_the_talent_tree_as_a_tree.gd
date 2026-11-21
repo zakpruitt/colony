@@ -341,14 +341,6 @@ func test_r5_pointing_tells_all() -> void:
 	assert_false(_texts(view).has(Content.ability(tree.trunk[0]).description), "not in the tree")
 
 
-## The last line of the card of [param view]'s node [param id]: how it stands.
-func _stands(main: Main, view: TalentTreeView, id: StringName) -> String:
-	_point(main, view.node(id).slot)
-	var said: String = main.ui.tip.card_stand.text
-	_point_away(main)
-	return said
-
-
 # --- R6 ------------------------------------------------------------------------
 
 
@@ -394,11 +386,11 @@ func test_r6_what_is_next_without_pointing() -> void:
 	check.call(tree.trunk[0], "Click to learn", true, "the mouse gone")
 	# The Learn button takes it.
 	_click(main, strip.learn_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "Learn takes it")
 	check.call(tree.trunk[1], "Click to learn", true, "then the next")
 	_click(main, strip.learn_button)
-	_tick(main)
+	_frame(main)
 	# No point left: the first not yet taken on the hero's way, with no button.
 	check.call(tree.trunk[2], "No points: the next comes at level 6", false, "nothing to take")
 	# On a path: the next on it; Learn on a path's first node asks first.
@@ -409,7 +401,7 @@ func test_r6_what_is_next_without_pointing() -> void:
 	_click(main, strip.learn_button)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.PATH, "a path asks first")
 	_click(main, tab.not_yet_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), tree.trunk, "nothing taken")
 	knight.set_talents(_walked(&"knight", 1, 2))
 	set_level_keeping_health(knight, 12)
@@ -456,10 +448,10 @@ func test_r7_points() -> void:
 		"over the tree"
 	)
 	_click(main, tab.node(tree.trunk[0]).slot)
-	_tick(main)
+	_frame(main)
 	assert_eq(tab.points_label.text, "1 point to spend", "one")
 	_click(main, tab.node(tree.trunk[1]).slot)
-	_tick(main)
+	_frame(main)
 	assert_eq(tab.points_label.text, "Next point at level 6", "when the next comes")
 	# The reset, with its price and reasons, asks first.
 	main.simulation.party.gold = 0
@@ -473,7 +465,7 @@ func test_r7_points() -> void:
 	assert_eq(tab.ask_label.text, "Reset the Knight's tree for 400 gold?", "at its price")
 	assert_false(tab.question_card.is_visible_in_tree(), "no path to show")
 	_click(main, tab.not_yet_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents().size(), 2, "nothing reset")
 	# The question before a path shows that path's banner and its four pictures.
 	set_level_keeping_health(knight, 8)
@@ -492,10 +484,10 @@ func test_r7_points() -> void:
 		assert_true(icon.is_visible_in_tree(), "picture %d shows" % i)
 		assert_eq(icon.picture_rect.texture, UiIcon.picture(tree.path_b[i]), "in order")
 	assert_true(shown.get_global_rect().encloses(card.get_global_rect()), "inside the window")
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.path(), -1, "asking sends nothing")
 	_click(main, tab.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.path(), 1, "Choose sends it")
 	assert_false(card.is_visible_in_tree(), "the question gone")
 
@@ -515,7 +507,7 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	_clear_banners(main)
 	# A click: the node bursts, the line into it lights, a banner names it.
 	_click(main, view.node(tree.trunk[0]).slot)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "taken")
 	assert_true(moment.is_bursting(view.node(tree.trunk[0]).slot), "the node bursts")
 	assert_eq(_banner(main), "Knight learned Shield Bash", "a banner")
@@ -526,19 +518,19 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	# The Learn button: the line into it lights too.
 	_point_away(main)
 	_click(main, shown.talents.strip.learn_button)
-	_tick(main)
+	_frame(main)
 	assert_true(moment.is_bursting(view.node(tree.trunk[1]).slot), "Learn: a burst")
 	assert_true(view.is_lit(tree.trunk[1]), "the line into it lights")
 	assert_eq(_banner(main), "Knight learned Taunt", "and a banner")
 	_clear_banners(main)
 	_click(main, view.node(tree.trunk[2]).slot)
-	_tick(main)
+	_frame(main)
 	_clear_banners(main)
 	# The question's yes, on the first node of a path: the path's banner, and the other closes
 	# before the player's eyes within half a second.
 	_click(main, view.node(tree.path_b[0]).slot)
 	_click(main, shown.talents.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.path(), 1, "a Berserker")
 	assert_true(moment.is_bursting(view.node(tree.path_b[0]).slot), "the node bursts")
 	assert_eq(_banner(main), "Knight is now a Berserker", "the path's banner")
@@ -562,10 +554,7 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	_clear_banners(main)
 	var bursts: int = moment.bursts_seen()
 	main.simulation.take_talent(knight.id, tree.path_b[1])
-	for i: int in STALE_TICKS:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
+	_frame(main, STALE_TICKS)
 	assert_true(knight.talents().has(tree.path_b[1]), "taken")
 	assert_eq(view.node(tree.path_b[1]).slot.state(), UiIcon.State.OWNED, "the tree shows it")
 	assert_eq(moment.bursts_seen(), bursts, "no burst")
@@ -577,10 +566,7 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	mage.set_talents(_tree(&"mage").trunk)
 	var other: HeroWindow = _open(main, mage, HeroWindow.Page.TALENTS)
 	main.simulation.take_talent(mage.id, _tree(&"mage").path_a[0])
-	for i: int in STALE_TICKS:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
+	_frame(main, STALE_TICKS)
 	assert_false(_view(other).is_closing(), "nothing to watch")
 	for id: StringName in _tree(&"mage").path_b:
 		assert_eq(_view(other).node(id).slot.state(), UiIcon.State.CLOSED, "%s closed" % id)
@@ -598,10 +584,10 @@ func test_r8_taking_a_node_is_a_moment() -> void:
 	assert_false(_view(closed).is_closing(), "no closing for a choice long past")
 	assert_false(_view(closed).is_lit(_tree(&"rogue").path_a[0]), "nor a line lit")
 	# As the world catches up, what was playing stops.
-	_tick(main)  # the world level with the simulation again
+	_frame(main)  # the world level with the simulation again
 	var cleric: Hero = _hero(main, &"cleric")
 	var caught: HeroWindow = _choose_now(main, cleric)
-	_stall(main, STALE_TICKS)
+	_frame(main, STALE_TICKS)
 	assert_false(_view(caught).is_closing(), "the closing stops as the world catches up")
 	assert_false(_view(caught).is_lit(_tree(&"cleric").path_a[0]), "and the lit line")
 
@@ -653,7 +639,7 @@ func test_r9_paragon() -> void:
 	var power: ParagonCell = tab.paragon_cells[0]
 	await _into_view(main, shown, power)
 	_click(main, power.medallion)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 1, "a point in Power")
 	assert_eq(power.medallion.count_label.text, "1", "its count")
 	assert_eq(power.total_label.text, "+3% damage and healing", "its total")
@@ -661,7 +647,7 @@ func test_r9_paragon() -> void:
 	assert_eq(tab.paragon_label.text, "2 paragon points", "one fewer")
 	# The key, on the front window's Talents tab.
 	_press(main, KEY_2)
-	_tick(main)
+	_frame(main)
 	var toughness: ParagonCell = tab.paragon_cells[1]
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "key 2")
 	assert_eq(toughness.medallion.count_label.text, "1", "its count")
@@ -672,28 +658,28 @@ func test_r9_paragon() -> void:
 	set_level_keeping_health(knight, 40)
 	for i: int in 8:
 		main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
-	_tick(main)
+	_frame(main)
 	_clear_banners(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 9, "nine")
 	_click(main, power.medallion)
-	_tick(main)
+	_frame(main)
 	assert_eq(power.medallion.count_label.text, "10", "ten")
 	assert_eq(_banner(main), "Knight: Power 10, +30% damage and healing", "a banner")
 	assert_eq(moment.banner_picture.texture, UiIcon.picture(&"power"))
 	_clear_banners(main)
 	_click(main, power.medallion)
-	_tick(main)
+	_frame(main)
 	assert_eq(_banner(main), "", "the eleventh: none")
 	# A point spent long ago, or heard as the world catches up, flashes nothing.
 	main.hud.advance(ParagonCell.FLASH_SECONDS)
 	assert_eq(power.flash(), 0.0, "at rest")
 	main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
-	_stall(main, STALE_TICKS)
+	_frame(main, STALE_TICKS)
 	assert_eq(power.flash(), 0.0, "no flash for a point spent long ago")
 	for i: int in STALE_TICKS:
 		main.simulation.step()
 	main.simulation.spend_paragon(knight.id, TrainingDef.Stat.POWER)
-	_stall(main, 1)
+	_frame(main, 1)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 13, "both spent")
 	assert_eq(power.flash(), 0.0, "nor for one heard as the world catches up")
 
@@ -729,7 +715,7 @@ func test_r10_skills() -> void:
 	rogue.xp = Hero.xp_for_level(first.level) - 1
 	var ticks: int = 0
 	while rogue.level < first.level and ticks < LIMIT_TICKS:
-		_tick(main)
+		_frame(main)
 		ticks += 1
 	assert_eq(rogue.level, first.level, "it levels")
 	assert_true(moment.is_bursting(first.slot), "the card bursts")
@@ -749,7 +735,7 @@ func test_r10_skills() -> void:
 		_clear_banners(main)
 		rogue.xp = Hero.xp_for_level(second.level) - 1
 		while rogue.level < second.level and ticks < LIMIT_TICKS * 2:
-			_tick(main)
+			_frame(main)
 			ticks += 1
 		assert_false(moment.is_bursting(second.slot), "not on Skills: no burst")
 		banners.clear()
@@ -769,10 +755,7 @@ func test_r10_skills() -> void:
 	while cleric.level < later and ticks < LIMIT_TICKS:
 		main.simulation.step()
 		ticks += 1
-	for i: int in STALE_TICKS:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
+	_frame(main, STALE_TICKS)
 	assert_eq(moment.bursts_seen(), bursts, "a stale one: no burst")
 	assert_eq(_banner(main), "", "and no banner")
 
@@ -792,11 +775,11 @@ func test_r11_nothing_lost() -> void:
 	assert_eq(shown.talents_tag.count, HeroWindow.unspent(knight), "the tag counts what waits")
 	for id: StringName in tree.trunk:
 		_click(main, tab.node(id).slot)
-		_tick(main)
+		_frame(main)
 	assert_eq(knight.talents(), tree.trunk, "take_talent, click by click")
 	await _into_view(main, shown, tab.paragon_cells[1])
 	_click(main, tab.paragon_cells[1].medallion)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "spend_paragon")
 	assert_eq(shown.talents_tag.count, HeroWindow.unspent(knight), "the tag still counts")
 	# A reset is never charged at a price the player did not read.
@@ -805,7 +788,7 @@ func test_r11_nothing_lost() -> void:
 	main.hud.advance(STEP)
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the question goes")
 	tab.confirm()
-	_tick(main)
+	_frame(main)
 	assert_eq(sim.party.gold, RICH, "nothing charged")
 	# Nor when the answer comes before the tab has looked again: the click lands on the question
 	# still up, in the frame the price changed.
@@ -813,14 +796,14 @@ func test_r11_nothing_lost() -> void:
 	assert_eq(tab.asking(), HeroTalentsTab.Asking.RESET, "asked at the price shown")
 	set_level_keeping_health(knight, PARAGON_LEVEL + 2)
 	_click_ui(main.ui, tab.choose_button.get_global_rect().get_center())
-	_tick(main)
+	_frame(main)
 	assert_eq(sim.party.gold, RICH, "answered at a price not read: nothing charged")
 	assert_eq(knight.talents(), tree.trunk, "and nothing reset")
 	set_level_keeping_health(knight, PARAGON_LEVEL + 1)
 	main.hud.advance(STEP)
 	_click(main, tab.reset_button)
 	_click(main, tab.choose_button)
-	_tick(main)
+	_frame(main)
 	assert_eq(knight.talents(), [] as Array[StringName], "reset_talents, read and answered")
 	assert_eq(sim.party.gold, RICH - 1800, "at the price read")
 	# A goal opens the hero's window on its Talents tab.

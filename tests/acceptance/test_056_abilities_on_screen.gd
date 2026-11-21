@@ -232,7 +232,7 @@ func test_r2_a_revive_in_a_real_fight() -> void:
 	var frames: int = 0
 	while _fighting() and frames < 60 * 300 and not seen:
 		var start: int = _heard.size()
-		_play_frame()
+		_play_at_speed()
 		frames += 1
 		for event: SimEvent in _heard.slice(start):
 			if event.kind == SimEvent.Kind.REVIVED:

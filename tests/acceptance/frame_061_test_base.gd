@@ -3,7 +3,6 @@ extends "res://tests/acceptance/ui_layer_test_base.gd"
 ## constants and helpers, on top of ui_layer_test_base.gd's. Kept apart so the tests' own file stays
 ## under gdlint's length.
 
-const LIMIT_TICKS: int = 30_000
 const STRONG_LEVEL: int = 30
 const ROOMS: Array[Vector2i] = [Vector2i(960, 540), Vector2i(1280, 720)]
 ## Window sizes giving each pairing of world and UI scale: 1 and 1, 3 and 2, 4 and 2.
@@ -16,10 +15,7 @@ const SHOWCASE: String = "res://game/dev/showcase.gd"
 
 ## One frame of one tick: the simulation, the world, the effects, the HUD.
 func _tick(main: Main) -> void:
-	main.simulation.step()
-	main.world.sync(STEP)
-	main.effects.advance(STEP)
-	main.hud.advance(STEP)
+	_frame(main, 1, STEP, [&"effects", &"hud"])
 
 
 ## Steps [param main] a tick a frame until [param done] is true, at most [param ticks] ticks.
@@ -31,25 +27,9 @@ func _until(main: Main, done: Callable, ticks: int = LIMIT_TICKS) -> bool:
 	return done.call()
 
 
-## Sets the party up just before the guardian of stage [param depth].
-func _before_guardian(main: Main, depth: int) -> void:
-	var sim: Simulation = main.simulation
-	var e: Expedition = sim.expedition
-	var shaft: LabyrinthChamber = sim.labyrinth.level(depth).shaft_chamber()
-	sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
 ## A guardian fight under way in [param main], strong enough heroes to last.
 func _guardian_fight(main: Main) -> bool:
-	_before_guardian(main, Expedition.GUARDIAN_EVERY)
+	before_guardian(main.simulation, Expedition.GUARDIAN_EVERY)
 	raise_party(main.simulation, STRONG_LEVEL)
 	return _until(main, func() -> bool: return main.hud.boss_bar.is_showing())
 

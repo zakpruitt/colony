@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/027-reading-the-party/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -6,35 +6,17 @@ extends ColonyTest
 ## the game going on and every key reaching its owner.
 
 const SEED: int = 1
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
 const KNIGHT: int = 1
 const MAGE: int = 3
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 var _main: Main
 var _was_muted: bool = false
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
+	_build_hud(false)
 	_main = null
 	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
 	_was_muted = bus >= 0 and AudioServer.is_bus_mute(bus)
@@ -50,18 +32,6 @@ func after_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-## Steps the simulation until [param done] returns true (true), or the limit (false). The HUD and
-## the world are brought up to date after each tick, as a frame would.
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		_hud.advance(0.1)
-		if done.call():
-			return true
-	return false
-
-
 func _in_state(state: Expedition.State) -> Callable:
 	return func() -> bool: return _sim.expedition.state == state
 
@@ -71,21 +41,6 @@ func _at_depth(depth: int) -> Callable:
 		return (
 			_sim.expedition.depth == depth and _sim.expedition.state == Expedition.State.TRAVELLING
 		)
-
-
-## Puts the party on [param depth] just outside its guardian's chamber, walking in, no auto-push.
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
 
 
 ## Takes a strong party down to depth 2, auto-push off, and leaves it travelling there.
@@ -204,7 +159,7 @@ func test_r1_status_line() -> void:
 
 	# A guardian, once the party is back on its feet.
 	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING)), "the party revives")
-	_before_guardian(5)
+	before_guardian(_sim, 5)
 	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
 	assert_eq(_hud.status_text(), "Fighting the Slime King", "fighting a guardian")
@@ -253,7 +208,7 @@ func test_r1_status_line_fits() -> void:
 	assert_true(_step_until(_in_state(Expedition.State.TRAVELLING)), "and arrives")
 	var depth: int = Expedition.GUARDIAN_EVERY
 	assert_eq(_sim.expedition.guardian_of(depth), longest, "it guards its own area's stage 5")
-	_before_guardian(depth)
+	before_guardian(_sim, depth)
 	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "the guardian's fight starts")
 	_sim.expedition.target_depth = depth
@@ -522,7 +477,7 @@ func test_r5_marker() -> void:
 
 
 func test_r6_it_fits() -> void:
-	_before_guardian(5)
+	before_guardian(_sim, 5)
 	raise_party(_sim, STRONG_LEVEL)
 	assert_true(_step_until(_in_state(Expedition.State.FIGHTING)), "a guardian fight")
 	_hud.advance(0.0)

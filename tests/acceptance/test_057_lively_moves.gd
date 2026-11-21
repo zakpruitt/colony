@@ -202,7 +202,7 @@ func _guardian_fight(path: int) -> void:
 	var label: String = "path %d" % path
 	var frames: int = 0
 	while not _fighting() and frames < 60 * 120:
-		_play_frame()
+		_play_at_speed()
 		frames += 1
 	var guardian: Combatant = GuardianSpacing.fighting_guardian(_sim)
 	assert_not_null(guardian, "%s: the guardian's fight starts" % label)
@@ -233,7 +233,7 @@ func _guardian_fight(path: int) -> void:
 	frames = 0
 	while _fighting() and frames < 60 * 90:
 		var start: int = _heard.size()
-		_play_frame()
+		_play_at_speed()
 		frames += 1
 		var hits: int = 0
 		for event: SimEvent in _heard.slice(start):
@@ -393,7 +393,7 @@ func _see_spell(ability_id: StringName, hero_id: int) -> void:
 	while landed < 0 and frames < 60 * 30:
 		_keep_going(battle, ability_id)
 		var start: int = _heard.size()
-		_play_frame()
+		_play_at_speed()
 		frames += 1
 		for event: SimEvent in _heard.slice(start):
 			if event.source_id != hero_id or event.ability_id != ability_id:
@@ -423,7 +423,7 @@ func _see_spell(ability_id: StringName, hero_id: int) -> void:
 	assert_true(main_seen, "%s reads %s" % [kind, main_color])
 	for i: int in 60:
 		_keep_going(battle, &"")
-		_play_frame()
+		_play_at_speed()
 	assert_eq(_spells().particles(kind).size(), 0, "%s is gone a second after landing" % kind)
 
 
@@ -682,7 +682,7 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	assert_gt(under_way, 0, "moves were played in the watched fight")
 	var whole: bool = false
 	for tries: int in 20:
-		_play_frame()
+		_play_at_speed()
 		var start: int = _heard.size()
 		for i: int in 300:
 			_sim.step()

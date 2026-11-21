@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/049-areas/spec.md, one per requirement: the labyrinth is a set of
 ## areas, each with its own monsters, guardian and stages, and the party can be sent between them.
 
@@ -97,29 +97,6 @@ func _kinds(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
 		if event.kind == kind:
 			found.append(event)
 	return found
-
-
-## Puts the party on [param depth] just outside its shaft chamber, walking in, no auto-push.
-func _before_guardian(sim: Simulation, depth: int) -> void:
-	var e: Expedition = sim.expedition
-	var shaft: LabyrinthChamber = sim.labyrinth.level(depth).shaft_chamber()
-	sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-func _run(sim: Simulation, ticks: int) -> Array[SimEvent]:
-	var events: Array[SimEvent] = []
-	for i: int in ticks:
-		sim.step()
-		events.append_array(sim.drain_events())
-	return events
 
 
 ## A monster's numbers met at [param level] as the old rule made them at that depth.
@@ -228,7 +205,7 @@ func test_r2_a_stage_is_a_depth() -> void:
 	e2.depth = 4
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
-	_run(sim, 80)
+	run_ticks(sim, 80)
 	assert_eq(e2.area, &"ember_deep", "still in the area after a wipe")
 	assert_eq(e2.depth, 2, "back to the area's safe stage")
 
@@ -473,8 +450,8 @@ func test_r6_guardians_open_areas() -> void:
 	raise_party(sim, STRONG_LEVEL)
 	assert_false(sim.is_area_open(&"claypits"), "closed before")
 	assert_true(sim.is_area_open(&"mossy_hollow"), "the first area is open")
-	_before_guardian(sim, 5)
-	var events: Array[SimEvent] = _run(sim, 3000)
+	before_guardian(sim, 5)
+	var events: Array[SimEvent] = run_ticks(sim, 3000)
 	var slain: Array[SimEvent] = _kinds(events, SimEvent.Kind.GUARDIAN_SLAIN)
 	assert_eq(slain.size(), 1, "the Slime King is beaten")
 	var opened: Array[SimEvent] = _kinds(events, SimEvent.Kind.AREA_OPENED)
@@ -487,8 +464,8 @@ func test_r6_guardians_open_areas() -> void:
 	_send(sim, &"claypits", 1)
 	_send(sim, &"mossy_hollow", 5)
 	raise_party(sim, STRONG_LEVEL)
-	_before_guardian(sim, 5)
-	var again: Array[SimEvent] = _run(sim, 3000)
+	before_guardian(sim, 5)
+	var again: Array[SimEvent] = run_ticks(sim, 3000)
 	assert_eq(_kinds(again, SimEvent.Kind.GUARDIAN_SLAIN).size(), 1, "beaten again")
 	assert_eq(_kinds(again, SimEvent.Kind.AREA_OPENED).size(), 0, "no second event")
 	# A later loss changes nothing.
@@ -498,7 +475,7 @@ func test_r6_guardians_open_areas() -> void:
 		waited += 1
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
-	var lost: Array[SimEvent] = _run(sim, 100)
+	var lost: Array[SimEvent] = run_ticks(sim, 100)
 	assert_eq(_kinds(lost, SimEvent.Kind.PARTY_WIPED).size(), 1, "the party is wiped")
 	assert_true(sim.is_area_open(&"claypits"), "still open after a loss")
 
@@ -651,18 +628,10 @@ func test_r8_saves() -> void:
 func test_r9_screen_names_the_area() -> void:
 	# A new party, level 1, sent to the Claypits: on its way, then there, then beaten there.
 	var sim := Simulation.new(SEEDS[0])
-	var world := World.new()
-	world.simulation = sim
-	add_child_autofree(world)
-	world.set_process(false)
-	var fx := CombatEffects.new()
-	add_child_autofree(fx)
-	fx.set_process(false)
-	fx.setup(world, sim)
-	var hud := Hud.new()
-	add_child_autofree(hud)
-	hud.set_process(false)
-	hud.setup(sim, world, fx)
+	_sim = sim
+	_build_hud(false)
+	var world: World = _world
+	var hud: Hud = _hud
 	var frame: Callable = func() -> void:
 		sim.step()
 		world.sync(0.1)
@@ -761,24 +730,10 @@ func test_r9_screen_names_the_area() -> void:
 ## A world, its effects and the HUD on [param sim], every _process off: index 0 the World, 1 the
 ## CombatEffects, 2 the Hud.
 func _view(sim: Simulation) -> Array[Node]:
-	var world := World.new()
-	world.simulation = sim
-	add_child_autofree(world)
-	world.set_process(false)
-	var fx := CombatEffects.new()
-	add_child_autofree(fx)
-	fx.set_process(false)
-	fx.setup(world, sim)
-	var hud := Hud.new()
-	add_child_autofree(hud)
-	hud.set_process(false)
-	hud.setup(sim, world, fx)
-	# Spec 059: the tally is a window on the UI layer, so the HUD needs one for it to open.
-	var ui := UiRoot.new()
-	add_child_autofree(ui)
-	ui.setup(sim, hud, null)
-	ui.bar.set_process(false)
-	return [world, fx, hud]
+	_sim = sim
+	_build_hud()
+	_ui.bar.set_process(false)
+	return [_world, _fx, _hud]
 
 
 ## The z's floating over resting heroes.
@@ -862,7 +817,7 @@ func test_r9_one_frame_holds_the_journey() -> void:
 	world.sync(0.1)
 	hud.advance(0.1)
 	raise_party(sim, STRONG_LEVEL)
-	_before_guardian(sim, 5)
+	before_guardian(sim, 5)
 	world.sync(0.1)
 	hud.advance(0.1)
 	sim.expedition.travel.open[&"claypits"] = true

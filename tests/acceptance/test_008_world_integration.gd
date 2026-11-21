@@ -15,8 +15,6 @@ const ROGUE: int = 2
 const MAGE: int = 3
 const CLERIC: int = 4
 const HERO_IDS: Array[int] = [KNIGHT, ROGUE, MAGE, CLERIC]
-## Ticks in three minutes: the longest any test waits for something to happen.
-const LIMIT_TICKS: int = 1800
 
 
 ## A simulation whose drain_events also hands out events a test injects, and remembers
@@ -62,18 +60,19 @@ func _feet(sim: Simulation, hero_id: int) -> Vector2:
 
 
 ## One rendered frame: a tick every FRAMES_PER_TICK frames, then sync. Returns the frame count.
-func _frame(sim: Simulation, world: World, frame: int) -> int:
+func _world_frame(sim: Simulation, world: World, frame: int) -> int:
 	if frame % FRAMES_PER_TICK == 0:
 		sim.step()
 	world.sync(FRAME)
 	return frame + 1
 
 
-## Plays frames until [param done] returns true, at most LIMIT_TICKS ticks. False if it never did.
+## Plays frames until [param done] returns true, at most LIMIT_TICKS_3_MIN ticks. False if it
+## never did.
 func _play_until(sim: Simulation, world: World, done: Callable) -> bool:
 	var frame: int = 0
-	while frame < LIMIT_TICKS * FRAMES_PER_TICK:
-		frame = _frame(sim, world, frame)
+	while frame < LIMIT_TICKS_3_MIN * FRAMES_PER_TICK:
+		frame = _world_frame(sim, world, frame)
 		if done.call():
 			return true
 	return false
@@ -183,14 +182,14 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 	# Warm up half a second, then watch three seconds of travel.
 	var frame: int = 0
 	for i: int in 30:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	var last: Array[Vector2] = []
 	for sprite: CharacterSprite in sprites:
 		last.append(sprite.position)
 	var still: int = 0
 	var far: int = 0
 	for i: int in 180:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 		assert_eq(_state(sim), Expedition.State.TRAVELLING, "the party is still travelling")
 		for h: int in sprites.size():
 			if sprites[h].position == last[h]:
@@ -208,12 +207,12 @@ func test_r2_hero_sprites_follow_smoothly() -> void:
 	var ended: bool = false
 	var biggest: float = 0.0
 	var start: int = _emitted.size()
-	while frame < LIMIT_TICKS * FRAMES_PER_TICK and not (ended and sim.expedition.depth == 2):
+	while frame < LIMIT_TICKS_3_MIN * FRAMES_PER_TICK and not (ended and sim.expedition.depth == 2):
 		for h: int in sprites.size():
 			last[h] = sprites[h].position
 		var before: int = _emitted.size()
 		var stage: int = world.shown_stage()
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 		seen[_state(sim)] = true
 		ended = ended or _emitted_since(before, SimEvent.Kind.ENCOUNTER_ENDED)
 		if _emitted_since(before, SimEvent.Kind.PARTY_REVIVED):
@@ -255,7 +254,7 @@ func test_r3_heroes_act_out_the_state() -> void:
 	# Travelling: walking, facing the party's way.
 	var frame: int = 0
 	for i: int in 60:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	assert_eq(_state(sim), Expedition.State.TRAVELLING)
 	for id: int in HERO_IDS:
 		var sprite: CharacterSprite = world.character(id)
@@ -268,7 +267,7 @@ func test_r3_heroes_act_out_the_state() -> void:
 		"a fight"
 	)
 	for i: int in 90:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	var checked: int = 0
 	for id: int in HERO_IDS:
 		var battle: Battle = sim.expedition.battle
@@ -299,7 +298,7 @@ func test_r3_heroes_act_out_the_state() -> void:
 	)
 	assert_true(rested, "the party rested")
 	for i: int in 120:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	if _state(sim) == Expedition.State.RESTING:
 		for id: int in HERO_IDS:
 			assert_false(world.character(id)._walking, "hero %d is idle while resting" % id)
@@ -313,7 +312,7 @@ func test_r3_heroes_act_out_the_state() -> void:
 	)
 	assert_true(climbing, "the party climbed")
 	for i: int in 12:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	for id: int in HERO_IDS:
 		assert_true(world.character(id)._walking, "hero %d walks on the shaft" % id)
 
@@ -325,7 +324,7 @@ func test_r3_heroes_act_out_the_state() -> void:
 	)
 	_force_wipe(sim)
 	for i: int in 60:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	assert_eq(_state(sim), Expedition.State.REVIVING)
 	for id: int in HERO_IDS:
 		var fallen: CharacterSprite = world.character(id)
@@ -643,7 +642,7 @@ func test_r9_camera_and_focus_follow_the_party() -> void:
 	var world: World = _world(sim)
 	var frame: int = 0
 	for i: int in 30:
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 	var lead: float = world.camera.target.x - world.feet_position(KNIGHT).x
 	assert_eq(signi(roundi(lead)), sim.expedition.facing, "the camera looks ahead")
 	assert_lt(absf(lead), 8.0 * TILE, "but not far")
@@ -653,10 +652,10 @@ func test_r9_camera_and_focus_follow_the_party() -> void:
 	var biggest: float = 0.0
 	var climbed: bool = false
 	var switches: int = 0
-	while frame < LIMIT_TICKS * FRAMES_PER_TICK:
+	while frame < LIMIT_TICKS_3_MIN * FRAMES_PER_TICK:
 		var before: Vector2 = world.camera.position
 		var stage: int = world.shown_stage()
-		frame = _frame(sim, world, frame)
+		frame = _world_frame(sim, world, frame)
 		if world.shown_stage() != stage:
 			switches += 1
 			assert_eq(world.crossing.darkness(), 1.0, "it switches in the dark")

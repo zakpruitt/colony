@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/026-hero-sheet/spec.md, one per requirement. Since spec 060 the
 ## sheet is a window per hero on the UI layer ([HeroWindows]): these tests read the hero's window.
 
@@ -23,16 +23,10 @@ const STAT_KEYS: Array[StringName] = [
 	&"stat_healing",
 ]
 
-var _sim: Simulation
-var _world: World
-var _effects: CombatEffects
-var _hud: Hud
-var _ui: UiRoot
-
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_hud = _make_hud(_sim)
+	_hud = _make_hud(_sim, true, ROOM)
 
 
 func after_each() -> void:
@@ -42,30 +36,8 @@ func after_each() -> void:
 		AudioServer.set_bus_mute(bus, false)
 
 
-func _make_hud(simulation: Simulation) -> Hud:
-	_world = World.new()
-	_world.simulation = simulation
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_effects = CombatEffects.new()
-	add_child_autofree(_effects)
-	_effects.setup(_world, simulation)
-	_effects.set_process(false)
-	var made := Hud.new()
-	add_child_autofree(made)
-	made.set_process(false)
-	made.setup(simulation, _world, _effects)
-	# Spec 060: the hero windows live on the UI layer, which gives them to the HUD.
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.set_room_for_test(ROOM)
-	_ui.setup(simulation, made, null)
-	made.advance(0.0)
-	return made
-
-
 ## A left click on [param frame], delivered as the GUI delivers one.
-func _click(frame: HeroFrameView) -> void:
+func _click_view(frame: HeroFrameView) -> void:
 	for pressed: bool in [true, false]:
 		var event := InputEventMouseButton.new()
 		event.button_index = MOUSE_BUTTON_LEFT
@@ -78,18 +50,12 @@ func _windows() -> HeroWindows:
 	return _hud.hero_windows
 
 
-## Hero [param hero_id]'s window, opened (spec 060: the sheet of that hero).
-func _open(hero_id: int, hud: Hud = _hud) -> HeroWindow:
-	hud.hero_windows.open(hero_id)
-	return hud.hero_windows.window_of(hero_id)
-
-
 func _hero(index: int) -> Hero:
 	return _sim.party.heroes[index]
 
 
 ## Steps until the expedition is in [param wanted], at most [param limit] ticks.
-func _step_until(wanted: Expedition.State, limit: int = 20000) -> bool:
+func _step_to(wanted: Expedition.State, limit: int = 20000) -> bool:
 	return step_until(_sim, func() -> bool: return _sim.expedition.state == wanted, limit)
 
 
@@ -124,7 +90,7 @@ func test_r1_opening_and_closing() -> void:
 	var first_window: HeroWindow = windows.window_of(first.hero_id)
 	var second_window: HeroWindow = windows.window_of(second.hero_id)
 	assert_false(first_window.is_visible_in_tree(), "not shown")
-	_click(first)
+	_click_view(first)
 	assert_true(first_window.is_open(), "clicking a frame opens its hero's window")
 	assert_true(first_window.is_visible_in_tree(), "and it shows")
 	assert_eq(_marked_ids(), [first.hero_id] as Array[int], "that frame is marked")
@@ -134,13 +100,13 @@ func test_r1_opening_and_closing() -> void:
 		plain.edge_colour(),
 		"visibly: its edge differs from an unmarked frame's"
 	)
-	_click(first)
+	_click_view(first)
 	assert_false(first_window.is_open(), "clicking the same frame closes it")
 	assert_eq(_marked_ids(), [] as Array[int], "and unmarks it")
 
 	# Spec 060 R1: another frame opens another window beside the first, rather than switching.
-	_click(first)
-	_click(second)
+	_click_view(first)
+	_click_view(second)
 	assert_true(second_window.is_open(), "clicking another frame opens that hero's window")
 	assert_true(first_window.is_open(), "beside the first")
 	assert_eq(_marked_ids(), [first.hero_id, second.hero_id] as Array[int], "both marked")
@@ -151,7 +117,7 @@ func test_r1_opening_and_closing() -> void:
 	press(KEY_ESCAPE)
 	assert_false(windows.is_open(), "and does not open one")
 
-	_click(second)
+	_click_view(second)
 	assert_not_null(second_window.close_button, "the window has a close button")
 	if second_window.close_button != null:
 		assert_true(second_window.close_button.is_visible_in_tree(), "shown on the window")
@@ -258,7 +224,7 @@ func test_r3_where_they_stand() -> void:
 	assert_eq(sheet.line(&"xp"), _expected_xp(hero), "several levels on")
 
 	# Mid-fight, the hero's health is its fighter's.
-	assert_true(_step_until(Expedition.State.FIGHTING), "the party meets a fight")
+	assert_true(_step_to(Expedition.State.FIGHTING), "the party meets a fight")
 	var fighter: Combatant = _sim.expedition.battle.combatant(hero.id)
 	fighter.health = fighter.max_health - 17
 	_hud.advance(0.016)
@@ -364,7 +330,7 @@ func test_r5_what_they_are_doing() -> void:
 	for hero: Hero in _sim.party.heroes:
 		assert_eq(_activity(hero), "Walking", "%s walks at first" % hero.class_id)
 
-	assert_true(_step_until(Expedition.State.FIGHTING), "the party meets a fight")
+	assert_true(_step_to(Expedition.State.FIGHTING), "the party meets a fight")
 	var battle: Battle = _sim.expedition.battle
 	for hero: Hero in _sim.party.heroes:
 		assert_eq(_activity(hero), "Fighting", "%s: no target yet" % hero.class_id)
@@ -443,7 +409,7 @@ func test_r6_follows_the_simulation() -> void:
 	assert_not_null(loaded, "the save loads")
 	if loaded == null:
 		return
-	var loaded_hud: Hud = _make_hud(loaded)
+	var loaded_hud: Hud = _make_hud(loaded, true, ROOM)
 	var loaded_sheet: HeroWindow
 	for saved: Hero in loaded.party.heroes:
 		loaded_sheet = _open(saved.id, loaded_hud)
@@ -460,13 +426,6 @@ func test_r6_follows_the_simulation() -> void:
 
 
 # --- R7 ------------------------------------------------------------------------
-
-
-func _collect_labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label:
-			into.append(child)
-		_collect_labels(child, into)
 
 
 func test_r7_it_fits() -> void:

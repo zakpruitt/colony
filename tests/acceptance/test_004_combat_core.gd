@@ -92,14 +92,6 @@ func _run(battle: Battle, max_ticks: int = Battle.MAX_TICKS + 10) -> Array[SimEv
 	return events
 
 
-func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind, source: int = -2) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for e: SimEvent in events:
-		if e.kind == kind and (source == -2 or e.source_id == source):
-			found.append(e)
-	return found
-
-
 func _ticks_of(events: Array[SimEvent]) -> Array[int]:
 	var ticks: Array[int] = []
 	for e: SimEvent in events:

@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/079-effect-nodes-and-room-in-big-files/spec.md, one per requirement.
 ##
 ## R1 (normal play looks and sounds the same) is the rest of the suite passing, R4's numbers
@@ -90,29 +90,10 @@ const STARTS: Array[Vector2] = [
 	Vector2(654, 177),
 ]
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-
 
 func _start_effects() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-
-
-## The id of a monster the world shows.
-func _monster() -> int:
-	for id: int in _world._monsters:
-		if _world.character(id) != null:
-			return id
-	return -1
+	_build_world()
 
 
 ## True when [param node]'s script is FxNode or extends it.

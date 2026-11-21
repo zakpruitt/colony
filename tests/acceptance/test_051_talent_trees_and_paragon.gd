@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/051-talent-trees-and-paragon/spec.md, one per requirement (R11 has
 ## one test for the headless comparison and one per class for its paths). Spec 029's tests of gold
 ## training were removed with it; the tests of the hero sheet, goals, defeat note and help that
@@ -48,16 +48,10 @@ const OLD_PRICES: Dictionary = {
 const PATH_FIGHT: StringName = &"bone_lord"
 const PATH_FIGHT_LEVEL: int = 15
 const PATH_SEEDS: int = 5
-## The 90-second limit, in ticks.
-const LIMIT_TICKS: int = 900
 ## R11: how long a headless run may take to beat the Slime King.
 const KING_LIMIT_MINUTES: float = 60.0
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _tree(class_id: StringName) -> TalentTreeDef:
-	return Content.talent_tree(class_id)
 
 
 ## [param class_id]'s trunk, then path [param path] (0 or 1), as nodes in order.
@@ -505,23 +499,7 @@ func test_r6_paragon() -> void:
 ## A HUD over [param sim], as spec 034's tests build it, with the UI layer over it for the hero
 ## windows (spec 060), for the Talents tab.
 func _hud_over(sim: Simulation) -> Hud:
-	var world := World.new()
-	world.simulation = sim
-	add_child_autofree(world)
-	world.set_process(false)
-	var effects := CombatEffects.new()
-	add_child_autofree(effects)
-	effects.setup(world, sim)
-	effects.set_process(false)
-	var hud := Hud.new()
-	add_child_autofree(hud)
-	hud.set_process(false)
-	hud.setup(sim, world, effects)
-	var ui := UiRoot.new()
-	add_child_autofree(ui)
-	ui.setup(sim, hud, null)
-	hud.advance(0.0)
-	return hud
+	return _make_hud(sim)
 
 
 func after_each() -> void:
@@ -851,7 +829,7 @@ func _path_wins(class_id: StringName, path: int) -> int:
 		var def: MonsterDef = Content.monster(PATH_FIGHT)
 		var monsters: Array[Combatant] = [Combatant.from_monster(def, PATH_FIGHT_LEVEL, 100)]
 		var battle := Battle.new(heroes, monsters, 0.0, 14.0, true, SimRng.new(seed_value * 7 + 1))
-		while battle.result() == Battle.Result.ONGOING and battle.tick < LIMIT_TICKS:
+		while battle.result() == Battle.Result.ONGOING and battle.tick < LIMIT_TICKS_90_S:
 			battle.step()
 		if battle.result() == Battle.Result.HEROES_WON:
 			wins += 1

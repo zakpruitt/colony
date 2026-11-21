@@ -21,21 +21,16 @@ const SHOWCASE: String = "res://game/dev/showcase.tscn"
 
 ## A main scene laid out for [param room], its world caught up once (so the next frame is not a
 ## catch-up) and its moment run by hand.
+func before_each() -> void:
+	_frame_parts = [&"hud", &"moment"]
+
+
 func _start(room: Vector2i = ROOM_LARGE) -> Main:
 	var main: Main = _main(room)
 	main.ui.set_process(false)  # the moment's owner: it is run by hand
 	main.ui.tip.set_process(false)
 	_frame(main, 0)
 	return main
-
-
-## A frame of [param ticks] ticks of the simulation, then the world, the HUD and the moment.
-func _frame(main: Main, ticks: int = 1) -> void:
-	for i: int in ticks:
-		main.simulation.step()
-	main.world.sync(STEP)
-	main.hud.advance(STEP)
-	main.ui.moment.advance(STEP)
 
 
 func _row(main: Main, id: StringName) -> ShopRow:
@@ -51,19 +46,8 @@ func _bold(label: Label) -> bool:
 	return label.get_theme_font(&"font") == UiText.font(true)
 
 
-func _colour(label: Label) -> Color:
-	return label.get_theme_color(&"font_color")
-
-
 func _percent(def: UpgradeDef, rank: int) -> String:
 	return "+%d%%" % roundi(rank * def.per_rank * 100.0)
-
-
-func _labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label and (child as Label).is_visible_in_tree():
-			into.append(child as Label)
-		_labels(child, into)
 
 
 ## Every headline the moment shows over the next [param seconds], in order, each once.

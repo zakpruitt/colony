@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/041-after-a-defeat/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -8,91 +8,24 @@ extends ColonyTest
 ## defeat.
 
 const SEED: int = 41
-const STEP: float = 1.0 / 60.0
 const GUARDIAN_DEPTH: int = 5
 const DEEP: int = 7
 const SAFE: int = 4
 const STRONG_LEVEL: int = 40
 const RICH: int = 1_000_000
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 3000
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
 	_build_hud()
+	_ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------
 
 
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	# Spec 059: the shop is a window on the UI layer, so the HUD needs one for it to open.
-	var ui := UiRoot.new()
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
-	ui.bar.set_process(false)
-
-
 func _note() -> DefeatNote:
 	return _hud.defeat_note
-
-
-## Steps the simulation a tick at a time, the world after each and the HUD every tick (as frames
-## would), until [param done] returns true (true), or the limit (false).
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		_hud.advance(0.1)
-		if done.call():
-			return true
-	return false
-
-
-## Puts the party just outside the guardian's chamber on Mossy Hollow 5, walking in, no auto-push.
-func _before_guardian() -> void:
-	var e: Expedition = _sim.expedition
-	var lair: LabyrinthChamber = _sim.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = GUARDIAN_DEPTH
-	e.deepest_depth = maxi(e.deepest_depth, GUARDIAN_DEPTH)
-	e.last_stable_depth = SAFE
-	e.target_depth = GUARDIAN_DEPTH + 1
-	if lair.index > 0:
-		e.x = lair.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = lair.rect.end.x
-		e.facing = -1
-
-
-## Puts the party at the start of [param depth], hunting there, with [param stable] its safe depth.
-func _hunting_on(depth: int, stable: int) -> void:
-	var e: Expedition = _sim.expedition
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.x = _sim.labyrinth.level(depth).chambers[0].rect.position.x
-	e.deepest_depth = maxi(e.deepest_depth, depth)
-	e.last_stable_depth = stable
-	e.target_depth = depth
 
 
 ## Plays until the next fight starts, then loses it: the party is wiped. True once it is.
@@ -115,7 +48,7 @@ func _until_standing() -> bool:
 
 
 func _guardian_wipe() -> bool:
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	return _lose_next_fight()
 
 
@@ -241,7 +174,7 @@ func test_r1_defeat_note() -> void:
 func test_r2_says_why() -> void:
 	# 1. A guardian, the heroes below its balanced level; the depth is too far below the safe one
 	# as well, and the guardian's reason is the one given (spec 046 R10).
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	_sim.expedition.last_stable_depth = GUARDIAN_DEPTH - 3
 	assert_true(_lose_next_fight(), "the party loses to the guardian")
 	var lines: Array[String] = _note().lines()
@@ -262,7 +195,7 @@ func test_r2_says_why() -> void:
 		hero.gain_xp(Hero.xp_for_level(Goals.guardian_level(GUARDIAN_DEPTH)) - hero.xp)
 		_spend_talents(hero)
 		hero.health = hero.max_health()
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	_sim.expedition.last_stable_depth = GUARDIAN_DEPTH - 3
 	assert_true(_lose_next_fight(), "the party loses to the guardian again")
 	lines = _note().lines()
@@ -355,7 +288,7 @@ func test_r3_offers_help() -> void:
 
 	# A guardian with the order already Hold: nothing to hold (spec 046 R10).
 	_sim.party.gold = 0
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	var met: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(met), "the guardian fight starts")
 	_sim.set_guardian_order(Expedition.GuardianOrder.HOLD)
@@ -467,7 +400,7 @@ func test_r5_out_of_the_way() -> void:
 	# The heroes stand and walk straight into the guardian again while the note lingers: a new
 	# fight does not hide it, and it keeps off the boss bar too.
 	assert_true(_until_standing(), "the heroes stand")
-	_before_guardian()
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a new guardian fight starts")
 	assert_true(note.is_shown(), "the note is still up in the new fight")
@@ -505,8 +438,8 @@ func test_r5_nothing_after_time_away() -> void:
 	# replay does), then the world and HUD made on the party still down.
 	var away := Simulation.new(SEED)
 	_sim = away
-	_before_guardian()
-	for i: int in LIMIT_TICKS:
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
+	for i: int in LIMIT_TICKS_5_MIN:
 		away.step()
 		if away.expedition.battle != null:
 			break
@@ -517,6 +450,7 @@ func test_r5_nothing_after_time_away() -> void:
 	assert_eq(away.expedition.state, Expedition.State.REVIVING, "wiped while away")
 	away.drain_events()
 	_build_hud()
+	_ui.bar.set_process(false)
 	_hud.advance(STEP)
 	assert_false(_note().is_shown(), "no note for a wipe while away")
 	var revived: Callable = func() -> bool:
@@ -525,8 +459,8 @@ func test_r5_nothing_after_time_away() -> void:
 	assert_false(_note().is_shown(), "nor after the revival")
 
 	# A wipe seen only after a stall, as old events, is not told either.
-	_before_guardian()
-	for i: int in LIMIT_TICKS:
+	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
+	for i: int in LIMIT_TICKS_5_MIN:
 		_sim.step()
 		if _sim.expedition.battle != null:
 			break
@@ -566,11 +500,11 @@ func test_r7_nothing_else_changes() -> void:
 	var plain := Simulation.new(SEED)
 	for sim: Simulation in [watched, plain]:
 		_sim = sim
-		_before_guardian()
+		before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	_sim = watched
 	var shown: bool = false
 	var wipes: int = 0
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_5_MIN:
 		watched.step()
 		plain.step()
 		_world.sync(0.1)
@@ -583,12 +517,3 @@ func test_r7_nothing_else_changes() -> void:
 	assert_eq(wipes, 1, "the party lost to the guardian on its own")
 	assert_true(shown, "and the note was shown")
 	assert_eq(watched.state_hash(), plain.state_hash(), "equal at the end")
-
-
-## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
-## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
-func _spend_talents(hero: Hero) -> void:
-	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/022-auto-buy/spec.md, one per requirement. Nothing here reads or
 ## writes a save file: saves are dictionaries passed through JSON in memory.
 
@@ -36,11 +36,6 @@ const RECORDED_HASHES: Dictionary = {
 const HOUR_TICKS: int = 36_000
 const SEED: int = 17
 
-var _sim: Simulation
-var _world: World
-var _effects: CombatEffects
-var _hud: Hud
-
 # --- Helpers -------------------------------------------------------------------
 
 
@@ -52,45 +47,11 @@ func _events_of(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]
 	return found
 
 
-func _through_json(data: Dictionary) -> Dictionary:
-	var parsed: Variant = JSON.parse_string(JSON.stringify(data))
-	assert_true(parsed is Dictionary, "the save survives JSON")
-	return parsed as Dictionary
-
-
 func _any_names(problems: PackedStringArray, field: String) -> bool:
 	for problem: String in problems:
 		if problem.contains(field):
 			return true
 	return false
-
-
-## A HUD over a world over [param sim], none of them processing by themselves.
-func _make_hud(sim: Simulation) -> void:
-	_sim = sim
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_effects = CombatEffects.new()
-	add_child_autofree(_effects)
-	_effects.setup(_world, _sim)
-	_effects.set_process(false)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _effects)
-	var ui := UiRoot.new()  # spec 059: the shop is a window on the UI layer
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
-	_hud.advance(0.0)
-
-
-## Steps the simulation once and lets the world report its events, as a frame would.
-func _frame() -> void:
-	_sim.step()
-	_world.sync(0.016)
-	_hud.advance(0.016)
 
 
 # --- Requirements --------------------------------------------------------------
@@ -295,7 +256,7 @@ func test_r6_toggle_in_the_shop() -> void:
 	assert_false(shop.is_open())
 	press(KEY_B)
 	await wait_physics_frames(2)
-	_frame()
+	_frame(1, 0.016)
 	assert_false(_sim.auto_buy, "B with the shop closed does nothing")
 
 	_hud.shop.open()
@@ -307,20 +268,20 @@ func test_r6_toggle_in_the_shop() -> void:
 
 	press(KEY_B)
 	await wait_physics_frames(2)
-	_frame()
+	_frame(1, 0.016)
 	assert_true(_sim.auto_buy, "B turns it on")
 	assert_eq(toggle.text, "Auto-buy on")
 	assert_true(toggle.lit, "shown on, lit like the Auto button")
 
 	toggle.pressed.emit()
-	_frame()
+	_frame(1, 0.016)
 	assert_false(_sim.auto_buy, "the toggle turns it off")
 	assert_eq(toggle.text, "Auto-buy off")
 	assert_false(toggle.lit)
 
 	# The display follows the simulation, not its own memory.
 	_sim.set_auto_buy(true)
-	_frame()
+	_frame(1, 0.016)
 	assert_eq(toggle.text, "Auto-buy on", "follows the simulation")
 
 	# A loaded save with auto-buy on shows it on.
@@ -342,7 +303,7 @@ func test_r7_auto_buys_are_visible() -> void:
 	_sim.set_auto_buy(true)
 	var flashed: int = -1
 	for i: int in 20:
-		_frame()
+		_frame(1, 0.016)
 		for row: ShopRow in shop.rows:
 			if row.flash() > 0.0:
 				flashed = shop.rows.find(row)

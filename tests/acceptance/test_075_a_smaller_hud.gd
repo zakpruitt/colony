@@ -28,7 +28,7 @@ func after_each() -> void:
 
 
 ## One frame of the HUD and of the UI layer.
-func _frame(main: Main) -> void:
+func _advance_ui(main: Main) -> void:
 	main.hud.advance(STEP)
 	main.ui.advance(STEP)
 
@@ -172,7 +172,7 @@ func test_r3_the_hud_is_handed_what_it_needs() -> void:
 		var hud: Hud = main.hud
 		main.simulation.party.gold = 100_000
 		main.ui.windows.open_window(ShopWindow.ID)
-		_frame(main)
+		_advance_ui(main)
 		var auto_buy: bool = hud.shop.auto_buy_on()
 		_press(main, KEY_B)
 		assert_ne(hud.shop.auto_buy_on(), auto_buy, "%s: B switches auto-buy" % room)
@@ -229,19 +229,19 @@ func test_r4_a_change_shows_on_the_next_frame() -> void:
 		var hero: Hero = sim.party.heroes[0]
 		hud.hero_windows.open(hero.id, HeroWindow.Page.STATS)
 		main.ui.windows.open_window(ShopWindow.ID)
-		_frame(main)
+		_advance_ui(main)
 		var frame: HeroFrameView = hud.frames[0]
 		var shown: HeroWindow = hud.hero_windows.window_of(hero.id)
 		var what: String = "%s" % room
 		# Gold, counted in by a coin.
 		sim.party.gold += 1234
 		main.effects.coin_collected.emit(1234)
-		_frame(main)
+		_advance_ui(main)
 		assert_eq(hud.purse.gold_label.text, "1,234", "%s: the gold" % what)
 		assert_false(hud.shop.rows[0].buy_button.disabled, "%s: the shop sees it" % what)
 		# Health.
 		hero.health = hero.max_health() - 7
-		_frame(main)
+		_advance_ui(main)
 		var health: String = "%d / %d" % [hero.health, hero.max_health()]
 		assert_eq(frame.health_label.text, health, "%s: the frame's health" % what)
 		assert_eq(shown.line(&"health"), health, "%s: the window's health" % what)
@@ -252,7 +252,7 @@ func test_r4_a_change_shows_on_the_next_frame() -> void:
 		var xp_shown: float = frame.shown_xp()
 		for each: Hero in sim.party.heroes:
 			each.xp += 5
-		_frame(main)
+		_advance_ui(main)
 		var to_go: int = Hero.xp_for_level(2) - hero.xp
 		assert_eq(shown.line(&"xp"), "5 / 20 XP, %d to level 2" % to_go, "%s: the XP" % what)
 		assert_gt(frame.shown_xp(), xp_shown, "%s: the frame's XP bar moves" % what)
@@ -264,14 +264,14 @@ func test_r4_a_change_shows_on_the_next_frame() -> void:
 		)
 		# A level.
 		set_level_keeping_health(hero, 4)
-		_frame(main)
+		_advance_ui(main)
 		assert_eq(frame.level_label.text, "Lv 4", "%s: the frame's level" % what)
 		assert_eq(shown.line(&"level"), "Level 4", "%s: the window's level" % what)
 		var damage: String = str(hero.combatant().damage)
 		assert_string_contains(shown.line(&"stat_damage"), damage, "%s: the damage" % what)
 		# The place.
 		sim.expedition.target_depth = 3
-		_frame(main)
+		_advance_ui(main)
 		assert_eq(hud.place_panel.target_label.text, "3", "%s: the target" % what)
 		assert_eq(
 			hud.place_panel.status_label.text, "Heading on to stage 3", "%s: the status" % what
@@ -331,7 +331,7 @@ func test_r5_a_closed_window_does_no_work() -> void:
 		)
 		# A hero window refreshes only the tab showing; another is right as it opens.
 		raise(hero, hero.level + 2)
-		_frame(main)
+		_advance_ui(main)
 		# The label itself: line() reads a hidden tab as it would show.
 		var points: String = shown.talents.points_label.text
 		shown.open_page(HeroWindow.Page.TALENTS)
@@ -356,7 +356,7 @@ func test_r6_a_badge_follows_its_content() -> void:
 		var what: String = "%s" % room
 		var shop_tag: UiBadge = bar.badges[ShopWindow.ID]
 		var map_tag: UiBadge = bar.badges[AreaMapWindow.ID]
-		_frame(main)
+		_advance_ui(main)
 		assert_false(shop_tag.visible, "%s: no shop tag with no gold" % what)
 		assert_false(map_tag.visible, "%s: no map tag in a new game" % what)
 		main.simulation.party.gold = 100_000
@@ -388,7 +388,7 @@ func test_r6_a_badge_follows_its_content() -> void:
 		loaded.hud.set_process(false)
 		loaded.ui.set_room_for_test(room)
 		for i: int in 3:
-			_frame(loaded)
+			_advance_ui(loaded)
 		var tag: UiBadge = loaded.ui.bar.badges[ShopWindow.ID]
 		assert_true(tag.visible, "%s: a loaded game's shop tag shows" % room)
 		assert_eq(tag.count, loaded.hud.shop.affordable_count(), "%s: counting" % room)
@@ -436,7 +436,7 @@ func test_r7_every_colour_is_todays() -> void:
 		main.ui.windows.open_window(AreaMapWindow.ID)
 		hud.area_map.choose(Content.area_ids()[0])
 		hud.journal.announce("A line for the ticker")
-		_frame(main)
+		_advance_ui(main)
 		var what: String = "%s" % room
 		for frame: HeroFrameView in hud.frames:
 			_assert_colour(frame.level_label, &"yellow", "%s: a level" % what)
@@ -469,7 +469,7 @@ func test_r7_every_colour_is_todays() -> void:
 		heroes[0].health = 0
 		raise(heroes[1], 2)
 		raise(heroes[2], skills.skills.cards[0].level)
-		_frame(main)
+		_advance_ui(main)
 		_assert_colour(hud.frames[0].level_label, &"red", "%s: down" % what)
 		_assert_colour(hud.frames[0].name_label, &"slate", "%s: a name, down" % what)
 		assert_eq(stats.line_colour(&"activity"), Palette.color(&"red"), "%s: down" % what)

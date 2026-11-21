@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## The rig of spec 056's acceptance tests (tests/acceptance/test_056_abilities_on_screen.gd): a
 ## World on a seeded simulation, the CombatEffects that listen to it and, where asked, the Hud;
 ## and the helpers that feed them events and measure what shows. Not a test script itself.
@@ -19,20 +19,12 @@ const PATHS: Dictionary[StringName, int] = {&"knight": 1, &"rogue": 0, &"mage": 
 const TOUGHER: int = 8
 ## A shield as Bulwark puts it on (its real effect, so its strength can be known).
 const BULWARK_SHIELD: int = 1
-## The longest a test waits for something, in ticks.
-const LIMIT_TICKS: int = 20000
 ## R8: how long a name or number may cover a health bar, in seconds: a moment.
 const MOMENT: float = 0.1
 const BY: Dictionary[Tally.Measure, String] = {
 	Tally.Measure.DAMAGE: "damage", Tally.Measure.HEALING: "healing"
 }
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## Spec 059: the tally is a window on the UI layer, over the HUD's layer; made with the HUD.
-var _ui: UiRoot
 ## The simulation tick a test's battle began on: its events are stamped from it.
 var _base: int = 0
 ## Every event the world told of, oldest first.
@@ -61,27 +53,15 @@ func after_each() -> void:
 
 func _build(simulation: Simulation, with_hud: bool = false) -> void:
 	_sim = simulation
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
+	_build_world()
 	_world.sim_event.connect(func(event: SimEvent) -> void: _heard.append(event))
+	_frame_ticks = 0
+	_frame_seconds = FRAME
+	_frame_parts = [_fx.advance]
 	if with_hud:
-		var layer := CanvasLayer.new()
-		layer.layer = 129
-		add_child_autofree(layer)
-		_hud = Hud.new()
-		layer.add_child(_hud)
-		_hud.set_process(false)
-		_hud.setup(_sim, _world, _fx)
-		_ui = UiRoot.new()
-		_ui.layer = 130
-		add_child_autofree(_ui)
-		_ui.setup(_sim, _hud, null)
+		_add_hud(true)
+		_add_ui()
+		_frame_parts = [_fx.advance, _hud.advance]
 		_hud.advance(0.0)
 
 
@@ -91,14 +71,6 @@ func _abilities() -> AbilityEffects:
 
 func _marks() -> StatusMarks:
 	return _fx.ability_effects.marks
-
-
-## The id of a monster the world shows.
-func _monster() -> int:
-	for id: int in _world._monsters:
-		if _world.character(id) != null:
-			return id
-	return -1
 
 
 ## A battle of the party's fighters and the shown monster [param monster_id] (the simulation's own
@@ -162,18 +134,10 @@ func _event(
 	return event
 
 
-## One frame of [param seconds] (the world, the effects and the HUD), the simulation left as it is.
-func _frame(seconds: float = FRAME) -> void:
-	_world.sync(seconds)
-	_fx.advance(seconds)
-	if _hud != null:
-		_hud.advance(seconds)
-
-
 func _wait(seconds: float) -> void:
 	var left: float = seconds
 	while left > 0.0:
-		_frame(minf(FRAME, left))
+		_frame(0, minf(FRAME, left))
 		left -= FRAME
 
 
@@ -198,10 +162,6 @@ func _full_trees(paths: Dictionary[StringName, int] = PATHS) -> void:
 		hero.health = hero.max_health()
 
 
-func _fighting() -> bool:
-	return _sim.expedition.state == Expedition.State.FIGHTING and _sim.expedition.battle != null
-
-
 ## Steps the simulation, a frame of [param ticks] ticks at a time, until a fight starts with at
 ## least [param monsters] monsters; others on the way are ended at once. The monsters of the fight
 ## found get [param tougher] times their health. True if one was found.
@@ -223,13 +183,8 @@ func _find_fight(monsters: int, ticks: int = 1, sync: bool = true, tougher: int 
 	return false
 
 
-func _click_at(at: Vector2) -> void:
-	click(at)
-	mouse_move(Vector2(320, 200))
-
-
 ## One real frame of play at the world's speed: the simulation steps as many ticks as it owes.
-func _play_frame() -> void:
+func _play_at_speed() -> void:
 	_owed += FRAME * maxi(_world.speed, 1)
 	while _owed >= 1.0 / TPS:
 		_owed -= 1.0 / TPS

@@ -26,33 +26,11 @@ const FLOOR_RIGHT: float = 17.0
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ticks(seconds: float) -> int:
-	return roundi(seconds * Simulation.TICKS_PER_SECOND)
-
-
 func _ids(fighters: Array[Combatant]) -> Array[StringName]:
 	var ids: Array[StringName] = []
 	for c: Combatant in fighters:
 		ids.append(c.def_id)
 	return ids
-
-
-## Puts the party on [param depth] in the tunnel just outside its shaft chamber, walking in,
-## with a target one deeper and no auto-push.
-func _before_guardian(sim: Simulation, depth: int) -> LabyrinthChamber:
-	var e: Expedition = sim.expedition
-	var level: LabyrinthLevel = sim.labyrinth.level(depth)
-	var shaft: LabyrinthChamber = level.shaft_chamber()
-	sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-	return shaft
 
 
 ## Steps until an ENCOUNTER_ENDED (inclusive), at most [param limit] ticks; every event seen.
@@ -173,10 +151,10 @@ func test_r2_guardian_holds_the_way_down() -> void:
 	# The party at depth 5 with a deeper target fights the guardian before it can climb.
 	var walker := Simulation.new(SEEDS[0])
 	raise_party(walker, STRONG_LEVEL)
-	var shaft_room: LabyrinthChamber = _before_guardian(walker, 5)
+	var shaft_room: LabyrinthChamber = before_guardian(walker, 5)
 	var climbed_first: bool = false
 	var fought: bool = false
-	for i: int in _ticks(120.0):
+	for i: int in ticks_in(120.0):
 		walker.step()
 		for event: SimEvent in walker.drain_events():
 			if event.kind == SimEvent.Kind.DEPTH_CHANGED and not fought:
@@ -201,8 +179,8 @@ func test_r3_guardians_stay_beaten() -> void:
 	var sim := Simulation.new(SEEDS[1])
 	var e: Expedition = sim.expedition
 	raise_party(sim, STRONG_LEVEL)
-	var shaft: LabyrinthChamber = _before_guardian(sim, 5)
-	var events: Array[SimEvent] = _run_until_end(sim, _ticks(120.0))
+	var shaft: LabyrinthChamber = before_guardian(sim, 5)
+	var events: Array[SimEvent] = _run_until_end(sim, ticks_in(120.0))
 	var won: bool = false
 	for event: SimEvent in events:
 		if event.kind == SimEvent.Kind.ENCOUNTER_ENDED:
@@ -211,7 +189,7 @@ func test_r3_guardians_stay_beaten() -> void:
 	if not won:
 		return
 	var cleared: int = sim.tick
-	var refill: int = cleared + _ticks(Expedition.GUARDIAN_RESPAWN_SECONDS)
+	var refill: int = cleared + ticks_in(Expedition.GUARDIAN_RESPAWN_SECONDS)
 	assert_false(e.is_populated(5, shaft.index), "empty once beaten")
 	while sim.tick < refill - 1:
 		sim.step()
@@ -243,8 +221,8 @@ func test_r4_beating_one_pays() -> void:
 
 	var sim := Simulation.new(SEEDS[2])
 	raise_party(sim, STRONG_LEVEL)
-	_before_guardian(sim, 5)
-	var events: Array[SimEvent] = _run_until_end(sim, _ticks(120.0))
+	before_guardian(sim, 5)
+	var events: Array[SimEvent] = _run_until_end(sim, ticks_in(120.0))
 	var guardian_id: int = -1
 	var died_at: int = -1
 	var slain_at: int = -1
@@ -327,7 +305,7 @@ func test_r6_the_loop_still_runs() -> void:
 		assert_gte(e.last_stable_depth, 2, "stable on depth 2 or deeper, " + where)
 		if not stuck.is_empty():
 			# A wipe in the last ten minutes may not have had time to come back.
-			assert_gt(stuck[0], HOUR_TICKS - _ticks(600.0), "no run is stuck, " + where)
+			assert_gt(stuck[0], HOUR_TICKS - ticks_in(600.0), "no run is stuck, " + where)
 		gut.p(
 			(
 				"%s: deepest %d, stable %d, beat the first guardian %s"
@@ -405,7 +383,7 @@ func _drawn_rows(sheet: PixelSheet) -> Vector2i:
 func test_r8_guardian_stands_in_its_chamber() -> void:
 	for seed_value: int in SEEDS:
 		var sim := Simulation.new(seed_value)
-		_before_guardian(sim, 5)
+		before_guardian(sim, 5)
 		var world := World.new()
 		world.simulation = sim
 		add_child_autofree(world)

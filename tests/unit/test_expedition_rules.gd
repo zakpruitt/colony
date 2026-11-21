@@ -7,20 +7,8 @@ const SEED: int = 1234
 const EPSILON: float = 0.001
 
 
-func _ticks(seconds: float) -> int:
-	return roundi(seconds * Simulation.TICKS_PER_SECOND)
-
-
-func _of_kind(events: Array[SimEvent], kind: SimEvent.Kind) -> Array[SimEvent]:
-	var found: Array[SimEvent] = []
-	for e: SimEvent in events:
-		if e.kind == kind:
-			found.append(e)
-	return found
-
-
 ## Steps until an event of [param kind] appears (that step included); returns that step's events.
-func _step_until(sim: Simulation, kind: SimEvent.Kind, limit: int) -> Array[SimEvent]:
+func _step_to_kind(sim: Simulation, kind: SimEvent.Kind, limit: int) -> Array[SimEvent]:
 	for i: int in limit:
 		sim.step()
 		var fresh: Array[SimEvent] = sim.drain_events()
@@ -92,7 +80,7 @@ func test_r11_a_fight_past_the_limit_overwhelms_the_party() -> void:
 		m.max_health = 1_000_000
 		m.health = m.max_health
 		m.damage = 1
-	var limit: int = _ticks(Expedition.BATTLE_LIMIT_SECONDS)
+	var limit: int = ticks_in(Expedition.BATTLE_LIMIT_SECONDS)
 	while fight.tick < limit - 1:
 		sim.step()
 		sim.drain_events()
@@ -124,8 +112,8 @@ func test_r11_a_wipe_on_depth_1_revives_in_the_start_chamber() -> void:
 	sim.step()
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
-	_step_until(sim, SimEvent.Kind.PARTY_WIPED, 5)
-	_step_until(sim, SimEvent.Kind.PARTY_REVIVED, _ticks(Expedition.REVIVE_SECONDS) + 1)
+	_step_to_kind(sim, SimEvent.Kind.PARTY_WIPED, 5)
+	_step_to_kind(sim, SimEvent.Kind.PARTY_REVIVED, ticks_in(Expedition.REVIVE_SECONDS) + 1)
 	var start: LabyrinthChamber = sim.expedition.chamber()
 	assert_not_null(start)
 	if start == null:
@@ -147,10 +135,10 @@ func test_r13_a_target_set_while_down_wins_over_the_fallback() -> void:
 	sim.step()
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
-	_step_until(sim, SimEvent.Kind.PARTY_WIPED, 5)
+	_step_to_kind(sim, SimEvent.Kind.PARTY_WIPED, 5)
 	sim.set_target_depth(3)
-	var revived: Array[SimEvent] = _step_until(
-		sim, SimEvent.Kind.PARTY_REVIVED, _ticks(Expedition.REVIVE_SECONDS) + 1
+	var revived: Array[SimEvent] = _step_to_kind(
+		sim, SimEvent.Kind.PARTY_REVIVED, ticks_in(Expedition.REVIVE_SECONDS) + 1
 	)
 	assert_eq(sim.expedition.depth, 1, "fell back to the last stable depth")
 	assert_eq(sim.expedition.target_depth, 3, "the player's target, not the fallback")

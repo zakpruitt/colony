@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/033-depth-ladder/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -6,81 +6,20 @@ extends ColonyTest
 ## HUD's depth ladder.
 
 const SEED: int = 1
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
 const TOP_BAND: float = 28.0
-const SCREEN: Vector2 = Vector2(640, 360)
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
 const CLICK_HINT: String = "Click to send the party here"
 const STATES: Array[StringName] = [&"held", &"visited", &"unreached"]
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
+	_hud_each_tick = false
 	_build_hud()
-
-
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	# Spec 059: the shop is a window on the UI layer, so the HUD needs one for it to open.
-	var ui := UiRoot.new()
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
-	ui.bar.set_process(false)
+	_ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _ladder() -> StageList:
-	return _hud.ladder
-
-
-## Puts the party on [param depth] in the tunnel just outside its shaft chamber, walking in,
-## with a target one deeper and no auto-push.
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.deepest_depth = maxi(e.deepest_depth, depth)
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-## Steps the simulation until [param done] returns true (true), or the limit (false). The world
-## is brought up to date after each tick and the HUD after the last, as a frame would.
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		if done.call():
-			_hud.advance(STEP)
-			return true
-	_hud.advance(STEP)
-	return false
 
 
 ## Puts the expedition in a situation: the party on [param depth], the last stable depth
@@ -110,27 +49,10 @@ func _state(depth: int) -> StringName:
 	return found[0] if found.size() == 1 else &""
 
 
-## A left click at [param at] in the ladder's own coordinates, delivered as the GUI delivers one.
-func _click_at(at: Vector2) -> void:
-	for pressed: bool in [true, false]:
-		var event := InputEventMouseButton.new()
-		event.button_index = MOUSE_BUTTON_LEFT
-		event.pressed = pressed
-		event.position = at
-		_ladder()._gui_input(event)
-
-
 func _hover_at(at: Vector2) -> void:
 	var event := InputEventMouseMotion.new()
 	event.position = at
 	_ladder()._gui_input(event)
-
-
-func _frames_top() -> float:
-	var top: float = SCREEN.y
-	for frame: HeroFrameView in _hud.frames:
-		top = minf(top, frame.get_global_rect().position.y)
-	return top
 
 
 # --- R1 ------------------------------------------------------------------------
@@ -216,7 +138,7 @@ func test_r2_rungs_say_what_they_are() -> void:
 
 	# A guardian before, during and after the fight that beats it.
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	var hash_before: int = _sim.state_hash()
 	_hud.advance(STEP)
 	assert_eq(_sim.state_hash(), hash_before, "reading the ladder changes nothing in the game")
@@ -259,7 +181,7 @@ func test_r3_click_to_steer() -> void:
 	# A click on a rung, delivered through the GUI.
 	_hud.advance(STEP)
 	var row: Rect2 = ladder.rung_rect(2)
-	_click_at(row.get_center())
+	_click_ladder(row.get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 2, "a click on rung 2 sends the party to depth 2")
@@ -309,9 +231,9 @@ func test_r4_hover_says_it() -> void:
 
 	# The guardian beaten.
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	var won: bool = false
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_10_MIN:
 		_sim.step()
 		_hud.advance(STEP)
 		won = _has(5, &"guardian_beaten")
@@ -365,7 +287,7 @@ func test_r5_it_can_be_hidden() -> void:
 	assert_false(ladder.is_shown(), "L hides it")
 	assert_false(ladder.is_visible_in_tree(), "it is not drawn")
 	ladder.click_depth(6)
-	_click_at(ladder.rung_rect(6).get_center())
+	_click_ladder(ladder.rung_rect(6).get_center())
 	_sim.step()
 	_hud.advance(STEP)
 	assert_eq(_sim.expedition.target_depth, 3, "hidden, it takes no clicks")
@@ -408,7 +330,7 @@ func test_r6_stays_out_of_the_way() -> void:
 
 	# The boss bar, during a guardian fight.
 	raise_party(_sim, STRONG_LEVEL)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
@@ -475,6 +397,7 @@ func test_r7_follows_the_simulation() -> void:
 	if _sim == null:
 		return
 	_build_hud()
+	_ui.bar.set_process(false)
 	ladder = _ladder()
 	assert_true(_has(9, &"party"), "the loaded party is on its safe depth")
 	assert_true(_has(9, &"safe"), "safe")

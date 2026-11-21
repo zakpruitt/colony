@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/play_fixture.gd"
 ## Acceptance tests for specs/054-zones-on-screen/spec.md, one per requirement. R9 is also in
 ## test_018_seeing_the_loop.gd (test_r2_showcase_plays_every_moment), which plays every moment.
 ##
@@ -8,12 +8,8 @@ extends ColonyTest
 
 const SEED: int = 1
 const FRAME: float = 1.0 / 60.0
-const FRAMES_PER_TICK: int = 6
-const TILE: float = 16.0
 const HERO_IDS: Array[int] = [1, 2, 3, 4]
 const KNIGHT: int = 1
-## The longest any wait here lasts, in simulation ticks (five minutes).
-const LIMIT_TICKS: int = 3000
 ## A stage's band of world pixels, top to bottom.
 const BAND_PIXELS: float = Labyrinth.LEVEL_HEIGHT * TILE
 ## The words nothing on screen may say (R6), as whole words or their start.
@@ -29,49 +25,13 @@ const TEXT_DIRS: Array[String] = [
 	"res://data/",
 ]
 
-var _sim: Simulation
-var _world: World
-var _events: Array[SimEvent] = []
-var _frame: int = 0
-
 
 func before_each() -> void:
 	_events = []
-	_frame = 0
+	_frames_played = 0
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _show(simulation: Simulation, speed: int = 1) -> void:
-	_sim = simulation
-	_events = []
-	_frame = 0
-	_world = World.new()
-	_world.simulation = simulation
-	_world.speed = speed
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_world.sim_event.connect(func(event: SimEvent) -> void: _events.append(event))
-
-
-## One frame: the simulation steps (speed times) every FRAMES_PER_TICK frames, then the world
-## moves on by FRAME. Returns the events passed on in it.
-func _play_frame() -> Array[SimEvent]:
-	var before: int = _events.size()
-	if _frame % FRAMES_PER_TICK == 0:
-		for i: int in maxi(_world.speed, 1):
-			_sim.step()
-	_frame += 1
-	_world.sync(FRAME)
-	return _events.slice(before)
-
-
-func _has(events: Array[SimEvent], kind: SimEvent.Kind) -> bool:
-	for event: SimEvent in events:
-		if event.kind == kind:
-			return true
-	return false
 
 
 func _count(events: Array[SimEvent], kind: SimEvent.Kind) -> int:
@@ -148,12 +108,6 @@ func _band_top(stage: int) -> float:
 	return (stage - 1) * BAND_PIXELS
 
 
-## The world pixels the camera rests on for [param target]: kept inside the band's columns.
-func _rest(target: Vector2) -> Vector2:
-	var half: float = _world.get_viewport_rect().size.x * 0.5 / _world.camera.zoom.x
-	return Vector2(clampf(target.x, ceilf(half), floorf(WorldCamera.BAND_WIDTH - half)), target.y)
-
-
 # --- R1 ------------------------------------------------------------------------
 
 
@@ -186,7 +140,7 @@ func test_r1_out_through_a_doorway() -> void:
 	var arrived: bool = false
 	var last_shown: int = _world.shown_stage()
 	var last_camera: float = _world.camera.position.y
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		var shown: int = _world.shown_stage()
 		var top: float = _band_top(shown)
@@ -239,7 +193,7 @@ func test_r2_a_short_crossing() -> void:
 		var darkest: float = 0.0
 		var climbing: int = 0
 		var ended: bool = false
-		for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+		for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 			var events: Array[SimEvent] = _play_frame()
 			veil.refresh()
 			var crossing: ZoneCrossing = _world.crossing
@@ -273,7 +227,7 @@ func test_r2_a_short_crossing() -> void:
 	_sim = main.simulation
 	_world = main.world
 	_events = []
-	_frame = 0
+	_frames_played = 0
 	_near_the_way_on(_sim, 1)
 	var veils: Array[Node] = main.hud.find_children("CrossingVeil", "CrossingVeil", false, false)
 	assert_eq(veils.size(), 1, "the HUD holds one veil")
@@ -282,7 +236,7 @@ func test_r2_a_short_crossing() -> void:
 	var shown_veil: CrossingVeil = veils[0] as CrossingVeil
 	assert_eq(shown_veil.get_index(), 0, "first, so the rest of the HUD is drawn over it")
 	var dark_seen: int = 0
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		shown_veil.refresh()
 		if _world.crossing.darkness() >= 1.0:
@@ -317,7 +271,7 @@ func test_r3_going_back() -> void:
 	var left_by: float = -1.0
 	var titles: Dictionary[String, bool] = {}
 	var darkest: float = 0.0
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		if sim.expedition.state == Expedition.State.CLIMBING and left_by < 0.0:
 			left_by = sim.expedition.x * TILE
@@ -342,7 +296,7 @@ func test_r3_going_back() -> void:
 	titles.clear()
 	darkest = 0.0
 	var revived: bool = false
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		darkest = maxf(darkest, _world.crossing.darkness())
 		if _world.crossing.title() != "":
@@ -376,7 +330,7 @@ func test_r4_a_journey() -> void:
 	var dark_from: float = -1.0
 	var light_after: float = -1.0
 	var arrived_at: int = -1
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		var crossing: ZoneCrossing = _world.crossing
 		if left_at < 0 and sim.expedition.state == Expedition.State.JOURNEYING:
@@ -420,7 +374,7 @@ func test_r4_a_journey_never_lightens() -> void:
 	var sim := Simulation.new(SEED)
 	_near_the_way_on(sim, 1)
 	_show(sim)
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		var run: Expedition = sim.expedition
 		if run.state == Expedition.State.CLIMBING and ClimbProgress.share(run) >= 0.6:
@@ -437,7 +391,7 @@ func test_r4_a_journey_never_lightens() -> void:
 	sim.expedition.travel.open[&"claypits"] = true
 	sim.expedition.travel.open[&"old_crypt"] = true
 	sim.set_destination(&"claypits", 1)
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		if _world.crossing.title() == "The Claypits 1":
 			break
@@ -455,7 +409,7 @@ func _journey_stays_dark(titles: Array[String], area: StringName, label: String)
 	var arrived: bool = false
 	var lighter: Array[String] = []
 	var said: Dictionary[String, bool] = {}
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		if _has(events, SimEvent.Kind.AREA_CHANGED):
 			arrived = true
@@ -638,7 +592,7 @@ func test_r6_the_marker_and_the_ladder() -> void:
 	var offset: float = INF
 	var hidden: int = 0
 	var moved: Array[String] = []
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		main.hud.advance(FRAME)
 		var shown: int = _world.shown_stage()
@@ -726,7 +680,7 @@ func _wipe_reads(speed: int) -> void:
 	var revived: bool = false
 	var last_dark: float = 1.0
 	var opened_on_rising: bool = false
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		var events: Array[SimEvent] = _play_frame()
 		if _has(events, SimEvent.Kind.PARTY_REVIVED):
 			revived = true
@@ -778,7 +732,7 @@ func test_r8_picked_up_part_way() -> void:
 	sim.expedition.last_stable_depth = 1
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
-	while sim.expedition.state != Expedition.State.REVIVING and sim.tick < LIMIT_TICKS:
+	while sim.expedition.state != Expedition.State.REVIVING and sim.tick < LIMIT_TICKS_5_MIN:
 		sim.step()
 	for i: int in 3 * Simulation.TICKS_PER_SECOND:
 		sim.step()
@@ -790,7 +744,7 @@ func test_r8_picked_up_part_way() -> void:
 	assert_true(_world.fallen_party.is_telling(), "the wipe is told")
 	var order: Array[String] = []
 	var last_dark: float = 1.0
-	for i: int in LIMIT_TICKS * FRAMES_PER_TICK:
+	for i: int in LIMIT_TICKS_5_MIN * FRAMES_PER_TICK:
 		_play_frame()
 		var dark: float = _world.crossing.darkness()
 		var step: String = "title" if sim.expedition.state == Expedition.State.REVIVING else "open"
@@ -818,7 +772,7 @@ func test_r8_picked_up_part_way() -> void:
 	for hero: Hero in sim.party.heroes:
 		hero.health = 0
 	var revived: bool = false
-	for i: int in LIMIT_TICKS:
+	for i: int in LIMIT_TICKS_5_MIN:
 		sim.step()
 		if sim.expedition.state != Expedition.State.REVIVING and sim.expedition.depth == 1:
 			revived = true

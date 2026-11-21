@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/017-upgrade-shop/spec.md, one per requirement.
 
 const SEED: int = 17
@@ -6,31 +6,10 @@ const BLADES: StringName = &"sharp_blades"
 const ARMOR: StringName = &"stout_armor"
 const MEDICINE: StringName = &"field_medicine"
 
-var _sim: Simulation
-var _world: World
-var _effects: CombatEffects
-var _hud: Hud
-## Spec 059: the shop is a window on the UI layer, so the HUD needs one.
-var _ui: UiRoot
-
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_effects = CombatEffects.new()
-	add_child_autofree(_effects)
-	_effects.setup(_world, _sim)
-	_effects.set_process(false)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _effects)
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.setup(_sim, _hud, null)
+	_build_hud()
 	_ui.bar.set_process(false)
 	_hud.advance(0.0)
 
@@ -194,13 +173,6 @@ func test_r3_lists_every_upgrade() -> void:
 	assert_true(main.hud.shop.is_open(), "the shop is open")
 	assert_gt(main.simulation.tick, tick, "and the game runs behind it")
 	assert_false(get_tree().paused, "unpaused")
-
-
-func _collect_labels(node: Node, into: Array[Label]) -> void:
-	for child: Node in node.get_children():
-		if child is Label:
-			into.append(child)
-		_collect_labels(child, into)
 
 
 # --- R4 ------------------------------------------------------------------------

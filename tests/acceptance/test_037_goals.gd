@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/037-goals/spec.md, one per requirement.
 ##
 ## Each test builds a World on a seeded simulation with the CombatEffects and the Hud on it, every
@@ -7,21 +7,13 @@ extends ColonyTest
 ## it): the countdown is read from the expedition.
 
 const SEED: int = 37
-const STEP: float = 1.0 / 60.0
 const STRONG_LEVEL: int = 40
 const TOP_BAND: float = 28.0
-const SCREEN: Vector2 = Vector2(640, 360)
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 6000
-
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
 
 
 func before_each() -> void:
 	_sim = Simulation.new(SEED)
+	_hud_each_tick = false
 	_build_hud()
 
 
@@ -33,24 +25,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _build_hud() -> void:
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
-	add_child_autofree(ui)
-	ui.setup(_sim, _hud, null)
 
 
 func _goals() -> Goals:
@@ -93,36 +67,6 @@ func _situation(depth: int, deepest: int, stable: int) -> void:
 func _settle() -> void:
 	_hud.advance(STEP)
 	_hud.advance(Goals.CELEBRATE_SECONDS + 0.1)
-
-
-## Puts the party on [param depth] in the tunnel just outside its shaft chamber, walking in,
-## with a target one deeper and no auto-push.
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.deepest_depth = maxi(e.deepest_depth, depth)
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
-
-
-## Steps the simulation until [param done] returns true (true), or the limit (false). The world
-## is brought up to date after each tick and the HUD after the last, as a frame would.
-func _step_until(done: Callable, ticks: int = LIMIT_TICKS) -> bool:
-	for i: int in ticks:
-		_sim.step()
-		_world.sync(0.1)
-		if done.call():
-			_hud.advance(STEP)
-			return true
-	_hud.advance(STEP)
-	return false
 
 
 func _emit(kind: SimEvent.Kind, amount: int, age: int = 0) -> void:
@@ -171,7 +115,7 @@ func _rect() -> Rect2:
 	return UiFormat.on_screen(_hud.goals_view)
 
 
-func _frame(hero: Hero) -> HeroFrameView:
+func _hero_frame(hero: Hero) -> HeroFrameView:
 	for frame: HeroFrameView in _hud.frames:
 		if frame.hero_id == hero.id:
 			return frame
@@ -447,7 +391,7 @@ func test_r3_finished_goal() -> void:
 	_situation(5, 5, 4)
 	var beat: String = "Beat the %s" % _guardian_name(5)
 	assert_eq(goals.lines()[0], beat, "the guardian goal shows")
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	var shaft: LabyrinthChamber = _sim.labyrinth.level(5).shaft_chamber()
 	var slain: Callable = func() -> bool:
 		return e.battle == null and not e.is_populated(5, shaft.index)
@@ -480,7 +424,7 @@ func test_r4_frames_point_at_themselves() -> void:
 	var hero: Hero = _sim.party.heroes[3]
 	if hero == _learner()[0]:
 		hero = _sim.party.heroes[2]
-	var frame: HeroFrameView = _frame(hero)
+	var frame: HeroFrameView = _hero_frame(hero)
 	_level(hero, Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1, true)
 	# The microskills learned on the way are seen first, so the marker is the point alone.
 	var sheet: HeroWindow = windows.window_of(hero.id)
@@ -509,7 +453,7 @@ func test_r4_frames_point_at_themselves() -> void:
 	# A newly learned microskill: marked until the hero's Skills page has been open.
 	var learner: Array = _learner()
 	hero = learner[0]
-	frame = _frame(hero)
+	frame = _hero_frame(hero)
 	var skill_level: int = learner[1]
 	_level(hero, skill_level)
 	_hud.advance(STEP)
@@ -648,7 +592,7 @@ func test_r6_out_of_the_way() -> void:
 	# The boss bar, during a guardian fight.
 	_raise(STRONG_LEVEL)
 	_situation(5, 5, 4)
-	_before_guardian(5)
+	before_guardian(_sim, 5, 0.0, true)
 	var fighting: Callable = func() -> bool: return _sim.expedition.battle != null
 	assert_true(_step_until(fighting), "a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
@@ -738,12 +682,3 @@ func test_r7_follows_the_simulation() -> void:
 	for i: int in goals.lines().size():
 		assert_false(goals.is_finished(i), "nothing ticked")
 		assert_eq(goals.flash(i), 0.0, "nothing flashing")
-
-
-## Spends every talent point [param hero]'s level has earned (the trunk, then the first path),
-## so spec 055's talent goal and defeat-note button do not crowd out what this test is about.
-func _spend_talents(hero: Hero) -> void:
-	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))

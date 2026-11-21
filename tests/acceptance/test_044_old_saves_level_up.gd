@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/044-old-saves-level-up/spec.md, one per requirement.
 
 const SEED: int = 44
@@ -105,26 +105,6 @@ func test_r1_loaded_hero_has_its_level() -> void:
 
 
 # --- R2 ------------------------------------------------------------------------
-
-
-func _make_hud(simulation: Simulation) -> Hud:
-	var world := World.new()
-	world.simulation = simulation
-	add_child_autofree(world)
-	world.set_process(false)
-	var effects := CombatEffects.new()
-	add_child_autofree(effects)
-	effects.setup(world, simulation)
-	effects.set_process(false)
-	var made := Hud.new()
-	add_child_autofree(made)
-	made.set_process(false)
-	made.setup(simulation, world, effects)
-	var ui := UiRoot.new()  # spec 060: the hero windows live on the UI layer
-	add_child_autofree(ui)
-	ui.setup(simulation, made, null)
-	made.advance(0.0)
-	return made
 
 
 func test_r2_sheet_is_right_at_once() -> void:

@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/045-the-party-tally/spec.md, one per requirement.
 ##
 ## Most tests build a World on a seeded simulation with the CombatEffects and the Hud on it (on a
@@ -9,12 +9,7 @@ extends ColonyTest
 ## this process, and deletes it.
 
 const SEED: int = 45
-const STEP: float = 1.0 / 60.0
-## The longest a test waits for something to happen, in simulation ticks.
-const LIMIT_TICKS: int = 30000
 const STRONG_LEVEL: int = 40
-## Where the mouse is when it is over nothing of the HUD's.
-const AWAY: Vector2 = Vector2(320, 200)
 
 const DAMAGE: Tally.Measure = Tally.Measure.DAMAGE
 const HEALING: Tally.Measure = Tally.Measure.HEALING
@@ -22,20 +17,12 @@ const TAKEN: Tally.Measure = Tally.Measure.TAKEN
 const LAST: Tally.Span = Tally.Span.LAST_FIGHT
 const SESSION: Tally.Span = Tally.Span.SESSION
 
-var _sim: Simulation
-var _world: World
-var _fx: CombatEffects
-var _hud: Hud
-## Spec 059: the tally is a window on the UI layer, over the HUD's layer.
-var _ui: UiRoot
-## Every event the world has told of since the HUD was made, oldest first.
-var _events: Array[SimEvent] = []
 var _save_path: String = save_path()
 
 
 func before_each() -> void:
-	_events.clear()
-	_build(Simulation.new(SEED))
+	_make_hud(Simulation.new(SEED), true, Vector2i.ZERO, true)
+	_hear_events()
 
 
 func after_each() -> void:
@@ -44,54 +31,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _build(simulation: Simulation) -> void:
-	_sim = simulation
-	_world = World.new()
-	_world.simulation = _sim
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_fx = CombatEffects.new()
-	add_child_autofree(_fx)
-	_fx.set_process(false)
-	_fx.setup(_world, _sim)
-	var layer := CanvasLayer.new()
-	layer.layer = 129
-	add_child_autofree(layer)
-	_hud = Hud.new()
-	layer.add_child(_hud)
-	_hud.set_process(false)
-	_hud.setup(_sim, _world, _fx)
-	_ui = UiRoot.new()
-	_ui.layer = 130
-	add_child_autofree(_ui)
-	_ui.setup(_sim, _hud, null)
-	_world.sim_event.connect(_on_event)
-	_hud.advance(0.0)
-
-
-func _on_event(event: SimEvent) -> void:
-	_events.append(event)
-
-
-## Clicks the left button in the middle of [param control], as the window would. A control on
-## the UI layer (spec 059) is found through the UI's scale.
-func _click(control: Control) -> void:
-	var at: Vector2 = control.get_global_rect().get_center()
-	if _ui.frame.is_ancestor_of(control):
-		await get_tree().process_frame  # a window just opened lays out
-		at = _ui.ui_to_world(control.get_global_rect().get_center())
-	click(at)
-	mouse_move(AWAY)
-
-
-## One frame: [param ticks] ticks of the simulation, then the world and the HUD.
-func _frame(ticks: int = 1) -> void:
-	for i: int in ticks:
-		_sim.step()
-	_world.sync(STEP)
-	_hud.advance(STEP)
 
 
 ## Runs frames of [param ticks] ticks until [param done] returns true (true), or the limit.
@@ -103,10 +42,6 @@ func _run_until(done: Callable, ticks: int = 1, limit: int = LIMIT_TICKS) -> boo
 		if done.call():
 			return true
 	return false
-
-
-func _fighting() -> bool:
-	return _sim.expedition.state == Expedition.State.FIGHTING and _sim.expedition.battle != null
 
 
 func _count(kind: SimEvent.Kind) -> int:
@@ -163,21 +98,6 @@ func _last_tick(kind: SimEvent.Kind) -> int:
 		if _events[i].kind == kind:
 			return _events[i].tick
 	return -1
-
-
-## Sets the party up just before the guardian of [param depth] (as spec 030's tests do).
-func _before_guardian(depth: int) -> void:
-	var e: Expedition = _sim.expedition
-	var shaft: LabyrinthChamber = _sim.labyrinth.level(depth).shaft_chamber()
-	_sim.set_auto_push(false)
-	e.depth = depth
-	e.target_depth = depth + 1
-	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0
-		e.facing = 1
-	else:
-		e.x = shaft.rect.end.x
-		e.facing = -1
 
 
 ## Checks every hero's numbers on the panel's open measure and span against [param sums]: the
@@ -407,7 +327,7 @@ func test_r3_two_spans() -> void:
 	assert_eq(tally.span(), LAST, "the Last fight switch")
 
 	# A guardian: named, and the current fight while it lasts.
-	_before_guardian(5)
+	before_guardian(_sim, 5)
 	raise_party(_sim, STRONG_LEVEL)
 	var guardian: String = Content.monster(_sim.expedition.guardian_of(5)).display_name
 	var meeting: Callable = func() -> bool:
@@ -631,7 +551,8 @@ func test_r7_fits_and_changes_nothing() -> void:
 	var shown_world: World = _world
 	var shown_hud: Hud = _hud
 	var tick_before: int = shown.tick
-	_build(closed)
+	_make_hud(closed, true, Vector2i.ZERO, true)
+	_hear_events(false)
 	var closed_hud: Hud = _hud
 	var closed_world: World = _world
 	for i: int in 3000:

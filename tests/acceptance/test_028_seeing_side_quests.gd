@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/028-seeing-side-quests/spec.md, one per requirement.
 ##
 ## Most tests find a seed whose labyrinth has the side quest wanted on its first visit, put the
@@ -29,11 +29,6 @@ const MICROSKILLS: Array = [
 	[&"rogue", "Trapspotter", 6, "Sees a trap before it sees you"],
 ]
 
-var _sim: Simulation
-var _world: World
-var _effects: CombatEffects
-var _hud: Hud
-var _ui: UiRoot
 var _sound: SoundPlayer
 ## Where [method _before_quest] put the party: Vector2i(depth, chamber index).
 var _quest_at: Vector2i = Vector2i(0, -1)
@@ -47,12 +42,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _set_level(hero: Hero, level: int) -> void:
-	hero.level = level
-	hero.xp = Hero.xp_for_level(level)
-	hero.health = hero.max_health()
 
 
 ## A simulation whose party stands one step outside a chamber holding [param kind] on its first
@@ -83,42 +72,15 @@ func _before_quest(kind: StringName, level: int = 6, min_depth: int = 2) -> Simu
 ## Builds the world, the effects, the HUD and the sound player on [param simulation].
 func _show(simulation: Simulation) -> void:
 	_sim = simulation
-	_world = World.new()
-	_world.simulation = simulation
-	add_child_autofree(_world)
-	_world.set_process(false)
-	_effects = CombatEffects.new()
-	add_child_autofree(_effects)
-	_effects.setup(_world, simulation)
-	_effects.set_process(false)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(simulation, _world, _effects)
-	# Spec 060: the hero windows live on the UI layer, which gives them to the HUD.
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.set_room_for_test(Vector2i(1280, 720))
-	_ui.setup(simulation, _hud, null)
+	_build_world()
+	_add_hud()
+	_add_ui(Vector2i(1280, 720))
 	_sound = SoundPlayer.new()
 	add_child_autofree(_sound)
 	_sound.set_process(false)
-	_sound.setup(_world, _effects, simulation, null)
-	_frame(0.0)
-
-
-## One frame of [param delta] seconds for everything but the simulation.
-func _frame(delta: float) -> void:
-	_world.sync(delta)
-	_effects.advance(delta)
-	_hud.advance(delta)
-	_sound._process(delta)
-
-
-## Steps the simulation one tick and shows it.
-func _tick() -> void:
-	_sim.step()
-	_frame(FRAME)
+	_sound.setup(_world, _fx, simulation, null)
+	_frame_parts = [_fx.advance, _hud.advance, _sound._process]
+	_frame(0, 0.0)
 
 
 ## Ticks until [param done] is true or [param limit] ticks have passed. Returns whether it came.
@@ -127,7 +89,7 @@ func _until(done: Callable, limit: int = 600) -> bool:
 		var now: bool = done.call()
 		if now:
 			return true
-		_tick()
+		_frame(1, FRAME)
 	var last: bool = done.call()
 	return last
 
@@ -238,7 +200,7 @@ func test_r1_props_wait_in_chambers() -> void:
 		# Done (everyone is level 6, so someone can), the prop is gone.
 		assert_true(_until(_working, 30), "%s: the party works it" % quest)
 		assert_true(_until(_not_working), "%s: and finishes" % quest)
-		_tick()
+		_frame(1, FRAME)
 		assert_null(props.prop(_quest_at.x, _quest_at.y), "%s: gone once cleared" % quest)
 		assert_eq(props.prop_count(), wanted - 1, "%s: the others stay" % quest)
 
@@ -264,7 +226,7 @@ func test_r2_worker_steps_forward() -> void:
 		_world.character(hero.id).struck.connect(count)
 	# Give the rogue a moment to walk up.
 	for i: int in 10:
-		_tick()
+		_frame(1, FRAME)
 	var rogue: CharacterSprite = _world.character(ROGUE)
 	assert_lt(absf(rogue.position.x - prop.position.x), 14.0, "the worker is at the prop")
 	assert_eq(rogue.position.y, prop.position.y, "on the floor")
@@ -278,7 +240,7 @@ func test_r2_worker_steps_forward() -> void:
 	assert_almost_eq(props.bar_fraction(), sim.expedition.work_progress(), 0.001, "the bar")
 	var before: float = props.bar_fraction()
 	for i: int in 10:
-		_tick()
+		_frame(1, FRAME)
 	assert_gt(props.bar_fraction(), before, "the bar fills")
 	assert_almost_eq(props.bar_fraction(), sim.expedition.work_progress(), 0.001)
 	_until(_not_working)
@@ -286,7 +248,7 @@ func test_r2_worker_steps_forward() -> void:
 	for hero: Hero in sim.party.heroes:
 		if hero.id != ROGUE:
 			assert_eq(strikes[hero.id], 0, "hero %d idles" % hero.id)
-	_tick()
+	_frame(1, FRAME)
 	assert_eq(props.bar_fraction(), -1.0, "no bar once it is done")
 	assert_eq(props.worker_label(), "", "no name once it is done")
 
@@ -343,8 +305,8 @@ func test_r4_a_miss_says_what_was_needed() -> void:
 				made.append(text.text)
 	)
 	var prop: Sprite2D = _world.quest_props.prop(_quest_at.x, _quest_at.y)
-	_tick()
-	_frame(0.0)
+	_frame(1, FRAME)
+	_frame(0, 0.0)
 	var label: FxText = _label("Needs Lockpicker")
 	assert_not_null(label, "the label names the microskill")
 	if label != null:
@@ -352,14 +314,14 @@ func test_r4_a_miss_says_what_was_needed() -> void:
 		assert_lt(absf(label.position.x - prop.position.x), 24.0, "rising from the prop")
 		var y: float = label.position.y
 		for i: int in 5:
-			_frame(FRAME)
+			_frame(0, FRAME)
 		assert_lt(label.position.y, y, "it rises")
 	assert_not_null(_world.quest_props.prop(_quest_at.x, _quest_at.y), "the chest still waits")
 	# Walk on, turn at the end of the level and come back through the same visit.
 	var entries: int = 0
 	var inside: bool = true
 	for i: int in 1500:
-		_tick()
+		_frame(1, FRAME)
 		var here: LabyrinthChamber = sim.expedition.chamber()
 		var now: bool = here != null and here.index == _quest_at.y
 		if now and not inside:
@@ -375,7 +337,7 @@ func test_r4_a_miss_says_what_was_needed() -> void:
 	_show(sim)
 	assert_eq(_world.camera._shake, 0.0, "still before")
 	sim.step()
-	_frame(0.01)
+	_frame(0, 0.01)
 	var sprung: FxText = _label("Sprung!")
 	assert_not_null(sprung, "Sprung!")
 	if sprung != null:
@@ -447,12 +409,12 @@ func test_r6_journal_and_status() -> void:
 
 	sim = _before_quest(&"stuck_door", 1)
 	_show(sim)
-	_tick()
+	_frame(1, FRAME)
 	assert_has(_sentences(), "Passed a Stuck Door: needs Strongarm", "a miss with what it needs")
 
 	sim = _before_quest(&"tripwire", 1)
 	_show(sim)
-	_tick()
+	_frame(1, FRAME)
 	assert_has(_sentences(), "Sprang a Tripwire: needs Trapspotter", "a sprung trap")
 
 
@@ -521,7 +483,7 @@ func test_r7_sheet_lists_microskills() -> void:
 			assert_lte(rect.end.y, frames_top, "%s: above the frames" % what)
 			assert_lte(rect.end.x, float(_ui.room().x), "%s: on screen" % what)
 			var shown: Array[Label] = []
-			_collect_labels(sheet, shown)
+			_collect_shown_labels(sheet, shown)
 			for label: Label in shown:
 				var where: String = "%s '%s'" % [what, label.text]
 				assert_true(rect.encloses(label.get_global_rect()), "%s inside" % where)
@@ -534,27 +496,21 @@ func test_r7_sheet_lists_microskills() -> void:
 			sheet.close()
 
 
-## Hero [param hero_id]'s window, opened and in front.
-func _open(hero_id: int) -> HeroWindow:
-	_hud.hero_windows.open(hero_id)
-	return _hud.hero_windows.window_of(hero_id)
-
-
 func _row(sheet: HeroWindow, skill: String) -> Label:
 	var shown: Array[Label] = []
-	_collect_labels(sheet, shown)
+	_collect_shown_labels(sheet, shown)
 	for label: Label in shown:
 		if label.text.begins_with(skill):
 			return label
 	return null
 
 
-func _collect_labels(node: Node, into: Array[Label]) -> void:
+func _collect_shown_labels(node: Node, into: Array[Label]) -> void:
 	for child: Node in node.get_children():
 		var label: Label = child as Label
 		if label != null and label.is_visible_in_tree() and not label.text.is_empty():
 			into.append(label)
-		_collect_labels(child, into)
+		_collect_shown_labels(child, into)
 
 
 # --- R8 ------------------------------------------------------------------------
@@ -581,18 +537,18 @@ func test_r9_sounds() -> void:
 	_sound.drain_started()
 	var clicks: int = 0
 	while _working():
-		_tick()
+		_frame(1, FRAME)
 		clicks += _sound.drain_started().count(&"ui_click")
 	assert_gte(clicks, 3, "a click repeats while the party works")
 	assert_lte(clicks, 10, "softly, not every frame")
 	for i: int in 20:
-		_tick()
+		_frame(1, FRAME)
 		assert_false(_sound.drain_started().has(&"ui_click"), "and stops when the work does")
 
 	sim = _before_quest(&"tripwire", 5)
 	_show(sim)
 	_sound.drain_started()
-	_tick()
+	_frame(1, FRAME)
 	assert_has(_sound.drain_started(), &"hero_hurt", "a sprung tripwire hurts")
 
 	# Even when every hero is too hurt to lose more (no HIT follows), it still sounds.
@@ -601,7 +557,7 @@ func test_r9_sounds() -> void:
 		hero.health = 1
 	_show(sim)
 	_sound.drain_started()
-	_tick()
+	_frame(1, FRAME)
 	assert_has(_sound.drain_started(), &"hero_hurt", "the trap's own sound")
 	for sound: StringName in [&"ui_click", &"hero_hurt"]:
 		assert_has(SoundPlayer.SOUNDS, sound, "no new sounds")
@@ -628,7 +584,7 @@ func test_r10_old_events_show_nothing() -> void:
 		for i: int in World.ANIMATE_TICKS + 2:
 			sim.step()
 		_sound.drain_started()
-		_frame(FRAME)
+		_frame(0, FRAME)
 		assert_eq(_labels().size(), 0, "%s: no labels for old events" % quest)
 		assert_eq(_bursts().size(), 0, "%s: no particles" % quest)
 		assert_eq(_world.camera._shake, 0.0, "%s: no shake" % quest)

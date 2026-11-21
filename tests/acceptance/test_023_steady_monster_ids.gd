@@ -234,7 +234,7 @@ func _mismatches(sim: Simulation, world: World, scanned: bool) -> Array[String]:
 	return problems
 
 
-func _frame(sim: Simulation, world: World, frame: int) -> Array[String]:
+func _frame_mismatches(sim: Simulation, world: World, frame: int) -> Array[String]:
 	if frame % FRAMES_PER_TICK == 0:
 		sim.step()
 	world.sync(FRAME)
@@ -261,7 +261,7 @@ func test_r5_world_follows_reused_ids() -> void:
 			for monster: Combatant in battle.monsters:
 				fighting.append(monster.id)
 		var count: int = _seen_events.size()
-		problems.append_array(_frame(sim, world, frame))
+		problems.append_array(_frame_mismatches(sim, world, frame))
 		frame += 1
 		for i: int in range(count, _seen_events.size()):
 			var event: SimEvent = _seen_events[i]
@@ -281,7 +281,7 @@ func test_r5_world_follows_reused_ids() -> void:
 	var refilled: bool = false
 	var limit: int = frame + 1500 * FRAMES_PER_TICK
 	while frame < limit:
-		problems.append_array(_frame(sim, world, frame))
+		problems.append_array(_frame_mismatches(sim, world, frame))
 		frame += 1
 		if not refilled and sim.expedition.is_populated(cleared.x, cleared.y):
 			var ids: Array[int] = []

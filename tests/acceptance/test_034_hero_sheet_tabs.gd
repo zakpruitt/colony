@@ -1,4 +1,4 @@
-extends ColonyTest
+extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/034-hero-sheet-tabs/spec.md, one per requirement. R8 is the existing
 ## suite (specs 026, 028 and 029) passing. Since spec 060 the sheet is a window per hero on the UI
 ## layer ([HeroWindow]), each keeping its own tab: these tests read the hero's window.
@@ -15,14 +15,9 @@ const STAT_KEYS: Array[StringName] = [
 ]
 const POWER: StringName = &"power"
 
-var _sim: Simulation
-var _world: World
-var _hud: Hud
-var _ui: UiRoot
-
 
 func before_each() -> void:
-	_make_hud(Simulation.new(SEED))
+	_make_hud(Simulation.new(SEED), true, ROOM)
 
 
 func after_each() -> void:
@@ -33,35 +28,6 @@ func after_each() -> void:
 
 
 # --- Helpers -------------------------------------------------------------------
-
-
-func _make_hud(simulation: Simulation) -> Hud:
-	_sim = simulation
-	_world = World.new()
-	_world.simulation = simulation
-	add_child_autofree(_world)
-	_world.set_process(false)
-	var effects := CombatEffects.new()
-	add_child_autofree(effects)
-	effects.setup(_world, simulation)
-	effects.set_process(false)
-	_hud = Hud.new()
-	add_child_autofree(_hud)
-	_hud.set_process(false)
-	_hud.setup(simulation, _world, effects)
-	# Spec 060: the hero windows live on the UI layer, which gives them to the HUD.
-	_ui = UiRoot.new()
-	add_child_autofree(_ui)
-	_ui.set_room_for_test(ROOM)
-	_ui.setup(simulation, _hud, null)
-	_hud.advance(0.0)
-	return _hud
-
-
-## Hero [param hero_id]'s window, opened and in front (spec 060: that hero's sheet).
-func _open(hero_id: int) -> HeroWindow:
-	_hud.hero_windows.open(hero_id)
-	return _hud.hero_windows.window_of(hero_id)
 
 
 ## Raises [param hero] to the level that gives it [param points] paragon points (spec 051 took
@@ -89,7 +55,7 @@ func _hero(index: int) -> Hero:
 ## A click on [param button], as the other HUD tests make one: its pressed signal. A hidden
 ## button cannot be clicked at all (the GUI skips it); this shows that even a press reaching it
 ## does nothing.
-func _click(button: BaseButton) -> void:
+func _press_button(button: BaseButton) -> void:
 	button.pressed.emit()
 
 
@@ -265,9 +231,9 @@ func test_r4_easy_to_reach() -> void:
 
 	# Clicking a tab opens it.
 	for page: HeroWindow.Page in [HeroWindow.Page.SKILLS, HeroWindow.Page.TALENTS]:
-		_click(sheet.tab_buttons[page])
+		_press_button(sheet.tab_buttons[page])
 		assert_eq(sheet.page(), page, "clicking %s opens it" % _page_name(page))
-	_click(sheet.tab_buttons[HeroWindow.Page.STATS])
+	_press_button(sheet.tab_buttons[HeroWindow.Page.STATS])
 	assert_eq(sheet.page(), HeroWindow.Page.STATS, "clicking Stats opens it")
 
 	# E is next and Q is previous, wrapping.
@@ -306,7 +272,7 @@ func test_r4_easy_to_reach() -> void:
 	assert_eq(sheet.page(), HeroWindow.Page.TALENTS, "still on Talents")
 
 	# A new session starts on Stats.
-	var fresh: Hud = _make_hud(Simulation.new(SEED))
+	var fresh: Hud = _make_hud(Simulation.new(SEED), true, ROOM)
 	fresh.hero_windows.open(_sim.party.heroes[0].id)
 	var page: HeroWindow.Page = fresh.hero_windows.window_of(_sim.party.heroes[0].id).page()
 	assert_eq(page, HeroWindow.Page.STATS, "a new HUD's window starts on Stats")
