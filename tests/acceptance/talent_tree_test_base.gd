@@ -99,6 +99,32 @@ func _check_joins(view: TalentTreeView, tree: TalentTreeDef, class_id: StringNam
 				assert_gt(head.end.y, into.position.y - 4.0, "%s: right at it" % order[i])
 
 
+## Checks the banners of [param view], whose hero walks [param path]: the other path's is closed,
+## dimmed with a padlock and Not chosen, its name dim; its own is open and not marked.
+func _check_banners(view: TalentTreeView, path: int, on: String) -> void:
+	var closed: PathBanner = view.banners[1 - path]
+	assert_true(closed.is_closed(), "%s: the other banner closed" % on)
+	assert_true(closed.has_lock(), "%s: with a padlock" % on)
+	assert_true(closed.closed_label.is_visible_in_tree(), "%s: saying so" % on)
+	assert_eq(closed.closed_label.text, "Not chosen", "%s: Not chosen" % on)
+	assert_ne(closed.colour(), view.path_colour(1 - path), "%s: dimmed" % on)
+	assert_eq(
+		closed.name_label.get_theme_color(&"font_color"),
+		Palette.color(&"steel"),
+		"%s: the other name dim" % on
+	)
+	assert_false(view.banners[path].is_closed(), "%s: its own open" % on)
+	assert_false(view.banners[path].closed_label.is_visible_in_tree(), "not marked")
+
+
+## Steps until no fight is under way, at most [constant LIMIT_TICKS] ticks.
+func _fight_over(main: Main) -> void:
+	var ticks: int = 0
+	while main.simulation.expedition.battle != null and ticks < LIMIT_TICKS:
+		_frame(main)
+		ticks += 1
+
+
 func _scripts(dir: String) -> Array[String]:
 	var found: Array[String] = []
 	for file: String in DirAccess.get_files_at(dir):

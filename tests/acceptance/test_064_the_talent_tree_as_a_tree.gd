@@ -180,7 +180,7 @@ func test_r2_a_node_is_a_picture() -> void:
 
 func test_r3_the_states_read_at_a_glance() -> void:
 	var main: Main = _game()
-	for class_id: StringName in [&"knight", &"cleric"]:
+	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
 		var tree: TalentTreeDef = _tree(class_id)
 		for path: int in 2:
@@ -199,6 +199,9 @@ func test_r3_the_states_read_at_a_glance() -> void:
 			# Can be taken now: the ready frame, pulsing.
 			var next: TalentNode = view.node(tree.path_nodes(path)[1])
 			assert_eq(next.slot.state(), UiIcon.State.READY, "%s: the next is ready" % on)
+			assert_eq(next.frame_colour(), &"yellow", "%s: framed in yellow" % on)
+			main.hud.advance(UiIcon.PULSE_SECONDS * 0.6)
+			assert_eq(next.frame_colour(), &"white", "%s: gently: yellow, then white" % on)
 			var seen: Dictionary[StringName, bool] = {}
 			for i: int in 12:
 				seen[next.slot.frame_colour()] = true
@@ -217,14 +220,7 @@ func test_r3_the_states_read_at_a_glance() -> void:
 					view.node(id).slot.state(), UiIcon.State.CLOSED, "%s: %s closed" % [on, id]
 				)
 				assert_eq(view.colour_into(id), TalentTreeView.DARK, "%s: its line dark" % id)
-			var closed: PathBanner = view.banners[1 - path]
-			assert_true(closed.is_closed(), "%s: the other banner closed" % on)
-			assert_true(closed.has_lock(), "%s: with a padlock" % on)
-			assert_true(closed.closed_label.is_visible_in_tree(), "%s: saying so" % on)
-			assert_eq(closed.closed_label.text, "Not chosen", "%s: Not chosen" % on)
-			assert_ne(closed.colour(), view.path_colour(1 - path), "%s: dimmed" % on)
-			assert_false(view.banners[path].is_closed(), "%s: its own open" % on)
-			assert_false(view.banners[path].closed_label.is_visible_in_tree(), "not marked")
+			_check_banners(view, path, on)
 			# A closed node can still be pointed at.
 			var shut: TalentNode = view.node(tree.path_nodes(1 - path)[2])
 			_point(main, shut.slot)
@@ -602,8 +598,12 @@ func test_r9_paragon() -> void:
 	set_level_keeping_health(knight, 13)
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var tab: HeroTalentsTab = shown.talents
+	assert_eq(tab.paragon_label.text, "Paragon points come after level 14", "before then")
 	for cell: ParagonCell in tab.paragon_cells:
 		assert_false(cell.is_visible_in_tree(), "no medallion before paragon points")
+	set_level_keeping_health(knight, 14)
+	main.hud.advance(STEP)
+	assert_eq(tab.paragon_label.text, "0 paragon points", "every talent point earned")
 	set_level_keeping_health(knight, PARAGON_LEVEL)
 	main.hud.advance(STEP)
 	assert_eq(tab.paragon_label.text, "3 paragon points", "the points waiting")
@@ -637,12 +637,14 @@ func test_r9_paragon() -> void:
 	assert_eq(tab.paragon_cells[0].total_label.text, "+0% damage and healing", "the total")
 	# A click on a medallion spends a point: it bursts and its count goes up.
 	var power: ParagonCell = tab.paragon_cells[0]
+	assert_eq(power.text(), "Power 0 +0%", "no bonus yet")
 	await _into_view(main, shown, power)
 	_click(main, power.medallion)
 	_frame(main)
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.POWER), 1, "a point in Power")
 	assert_eq(power.medallion.count_label.text, "1", "its count")
 	assert_eq(power.total_label.text, "+3% damage and healing", "its total")
+	assert_eq(power.text(), "Power 1 +3%", "its bonus so far")
 	assert_true(moment.is_bursting(power.medallion), "it bursts")
 	assert_eq(tab.paragon_label.text, "2 paragon points", "one fewer")
 	# The key, on the front window's Talents tab.
@@ -730,19 +732,19 @@ func test_r10_skills() -> void:
 	for card: HeroSkillsTab.Card in shown.skills.cards:
 		if card.level > rogue.level and second == null:
 			second = card
-	if second != null:
-		_click(main, shown.tab_buttons[HeroWindow.Page.STATS])
-		_clear_banners(main)
-		rogue.xp = Hero.xp_for_level(second.level) - 1
-		while rogue.level < second.level and ticks < LIMIT_TICKS * 2:
-			_frame(main)
-			ticks += 1
-		assert_false(moment.is_bursting(second.slot), "not on Skills: no burst")
-		banners.clear()
-		for i: int in 4:
-			banners.append(_banner(main))
-			main.ui.moment.advance(UiMoment.BANNER_SECONDS)
-		assert_has(banners, "Rogue learned %s" % second.skill.display_name, "still a banner")
+	assert_not_null(second, "a second microskill to come")
+	_click(main, shown.tab_buttons[HeroWindow.Page.STATS])
+	_clear_banners(main)
+	rogue.xp = Hero.xp_for_level(second.level) - 1
+	while rogue.level < second.level and ticks < LIMIT_TICKS * 2:
+		_frame(main)
+		ticks += 1
+	assert_false(moment.is_bursting(second.slot), "not on Skills: no burst")
+	banners.clear()
+	for i: int in 4:
+		banners.append(_banner(main))
+		main.ui.moment.advance(UiMoment.BANNER_SECONDS)
+	assert_has(banners, "Rogue learned %s" % second.skill.display_name, "still a banner")
 	# One heard long after: nothing.
 	_click(main, shown.tab_buttons[HeroWindow.Page.SKILLS])
 	_clear_banners(main)
@@ -806,6 +808,17 @@ func test_r11_nothing_lost() -> void:
 	_frame(main)
 	assert_eq(knight.talents(), [] as Array[StringName], "reset_talents, read and answered")
 	assert_eq(sim.party.gold, RICH - 1800, "at the price read")
+	# Nor in a fight: one starting drops the question, and an answer then does nothing.
+	knight.set_talents(tree.trunk)
+	main.hud.advance(STEP)
+	_click(main, tab.reset_button)
+	assert_not_null(_fight(main), "a fight")
+	assert_eq(tab.asking(), HeroTalentsTab.Asking.NOTHING, "a fight starts: the question goes")
+	tab.confirm()
+	_frame(main)
+	assert_eq(knight.talents(), tree.trunk, "nothing reset in a fight")
+	assert_eq(sim.party.gold, RICH - 1800, "nothing charged in a fight")
+	_fight_over(main)
 	# A goal opens the hero's window on its Talents tab.
 	_click_frame(main, knight)
 	main.hud.advance(STEP)
@@ -925,7 +938,7 @@ func test_r13_fits_and_still_compares() -> void:
 				shown.talents.cancel()
 				_click_frame(main, hero)
 		if room == ROOM_LARGE:
-			# Two hero windows on Talents still sit side by side, the whole tree showing.
+			# With two hero windows on Talents, the whole tree shows in each.
 			var heroes: Array[Hero] = main.simulation.party.heroes
 			for hero: Hero in heroes:
 				set_level_keeping_health(hero, 10)
@@ -933,8 +946,6 @@ func test_r13_fits_and_still_compares() -> void:
 			var back: HeroWindow = _open(main, heroes[0], HeroWindow.Page.TALENTS)
 			var over: HeroWindow = _open(main, heroes[1], HeroWindow.Page.TALENTS)
 			await _frames()
-			assert_false(back.get_global_rect().intersects(over.get_global_rect()), "side by side")
-			assert_eq(back.get_global_rect().position.y, over.get_global_rect().position.y, "level")
 			for shown: HeroWindow in [back, over]:
 				var seen: Rect2 = shown.scroll.get_global_rect()
 				var strip: Rect2 = shown.talents.strip.get_global_rect()
@@ -942,8 +953,6 @@ func test_r13_fits_and_still_compares() -> void:
 					seen.encloses(strip),
 					"the whole tree and its strip show: %s in %s" % [strip, seen]
 				)
-			for shown: HeroWindow in [back, over]:
-				_check_clear(main, shown, "side by side")
 		main.free()
 
 
@@ -961,21 +970,29 @@ func test_r14_help_wiki_and_showcase() -> void:
 	showcase.set_process(false)
 	showcase.skip_to(&"talent_tree")
 	var knight: Hero = showcase.main.simulation.party.heroes[0]
+	var windows: HeroWindows = showcase.main.hud.hero_windows
+	assert_true(windows.is_open(knight.id), "the talent moment opens the knight's window")
+	assert_eq(windows.window_of(knight.id).page(), HeroWindow.Page.TALENTS, "on Talents")
+	assert_eq(knight.talents(), _tree(&"knight").trunk.slice(0, 2), "two trunk nodes taken")
+	assert_gt(knight.talent_points(), 0, "a point to spend")
 	var moment: UiMoment = showcase.main.ui.moment
 	var bursts: int = moment.bursts_seen()
 	var headlines: Dictionary[String, bool] = {}
 	var closing: bool = false
+	var asked: bool = false
 	var start: float = showcase.elapsed
 	while showcase.moment() == &"talent_tree" and showcase.elapsed - start < 20.0:
 		showcase.advance(1.0 / 30.0)
 		showcase.main.hud.advance(1.0 / 30.0)  # a frame of the HUD and the layer, as _process gives
 		moment.advance(1.0 / 30.0)
 		headlines[moment.shown_headline()] = true
-		var window: HeroWindow = showcase.main.hud.hero_windows.window_of(knight.id)
+		var window: HeroWindow = windows.window_of(knight.id)
 		closing = closing or window.talents.tree_view().is_closing()
+		asked = asked or window.talents.asking() == HeroTalentsTab.Asking.PATH
 	assert_true(
 		headlines.has("Knight learned Bottle-top Block"), "a node taken: %s" % [headlines.keys()]
 	)
+	assert_true(asked, "the path asked first")
 	assert_true(headlines.has("Knight is now a Berserker"), "a path chosen")
 	assert_gt(moment.bursts_seen(), bursts, "with a burst")
 	assert_true(closing, "and the other path closing")

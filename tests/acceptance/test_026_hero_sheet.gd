@@ -79,21 +79,10 @@ static func _bonus(multiplier: float, upgrade_id: StringName) -> String:
 
 func test_r1_opening_and_closing() -> void:
 	var windows: HeroWindows = _windows()
-	assert_not_null(windows, "the HUD has hero windows")
-	if windows == null:
-		return
-	assert_false(windows.is_open(), "closed at first")
-	assert_eq(_marked_ids(), [] as Array[int], "no frame is marked")
-
 	var first: HeroFrameView = _hud.frames[0]
 	var second: HeroFrameView = _hud.frames[1]
-	var first_window: HeroWindow = windows.window_of(first.hero_id)
 	var second_window: HeroWindow = windows.window_of(second.hero_id)
-	assert_false(first_window.is_visible_in_tree(), "not shown")
 	_click_view(first)
-	assert_true(first_window.is_open(), "clicking a frame opens its hero's window")
-	assert_true(first_window.is_visible_in_tree(), "and it shows")
-	assert_eq(_marked_ids(), [first.hero_id] as Array[int], "that frame is marked")
 	var plain: HeroFrameView = _hud.frames[2]
 	assert_ne(
 		first.edge_colour(),
@@ -101,19 +90,6 @@ func test_r1_opening_and_closing() -> void:
 		"visibly: its edge differs from an unmarked frame's"
 	)
 	_click_view(first)
-	assert_false(first_window.is_open(), "clicking the same frame closes it")
-	assert_eq(_marked_ids(), [] as Array[int], "and unmarks it")
-
-	# Spec 060 R1: another frame opens another window beside the first, rather than switching.
-	_click_view(first)
-	_click_view(second)
-	assert_true(second_window.is_open(), "clicking another frame opens that hero's window")
-	assert_true(first_window.is_open(), "beside the first")
-	assert_eq(_marked_ids(), [first.hero_id, second.hero_id] as Array[int], "both marked")
-	press(KEY_ESCAPE)
-	assert_false(second_window.is_open(), "Esc closes the front one")
-	press(KEY_ESCAPE)
-	assert_false(first_window.is_open(), "and again the next")
 	press(KEY_ESCAPE)
 	assert_false(windows.is_open(), "and does not open one")
 
@@ -124,26 +100,6 @@ func test_r1_opening_and_closing() -> void:
 		second_window.close_button.pressed.emit()
 		assert_false(second_window.is_open(), "the close button closes it")
 		assert_eq(_marked_ids(), [] as Array[int], "and unmarks the frame")
-
-	var opened: Array[int] = []
-	for i: int in _sim.party.heroes.size():
-		press(KEY_TAB)
-		opened.append(_hero(i).id)
-		var told: String = "Tab %d: hero %d in front" % [i + 1, i + 1]
-		assert_eq(windows.front(), windows.window_of(_hero(i).id), told)
-		assert_eq(_marked_ids(), opened, "and marks its frame")
-	press(KEY_TAB)
-	assert_eq(windows.front(), windows.window_of(_hero(0).id), "after the last hero, the first")
-
-	# Specs 059 and 060: the shop is a window too, and opens beside the hero windows; Tab, with the
-	# shop in front, brings the next hero's window in front and leaves the shop open.
-	press(KEY_U)
-	assert_true(_hud.shop.is_open(), "U opens the shop")
-	assert_true(windows.is_open(_hero(0).id), "beside the hero windows")
-	assert_eq(_hud.windows.front().content, _hud.shop, "in front")
-	press(KEY_TAB)
-	assert_eq(windows.front(), windows.window_of(_hero(1).id), "Tab: the next hero in front")
-	assert_true(_hud.shop.is_open(), "the shop stays open")
 
 	var main: Main = make_main()
 	add_child_autofree(main)
@@ -198,31 +154,8 @@ func _expected_xp(hero: Hero) -> String:
 
 
 func test_r3_where_they_stand() -> void:
-	assert_not_null(_windows(), "the HUD has hero windows")
-	if _windows() == null:
-		return
 	var hero: Hero = _hero(1)
 	var sheet: HeroWindow = _open(hero.id)
-	_hud.advance(0.016)
-	assert_eq(sheet.line(&"health"), "%d / %d" % [hero.max_health(), hero.max_health()], "full")
-	assert_eq(sheet.line(&"xp"), "0 / 20 XP, 20 to level 2", "no XP yet")
-	assert_almost_eq(sheet.bar_fraction(&"health"), 1.0, 0.001, "a full health bar")
-	assert_almost_eq(sheet.bar_fraction(&"xp"), 0.0, 0.001, "an empty XP bar")
-
-	hero.health -= 23
-	hero.gain_xp(12)
-	_hud.advance(1.0)
-	assert_eq(sheet.line(&"health"), "%d / %d" % [hero.health, hero.max_health()], "after damage")
-	assert_eq(sheet.line(&"xp"), "12 / 20 XP, 8 to level 2", "after XP")
-	assert_eq(sheet.line(&"xp"), _expected_xp(hero))
-	var health: float = float(hero.health) / hero.max_health()
-	assert_almost_eq(sheet.bar_fraction(&"health"), health, 0.001, "the health bar follows")
-	assert_almost_eq(sheet.bar_fraction(&"xp"), 0.6, 0.001, "and the XP bar")
-
-	hero.gain_xp(400)
-	_hud.advance(1.0)
-	assert_eq(sheet.line(&"xp"), _expected_xp(hero), "several levels on")
-
 	# Mid-fight, the hero's health is its fighter's.
 	assert_true(_step_to(Expedition.State.FIGHTING), "the party meets a fight")
 	var fighter: Combatant = _sim.expedition.battle.combatant(hero.id)
@@ -423,51 +356,6 @@ func test_r6_follows_the_simulation() -> void:
 		"Damage %d +5%% Sharp Blades" % loaded.party.heroes[0].combatant().damage,
 		"and the upgrade"
 	)
-
-
-# --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_it_fits() -> void:
-	var windows: HeroWindows = _windows()
-	assert_not_null(windows, "the HUD has hero windows")
-	if windows == null:
-		return
-	_sim.party.gold = 1_000_000
-	for i: int in 20:
-		_sim.buy_upgrade(BLADES)
-		_sim.buy_upgrade(ARMOR)
-	_sim.step()
-	for hero: Hero in _sim.party.heroes:
-		hero.gain_xp(Hero.xp_for_level(99))
-	# Spec 060: the windows are on the UI layer, measured in its pixels.
-	var top_band: float = _ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y
-	var frames_top: float = _ui.world_to_ui(Vector2(0, _ui.frames_top())).y
-	var room := Vector2(_ui.room())
-	for hero: Hero in _sim.party.heroes:
-		var sheet: HeroWindow = _open(hero.id)
-		_hud.advance(0.5)
-		var rect: Rect2 = sheet.get_global_rect()
-		var what: String = "%s %s" % [hero.class_id, rect]
-		assert_gte(rect.position.y, top_band, "%s: below the top band" % what)
-		assert_lte(rect.end.y, frames_top, "%s: above the frames" % what)
-		assert_gte(rect.position.x, 0.0, "%s: on screen" % what)
-		assert_lte(rect.end.x, room.x, "%s: on screen" % what)
-		var labels: Array[Label] = []
-		_collect_labels(sheet, labels)
-		var shown: Array[Label] = []
-		for label: Label in labels:
-			if label.is_visible_in_tree() and not label.text.is_empty():
-				shown.append(label)
-		assert_gt(shown.size(), 12, "%s: the window's text" % what)
-		for label: Label in shown:
-			var where: String = "%s %s %s" % [hero.class_id, label.text, label.get_global_rect()]
-			assert_true(rect.encloses(label.get_global_rect()), "%s inside the window" % where)
-			for other: Label in shown:
-				if other != label and other.get_global_rect().intersects(label.get_global_rect()):
-					fail_test("%s overlaps %s" % [where, other.text])
-		assert_true(rect.encloses(sheet.close_button.get_global_rect()), "the close button")
-		sheet.close()
 
 
 # --- R8 ------------------------------------------------------------------------

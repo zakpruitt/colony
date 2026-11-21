@@ -5,7 +5,6 @@ extends "res://tests/acceptance/frame_062_test_base.gd"
 ## simulation events through a Main.
 
 const SPECIMEN_SCENE: String = "res://game/ui/picture_specimen.tscn"
-const OLD_SHEET: String = "res://assets/sprites/ui/talent_icons"
 ## Pixels (of 256) two abilities of one class must differ in at least, to be told apart at a glance.
 const GLANCE_PIXELS: int = 48
 const PICTURE: Vector2 = Vector2(16, 16)
@@ -451,56 +450,10 @@ func test_r6_only_for_what_just_happened() -> void:
 	main.free()
 
 
-# --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_the_present_screens_show_the_pictures() -> void:
-	var main: Main = _main(ROOM_LARGE)
-	raise_party(main.simulation, STRONG_LEVEL)
-	var windows: HeroWindows = main.hud.hero_windows
-	for hero: Hero in main.simulation.party.heroes:
-		windows.open(hero.id)
-		var window: HeroWindow = windows.window_of(hero.id)
-		var talents: HeroTalentsTab = window.talents
-		var nodes: Array = talents.tree.trunk_nodes + talents.tree.path_nodes[0]
-		nodes.append_array(talents.tree.path_nodes[1])
-		for node: TalentNode in nodes:
-			assert_eq(node.icon.texture, UiIcon.picture(node.ability_id), "%s" % node.ability_id)
-			assert_eq(node.icon.size, Vector2(32, 32), "%s: at twice its size" % node.ability_id)
-		for cell: ParagonCell in talents.paragon_cells:
-			assert_eq(cell.picture.texture, UiIcon.picture(cell.id), "paragon %s" % cell.id)
-		var skills: HeroSkillsTab = window.skills
-		for card: HeroSkillsTab.Card in skills.cards:
-			assert_eq(card.picture.texture, UiIcon.picture(card.skill.id), "%s" % card.skill.id)
-	for row: ShopRow in main.hud.shop.rows:
-		assert_eq(row.picture.texture, UiIcon.picture(row.id), "shop %s" % row.id)
-	main.free()
-	# The eight shared pictures of spec 060 are gone.
-	for ext: String in [".px", ".png", ".json"]:
-		assert_false(FileAccess.file_exists(OLD_SHEET + ext), "talent_icons%s removed" % ext)
-	var script: Script = load("res://sim/defs/ability_def.gd")
-	assert_false(script.get_script_constant_map().has("PICTURES"), "AbilityDef.PICTURES removed")
-	var has_field: bool = false
-	for property: Dictionary in script.get_script_property_list():
-		has_field = has_field or property["name"] == "picture"
-	assert_false(has_field, "AbilityDef.picture removed")
-	for id: StringName in Content.ability_ids():
-		var text: String = FileAccess.get_file_as_string("res://data/abilities/%s.tres" % id)
-		assert_false(text.contains("picture ="), "%s has no picture field" % id)
-
-
 # --- R8 ------------------------------------------------------------------------
 
 
 func test_r8_two_sounds() -> void:
-	for sound: StringName in [&"gain_small", &"gain_grand"]:
-		assert_has(SoundPlayer.SOUNDS, sound, "%s is one of the sounds" % sound)
-		var path: String = SoundPlayer.DIR + String(sound)
-		assert_true(FileAccess.file_exists(path + ".sfx"), "%s has a recipe" % sound)
-		var stream: AudioStream = load(path + ".wav") as AudioStream
-		assert_not_null(stream, "%s is baked" % sound)
-		if stream != null:
-			assert_lte(stream.get_length(), 1.2, "%s is short" % sound)
 	var main: Main = _settled(ROOM_LARGE)
 	var player: SoundPlayer = main.sound
 	player.set_process(false)

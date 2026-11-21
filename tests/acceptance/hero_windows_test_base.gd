@@ -6,7 +6,6 @@ const RICH: int = 1_000_000
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 const WIKI: String = "res://docs/wiki/index.html"
-const OLD_SHEET: String = "res://game/hud/hero_sheet.gd"
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -136,10 +135,6 @@ func _fight(main: Main) -> Battle:
 		_frame(main)
 		ticks += 1
 	return main.simulation.expedition.battle
-
-
-func _state_name(state: TalentNode.State) -> String:
-	return TalentNode.State.keys()[state]
 
 
 ## Checks that [param shown] is inside the room, under the top band, and clear of the button bar
