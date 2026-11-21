@@ -374,6 +374,45 @@ climb between stages keeps `x`, the shaft being one column through both. `Labyri
 are read by `game/` alone: nothing under `sim/expedition/` names them. `game/` still reads `Expedition.x`
 as a column, which it is on every level the game makes.
 
+## Winding stages
+
+Spec 089. A `Labyrinth` has a `shape`, given when it is made: `FLAT` (the default, and all the game
+makes) or `WINDING`. `Simulation.new(seed, shape)` passes it on, every area's labyrinth has the first
+one's (`AreaTravel.labyrinth`), and a simulation loaded from a save is flat. `python tools/dev.py sim
+--winding` plays a winding one. Nothing under `game/` draws a winding stage yet.
+
+A winding stage is made by `WindingStage` (`sim/labyrinth/winding_stage.gd`) from the level's own
+stream alone, so it lines up with no other stage. It lies in a band `Labyrinth.band_height()` (32) rows
+tall, `LabyrinthLevel.band`, with three floor rows 10 apart. Its route is two or three **runs**, each a
+row of 2 to 5 rooms and the tunnels between them on a floor of its own (7 to 10 rooms in all, on
+neighbouring floors, going down in some stages and up in others). The first run is walked one way, the
+next the other way, and a ladder stands in the columns the last room of a run shares with the first
+room of the next, two tiles inside both rooms' walls and far along the room it leaves.
+`LabyrinthLevel.chambers` is in route order, `tunnels` too (one for each pair of neighbours on a
+floor), `ladders` holds each ladder from the row under the upper room's floor to the lower room's floor
+row (so it runs down through the lower room, the one overlap among `open_rects()`), `floor_y` is the
+first room's floor and `shaft_down` has no area. The kinds are rolled as a flat level's: the first and
+last rooms are plain (stage 1's first is the START), at most one vault.
+
+The course starts at 0 at the far wall of the first room and runs through every room, tunnel and
+ladder to the far wall of the last; `entry` and `exit` are doors 2 to 5 tiles inside those walls. So
+the first room is the one a party arrives in and the last the one the way on leaves from, which a
+guardian holds on its stages. From `entry` to `exit` is a little over twice a flat stage's walk.
+
+**Changing stage** (`StageCrossing`, `sim/expedition/`). Flat stages are joined by a shaft: the party
+climbs its rows and keeps its `x`. Winding stages are joined by doors (`StageCrossing.by_door`): the
+party is CLIMBING for as long as `Labyrinth.LEVEL_HEIGHT` rows take (the climb's rows are counted,
+`LEVEL_HEIGHT` a stage, not measured between the floors), then stands at the next stage's `entry`
+facing its `exit`, or, going back, at the stage before's `exit` facing its `entry`.
+`ClimbProgress.share` runs from 0 to 1 over it. For the first half every hero is where it left from, in
+line behind the anchor, and from half way where it lands (`StageCrossing.feet`); a party that falls on
+the way lies where it left from. Hold turns a party on its way back to a living guardian
+(`StageCrossing.turn_back`): it is then leaving the stage before by its `exit`, as far along as it had
+come.
+
+`Expedition.monster_id` leaves room for 8 chambers a stage, so a winding stage's rooms 8 and 9 share
+ids with rooms 0 and 1 of the next stage. No two of those are in one fight; spec 091 widens the span.
+
 ## Pace by depth
 
 Spec 036. How long things take on a level depends on its depth, in `DepthTiming` (`sim/expedition/`), so a new

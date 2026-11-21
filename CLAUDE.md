@@ -120,7 +120,7 @@ incomplete, stop and report the question.
 | Bake sounds (`.sfx` recipes to `.wav`) | `python tools/sfx.py bake [<path>]` |
 | Lint the sounds (missing, stale, over 1.2 s, peak above -3 dB) | `python tools/sfx.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
-| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents]` |
+| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents] [--winding]` (`--winding`: on winding stages, which only the simulation makes so far) |
 | Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=110` |
 | Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 

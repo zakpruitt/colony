@@ -60,11 +60,12 @@ var _auto_buy: bool = false
 var _pending_auto_buy: int = -1
 
 
-func _init(seed_value: int) -> void:
+## A new game from [param seed_value], every area's stages of [param shape].
+func _init(seed_value: int, shape: Labyrinth.Shape = Labyrinth.Shape.FLAT) -> void:
 	_seed = seed_value
 	party = Party.new()
 	upgrades = party.upgrades
-	var first := Labyrinth.new(seed_value)
+	var first := Labyrinth.new(seed_value, "", shape)
 	expedition = Expedition.new(first, party, SimRng.new(seed_value).fork("expedition"))
 
 

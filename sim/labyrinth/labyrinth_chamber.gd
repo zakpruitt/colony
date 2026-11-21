@@ -1,10 +1,10 @@
 class_name LabyrinthChamber
 extends RefCounted
-## One chamber of a labyrinth level: an open rectangle standing on the level's floor row.
+## One chamber of a labyrinth level: an open rectangle standing on a floor row of the level.
 
 enum Kind { START, PLAIN, DEN, VAULT }
 
-## Position in the level, 0 at the left.
+## Position in the level: 0 at the left, or, on a winding level, where a party arrives.
 var index: int
 var kind: Kind
 ## Open space in world tiles. rect.end.y - 1 is the floor row.

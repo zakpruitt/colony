@@ -6,10 +6,16 @@ extends RefCounted
 ## SimRng stream, and the shaft columns it must line up with come from their
 ## own per-depth streams, so depths can be asked for in any order.
 ##
+## A WINDING labyrinth's levels are made by [WindingStage]; what follows is the FLAT shape.
+##
 ## Layout: the chamber holding the left-third shaft is the first chamber and
 ## the one holding the right-third shaft is the last, so a party crosses the
 ## level to keep descending. The chambers and tunnels between them fill the
 ## gap exactly.
+
+## FLAT: every stage is one row of chambers, joined to the next by a shaft. WINDING: every stage
+## is rooms on three floors joined by tunnels and ladders ([WindingStage]).
+enum Shape { FLAT, WINDING }
 
 const LEVEL_WIDTH: int = 120
 const LEVEL_HEIGHT: int = 16
@@ -45,7 +51,13 @@ var seed_value: int:
 	get:
 		return _seed
 
+## The shape of every stage. Read-only outside the class.
+var shape: Shape:
+	get:
+		return _shape
+
 var _seed: int
+var _shape: Shape = Shape.FLAT
 var _root: SimRng
 var _levels: Dictionary[int, LabyrinthLevel] = {}
 ## Each depth's shaft column, worked out on the first request.
@@ -53,9 +65,10 @@ var _shaft_columns: Dictionary[int, int] = {}
 
 
 ## The levels of [param seed_value]; with an [param area_label] (an area other than the first),
-## that area's own levels of the seed.
-func _init(seed_in: int, area_label: String = "") -> void:
+## that area's own levels of the seed. Every stage has the shape [param shape_in].
+func _init(seed_in: int, area_label: String = "", shape_in: Shape = Shape.FLAT) -> void:
 	_seed = seed_in
+	_shape = shape_in
 	_root = SimRng.new(seed_in)
 	if area_label != "":
 		_root = _root.fork(area_label)
@@ -69,7 +82,12 @@ func level(depth: int) -> LabyrinthLevel:
 	return _levels[depth]
 
 
-## Left column of the shaft from this depth to the next. Generates no level.
+## Rows of world each stage takes: LEVEL_HEIGHT for a flat labyrinth, 32 for a winding one.
+func band_height() -> int:
+	return WindingStage.BAND_HEIGHT if _shape == Shape.WINDING else LEVEL_HEIGHT
+
+
+## Left column of the shaft from this depth to the next, in a flat labyrinth. Generates no level.
 func shaft_column(depth: int) -> int:
 	if not _shaft_columns.has(depth):
 		_shaft_columns[depth] = _roll_shaft_column(_root.fork("shaft/%d" % depth), depth)
@@ -86,8 +104,11 @@ func _roll_shaft_column(rng: SimRng, depth: int) -> int:
 
 func _generate(depth: int) -> LabyrinthLevel:
 	var rng: SimRng = _root.fork("level/%d" % depth)
+	if _shape == Shape.WINDING:
+		return _generate_winding(rng, depth)
 	var result := LabyrinthLevel.new()
 	result.depth = depth
+	result.band = Rect2i(0, (depth - 1) * LEVEL_HEIGHT, LEVEL_WIDTH, LEVEL_HEIGHT)
 	result.floor_y = (depth - 1) * LEVEL_HEIGHT + _FLOOR_ROW_IN_BAND
 
 	var down: int = shaft_column(depth)
@@ -127,6 +148,24 @@ func _generate(depth: int) -> LabyrinthLevel:
 		)
 	result.shaft_down = Rect2i(down, result.floor_y + 1, SHAFT_WIDTH, LEVEL_HEIGHT)
 	result.course = _course_of(result, up if depth > 1 else -1, down)
+	return result
+
+
+## A winding stage, its rooms' kinds rolled as a flat level's: the room a party arrives in and
+## the room the way on leaves from are plain (the first of all is the START).
+func _generate_winding(rng: SimRng, depth: int) -> LabyrinthLevel:
+	var result: LabyrinthLevel = WindingStage.make(rng, depth)
+	var last: int = result.chambers.size() - 1
+	var vaults: int = 0
+	for chamber: LabyrinthChamber in result.chambers:
+		if depth == 1 and chamber.index == 0:
+			chamber.kind = LabyrinthChamber.Kind.START
+		elif chamber.index == 0 or chamber.index == last:
+			chamber.kind = LabyrinthChamber.Kind.PLAIN
+		else:
+			chamber.kind = _roll_kind(rng, vaults > 0)
+			if chamber.kind == LabyrinthChamber.Kind.VAULT:
+				vaults += 1
 	return result
 
 
