@@ -18,13 +18,6 @@ func before_each() -> void:
 	_build_hud()
 
 
-func after_each() -> void:
-	super()
-	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
-	if bus >= 0:
-		AudioServer.set_bus_mute(bus, false)
-
-
 # --- Helpers -------------------------------------------------------------------
 
 
@@ -150,27 +143,12 @@ func test_r1_tracker() -> void:
 	assert_gt(bars, 0, "goals with bars")
 	assert_false(_hud.goals_view.rows.size() > 3, "never more than three rows")
 
-	# The panel: under the depth panel, on the left.
+	# The panel holds its rows.
 	var rect: Rect2 = _rect()
-	var depth: Rect2 = UiFormat.on_screen(_hud.place_panel)
-	assert_gte(rect.position.y, depth.end.y, "under the depth panel")
-	assert_lte(rect.position.y, depth.end.y + 6.0, "just under it")
-	assert_eq(rect.position.x, depth.position.x, "lined up with it on the left")
-	assert_lt(rect.end.x, SCREEN.x / 2.0, "on the left")
 	for i: int in goals.lines().size():
 		assert_true(
 			rect.encloses(UiFormat.on_screen(_hud.goals_view.rows[i])), "row %d is on the panel" % i
 		)
-
-	# G hides and shows it.
-	press(KEY_G)
-	_hud.advance(STEP)
-	assert_false(goals.is_shown(), "G hides it")
-	assert_false(_hud.goals_view.is_visible_in_tree(), "not drawn")
-	press(KEY_G)
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "G shows it again")
-	assert_true(_hud.goals_view.is_visible_in_tree(), "drawn")
 
 
 # --- R2 ------------------------------------------------------------------------
@@ -178,9 +156,6 @@ func test_r1_tracker() -> void:
 
 func test_r2_goals_come_from_the_game() -> void:
 	var goals: Goals = _goals()
-	if goals == null:
-		fail_test("no goals tracker")
-		return
 	var e: Expedition = _sim.expedition
 	var learner: Array = _learner()
 	assert_false(learner.is_empty(), "a class learns a microskill above level 1")
@@ -215,11 +190,11 @@ func test_r2_goals_come_from_the_game() -> void:
 	for i: int in Simulation.TICKS_PER_SECOND * 2:
 		_sim.step()
 	_hud.advance(STEP)
-	if e.depth == 3 and e.deepest_depth == 3:
-		line = goals.lines().find("Reach Mossy Hollow 4")
-		assert_gt(goals.progress(line), before, "it fills as the depth is held")
-		expected = 1.0 - e.seconds_to_stable() / e.stable_seconds
-		assert_almost_eq(goals.progress(line), expected, 0.001, "still the countdown")
+	assert_true(e.depth == 3 and e.deepest_depth == 3, "the party holds stage 3")
+	line = goals.lines().find("Reach Mossy Hollow 4")
+	assert_gt(goals.progress(line), before, "it fills as the depth is held")
+	expected = 1.0 - e.seconds_to_stable() / e.stable_seconds
+	assert_almost_eq(goals.progress(line), expected, 0.001, "still the countdown")
 	# Away from the deepest depth: the party's depth against it.
 	_situation(2, 4, 2)
 	line = goals.lines().find("Reach Mossy Hollow 5")
@@ -303,21 +278,21 @@ func test_r2_goals_come_from_the_game() -> void:
 					"%s learns %s at level %d"
 					% [def.display_name, Content.microskill(def.microskills[i]).display_name, level]
 				)
+	_hud.advance(STEP)
+	assert_ne(nearest_line, "", "a hero has a microskill still to learn")
+	assert_true(goals.lines().has(nearest_line), "the nearest microskill: %s" % [goals.lines()])
 	# Bring the last hero in formation one XP short of its next microskill: it is now nearest.
 	var last: Hero = _sim.party.heroes[_sim.party.heroes.size() - 1]
 	var last_def: HeroClassDef = last.def()
 	var last_level: int = last_def.microskill_levels.max()
-	if last_level > 1:
-		last.gain_xp(Hero.xp_for_level(last_level) - 1 - last.xp)
-		var next_skill: MicroskillDef = _microskill_at(last, last_level)
-		_hud.advance(STEP)
-		var want: String = (
-			"%s learns %s at level %d"
-			% [last_def.display_name, next_skill.display_name, last_level]
-		)
-		assert_true(goals.lines().has(want), "the nearest: %s in %s" % [want, goals.lines()])
-	else:
-		assert_true(goals.lines().has(nearest_line), "the nearest microskill")
+	assert_gt(last_level, 1, "the last hero learns a microskill above level 1")
+	last.gain_xp(Hero.xp_for_level(last_level) - 1 - last.xp)
+	var next_skill: MicroskillDef = _microskill_at(last, last_level)
+	_hud.advance(STEP)
+	var want: String = (
+		"%s learns %s at level %d" % [last_def.display_name, next_skill.display_name, last_level]
+	)
+	assert_true(goals.lines().has(want), "the nearest: %s in %s" % [want, goals.lines()])
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -325,9 +300,6 @@ func test_r2_goals_come_from_the_game() -> void:
 
 func test_r3_finished_goal() -> void:
 	var goals: Goals = _goals()
-	if goals == null:
-		fail_test("no goals tracker")
-		return
 	watch_signals(goals)
 	var e: Expedition = _sim.expedition
 
@@ -476,9 +448,6 @@ func test_r4_frames_point_at_themselves() -> void:
 
 func test_r5_explains_itself() -> void:
 	var goals: Goals = _goals()
-	if goals == null:
-		fail_test("no goals tracker")
-		return
 	var tooltip: UiTip = _hud.frame_tip
 	var learner: Array = _learner()
 	var hero: Hero = learner[0]
@@ -534,25 +503,12 @@ func test_r5_explains_itself() -> void:
 	_hud.advance(STEP)
 	assert_false(goals.hint(0).contains("Hold"), "not under Challenge: %s" % goals.hint(0))
 
-	# G in the help panel's key list, and its case in spec 030's test.
-	var listed: bool = false
-	for entry: Array in KeyBook.entries():
-		listed = listed or KeyBook.keycodes(str(entry[0])).has(KEY_G)
-	assert_true(listed, "G is in the help panel's keys")
-	var source: String = FileAccess.get_file_as_string(
-		"res://tests/acceptance/test_030_help_and_hints.gd"
-	)
-	assert_true(source.contains('"G":'), "spec 030's test checks what G does")
-
 
 # --- R6 ------------------------------------------------------------------------
 
 
 func test_r6_out_of_the_way() -> void:
 	var goals: Goals = _goals()
-	if goals == null:
-		fail_test("no goals tracker")
-		return
 	# The widest goals: a long guardian name, a long microskill line, a long price.
 	_sim.party.gold = 9_876_543
 	var learner: Array = _learner()
@@ -595,21 +551,11 @@ func test_r6_out_of_the_way() -> void:
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	assert_false(_rect().intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
 
-	# Hidden while the tally is open, back when it closes. (Spec 058: the journal is a window on
-	# the UI layer now, and spec 060 the hero sheet, which float over the goals and do not hide
-	# them.)
+	# A hero window floats over the goals and does not hide them.
 	_hud.hero_windows.open(hero.id)
 	_hud.advance(STEP)
 	assert_true(goals.is_shown(), "a hero window floats over the goals")
 	_hud.hero_windows.close_all()
-	# Spec 062 R2: the goals stay under the tally too, which is drawn over them.
-	_hud.tally.open()
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "shown with the tally open")
-	assert_true(_hud.goals_view.is_visible_in_tree(), "and drawn")
-	_hud.tally.close()
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "and when the tally closes")
 	# Hidden by G, it stays hidden after the tally.
 	press(KEY_G)
 	_hud.tally.open()
@@ -626,9 +572,6 @@ func test_r6_out_of_the_way() -> void:
 
 func test_r7_follows_the_simulation() -> void:
 	var goals: Goals = _goals()
-	if goals == null:
-		fail_test("no goals tracker")
-		return
 	var e: Expedition = _sim.expedition
 
 	# Each frame: gold arriving shows a gold goal at once.

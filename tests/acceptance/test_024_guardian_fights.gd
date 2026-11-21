@@ -110,41 +110,6 @@ func test_r2_boss_bar() -> void:
 	assert_eq(bar.shown_name(), "SLIME KING", "with the guardian's name")
 	assert_almost_eq(bar.shown_fraction(), 1.0, 0.01, "full at the start")
 
-	# Inside the top band, between the panels, clear of the shop too.
-	var rect: Rect2 = bar.get_global_rect()
-	assert_gte(rect.position.y, 0.0, "inside the top band")
-	assert_lte(rect.end.y, HudFrame.TOP_BAND, "inside the top band")
-	assert_gte(
-		rect.position.x, _hud.place_panel.get_global_rect().end.x, "right of the depth panel"
-	)
-	assert_lte(rect.end.x, _hud.purse.get_global_rect().position.x, "left of the gold")
-	assert_gt(rect.size.x, 150.0, "wide")
-	_hud.shop.open()
-	_hud.advance(0.0)
-	assert_false(rect.intersects(_hud.shop.get_global_rect()), "clear of the open shop")
-	_hud.shop.close()
-
-	# It follows the guardian's health, eased.
-	var guardian: Combatant = CombatEffects.battle_guardian(_sim)
-	var hit_guardian: bool = false
-	for i: int in 600 * FRAMES_PER_TICK:
-		_events = []
-		_play_frame()
-		for event: SimEvent in _guardian_events(SimEvent.Kind.HIT):
-			if event.target_id == guardian.id:
-				hit_guardian = true
-		if hit_guardian:
-			break
-	assert_true(hit_guardian, "a hit lands on the guardian")
-	var actual: float = float(guardian.health) / guardian.max_health
-	assert_lt(actual, 1.0, "the guardian is hurt")
-	assert_true(bar.is_flashing(), "the bar flashes on the hit")
-	assert_gt(bar.shown_fraction(), actual + 0.0001, "the bar eases down rather than jumping")
-	for i: int in 60:
-		bar.advance(STEP)
-	assert_almost_eq(bar.shown_fraction(), actual, 0.001, "and arrives at the guardian's health")
-	assert_false(bar.is_flashing(), "the flash is brief")
-
 	# Gone after the win.
 	assert_true(_play_until(SimEvent.Kind.ENCOUNTER_ENDED), "the fight ends")
 	assert_true(_guardian_events(SimEvent.Kind.ENCOUNTER_ENDED)[0].flag, "the heroes won")

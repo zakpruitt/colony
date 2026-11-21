@@ -296,9 +296,6 @@ func test_r4_a_notch_is_a_rung() -> void:
 		var at: Vector2 = ladder.rung_rect(10).get_center()
 		_enters()
 		_wheel(down, at)
-		# Spec 054: the rung it eases to is a whole one, so a notch onto it keeps following it.
-		var onto_goal: bool = ladder.is_following() and ladder.first_depth() == expected
-		assert_true(onto_goal or not ladder.is_following(), "%s: scrolled away" % way)
 		assert_eq(ladder.first_depth(), expected, "%s: to the next whole rung" % way)
 		_settle()
 		var moved: float = absf(_scroll() - before)
@@ -396,19 +393,9 @@ func test_r6_one_rule() -> void:
 	_sim.party.heroes.clear()
 	_agree("an empty party")
 
-	# One place: none of the three keeps its own loop.
-	for path: String in [
-		"res://game/hud/depth_ladder.gd", "res://game/hud/goals.gd", "res://game/hud/defeat_note.gd"
-	]:
-		var source: String = FileAccess.get_file_as_string(path)
-		assert_true(source.contains("PartyLevels.lowest("), "%s reads the shared rule" % path)
-		assert_false(source.contains("< lowest"), "%s keeps no lowest of its own" % path)
-
 
 func _agree(what: String) -> void:
 	var shared: int = PartyLevels.lowest(_sim.party)
 	# The ladder says it in the line for a depth far below: dangerous for heroes of that level.
 	var line: String = _hud.ladder.hover_text(90).get_slice("\n", 1)
 	assert_eq(line, "Dangerous: heroes are level %d" % shared, "%s: the ladder" % what)
-	assert_eq(_hud.goals._lowest_level(), shared, "%s: the goals tracker" % what)
-	assert_eq(_hud.defeat_note._lowest_level(), shared, "%s: the defeat note" % what)

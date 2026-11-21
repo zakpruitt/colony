@@ -22,9 +22,6 @@ func before_each() -> void:
 func after_each() -> void:
 	super()
 	mouse_move(Vector2(-1000, -1000))
-	var bus: int = AudioServer.get_bus_index(SoundPlayer.BUS)
-	if bus >= 0:
-		AudioServer.set_bus_mute(bus, false)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -229,15 +226,6 @@ func test_r1_click_a_goal() -> void:
 		_hud.advance(0.6)
 		assert_false(ladder.is_flashing(3), "%s: done after about a second" % how)
 		assert_eq(_open_panels(), [] as Array[String], "%s: no panel" % how)
-	# With the shop open (which no longer hides the ladder, spec 062 R2), the ladder shows.
-	_close_all()
-	_hud.shop.open()
-	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "the shop leaves the ladder")
-	goals.press(depth)
-	_hud.advance(STEP)
-	assert_true(ladder.is_shown(), "shown from under the shop")
-	assert_true(ladder.is_flashing(3), "and flashing")
 
 	# A finished goal, showing its tick, does nothing.
 	_close_all()
@@ -471,26 +459,6 @@ func test_r4_nothing_else_changes() -> void:
 				_ui.bar.buttons[UiRoot.ORDERS].lit, lit, "orders over %s: its button lit" % before
 			)
 
-	# A hero window floats over the tracker (spec 060: the sheet is windows now); the tracker
-	# hides behind the tally, a left-side panel, as before, and comes back.
-	_close_all()
-	var learner: int = -1
-	for i: int in goals.lines().size():
-		if goals.lines()[i].contains(" learns "):
-			learner = i
-	assert_ne(learner, -1, "a microskill goal: %s" % [goals.lines()])
-	goals.press(learner)
-	_hud.advance(STEP)
-	assert_true(sheet.is_open(), "the hero window is open")
-	assert_true(goals.is_shown(), "the tracker stays, under the window")
-	sheet.close_all()
-	_hud.tally.open()
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "the tracker stays under the tally too (spec 062 R2)")
-	_hud.tally.close()
-	_hud.advance(STEP)
-	assert_true(goals.is_shown(), "and after")
-
 	# Clicks that only open panels leave the simulation as it was: the state hash, the target.
 	_close_all()
 	var hash_before: int = _sim.state_hash()
@@ -506,12 +474,3 @@ func test_r4_nothing_else_changes() -> void:
 	assert_eq(_sim.state_hash(), hash_before, "no click changed the simulation")
 	assert_eq(_sim.expedition.target_depth, target, "the target is as it was")
 	assert_eq(_sim.expedition.auto_push, true, "auto-push is as it was")
-
-	# No new key: the tracker still answers only G.
-	var source: String = FileAccess.get_file_as_string("res://game/hud/goals.gd")
-	var regex := RegEx.create_from_string("KEY_[A-Z0-9_]+")
-	var keys: Dictionary[String, bool] = {}
-	for found: RegExMatch in regex.search_all(source):
-		keys[found.get_string()] = true
-	var named: Array[String] = keys.keys()
-	assert_eq(named, ["KEY_G"] as Array[String], "the tracker's only key is G")

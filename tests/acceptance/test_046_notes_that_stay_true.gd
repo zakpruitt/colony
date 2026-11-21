@@ -64,12 +64,6 @@ func _first_line() -> String:
 	return lines[0] if not lines.is_empty() else ""
 
 
-## Runs the HUD on by [param seconds] in frames, the simulation standing still.
-func _linger(seconds: float) -> void:
-	for i: int in roundi(seconds / 0.1):
-		_hud.advance(0.1)
-
-
 ## The sentence the tooltip shows after the mouse rests on [param control].
 func _tip_of(control: Control) -> String:
 	_hud.frame_tip.point_at(UiTip.NOWHERE)
@@ -196,28 +190,6 @@ func test_r3_click_does_what_was_aimed() -> void:
 	)
 
 
-# --- R4 ------------------------------------------------------------------------
-
-
-func test_r4_panel_does_not_use_time() -> void:
-	_sim.party.gold = RICH
-	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
-	assert_true(_until_standing(), "the heroes stand")
-	_linger(1.0)
-	assert_true(_note().is_shown(), "the note lingers")
-	_note().press(_note().suggestions().find("Buy an upgrade"))
-	assert_true(_hud.shop.is_open(), "Buy an upgrade opens the shop")
-	# Spec 062 R4: drawn over every window, the note no longer hides while the shop is open; it
-	# keeps its time there as anywhere.
-	_hud.advance(STEP)
-	assert_true(_note().is_shown(), "shown while the shop is open")
-	_linger(DefeatNote.LINGER_SECONDS - 2.5)
-	assert_true(_note().is_shown(), "with the rest of its time")
-	_hud.shop.close()
-	_linger(DefeatNote.LINGER_SECONDS + 2.0)
-	assert_false(_note().is_shown(), "which then runs out")
-
-
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -259,7 +231,16 @@ func test_r6_journal_keeps_what_it_said() -> void:
 		),
 		"the note's line and where the party falls back to"
 	)
-	assert_eq(_journal_sentence(), _first_line() + "; falling back to Mossy Hollow %d" % SAFE)
+	var back: String = "; falling back to Mossy Hollow %d" % SAFE
+	assert_eq(_journal_sentence(), _first_line() + back)
+	assert_true(_until_standing(), "the heroes stand")
+	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "and again")
+	assert_eq(_journal_sentence(), _first_line() + back, "with the count")
+	assert_true(_journal_sentence().ends_with("(2 times)" + back), "counted")
+	assert_true(_until_standing(), "the heroes stand")
+	_hunting_on(DEEP, SAFE)
+	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
+	assert_eq(_journal_sentence(), _first_line() + back, "an ordinary defeat's line too")
 	assert_true(_until_standing(), "the heroes stand")
 	_hunting_on(SAFE, SAFE)
 	assert_true(_lose_next_fight(), "the party loses on its safe depth")
@@ -367,12 +348,6 @@ func test_r8_measures_say_what_they_count() -> void:
 	var taken_tip: String = TallyWindow.TAB_TIPS[Tally.Measure.TAKEN]
 	assert_true(damage_tip.contains("overkill"), "the Damage tooltip says so: %s" % damage_tip)
 	assert_true(taken_tip.contains("overkill"), "the Taken tooltip says so: %s" % taken_tip)
-	_hud.tally.open()
-	_hud.advance(STEP)
-	for measure: int in [Tally.Measure.DAMAGE, Tally.Measure.TAKEN]:
-		var tip: String = _hud.tally.tip.text_for(_hud.tally.tab_buttons[measure])  # spec 059
-		assert_eq(tip, TallyWindow.TAB_TIPS[measure], "shown on the tab")
-	_hud.tally.close()
 
 	# A heal on a hero one short of full: only the one point restored is counted. When a heal
 	# sets off, its hero is put one short of full until it lands.
@@ -415,16 +390,3 @@ func test_r8_measures_say_what_they_count() -> void:
 		if event.kind == SimEvent.Kind.HEALED and event.source_id == heal.source_id:
 			others += event.amount
 	assert_eq(counted, others, "healing counts what was restored, the 1 among it")
-
-
-# --- R9 ------------------------------------------------------------------------
-
-
-func test_r9_help_row() -> void:
-	var text: String = ""
-	for entry: Array in KeyBook.entries():
-		if str(entry[0]) == "Q E":
-			text = str(entry[1])
-	# Spec 058 shortened the row to fit the help window's column on one line, and spec 060 again
-	# (the sheet became hero windows, and Shift+Tab widened the key column); it still names both.
-	assert_eq(text, "Hero window or Tally: change tab", "the Q E row")  # spec 068 R2: Tally

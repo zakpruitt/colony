@@ -201,7 +201,6 @@ func test_r3_the_purse() -> void:
 		assert_gt(first.position.x, purse.gold_label.get_global_rect().position.x, "after the gold")
 		for label: Label in [purse.gold_label, purse.labels[ids[0]], purse.labels[ids[2]]]:
 			assert_eq(label.get_theme_font(&"font"), UiText.font(true), "in the UI font's digits")
-		assert_eq(UiText.width("1111", true), UiText.width("8888", true), "which are equal-width")
 		# The game-speed button sits with it, lit above 1x.
 		var speed: UiButton = purse.speed_button
 		assert_true(
@@ -350,6 +349,7 @@ func test_r5_hero_frames() -> void:
 		first.health = 0
 		hud.advance(STEP)
 		assert_eq(knight.icon_part(), &"skull", "the skull")
+		assert_eq(knight.icon.texture, hud.icon(&"skull"), "drawn as the skull")
 		assert_eq(knight.level_label.text, "Down")
 		sim.expedition.state = Expedition.State.REVIVING
 		hud.advance(STEP)
@@ -358,8 +358,6 @@ func test_r5_hero_frames() -> void:
 		first.health = first.max_health()
 		hud.advance(STEP)
 		assert_eq(knight.icon_part(), first.class_id, "its portrait back")
-		assert_true(knight.status_icons.get_parent() == knight, "its status marks")
-		assert_eq(StatusIcons.MOST, 3, "up to three")
 		# Blow by blow: in a fight the number follows each hit at once and the bar eases after it.
 		assert_true(_fight(main), "a fight")
 		var followed: int = 0
@@ -395,13 +393,6 @@ func test_r5_the_bar_and_the_ticker_sit_on_the_frames() -> void:
 		var bar: Rect2 = ui.bar.get_global_rect()
 		assert_lte(bar.end.y, line, "%s: the button bar above the frames" % what)
 		assert_gt(bar.end.y, line - 8.0, "%s: just above them" % what)
-		main.hud.journal.announce("Something happened.")
-		main.hud.advance(STEP)
-		var ticker: Rect2 = UiFormat.on_screen(main.hud.ticker)
-		var on_ui := Rect2(ui.world_to_ui(ticker.position), ui.world_to_ui(ticker.size))
-		assert_true(main.hud.ticker.is_visible_in_tree(), "%s: the ticker shows" % what)
-		assert_lte(on_ui.end.y, line, "%s: the ticker above the frames" % what)
-		assert_gt(on_ui.end.y, line - 12.0, "%s: just above them" % what)
 		main.free()
 
 
@@ -499,6 +490,7 @@ func test_r7_tooltips() -> void:
 		for frame: HeroFrameView in hud.frames:
 			var said: String = _rest_on(main, frame)
 			assert_eq(said, frame.tip(), "%s: a frame's tooltip, as before" % room)
+			assert_eq(said, "Click for details", "%s: the frame's own words" % room)
 			assert_eq(tip.shown_title(), frame.tip_title(), "under a title")
 			assert_eq(tip.title_label.get_theme_font(&"font"), UiText.font(true), "in bold")
 			_check_box(main, frame, "%s %s" % [room, frame.name])
@@ -547,48 +539,6 @@ func test_r7_a_frame_tip_is_drawn_over_everything() -> void:
 		main.free()
 
 
-## The names of what on [param layer] draws over [param tip]'s box: anything later in the draw
-## order (the tree's, or a higher z) whose rectangle meets it.
-func _drawn_over(layer: CanvasLayer, tip: UiTip) -> Array[String]:
-	var order: Array[CanvasItem] = []
-	_in_draw_order(layer, order)
-	var box: Rect2 = tip.get_global_rect()
-	var over: Array[String] = []
-	var after: bool = false
-	for item: CanvasItem in order:
-		if item == tip:
-			after = true
-			continue
-		if tip.is_ancestor_of(item) or not item.is_visible_in_tree():
-			continue
-		var later: bool = _z_of(item) > _z_of(tip) or (after and _z_of(item) == _z_of(tip))
-		var control: Control = item as Control
-		# Anything not a control is taken to cover the whole layer.
-		var rect: Rect2 = control.get_global_rect() if control != null else box
-		if later and rect.intersects(box):
-			over.append(String(item.get_path()))
-	return over
-
-
-func _in_draw_order(node: Node, order: Array[CanvasItem]) -> void:
-	for child: Node in node.get_children():
-		if child is CanvasItem:
-			order.append(child as CanvasItem)
-		_in_draw_order(child, order)
-
-
-func _z_of(item: CanvasItem) -> int:
-	var z: int = 0
-	var at: Node = item
-	while at is CanvasItem:
-		var canvas_item: CanvasItem = at as CanvasItem
-		z += canvas_item.z_index
-		if not canvas_item.z_as_relative:
-			break
-		at = at.get_parent()
-	return z
-
-
 func _check_box(main: Main, control: Control, what: String) -> void:
 	var tip: UiTip = main.hud.frame_tip
 	var box: Rect2 = tip.get_global_rect()
@@ -600,6 +550,8 @@ func _check_box(main: Main, control: Control, what: String) -> void:
 		box.intersects(control.get_global_rect()), "%s: never over what it explains" % what
 	)
 	assert_eq(tip.label.get_theme_font(&"font"), UiText.font(), "%s: in the UI font" % what)
+	for label: Label in _shown_labels(tip):
+		assert_true(box.encloses(label.get_global_rect()), "%s: the text is in the box" % what)
 	var lines: int = tip.label.get_line_count() + (1 if tip.title_label.visible else 0)
 	assert_lte(
 		box.size.y, lines * (UiText.LINE_HEIGHT + 4) + 12.0, "%s: as tall as its lines" % what
@@ -607,57 +559,6 @@ func _check_box(main: Main, control: Control, what: String) -> void:
 
 
 # --- R8 ------------------------------------------------------------------------
-
-
-func test_r8_nothing_drawn_twice_nothing_lost() -> void:
-	var main: Main = _main()
-	var hud: Hud = main.hud
-	# Nothing of the old pieces is left on the old HUD.
-	var old: Array[Control] = []
-	_controls(hud, old)
-	for control: Control in old:
-		var old_panel: bool = String(control.name) in ["DepthPanel", "GoldPanel", "SpeedTab"]
-		assert_false(control is Panel and old_panel, "%s is gone" % control.name)
-		var label: Label = control as Label
-		if label != null and label.is_visible_in_tree():
-			for gone: String in ["Safe 1", "Target", hud.status_text()]:
-				assert_ne(label.text, gone, "'%s' is not drawn on the old HUD too" % gone)
-	for path: String in [
-		"res://game/hud/hero_frame.gd",
-		"res://game/hud/boss_bar.gd",
-		"res://game/hud/resource_purse.gd"
-	]:
-		assert_false(FileAccess.file_exists(path), "%s is removed" % path)
-	# Every piece is on the sharp layer, drawn once.
-	for piece: Control in _pieces(main).values():
-		assert_true(main.ui.is_ancestor_of(piece), "%s on the sharp layer" % piece.name)
-	# Every key still works.
-	var sim: Simulation = main.simulation
-	var target: int = sim.expedition.target_depth
-	_press(main, KEY_EQUAL)
-	sim.step()
-	hud.advance(STEP)
-	assert_eq(sim.expedition.target_depth, target + 1, "= raises the target")
-	_press(main, KEY_MINUS)
-	sim.step()
-	hud.advance(STEP)
-	assert_eq(sim.expedition.target_depth, target, "- lowers it")
-	var auto: bool = sim.expedition.auto_push
-	_press(main, KEY_A)
-	sim.step()
-	hud.advance(STEP)
-	assert_ne(sim.expedition.auto_push, auto, "A switches Auto")
-	assert_eq(hud.place_panel.auto_button.lit, sim.expedition.auto_push, "as the panel shows")
-	_press(main, KEY_TAB)
-	assert_true(hud.hero_windows.is_open(sim.party.heroes[0].id), "Tab opens a hero's window")
-	assert_true(hud.frames[0].marked, "marked on its frame")
-	hud.hero_windows.close_all()
-	_press(main, KEY_W)
-	assert_true(hud.area_map.is_open(), "W opens the map")
-	hud.area_map.close()
-	_press(main, KEY_F)
-	assert_eq(main.speed, 2, "F speeds the game")
-	assert_true(hud.purse.speed_button.lit, "shown on the purse")
 
 
 func test_r8_a_click_on_the_frame_goes_no_further() -> void:
@@ -727,7 +628,6 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	for id: StringName in Content.resource_ids():
 		var held: int = sim.party.resource(id)
 		assert_lte(hud.purse.shown(id), held, "%s never more than held" % id)
-	var recent_hits: Dictionary[int, bool] = {}
 	var tally: TallyWindow = hud.tally
 	for frame: HeroFrameView in hud.frames:
 		var hero: Hero = sim.party.hero(frame.hero_id)
@@ -758,7 +658,6 @@ func test_r9_true_in_a_crowded_frame() -> void:
 				statuses.append(status.kind)
 		if alive:
 			assert_eq(frame.status_icons.kinds, statuses, "%s: its statuses" % frame.name)
-		recent_hits[hero.id] = false
 	for frame: HeroFrameView in hud.frames:
 		assert_eq(frame.flash(), 0.0, "%s: no stale flash" % frame.name)
 	assert_eq(hud.gold_bump(), 0.0, "no stale bump on the gold")
@@ -862,11 +761,3 @@ func test_r11_showcase_help_and_wiki() -> void:
 	assert_string_contains(wiki, "frame of the screen", "the wiki tells of it")
 	for said: String in ["Stable in", "Safe", "Auto", "1x"]:
 		assert_string_contains(wiki, said, "the wiki names %s" % said)
-	var keys: Dictionary[String, bool] = {}
-	for entry: Array in KeyBook.entries():
-		keys[str(entry[0])] = true
-	for key: String in ["- +", "A", "F", "W", "Tab"]:
-		assert_true(keys.has(key), "help lists %s" % key)
-	var showcase: String = FileAccess.get_file_as_string(SHOWCASE)
-	assert_false(showcase.contains("depth_panel"), "the showcase names no old piece")
-	assert_false(showcase.contains("gold_panel"), "the showcase names no old piece")

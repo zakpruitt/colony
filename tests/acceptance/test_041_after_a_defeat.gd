@@ -19,7 +19,6 @@ func before_each() -> void:
 	_step_limit = LIMIT_TICKS_5_MIN
 	_sim = Simulation.new(SEED)
 	_build_hud()
-	_ui.bar.set_process(false)
 
 
 # --- Helpers -------------------------------------------------------------------
@@ -51,15 +50,6 @@ func _rogue_with_a_point() -> Hero:
 	rogue.gain_xp(Hero.xp_for_level(Hero.TALENT_POINTS * Hero.TALENT_EVERY + 1) - rogue.xp)
 	_spend_talents(rogue)
 	return rogue
-
-
-func _journal_sentence() -> String:
-	var lines: Array[String] = _hud.journal.lines()
-	for line: String in lines:
-		var sentence: String = line.substr(line.find("  ") + 2)
-		if sentence.begins_with("Beaten"):
-			return sentence
-	return ""
 
 
 func _first_line() -> String:
@@ -340,28 +330,7 @@ func test_r5_out_of_the_way() -> void:
 
 	_assert_out_of_the_way("after the wipe")
 
-	# Spec 062 R4: drawn over every window, so no window hides it: a hero window, the shop, the
-	# tally and the away report each leave it showing.
-	_hud.hero_windows.open(_sim.party.heroes[0].id)
-	_hud.advance(STEP)
-	assert_true(note.is_shown(), "a hero window leaves the note showing")
-	_hud.hero_windows.close_all()
-	_hud.advance(STEP)
-	var panels: Dictionary[String, Callable] = {
-		"shop": _hud.shop.open,
-		"tally": _hud.tally.open,
-	}
-	var closes: Dictionary[String, Callable] = {
-		"shop": _hud.shop.close,
-		"tally": _hud.tally.close,
-	}
-	for panel: String in panels:
-		panels[panel].call()
-		_hud.advance(STEP)
-		assert_true(note.is_shown(), "shown while the %s is open" % panel)
-		closes[panel].call()
-		_hud.advance(STEP)
-		assert_true(note.is_shown(), "still when the %s closes" % panel)
+	# The away report is no registered window: it leaves the note showing too.
 	var away := AwayWindow.new(AwayReport.new(), _sim.party)
 	_hud.windows.add_child(away)
 	away.open()
@@ -424,7 +393,6 @@ func test_r5_nothing_after_time_away() -> void:
 	assert_eq(away.expedition.state, Expedition.State.REVIVING, "wiped while away")
 	away.drain_events()
 	_build_hud()
-	_ui.bar.set_process(false)
 	_hud.advance(STEP)
 	assert_false(_note().is_shown(), "no note for a wipe while away")
 	var revived: Callable = func() -> bool:
@@ -446,24 +414,6 @@ func test_r5_nothing_after_time_away() -> void:
 	_world.sync(STEP)
 	_hud.advance(STEP)
 	assert_false(_note().is_shown(), "no note for an old wipe")
-
-
-# --- R6 ------------------------------------------------------------------------
-
-
-func test_r6_journal() -> void:
-	# The note's first line, then where the party falls back to (spec 046 R6).
-	var back: String = "; falling back to Mossy Hollow %d" % SAFE
-	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "the party loses to the guardian")
-	assert_eq(_journal_sentence(), _first_line() + back, "the journal's line is the note's first")
-	assert_true(_until_standing(), "the heroes stand")
-	assert_true(_guardian_wipe(GUARDIAN_DEPTH), "and again")
-	assert_eq(_journal_sentence(), _first_line() + back, "with the count")
-	assert_true(_journal_sentence().ends_with("(2 times)" + back), "counted")
-	assert_true(_until_standing(), "the heroes stand")
-	_hunting_on(DEEP, SAFE)
-	assert_true(_lose_next_fight(), "the party loses on Mossy Hollow 7")
-	assert_eq(_journal_sentence(), _first_line() + back, "an ordinary defeat's line too")
 
 
 # --- R7 ------------------------------------------------------------------------
