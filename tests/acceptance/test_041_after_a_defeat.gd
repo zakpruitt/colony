@@ -330,6 +330,16 @@ func test_r5_out_of_the_way() -> void:
 
 	_assert_out_of_the_way("after the wipe")
 
+	# The away report is no registered window: it leaves the note showing too.
+	var away := AwayWindow.new(AwayReport.new(), _sim.party)
+	_hud.windows.add_child(away)
+	away.open()
+	_hud.advance(STEP)
+	assert_true(note.is_shown(), "shown while the away report is up")
+	away.free()
+	_hud.advance(STEP)
+	assert_true(note.is_shown(), "and when it goes")
+
 	# The heroes stand and walk straight into the guardian again while the note lingers: a new
 	# fight does not hide it, and it keeps off the boss bar too.
 	assert_true(_until_standing(), "the heroes stand")

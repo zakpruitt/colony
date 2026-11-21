@@ -214,6 +214,7 @@ func test_r7_dev_clock_hidden_until_f3() -> void:
 
 
 func test_r8_frames_are_drawn_on_a_dark_panel() -> void:
+	assert_eq(_hud.frames.size(), 4, "a frame per hero")
 	for frame: HeroFrameView in _hud.frames:
 		assert_eq(
 			frame.fill_colour(),

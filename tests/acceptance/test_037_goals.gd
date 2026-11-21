@@ -511,6 +511,8 @@ func test_r6_out_of_the_way() -> void:
 	var goals: Goals = _goals()
 	# The widest goals: a long guardian name, a long microskill line, a long price.
 	_sim.party.gold = 9_876_543
+	var learner: Array = _learner()
+	var hero: Hero = learner[0]
 	_situation(122, 122, 121)
 	assert_eq(goals.lines().size(), 3, "three lines")
 	var rect: Rect2 = _rect()
@@ -548,6 +550,21 @@ func test_r6_out_of_the_way() -> void:
 	assert_true(_step_until(fighting), "a guardian fight")
 	assert_true(_hud.boss_bar.is_showing(), "the boss bar shows")
 	assert_false(_rect().intersects(_hud.boss_bar.get_global_rect()), "clear of the boss bar")
+
+	# A hero window floats over the goals and does not hide them.
+	_hud.hero_windows.open(hero.id)
+	_hud.advance(STEP)
+	assert_true(goals.is_shown(), "a hero window floats over the goals")
+	_hud.hero_windows.close_all()
+	# Hidden by G, it stays hidden after the tally.
+	press(KEY_G)
+	_hud.tally.open()
+	_hud.advance(STEP)
+	_hud.tally.close()
+	_hud.advance(STEP)
+	assert_false(goals.is_shown(), "hidden by G stays hidden after the tally closes")
+	press(KEY_G)
+	_hud.advance(STEP)
 
 
 # --- R7 ------------------------------------------------------------------------

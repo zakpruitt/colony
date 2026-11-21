@@ -201,7 +201,7 @@ func test_r3_the_purse() -> void:
 		assert_gt(first.position.x, purse.gold_label.get_global_rect().position.x, "after the gold")
 		for label: Label in [purse.gold_label, purse.labels[ids[0]], purse.labels[ids[2]]]:
 			assert_eq(label.get_theme_font(&"font"), UiText.font(true), "in the UI font's digits")
-			# The game-speed button sits with it, lit above 1x.
+		# The game-speed button sits with it, lit above 1x.
 		var speed: UiButton = purse.speed_button
 		assert_true(
 			purse.get_global_rect().encloses(speed.get_global_rect()),
@@ -349,6 +349,7 @@ func test_r5_hero_frames() -> void:
 		first.health = 0
 		hud.advance(STEP)
 		assert_eq(knight.icon_part(), &"skull", "the skull")
+		assert_eq(knight.icon.texture, hud.icon(&"skull"), "drawn as the skull")
 		assert_eq(knight.level_label.text, "Down")
 		sim.expedition.state = Expedition.State.REVIVING
 		hud.advance(STEP)
