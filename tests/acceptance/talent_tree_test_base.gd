@@ -117,6 +117,38 @@ func _check_banners(view: TalentTreeView, path: int, on: String) -> void:
 	assert_false(view.banners[path].closed_label.is_visible_in_tree(), "not marked")
 
 
+## Checks [param tab]'s paragon medallions with three points waiting and none spent: each
+## large, with its picture, its rank, its name and total under it, under the tree, and the points
+## waiting beside them.
+func _check_medallions(tab: HeroTalentsTab) -> void:
+	var bottom: float = tab.strip.get_global_rect().end.y
+	var names: Array[String] = []
+	for cell: ParagonCell in tab.paragon_cells:
+		var def: TrainingDef = Content.training(cell.id)
+		assert_true(cell.is_visible_in_tree(), "%s: a medallion" % cell.id)
+		var medal: UiIcon = cell.medallion
+		assert_eq(medal.size, Vector2(36, 36), "%s: large" % cell.id)
+		assert_eq(medal.picture_rect.texture, UiIcon.picture(cell.id), "%s: its picture" % cell.id)
+		assert_eq(medal.count_label.text, "0", "%s: its rank as the count" % cell.id)
+		assert_gte(medal.get_global_rect().position.y, bottom, "%s: under the tree" % cell.id)
+		assert_eq(cell.name_label.text, def.display_name, "%s: its name" % cell.id)
+		assert_gt(
+			cell.name_label.get_global_rect().position.y,
+			medal.get_global_rect().end.y - 0.5,
+			"under"
+		)
+		assert_gt(
+			cell.total_label.get_global_rect().position.y,
+			cell.name_label.get_global_rect().position.y
+		)
+		names.append(cell.name_label.text)
+		# Beside them, the points waiting.
+		var label: Rect2 = tab.paragon_label.get_global_rect()
+		assert_false(label.intersects(cell.get_global_rect()), "beside, not over")
+		assert_lt(label.position.y, medal.get_global_rect().end.y, "on the same band")
+	assert_eq(names, ["Power", "Toughness", "Quickness"] as Array[String])
+
+
 ## Steps until no fight is under way, at most [constant LIMIT_TICKS] ticks.
 func _fight_over(main: Main) -> void:
 	var ticks: int = 0

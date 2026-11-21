@@ -608,32 +608,7 @@ func test_r9_paragon() -> void:
 	main.hud.advance(STEP)
 	assert_eq(tab.paragon_label.text, "3 paragon points", "the points waiting")
 	assert_true(tab.paragon_label.is_visible_in_tree(), "shown")
-	var bottom: float = tab.strip.get_global_rect().end.y
-	var names: Array[String] = []
-	for cell: ParagonCell in tab.paragon_cells:
-		var def: TrainingDef = Content.training(cell.id)
-		assert_true(cell.is_visible_in_tree(), "%s: a medallion" % cell.id)
-		var medal: UiIcon = cell.medallion
-		assert_eq(medal.size, Vector2(36, 36), "%s: large" % cell.id)
-		assert_eq(medal.picture_rect.texture, UiIcon.picture(cell.id), "%s: its picture" % cell.id)
-		assert_eq(medal.count_label.text, "0", "%s: its rank as the count" % cell.id)
-		assert_gte(medal.get_global_rect().position.y, bottom, "%s: under the tree" % cell.id)
-		assert_eq(cell.name_label.text, def.display_name, "%s: its name" % cell.id)
-		assert_gt(
-			cell.name_label.get_global_rect().position.y,
-			medal.get_global_rect().end.y - 0.5,
-			"under"
-		)
-		assert_gt(
-			cell.total_label.get_global_rect().position.y,
-			cell.name_label.get_global_rect().position.y
-		)
-		names.append(cell.name_label.text)
-		# Beside them, the points waiting.
-		var label: Rect2 = tab.paragon_label.get_global_rect()
-		assert_false(label.intersects(cell.get_global_rect()), "beside, not over")
-		assert_lt(label.position.y, medal.get_global_rect().end.y, "on the same band")
-	assert_eq(names, ["Power", "Toughness", "Quickness"] as Array[String])
+	_check_medallions(tab)
 	assert_eq(tab.paragon_cells[0].total_label.text, "+0% damage and healing", "the total")
 	# A click on a medallion spends a point: it bursts and its count goes up.
 	var power: ParagonCell = tab.paragon_cells[0]
