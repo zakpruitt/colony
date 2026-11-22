@@ -1,6 +1,6 @@
 # 094 — Gates and caches in the world
 
-- **Status:** draft
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 093
 - **Pull request:** —
@@ -95,4 +95,4 @@ R9 is the lane's report and Zak's playtest.
 
 ## Open questions
 
-None, once 093 has landed and its events are checked against this text.
+None. (093 landed as #93: `SidePath` has `at`, `course`, `gate_at`, `room`, `tunnel`, `ladder`; `Expedition.side_path`; `SidePathRules.is_full` and `opener`; the events `GATE_STARTED`, `GATE_OPENED`, `GATE_SEALED`, `CACHE_OPENED` as its Interfaces give them.)

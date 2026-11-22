@@ -1,9 +1,9 @@
 # 093 — Side paths and caches
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 092
-- **Pull request:** —
+- **Pull request:** [#93](https://github.com/zakpruitt/colony/pull/93)
 
 ## Intent
 
