@@ -12,8 +12,8 @@ every winding stage, each closed by a **gate** that one microskill opens (a lock
 for the Strongarm, a rune seal for the Runereader, a hidden crack for the Trapspotter) and ending in a small
 room with a **cache**: gold, XP and a good haul of the area's resource, worth several fights. The party
 takes every side path it can open. Who is in the party and what they have learned now changes where it goes
-and what it brings home. This spec is the rules; spec 094 puts the gates and caches on screen, and spec 095
-adds the order to press on past them (it changes the save, so it is its own lane).
+and what it brings home. This spec is the rules; specs 094 and 095 put the gates and caches on screen and into
+words, and spec 096 adds the order to press on past them (it changes the save, so it is its own lane).
 
 ## Requirements
 
@@ -139,10 +139,10 @@ In `tests/acceptance/test_093_side_paths_and_caches.gd` (extends `ColonyTest`):
 
 ## Out of scope
 
-- Anything under `game/`: gates, caches and the news are spec 094. The game plays on with the side paths'
+- Anything under `game/`: gates, caches and the news are specs 094 and 095. The game plays on with the side paths'
   rooms cut out of the earth and nothing drawn for a gate or a cache (the party is seen to stop, walk into
   a small room and come back). The lane shoots that once and says how it reads.
-- An order to pass side paths by, and any change to the save: spec 095.
+- An order to pass side paths by, and any change to the save: spec 096.
 - New microskills, a gate for the Mender, guarded caches, rare materials, traps on side paths.
 - Retuning anything else, whatever R9's table shows.
 
