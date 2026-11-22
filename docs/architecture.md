@@ -449,7 +449,9 @@ route's own.
 `SidePathRules`). Travelling on the main course, a party that reaches `at` with the cache full and a
 living hero with the gate's microskill turns off: `Expedition.side_path` is the path's place in the
 level's list (else -1), `x` is a distance along the path's course and `PartyPlaces.course(run)` is that
-course, so everything that places heroes goes on working. It walks to `gate_at`, is WORKING for the
+course, so everything that places heroes goes on working. A party not moving along the course this
+tick reaches nothing; and the room a path leaves comes first: reached before that room is entered and
+clear of monsters, the path waits, and the party walks back to `at` once it is. It walks to `gate_at`, is WORKING for the
 gate's seconds (`GATE_STARTED`, then `GATE_OPENED`; `working_quest()` is empty), walks to the far wall,
 opens the cache as its anchor steps onto the cache room's floor (`CACHE_OPENED`, then `GOLD_GAINED`,
 `XP_GAINED` for each living hero and `RESOURCE_GAINED`), walks back and stands at `at` again facing
