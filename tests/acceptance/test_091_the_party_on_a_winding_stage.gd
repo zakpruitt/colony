@@ -578,6 +578,17 @@ func test_r7_the_arrow_points_along_the_course() -> void:
 	assert_eq(_world.target_marker.side(), 0, "not sideways")
 	_stand(sim, 2, (ends.x + ends.y) / 2.0, 3)
 	assert_eq(_world.target_marker.heading(), Vector2i(0, down), "on it: along the ladder")
+	var highest: float = INF
+	var lowest: float = -INF
+	for hero: Hero in sim.party.heroes:
+		highest = minf(highest, _world.character(hero.id).position.y)
+		lowest = maxf(lowest, _world.character(hero.id).position.y)
+	assert_gt(lowest - highest, TILE, "the heroes are one over another on it")
+	assert_lte(
+		_world.target_marker.position.y,
+		highest - TargetMarker.HEIGHT,
+		"and it hangs over the highest hero on the ladder"
+	)
 	_stand(sim, 2, ends.y, 3)
 	assert_eq(_world.target_marker.heading(), Vector2i(after, 0), "at its foot: along the floor")
 	# Sent back, the foot is where the climb begins.

@@ -371,16 +371,18 @@ the first chamber's first floor column to the last chamber's last, with `exit` t
 down and `entry` the middle of the shaft from above (at depth 1, the middle of the START chamber); a
 climb between stages keeps `x`, the shaft being one column through both. `LabyrinthLevel.floor_y`,
 `tunnels`, `shaft_down`, `shaft_chamber()` and `Labyrinth.shaft_column()` describe only that shape and
-are read by `game/` alone: nothing under `sim/expedition/` names them. `game/` still reads `Expedition.x`
-as a column, which it is on every level the game makes.
+are read by `game/` alone: nothing under `sim/expedition/` names them. The world (`game/world/`) reads
+no column from `Expedition.x` and no screen direction from `Expedition.facing` ("The party on a winding
+stage", below); the showcase still sets them as columns, on the flat levels it plays.
 
 ## Winding stages
 
 Spec 089. A `Labyrinth` has a `shape`, given when it is made: `FLAT` (the default, and all the game
 makes) or `WINDING`. `Simulation.new(seed, shape)` passes it on, every area's labyrinth has the first
 one's (`AreaTravel.labyrinth`), and a simulation loaded from a save is flat. `python tools/dev.py sim
---winding` plays a winding one. The view draws one ("A winding stage on screen", below) and the preview
-scene plays one; where the monsters, the props and the fallen stand on it is spec 091.
+--winding` plays a winding one. The view draws one ("A winding stage on screen", below), everything in
+the world stands in its own room on one ("The party on a winding stage"), and the preview scene plays
+one; the game itself still makes flat stages.
 
 A winding stage is made by `WindingStage` (`sim/labyrinth/winding_stage.gd`) from the level's own
 stream alone, so it lines up with no other stage. It lies in a band `Labyrinth.band_height()` (32) rows
@@ -412,7 +414,8 @@ the way lies where it left from. Hold turns a party on its way back to a living 
 come.
 
 `Expedition.monster_id` leaves room for 8 chambers a stage, so a winding stage's rooms 8 and 9 share
-ids with rooms 0 and 1 of the next stage. No two of those are in one fight; spec 091 widens the span.
+ids with rooms 0 and 1 of the next stage. No two of those are in one fight, and the world shows one
+stage at a time, forgetting a stage's monsters as it leaves; the span has not been widened.
 
 ## Pace by depth
 
@@ -549,6 +552,38 @@ earth above and below, and the ambience's open map, exposure map and buried deta
 its save store and works on a copy of the settings file, deleted when it goes) plays a winding game and
 changes nothing of the player's; no menu opens it. Tests make one with
 `ColonyTest.winding_simulation()` and a view of one with `zoned_view()`.
+
+## The party on a winding stage
+
+Spec 091. Nothing in `game/world/` stands on "the level's floor" or reads the party's place as a
+column: every place is asked of a room's own rectangle or of the stage's course, so the same code
+shows a flat stage (where the answers are what they always were) and a winding one.
+
+- **Places** (`WorldPlaces`, `game/world/world_places.gd`): the feet pixel of a place in tiles, a
+  room's floor line, the floor a fight is on (`Expedition.chamber()`'s) and where and facing which
+  way the party will be revived (`course.point_at(entry)`, the course's heading there). Waiting
+  monsters, fighters, quest props (the middle of their room's floor) and the revival's camera use
+  them; the fallen lie where their sprites fell.
+- **Heroes** go where `Expedition.hero_position` says. On a stage with ladders a hero on its feet
+  is moved by `LadderRoute` (`game/world/ladder_route.gd`): along its floor, and from one floor to
+  another only in the column of the ladder between them, so one that trails round a corner or runs
+  to a fight from a ladder never crosses the earth. On a ladder it is drawn walking. Monsters, the
+  fallen and every sprite of a flat stage move as before (`World._eased`).
+- **Facing** on screen is `PartyPlaces.world_facing`: a new sprite, a hero with no one to face,
+  the side a hero steps to off a guardian, the side the worker stands by a prop, the camera's look
+  ahead. In a room the course walks from right to left the party faces left.
+- **The crossing.** While the party changes stage every hero heads for the anchor
+  (`PartyPlaces.anchor`): the doorway at `exit` (or `entry`, going back) for the first half, the
+  doorway it arrives by for the second, as `StageCrossing` has it; on a flat stage the shaft's
+  column on the floor of the stage shown. A hero fades by its distance from that point.
+- **The arrow** (`TargetMarker.heading()`) points the way the party travels next along the course
+  toward the doorway it leaves by: it looks `AHEAD` (half a tile) along the course, so at the head
+  of a ladder it points down (or up) and at its foot along the floor. On the doorway's own floor
+  it points at the doorway from where the party is drawn, as on a flat stage. `side()` is its
+  sideways part, 0 while it points along a ladder.
+- **The camera** follows the leader's sprite up and down inside `WorldCamera.rows` and looks ahead
+  the way the party faces in the world. A revival on another stage cuts as the stage shown
+  changes, so it lands inside the new stage's rows.
 
 ## Side quests and microskills
 
