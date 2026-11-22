@@ -36,9 +36,10 @@ func _wait_for_replay(main: Main) -> void:
 	await wait_until(func() -> bool: return not main.is_catching_up(), 60.0, "replay ends")
 
 
-## A simulation loaded from [param saved] and stepped [param ticks], counting what happened.
+## A simulation loaded from [param saved] in the shape Main plays and stepped [param ticks],
+## counting what happened.
 func _reference(saved: Dictionary, ticks: int) -> Dictionary:
-	var sim: Simulation = Simulation.from_save(saved)
+	var sim: Simulation = Simulation.from_save(saved, Main.STAGE_SHAPE)
 	var kills: int = 0
 	var wipes: int = 0
 	for i: int in ticks:
