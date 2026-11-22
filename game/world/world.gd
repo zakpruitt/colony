@@ -356,15 +356,27 @@ func _leader_id() -> int:
 
 
 ## Where hero [param hero_id] stands, as the simulation has it; while the party changes stage, at
-## the doorway on the floor of the stage shown, never on the way up or down.
+## the doorway it leaves by or arrives by on the stage shown, never on the way up or down.
 func _hero_feet(hero_id: int) -> Vector2:
 	var e: Expedition = simulation.expedition
-	# Between stages (a climb, or a journey that began in one) the heroes stand on the shown floor.
-	var between: bool = e.state in [Expedition.State.CLIMBING, Expedition.State.JOURNEYING]
-	if between and _shown > 0:
-		var x: float = e.x if e.state == Expedition.State.CLIMBING else e.hero_position(hero_id).x
-		return _feet(Vector2(x, simulation.labyrinth.level(_shown).floor_y))
-	return _feet(e.hero_position(hero_id))
+	if _shown > 0 and e.state == Expedition.State.CLIMBING:
+		return _door_feet()
+	if _shown > 0 and e.state == Expedition.State.JOURNEYING and not StageCrossing.by_door(e):
+		# A journey that began in a shaft: the heroes stand on the shown floor.
+		var column: float = e.hero_position(hero_id).x
+		return WorldPlaces.feet(Vector2(column, simulation.labyrinth.level(_shown).floor_y))
+	return WorldPlaces.feet(e.hero_position(hero_id))
+
+
+## Where the party's anchor is on the stage shown: while it changes stage, the middle of the
+## doorway it goes into, then of the one it comes out of.
+func _door_feet() -> Vector2:
+	var e: Expedition = simulation.expedition
+	var at: Vector2 = PartyPlaces.anchor(e)
+	if _shown > 0 and e.state == Expedition.State.CLIMBING and not StageCrossing.by_door(e):
+		# A shaft joins the two floors in one column, and the climb in it is never shown.
+		at.y = simulation.labyrinth.level(_shown).floor_y
+	return WorldPlaces.feet(at)
 
 
 ## The stage the world shows: the party's, or the one it is crossing to once the
@@ -375,16 +387,12 @@ func shown_stage() -> int:
 
 ## Heroes go into the doorway and out of it on a change of stage.
 func _show_heroes() -> void:
-	var door: float = simulation.expedition.x * TILE
+	var door: Vector2 = _door_feet()
 	for hero: Hero in simulation.party.heroes:
 		var sprite: CharacterSprite = character(hero.id)
 		if sprite != null:
-			sprite.modulate.a = ZoneCrossing.hero_shown(simulation, sprite.position.x - door)
-
-
-## The feet pixel of a simulation position: the bottom of the row it stands in.
-static func _feet(tiles: Vector2) -> Vector2:
-	return Vector2(tiles.x * TILE, (tiles.y + 1.0) * TILE)
+			var gap: float = sprite.position.distance_to(door)
+			sprite.modulate.a = ZoneCrossing.hero_shown(simulation, gap)
 
 
 func _add_sprite(id: int, sprite: CharacterSprite, at: Vector2) -> void:
@@ -407,7 +415,7 @@ func _ensure_heroes() -> void:
 			continue
 		_ranges[hero.id] = hero.def().attack_range
 		_add_sprite(hero.id, sprite, _hero_feet(hero.id))
-		sprite.set_facing(simulation.expedition.facing)
+		sprite.set_facing(PartyPlaces.world_facing(simulation.expedition))
 
 
 func _add_monster(monster: Combatant, floor_pixels: float) -> void:
@@ -433,10 +441,10 @@ func _scan_waiting() -> void:
 	var expedition: Expedition = simulation.expedition
 	for depth: int in _built:
 		var level: LabyrinthLevel = simulation.labyrinth.level(depth)
-		var floor_pixels: float = (level.floor_y + 1) * TILE
 		for chamber_index: int in level.chambers.size():
 			if not expedition.is_populated(depth, chamber_index):
 				continue
+			var floor_pixels: float = WorldPlaces.floor_line(level.chambers[chamber_index])
 			for monster: Combatant in expedition.monsters_in(depth, chamber_index):
 				_waiting[monster.id] = true
 				_add_monster(monster, floor_pixels)
@@ -448,10 +456,10 @@ func _ensure_fighters() -> void:
 	var battle: Battle = simulation.expedition.battle
 	if battle == null:
 		return
-	var level: LabyrinthLevel = simulation.labyrinth.level(simulation.expedition.depth)
+	var floor_pixels: float = WorldPlaces.fight_line(simulation.expedition)
 	for monster: Combatant in battle.monsters:
 		if monster.is_alive():
-			_add_monster(monster, (level.floor_y + 1) * TILE)
+			_add_monster(monster, floor_pixels)
 
 
 func _in_fight(id: int) -> bool:
@@ -676,6 +684,7 @@ func _fly_bolts(delta: float) -> void:
 
 func _follow(delta: float) -> void:
 	var climbing: bool = simulation.expedition.state == Expedition.State.CLIMBING
+	var ladders: Array[Rect2i] = simulation.labyrinth.level(maxi(_shown, 1)).ladders
 	for id: int in _sprites:
 		var goal: Vector2
 		if _monsters.has(id):
@@ -689,9 +698,17 @@ func _follow(delta: float) -> void:
 		var sprite: CharacterSprite = _sprites[id]
 		if _snap_all or (_snap_heroes and not _monsters.has(id)):
 			sprite.position = goal
+		elif not ladders.is_empty() and _walks_the_stage(id):
+			sprite.position = LadderRoute.eased(ladders, sprite.position, goal, delta)
 		else:
 			sprite.position = _eased(sprite.position, goal, delta, climbing)
 	_spacing.hold_back(self)
+
+
+## True for a hero on its feet: one that goes from floor to floor by the stage's ladders. A
+## monster keeps to its room's floor, and a fallen or rising hero is lifted where it lies.
+func _walks_the_stage(id: int) -> bool:
+	return not (_monsters.has(id) or fallen_party.is_lying(id) or fallen_party.is_standing(id))
 
 
 ## One frame's move from [param from] toward [param goal]: a share of the gap, at most RUN_SPEED.
@@ -715,13 +732,15 @@ static func _eased(from: Vector2, goal: Vector2, delta: float, climbing: bool) -
 func _act() -> void:
 	var expedition: Expedition = simulation.expedition
 	var fighting: bool = expedition.state == Expedition.State.FIGHTING and expedition.battle != null
+	var ahead: int = PartyPlaces.world_facing(expedition)
+	var party_at: float = PartyPlaces.anchor(expedition).x * TILE
 	for id: int in _sprites:
 		var sprite: CharacterSprite = _sprites[id]
 		if sprite.is_dead():
 			continue
 		var gap: Vector2 = _goals[id] - sprite.position
 		var moving: bool = gap.length() > MOVING_GAP
-		var facing: int = expedition.facing
+		var facing: int = ahead
 		var walking: bool = moving
 		if fighting and expedition.battle.combatant(id) != null:
 			var fighter: Combatant = expedition.battle.combatant(id)
@@ -729,7 +748,7 @@ func _act() -> void:
 			facing = _toward(sprite, fighter.target_id, facing)
 		elif _monsters.has(id):
 			# Waiting: facing the side the party is on.
-			facing = 1 if expedition.x * TILE >= sprite.position.x else -1
+			facing = 1 if party_at >= sprite.position.x else -1
 		else:
 			match expedition.state:
 				Expedition.State.TRAVELLING, Expedition.State.CLIMBING:
@@ -754,7 +773,7 @@ func _toward(sprite: CharacterSprite, target_id: int, otherwise: int) -> int:
 
 
 ## Where the camera aims to show a party whose front hero's feet are at [param feet], facing
-## [param facing]: ahead of it and above it.
+## [param facing] in the world (1 right, -1 left): ahead of it and above it.
 func camera_target(feet: Vector2, facing: int) -> Vector2:
 	# The look-ahead is a share of the view, so the closer view stays centred on the party.
 	var look := Vector2(facing * LOOK_AHEAD, -LOOK_ABOVE) / camera.zoom.x
@@ -764,7 +783,7 @@ func camera_target(feet: Vector2, facing: int) -> Vector2:
 func _aim_camera(delta: float) -> void:
 	var leader: CharacterSprite = character(_leader_id())
 	var at: Vector2 = leader.position if leader != null else _hero_feet(_leader_id())
-	camera.target = camera_target(at, simulation.expedition.facing)
+	camera.target = camera_target(at, PartyPlaces.world_facing(simulation.expedition))
 	if fallen_party.aims_camera(camera, delta, _snap_all):
 		return
 	if _snap_all or _snap_camera:
