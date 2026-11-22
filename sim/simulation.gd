@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 8
+const SAVE_VERSION: int = 9
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero.
@@ -96,14 +96,20 @@ func set_auto_push(enabled: bool) -> void:
 ## from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an unknown value is
 ## ignored.
 func set_pace(pace: Expedition.Pace) -> void:
-	expedition.command_pace(pace)
+	expedition.command_order(PartyOrders.PACE, pace)
 
 
 ## Sets the party's guardian order: under Hold it never enters a living guardian's
 ## chamber. It applies from the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an
 ## unknown value is ignored.
 func set_guardian_order(order: Expedition.GuardianOrder) -> void:
-	expedition.command_guardian_order(order)
+	expedition.command_order(PartyOrders.GUARDIANS, order)
+
+
+## Sets the party's side path order: under Press on it turns onto no side path. It applies from
+## the next step and reports [constant SimEvent.Kind.ORDER_CHANGED]; an unknown value is ignored.
+func set_side_paths(order: Expedition.SidePaths) -> void:
+	expedition.command_order(PartyOrders.SIDE_PATHS, order)
 
 
 ## Sends the party to [param stage] of area [param area_id]. If the area is open, the party
@@ -355,6 +361,7 @@ func to_save() -> Dictionary:
 		"auto_buy": _auto_buy,
 		"pace": PartyOrders.PACE_SAVED[expedition.pace],
 		"guardian_order": PartyOrders.GUARDIAN_SAVED[expedition.guardian_order],
+		"side_paths": PartyOrders.SIDE_PATHS_SAVED[expedition.side_paths],
 	}
 	AreaSave.write(expedition, saved)
 	ResourceSave.write(self, saved)
@@ -410,6 +417,10 @@ static func from_save(
 	sim.expedition.guardian_order = (
 		PartyOrders.GUARDIAN_SAVED.find(order_text) as Expedition.GuardianOrder
 	)
+	var side_text: String = current["side_paths"]
+	sim.expedition.side_paths = (
+		PartyOrders.SIDE_PATHS_SAVED.find(side_text) as Expedition.SidePaths
+	)
 	return sim
 
 
@@ -437,6 +448,7 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 		problems.append("auto_buy: missing or not true or false")
 	_check_name(problems, current, "pace", PartyOrders.PACE_SAVED)
 	_check_name(problems, current, "guardian_order", PartyOrders.GUARDIAN_SAVED)
+	_check_name(problems, current, "side_paths", PartyOrders.SIDE_PATHS_SAVED)
 	var heroes: Variant = current.get("heroes")
 	if not (heroes is Array) or (heroes as Array).is_empty():
 		problems.append("heroes: missing, not a list or empty")
@@ -480,6 +492,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = TalentSave.upgrade_6_to_7(current)
 	if SaveChecks.whole(current["version"]) == 7:
 		current = ResourceSave.upgrade_7_to_8(current)
+	if SaveChecks.whole(current["version"]) == 8:
+		current = _save_8_to_9(current)
 	return current
 
 
@@ -514,6 +528,13 @@ static func _save_4_to_5(data: Dictionary) -> Dictionary:
 	data["version"] = 5
 	data["pace"] = PartyOrders.PACE_SAVED[Expedition.Pace.STEADY]
 	data["guardian_order"] = PartyOrders.GUARDIAN_SAVED[Expedition.GuardianOrder.CHALLENGE]
+	return data
+
+
+## Version 8 had no side path order: version 9 adds it at its default, Explore.
+static func _save_8_to_9(data: Dictionary) -> Dictionary:
+	data["version"] = 9
+	data["side_paths"] = PartyOrders.SIDE_PATHS_SAVED[Expedition.SidePaths.EXPLORE]
 	return data
 
 

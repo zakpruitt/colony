@@ -17,7 +17,7 @@ const ROUTE_HASH: String = "cacbae58e5bbc4fe8db95b903945d3e775fac9db988ffd8542cd
 ## seed, recorded on the code before this spec.
 const QUIET_HASHES: Dictionary[int, int] = {3: 2935288348, 8: 1884139367}
 const QUIET_TICKS: int = 6000
-## The keys of a save before this spec.
+## The keys of a save before this spec, and the side path order spec 096 added.
 const SAVE_KEYS: Array[String] = [
 	"area",
 	"areas",
@@ -33,6 +33,7 @@ const SAVE_KEYS: Array[String] = [
 	"pace",
 	"resources",
 	"seed",
+	"side_paths",
 	"target_depth",
 	"tick",
 	"upgrades",
@@ -772,7 +773,7 @@ func test_r7_no_gate_opened_keeps_the_hash_and_the_save() -> void:
 			quiet.state_hash(), QUIET_HASHES[seed_value], "seed %d: the hash it had" % seed_value
 		)
 
-	assert_eq(Simulation.SAVE_VERSION, 8, "the save's version stays 8")
+	assert_eq(Simulation.SAVE_VERSION, 9, "the save's version is what the orders made it")
 	var found: Vector2i = _find(1, false)
 	var sim: Simulation = winding_simulation(found.x)
 	var e: Expedition = sim.expedition

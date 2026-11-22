@@ -74,7 +74,7 @@ static func _own(simulation: Simulation, hud: Hud, tips: UiTip) -> Array[WindowE
 		KEY_O,
 		"how careful the party is, and whether it fights guardians.",
 		func() -> WindowContent: return _orders_panel(simulation, tips),
-		WindowBook.under.bind(UiRoot.JOURNAL)
+		WindowBook.under_both.bind(UiRoot.JOURNAL, UiRoot.HELP)
 	)
 	var shop := WindowEntry.new(
 		ShopWindow.ID,
@@ -140,6 +140,28 @@ static func under(
 	if over == null:
 		return window.default_place
 	return Vector2(UiRoot.PLACE_GAP, top + over.size.y + UiRoot.PLACE_GAP)
+
+
+## A place at the left under the window [param above], as [method under] gives it, and lower
+## where the default place of the window [param beside] reaches over [param window]'s columns:
+## then right under that one too, with no gap, for the little room there is above the hero
+## frames. Where [param window] already is without both.
+static func under_both(
+	window: UiWindow,
+	_room: Vector2,
+	top: float,
+	windows: UiWindows,
+	above: StringName,
+	beside: StringName
+) -> Vector2:
+	var over: UiWindow = windows.window(above)
+	var other: UiWindow = windows.window(beside)
+	if over == null or other == null:
+		return window.default_place
+	var y: float = top + over.size.y + UiRoot.PLACE_GAP
+	if other.default_place.x < UiRoot.PLACE_GAP + window.size.x:
+		y = maxf(y, other.default_place.y + other.size.y)
+	return Vector2(UiRoot.PLACE_GAP, y)
 
 
 ## A place in the middle of the room's top, between the window [param left] (at the top left)

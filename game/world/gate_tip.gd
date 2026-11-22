@@ -13,11 +13,15 @@ const PAD: int = 3
 const GAP: float = 3.0
 ## Pixels from one line's baseline to the next.
 const LINE: int = PixelText.SIZE + 1
+## What a closed gate adds while the party is ordered past every gate.
+const PRESSING_ON: String = "The party is pressing on"
 
 ## The gate's name, its description and the line about who opens it; "" while hidden.
 var title: String = ""
 var body: String = ""
 var who: String = ""
+## What the party's side path order adds while it keeps the party from the gate; else "".
+var order: String = ""
 
 ## The lines drawn (the title first), the first of them that says who opens it, and the box
 ## they are drawn in, in world pixels.
@@ -85,10 +89,14 @@ func write(simulation: Simulation, stage: int, index: int) -> bool:
 	title = def.display_name
 	body = def.description
 	who = who_line(simulation, stage, index)
+	var pressing: bool = simulation.expedition.side_paths == Expedition.SidePaths.PRESS_ON
+	order = PRESSING_ON if pressing else ""
 	_lines = PackedStringArray([title])
 	_lines.append_array(_wrap(body))
 	_who_from = _lines.size()
 	_lines.append_array(_wrap(who))
+	if pressing:
+		_lines.append_array(_wrap(order))
 	var widest: int = 0
 	for line: String in _lines:
 		widest = maxi(widest, PixelText.width(line))
@@ -112,6 +120,11 @@ func place(over: Rect2, screen: Rect2) -> void:
 		queue_redraw()
 
 
+## The lines as they are drawn, the title first.
+func shown_lines() -> PackedStringArray:
+	return _lines
+
+
 ## Shows nothing.
 func hide_tip() -> void:
 	if not visible:
@@ -120,6 +133,7 @@ func hide_tip() -> void:
 	title = ""
 	body = ""
 	who = ""
+	order = ""
 
 
 ## [param words] on as many lines as [constant WIDTH] needs, broken between words.

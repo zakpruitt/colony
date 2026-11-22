@@ -54,7 +54,9 @@ func forget(run: Expedition) -> void:
 ## One tick of travel for [param run]'s party, about to walk toward [param goal] on the main
 ## course. Returns true if the side paths took the tick: the party is on one, or turned onto one
 ## it reached within this tick's stride (its cache full and someone able to open its gate). A
-## gate reached with nobody able is said once, and the party walks on. A party not moving along
+## gate reached with nobody able is said once, and the party walks on. A party ordered to press
+## on finishes the side path it is on, turns onto no other and is told of no gate, and a path
+## that was waiting for its room is dropped. A party not moving along
 ## the course this tick reaches nothing. The room a path leaves comes first: reached before
 ## that room is entered and clear of monsters, the path waits, and the party walks back to it
 ## when the room is.
@@ -63,10 +65,13 @@ func travel(run: Expedition, goal: float) -> bool:
 	if run.side_path >= 0:
 		_walk(run, paths[run.side_path])
 		return true
+	var pressing: bool = run.side_paths == Expedition.SidePaths.PRESS_ON
+	if pressing:
+		_due = -1
 	if _due >= 0:
 		return _take_due(run, paths[_due])
 	var way: float = signf(goal - run.x)
-	if paths.is_empty() or way == 0.0:
+	if pressing or paths.is_empty() or way == 0.0:
 		return false
 	var stride: float = PartyPlaces.stride(run, goal)
 	for index: int in paths.size():

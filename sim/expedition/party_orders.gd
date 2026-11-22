@@ -7,9 +7,11 @@ extends RefCounted
 ## Which order an [constant SimEvent.Kind.ORDER_CHANGED] event is about, in its target_id.
 const PACE: int = 0
 const GUARDIANS: int = 1
+const SIDE_PATHS: int = 2
 ## The same names as the save writes them.
 const PACE_SAVED: Array[String] = ["cautious", "steady", "bold"]
 const GUARDIAN_SAVED: Array[String] = ["challenge", "hold"]
+const SIDE_PATHS_SAVED: Array[String] = ["explore", "press_on"]
 ## The share of its health below which a hero makes the party rest after a fight, at each pace.
 const _CAUTIOUS_REST_BELOW: float = 0.8
 const _BOLD_REST_BELOW: float = 0.4

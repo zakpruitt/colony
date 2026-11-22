@@ -547,7 +547,7 @@ func test_r7_orders_panel() -> void:
 	windows.open_window(UiRoot.ORDERS)
 	_hud.advance(0.0)
 	orders.advance(0.0)
-	assert_eq(orders.choice_buttons.size(), 2, "two rows")
+	assert_eq(orders.choice_buttons.size(), 3, "three rows (spec 096 adds the side paths')")
 	assert_eq(orders.name_labels[0].text, "Pace", "the pace row")
 	assert_eq(orders.name_labels[1].text, "Guardians", "the guardian row")
 	var pace_texts: Array[String] = []

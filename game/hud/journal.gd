@@ -271,10 +271,13 @@ func _talent_sentence(event: SimEvent) -> String:
 
 
 ## The sentence for an order changed: "Ordered a Bold pace", "Ordered to hold at
-## guardians", or "".
+## guardians", "Orders: side paths, press on", or "".
 func _order_sentence(event: SimEvent) -> String:
 	if event.target_id == PartyOrders.PACE and event.amount in Expedition.Pace.values():
 		return "Ordered a %s pace" % OrdersPanel.PACE_NAMES[event.amount]
+	var side: bool = event.target_id == PartyOrders.SIDE_PATHS
+	if side and event.amount in Expedition.SidePaths.values():
+		return "Orders: side paths, %s" % OrdersPanel.SIDE_PATH_NAMES[event.amount].to_lower()
 	if event.target_id != PartyOrders.GUARDIANS:
 		return ""
 	match event.amount:

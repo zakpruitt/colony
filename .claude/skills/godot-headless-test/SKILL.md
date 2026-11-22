@@ -195,6 +195,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   overflows the bands. Call `ui.set_room_for_test(...)` where a place matters, compare a UI-layer piece with
   an old-HUD one through `UiFormat.on_screen(control)` (screen pixels, never a camera's), and click one with
   `UiFormat.on_screen(control).get_center()` (spec 061).
+- `HudFixture._frames_top()` is for a `Hud` built alone. On a `Main` the hero frames are on the UI layer,
+  their rects in UI pixels and below 360, so it answers 360, the bottom of the screen, and an "above the
+  frames" check made from it passes whatever the window's height: spec 035's `_check_fits` passes with
+  the Orders window 43 pixels over the frames at 960x540 (spec 061's r10 is the check that holds, by
+  the windows' default places against the frame's pieces). On a `Main` ask
+  `ui.world_to_ui(Vector2(0, ui.frames_top())).y`, the frames' line in UI pixels (486 at 960x540).
 - A wrapping `Label`'s minimum height is right only once its container has sorted it, a frame later. A box
   sized from `get_combined_minimum_size()` the moment its text changes comes out hundreds of pixels tall:
   size it from the label's own `get_minimum_size()` after setting its width (`UiTip._show`, spec 061), and

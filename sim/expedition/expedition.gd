@@ -17,9 +17,11 @@ extends RefCounted
 ## JOURNEYING: on the way to another area, standing where it left until it arrives.
 enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING, JOURNEYING }
 ## The party's orders: how hurt it may be before it rests after a fight (see
-## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
+## [method PartyOrders.rest_below]), whether it goes into a living guardian's chamber, and
+## whether it turns onto the side paths it can open or walks past every gate.
 enum Pace { CAUTIOUS, STEADY, BOLD }
 enum GuardianOrder { CHALLENGE, HOLD }
+enum SidePaths { EXPLORE, PRESS_ON }
 
 const PARTY_SPEED: float = 3.0  # tiles per second
 const CLIMB_SPEED: float = 4.0  # tiles per second
@@ -77,9 +79,10 @@ var stable_seconds: float:
 var battle: Battle
 ## The side path the party is on (its place in the level's side_paths), or -1 on the main route.
 var side_path: int = -1
-## The orders. Read-only outside the class: see [method command_pace].
+## The orders. Read-only outside the class: see [method command_order].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
+var side_paths: SidePaths = SidePaths.EXPLORE
 ## While the party is down, the tick it revives on. Read-only outside the class.
 var revive_tick: int:
 	get:
@@ -134,9 +137,8 @@ var _battle_key: Vector2i = Vector2i(0, -1)
 var _entered_key: Vector2i = Vector2i(0, -1)
 ## A target depth asked for by a command, applied on the next tick; 0 when none.
 var _pending_target: int = 0
-## Orders asked for by a command, applied on the next tick; -1 when none.
-var _pending_pace: int = -1
-var _pending_guardian_order: int = -1
+## Orders asked for by a command, applied on the next tick.
+var _orders: PendingOrders = PendingOrders.new()
 
 ## Distance walked, and the last turn, so followers retrace the anchor's path.
 var _odometer: float = 0.0
@@ -208,14 +210,10 @@ func command_target_depth(new_depth: int) -> void:
 	_pending_target = maxi(new_depth, 1)
 
 
-## Asks for a new pace or guardian order; each applies from the next tick, even while
-## the party is down, and an unknown value is ignored.
-func command_pace(new_pace: Pace) -> void:
-	_pending_pace = new_pace
-
-
-func command_guardian_order(order: GuardianOrder) -> void:
-	_pending_guardian_order = order
+## Asks for a new value of one order (PartyOrders.PACE, GUARDIANS or SIDE_PATHS); it applies from
+## the next tick, even while the party is down, and a value the order does not have is ignored.
+func command_order(which: int, value: int) -> void:
+	_orders.ask(which, value)
 
 
 ## The level of [param stage] in the area the party is in: base level + stage - 1.
@@ -405,10 +403,7 @@ func hash_parts() -> Array:
 		parts.append([key, fill.visit, fill.cleared_tick, fill.missed, held])
 	if battle != null:
 		parts.append([battle.tick, battle.result(), EncounterRoll.hash_parts(battle.fighters())])
-	# Only when off their defaults or asked for, to keep the hash of a run without orders.
-	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
-	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:
-		parts.append(["orders", pace, guardian_order, _pending_pace, _pending_guardian_order])
+	parts.append_array(_orders.hash_parts(self))
 	return parts
 
 
@@ -416,8 +411,7 @@ func hash_parts() -> Array:
 
 
 func _apply_commands() -> void:
-	if _pending_pace >= 0 or _pending_guardian_order >= 0:
-		_apply_orders()
+	_orders.apply(self)
 	# A destination waits for the fight or side quest to end and the party to stand.
 	var busy: bool = state == State.FIGHTING or state == State.REVIVING or state == State.WORKING
 	if _areas.pending_area != &"" and not busy:
@@ -431,18 +425,6 @@ func _apply_commands() -> void:
 	_set_target(wanted)
 	# Chosen on the way to another area: the target there.
 	_areas.target_chosen = _areas.target_chosen or state == State.JOURNEYING
-
-
-func _apply_orders() -> void:
-	if _pending_pace in Pace.values() and _pending_pace != pace:
-		pace = _pending_pace as Pace
-		_emit(SimEvent.Kind.ORDER_CHANGED, -1, PartyOrders.PACE, pace)
-	var order: int = _pending_guardian_order
-	if order in GuardianOrder.values() and order != guardian_order:
-		guardian_order = order as GuardianOrder
-		_emit(SimEvent.Kind.ORDER_CHANGED, -1, PartyOrders.GUARDIANS, guardian_order)
-	_pending_pace = -1
-	_pending_guardian_order = -1
 
 
 func _set_target(new_target: int) -> void:
