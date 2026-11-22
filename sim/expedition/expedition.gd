@@ -522,8 +522,7 @@ func _walk_toward(goal: float) -> void:
 		return
 	if int(direction) != facing:
 		_turn(int(direction))
-	var speed: float = PARTY_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
-	var stride: float = minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - x))
+	var stride: float = PartyPlaces.stride(self, goal)
 	x += direction * stride
 	_odometer += stride
 

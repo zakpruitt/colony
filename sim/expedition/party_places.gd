@@ -70,6 +70,13 @@ static func of(run: Expedition, hero_id: int, rank: int) -> Vector2:
 	return course(run).point_at(_formation_distance(run, rank))
 
 
+## How far [param run]'s anchor walks in one tick toward [param goal], a distance along its
+## course: its speed's worth, or what is left.
+static func stride(run: Expedition, goal: float) -> float:
+	var speed: float = Expedition.PARTY_SPEED * run._upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
+	return minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - run.x))
+
+
 ## The distance [param run]'s anchor walks toward on its stage: the way on or the way back toward
 ## its target, or, at the target or [param holding] back from a guardian (it then hunts there as
 ## if it were the target), the end of the course it faces; under Hold, never into a living

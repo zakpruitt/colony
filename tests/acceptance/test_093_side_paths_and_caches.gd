@@ -284,6 +284,115 @@ func test_r3_the_party_opens_a_gate_and_comes_back() -> void:
 			_one_trip(sim, found.y, way, "seed %d by a %s going %d" % [found.x, kind, way])
 	_nothing_wrong("the heroes stand in the open all along a side path")
 
+	# On its way to another stage the party takes the side path it comes by, then goes on.
+	var ahead: Vector2i = _find(1, false)
+	var going: Simulation = winding_simulation(ahead.x)
+	raise_party(going, SKILLED)
+	_stand_before(going, 1, ahead.y, 1)
+	going.set_target_depth(2)
+	var run: Expedition = going.expedition
+	var on_the_way: Array[SimEvent] = _events_until(
+		going, func() -> bool: return run.depth == 2, 6000
+	)
+	assert_eq(run.target_depth, 2, "the party was sent to stage 2")
+	var taken: bool = false
+	for event: SimEvent in _of_kind(on_the_way, SimEvent.Kind.CACHE_OPENED):
+		taken = taken or event.amount == ahead.y
+	assert_true(taken, "and opened the cache it came by on stage 1 before it went on")
+	assert_false(SidePathRules.is_full(run, 1, ahead.y), "which is empty behind it")
+
+
+## R3: a party that is not moving along the course (stood at the doorway it leaves by, as a
+## loaded game whose target is below its safe stage) turns onto no side path and is told of no
+## gate, wherever on the stage they are.
+func test_r3_a_party_standing_still_takes_no_side_path() -> void:
+	for skilled: bool in [true, false]:
+		var what: String = "skilled" if skilled else "unskilled"
+		var sim: Simulation = winding_simulation(4)
+		var e: Expedition = sim.expedition
+		if skilled:
+			raise_party(sim, SKILLED)
+		Arrival.from_save(e, sim.tick, 3, 3, 1, false)
+		var paths: Array[SidePath] = sim.labyrinth.level(3).side_paths
+		assert_eq(e.depth, 3, "%s: the party stands on its safe stage" % what)
+		assert_eq(PartyPlaces.walk_goal(e, false), e.x, "%s: where it is going from" % what)
+		assert_gt(paths.size(), 0, "%s: the stage has side paths" % what)
+		for index: int in paths.size():
+			assert_true(SidePathRules.is_full(e, 3, index), "%s: cache %d is full" % [what, index])
+			assert_gt(absf(paths[index].at - e.x), 3.0, "%s: and far from the party" % what)
+			assert_eq(SidePathRules.opener(e, 3, index) != null, skilled, "%s: openable" % what)
+		var events: Array[SimEvent] = []
+		for i: int in 5:
+			sim.step()
+			events.append_array(sim.drain_events())
+			assert_eq(e.side_path, -1, "%s: it is on no side path" % what)
+		assert_eq(e.state, Expedition.State.CLIMBING, "%s: it leaves for the stage before" % what)
+		for kind: SimEvent.Kind in [
+			SimEvent.Kind.GATE_STARTED,
+			SimEvent.Kind.GATE_OPENED,
+			SimEvent.Kind.GATE_SEALED,
+			SimEvent.Kind.CACHE_OPENED,
+		]:
+			assert_eq(_of_kind(events, kind).size(), 0, "%s: no gate event %d" % [what, kind])
+
+
+## R3 and R8: a side path that leaves a room at the first step into it waits for that room: the
+## monsters there are fought first, and the party turns off after.
+func test_r3_the_room_is_fought_for_before_its_side_path() -> void:
+	var tried: int = 0
+	for seed_value: int in range(1, 40):
+		var sim: Simulation = winding_simulation(seed_value)
+		var e: Expedition = sim.expedition
+		var level: LabyrinthLevel = sim.labyrinth.level(1)
+		for index: int in level.side_paths.size():
+			var path: SidePath = level.side_paths[index]
+			var room: int = _room_of(level, path)
+			var first: bool = level.course.chamber_at(path.at - 0.25) != room
+			if not first or not e.is_populated(1, room) or tried >= 3:
+				continue
+			tried += 1
+			var what: String = "seed %d path %d" % [seed_value, index]
+			raise_party(sim, SKILLED)
+			Arrival.from_save(e, sim.tick, 1, 1, 1, false)
+			e._place(path.at - 1.5)
+			e.facing = 1
+			e._entered_key = e._key_here()
+			assert_ne(e._entered_key.y, room, "%s: the party is not yet in the room" % what)
+			var order: Array[SimEvent.Kind] = []
+			var fought_in: int = -2
+			var on_path_at_fight: int = -2
+			var clear_at_gate: bool = false
+			for i: int in 3000:
+				sim.step()
+				for event: SimEvent in sim.drain_events():
+					if event.kind == SimEvent.Kind.ENCOUNTER_STARTED and fought_in == -2:
+						fought_in = e.chamber().index if e.chamber() != null else -1
+						on_path_at_fight = e.side_path
+						order.append(event.kind)
+					if event.kind in [SimEvent.Kind.GATE_STARTED, SimEvent.Kind.CACHE_OPENED]:
+						order.append(event.kind)
+					if event.kind == SimEvent.Kind.GATE_STARTED:
+						clear_at_gate = not e.is_populated(1, room)
+				if order.has(SimEvent.Kind.CACHE_OPENED):
+					break
+			assert_eq(
+				order,
+				(
+					[
+						SimEvent.Kind.ENCOUNTER_STARTED,
+						SimEvent.Kind.GATE_STARTED,
+						SimEvent.Kind.CACHE_OPENED,
+					]
+					as Array[SimEvent.Kind]
+				),
+				"%s: the fight, then the gate, then the cache" % what
+			)
+			assert_eq(fought_in, room, "%s: the fight is in the room the path leaves" % what)
+			assert_eq(on_path_at_fight, -1, "%s: fought from the main course" % what)
+			assert_true(clear_at_gate, "%s: the room is clear as the gate is worked" % what)
+			break
+	assert_eq(tried, 3, "three side paths that leave a room at its first step, monsters in it")
+
 
 func _one_trip(sim: Simulation, index: int, way: int, what: String) -> void:
 	var e: Expedition = sim.expedition

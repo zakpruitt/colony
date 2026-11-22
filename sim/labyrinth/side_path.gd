@@ -8,8 +8,9 @@ extends RefCounted
 var gate: StringName
 ## The distance along the level's main course where the side path leaves.
 var at: float
-## The line a party walks on it, from that point (distance 0) to the cache room's far wall. No
-## part of it is in one of the level's chambers.
+## The line a party walks on it, from that point (distance 0) to the cache room's far wall. It
+## starts in the room it leaves, yet none of its distances is counted as in one of the level's
+## chambers ([method StageCourse.chamber_at] is -1 all along it).
 var course: StageCourse
 ## The distance along [member course] where the gate stands: the head or foot of its ladder in
 ## the room it leaves (0), or the mouth of its tunnel.

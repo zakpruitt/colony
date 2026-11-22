@@ -23,6 +23,10 @@ var _opener: int = -1
 var _gate_open: bool = false
 var _paid: bool = false
 var _back_facing: int = 1
+## The side path the party came by before the room it leaves was entered and clear, or -1:
+## it turns onto it once that room is. With it, the room the party had last entered then.
+var _due: int = -1
+var _due_from: Vector2i = Vector2i.ZERO
 
 
 ## The tick the cache of side path [param index] on [param stage] was last opened on, or -1.
@@ -34,6 +38,7 @@ func opened_tick(stage: int, index: int) -> int:
 ## it is on no side path, and a sealed gate there is said again.
 func arrived(run: Expedition) -> void:
 	run.side_path = -1
+	_due = -1
 	_said.clear()
 	_opener = -1
 	_gate_open = false
@@ -49,17 +54,21 @@ func forget(run: Expedition) -> void:
 ## One tick of travel for [param run]'s party, about to walk toward [param goal] on the main
 ## course. Returns true if the side paths took the tick: the party is on one, or turned onto one
 ## it reached within this tick's stride (its cache full and someone able to open its gate). A
-## gate reached with nobody able is said once, and the party walks on.
+## gate reached with nobody able is said once, and the party walks on. A party not moving along
+## the course this tick reaches nothing. The room a path leaves comes first: reached before
+## that room is entered and clear of monsters, the path waits, and the party walks back to it
+## when the room is.
 func travel(run: Expedition, goal: float) -> bool:
 	var paths: Array[SidePath] = run.labyrinth.level(run.depth).side_paths
 	if run.side_path >= 0:
 		_walk(run, paths[run.side_path])
 		return true
-	if paths.is_empty():
-		return false
+	if _due >= 0:
+		return _take_due(run, paths[_due])
 	var way: float = signf(goal - run.x)
-	var speed: float = Expedition.PARTY_SPEED * run._upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
-	var stride: float = minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - run.x))
+	if paths.is_empty() or way == 0.0:
+		return false
+	var stride: float = PartyPlaces.stride(run, goal)
 	for index: int in paths.size():
 		var ahead: float = (paths[index].at - run.x) * way
 		if ahead < 0.0 or ahead > stride or not SidePathRules.is_full(run, run.depth, index):
@@ -68,17 +77,58 @@ func travel(run: Expedition, goal: float) -> bool:
 		if hero == null:
 			_seal(run, index, paths[index])
 			continue
+		_back_facing = int(way)
+		if not _room_ready(run, paths[index]):
+			_due = index
+			_due_from = run._entered_key
+			return false
 		run._walk_toward(paths[index].at)
-		_back_facing = int(way) if way != 0.0 else run.facing
-		_opener = hero.id
-		_gate_open = false
-		_paid = false
-		run.side_path = index
-		run.x = 0.0
-		run.facing = 1
-		run._reset_trail()
+		_turn_off(run, index, hero)
 		return true
 	return false
+
+
+## The key of the main route's room [param path] leaves.
+func _room_key(run: Expedition, path: SidePath) -> Vector2i:
+	var main: StageCourse = run.labyrinth.level(run.depth).course
+	return Vector2i(run.depth, main.chamber_at(path.at))
+
+
+## True if the room [param path] leaves is the one the party last entered, with no monsters.
+func _room_ready(run: Expedition, path: SidePath) -> bool:
+	var key: Vector2i = _room_key(run, path)
+	return run._entered_key == key and not run.is_populated(key.x, key.y)
+
+
+## One tick with [param path] waiting for its room. Returns true if it took the tick: the room
+## is ready, and the party walks back to where the path leaves and turns onto it. The wait ends
+## if the party has gone on to another room, the cache is no longer full or nobody can open it.
+func _take_due(run: Expedition, path: SidePath) -> bool:
+	var hero: Hero = SidePathRules.opener(run, run.depth, _due)
+	var here: Vector2i = run._entered_key
+	var gone: bool = here != _room_key(run, path) and here != _due_from
+	if gone or hero == null or not SidePathRules.is_full(run, run.depth, _due):
+		_due = -1
+		return false
+	if not _room_ready(run, path):
+		return false
+	run._walk_toward(path.at)
+	if absf(run.x - path.at) <= Expedition._EPSILON:
+		_turn_off(run, _due, hero)
+	return true
+
+
+## The party, standing where side path [param index] leaves, turns onto it for [param hero] to
+## open its gate.
+func _turn_off(run: Expedition, index: int, hero: Hero) -> void:
+	_due = -1
+	_opener = hero.id
+	_gate_open = false
+	_paid = false
+	run.side_path = index
+	run.x = 0.0
+	run.facing = 1
+	run._reset_trail()
 
 
 ## The gate's work is done: it stands open, and the party walks on.
@@ -109,12 +159,14 @@ func before(run: Expedition, short: float) -> Vector2:
 
 ## What the side paths add to [param run]'s state hash: nothing until a gate is opened.
 func hash_parts(run: Expedition) -> Array:
-	if _opened.is_empty() and run.side_path < 0:
+	if _opened.is_empty() and run.side_path < 0 and _due < 0:
 		return []
 	var keys: Array[Vector2i] = []
 	keys.assign(_opened.keys())
 	keys.sort()
-	var parts: Array = ["side", run.side_path, _opener, _gate_open, _paid, _back_facing]
+	var parts: Array = [
+		"side", run.side_path, _opener, _gate_open, _paid, _back_facing, _due, _due_from
+	]
 	for key: Vector2i in keys:
 		parts.append([key, _opened[key]])
 	return [parts]
