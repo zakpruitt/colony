@@ -35,5 +35,11 @@ var side_quests_done: int
 var side_quests_missed: int
 ## The microskill the missed side quests needed most often, or &"" when nothing was missed.
 var most_needed_microskill: StringName
+## Caches opened on side paths (what they paid is in the gold, the resources and the levels).
+var caches_opened: int
+## The kind of gate passed most often with nobody able to open it, a [GateDef] id, and how many
+## times; &"" and 0 when none was.
+var most_sealed_gate: StringName
+var gates_sealed: int
 ## Each microskill learned, in order: (hero id, position in [method Content.microskill_ids]).
 var microskills_learned: Array[Vector2i] = []

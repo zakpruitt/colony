@@ -20,6 +20,9 @@ var _deepest_guardian_depth: int = -1
 ## Side quests missed for want of each microskill (by its position in
 ## [method Content.microskill_ids]), in the order each was first missed.
 var _missed_by_skill: Dictionary[int, int] = {}
+## Gates passed with nobody able to open them (by position in [method Content.gate_ids]), in the
+## order each kind was first passed.
+var _sealed_by_gate: Dictionary[int, int] = {}
 ## The resources the party had already held when the replay began.
 var _gathered_before: Dictionary[StringName, bool] = {}
 
@@ -65,6 +68,11 @@ func run(budget_usec: int) -> bool:
 					report.side_quests_missed += 1
 					var missed: int = _missed_by_skill.get(event.amount, 0)
 					_missed_by_skill[event.amount] = missed + 1
+				SimEvent.Kind.CACHE_OPENED:
+					report.caches_opened += 1
+				SimEvent.Kind.GATE_SEALED:
+					var passed: int = _sealed_by_gate.get(event.target_id, 0)
+					_sealed_by_gate[event.target_id] = passed + 1
 				SimEvent.Kind.MICROSKILL_LEARNED:
 					report.microskills_learned.append(Vector2i(event.source_id, event.target_id))
 				SimEvent.Kind.PARTY_WIPED:
@@ -105,18 +113,29 @@ func _update_report() -> void:
 	if _deepest_guardian_depth >= 0:
 		report.deepest_guardian = simulation.expedition.guardian_of(_deepest_guardian_depth)
 	report.most_needed_microskill = _most_needed()
+	var gates: Array[StringName] = Content.gate_ids()
+	var sealed: int = _most_of(_sealed_by_gate)
+	if sealed >= 0 and sealed < gates.size():
+		report.most_sealed_gate = gates[sealed]
+		report.gates_sealed = _sealed_by_gate[sealed]
 
 
 ## The microskill the missed side quests needed most often, or &"" if none was missed. A tie goes
 ## to the one missed first.
 func _most_needed() -> StringName:
-	var best: int = -1
-	var best_count: int = 0
-	for skill: int in _missed_by_skill:
-		if _missed_by_skill[skill] > best_count:
-			best = skill
-			best_count = _missed_by_skill[skill]
+	var best: int = _most_of(_missed_by_skill)
 	var ids: Array[StringName] = Content.microskill_ids()
 	if best < 0 or best >= ids.size():
 		return &""
 	return ids[best]
+
+
+## The key of [param counts] with the highest count, the first counted on a tie; -1 for none.
+static func _most_of(counts: Dictionary[int, int]) -> int:
+	var best: int = -1
+	var best_count: int = 0
+	for key: int in counts:
+		if counts[key] > best_count:
+			best = key
+			best_count = counts[key]
+	return best

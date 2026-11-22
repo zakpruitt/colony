@@ -6,7 +6,8 @@ extends Node
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
-## the microskill it needed), an order changed, a talent point gained and a path chosen
+## the microskill it needed), a gate opened or passed for want of its microskill and what a
+## cache paid ([SidePathWords]), an order changed, a talent point gained and a path chosen
 ## ([code]The Knight is now a Berserker[/code]) and the first of each resource gathered. The
 ## newest line shows in the ticker just above the party frames
 ## for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
@@ -51,6 +52,8 @@ var _area: StringName = &""
 var _deepest_in: Dictionary[StringName, int] = {}
 ## Resources the party has held, as heard: the first of each is written.
 var _gathered: Dictionary[StringName, bool] = {}
+## What each opened cache paid, read from the gains that follow it.
+var _caches: CacheReader = CacheReader.new()
 
 
 func _init() -> void:
@@ -142,10 +145,22 @@ static func clock(tick: int) -> String:
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	var sentence: String = _sentence(event)
+	# A cache's line follows the last of its gains, whatever line that gain has of its own.
+	var pay: CacheReader.Pay = _caches.heard(event)
+	var late: bool = pay != null and pay.tick != event.tick
+	if late:
+		_note(SidePathWords.cache(pay), pay.tick, event)
+	_note(_sentence(event), event.tick, event)
+	if pay != null and not late:
+		_note(SidePathWords.cache(pay), pay.tick, event)
+
+
+## Writes [param sentence] (unless it is "") as a line of [param tick], and shows it in the
+## ticker if [param event], which brought it, is fresh enough to show.
+func _note(sentence: String, tick: int, event: SimEvent) -> void:
 	if sentence.is_empty():
 		return
-	_times.push_front(clock(event.tick))
+	_times.push_front(clock(tick))
 	_sentences.push_front(sentence)
 	if _sentences.size() > CAPACITY:
 		_times.resize(CAPACITY)
@@ -211,6 +226,8 @@ func _sentence(event: SimEvent) -> String:
 				sentence = "%s learned %s" % [learner.def().display_name, skill.display_name]
 		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
 			sentence = _quest_sentence(event)
+		SimEvent.Kind.GATE_OPENED, SimEvent.Kind.GATE_SEALED:
+			sentence = _gate_sentence(event)
 		SimEvent.Kind.ORDER_CHANGED:
 			sentence = _order_sentence(event)
 		SimEvent.Kind.RESOURCE_GAINED:
@@ -284,6 +301,18 @@ func _quest_sentence(event: SimEvent) -> String:
 	if event.flag:
 		return "Sprang a %s: needs %s" % [quest.display_name, needs]
 	return "Passed a %s: needs %s" % [quest.display_name, needs]
+
+
+## The sentence for a gate opened ([code]The Rogue picked a lock[/code]) or passed with nobody
+## able to open it ([code]A rune seal: needs a Runereader[/code]), or "".
+func _gate_sentence(event: SimEvent) -> String:
+	var gate: GateDef = SidePathWords.gate_at(event.target_id)
+	if gate == null:
+		return ""
+	if event.kind == SimEvent.Kind.GATE_SEALED:
+		return SidePathWords.sealed(gate)
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	return SidePathWords.opened(hero.def().display_name, gate) if hero != null else ""
 
 
 func _microskill(index: int) -> MicroskillDef:
