@@ -546,7 +546,8 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   target up and down as it does sideways.
 
 `res://game/dev/winding.tscn` (`WindingPreview`, a `Main` on `Simulation.new(seed, WINDING)` that drops
-its save store) plays a winding game; no menu opens it. Tests make one with
+its save store and works on a copy of the settings file, deleted when it goes) plays a winding game and
+changes nothing of the player's; no menu opens it. Tests make one with
 `ColonyTest.winding_simulation()` and a view of one with `zoned_view()`.
 
 ## Side quests and microskills

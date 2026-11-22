@@ -513,10 +513,24 @@ func test_r7_the_preview_plays_a_winding_game() -> void:
 	store.write(Simulation.new(7).to_save())
 	var kept: String = FileAccess.get_file_as_string(path)
 	preview.save_store = SaveStore.new(path)
-	add_child_autofree(preview)
+	# Settings that have not seen the help: the game would welcome the player and note it there.
+	var settings_path: String = save_path("preview", "settings")
+	assert_true(SoundSettings.new(settings_path).set_muted(true), "the settings file is written")
+	var settings_kept: PackedByteArray = FileAccess.get_file_as_bytes(settings_path)
+	preview.settings = SoundSettings.new(settings_path)
+	add_child(preview)
 	preview.driver.set_process(false)
 	preview.world.set_process(false)
 	assert_null(preview.save_store, "it has no save store")
+	assert_true(preview.ui.windows.is_open(UiRoot.HELP), "it welcomes with the help window")
+	assert_true(preview.settings.muted(), "it reads the settings it was given")
+	preview.settings.set_muted(false)
+	assert_false(preview.settings.muted(), "a choice made in it holds while it runs")
+	assert_eq(
+		FileAccess.get_file_as_bytes(settings_path),
+		settings_kept,
+		"and is never written to the file"
+	)
 	var sim: Simulation = preview.simulation
 	assert_eq(sim.labyrinth.shape, WINDING, "its simulation is winding")
 	assert_eq(sim.tick, 0, "a new game")
@@ -538,3 +552,14 @@ func test_r7_the_preview_plays_a_winding_game() -> void:
 	assert_eq(off_screen, 0, "with every hero on screen all the while")
 	preview.save_now()
 	assert_eq(FileAccess.get_file_as_string(path), kept, "and it never writes a save")
+	assert_eq(
+		FileAccess.get_file_as_bytes(settings_path),
+		settings_kept,
+		"nor the settings file, after welcoming and thirty seconds of play"
+	)
+	var worked_on: String = preview.settings.file_path()
+	assert_ne(worked_on, settings_path, "it works on a copy of the settings")
+	preview.free()
+	assert_false(FileAccess.file_exists(worked_on), "which goes with it")
+	assert_eq(FileAccess.get_file_as_bytes(settings_path), settings_kept, "the file as it was")
+	assert_eq(FileAccess.get_file_as_string(path), kept, "and the save as it was")
