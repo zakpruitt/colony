@@ -17,7 +17,10 @@ class SimWindingTest(unittest.TestCase):
     def test_r8_winding_run(self) -> None:
         flat = run_sim(*OPTIONS)
         winding = run_sim(*OPTIONS, "--winding")
-        self.assertEqual(set(winding), set(flat), "the same summary")
+        self.assertEqual(
+            set(winding), set(flat) | {"caches_opened"}, "the flat summary and the caches opened"
+        )
+        self.assertIsInstance(winding["caches_opened"], int, "caches_opened")
         for field, kind in FIELDS.items():
             self.assertIsInstance(winding[field], kind, field)
         self.assertGreaterEqual(winding["stage"], 2, "ten minutes takes it to stage 2")

@@ -13,7 +13,9 @@ extends RefCounted
 ## in the level's side paths). One never opened has no entry.
 var _opened: Dictionary[Vector2i, int] = {}
 ## The side paths of the party's stage whose gate has been said to be sealed since it arrived
-## there. It decides only whether an event is repeated, so the state hash leaves it out.
+## there. Contract: it is not part of the state hash ([method hash_parts]) and is not saved. It
+## may decide only whether GATE_SEALED is told again, never where the party goes or what it gains;
+## anything that reads it for more must add it to the hash.
 var _said: Dictionary[int, bool] = {}
 ## This trip: the hero who opens the gate, whether it is open and whether the cache has paid,
 ## and the way along the main course the party was going.

@@ -412,6 +412,7 @@ func test_r5_a_level_is_its_seed_area_and_stage() -> void:
 
 	var wrong: Array[String] = []
 	var kinds: Dictionary[LabyrinthChamber.Kind, int] = {}
+	var caches: int = 0
 	for maze_seed: int in range(1, 21):
 		var maze: Labyrinth = _winding(maze_seed)
 		for depth: int in range(1, 11):
@@ -431,8 +432,16 @@ func test_r5_a_level_is_its_seed_area_and_stage() -> void:
 					wrong.append("%s: end room %d is of kind %d" % [where, room.index, room.kind])
 			if vaults > 1:
 				wrong.append("%s: %d vaults" % [where, vaults])
+			for path: SidePath in level.side_paths:
+				caches += int(path.room.kind == LabyrinthChamber.Kind.CACHE)
+				if path.room.kind != LabyrinthChamber.Kind.CACHE:
+					wrong.append("%s: a side path's room is of kind %d" % [where, path.room.kind])
 	for kind: LabyrinthChamber.Kind in LabyrinthChamber.Kind.values():
-		assert_true(kinds.has(kind), "kind %d is seen over 200 levels" % kind)
+		if kind == LabyrinthChamber.Kind.CACHE:
+			assert_false(kinds.has(kind), "no room of the route is a cache room")
+			assert_gt(caches, 0, "the cache kind is seen on the side paths' rooms")
+		else:
+			assert_true(kinds.has(kind), "kind %d is seen over 200 levels" % kind)
 	assert_eq(wrong.size(), 0, "\n".join(wrong.slice(0, 12)))
 
 
@@ -695,7 +704,11 @@ func _play(
 		var away: bool = (
 			e.state == Expedition.State.CLIMBING or e.state == Expedition.State.REVIVING
 		)
-		if not away and e.chamber() != null and not seen.has(e.chamber().index):
+		# A side path's cache room is beside the route, not one of its rooms.
+		if e.side_path >= 0:
+			if e.chamber() != null and e.chamber().index != -1:
+				wrong.append("%s: on a side path in room %d" % [where, e.chamber().index])
+		elif not away and e.chamber() != null and not seen.has(e.chamber().index):
 			seen.append(e.chamber().index)
 		if revived_at >= 0.0 and e.x > revived_at + 5.0:
 			tally["went_on"] += 1
