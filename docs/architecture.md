@@ -568,7 +568,7 @@ shows a flat stage (where the answers are what they always were) and a winding o
   is moved by `LadderRoute` (`game/world/ladder_route.gd`): along its floor, and from one floor to
   another only in the column of the ladder between them, so one that trails round a corner or runs
   to a fight from a ladder never crosses the earth. On a ladder it is drawn walking. Monsters, the
-  fallen and every sprite of a flat stage move as before (`World._eased`).
+  fallen and every sprite of a flat stage move by its one-floor step (`LadderRoute.step`).
 - **Facing** on screen is `PartyPlaces.world_facing`: a new sprite, a hero with no one to face,
   the side a hero steps to off a guardian, the side the worker stands by a prop, the camera's look
   ahead. In a room the course walks from right to left the party faces left.
