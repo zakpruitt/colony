@@ -26,9 +26,12 @@ save.
   `"press_on"`. A version 8 save (and every older one, through the steps there are) loads at Explore. A
   save with any other value is refused, the problem named as the other orders' are.
 - **R4. It is chosen in the Orders window.** The window has a third row, `Side paths`, with the choices
-  `Explore` and `Press on`, a line under each saying what it does (`Take every side path the party can
-  open` / `Walk past every gate`), a tip, and the lit choice following the simulation, as the two rows
-  above it. The window still fits its place at 1280x720 and with `--ui-room=960x540`.
+  `Explore` and `Press on`, a line under each saying what it does (`The party takes every side path it can open.` / `The party
+  walks past every gate it meets.`), a tip, and the lit choice following the simulation, as the two rows
+  above it. At 1280x720 and with `--ui-room=960x540` the window is clear of the hero frames, the button
+  bar and the other windows' default places, as spec 061's and 058's tests ask (they pass unedited): its
+  default place moves if one such place exists in both rooms; if none does, each row's line goes beside
+  its buttons for all three rows. The lane says which it did and shows both rooms.
 - **R5. The journal says it changed.** `Orders: side paths, press on` (and `explore`), where the journal
   tells of a changed order today.
 - **R6. A sealed gate is quiet under Press on.** With the order at Press on the world raises no "Needs a …"
@@ -84,7 +87,8 @@ In `tests/acceptance/test_096_the_order_to_press_on.gd` (extends `ColonyTest`):
 
 - `sim/expedition/expedition.gd`, `sim/expedition/party_orders.gd`, `sim/expedition/side_path_walk.gd`,
   `sim/simulation.gd`, and a new script under `sim/expedition/` for the orders' applying if one is needed
-- `game/ui/windows/orders_panel.gd`, `game/hud/journal.gd`, `game/world/gate_tip.gd`, `game/world/side_props.gd`
+- `game/ui/windows/orders_panel.gd`, `game/ui/windows/window_book.gd` (the Orders window's default place
+  only), `game/hud/journal.gd`, `game/world/gate_tip.gd`, `game/world/side_props.gd`
   (the tip's added words only)
 - `tests/acceptance/test_096_the_order_to_press_on.gd` (new), `tests/support/`
 - Existing tests that name the save's version or call the two order commands, to follow the change only:
