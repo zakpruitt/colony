@@ -1,7 +1,8 @@
 class_name OrdersPanel
 extends WindowContent
 ## The party's orders: one row per order, its name and a button per choice with the current one
-## lit, and the current choice explained in a full sentence under it. It is the content of the
+## lit, and the current choice explained in a full sentence beside them: the window has no
+## room for a line under each row above the hero frames. It is the content of the
 ## Orders window ([kbd]O[/kbd], its button on the button bar, or a click on a held guardian's
 ## goal); it never pauses the game.
 ##
@@ -21,7 +22,7 @@ const GUARDIAN_NAMES: Array[String] = ["Challenge", "Hold"]
 const SIDE_PATH_NAMES: Array[String] = ["Explore", "Press on"]
 ## Each order's choices, by order.
 const CHOICE_NAMES: Array[Array] = [PACE_NAMES, GUARDIAN_NAMES, SIDE_PATH_NAMES]
-## Each choice explained, by order then value: the line under its row.
+## Each choice explained in one full sentence, by order then value: the line beside its row.
 const LINES: Array[Array] = [
 	[
 		"Cautious: the party rests when any hero drops below 80% health.",
@@ -32,7 +33,10 @@ const LINES: Array[Array] = [
 		"Challenge: the party fights each guardian that blocks its way.",
 		"Hold: the party keeps away from living guardians until told.",
 	],
-	["Take every side path the party can open", "Walk past every gate"],
+	[
+		"The party takes every side path it can open.",
+		"The party walks past every gate it meets.",
+	],
 ]
 ## Each choice's tooltip, by order then value: one plain sentence.
 const TIPS: Array[Array] = [
@@ -54,6 +58,9 @@ const TITLE: String = "Party orders"
 ## The width of an order's name column, and of the line explaining its choice, in UI pixels.
 const NAME_WIDTH: int = 72
 const LINE_WIDTH: int = 360
+## The pixels between a row's name, its choices and its line, and between two rows.
+const COLUMN_GAP: int = 8
+const ROW_GAP: int = 3
 
 ## A button per choice, by order then value, as [enum Expedition.Pace],
 ## [enum Expedition.GuardianOrder] and [enum Expedition.SidePaths] number them.
@@ -75,27 +82,28 @@ var _asked_tick: int = 0
 func _init() -> void:
 	name = "OrdersPanel"
 	closes_away = false
-	add_theme_constant_override(&"separation", 10)
 
 
 ## Call once, before the first advance. [param tips] gives each choice its sentence as a tooltip
 ## (may be null).
 func setup(simulation: Simulation, tips: UiTip) -> void:
 	_simulation = simulation
+	var rows := GridContainer.new()
+	rows.columns = 3
+	rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rows.add_theme_constant_override(&"h_separation", COLUMN_GAP)
+	rows.add_theme_constant_override(&"v_separation", ROW_GAP)
+	add_child(rows)
 	for order: int in ORDER_NAMES.size():
-		var block := VBoxContainer.new()
-		block.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		block.add_theme_constant_override(&"separation", 3)
-		add_child(block)
-		var row := HBoxContainer.new()
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_theme_constant_override(&"separation", 4)
-		block.add_child(row)
 		var title: Label = UiText.label(ORDER_NAMES[order], &"steel", true)
 		title.custom_minimum_size.x = NAME_WIDTH
 		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(title)
+		rows.add_child(title)
 		name_labels.append(title)
+		var choices := HBoxContainer.new()
+		choices.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		choices.add_theme_constant_override(&"separation", 4)
+		rows.add_child(choices)
 		var names: Array[String] = []
 		names.assign(CHOICE_NAMES[order])
 		var buttons: Array[UiButton] = []
@@ -103,15 +111,15 @@ func setup(simulation: Simulation, tips: UiTip) -> void:
 			var button := UiButton.new(names[value])
 			button.name = names[value]
 			button.pressed.connect(choose.bind(order, value))
-			row.add_child(button)
+			choices.add_child(button)
 			buttons.append(button)
 			if tips != null:
 				tips.attach(button, OrdersPanel.tip(order, value))
 		choice_buttons.append(buttons)
 		var explained: Label = UiText.label("", &"white")
-		explained.autowrap_mode = TextServer.AUTOWRAP_WORD
 		explained.custom_minimum_size.x = LINE_WIDTH
-		block.add_child(explained)
+		explained.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		rows.add_child(explained)
 		line_labels.append(explained)
 	advance(0.0)
 

@@ -23,7 +23,9 @@ const HASH_TICKS: int = 3000
 const EXPLORE_HASH: int = 2998448915
 const SAVED: Array[String] = ["explore", "press_on"]
 const NAMES: Array[String] = ["Explore", "Press on"]
-const LINES: Array[String] = ["Take every side path the party can open", "Walk past every gate"]
+const LINES: Array[String] = [
+	"The party takes every side path it can open.", "The party walks past every gate it meets."
+]
 const PRESSING: String = "The party is pressing on"
 const AWAY_SECONDS: float = 3600.0
 const ROOMS: Array[Vector2i] = [Vector2i(960, 540), Vector2i(1280, 720)]
@@ -358,6 +360,11 @@ func test_r4_the_orders_window_has_the_row() -> void:
 		var screen := Rect2(Vector2.ZERO, Vector2(ui.room()))
 		var panel: Rect2 = window.get_global_rect()
 		assert_true(screen.encloses(panel), "%s: the window on screen %s" % [what, panel])
+		var frames: float = ui.world_to_ui(Vector2(0, ui.frames_top())).y
+		assert_lte(panel.end.y, frames, "%s: above the hero frames %s" % [what, panel])
+		assert_false(panel.intersects(ui.bar.get_global_rect()), "%s: clear of the bar" % what)
+		for line: Label in orders.line_labels:
+			assert_eq(line.get_line_count(), 1, "%s: '%s' on one line" % [what, line.text])
 		var inside: Array[Control] = []
 		inside.assign(orders.name_labels + orders.line_labels)
 		for buttons: Array in orders.choice_buttons:
