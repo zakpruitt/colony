@@ -32,6 +32,9 @@ const PAST: float = 0.01
 
 ## The tip of the gate under the mouse.
 var tip: GateTip
+## The folder the sheets are looked for in. A gate whose id has no sheet there is drawn as
+## nothing; everything else about it goes on.
+var sheets: String = DIR
 ## Whether the tip follows the real mouse; a test turns it off and calls [method point_at].
 var follows_mouse: bool = true
 
@@ -48,8 +51,11 @@ var _passed: Vector2i = NONE
 ## The tick of the last cache heard to open, and where that cache stands.
 var _paid_tick: int = -1
 var _paid_at: Vector2 = Vector2.ZERO
-## The closed gate under the mouse.
+## The closed gate under the mouse; the gate the tip's words are for, and whether the party
+## may have changed since they were written.
 var _hovered: Vector2i = NONE
+var _worded: Vector2i = NONE
+var _words_stale: bool = false
 ## The motes of the draughty gates, drawn over the props; their clock and the step last drawn.
 var _draught: Node2D
 var _time: float = 0.0
@@ -217,8 +223,8 @@ func nearest(gate_index: int) -> int:
 
 
 ## The sheet of the gate [param id], or of the [constant CACHE]; null when there is none.
-static func sheet_of(id: StringName) -> PixelSheet:
-	var path: String = DIR + String(id) + ".png"
+static func sheet_of(id: StringName, dir: String = DIR) -> PixelSheet:
+	var path: String = dir + String(id) + ".png"
 	return PixelSheet.load_sheet(path) if ResourceLoader.exists(path) else null
 
 
@@ -241,6 +247,7 @@ func clear() -> void:
 func scan(built: Array[int]) -> void:
 	if _simulation.expedition.side_path < 0:
 		_passed = NONE
+	_words_stale = true
 	for key: Vector2i in _gates.keys():
 		if not built.has(key.x):
 			_gates[key].free()
@@ -296,7 +303,13 @@ func _show_tip() -> void:
 		get_viewport().get_canvas_transform().affine_inverse()
 		* Rect2(Vector2.ZERO, get_viewport_rect().size)
 	)
-	tip.show_gate(_simulation, _hovered.x, _hovered.y, _rect_of(shown), screen)
+	if _worded != _hovered or _words_stale or not tip.visible:
+		if not tip.write(_simulation, _hovered.x, _hovered.y):
+			tip.hide_tip()
+			return
+		_worded = _hovered
+		_words_stale = false
+	tip.place(_rect_of(shown), screen)
 
 
 ## The id of the sheet [param shown] was made from.
@@ -312,15 +325,24 @@ static func _rect_of(shown: Sprite2D) -> Rect2:
 
 
 func _on_sim_event(event: SimEvent) -> void:
-	var stage: int = _simulation.expedition.depth
 	match event.kind:
-		SimEvent.Kind.GATE_OPENED:
-			_passed = Vector2i(stage, event.amount)
-			_refresh(_passed)
-		SimEvent.Kind.CACHE_OPENED:
-			_paid_tick = event.tick
-			_paid_at = cache_spot(stage, event.amount)
-			_refresh(Vector2i(stage, event.amount))
+		SimEvent.Kind.LEVEL_UP, SimEvent.Kind.MICROSKILL_LEARNED:
+			_words_stale = true
+		SimEvent.Kind.GATE_OPENED, SimEvent.Kind.CACHE_OPENED:
+			# An old event may be of a stage the party has left: only what the simulation says
+			# now is shown, and nothing is kept from it.
+			var stage: int = _simulation.expedition.depth
+			var key := Vector2i(stage, event.amount)
+			if not _world.may_animate(event) or not _gates.has(key):
+				for shown: Vector2i in _gates:
+					_refresh(shown)
+			elif event.kind == SimEvent.Kind.GATE_OPENED:
+				_passed = key
+				_refresh(key)
+			else:
+				_paid_tick = event.tick
+				_paid_at = cache_spot(stage, event.amount)
+				_refresh(key)
 
 
 ## Shows the gate and the cache of side path [param key] as the simulation has them now.
@@ -353,7 +375,7 @@ func _add(id: StringName, feet: Vector2) -> Sprite2D:
 func _show(shown: Sprite2D, part: StringName) -> bool:
 	if part_of(shown) == part:
 		return false
-	var sheet: PixelSheet = sheet_of(_sheet_id(shown))
+	var sheet: PixelSheet = sheet_of(_sheet_id(shown), sheets)
 	if sheet == null or not sheet.has_part(part):
 		return false
 	shown.texture = sheet.part(part)

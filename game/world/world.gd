@@ -11,8 +11,7 @@ extends Node2D
 ## frame would show.
 ##
 ## Children, in draw order: the labyrinth view, the ambience, SideProps, QuestProps, Characters,
-## Effects,
-## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
+## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## and ZoneCrossing, which dims the screen between places.
 ##
 ## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).

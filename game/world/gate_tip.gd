@@ -24,6 +24,8 @@ var who: String = ""
 var _lines: PackedStringArray = []
 var _who_from: int = 0
 var _box: Rect2 = Rect2()
+## The size the lines take, worked out when they are worded.
+var _size: Vector2 = Vector2.ZERO
 
 
 func _init() -> void:
@@ -73,33 +75,37 @@ static func who_line(simulation: Simulation, stage: int, index: int) -> String:
 	)
 
 
-## Shows the tip of the gate of side path [param index] on [param stage], standing in
-## [param over] (world pixels), inside [param screen] (the part of the world on screen).
-func show_gate(simulation: Simulation, stage: int, index: int, over: Rect2, screen: Rect2) -> void:
-	var def: GateDef = Content.gate(simulation.labyrinth.level(stage).side_paths[index].gate)
-	var said: String = who_line(simulation, stage, index)
+## Words the tip for the gate of side path [param index] on [param stage], as the party is now.
+## False, and nothing written, for a gate with no definition. [method place] then shows it.
+func write(simulation: Simulation, stage: int, index: int) -> bool:
+	var paths: Array[SidePath] = simulation.labyrinth.level(stage).side_paths
+	var def: GateDef = Content.gate(paths[index].gate) if index < paths.size() else null
 	if def == null:
-		hide_tip()
-		return
-	if not visible or title != def.display_name or who != said:
-		title = def.display_name
-		body = def.description
-		who = said
-		_lines = PackedStringArray([title])
-		_lines.append_array(_wrap(body))
-		_who_from = _lines.size()
-		_lines.append_array(_wrap(who))
-		queue_redraw()
+		return false
+	title = def.display_name
+	body = def.description
+	who = who_line(simulation, stage, index)
+	_lines = PackedStringArray([title])
+	_lines.append_array(_wrap(body))
+	_who_from = _lines.size()
+	_lines.append_array(_wrap(who))
 	var widest: int = 0
 	for line: String in _lines:
 		widest = maxi(widest, PixelText.width(line))
-	var size := Vector2(widest + 2 * PAD, _lines.size() * LINE + 2 * PAD)
-	var at := Vector2(over.get_center().x - size.x / 2.0, over.position.y - GAP - size.y)
+	_size = Vector2(widest + 2 * PAD, _lines.size() * LINE + 2 * PAD)
+	queue_redraw()
+	return true
+
+
+## Shows the words last worded over the gate standing in [param over] (world pixels), inside
+## [param screen] (the part of the world on screen).
+func place(over: Rect2, screen: Rect2) -> void:
+	var at := Vector2(over.get_center().x - _size.x / 2.0, over.position.y - GAP - _size.y)
 	if at.y < screen.position.y:
 		at.y = over.end.y + GAP
-	at.x = clampf(at.x, screen.position.x, maxf(screen.end.x - size.x, screen.position.x))
-	at.y = clampf(at.y, screen.position.y, maxf(screen.end.y - size.y, screen.position.y))
-	var box := Rect2(at.round(), size)
+	at.x = clampf(at.x, screen.position.x, maxf(screen.end.x - _size.x, screen.position.x))
+	at.y = clampf(at.y, screen.position.y, maxf(screen.end.y - _size.y, screen.position.y))
+	var box := Rect2(at.round(), _size)
 	if box != _box or not visible:
 		_box = box
 		visible = true

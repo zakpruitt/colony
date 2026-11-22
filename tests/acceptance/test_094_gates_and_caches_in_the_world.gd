@@ -159,6 +159,42 @@ func test_r1_each_gate_stands_closed_then_open() -> void:
 		_sound.free()
 
 
+## R1: a gate whose kind has no sheet draws nothing, and the work, the cache and its gains go on.
+func test_r1_a_gate_with_no_sheet_draws_nothing() -> void:
+	var found: Vector2i = _find(2, false)
+	_before(found.x, 2, found.y)
+	_watch_gates()
+	var props: SideProps = _world.side_props
+	props.sheets = "res://assets/sprites/no_such_folder/"
+	props.clear()
+	props.scan([2] as Array[int])
+	var gate: Sprite2D = props.gate(2, found.y)
+	assert_not_null(gate, "the gate has its place")
+	assert_null(gate.texture, "and nothing drawn there")
+	assert_null(props.cache(2, found.y).texture, "nor for the cache")
+	props.point_at(gate.position + Vector2(0, -6))
+	assert_false(props.tip.visible, "nothing to rest the mouse on")
+	assert_true(_play_until(SimEvent.Kind.GATE_STARTED, 300), "the work starts")
+	for i: int in 30:
+		_play_frame()
+	assert_gt(_world.quest_props.bar_fraction(), 0.0, "under its bar")
+	assert_true(_play_until(SimEvent.Kind.GATE_OPENED, 300), "it is opened")
+	assert_true(_play_until(SimEvent.Kind.CACHE_OPENED, 600), "and the cache pays")
+	assert_gt(_fx.coins().size(), 0, "its coins fly")
+	_world.free()
+	_fx.free()
+	_sound.free()
+	# A sealed one says what it needs all the same.
+	_before(found.x, 2, found.y, 1, false)
+	_watch_gates()
+	props = _world.side_props
+	props.sheets = "res://assets/sprites/no_such_folder/"
+	props.clear()
+	props.scan([2] as Array[int])
+	assert_true(_play_until(SimEvent.Kind.GATE_SEALED, 300), "nobody can open it")
+	assert_eq(_world.fx.count(&"quest_text"), 1, "its line rises")
+
+
 # --- R2 ------------------------------------------------------------------------
 
 
@@ -565,11 +601,12 @@ func test_r7_nothing_plays_for_old_events() -> void:
 	_before(sealed.x, sealed.y, sealed.z, 1, false)
 	_watch_gates()
 	_play_frame(false)
-	var told: Array[SimEvent] = _events_until(_sim, _passed.bind(sealed), 600)
-	assert_eq(_of_kind(told, SimEvent.Kind.GATE_SEALED).size(), 1, "the gate was sealed, unseen")
+	_events.clear()
+	_unseen_until(_passed.bind(sealed), 600)
 	for i: int in 20:
 		_sim.step()
 	_play_frame(false)
+	assert_true(_has(_events, SimEvent.Kind.GATE_SEALED), "the world heard of the sealed gate late")
 	_nothing_plays("after a stall at a sealed gate")
 	props = _world.side_props
 	assert_true(_shows(props.gate(sealed.y, sealed.z), &"rune_seal", &"closed"), "still closed")
@@ -621,3 +658,41 @@ func test_r7_nothing_plays_for_old_events() -> void:
 func _passed(at: Vector3i) -> bool:
 	var path: SidePath = _sim.labyrinth.level(at.y).side_paths[at.z]
 	return _sim.expedition.x > path.at + 1.0
+
+
+## R7: a stall in which the party opens a cache on one stage and stands on a stage with fewer
+## side paths before the world hears of it: nothing is worked out for the stage it is on now.
+func test_r7_a_stall_that_ends_on_another_stage() -> void:
+	var from := Vector3i(-1, 0, 0)
+	var to: int = 0
+	for seed_value: int in range(1, 40):
+		var maze: Labyrinth = winding_labyrinth(seed_value)
+		for stage: int in range(1, STAGES + 1):
+			for other: int in range(1, STAGES + 1):
+				var here: int = maze.level(stage).side_paths.size()
+				if from.x < 0 and maze.level(other).side_paths.size() < here:
+					from = Vector3i(seed_value, stage, here - 1)
+					to = other
+	assert_gt(from.x, 0, "two stages of one seed, the second with fewer side paths")
+	_before(from.x, from.y, from.z)
+	_watch_gates()
+	_play_frame(false)
+	_events.clear()
+	_unseen_until(_on_path)
+	_unseen_until(_off_path)
+	Arrival.from_save(_sim.expedition, _sim.tick, to, to, to, false)
+	for i: int in 20:
+		_sim.step()
+	_play_frame(false)
+	var paid: Array[SimEvent] = _of_kind(_events, SimEvent.Kind.CACHE_OPENED)
+	assert_eq(paid.size(), 1, "the world heard of the cache late")
+	assert_eq(paid[0].amount, from.z, "a place the stage it stands on now does not have")
+	_nothing_plays("after a stall across stages")
+	var props: SideProps = _world.side_props
+	for gained: SimEvent in _of_kind(_events, SimEvent.Kind.GOLD_GAINED):
+		assert_eq(props.gains_from(gained), Vector2.INF, "its gains leave from no cache")
+	var paths: Array[SidePath] = _sim.labyrinth.level(to).side_paths
+	_world.sync(World.SCAN_SECONDS + STEP)
+	for index: int in paths.size():
+		assert_true(_shows(props.gate(to, index), paths[index].gate, &"closed"), "its own gates")
+		assert_true(_shows(props.cache(to, index), &"cache", &"closed"), "and caches, full")

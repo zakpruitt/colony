@@ -19,6 +19,8 @@ var _props: Dictionary[Vector2i, Sprite2D] = {}
 ## Seconds of the pulse; and per prop, the part showing now.
 var _time: float = 0.0
 var _parts: Dictionary[Vector2i, StringName] = {}
+## The parts being worked out, kept between pulses so a frame makes no new table.
+var _next: Dictionary[Vector2i, StringName] = {}
 
 
 ## Call once, in the tree, before the first pulse.
@@ -50,18 +52,22 @@ func in_the_dark(waiting: Sprite2D) -> bool:
 func pulse(delta: float, props: Dictionary[Vector2i, Sprite2D]) -> void:
 	_props = props
 	_time = fposmod(_time + delta, PERIOD * 64.0)
-	var parts: Dictionary[Vector2i, StringName] = {}
+	if props.is_empty() and _parts.is_empty():
+		return
+	_next.clear()
 	for key: Vector2i in props:
 		if not in_the_dark(props[key]):
 			continue
 		# Each prop's pulse starts at its own point, so two in view do not swell together.
 		var phase: float = fposmod(_time / PERIOD + 0.37 * (key.x * 7 + key.y), 1.0)
 		if phase < PULSE.x or (phase >= PULSE.y and phase < PULSE.z):
-			parts[key] = &"small"
+			_next[key] = &"small"
 		elif phase < PULSE.y:
-			parts[key] = &"big"
-	if parts != _parts:
-		_parts = parts
+			_next[key] = &"big"
+	if _next != _parts:
+		var last: Dictionary[Vector2i, StringName] = _parts
+		_parts = _next
+		_next = last
 		queue_redraw()
 
 
