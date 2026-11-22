@@ -335,14 +335,17 @@ func test_r4_the_goal_names_the_gate_a_skill_would_open() -> void:
 	assert_eq(shown.hero_id, mage.id, "it is the Mage's row")
 	assert_eq(shown.key, "skill/%d/runereader" % mage.id, "the row a microskill has always had")
 	assert_eq(shown.done, "Goal: Mage learned Runereader", "and its line when learned")
+	assert_eq(shown.detail, "", "the sentence has the row: no count under its end")
+	assert_string_ends_with(shown.hint, " XP to go.", "the XP to go is in its tooltip")
+	assert_gt(shown.progress, -1.0, "and its bar still shows it")
 
 	# On to another stage: the gate is behind, and the goal is as it was.
 	e.x = _sim.labyrinth.level(1).course.exit - 0.5
 	e.facing = 1
 	_sim.set_target_depth(2)
 	assert_true(_step_until(func() -> bool: return e.depth == 2, 300), "on to stage 2")
-	if _of_kind(_events, SimEvent.Kind.GATE_SEALED).size() == 1:
-		assert_eq(_skill_goal(), plain, "no such gate on this stage: the goal as it was")
+	assert_eq(_of_kind(_events, SimEvent.Kind.GATE_SEALED).size(), 1, "no gate passed there yet")
+	assert_eq(_skill_goal(), plain, "no such gate on this stage: the goal as it was")
 
 	# The one hero who could has learned it and lies dead: nobody will learn it.
 	_sim = winding_simulation(1)

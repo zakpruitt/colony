@@ -471,8 +471,8 @@ gate or a cache.
 
 **In words** (spec 095). `SidePathWords` (`game/hud/`) holds every sentence about a side path: a gate's
 and a microskill's name come from their definitions, and `SENTENCES` has one row per gate for what its
-opener did and what the status reads while it is worked (a gate with no row is "opened"; one whose name
-takes no "a" or "s" is listed in `UNCOUNTED`). `CacheReader` turns the events that follow
+opener did, what the status reads while it is worked and whether its name is counted (rubble takes no
+"a" and no "s"; a gate with no row is "opened", and counted). `CacheReader` turns the events that follow
 `CACHE_OPENED` on its tick into one `Pay`, complete at the `RESOURCE_GAINED` that ends them; the
 `Journal` writes its line then, and `SidePathTally` (`Tally.side_paths`) adds it to the area the events
 are in. `AwayReplay` counts `CACHE_OPENED` and `GATE_SEALED` by gate into the `AwayReport`. `Goals`

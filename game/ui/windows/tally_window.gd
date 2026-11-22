@@ -100,6 +100,8 @@ var _goals: Array[float] = []
 var _quest_labels: Array[Label] = []
 ## The side paths' lines: two for the session, then two for each area.
 var _side_labels: Array[Label] = []
+## What those lines were last made from: the side paths' count of changes, and the span.
+var _side_from: ShownValues = ShownValues.new()
 ## The hero whose line is open, or -1; the box under each hero's line its abilities go in, the
 ## caption over them and the note shown on the Taken tab.
 var _opened: int = -1
@@ -575,11 +577,15 @@ func _refresh() -> void:
 		shown += 1
 	for i: int in _quest_labels.size():
 		_quest_labels[i].visible = i < shown
-	var side: Array[String] = _side_path_lines()
-	for i: int in _side_labels.size():
-		_side_labels[i].visible = i < side.size()
-		if i < side.size() and _side_labels[i].text != side[i]:
-			_side_labels[i].text = side[i]
+	_side_from.begin()
+	_side_from.see(tally.side_paths.changes)
+	_side_from.see(_span)
+	if _side_from.changed():
+		var side: Array[String] = _side_path_lines()
+		for i: int in _side_labels.size():
+			_side_labels[i].visible = i < side.size()
+			if i < side.size():
+				_side_labels[i].text = side[i]
 	_refresh_abilities()
 
 

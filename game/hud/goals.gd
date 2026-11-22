@@ -82,9 +82,9 @@ var _wanted: bool = true
 var _stale: bool = false
 ## True while the tracker is shown (see [method is_shown]).
 var _on_screen: bool = true
-## The gates the party has passed for want of a microskill since it arrived on its stage, as
-## heard.
-var _sealed: Dictionary[StringName, bool] = {}
+## What each microskill would open, of the gates the party has passed for want of it since it
+## arrived on its stage, as heard: the microskill's id to the words ("opens rune seals").
+var _opens: Dictionary[StringName, String] = {}
 ## What the goals were last read from: they are read again only when one of these changes.
 var _read_from: ShownValues = ShownValues.new()
 
@@ -450,13 +450,9 @@ func _depth_goal() -> Goal:
 ## The microskill nearest to being learned by any hero: the least XP still to earn, the first hero
 ## in formation order on a tie; null when every hero has all of theirs. A microskill that would
 ## open a gate the party has passed on this stage comes before any other, and its sentence says
-## what it opens: [code]Mage learns Runereader at level 4: opens rune seals[/code].
+## what it opens: [code]Mage learns Runereader at level 4: opens rune seals[/code]; its XP to go
+## is then in its hint, the sentence taking the row's whole width.
 func _microskill_goal() -> Goal:
-	var opens: Dictionary[StringName, String] = {}
-	for id: StringName in _sealed:
-		var gate: GateDef = Content.gate(id)
-		if gate != null and not opens.has(gate.microskill):
-			opens[gate.microskill] = SidePathWords.opens(gate)
 	var best: Hero = null
 	var best_level: int = 0
 	var best_skill: MicroskillDef = null
@@ -470,7 +466,7 @@ func _microskill_goal() -> Goal:
 			if level <= hero.level or skill == null:
 				continue
 			var left: int = Hero.xp_for_level(level) - hero.xp
-			var wanted: bool = opens.has(skill.id)
+			var wanted: bool = _opens.has(skill.id)
 			var nearer: bool = wanted == best_opens and left < best_left
 			if best == null or nearer or (wanted and not best_opens):
 				best = hero
@@ -483,18 +479,24 @@ func _microskill_goal() -> Goal:
 	var who: String = best.def().display_name
 	var needed: int = maxi(Hero.xp_for_level(best_level), 1)
 	var sentence: String = "%s learns %s at level %d" % [who, best_skill.display_name, best_level]
+	var left_text: String = "%s XP to go" % UiFormat.group_thousands(maxi(best_left, 0))
+	var how: String = (
+		"%s: %s, learned with XP from fights."
+		% [best_skill.display_name, UiFormat.lower_first(best_skill.description)]
+	)
+	# What it opens fills the row to its end, where the count would sit under it: the count
+	# goes to the tooltip.
 	if best_opens:
-		sentence = "%s: %s" % [sentence, opens[best_skill.id]]
+		sentence = "%s: %s" % [sentence, _opens[best_skill.id]]
+		how = "%s %s." % [how, left_text]
+		left_text = ""
 	var goal := Goal.new(
 		"skill/%d/%s" % [best.id, best_skill.id],
 		Kind.MICROSKILL,
 		sentence,
 		clampf(float(best.xp) / float(needed), 0.0, 1.0),
-		"%s XP to go" % UiFormat.group_thousands(maxi(best_left, 0)),
-		(
-			"%s: %s, learned with XP from fights."
-			% [best_skill.display_name, UiFormat.lower_first(best_skill.description)]
-		)
+		left_text,
+		how
 	)
 	goal.target = best_level
 	goal.hero_id = best.id
@@ -598,7 +600,7 @@ func _read_from_changed() -> bool:
 	if _area_map != null and _area_map.news != null:
 		_read_from.see(_area_map.news.to_visit.size())
 		_read_from.see(_area_map.news.visited.size())
-	_read_from.see(_sealed.size())
+	_read_from.see(_opens.size())
 	return _read_from.changed()
 
 
@@ -619,11 +621,11 @@ func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
 		SimEvent.Kind.GATE_SEALED:
 			var gate: GateDef = SidePathWords.gate_at(event.target_id)
-			if gate != null:
-				_sealed[gate.id] = true
+			if gate != null and not _opens.has(gate.microskill):
+				_opens[gate.microskill] = SidePathWords.opens(gate)
 		# Arriving on a stage, the simulation tells of its sealed gates anew.
 		SimEvent.Kind.DEPTH_CHANGED, SimEvent.Kind.AREA_CHANGED, SimEvent.Kind.PARTY_REVIVED:
-			_sealed.clear()
+			_opens.clear()
 
 
 ## Writes [param goal]'s line in the journal and tells the listeners.

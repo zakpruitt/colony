@@ -4,16 +4,19 @@ extends RefCounted
 ## and what a cache paid. A gate's and a microskill's name are their definitions'; what a hero
 ## does to open a gate is the one thing said of it here, in [constant SENTENCES].
 
-## Each gate's own words, by its id: what its opener did, and what the party is doing while it
-## is worked. A gate with no row is "opened" and "Opening".
+## Each gate's own words, by its id: what its opener did, what the party is doing while it is
+## worked, and whether its name is counted ("a rune seal", "rune seals") or not ("rubble"). A
+## gate with no row is "opened" and "Opening", and counted.
 const SENTENCES: Dictionary[StringName, Array] = {
-	&"hidden_crack": ["found a hidden crack", "Searching a crack"],
-	&"locked_gate": ["picked a lock", "Picking a lock"],
-	&"rubble": ["cleared the rubble", "Clearing rubble"],
-	&"rune_seal": ["read a rune seal", "Reading a rune seal"],
+	&"hidden_crack": ["found a hidden crack", "Searching a crack", true],
+	&"locked_gate": ["picked a lock", "Picking a lock", true],
+	&"rubble": ["cleared the rubble", "Clearing rubble", false],
+	&"rune_seal": ["read a rune seal", "Reading a rune seal", true],
 }
-## The gates whose name is not counted: no "a" before it and no "s" after.
-const UNCOUNTED: Array[StringName] = [&"rubble"]
+## The columns of a row of [constant SENTENCES].
+const _OPENED: int = 0
+const _WORKING: int = 1
+const _COUNTED: int = 2
 ## The status of a party walking a side path.
 const EXPLORING: String = "Exploring a side path"
 
@@ -26,12 +29,16 @@ static func gate_at(index: int) -> GateDef:
 
 ## What [param who] did to open [param gate]: [code]The Rogue picked a lock[/code].
 static func opened(who: String, gate: GateDef) -> String:
-	return "The %s %s" % [who, _own(gate, 0, "opened %s" % one(gate))]
+	if SENTENCES.has(gate.id):
+		return "The %s %s" % [who, SENTENCES[gate.id][_OPENED]]
+	return "The %s opened %s" % [who, one(gate)]
 
 
 ## What the party is doing while [param gate] is worked: [code]Picking a lock[/code].
 static func working(gate: GateDef) -> String:
-	return _own(gate, 1, "Opening %s" % one(gate))
+	if SENTENCES.has(gate.id):
+		return SENTENCES[gate.id][_WORKING]
+	return "Opening %s" % one(gate)
 
 
 ## [param gate] passed with nobody able to open it: [code]A rune seal: needs a
@@ -45,7 +52,7 @@ static func sealed(gate: GateDef) -> String:
 ## needs a Runereader[/code].
 static func passed(gate: GateDef, times: int) -> String:
 	var what: String = one(gate) if times == 1 else "%d %s" % [times, many(gate)]
-	if times != 1 and UNCOUNTED.has(gate.id):
+	if times != 1 and not _counted(gate):
 		what = "%s %d times" % [many(gate), times]
 	return "Passed %s: needs %s" % [what, _skill(gate)]
 
@@ -68,19 +75,21 @@ static func cache(pay: CacheReader.Pay) -> String:
 ## One of [param gate], inside a sentence: [code]a rune seal[/code], [code]rubble[/code].
 static func one(gate: GateDef) -> String:
 	var named: String = gate.display_name.to_lower()
-	return named if UNCOUNTED.has(gate.id) else "%s %s" % [_article(named), named]
+	return "%s %s" % [_article(named), named] if _counted(gate) else named
 
 
 ## More than one of [param gate], inside a sentence: [code]rune seals[/code].
 static func many(gate: GateDef) -> String:
 	var named: String = gate.display_name.to_lower()
-	return named if UNCOUNTED.has(gate.id) else named + "s"
+	return named + "s" if _counted(gate) else named
 
 
-## [param gate]'s own words at [param column] of its row, or [param other] if it has none.
-static func _own(gate: GateDef, column: int, other: String) -> String:
-	var row: Array = SENTENCES.get(gate.id, [])
-	return row[column] if column < row.size() else other
+## True if [param gate]'s name takes "a" before it and "s" after.
+static func _counted(gate: GateDef) -> bool:
+	if not SENTENCES.has(gate.id):
+		return true
+	var counted: bool = SENTENCES[gate.id][_COUNTED]
+	return counted
 
 
 ## The microskill that opens [param gate], as someone who has it: [code]a Runereader[/code].

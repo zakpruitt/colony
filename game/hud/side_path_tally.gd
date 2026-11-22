@@ -9,6 +9,8 @@ enum Count { GATES, CACHES, GOLD, XP }
 
 ## The area the events are in: set at the start, then kept from AREA_CHANGED in event order.
 var area: StringName = &""
+## How many times something has been counted: what is read from here is the same until it moves.
+var changes: int = 0
 
 ## Counts by area, then by [enum Count].
 var _counts: Dictionary[StringName, Array] = {}
@@ -29,6 +31,7 @@ func observe(event: SimEvent) -> void:
 			var held: Dictionary = _resources.get_or_add(_cache_area, {})
 			var before: int = held.get(pay.resource, 0)
 			held[pay.resource] = before + pay.resource_amount
+			changes += 1
 	match event.kind:
 		SimEvent.Kind.AREA_CHANGED:
 			var ids: Array[StringName] = Content.area_ids()
@@ -103,3 +106,4 @@ func _add(in_area: StringName, what: Count, amount: int) -> void:
 		_counts[in_area] = [0, 0, 0, 0]
 	var before: int = _counts[in_area][what]
 	_counts[in_area][what] = before + amount
+	changes += 1
