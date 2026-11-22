@@ -368,6 +368,10 @@ func _hero_feet(hero_id: int) -> Vector2:
 		# A journey that began in a shaft: the heroes stand on the shown floor.
 		var column: float = e.hero_position(hero_id).x
 		return WorldPlaces.feet(Vector2(column, simulation.labyrinth.level(_shown).floor_y))
+	if _shown > 0 and e.state == Expedition.State.JOURNEYING and _shown != e.depth:
+		# A journey begun while arriving by a doorway: the simulation still has the party on
+		# the stage it left, and the heroes wait at the doorway shown until the area changes.
+		return _goals.get(hero_id, WorldPlaces.feet(e.hero_position(hero_id)))
 	return WorldPlaces.feet(e.hero_position(hero_id))
 
 
@@ -714,21 +718,9 @@ func _walks_the_stage(id: int) -> bool:
 	return not (_monsters.has(id) or fallen_party.is_lying(id) or fallen_party.is_standing(id))
 
 
-## One frame's move from [param from] toward [param goal]: a share of the gap, at most RUN_SPEED.
-## Off the floor and across, it goes one way at a time: across first while the party is
-## climbing (to the ladder, then down it), down or up first otherwise (off the ladder, then across).
+## One frame's move of a sprite on a stage with no ladders of its own: [method LadderRoute.step].
 static func _eased(from: Vector2, goal: Vector2, delta: float, climbing: bool) -> Vector2:
-	var aim: Vector2 = goal
-	if absf(goal.x - from.x) > SETTLE and absf(goal.y - from.y) > SETTLE:
-		aim = Vector2(goal.x, from.y) if climbing else Vector2(from.x, goal.y)
-	var gap: Vector2 = aim - from
-	var distance: float = gap.length()
-	var step: float = minf(distance * (1.0 - exp(-FOLLOW_RATE * delta)), RUN_SPEED * delta)
-	if distance - step <= SETTLE and aim == goal:
-		return goal
-	if distance <= 0.0:
-		return from
-	return from + gap * (step / distance)
+	return LadderRoute.step(from, goal, delta, climbing)
 
 
 ## Walking or standing, and facing, for every character, from the simulation's state.

@@ -293,6 +293,11 @@ func test_r3_heroes_face_left_in_a_room_walked_leftward() -> void:
 			"hero %d walked left" % hero.id
 		)
 	_assert_nothing_wrong("walking, every hero faces left")
+	assert_lt(
+		_world.camera.target.x,
+		_world.character(KNIGHT).position.x,
+		"and the camera looks ahead of the leader: to its left"
+	)
 
 	# With no one to face: resting where it stands.
 	for hero: Hero in sim.party.heroes:
@@ -535,6 +540,41 @@ func test_r6_the_crossing_is_at_the_doorways() -> void:
 		assert_eq(sim.expedition.depth, 2, "%s: it is on stage 2" % what)
 		assert_eq(_world.shown_stage(), 2, "%s: which the world shows" % what)
 	_assert_nothing_wrong("through every crossing, heroes are drawn only at the doorways")
+
+
+func test_r6_a_journey_begun_while_arriving_keeps_the_heroes_at_the_doorway() -> void:
+	var sim: Simulation = winding_simulation(1)
+	sim.expedition.travel.open[&"claypits"] = true
+	var here: StageCourse = sim.labyrinth.level(2).course
+	var there: StageCourse = sim.labyrinth.level(3).course
+	var way_in: Vector2 = _px(there.point_at(there.entry))
+	_stand(sim, 2, here.exit - 2.0, 3)
+	var e: Expedition = sim.expedition
+	var arriving: bool = false
+	for i: int in 20 * 60:
+		_play_frame()
+		arriving = e.state == Expedition.State.CLIMBING and ClimbProgress.share(e) >= 0.6
+		if arriving:
+			break
+	assert_true(arriving, "the party is in the second half of its change of stage")
+	assert_eq(_world.shown_stage(), 3, "and the world shows the stage it arrives on")
+	sim.set_destination(&"claypits", 1)
+	var frames: int = 0
+	for i: int in 20 * 60:
+		_play_frame()
+		if e.state == Expedition.State.CLIMBING:
+			continue
+		if e.state != Expedition.State.JOURNEYING:
+			break
+		frames += 1
+		if _world.shown_stage() != 3:
+			_mark_wrong("frame %d: the world shows stage %d" % [i, _world.shown_stage()])
+		for hero: Hero in sim.party.heroes:
+			var at: Vector2 = _world.character(hero.id).position
+			if at.y != way_in.y or absf(at.x - way_in.x) > 4.0 * TILE:
+				_mark_wrong("frame %d: hero %d at %s, not by %s" % [i, hero.id, at, way_in])
+	assert_gt(frames, 30, "the party was on its way to the other area a while")
+	_assert_nothing_wrong("on the way, every hero stays by the doorway it was arriving at")
 
 
 # --- R7 ------------------------------------------------------------------------
