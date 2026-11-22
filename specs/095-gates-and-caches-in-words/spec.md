@@ -1,9 +1,9 @@
 # 095 — Gates and caches in words
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 093
-- **Pull request:** —
+- **Pull request:** [#94](https://github.com/zakpruitt/colony/pull/94)
 
 ## Intent
 
@@ -27,7 +27,8 @@ what the detours brought home and which gates still wait for a skill the party l
 - **R4. A goal points at a gate the party cannot open.** When the party has passed a gate for want of a
   skill on the stage it is on, and a hero of the party will learn that skill, the microskill goal names
   it: `Mage learns Runereader at level 4: opens rune seals`. It is the same goal row the goals show
-  today, not a new one.
+  today, not a new one; the row carries no count beside so long a sentence, and its tip ends with the XP
+  to go.
 - **R5. The status says what the halt is.** While a gate is worked the status line reads by the gate
   (`Picking a lock`, `Clearing rubble`, `Reading a rune seal`, `Searching a crack`) where it reads
   `Working` today, and on a side path otherwise `Exploring a side path`.
