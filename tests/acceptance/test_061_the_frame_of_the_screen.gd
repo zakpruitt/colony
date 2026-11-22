@@ -249,21 +249,26 @@ func test_r4_things_still_fly_to_it() -> void:
 		sim.party.set_resource(ids[1], 32)
 		_emit(main, SimEvent.Kind.RESOURCE_GAINED, monster.id, 1, 2)
 		# A fight on a winding stage can be floors below the purse: a coin or an icon is then
-		# flying fast when it arrives, so where it lands is read from its last two frames.
-		_flights.clear()
-		var coin_id: int = 0
+		# flying fast, far from the purse on the last frame it is seen. It is put on its goal
+		# the frame it arrives, so the goal is what must be on the purse, and it must arrive by
+		# flying, not by running out of time.
+		var coin_end := Vector2.INF
+		var coin_age: float = 0.0
 		var mote_end := Vector2.INF
-		var icon_id: int = 0
+		var icon_end := Vector2.INF
+		var icon_age: float = 0.0
 		var flown: int = 0
 		var landed: bool = false
 		for frame: int in 300:
 			for coin: FxCoin in main.effects.coins():
-				coin_id = _watch_flight(main, coin)
+				coin_end = _goal_on_ui(main, coin, coin.target)
+				coin_age = coin.age
 			for mote: FxMote in main.effects.motes():
 				mote_end = _on_ui(main, mote)
 			var flying: int = main.effects.resource_effects.live_icons().size()
 			for icon: FxResource in main.effects.resource_effects.live_icons():
-				icon_id = _watch_flight(main, icon)
+				icon_end = _goal_on_ui(main, icon, icon.target)
+				icon_age = icon.age
 			main.effects.advance(STEP)
 			hud.advance(STEP)
 			if landed:
@@ -281,13 +286,15 @@ func test_r4_things_still_fly_to_it() -> void:
 		var counter: Rect2 = hud.purse.icons[ids[1]].get_global_rect().grow(3.0)
 		var frame_rect: Rect2 = hud.frames[2].get_global_rect()
 		assert_true(
-			_lands_in(coin_id, coin),
-			"%s: a coin ends on the coin %s %s" % [what, _flights.get(coin_id), coin]
+			coin.has_point(coin_end), "%s: a coin ends on the coin %s %s" % [what, coin_end, coin]
 		)
 		assert_true(
-			_lands_in(icon_id, counter),
-			"%s: an icon ends on its counter %s %s" % [what, _flights.get(icon_id), counter]
+			counter.has_point(icon_end),
+			"%s: an icon ends on its counter %s %s" % [what, icon_end, counter]
 		)
+		assert_true(main.effects.coins().is_empty(), "%s: every coin arrived" % what)
+		assert_lt(coin_age + STEP, FxCoin.MAX_LIFE, "%s: the coin flew there in time" % what)
+		assert_lt(icon_age + STEP, FxResource.MAX_LIFE, "%s: and so did the icon" % what)
 		assert_true(
 			frame_rect.has_point(mote_end),
 			"%s: a mote ends on its hero's frame %s %s" % [what, mote_end, frame_rect]

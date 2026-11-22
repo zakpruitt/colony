@@ -143,7 +143,8 @@ ignores and no check step reads. To shoot one showcase moment without the minute
 game (a ladder, a crossing, a wipe), make it a script that `extends Main` and overrides `_load_or_new()` to
 return the simulation already standing there (`Simulation.new(SIMULATION_SEED, STAGE_SHAPE)`,
 `Arrival.from_save`, then `expedition._place(<distance>)`, a distance along the stage's course): a party
-moved after `super._ready()` is seen running to its new place.
+moved after `super._ready()` is seen running to its new place. Such a script is for
+`dev.py shot` only: played with plain `godot` it is a played `Main`, which opens and writes the player's save.
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.

@@ -8,13 +8,6 @@ const ROOMS: Array[Vector2i] = [Vector2i(960, 540), Vector2i(1280, 720)]
 ## Window sizes giving each pairing of world and UI scale: 1 and 1, 3 and 2, 4 and 2.
 const WINDOWS: Array[Vector2i] = [Vector2i(1280, 720), Vector2i(1920, 1080), Vector2i(2560, 1440)]
 const WIKI: String = "res://docs/wiki/index.html"
-## A thing flying to the frame goes faster each frame: how much further than its last step the
-## step it arrives on may be.
-const LAST_STEP: float = 1.5
-
-## Where each flying thing watched was on the last two frames it was seen, on the UI layer, by
-## its instance id.
-var _flights: Dictionary[int, PackedVector2Array] = {}
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -71,31 +64,13 @@ func _on_ui(main: Main, node: CanvasItem) -> Vector2:
 	return main.ui.world_to_ui(node.get_global_transform_with_canvas().origin)
 
 
-## Notes where [param node], a thing flying to the frame, is on this frame; returns the id
-## [method _lands_in] knows it by.
-func _watch_flight(main: Main, node: CanvasItem) -> int:
-	var id: int = node.get_instance_id()
-	var at: Vector2 = _on_ui(main, node)
-	var before: Vector2 = _flights[id][1] if _flights.has(id) else at
-	_flights[id] = PackedVector2Array([before, at])
-	return id
-
-
-## True if the flight of thing [param id] ends in [param box]: it was last seen in it, or flying
-## straight at it and no further off than the step it arrives on takes it (it is gone the frame
-## it arrives, so the frame before is the last it can be seen on).
-func _lands_in(id: int, box: Rect2) -> bool:
-	if not _flights.has(id):
-		return false
-	var before: Vector2 = _flights[id][0]
-	var last: Vector2 = _flights[id][1]
-	var way: Vector2 = before.direction_to(last)
-	var reach: float = 0.0
-	while reach <= before.distance_to(last) * LAST_STEP:
-		if box.has_point(last + way * reach):
-			return true
-		reach += 0.5
-	return false
+## Where [param node], a thing flying to the frame, is going, on the UI layer in UI pixels:
+## [param target] is its own goal, in the world pixels its place is in. It is put exactly there
+## the frame it arrives, and is gone with it.
+func _goal_on_ui(main: Main, node: Node2D, target: Callable) -> Vector2:
+	var goal: Vector2 = target.call()
+	var parent: CanvasItem = node.get_parent() as CanvasItem
+	return main.ui.world_to_ui(parent.get_global_transform_with_canvas() * goal)
 
 
 ## The names of what on [param layer] draws over [param item]: anything later in the draw order
