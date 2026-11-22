@@ -18,7 +18,7 @@ func before_each() -> void:
 	_wrong = []
 
 
-func _note(problem: String) -> void:
+func _mark_wrong(problem: String) -> void:
 	if _wrong.size() < 6:
 		_wrong.append(problem)
 
@@ -141,12 +141,12 @@ func test_r2_monsters_stand_on_their_rooms_floor() -> void:
 					populated += 1
 					var sprite: CharacterSprite = _world.character(monster.id)
 					if sprite == null:
-						_note("%s: a monster with no sprite" % what)
+						_mark_wrong("%s: a monster with no sprite" % what)
 						continue
 					if _world.feet_position(monster.id).y != _floor_line(room):
-						_note("%s: feet at %s" % [what, sprite.position])
+						_mark_wrong("%s: feet at %s" % [what, sprite.position])
 					if not room.rect.has_point(Vector2i(floori(monster.x), room.floor_row())):
-						_note("%s: outside its room at column %s" % [what, monster.x])
+						_mark_wrong("%s: outside its room at column %s" % [what, monster.x])
 					if room.floor_row() != level.floor_y:
 						off_the_first_floor += 1
 			assert_gt(populated, 0, "seed %d stage %d has monsters waiting" % [seed_value, stage])
@@ -181,7 +181,7 @@ func test_r2_monsters_stand_on_their_rooms_floor() -> void:
 			if monster.is_alive() and sprite != null:
 				fought += 1
 				if sprite.position.y != line_y:
-					_note("frame %d: fighter %d at %s" % [i, monster.id, sprite.position])
+					_mark_wrong("frame %d: fighter %d at %s" % [i, monster.id, sprite.position])
 	assert_gt(fought, 60, "the fight was watched")
 	_assert_nothing_wrong("a fighter's feet are on its room's floor line")
 	assert_not_null(sim.expedition.battle, "the fight is still on")
@@ -206,7 +206,7 @@ func test_r2_monsters_stand_on_their_rooms_floor() -> void:
 			back += 1
 			walked += absf(sprite.position.x - before[id])
 			if sprite.position.y != line_y:
-				_note("frame %d: survivor %d at %s" % [i, id, sprite.position])
+				_mark_wrong("frame %d: survivor %d at %s" % [i, id, sprite.position])
 	assert_gt(back, 0, "monsters survived")
 	assert_gt(walked, TILE, "and walked back to their places")
 	_assert_nothing_wrong("a monster walking back keeps to its room's floor line")
@@ -242,15 +242,15 @@ func test_r3_a_hero_climbs_the_ladder_in_its_column() -> void:
 				var row: int = ceili((at.y - World.SETTLE) / TILE) - 1
 				var tile := Vector2i(floori(at.x / TILE), row)
 				if not _world.labyrinth_view.is_open(tile):
-					_note("%s: hero %d in the earth at %s" % [what, hero.id, at])
+					_mark_wrong("%s: hero %d in the earth at %s" % [what, hero.id, at])
 				if at.y > top + 0.5 and at.y < bottom - 0.5:
 					var so_far: int = between.get(hero.id, 0)
 					between[hero.id] = so_far + 1
 					if absf(at.x - rung) > 0.5:
-						_note("%s: hero %d off the ladder at %s" % [what, hero.id, at])
+						_mark_wrong("%s: hero %d off the ladder at %s" % [what, hero.id, at])
 					# Stopped on its way (the party rests, or works a quest), a hero waits on it.
 					if e.state == Expedition.State.TRAVELLING and not sprite._walking:
-						_note("%s: hero %d not drawn climbing at %s" % [what, hero.id, at])
+						_mark_wrong("%s: hero %d not drawn climbing at %s" % [what, hero.id, at])
 		var past: Callable = func() -> bool:
 			return e.x >= ends.y + 4.0 or e.state != Expedition.State.TRAVELLING
 		assert_true(_play_onto(far_line, 15.0, past, each), "%s: all reach the far floor" % what)
@@ -283,7 +283,7 @@ func test_r3_heroes_face_left_in_a_room_walked_leftward() -> void:
 		for hero: Hero in sim.party.heroes:
 			var sprite: CharacterSprite = _world.character(hero.id)
 			if _faces(sprite) != -1 or not sprite._walking:
-				_note("frame %d: hero %d faces right or stands" % [i, hero.id])
+				_mark_wrong("frame %d: hero %d faces right or stands" % [i, hero.id])
 	assert_eq(e.state, Expedition.State.TRAVELLING, "it walked all the while")
 	assert_eq(e.chamber(), room, "in that room")
 	for hero: Hero in sim.party.heroes:
@@ -302,7 +302,7 @@ func test_r3_heroes_face_left_in_a_room_walked_leftward() -> void:
 		_play_frame()
 		for hero: Hero in sim.party.heroes:
 			if i > 30 and _faces(_world.character(hero.id)) != -1:
-				_note("frame %d: hero %d rests facing right" % [i, hero.id])
+				_mark_wrong("frame %d: hero %d rests facing right" % [i, hero.id])
 	assert_eq(e.state, Expedition.State.RESTING, "it rested all the while")
 	_assert_nothing_wrong("resting, every hero faces left")
 
@@ -491,22 +491,22 @@ func _cross(what: String, from: Vector2, to: Vector2) -> bool:
 			var shown: float = sprite.modulate.a
 			var who: String = "%s, share %.2f, hero %d at %s" % [what, share, hero.id, at]
 			if dark and shown > 0.0:
-				_note("%s: visible in the dark" % who)
+				_mark_wrong("%s: visible in the dark" % who)
 			if share >= ZoneCrossing.OUT_SHARE:
 				if at != to or shown != 1.0:
-					_note("%s: not standing at the arrival doorway %s" % [who, to])
+					_mark_wrong("%s: not standing at the arrival doorway %s" % [who, to])
 			elif share >= ZoneCrossing.SWITCH_SHARE:
 				if shown != 0.0:
-					_note("%s: drawn while the stage changes" % who)
+					_mark_wrong("%s: drawn while the stage changes" % who)
 			else:
 				var gap: float = absf(at.x - from.x)
 				var want: float = clampf(
 					(gap - ZoneCrossing.GONE_WITHIN) / (TILE - ZoneCrossing.GONE_WITHIN), 0.0, 1.0
 				)
 				if at.y != from.y or gap > 4.0 * TILE:
-					_note("%s: not by the leaving doorway %s" % [who, from])
+					_mark_wrong("%s: not by the leaving doorway %s" % [who, from])
 				if not is_equal_approx(shown, want):
-					_note("%s: shown %.2f, not %.2f by its distance" % [who, shown, want])
+					_mark_wrong("%s: shown %.2f, not %.2f by its distance" % [who, shown, want])
 	assert_gt(dark_frames, 30, "%s: the screen was dark a while" % what)
 	assert_gt(out_frames, 30, "%s: and opened on the heroes" % what)
 	return crossed
@@ -630,7 +630,7 @@ func test_r8_the_camera_follows_down_a_ladder() -> void:
 	var each: Callable = func() -> void:
 		var moved: float = (camera.position.y - last[0]) * way
 		if moved < 0.0 or moved > 6.0:
-			_note("the camera moved %s in a frame at %s" % [moved * way, camera.position])
+			_mark_wrong("the camera moved %s in a frame at %s" % [moved * way, camera.position])
 		steps[camera.position.y] = true
 		last[0] = camera.position.y
 	var past: Callable = func() -> bool:
@@ -683,7 +683,9 @@ func test_r8_the_camera_follows_down_a_ladder() -> void:
 					continue
 				var body: Rect2 = SpriteBounds.body_rect(sprite, sprite.position)
 				if not view.encloses(body):
-					_note("seed %d frame %d: fighter %d at %s" % [seed_value, i, fighter.id, body])
+					_mark_wrong(
+						"seed %d frame %d: fighter %d at %s" % [seed_value, i, fighter.id, body]
+					)
 		assert_eq(_world.camera.zoom, Vector2.ONE, "at zoom 1")
 		assert_gt(watched, 30, "seed %d: the fight was watched" % seed_value)
 		break
