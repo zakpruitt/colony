@@ -177,7 +177,10 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
   the cave. Buried things (`buried.px`, `tile`) are pale against the earth (`sand`, `white`, `steel`) so they
   read in the dark, and sit near the middle of their tile.
 - **Torches** hang on the back wall two rows above the floor, one per seven tiles of chamber width, never over
-  a shaft. **Props** stand on the floor (a puddle sinks two pixels into the crust) or hang from the ceiling (two
+  a shaft. In a room the party has not entered a torch is out: the sheet's `unlit` part (the bracket gone
+  cold, `steel` and `slate` to `dusk`, its head `ink` and `dark_brown`) in place of `bracket`, no flame, no
+  embers and no pool. A torch that catches flares: its pool starts at 0.4 of its size, swells to 1.3 in a
+  tenth of a second and settles in 0.3 (`AmbienceRooms`). **Props** stand on the floor (a puddle sinks two pixels into the crust) or hang from the ceiling (two
   pixels sunk into its ragged edge), never over a shaft, and never suggest a wall or a ledge.
 - **Each chamber kind has a look:** START a campfire between bedrolls; DEN corner webs, a hanging spider,
   bones, a skull and a nest; VAULT a chest among coin piles with a gold gleam; PLAIN one to three of

@@ -631,6 +631,25 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   room and the doorways in it, on a flat one the two shafts' columns as before. `AmbienceOpenMap` holds
   the band's open tiles and how much lamplight reaches each. A level's motes are capped by its height
   (`MAX_MOTES` for 16 rows).
+- **A room is dark until the party has stood in it** (spec 097). `AmbienceRooms`
+  (`game/ambience/ambience_rooms.gd`, `Ambience.rooms`) is the view's memory of the rooms lit on the
+  stage shown, a route room by its index and a cache room by `CACHE` plus its side path's place;
+  nothing in `sim/` or the save knows of it. `World.sync` ends by calling
+  `Ambience.follow_party(expedition, shown stage, arrived, quiet)`, and the memory follows where the
+  party is, never events: a room the anchor steps into (`AmbienceRooms.room_of`:
+  `Expedition.chamber()`, or the room of the doorway while the party changes stage) lights, its
+  torches catching `CATCH_GAP` apart from the nearest to the party, each with a flare
+  (`AmbienceLight.swell`), the room's other lamps with the torch nearest them. An arrival (the
+  world's first picture, a change of stage or area, a revival heard; the memory also sees for itself
+  another stage or another labyrinth) clears the memory and lights the room the party stands in
+  whole, with no flare. A sync that catches up on a stall is quiet: what was lit stays lit, the room
+  the party stands in now is lit whole with no flare, and the rooms it passed unseen stay dark. A lamp of an unlit room has
+  `AmbienceProp.lit` false: `AmbienceLevel` draws a torch's `unlit` part and no flame, throws no
+  embers from it, and its light is not in `Ambience.lights()`. That list is one array, filled again
+  only when `AmbienceRooms.changes` moves, and it is what `AmbienceDarkness` is handed; a frame in
+  which nothing catches or flares does nothing for any of this. An `Ambience` never told of a party
+  (the demo, a view in a test) has every room lit. Glints are `PropGlints`' own and do not look at
+  the rooms.
 - **The camera** has `WorldCamera.rows`, the world rows its view stays inside (`Vector2.ZERO`: no
   limit). `World` sets it when the stage shown changes, from `WorldCamera.rows_of`: a winding stage's
   band and 4 rows of earth either side, nothing for a flat stage. Inside it the camera follows its

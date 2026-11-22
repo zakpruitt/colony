@@ -44,6 +44,8 @@ const FIRST_SKILL_LEVEL: int = 2
 ## How many tiles of course before a quest's chamber the party is put, at most, so the walk in
 ## shows.
 const QUEST_APPROACH: float = 3.0
+## How many tiles of course before the room that lights the party is put.
+const ROOM_APPROACH: float = 2.0
 ## The side path moments: the stage their search starts from, the heroes' level (every
 ## microskill learned), and how many tiles of course short of where the path leaves the party is
 ## put.
@@ -206,6 +208,22 @@ func _begin_quest(current: StringName) -> void:
 		# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 		rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 	_cut_to_quest(QUEST_OF[current])
+
+
+## The party a few steps short of the widest room of its stage that it has not stood in, so the
+## most torches catch.
+func _begin_room(_current: StringName) -> void:
+	settle_now()
+	var sim: Simulation = main.simulation
+	sim.set_auto_push(false)
+	_cut_to_depth(sim.expedition.depth, sim.expedition.depth)
+	settle_now()
+	var rooms: Array[LabyrinthChamber] = sim.labyrinth.level(sim.expedition.depth).chambers
+	var widest: LabyrinthChamber = rooms[1]
+	for room: LabyrinthChamber in rooms.slice(1):
+		if room.rect.size.x > widest.rect.size.x:
+			widest = room
+	_stand_before(widest.index, ROOM_APPROACH)
 
 
 ## A side path: the party a few steps short of one, able to open its gate, or, for the sealed
@@ -389,6 +407,11 @@ func _watch_statuses(event: SimEvent) -> void:
 
 func _watch_stable(event: SimEvent) -> void:
 	if event != null and event.kind == SimEvent.Kind.STABLE_DEPTH_REACHED:
+		_seen = true
+
+
+func _watch_room(event: SimEvent) -> void:
+	if event == null and main.world.ambience.rooms.flares() > 0:
 		_seen = true
 
 

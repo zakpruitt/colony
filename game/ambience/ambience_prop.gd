@@ -25,6 +25,13 @@ var phase: float = 0.0
 var flip: bool = false
 ## The light it gives off, or null.
 var light: AmbienceLight
+## True for a thing that burns (a torch, the campfire): out of the light it has no flame.
+var flame: bool = false
+## What is drawn under the darkness in place of [member texture] while it is not [member lit].
+## May be null.
+var unlit: Texture2D
+## False while its room is dark: it gives no light and, burning, shows no flame.
+var lit: bool = true
 
 
 func _init(prop_name: StringName, chamber_index: int, at: Rect2, prop_anchor: Anchor) -> void:
@@ -32,6 +39,18 @@ func _init(prop_name: StringName, chamber_index: int, at: Rect2, prop_anchor: An
 	chamber = chamber_index
 	rect = at
 	anchor = prop_anchor
+
+
+## What is drawn of it under the darkness now, or null.
+func base() -> Texture2D:
+	return texture if lit or unlit == null else unlit
+
+
+## What is drawn of it over the darkness now, or null: its flame while it burns, or its own glow.
+func glowing() -> Texture2D:
+	if frames.is_empty() or (flame and not lit):
+		return null
+	return frames[frame]
 
 
 ## Steps its glowing frames to [param time] seconds into the run.

@@ -3,6 +3,8 @@ extends Node2D
 ## Ambient life over the labyrinth view: darkness with stepped pools of torchlight,
 ## a light that follows the party, things buried in the earth, props that say what kind each
 ## chamber is, and small motion everywhere (flames, dust, embers, drips, critters, glints).
+## Told where a party is ([method follow_party]), it keeps every room dark until the party has
+## stepped into it ([AmbienceRooms]).
 ## It changes no rules and decides nothing.
 ##
 ## Put it in the tree after the [LabyrinthView] and before the characters, at the view's
@@ -24,6 +26,12 @@ const PARTY_ENERGY: float = 0.9
 
 ## Where the party's light is, in world pixels. Whoever owns the party sets it every frame.
 var party_light_position: Vector2
+
+## Which rooms of the stage shown are lit, and the torches catching in one just entered.
+var rooms := AmbienceRooms.new()
+## The lit lights, listed again only when [member AmbienceRooms.changes] has moved on.
+var _lights: Array[AmbienceLight] = []
+var _lights_at: int = -1
 
 var _view: LabyrinthView
 var _levels: Dictionary[int, AmbienceLevel] = {}
@@ -70,11 +78,20 @@ func advance(delta: float) -> void:
 		_zone = key
 		_darkness.set_zone(look)
 	_party_light.position = party_light_position
+	rooms.advance(delta)
 	for depth: int in _levels:
 		_levels[depth].advance(delta)
 	if _exposure_stale:
 		_update_exposure()
 	_darkness.show_lights(_visible_rect(), lights())
+
+
+## Tells the rooms where [param run]'s party is on [param stage], the stage shown, once a frame:
+## a room it steps into lights; with [param arrived] only the room it stands in is lit, at once;
+## with [param quiet] (a picture catching up) that room is lit at once and the rest kept. See
+## [method AmbienceRooms.follow].
+func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
+	rooms.follow(run, stage, arrived, quiet)
 
 
 ## How many lights there are, for tests and the budget of lights.
@@ -116,14 +133,17 @@ func built_depths() -> Array[int]:
 	return depths
 
 
-## Every light now: the party's, then each level's.
+## Every light that is lit now: the party's, then each level's in its lit rooms. The ambience's
+## own list, the same one every time: read it, never change it.
 func lights() -> Array[AmbienceLight]:
-	var all: Array[AmbienceLight] = []
-	if _party_light != null:
-		all.append(_party_light)
-	for depth: int in _levels:
-		all.append_array(_levels[depth].lights)
-	return all
+	if _lights_at != rooms.changes:
+		_lights_at = rooms.changes
+		_lights.clear()
+		if _party_light != null:
+			_lights.append(_party_light)
+		for depth: int in _levels:
+			rooms.lit_lights(depth, _lights)
+	return _lights
 
 
 ## The light at a world pixel, as the darkness draws it (1 in each channel is unlit).
@@ -144,11 +164,13 @@ func _on_level_built(depth: int) -> void:
 	decoration.build(_view, depth)
 	add_child(decoration)
 	_levels[depth] = decoration
+	rooms.dress(decoration, _view.labyrinth.level(depth))
 	_exposure_stale = true
 
 
 func _on_level_freed(depth: int) -> void:
 	if _levels.has(depth):
+		rooms.strip(depth)
 		_levels[depth].free()
 		_levels.erase(depth)
 		_exposure_stale = true
