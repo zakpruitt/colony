@@ -1,6 +1,6 @@
 # 096 — The order to press on
 
-- **Status:** draft
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 094, 095
 - **Pull request:** —
@@ -57,7 +57,7 @@ const SAVE_VERSION: int = 9
 func set_side_paths(order: Expedition.SidePaths) -> void
 ```
 
-`Simulation.set_pace` and `set_guardian_order` keep their signatures. `expedition.gd` is at 897 of its 900
+`Simulation.set_pace` and `set_guardian_order` keep their signatures. `expedition.gd` is at 896 of its 900
 lines: the three orders' pending values and their applying move out of it first (into `PartyOrders` or a
 script beside it), as their own commit that changes nothing, seen by the unedited suite.
 
@@ -84,17 +84,17 @@ In `tests/acceptance/test_096_the_order_to_press_on.gd` (extends `ColonyTest`):
 
 - `sim/expedition/expedition.gd`, `sim/expedition/party_orders.gd`, `sim/expedition/side_path_walk.gd`,
   `sim/simulation.gd`, and a new script under `sim/expedition/` for the orders' applying if one is needed
-- `game/ui/windows/orders_panel.gd`, `game/hud/journal.gd`, and whatever spec 094 made that raises a sealed
-  gate's line and tip (named when 094 has landed)
+- `game/ui/windows/orders_panel.gd`, `game/hud/journal.gd`, `game/world/gate_tip.gd`, `game/world/side_props.gd`
+  (the tip's added words only)
 - `tests/acceptance/test_096_the_order_to_press_on.gd` (new), `tests/support/`
 - Existing tests that name the save's version or call the two order commands, to follow the change only:
   `tests/acceptance/test_014_save_progress.gd`, `test_016_camp_upgrades.gd`, `test_022_auto_buy.gd`,
   `test_035_party_orders.gd`, `test_040_orders_that_hold.gd`, `test_051_talent_trees_and_paragon.gd`,
-  `test_092_the_game_plays_winding_stages.gd`, `tests/unit/test_save_progress.gd`,
+  `test_092_the_game_plays_winding_stages.gd`, `test_093_side_paths_and_caches.gd`,
+  `tests/unit/test_save_progress.gd`,
   `tests/unit/test_expedition_orders.gd`
 - `docs/architecture.md`, `docs/wiki/index.html`
 
 ## Open questions
 
-- The Paths' two "named when … has landed" entries, and a fresh grep of the tests the save version touches,
-  wait for 094 and 095.
+None.

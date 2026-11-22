@@ -133,8 +133,9 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, caches that pay what exists): landed on dev, [#93](https://github.com/zakpruitt/colony/pull/93), provisional | 092 |
 | 094 | [Gates and caches in the world](094-gates-and-caches-in-the-world/spec.md) (each gate closed and open, the opener at work, the cache's burst, a sealed gate's tip): landed on dev, [#95](https://github.com/zakpruitt/colony/pull/95), provisional | 093 |
 | 095 | [Gates and caches in words](095-gates-and-caches-in-words/spec.md) (the journal, the tally, the away report, the goal a sealed gate gives): landed on dev, [#94](https://github.com/zakpruitt/colony/pull/94), provisional | 093 |
-| 096 | [The order to press on](096-the-order-to-press-on/spec.md) (Explore or Press on, in the Orders window and the save): draft | 094, 095 |
-| 097 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 092 |
+| 096 | [The order to press on](096-the-order-to-press-on/spec.md) (Explore or Press on, in the Orders window and the save): in-progress | 094, 095 |
+| 097 | [Rooms dark until entered](097-rooms-dark-until-entered/spec.md) (torches out until the party walks in; rooms of more shapes are left for after the playtest): in-progress, beside 096 | 094 |
+| 098 | The gate's tip on the UI layer (so a window over a gate hides it properly): to write | 096 |
 | later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 096 |
 
 A trial on 2026-11-22 with winding as the default everywhere failed 47 of 112 test scripts, so the switch
