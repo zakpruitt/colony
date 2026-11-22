@@ -163,12 +163,13 @@ func worker_label() -> String:
 	return _name
 
 
-## Where a side quest's prop stands in that chamber: the middle of its floor, in world pixels.
+## Where a side quest's prop stands in that chamber: the middle of its own floor, in world
+## pixels.
 func spot(depth: int, chamber_index: int) -> Vector2:
 	var level: LabyrinthLevel = _simulation.labyrinth.level(depth)
 	var room: LabyrinthChamber = level.chambers[chamber_index]
 	var middle: float = floorf((room.rect.position.x + room.rect.end.x) / 2.0)
-	return Vector2(middle * World.TILE, (level.floor_y + 1) * World.TILE)
+	return Vector2(middle * World.TILE, WorldPlaces.floor_line(room))
 
 
 ## The chamber the party is in, as Vector2i(depth, index); index -1 in a tunnel.
@@ -213,8 +214,8 @@ func scan(built: Array[int]) -> void:
 			_add(key, wanted[key])
 
 
-## Where hero [param id] is heading this frame: the work spot for the worker, [param goal]
-## (where the simulation has it) for everyone else.
+## Where hero [param id] is heading this frame: the work spot for the worker (short of the prop,
+## on the side the party came from), [param goal] (where the simulation has it) for everyone else.
 func goal_for(id: int, goal: Vector2) -> Vector2:
 	var expedition: Expedition = _simulation.expedition
 	if id != expedition.worker_id():
@@ -223,7 +224,7 @@ func goal_for(id: int, goal: Vector2) -> Vector2:
 	if key.y < 0:
 		return goal
 	var at: Vector2 = spot(key.x, key.y)
-	return Vector2(at.x - expedition.facing * WORK_GAP, at.y)
+	return Vector2(at.x - PartyPlaces.world_facing(expedition) * WORK_GAP, at.y)
 
 
 ## Swings the worker once it is at the prop, and brings the bar and the name up to date.

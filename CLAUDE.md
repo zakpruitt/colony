@@ -140,7 +140,10 @@ A plain grey shot means the scene's script did not load (a typing warning is an 
 print it): run `python tools/dev.py check --only=compile` on it. A throwaway scene for a shot must not be
 committed: write it and its script under `.shots/` (`--scene=res://.shots/<name>.tscn` loads it), which git
 ignores and no check step reads. To shoot one showcase moment without the minute before it, make that throwaway scene a script that
-`extends Showcase` and calls `skip_to(&"<moment>")` after `super._ready()`.
+`extends Showcase` and calls `skip_to(&"<moment>")` after `super._ready()`. To shoot one moment of the
+winding preview (a ladder, a crossing, a wipe), make it a script that `extends WindingPreview` and overrides
+`_load_or_new()` to return the simulation already standing there (`Arrival.from_save`, then
+`expedition._place(<distance>)`): a party moved after `super._ready()` is seen running to its new place.
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.

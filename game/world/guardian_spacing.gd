@@ -41,7 +41,7 @@ func space(world: World, goals: Dictionary[int, Vector2]) -> void:
 		return
 	var middle: float = body_sprite.position.x
 	var body: float = SpriteBounds.reach(body_sprite)
-	var behind: int = -world.simulation.expedition.facing
+	var behind: int = -PartyPlaces.world_facing(world.simulation.expedition)
 	var sides: Dictionary[int, Array] = {-1: [], 1: []}
 	for hero: Hero in world.simulation.party.heroes:
 		if world.character(hero.id) == null or not goals.has(hero.id):

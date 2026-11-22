@@ -117,11 +117,11 @@ func wiped(age: float) -> void:
 	_planned = false
 	_wipe_age = maxf(age, 0.0)
 	_wipe_tick = _world.simulation.tick - roundi(_wipe_age * Simulation.TICKS_PER_SECOND)
-	var place: Vector3 = _world.simulation.expedition.revival_place()
-	var level: LabyrinthLevel = _world.simulation.labyrinth.level(int(place.y))
-	var feet := Vector2(place.x * World.TILE, (level.floor_y + 1) * World.TILE)
-	_destination = _world.camera_target(feet, int(place.z))
-	_elsewhere = int(place.y) != _world.simulation.expedition.depth
+	var run: Expedition = _world.simulation.expedition
+	_destination = _world.camera_target(
+		WorldPlaces.revival_feet(run), WorldPlaces.revival_facing(run)
+	)
+	_elsewhere = int(run.revival_place().y) != run.depth
 
 
 ## The party was revived [param age] game seconds ago. Returns true if the heroes rise, from where
