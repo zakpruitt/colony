@@ -1,0 +1,44 @@
+# A cache opens: the lid's knock, then three bright notes climbing, with a shimmer over the last.
+[knock]
+wave = noise
+pitch = 1800
+slide = 500
+length = 0.05
+volume = 0.25
+release = 0.03
+
+[one]
+wave = square
+duty = 0.25
+start = 0.04
+pitch = 784
+length = 0.08
+volume = 0.18
+release = 0.03
+
+[two]
+wave = square
+duty = 0.25
+start = 0.12
+pitch = 1047
+length = 0.08
+volume = 0.18
+release = 0.03
+
+[three]
+wave = square
+duty = 0.125
+start = 0.2
+pitch = 1568
+slide = 1760
+length = 0.25
+volume = 0.18
+release = 0.18
+
+[shimmer]
+wave = triangle
+start = 0.2
+pitch = 3136
+length = 0.2
+volume = 0.06
+release = 0.15

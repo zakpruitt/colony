@@ -36,6 +36,8 @@ const SOUNDS: Array[StringName] = [
 	&"guardian_slain",
 	&"gain_small",
 	&"gain_grand",
+	&"gate_open",
+	&"cache_open",
 ]
 ## The most sounds playing at once.
 const MAX_VOICES: int = 8
@@ -223,6 +225,10 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.SIDE_QUEST_MISSED:
 			if event.flag:
 				play(&"hero_hurt")  # a trap sprang
+		SimEvent.Kind.GATE_OPENED:
+			play(&"gate_open")
+		SimEvent.Kind.CACHE_OPENED:
+			play(&"cache_open")
 		SimEvent.Kind.PROJECTILE_LAUNCHED:
 			play(&"bolt")
 		SimEvent.Kind.PARTY_WIPED:

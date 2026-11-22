@@ -231,12 +231,15 @@ showcase's leftovers, not the game.</p>
   separate preview scene is gone: the game is the preview.</td></tr>
   <tr><td>093 Side paths and caches</td><td>Every stage has up to three side paths off its route, each
   closed by a gate one microskill opens and ending in a small room with a cache. A party that can open
-  one turns off, works the gate, walks in, takes the cache and comes back. Nothing is drawn for the gate
-  or the cache yet.</td></tr>
+  one turns off, works the gate, walks in, takes the cache and comes back.</td></tr>
   <tr><td>095 Gates and caches in words</td><td>The journal and the ticker tell of each gate opened, each
   cache and what it paid, and each gate nobody could open. The tally counts them by area, the report
   after time away has rows for them, the status line says what the party is doing on a side path, and
   the microskill goal points at the skill that would open a gate the party just passed.</td></tr>
+  <tr><td>094 Gates and caches in the world</td><td>Each gate stands where its side path leaves, closed
+  or open; the hero who can open it is seen working at it; the cache glints at the end of the path and
+  bursts open, its coins, resources and XP flying from it; a gate nobody can open says what it
+  needs.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -485,8 +488,7 @@ The cache pays as the party steps into its room: gold worth six kills of that st
 it), XP worth three kills for every living hero, and three large monsters' drops of the area's resource.
 An opened cache stays empty, its gate open, for 10 minutes; the party walks past it until then. A wipe or
 a change of stage does not refill it; travelling to the area again does. If nobody can open a gate the
-party walks past. No monsters and no side quests are on a side path. The gate and the cache are not
-drawn yet: you see the party stop, walk into a small empty room and come back.</p>
+party walks past. No monsters and no side quests are on a side path.</p>
 <p>The game says it in words. The journal and the ticker write a line when a gate is opened
 (<em>The Rogue picked a lock</em>), when a cache pays (<em>Cache: +120 gold, +9 clay, 40 XP each</em>)
 and when the party passes a gate nobody can open (<em>A rune seal: needs a Runereader</em>). While the
@@ -497,6 +499,16 @@ report has a row <em>Caches opened</em> and one for the kind of gate passed most
 (<em>Passed 6 rune seals: needs a Runereader</em>). And when the party has passed a gate on its stage
 that a hero will learn to open, the microskill goal names that skill and what it opens:
 <em>Mage learns Runereader at level 4: opens rune seals</em>.</p>
+<p>You see all of it. A gate stands where its path leaves the room: a barred door with a lock, a heap of
+rubble, a slab with a glowing rune, or a crack in the wall breathing dust. The hero who can open it
+swings at it under a filling bar and the microskill's name, and it then stands open (the door ajar, the
+rubble cleared, the slab dark and split, the crack widened) until the cache refills. The cache is a
+strongbox in the middle of its little torchlit room; full, it glints in the dark like a waiting side
+quest. When the party steps in it bursts into sparks, the coins fly to your purse, the resources to their
+count and the XP to each hero, and it stands open and empty. A gate nobody can open raises
+<em>Needs a Lockpicker</em> (or whichever skill) as the party passes. Rest the mouse on a closed gate to
+read its name, what it is, and who in your party can open it or at what level one of them will. The
+target arrow hides while the party is off on a side path.</p>
 
 <h3>Camp upgrades</h3>
 <p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last. The

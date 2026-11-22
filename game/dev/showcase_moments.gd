@@ -44,6 +44,14 @@ const FIRST_SKILL_LEVEL: int = 2
 ## How many tiles of course before a quest's chamber the party is put, at most, so the walk in
 ## shows.
 const QUEST_APPROACH: float = 3.0
+## The side path moments: the stage their search starts from, the heroes' level (every
+## microskill learned), and how many tiles of course short of where the path leaves the party is
+## put.
+const GATE_DEPTH: int = 2
+const GATE_LEVEL: int = 12
+const GATE_APPROACH: float = 2.5
+## The gate a level-1 rogue learns to open within a fight or two: not the one to show sealed.
+const SOON_OPENED: StringName = &"locked_gate"
 ## How many tiles of course outside a guardian's chamber the party is put.
 const GUARDIAN_APPROACH: float = 1.0
 ## The depth the climbs happen from (down to the next and back up).
@@ -198,6 +206,52 @@ func _begin_quest(current: StringName) -> void:
 		# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 		rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 	_cut_to_quest(QUEST_OF[current])
+
+
+## A side path: the party a few steps short of one, able to open its gate, or, for the sealed
+## gate's moment, with the heroes who would learn its microskill back at level 1.
+func _begin_gate(current: StringName) -> void:
+	settle_now()
+	var sim: Simulation = main.simulation
+	var sealed: bool = current == &"gate_sealed"
+	for depth: int in range(GATE_DEPTH, QUEST_SEARCH + 1):
+		var paths: Array[SidePath] = sim.labyrinth.level(depth).side_paths
+		for index: int in paths.size():
+			var gate: GateDef = Content.gate(paths[index].gate)
+			var full: bool = SidePathRules.is_full(sim.expedition, depth, index)
+			if not full or (sealed and gate.id == SOON_OPENED):
+				continue
+			for hero: Hero in sim.party.heroes:
+				var learns: bool = hero.def().microskills.has(gate.microskill)
+				_set_level(hero, 1 if sealed and learns else GATE_LEVEL)
+			sim.set_auto_push(false)
+			_cut_to_depth(depth, depth)
+			settle_now()
+			var line: StageCourse = PartyPlaces.course(sim.expedition)
+			sim.expedition.x = clampf(paths[index].at - GATE_APPROACH, line.start, line.end)
+			sim.expedition.facing = 1
+			return
+
+
+## The side path moments are over: the heroes sent back to level 1 are the others' level again.
+func end_gates() -> void:
+	settle_now()
+	for hero: Hero in main.simulation.party.heroes:
+		_set_level(hero, QUEST_LEVEL)
+
+
+## True while moment [param current] waits for the party to walk to a side path, to its gate or
+## on to its cache: the fights on the way are ended at once, and the walk is hurried.
+func walks_to_a_gate(current: StringName) -> bool:
+	if current not in [&"gate_opened", &"cache_opened", &"gate_sealed"]:
+		return false
+	var expedition: Expedition = main.simulation.expedition
+	if (
+		expedition.state == Expedition.State.FIGHTING
+		or expedition.state == Expedition.State.RESTING
+	):
+		settle_now()
+	return expedition.state == Expedition.State.TRAVELLING
 
 
 ## The shop's window, gold for a few ranks, and the first row bought: Sharp Blades' fifth rank,

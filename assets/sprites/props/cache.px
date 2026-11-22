@@ -1,0 +1,43 @@
+# A cache at the end of a side path: a banded strongbox; open, its lid thrown back, empty.
+category = fx
+size = 20x18
+
+[closed]
+....................
+....................
+....................
+....................
+...pppppppppppppp...
+..p3kl33333333kl3p..
+.p33kl33333333kl33p.
+.p44kl44444444kl44p.
+.p44kl44444444kl44p.
+.p44kl44bbbb44kl44p.
+.pmmmmmmbaa9mmmmmmp.
+.p33kl33bpp933kl33p.
+.p44kl44bpp944kl44p.
+.p44kl44baa944kl44p.
+.p44kl44444444kl44p.
+.p55kl55555555kl55p.
+.pmmmmmmmmmmmmmmmmp.
+..pppppppppppppppp..
+
+[open]
+....................
+...pppppppppppppp...
+..p5mm55555555mm5p..
+.p56mm66666666mm65p.
+.p56mm66666666mm65p.
+.p56mm66666666mm65p.
+.p56mm66666666mm65p.
+.p55mm55555555mm55p.
+.ppoooooooooooooopp.
+.ppoooooooooooooopp.
+.pppppppppppppppppp.
+.p33kl33aaaa33kl33p.
+.p44kl44999944kl44p.
+.p44kl44999944kl44p.
+.p44kl44444444kl44p.
+.p55kl55555555kl55p.
+.pmmmmmmmmmmmmmmmmp.
+..pppppppppppppppp..

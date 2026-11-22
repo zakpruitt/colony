@@ -3,8 +3,9 @@ extends Node
 ## The effects of side quests and microskills: a done quest's prop bursting in its own
 ## colours under words in the reward's colour, a miss's muted "Needs <microskill>" rising from the
 ## prop, a sprung trap's red "Sprung!" with a shake and every hero flashing, and "Learned
-## <microskill>" over a hero. The coins and XP of a reward come from their own events, through
-## [CombatEffects].
+## <microskill>" over a hero; and of side paths: "Needs a <microskill>" rising from a gate
+## nobody can open, and a cache bursting into sparks as it opens. The coins and XP of a reward
+## come from their own events, through [CombatEffects].
 ##
 ## [CombatEffects] makes it. It listens to [signal World.sim_event] and makes its words and
 ## particles through the world's [FxPool], at most [constant MAX_PARTICLES] particles at once.
@@ -21,6 +22,13 @@ const DONE_LIFE: float = 1.6
 const MISS_LIFE: float = 1.8
 const SPRUNG_LIFE: float = 1.2
 const LEARNED_LIFE: float = 2.0
+const SEALED_LIFE: float = 2.0
+## The sparks of a cache opening: how many, their colours, and how high over its floor they
+## start.
+const CACHE_SPARKS_MIN: int = 16
+const CACHE_SPARKS_MAX: int = 22
+const CACHE_COLOURS: Array[StringName] = [&"yellow", &"amber", &"white"]
+const CACHE_RAISE: float = 8.0
 ## How fast the words rise, in pixels per second.
 const RISE: float = 14.0
 ## Pixels between the top of a prop and the baseline of its words.
@@ -74,6 +82,10 @@ func _on_sim_event(event: SimEvent) -> void:
 				_missed(_quest(event.target_id), event.amount)
 		SimEvent.Kind.MICROSKILL_LEARNED:
 			_learned(event.source_id, event.target_id)
+		SimEvent.Kind.GATE_SEALED:
+			_sealed(event.target_id, event.amount)
+		SimEvent.Kind.CACHE_OPENED:
+			_cache_opened(event.amount)
 
 
 func _done(quest: StringName) -> void:
@@ -122,6 +134,42 @@ func _learned(hero_id: int, skill_index: int) -> void:
 	text.screen_offset = Vector2(0, -LEARNED_RAISE)
 	text.follow = _keep_over_hero
 	text.start(_world.feet_position(hero_id) + text.screen_offset)
+
+
+## "Needs a <microskill>" rising from the gate nobody can open.
+func _sealed(gate_index: int, skill_index: int) -> void:
+	var props: SideProps = _world.side_props
+	var words: String = GateTip.sealed_line(skill_index)
+	var index: int = props.nearest(gate_index) if props != null else -1
+	if index < 0 or words.is_empty():
+		return
+	var stage: int = _simulation.expedition.depth
+	var height: float = maxf(SideProps.height_of(props.gate(stage, index)), 16.0)
+	var at: Vector2 = props.gate_spot(stage, index) + Vector2(0, -height - OVER_PROP)
+	_words(words, MISS_COLOUR, MISS_SCALE, SEALED_LIFE, at)
+
+
+## The cache of side path [param index] on the party's stage bursts into sparks.
+func _cache_opened(index: int) -> void:
+	if _world.side_props == null:
+		return
+	var feet: Vector2 = _world.side_props.cache_spot(_simulation.expedition.depth, index)
+	var middle: Vector2 = feet + Vector2(0, -CACHE_RAISE)
+	for i: int in _rng.randi_range(CACHE_SPARKS_MIN, CACHE_SPARKS_MAX):
+		var spark: FxParticle = _particle(&"cache_spark")
+		if spark == null:
+			break
+		spark.color = Palette.color(CACHE_COLOURS[i % CACHE_COLOURS.size()])
+		spark.size = 2 + i % 2
+		var angle: float = _rng.randf_range(PI * 1.1, PI * 1.9)
+		spark.velocity = Vector2(cos(angle), sin(angle)) * _rng.randf_range(70.0, 170.0)
+		spark.gravity = BURST_GRAVITY
+		spark.floor_y = feet.y
+		spark.bounce = 0.35
+		spark.life = _rng.randf_range(0.45, 0.85)
+		spark.start(
+			middle + Vector2(_rng.randf_range(-5.0, 5.0), _rng.randf_range(-3.0, 3.0)).round()
+		)
 
 
 ## After each advance, a text over a hero stays over it while it is there.

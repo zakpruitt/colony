@@ -50,6 +50,8 @@ const GLOW_ENERGY: float = 0.5
 const MAX_GLOW_LIGHTS: int = 2
 ## How many props a PLAIN chamber has at most (at least one).
 const MAX_PLAIN_PROPS: int = 3
+## What a cache room's rolls are salted with, by its side path's place: past any chamber's index.
+const CACHE_SALT: int = 16
 
 # Buried details.
 ## The earth is cut into cells this many tiles wide and tall, and each holds at most one buried
@@ -112,6 +114,10 @@ var depth: int
 var torches: Array[AmbienceProp] = []
 ## Chamber props (the campfire, webs, chests, stalactites...).
 var props: Array[AmbienceProp] = []
+## The same for the cache rooms of the level's side paths, which are no chamber of its route:
+## each one's torch, and its props.
+var cache_torches: Array[AmbienceProp] = []
+var cache_props: Array[AmbienceProp] = []
 ## Buried things by world tile.
 var details: Dictionary[Vector2i, StringName] = {}
 ## Everything small that moves.
@@ -161,6 +167,9 @@ var _critter_timer: float
 var _glint_timer: float
 var _gleam_timer: float
 var _glow_lights: int = 0
+## Every torch and every prop, the route's and the cache rooms': what is lit, moved and drawn.
+var _all_torches: Array[AmbienceProp] = []
+var _all_props: Array[AmbienceProp] = []
 
 
 ## Places the decoration of [param level_depth] as the [param view] draws it.
@@ -185,10 +194,26 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 		_place_props(chamber)
 		_place_drips(chamber)
 		_place_span(chamber)
+	var route_torches: Array[AmbienceProp] = torches
+	var route_props: Array[AmbienceProp] = props
+	torches = cache_torches
+	props = cache_props
+	for place: int in level.side_paths.size():
+		# A cache room: one torch, and the floor details of a plain room.
+		var room: LabyrinthChamber = level.side_paths[place].room
+		_floor_px = (room.floor_row() + 1) * TILE
+		_shaft_columns = clearings.cache_columns(place)
+		_incoming_columns = clearings.cache_closed_columns(place)
+		_place_torches(room, 1)
+		_place_props(room, (CACHE_SALT + place) * 101)
+	torches = route_torches
+	props = route_props
+	_all_torches = torches + cache_torches
+	_all_props = props + cache_props
 	_place_details()
-	for torch: AmbienceProp in torches:
+	for torch: AmbienceProp in _all_torches:
 		lights.append(torch.light)
-	for prop: AmbienceProp in props:
+	for prop: AmbienceProp in _all_props:
 		if prop.light != null:
 			lights.append(prop.light)
 	for emitter: int in _emitters.size():
@@ -217,9 +242,9 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 ## Steps the flames, flicker and motion by [param delta] seconds.
 func advance(delta: float) -> void:
 	_time += delta
-	for prop: AmbienceProp in torches:
+	for prop: AmbienceProp in _all_torches:
 		prop.advance(_time)
-	for prop: AmbienceProp in props:
+	for prop: AmbienceProp in _all_props:
 		prop.advance(_time)
 	for light: AmbienceLight in lights:
 		light.advance(_time)
@@ -265,9 +290,13 @@ func _roll(salt: int, a: int, b: int = 0) -> int:
 # -------------------------------------------------------------------- torches
 
 
-func _place_torches(chamber: LabyrinthChamber) -> void:
+## The torches of [param chamber]: one per TORCH_SPACING tiles, or [param most] if that is fewer
+## (0: no limit).
+func _place_torches(chamber: LabyrinthChamber, most: int = 0) -> void:
 	var rect: Rect2i = chamber.rect
 	var count: int = maxi(1, roundi(rect.size.x / TORCH_SPACING))
+	if most > 0:
+		count = mini(count, most)
 	var row: int = rect.end.y - 1 - TORCH_ROWS_ABOVE_FLOOR
 	var used: Dictionary[int, bool] = {}
 	for i: int in count:
@@ -322,7 +351,8 @@ func _clear_of_ladder(column: int, rect: Rect2i, used: Dictionary[int, bool]) ->
 # ---------------------------------------------------------------------- props
 
 
-func _place_props(chamber: LabyrinthChamber) -> void:
+## The props of [param chamber] by its kind, rolled with [param salt] (-1: its index's).
+func _place_props(chamber: LabyrinthChamber, salt: int = -1) -> void:
 	var rect: Rect2i = chamber.rect
 	var floor_free: Array[int] = []
 	var ceiling_free: Array[int] = []
@@ -336,7 +366,8 @@ func _place_props(chamber: LabyrinthChamber) -> void:
 		if not under_torch:
 			ceiling_free.append(x)
 	var centre: float = rect.position.x + rect.size.x * 0.5
-	var salt: int = chamber.index * 101
+	if salt < 0:
+		salt = chamber.index * 101
 	match chamber.kind:
 		LabyrinthChamber.Kind.START:
 			_light_campfire(
@@ -356,7 +387,10 @@ func _place_props(chamber: LabyrinthChamber) -> void:
 		LabyrinthChamber.Kind.VAULT:
 			_place_hoard(chamber, floor_free, centre)
 		LabyrinthChamber.Kind.PLAIN:
-			_place_plain(chamber, floor_free, ceiling_free, salt)
+			_place_plain(chamber, floor_free, ceiling_free, salt, 0)
+		LabyrinthChamber.Kind.CACHE:
+			# Cache rooms share an index: count from the props there were before this one's.
+			_place_plain(chamber, floor_free, ceiling_free, salt, _props_in_chamber(-1))
 
 
 ## Whether [param x] or a column next to it is in [param columns].
@@ -506,7 +540,11 @@ func _place_hoard(chamber: LabyrinthChamber, floor_free: Array[int], centre: flo
 
 
 func _place_plain(
-	chamber: LabyrinthChamber, floor_free: Array[int], ceiling_free: Array[int], salt: int
+	chamber: LabyrinthChamber,
+	floor_free: Array[int],
+	ceiling_free: Array[int],
+	salt: int,
+	before: int
 ) -> void:
 	var pool: Array[StringName] = [&"stalactite", &"stalactite", &"mushroom", &"crate", &"puddle"]
 	# Glowing things grow from the stone stratum down.
@@ -517,7 +555,7 @@ func _place_plain(
 	var count: int = 1 + _roll(salt, 3) % MAX_PLAIN_PROPS
 	var rect: Rect2i = chamber.rect
 	for i: int in count * 3:
-		if _props_in_chamber(chamber.index) >= count:
+		if _props_in_chamber(chamber.index) - before >= count:
 			return
 		var kind: StringName = pool[_roll(salt, 10 + i) % pool.size()]
 		var target: float = rect.position.x + 1 + (_roll(salt, 40 + i) % maxi(rect.size.x - 2, 1))
@@ -857,9 +895,9 @@ func _draw_buried() -> void:
 
 
 func _draw() -> void:
-	for prop: AmbienceProp in torches:
+	for prop: AmbienceProp in _all_torches:
 		_draw_prop(self, prop, prop.texture)
-	for prop: AmbienceProp in props:
+	for prop: AmbienceProp in _all_props:
 		if prop.texture != null:
 			_draw_prop(self, prop, prop.texture)
 	var critters: PixelSheet = _sheet("critters")
@@ -883,9 +921,9 @@ func _draw() -> void:
 
 
 func _draw_glow() -> void:
-	for prop: AmbienceProp in torches:
+	for prop: AmbienceProp in _all_torches:
 		_draw_prop(_glow, prop, prop.frames[prop.frame])
-	for prop: AmbienceProp in props:
+	for prop: AmbienceProp in _all_props:
 		if not prop.frames.is_empty():
 			_draw_prop(_glow, prop, prop.frames[prop.frame])
 	var sparkle: PixelSheet = _sheet("sparkle")

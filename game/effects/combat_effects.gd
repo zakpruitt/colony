@@ -396,7 +396,9 @@ func _xp(event: SimEvent) -> void:
 		mote.hero_id = event.target_id
 		mote.velocity = Vector2(_rng.randf_range(-60.0, 60.0), _rng.randf_range(-130.0, -80.0))
 		mote.age = -0.06 * i
-		mote.start(_fallen_at + Vector2(_rng.randf_range(-4.0, 4.0), -10.0).round())
+		mote.start(
+			_gain_origin(event, _fallen_at) + Vector2(_rng.randf_range(-4.0, 4.0), -10.0).round()
+		)
 		mote.target = _mote_target.bind(mote.hero_id)
 		mote.arrived.connect(_mote_arrived)
 		_world.fx.add(mote, &"mote")
@@ -404,7 +406,7 @@ func _xp(event: SimEvent) -> void:
 
 func _gold(event: SimEvent) -> void:
 	var source: CharacterSprite = _world.character(event.source_id)
-	var feet: Vector2 = source.position if source != null else _fallen_at
+	var feet: Vector2 = _gain_origin(event, source.position if source != null else _fallen_at)
 	var guardian: bool = is_guardian(event.source_id)
 	var count: int = guardian_coin_count(event.amount) if guardian else coin_count(event.amount)
 	for i: int in count:
@@ -425,6 +427,13 @@ func _gold(event: SimEvent) -> void:
 		coin.target = _purse
 		coin.arrived.connect(coin_collected.emit)
 		_world.fx.add(coin, &"coin")
+
+
+## Where the coins or motes of [param event] start: the cache that paid them, else
+## [param otherwise].
+func _gain_origin(event: SimEvent, otherwise: Vector2) -> Vector2:
+	var cache: Vector2 = SideProps.origin(_world, event)
+	return cache if cache.is_finite() else otherwise
 
 
 ## How many coins a gain of [param amount] gold shows: one per GOLD_PER_COIN, 1 to COINS_MAX.

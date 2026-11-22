@@ -1,0 +1,28 @@
+# A side path's gate gives way: a low clunk, then a creak sliding up as it opens.
+[clunk]
+wave = noise
+pitch = 900
+slide = 200
+length = 0.09
+volume = 0.3
+attack = 0.002
+release = 0.05
+
+[thud]
+wave = triangle
+pitch = 140
+slide = 70
+length = 0.12
+volume = 0.3
+release = 0.06
+
+[creak]
+wave = square
+duty = 0.25
+start = 0.09
+pitch = 180
+slide = 330
+length = 0.3
+volume = 0.12
+attack = 0.02
+release = 0.12

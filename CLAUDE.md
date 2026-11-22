@@ -148,6 +148,10 @@ moved after `super._ready()` is seen running to its new place. Such a script is 
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.
+A shot cannot show the mouse: `shot` runs the scene in a `SubViewport` of its own, which no mouse
+reaches, and a node in the world gets no mouse events in the game either (`WorldView` ignores the mouse):
+it polls `get_global_mouse_position()`. Give such a node a method that takes the point
+(`SideProps.point_at`) and call it from the throwaway scene and from tests.
 Shots are timed by the wall clock, so the same `--seconds` lands a few frames apart on a loaded machine, and
 `show_NN` from two runs can be different moments. To show nothing changed against a baseline, pair shots by
 the moment's label and compare the UI, not by file number or a pixel diff.

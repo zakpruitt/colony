@@ -4,7 +4,8 @@ extends Node2D
 ## next travel along the stage's course to reach the doorway it will leave by (the way on for a
 ## further target, the way back for an earlier one). That is sideways along a floor, and up or
 ## down only at a ladder inside the stage; it never points at a stage above or below. It hides in
-## a fight, while the party is down, during a crossing and once the party is at its target stage.
+## a fight, while the party is down, during a crossing, on a side path (which has no doorway to
+## point at) and once the party is at its target stage.
 ## Drawn in code, pixel by pixel, in [code]yellow[/code] (the HUD's colour for the target) with an
 ## [code]ink[/code] outline.
 ##
@@ -55,6 +56,7 @@ func follow(simulation: Simulation, party_feet: Vector2, delta: float) -> void:
 		or expedition.state == Expedition.State.REVIVING
 		or expedition.state == Expedition.State.CLIMBING
 		or expedition.state == Expedition.State.JOURNEYING
+		or expedition.side_path >= 0
 		or not party_feet.is_finite()
 	)
 	_pointing = 0 if busy else way
