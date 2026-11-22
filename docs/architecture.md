@@ -280,7 +280,7 @@ of any version loads on either with the same progress.
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save. Those whole-number
   checks, and a dictionary of counts by known id, are `SaveChecks` (`sim/save_checks.gd`), which every part
   of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`) shares.
-- **Versions.** `SAVE_VERSION` is 8. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 9. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -307,6 +307,14 @@ of any version loads on either with the same progress.
   party's `deepest_depth` for the area it is in, `areas.<id>.furthest` for another) is past its guardian stage.
   Upgrade ranks stay. A count that is not a whole number of at least 0 or names an unknown resource, and an
   unknown area in `guardians_beaten`, are refused by name (`resources.clay`, `guardians_beaten[1]`).
+- **The side path order (spec 096).** A third order, `Expedition.side_paths` (`EXPLORE`, the default, or
+  `PRESS_ON`), set through `Simulation.set_side_paths` and reported as `ORDER_CHANGED` with order
+  `PartyOrders.SIDE_PATHS`. Under Press on `SidePathWalk.travel` turns onto no side path and reports no
+  `GATE_SEALED`; a party already on one finishes it. All three orders reach the expedition through
+  `Expedition.command_order(which, value)`; the values asked for, their applying on the next tick and their
+  part of the state hash are `PendingOrders` (`sim/expedition/pending_orders.gd`). The order has a hash
+  part of its own, there only while it is Press on, so a run that never gives it hashes as it did. Save
+  version 9 adds `side_paths` (`"explore"` or `"press_on"`); a version 8 save loads at Explore.
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under

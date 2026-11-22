@@ -14,6 +14,8 @@ const INTO_CLIMB: int = 5
 ## The orders' names as the panel shows them, before this spec moved them.
 const PACE_TEXTS: Array[String] = ["Cautious", "Steady", "Bold"]
 const GUARDIAN_TEXTS: Array[String] = ["Challenge", "Hold"]
+## The row spec 096 added after them.
+const SIDE_PATH_TEXTS: Array[String] = ["Explore", "Press on"]
 
 ## An orders panel on [member _sim], made on its own: spec 058 moved it from the HUD into a window
 ## on the UI layer.
@@ -281,4 +283,5 @@ func test_r5_names_live_in_the_view() -> void:
 	for row: Array in _orders.choice_buttons:
 		for button: UiButton in row:
 			shown.append(button.text)
-	assert_eq(shown, PACE_TEXTS + GUARDIAN_TEXTS, "the panel's text is unchanged")
+	var texts: Array[String] = PACE_TEXTS + GUARDIAN_TEXTS + SIDE_PATH_TEXTS
+	assert_eq(shown, texts, "the panel's text is unchanged")

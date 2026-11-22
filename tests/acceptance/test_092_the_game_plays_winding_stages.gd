@@ -46,7 +46,7 @@ func _draws_ladders(view: LabyrinthView, level: LabyrinthLevel) -> bool:
 	return true
 
 
-## A version 8 save with something in every part of the progress: gold, levels, talents, an
+## A version 9 save with something in every part of the progress: gold, levels, talents, an
 ## upgrade, a resource, orders, and two areas with their safe and furthest stages.
 func _full_save() -> Dictionary:
 	var sim := Simulation.new(7)
@@ -74,7 +74,7 @@ func _full_save() -> Dictionary:
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
 	var safe: int = data["last_stable_depth"]
-	assert_eq(version, 8, "the save is version 8")
+	assert_eq(version, 9, "the save is version 9")
 	assert_eq(safe, 2, "the safe stage is one past the first")
 	assert_false((data["areas"] as Dictionary).is_empty(), "it has been in two areas")
 	return _through_json(data)
@@ -159,7 +159,7 @@ func test_r1_a_new_game_is_winding() -> void:
 
 func test_r2_a_save_comes_back_winding_with_its_progress() -> void:
 	var saves: Dictionary[String, Dictionary] = {
-		"version 8": _full_save(), "version 1": _first_save()
+		"version 9": _full_save(), "version 1": _first_save()
 	}
 	for what: String in saves:
 		var data: Dictionary = saves[what]
@@ -173,7 +173,7 @@ func test_r2_a_save_comes_back_winding_with_its_progress() -> void:
 		var kept: Dictionary = sim.to_save()
 		var wanted: Dictionary = flat.to_save()
 		var version: int = kept["version"]
-		assert_eq(version, 8, "%s: the save's version stays 8" % what)
+		assert_eq(version, 9, "%s: the save's version stays 9" % what)
 		assert_eq(kept.keys(), wanted.keys(), "%s: nothing is added to the save" % what)
 		for key: String in wanted:
 			var loaded: String = JSON.stringify(kept[key])

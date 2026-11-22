@@ -17,9 +17,11 @@ extends RefCounted
 ## JOURNEYING: on the way to another area, standing where it left until it arrives.
 enum State { TRAVELLING, FIGHTING, RESTING, CLIMBING, REVIVING, WORKING, JOURNEYING }
 ## The party's orders: how hurt it may be before it rests after a fight (see
-## [method PartyOrders.rest_below]), and whether it goes into a living guardian's chamber.
+## [method PartyOrders.rest_below]), whether it goes into a living guardian's chamber, and
+## whether it turns onto the side paths it can open or walks past every gate.
 enum Pace { CAUTIOUS, STEADY, BOLD }
 enum GuardianOrder { CHALLENGE, HOLD }
+enum SidePaths { EXPLORE, PRESS_ON }
 
 const PARTY_SPEED: float = 3.0  # tiles per second
 const CLIMB_SPEED: float = 4.0  # tiles per second
@@ -77,9 +79,10 @@ var stable_seconds: float:
 var battle: Battle
 ## The side path the party is on (its place in the level's side_paths), or -1 on the main route.
 var side_path: int = -1
-## The orders. Read-only outside the class: see [method command_pace].
+## The orders. Read-only outside the class: see [method command_order].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
+var side_paths: SidePaths = SidePaths.EXPLORE
 ## While the party is down, the tick it revives on. Read-only outside the class.
 var revive_tick: int:
 	get:
@@ -207,14 +210,10 @@ func command_target_depth(new_depth: int) -> void:
 	_pending_target = maxi(new_depth, 1)
 
 
-## Asks for a new pace or guardian order; each applies from the next tick, even while
-## the party is down, and an unknown value is ignored.
-func command_pace(new_pace: Pace) -> void:
-	_orders.ask(PartyOrders.PACE, new_pace)
-
-
-func command_guardian_order(order: GuardianOrder) -> void:
-	_orders.ask(PartyOrders.GUARDIANS, order)
+## Asks for a new value of one order (PartyOrders.PACE, GUARDIANS or SIDE_PATHS); it applies from
+## the next tick, even while the party is down, and a value the order does not have is ignored.
+func command_order(which: int, value: int) -> void:
+	_orders.ask(which, value)
 
 
 ## The level of [param stage] in the area the party is in: base level + stage - 1.

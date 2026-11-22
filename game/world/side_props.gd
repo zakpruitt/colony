@@ -326,7 +326,7 @@ static func _rect_of(shown: Sprite2D) -> Rect2:
 
 func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
-		SimEvent.Kind.LEVEL_UP, SimEvent.Kind.MICROSKILL_LEARNED:
+		SimEvent.Kind.LEVEL_UP, SimEvent.Kind.MICROSKILL_LEARNED, SimEvent.Kind.ORDER_CHANGED:
 			_words_stale = true
 		SimEvent.Kind.GATE_OPENED, SimEvent.Kind.CACHE_OPENED:
 			# An old event may be of a stage the party has left: only what the simulation says

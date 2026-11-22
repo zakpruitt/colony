@@ -6,18 +6,22 @@ extends WindowContent
 ## goal); it never pauses the game.
 ##
 ## It reads the orders from the simulation each time it is advanced, so a loaded save shows the
-## saved orders; a click sends [method Simulation.set_pace] or
-## [method Simulation.set_guardian_order], and the choice is lit at once, before the simulation
-## applies it on its next step. From that step on each row lights the simulation's own value
-## again, whatever it holds.
+## saved orders; a click sends [method Simulation.set_pace],
+## [method Simulation.set_guardian_order] or [method Simulation.set_side_paths], and the choice
+## is lit at once, before the simulation applies it on its next step. From that step on each row
+## lights the simulation's own value again, whatever it holds.
 
-## The rows, in order: [constant PartyOrders.PACE] then [constant PartyOrders.GUARDIANS].
-const ORDER_NAMES: Array[String] = ["Pace", "Guardians"]
-## The name of each pace and each guardian order, by value: [enum Expedition.Pace] and
-## [enum Expedition.GuardianOrder].
+## The rows, in order: [constant PartyOrders.PACE], [constant PartyOrders.GUARDIANS], then
+## [constant PartyOrders.SIDE_PATHS].
+const ORDER_NAMES: Array[String] = ["Pace", "Guardians", "Side paths"]
+## The name of each pace, guardian order and side path order, by value: [enum Expedition.Pace],
+## [enum Expedition.GuardianOrder] and [enum Expedition.SidePaths].
 const PACE_NAMES: Array[String] = ["Cautious", "Steady", "Bold"]
 const GUARDIAN_NAMES: Array[String] = ["Challenge", "Hold"]
-## Each choice explained in one full sentence, by order then value: the line under its row.
+const SIDE_PATH_NAMES: Array[String] = ["Explore", "Press on"]
+## Each order's choices, by order.
+const CHOICE_NAMES: Array[Array] = [PACE_NAMES, GUARDIAN_NAMES, SIDE_PATH_NAMES]
+## Each choice explained, by order then value: the line under its row.
 const LINES: Array[Array] = [
 	[
 		"Cautious: the party rests when any hero drops below 80% health.",
@@ -28,6 +32,7 @@ const LINES: Array[Array] = [
 		"Challenge: the party fights each guardian that blocks its way.",
 		"Hold: the party keeps away from living guardians until told.",
 	],
+	["Take every side path the party can open", "Walk past every gate"],
 ]
 ## Each choice's tooltip, by order then value: one plain sentence.
 const TIPS: Array[Array] = [
@@ -40,23 +45,28 @@ const TIPS: Array[Array] = [
 		"The party fights each guardian that blocks its way on.",
 		"The party stays away from living guardians and keeps hunting until told.",
 	],
+	[
+		"The party turns onto each side path whose gate one of its heroes can open.",
+		"The party keeps to the main course and leaves every gate closed.",
+	],
 ]
 const TITLE: String = "Party orders"
 ## The width of an order's name column, and of the line explaining its choice, in UI pixels.
 const NAME_WIDTH: int = 72
 const LINE_WIDTH: int = 360
 
-## A button per choice, by order then value, as [enum Expedition.Pace] and
-## [enum Expedition.GuardianOrder] number them.
+## A button per choice, by order then value, as [enum Expedition.Pace],
+## [enum Expedition.GuardianOrder] and [enum Expedition.SidePaths] number them.
 var choice_buttons: Array[Array] = []
-## Each row's name ("Pace", "Guardians") and the line explaining its current choice.
+## Each row's name ("Pace", "Guardians", "Side paths") and the line explaining its current
+## choice.
 var name_labels: Array[Label] = []
 var line_labels: Array[Label] = []
 
 var _simulation: Simulation
 ## A choice asked for that the simulation has not applied yet (it applies on its next step), by
 ## order; -1 when none.
-var _asked: Array[int] = [-1, -1]
+var _asked: Array[int] = [-1, -1, -1]
 ## The simulation's tick when the last choice was asked for: once it has stepped past it, the
 ## simulation's own values are shown, whatever they are.
 var _asked_tick: int = 0
@@ -86,7 +96,8 @@ func setup(simulation: Simulation, tips: UiTip) -> void:
 		title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(title)
 		name_labels.append(title)
-		var names: Array[String] = PACE_NAMES if order == PartyOrders.PACE else GUARDIAN_NAMES
+		var names: Array[String] = []
+		names.assign(CHOICE_NAMES[order])
 		var buttons: Array[UiButton] = []
 		for value: int in names.size():
 			var button := UiButton.new(names[value])
@@ -122,8 +133,9 @@ func advance(_delta: float) -> void:
 			line_labels[order].text = text
 
 
-## The sentence explaining [param order]'s current choice ([constant PartyOrders.PACE] 0 or
-## [constant PartyOrders.GUARDIANS] 1), as the panel shows it.
+## The line explaining [param order]'s current choice ([constant PartyOrders.PACE] 0,
+## [constant PartyOrders.GUARDIANS] 1 or [constant PartyOrders.SIDE_PATHS] 2), as the panel
+## shows it.
 func line(order: int) -> String:
 	if order < 0 or order >= LINES.size():
 		return ""
@@ -143,10 +155,13 @@ func choose(order: int, value: int) -> void:
 		return
 	_asked[order] = value
 	_asked_tick = _simulation.tick
-	if order == PartyOrders.PACE:
-		_simulation.set_pace(value as Expedition.Pace)
-	else:
-		_simulation.set_guardian_order(value as Expedition.GuardianOrder)
+	match order:
+		PartyOrders.PACE:
+			_simulation.set_pace(value as Expedition.Pace)
+		PartyOrders.GUARDIANS:
+			_simulation.set_guardian_order(value as Expedition.GuardianOrder)
+		PartyOrders.SIDE_PATHS:
+			_simulation.set_side_paths(value as Expedition.SidePaths)
 	advance(0.0)
 
 
@@ -158,8 +173,11 @@ static func tip(order: int, value: int) -> String:
 
 ## The simulation's own value of [param order].
 func _current(order: int) -> int:
-	if order == PartyOrders.PACE:
-		return _simulation.expedition.pace
+	match order:
+		PartyOrders.PACE:
+			return _simulation.expedition.pace
+		PartyOrders.SIDE_PATHS:
+			return _simulation.expedition.side_paths
 	return _simulation.expedition.guardian_order
 
 

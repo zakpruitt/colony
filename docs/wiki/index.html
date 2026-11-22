@@ -240,6 +240,9 @@ showcase's leftovers, not the game.</p>
   or open; the hero who can open it is seen working at it; the cache glints at the end of the path and
   bursts open, its coins, resources and XP flying from it; a gate nobody can open says what it
   needs.</td></tr>
+  <tr><td>096 The order to press on</td><td>A third party order, Side paths: Explore (the usual) or
+  Press on, under which the party walks past every gate. Chosen in the Orders window and kept in the
+  save.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -528,12 +531,17 @@ new game) buys the cheapest upgrade the party can pay for once a second of game 
 resource it lacks, and keeps buying while the game is closed.</p>
 
 <h3>Party orders</h3>
-<p>Two standing orders the party follows by itself (<kbd>O</kbd>):</p>
+<p>Three standing orders the party follows by itself (<kbd>O</kbd>):</p>
 <ul>
   <li><strong>Pace:</strong> how hurt it may get before it rests after a fight. Cautious (any hero below 80%
   health), Steady (below 60%, the usual) or Bold (only below 40%).</li>
   <li><strong>Guardians:</strong> Challenge (the usual) or Hold, where the party turns back at the guardian's
   door and keeps hunting on that stage until you choose Challenge.</li>
+  <li><strong>Side paths:</strong> Explore (the usual), where the party takes every side path it can open,
+  or Press on, where it walks past every gate: for racing a stage's timer or pushing for a guardian. A
+  party already on a side path finishes it first. Under Press on no gate is said to be sealed, a closed
+  gate's tip adds <em>The party is pressing on</em>, and time away opens no caches. The journal writes
+  <em>Orders: side paths, press on</em> (or <em>explore</em>) when it changes.</li>
 </ul>
 
 <h3>Time away</h3>
@@ -1046,7 +1054,7 @@ and resources, each hero's class, level, XP, talents and paragon points, the are
 area's safe and furthest stage, the open areas and beaten guardians, the target, the Auto and auto-buy
 switches, the orders and each upgrade's rank. Loading stands the party up fresh at its last safe stage, as
 after a wipe. The shape of the stages is not in the save: a save from before the stages wound comes back
-on winding ones with all of its progress. Older saves are brought forward (the save is at version 8); a damaged or unknown one is
+on winding ones with all of its progress. Older saves are brought forward (the save is at version 9); a damaged or unknown one is
 refused rather than guessed at. The file is written whole or not at all, and the save before it is kept as
 a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code>; delete it and
 <code>colony.save.bak</code> to start over. Tests, screenshots and headless runs never touch it.</p>
