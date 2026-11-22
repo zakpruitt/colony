@@ -1,9 +1,9 @@
 # 089 — Winding stages in the simulation
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 088
-- **Pull request:** —
+- **Pull request:** [#89](https://github.com/zakpruitt/colony/pull/89)
 
 ## Intent
 
@@ -89,8 +89,8 @@ order (not one per pair of rooms), `shaft_down` is an empty rectangle and `open_
 tunnels and ladders. `Labyrinth.shaft_column()` means nothing there; nothing in `sim/` asks it for a
 winding labyrinth.
 
-`Expedition.monster_id` keeps its formula in this spec, so the recorded hashes stand: ids stay unique
-within a stage of up to 16 rooms but a winding stage's rooms 8 and up share ids with the next stage's.
+`Expedition.monster_id` keeps its formula in this spec, so the recorded hashes stand: a winding
+stage's rooms 8 and up share ids with rooms 0 and up of the next stage (never two in one fight).
 Spec 091 widens the span when it moves the hashes.
 
 How the rooms are laid out is the lane's, inside R2 to R5. A way that works: choose 2 or 3 neighbouring

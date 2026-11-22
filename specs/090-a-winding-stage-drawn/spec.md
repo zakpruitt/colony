@@ -1,6 +1,6 @@
 # 090 — A winding stage, drawn
 
-- **Status:** draft
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 089
 - **Pull request:** —
@@ -105,4 +105,5 @@ R1 is the unedited suite. R8 is the lane's report and Zak's playtest.
 
 ## Open questions
 
-None, once 089 has landed and its interfaces are checked against this text.
+None. (089 landed as #89: `Labyrinth.Shape.WINDING`, `band_height()`, `LabyrinthLevel.band` and `ladders`,
+`Simulation.new(seed, shape)`. A ladder's last row is the floor row of the room it comes down into.)
