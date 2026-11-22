@@ -25,6 +25,7 @@ func _kinds() -> Array[Array]:
 		[Content.ability_ids(), Content.ability],
 		[Content.hero_class_ids(), Content.talent_tree],
 		[Content.resource_ids(), Content.resource_def],
+		[Content.gate_ids(), Content.gate],
 	]
 
 
@@ -193,6 +194,10 @@ func test_r2_data_reports_what_it_did() -> void:
 		[func(d: AbilityDef) -> void: d.move = &"", ["move is empty"]],
 		[func(d: TalentTreeDef) -> void: d.class_id = &"", ["class_id is empty"]],
 		[func(d: ResourceDef) -> void: d.plural = "", ["plural is empty"]],
+		[
+			func(d: GateDef) -> void: d.work_seconds = 9.0,
+			["work_seconds 9.0 is outside 3.0 to 6.0"]
+		],
 	]
 	var kinds: Array[Array] = _kinds()
 	assert_eq(breaks.size(), kinds.size(), "one break a kind")

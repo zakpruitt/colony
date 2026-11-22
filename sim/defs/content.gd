@@ -22,6 +22,7 @@ enum Kind {
 	ABILITIES,
 	TALENTS,
 	RESOURCES,
+	GATES,
 }
 
 const DATA_DIR: String = "res://data"
@@ -65,6 +66,7 @@ const KINDS: Array[Dictionary] = [
 		"def": preload("res://sim/defs/resource_def.gd"),
 		"order": Order.BY_AREA
 	},
+	{"folder": "gates", "def": preload("res://sim/defs/gate_def.gd"), "order": Order.BY_ID},
 ]
 
 ## Per kind, its definitions by key.
@@ -167,6 +169,16 @@ static func resource_def(id: StringName) -> ResourceDef:
 ## Every resource id, in the order of the areas that give them, then by id.
 static func resource_ids() -> Array[StringName]:
 	return _ids_of(Kind.RESOURCES)
+
+
+## The gate with this id, or null if there is none.
+static func gate(id: StringName) -> GateDef:
+	return _find(Kind.GATES, id)
+
+
+## Every gate id, sorted.
+static func gate_ids() -> Array[StringName]:
+	return _ids_of(Kind.GATES)
 
 
 ## The first area, in area order, that gives resource [param id]; &"" when none does.

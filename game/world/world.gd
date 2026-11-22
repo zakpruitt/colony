@@ -123,6 +123,9 @@ var _fight_moves := FightMoves.new()
 var _snap_camera: bool = false
 ## The stage shown, or 0 before the first.
 var _shown: int = 0
+## The ladders a hero may climb on the level shown, its side paths' among them; made once a level.
+var _ladders: Array[Rect2i] = []
+var _ladders_of: LabyrinthLevel
 
 
 func _ready() -> void:
@@ -691,7 +694,11 @@ func _fly_bolts(delta: float) -> void:
 
 func _follow(delta: float) -> void:
 	var climbing: bool = simulation.expedition.state == Expedition.State.CLIMBING
-	var ladders: Array[Rect2i] = simulation.labyrinth.level(maxi(_shown, 1)).ladders
+	var level: LabyrinthLevel = simulation.labyrinth.level(maxi(_shown, 1))
+	if level != _ladders_of:
+		_ladders_of = level
+		_ladders = level.ladders + level.side_ladders()
+	var ladders: Array[Rect2i] = _ladders
 	for id: int in _sprites:
 		var goal: Vector2
 		if _monsters.has(id):

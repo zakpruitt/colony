@@ -67,6 +67,7 @@ func _lists() -> Dictionary[String, Array]:
 		"areas": Content.area_ids(),
 		"abilities": Content.ability_ids(),
 		"resources": Content.resource_ids(),
+		"gates": Content.gate_ids(),
 	}
 
 
@@ -92,6 +93,8 @@ func _getter(folder: String, id: StringName) -> Resource:
 			found = Content.ability(id)
 		"resources":
 			found = Content.resource_def(id)
+		"gates":
+			found = Content.gate(id)
 	return found
 
 
@@ -131,6 +134,7 @@ func test_r2_every_kind_of_content_is_one_row() -> void:
 		"areas": _ids_on_disk("areas", _by_order("areas")),
 		"abilities": _ids_on_disk("abilities", _by_id),
 		"resources": _ids_on_disk("resources", _by_area),
+		"gates": _ids_on_disk("gates", _by_id),
 	}
 	var lists: Dictionary[String, Array] = _lists()
 	for folder: String in expected:

@@ -5,7 +5,8 @@ extends RefCounted
 ##
 ## On a flat level every chamber keeps the same columns clear, those of the shaft down and of the
 ## shaft from above, as both cross its one floor. On a winding level each room keeps clear only
-## the ladders that meet it (through its floor, or down to it from the floor above) and the
+## the ladders that meet it (through its floor, or down to it from the floor above), a side
+## path's ladder among them, the column by the mouth of a side tunnel that leaves it, and the
 ## doorways that stand in it: a ladder two floors away takes nothing from it.
 
 ## By chamber index: the columns kept clear, and those of them nothing opens the floor in (a
@@ -48,10 +49,21 @@ func closed_columns(chamber_index: int) -> Dictionary[int, bool]:
 
 
 func _note_winding(view: LabyrinthView, level: LabyrinthLevel) -> void:
+	var ladders: Array[Rect2i] = level.ladders + level.side_ladders()
 	for room: LabyrinthChamber in level.chambers:
 		var clear: Dictionary[int, bool] = {}
 		var closed: Dictionary[int, bool] = {}
-		for ladder: Rect2i in level.ladders:
+		for path: SidePath in level.side_paths:
+			# The column by the mouth of a side tunnel that leaves this room.
+			if not path.tunnel.has_area() or path.tunnel.end.y != room.rect.end.y:
+				continue
+			if path.tunnel.position.x == room.rect.end.x:
+				_note(clear, room.rect.end.x - 1, room.rect.end.x)
+				_note(closed, room.rect.end.x - 1, room.rect.end.x)
+			elif path.tunnel.end.x == room.rect.position.x:
+				_note(clear, room.rect.position.x, room.rect.position.x + 1)
+				_note(closed, room.rect.position.x, room.rect.position.x + 1)
+		for ladder: Rect2i in ladders:
 			if ladder.position.x < room.rect.position.x or ladder.end.x > room.rect.end.x:
 				continue
 			if ladder.position.y - 1 == room.floor_row():

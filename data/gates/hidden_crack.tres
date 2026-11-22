@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="GateDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/gate_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"hidden_crack"
+display_name = "Hidden Crack"
+description = "A crack in the wall, easy to miss"
+microskill = &"trapspotter"
+work_seconds = 3.0

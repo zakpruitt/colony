@@ -22,6 +22,10 @@ var band: Rect2i
 var ladders: Array[Rect2i] = []
 ## The line a party walks through this level; every question about place on it is asked here.
 var course: StageCourse
+## The ways off the main route, in the order the course passes where they leave. Their rooms,
+## tunnels and ladders are their own: none is in [member chambers], [member tunnels],
+## [member ladders] or [method open_rects]. Empty on a flat level.
+var side_paths: Array[SidePath] = []
 
 
 ## The chamber whose columns include this one, or null inside a tunnel or solid earth: the
@@ -48,4 +52,25 @@ func open_rects() -> Array[Rect2i]:
 	rects.append_array(ladders)
 	if shaft_down.has_area():
 		rects.append(shaft_down)
+	return rects
+
+
+## The open rectangles of the side paths: every cache room, side tunnel and side ladder.
+func side_rects() -> Array[Rect2i]:
+	var rects: Array[Rect2i] = []
+	for path: SidePath in side_paths:
+		rects.append(path.room.rect)
+		if path.tunnel.has_area():
+			rects.append(path.tunnel)
+		if path.ladder.has_area():
+			rects.append(path.ladder)
+	return rects
+
+
+## The side paths' ladders.
+func side_ladders() -> Array[Rect2i]:
+	var rects: Array[Rect2i] = []
+	for path: SidePath in side_paths:
+		if path.ladder.has_area():
+			rects.append(path.ladder)
 	return rects

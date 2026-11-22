@@ -166,6 +166,8 @@ func _generate_winding(rng: SimRng, depth: int) -> LabyrinthLevel:
 			chamber.kind = _roll_kind(rng, vaults > 0)
 			if chamber.kind == LabyrinthChamber.Kind.VAULT:
 				vaults += 1
+	# From a stream of their own, so the route is the same with or without them.
+	SidePathLayout.fit(result, _root.fork("side/%d" % depth))
 	return result
 
 

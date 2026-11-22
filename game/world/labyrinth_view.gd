@@ -120,8 +120,8 @@ func doorways(depth: int) -> Array[Rect2]:
 
 
 ## The open rectangles that reach into the band of [param depth], as drawn: zoned, its chambers,
-## tunnels and the ladders inside it; otherwise those of the levels either side too, shafts
-## included.
+## tunnels and the ladders inside it, and its side paths' rooms, tunnels and ladders; otherwise
+## those of the levels either side too, shafts included.
 func open_rects_near(depth: int) -> Array[Rect2i]:
 	var rects: Array[Rect2i] = []
 	if zoned:
@@ -130,6 +130,7 @@ func open_rects_near(depth: int) -> Array[Rect2i]:
 			rects.append(chamber.rect)
 		rects.append_array(level.tunnels)
 		rects.append_array(level.ladders)
+		rects.append_array(level.side_rects())
 		return rects
 	for near: int in range(maxi(1, depth - 1), depth + 2):
 		rects.append_array(labyrinth.level(near).open_rects())
@@ -163,9 +164,11 @@ func is_open(tile: Vector2i) -> bool:
 	if tile.y < 0 or tile.x < 0 or tile.x >= _W:
 		return false
 	if zoned and _winding():
-		for rect: Rect2i in labyrinth.level(_stage_drawn_at(tile.y)).open_rects():
-			if rect.has_point(tile):
-				return true
+		var stage: LabyrinthLevel = labyrinth.level(_stage_drawn_at(tile.y))
+		for rects: Array[Rect2i] in [stage.open_rects(), stage.side_rects()]:
+			for rect: Rect2i in rects:
+				if rect.has_point(tile):
+					return true
 		return false
 	var depth: int = tile.y / _rows() + 1
 	var level: LabyrinthLevel = labyrinth.level(depth)
@@ -269,6 +272,8 @@ func _build_level(depth: int) -> Node2D:
 		_place_doorways(level, depth)
 		var ladders: Array[Rect2i] = labyrinth.level(depth).ladders
 		_place_ladders(layers["Ladder"], ladders, top, top + _rows())
+		var side_ladders: Array[Rect2i] = labyrinth.level(depth).side_ladders()
+		_place_ladders(layers["Ladder"], side_ladders, top, top + _rows())
 	else:
 		var shafts: Array[Rect2i] = [labyrinth.level(depth).shaft_down]
 		if depth > 1:
@@ -352,7 +357,7 @@ func _open_grid(depth: int, top: int) -> PackedByteArray:
 	if zoned and _winding():
 		# The stage alone: its own rooms, tunnels and ladders, whatever its neighbours hold.
 		var band := Rect2i(-1, top - 1, _W + 2, _rows() + 2)
-		for rect: Rect2i in labyrinth.level(depth).open_rects():
+		for rect: Rect2i in open_rects_near(depth):
 			var inside: Rect2i = rect.intersection(band)
 			for y: int in range(inside.position.y, inside.end.y):
 				for x: int in range(inside.position.x, inside.end.x):

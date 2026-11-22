@@ -22,7 +22,7 @@ extends SceneTree
 ## of the run's, without one).
 ## The summary names the resources the party holds at the end ("resources").
 ## With --winding the simulation's stages are winding ones ([constant Labyrinth.Shape.WINDING]);
-## the summary is the same.
+## the summary also counts the caches the party opened on their side paths ("caches_opened").
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -67,6 +67,7 @@ func _init() -> void:
 	var won: int = 0
 	var lost: int = 0
 	var wipes: int = 0
+	var caches: int = 0
 	var kills: Dictionary[String, int] = {}
 	var ticks: int = roundi(minutes * 60.0 * Simulation.TICKS_PER_SECOND)
 	for i: int in ticks:
@@ -111,6 +112,8 @@ func _init() -> void:
 					wipes += 1
 					if king_won == null:
 						wipes_before_king += 1
+				SimEvent.Kind.CACHE_OPENED:
+					caches += 1
 				SimEvent.Kind.DIED:
 					var dead: Combatant = fight.combatant(event.source_id) if fight else null
 					if dead != null and dead.team == Combatant.Team.MONSTERS:
@@ -169,6 +172,8 @@ func _init() -> void:
 		"slime_king_won": king_won,
 		"wipes_before_slime_king": wipes_before_king,
 	}
+	if options.has("winding"):
+		summary["caches_opened"] = caches
 	var travel: AreaTravel = sim.expedition.travel
 	if sim.expedition.state == Expedition.State.JOURNEYING:
 		var stage: int = travel.journey_stage(sim.expedition)
