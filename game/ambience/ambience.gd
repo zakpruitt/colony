@@ -160,7 +160,7 @@ func _exposure_at(world_pixels: Vector2) -> float:
 
 
 func _tile_exposure(tile: Vector2i) -> float:
-	var decorated: AmbienceLevel = level(AmbienceMood.depth_at(tile.y * LabyrinthView.TILE))
+	var decorated: AmbienceLevel = level(maxi(1, floori(float(tile.y) / _rows()) + 1))
 	if decorated == null:
 		return AmbienceMood.EARTH_EXPOSURE
 	return decorated.exposure_at(tile)
@@ -172,18 +172,21 @@ func _update_exposure() -> void:
 	if depths.is_empty():
 		return
 	var first: int = depths[0]
-	var rows: int = (depths[-1] - first + 1) * Labyrinth.LEVEL_HEIGHT
+	var rows: int = (depths[-1] - first + 1) * _rows()
 	var map: Image = Image.create_empty(Labyrinth.LEVEL_WIDTH, rows, false, Image.FORMAT_R8)
 	map.fill(Color(AmbienceMood.EARTH_EXPOSURE, 0.0, 0.0))
 	for depth: int in depths:
 		var band: Image = _levels[depth].exposure
 		map.blit_rect(
-			band,
-			Rect2i(Vector2i.ZERO, band.get_size()),
-			Vector2i(0, (depth - first) * Labyrinth.LEVEL_HEIGHT)
+			band, Rect2i(Vector2i.ZERO, band.get_size()), Vector2i(0, (depth - first) * _rows())
 		)
 	_exposure.set_image(map)
-	_darkness.set_exposure(_exposure, (first - 1) * Labyrinth.LEVEL_HEIGHT)
+	_darkness.set_exposure(_exposure, (first - 1) * _rows())
+
+
+## Rows of world each of the view's stages takes.
+func _rows() -> int:
+	return _view.labyrinth.band_height()
 
 
 ## Catches up with the view if a level was built or freed while not listening.

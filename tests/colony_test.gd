@@ -210,6 +210,29 @@ func save_path(tag: String = "", extension: String = "save") -> String:
 	return path
 
 
+## A new game whose every stage is winding: rooms on three floors, joined by tunnels and ladders.
+static func winding_simulation(seed_value: int = 1) -> Simulation:
+	return Simulation.new(seed_value, Labyrinth.Shape.WINDING)
+
+
+## The winding labyrinth of [param seed_value]: the first area's, as [method winding_simulation]
+## has it, or with an [param area_label] another area's.
+static func winding_labyrinth(seed_value: int = 1, area_label: String = "") -> Labyrinth:
+	return Labyrinth.new(seed_value, area_label, Labyrinth.Shape.WINDING)
+
+
+## A view of [param labyrinth] in the tree as the world makes it (each stage its own place, in
+## the look of [param area]), with [param stage] built.
+func zoned_view(labyrinth: Labyrinth, stage: int, area: StringName = &"") -> LabyrinthView:
+	var view := LabyrinthView.new()
+	view.labyrinth = labyrinth
+	view.zoned = true
+	view.area = area
+	add_child_autofree(view)
+	view.set_focus(Vector2(0.0, labyrinth.level(stage).floor_y))
+	return view
+
+
 ## Every script under [param folder] and the folders in it, its text by its path, into
 ## [param into].
 func scripts_in(folder: String, into: Dictionary[String, String]) -> void:
