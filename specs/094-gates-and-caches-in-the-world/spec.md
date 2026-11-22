@@ -1,9 +1,9 @@
 # 094 — Gates and caches in the world
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 093
-- **Pull request:** —
+- **Pull request:** [#95](https://github.com/zakpruitt/colony/pull/95)
 
 ## Intent
 
