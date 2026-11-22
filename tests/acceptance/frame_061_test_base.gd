@@ -64,6 +64,15 @@ func _on_ui(main: Main, node: CanvasItem) -> Vector2:
 	return main.ui.world_to_ui(node.get_global_transform_with_canvas().origin)
 
 
+## Where [param node], a thing flying to the frame, is going, on the UI layer in UI pixels:
+## [param target] is its own goal, in the world pixels its place is in. It is put exactly there
+## the frame it arrives, and is gone with it.
+func _goal_on_ui(main: Main, node: Node2D, target: Callable) -> Vector2:
+	var goal: Vector2 = target.call()
+	var parent: CanvasItem = node.get_parent() as CanvasItem
+	return main.ui.world_to_ui(parent.get_global_transform_with_canvas() * goal)
+
+
 ## The names of what on [param layer] draws over [param item]: anything later in the draw order
 ## (the tree's, or a higher z) whose rectangle meets [param item]'s.
 func _drawn_over(layer: CanvasLayer, item: Control) -> Array[String]:

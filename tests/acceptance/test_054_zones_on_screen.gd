@@ -586,11 +586,23 @@ func test_r6_the_marker_and_the_ladder() -> void:
 		for i: int in 120 if way > 0 else FRAMES_PER_TICK:
 			_play_frame()
 			main.hud.advance(FRAME)
-		var leaves_from: int = 2 if way > 0 else 1
-		var door: float = _door_x(_sim, leaves_from)
-		var toward: int = signi(roundi(door - _world.feet_position(KNIGHT).x))
+		# The game's stage winds, so the doorway it leaves by can be floors away: the arrow
+		# is right if the party then goes the way it pointed. Half a second on, the knight has
+		# walked to that side.
+		var side: int = marker.side()
 		assert_true(marker.visible, "the arrow shows for a target %d" % (2 + way))
-		assert_eq(marker.side(), toward, "it points sideways at the doorway it leaves by")
+		assert_ne(side, 0, "it points sideways")
+		assert_eq(marker.heading().y, 0, "and neither up nor down")
+		var from: float = _world.feet_position(KNIGHT).x
+		for i: int in 30:
+			_play_frame()
+			main.hud.advance(FRAME)
+		assert_eq(_sim.expedition.state, Expedition.State.TRAVELLING, "the party walks on")
+		var walked: float = _world.feet_position(KNIGHT).x - from
+		assert_gt(absf(walked), TILE / 2.0, "the knight has walked on")
+		assert_eq(
+			signi(roundi(walked)), side, "the way the arrow pointed, to the doorway it leaves by"
+		)
 	# Through the crossing back to stage 1 (the target is 1 now).
 	var offset: float = INF
 	var hidden: int = 0

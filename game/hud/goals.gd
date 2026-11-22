@@ -397,9 +397,11 @@ func _guardian_beaten(depth: int) -> bool:
 		return true
 	if e.deepest_depth < depth:
 		return false
-	var shaft: LabyrinthChamber = _simulation.labyrinth.level(depth).shaft_chamber()
-	if shaft == null:
+	var level: LabyrinthLevel = _simulation.labyrinth.level(depth)
+	var room: int = ChamberRules.way_on_room(level.course)
+	if room < 0:
 		return false
+	var shaft: LabyrinthChamber = level.chambers[room]
 	if e.battle != null and e.depth == depth and e.chamber() == shaft:
 		return false
 	return not e.is_populated(depth, shaft.index)

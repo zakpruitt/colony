@@ -402,7 +402,11 @@ func test_r6_only_for_what_just_happened() -> void:
 	# The simulation's own, recent: a guardian slain, then on one tick a level with its talent
 	# point and a new safe stage. Everything runs.
 	assert_true(_slay_guardian(main, GUARDIAN_STAGE, 9), "the guardian is slain")
+	# On a winding stage the doorway on is in the guardian's own room, a step from where the
+	# fight ends: the party is told to stay, or it has left before the stage can become safe.
+	main.simulation.set_target_depth(GUARDIAN_STAGE)
 	_frame(main)
+	assert_eq(e.state, Expedition.State.TRAVELLING, "the party is still on the guardian's stage")
 	assert_eq(moment.shown_headline(), "Slime King is beaten", "recent: the banner")
 	bursts = moment.bursts_seen()
 	e.stable_seconds = 0.1

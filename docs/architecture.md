@@ -271,7 +271,9 @@ and the guardians it has beaten (spec 052).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
-stable depth, with every chamber freshly populated.
+stable depth, with every chamber freshly populated. The shape of the stages is not saved either: it is
+what the caller plays (`from_save(data, shape)`, flat unless told; "Winding stages", below), so a save
+of any version loads on either with the same progress.
 
 - **Refused, not guessed at.** `Simulation.save_problems(data)` lists every problem, one line naming the field;
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
@@ -373,16 +375,22 @@ climb between stages keeps `x`, the shaft being one column through both. `Labyri
 `tunnels`, `shaft_down`, `shaft_chamber()` and `Labyrinth.shaft_column()` describe only that shape and
 are read by `game/` alone: nothing under `sim/expedition/` names them. The world (`game/world/`) reads
 no column from `Expedition.x` and no screen direction from `Expedition.facing` ("The party on a winding
-stage", below); the showcase still sets them as columns, on the flat levels it plays.
+stage", below), and the showcase, when it cuts the party to a place, writes a course distance and the
+way along the course (`ShowcaseMoments._stand_before`: so far before a room's `stretch_of`, going on).
 
 ## Winding stages
 
-Spec 089. A `Labyrinth` has a `shape`, given when it is made: `FLAT` (the default, and all the game
-makes) or `WINDING`. `Simulation.new(seed, shape)` passes it on, every area's labyrinth has the first
-one's (`AreaTravel.labyrinth`), and a simulation loaded from a save is flat. `python tools/dev.py sim
---winding` plays a winding one. The view draws one ("A winding stage on screen", below), everything in
-the world stands in its own room on one ("The party on a winding stage"), and the preview scene plays
-one; the game itself still makes flat stages.
+Spec 089. A `Labyrinth` has a `shape`, given when it is made: `FLAT` or `WINDING`.
+`Simulation.new(seed, shape)` passes it on, `Simulation.from_save(data, shape)` too, and every area's
+labyrinth has the first one's (`AreaTravel.labyrinth`).
+
+**The game plays winding stages** (spec 092). `Main.STAGE_SHAPE` is `WINDING`, and `Main` gives it to
+both: a new game, a loaded save and so the replay of time away (`AwayReplay` steps the simulation
+`Main` loaded) are winding in every area, and the showcase, which runs a `Main`, is too. `FLAT` is only
+the default of `Labyrinth.new`, `Simulation.new` and `Simulation.from_save`, kept for the tests that
+make their own simulation and for `python tools/dev.py sim` without `--winding`; nothing a player sees
+is flat. The view draws a winding stage ("A winding stage on screen", below) and everything in the
+world stands in its own room on one ("The party on a winding stage").
 
 A winding stage is made by `WindingStage` (`sim/labyrinth/winding_stage.gd`) from the level's own
 stream alone, so it lines up with no other stage. It lies in a band `Labyrinth.band_height()` (32) rows
@@ -548,10 +556,9 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   band and 4 rows of earth either side, nothing for a flat stage. Inside it the camera follows its
   target up and down as it does sideways.
 
-`res://game/dev/winding.tscn` (`WindingPreview`, a `Main` on `Simulation.new(seed, WINDING)` that drops
-its save store and works on a copy of the settings file, deleted when it goes) plays a winding game and
-changes nothing of the player's; no menu opens it. Tests make one with
-`ColonyTest.winding_simulation()` and a view of one with `zoned_view()`.
+Tests of the game start `Main` (`ColonyTest.make_main()`), which is winding; a test that wants a
+winding simulation or view of its own makes one with `ColonyTest.winding_simulation()` and
+`zoned_view()`.
 
 ## The party on a winding stage
 

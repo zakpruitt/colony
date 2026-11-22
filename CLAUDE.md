@@ -123,9 +123,8 @@ incomplete, stop and report the question.
 | Bake sounds (`.sfx` recipes to `.wav`) | `python tools/sfx.py bake [<path>]` |
 | Lint the sounds (missing, stale, over 1.2 s, peak above -3 dB) | `python tools/sfx.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
-| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents] [--winding]` (`--winding`: on winding stages, which only the simulation makes so far) |
+| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents] [--winding]` (`--winding`: on winding stages, as the game plays them; without it, flat ones) |
 | Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=110` |
-| Play the winding preview (the game on winding stages, no save), or screenshot it | `godot --path . res://game/dev/winding.tscn`, `python tools/dev.py shot --scene=res://game/dev/winding.tscn --name=winding` |
 | Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 
 ## Looking at the game
@@ -141,9 +140,11 @@ print it): run `python tools/dev.py check --only=compile` on it. A throwaway sce
 committed: write it and its script under `.shots/` (`--scene=res://.shots/<name>.tscn` loads it), which git
 ignores and no check step reads. To shoot one showcase moment without the minute before it, make that throwaway scene a script that
 `extends Showcase` and calls `skip_to(&"<moment>")` after `super._ready()`. To shoot one moment of the
-winding preview (a ladder, a crossing, a wipe), make it a script that `extends WindingPreview` and overrides
-`_load_or_new()` to return the simulation already standing there (`Arrival.from_save`, then
-`expedition._place(<distance>)`): a party moved after `super._ready()` is seen running to its new place.
+game (a ladder, a crossing, a wipe), make it a script that `extends Main` and overrides `_load_or_new()` to
+return the simulation already standing there (`Simulation.new(SIMULATION_SEED, STAGE_SHAPE)`,
+`Arrival.from_save`, then `expedition._place(<distance>)`, a distance along the stage's course): a party
+moved after `super._ready()` is seen running to its new place. Such a script is for
+`dev.py shot` only: played with plain `godot` it is a played `Main`, which opens and writes the player's save.
 Screenshots stay in `.shots/` (ignored by git). A whole shot shown by the Read tool hides small things and
 shifts colours (pale light pools looked like grey fog in it): before judging lighting or small props, crop a
 region with `art.decode_png` / `art.encode_png` in a scratch script and enlarge it 3x.

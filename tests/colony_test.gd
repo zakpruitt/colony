@@ -114,15 +114,19 @@ func set_party_level(simulation: Simulation, level: int) -> void:
 		hero.health = hero.max_health()
 
 
-## Puts [param sim]'s party on stage [param depth], [param back] pixels short of its guardian's
-## chamber and walking in, auto-push off: the next steps start the guardian's fight. With
+## Puts [param sim]'s party on stage [param depth], [param back] tiles of course short of its
+## guardian's chamber (the one the way on leaves from) and walking in, auto-push off: the next
+## steps start the guardian's fight. With
 ## [param reached] the stage counts as reached (the deepest at least [param depth]); with
 ## [param held], the stage above it is the last one held. Returns the guardian's chamber.
 static func before_guardian(
 	sim: Simulation, depth: int, back: float = 0.0, reached: bool = false, held: bool = false
 ) -> LabyrinthChamber:
 	var e: Expedition = sim.expedition
-	var shaft: LabyrinthChamber = sim.labyrinth.level(depth).shaft_chamber()
+	var level: LabyrinthLevel = sim.labyrinth.level(depth)
+	var line: StageCourse = level.course
+	var shaft: LabyrinthChamber = level.chambers[ChamberRules.way_on_room(line)]
+	var stretch: Vector2 = line.stretch_of(shaft.index)
 	sim.set_auto_push(false)
 	e.depth = depth
 	if reached:
@@ -130,11 +134,13 @@ static func before_guardian(
 	if held:
 		e.last_stable_depth = depth - 1
 	e.target_depth = depth + 1
+	# A distance along the stage's course: a tile outside the chamber's stretch, on the side the
+	# course comes from (a flat stage's first chamber is come to from beyond it).
 	if shaft.index > 0:
-		e.x = shaft.rect.position.x - 1.0 - back
+		e.x = stretch.x - 1.0 - back
 		e.facing = 1
 	else:
-		e.x = shaft.rect.end.x + back
+		e.x = stretch.y + 1.0 + back
 		e.facing = -1
 	return shaft
 

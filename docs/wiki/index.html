@@ -225,6 +225,10 @@ showcase's leftovers, not the game.</p>
   <em>New area: The Claypits</em> or <em>Mossy Hollow 10 is behind you</em>). A level bursts the hero's
   frame and its level number steps up in yellow; a talent point gained makes that frame's tag swell: it
   pulses three times. A new safe stage bursts <em>Safe 3</em> on the place panel.</td></tr>
+  <tr><td>092 Winding stages</td><td>Every stage is three floors tall: rooms in rows, ladders between the
+  floors, a doorway in and a doorway on. A new game, a saved game (it keeps all its progress; the party
+  stands at the doorway in of its safe stage), the time away and the showcase all play them. The
+  separate preview scene is gone: the game is the preview.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -388,9 +392,13 @@ the last; the screen names a place as an area and a stage (<em>Mossy Hollow 3</e
   the fallen stand up. A side quest being worked is finished first.</li>
   <li><strong>A monster lives in one area only,</strong> and each area's labyrinth is its own. The same seed
   always gives the same labyrinth.</li>
-  <li><strong>A stage</strong> is a band 120 tiles wide with four to six chambers on one flat floor, joined
-  by low tunnels: plain chambers, dens and at most one vault. The way on is a doorway at one end, the way
-  back a doorway at the other, so the party crosses most of a stage to go further.</li>
+  <li><strong>A stage</strong> is three floors tall. Its seven to ten rooms (plain chambers, dens and at
+  most one vault) stand in two or three rows, each row on a floor of its own, joined along a floor by low
+  tunnels and from one floor to the next by a ladder. The party comes in by a doorway in the first room,
+  walks the first row one way, takes the ladder, walks the next row back the other way, and leaves by the
+  doorway on in the last room; some stages wind down, some up. Nothing branches yet: there is one way
+  through, a little over twice as long a walk as the old single floor. The rooms with the two doorways
+  are empty, unless a guardian holds the way on.</li>
 </ul>
 
 <h3>Safe stages, the target and Auto</h3>
@@ -828,7 +836,10 @@ the mouse is on it), and it is drawn over every window, so a window you open fro
 
 <h3>The world on screen</h3>
 <ul>
-  <li><strong>One stage at a time.</strong> The way on and the way back are stone doorways in the back wall.
+  <li><strong>One stage at a time,</strong> drawn whole: its rooms on three floors, the tunnels and the
+  ladders between them, and earth all round. The camera follows the party up and down the ladders as it
+  does along a floor. The way on and the way back are stone doorways in the back wall, one in the first
+  room and one in the last.
   The party walks into a doorway and is gone, the screen dims, a title names where it is going
   (<em>Mossy Hollow 4</em>), and it opens on the party stepping out of a doorway on the next stage. The
   crossing lasts as long as the game takes to change stage: about four seconds at 1x.</li>
@@ -842,7 +853,7 @@ the mouse is on it), and it is drawn over every window, so a window you open fro
   bedrolls, a den webs and bones, a vault a chest and coins. Embers rise, dust drifts, water drips,
   beetles and moths wander.</li>
   <li><strong>The arrow.</strong> While the party is heading for another stage a small yellow arrow over
-  its heads points the way it is going.</li>
+  its heads points the way it is going: along the floor, or up or down at a ladder.</li>
   <li><strong>A wipe.</strong> The party lies where it fell; if it revives on another stage the screen
   dims, names the safe stage and opens on the heroes standing up there.</li>
   <li><strong>If the game falls behind</strong> (a long freeze, 4x speed), the screen jumps to the true
@@ -982,7 +993,8 @@ All of it is placeholder: Zak makes the characters.</p>
 and resources, each hero's class, level, XP, talents and paragon points, the area the party is in, each
 area's safe and furthest stage, the open areas and beaten guardians, the target, the Auto and auto-buy
 switches, the orders and each upgrade's rank. Loading stands the party up fresh at its last safe stage, as
-after a wipe. Older saves are brought forward (the save is at version 8); a damaged or unknown one is
+after a wipe. The shape of the stages is not in the save: a save from before the stages wound comes back
+on winding ones with all of its progress. Older saves are brought forward (the save is at version 8); a damaged or unknown one is
 refused rather than guessed at. The file is written whole or not at all, and the save before it is kept as
 a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code>; delete it and
 <code>colony.save.bak</code> to start over. Tests, screenshots and headless runs never touch it.</p>
@@ -1006,9 +1018,7 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
   <tr><td>Run the game with no window and print what happened as numbers</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code></td></tr>
-  <tr><td>The same on winding stages (three floors, ladders, a route that doubles back): the game does not make these yet</td><td><code>python tools/dev.py sim --seed=1 --minutes=60 --winding</code></td></tr>
-  <tr><td>Play the winding preview: the game on winding stages, drawn whole (rooms on three floors, ladders, a doorway in and out). A new game every time; it never touches your save. Monsters, quest props and the fallen stand in their own rooms, the heroes climb the ladders, and the arrow over the party points up or down at one</td><td><code>godot --path . res://game/dev/winding.tscn</code></td></tr>
-  <tr><td>Screenshot the winding preview</td><td><code>python tools/dev.py shot --scene=res://game/dev/winding.tscn --name=winding --seconds=5</code></td></tr>
+  <tr><td>The same on the stages the game plays (three floors, ladders, a route that doubles back); without <code>--winding</code> it runs the old single-floor stages, which the game no longer makes</td><td><code>python tools/dev.py sim --seed=1 --minutes=60 --winding</code></td></tr>
   <tr><td>Screenshot the running game into <code>.shots/</code>: the whole window, world and UI layer, at 1280x720</td><td><code>python tools/dev.py shot --name=look --seconds=5</code></td></tr>
   <tr><td>The same, as a 1920x1080 window shows it (the UI's smallest room, 960x540)</td><td><code>python tools/dev.py shot --name=look --ui-room=960x540</code></td></tr>
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
