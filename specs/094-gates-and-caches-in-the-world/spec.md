@@ -16,7 +16,8 @@ same things in words (the journal, the tally, the away report).
 ## Requirements
 
 - **R1. A gate stands where its side path leaves.** On the stage shown, every side path's gate is drawn on
-  its room's floor at the gate's place (`SidePath.at` on the main course), by its kind: a barred door with
+  the floor at the gate's place (`SidePath.gate_at` along the side path's course: the head or foot of its
+  ladder, or the mouth of its tunnel), by its kind: a barred door with
   a lock (`locked_gate`), a heap of rubble (`rubble`), a slab cut with a glowing rune (`rune_seal`), a
   cracked wall with a draught of motes (`hidden_crack`). While its cache is full the gate is closed; from
   `GATE_OPENED` until the cache refills it is drawn open (the door ajar, the rubble cleared to the sides,
@@ -25,7 +26,7 @@ same things in words (the journal, the tally, the away report).
 - **R2. The opener is seen working.** While a gate is worked the worker stands beside it on the side the
   party came from and swings on the slow repeat a side quest uses, a bar over the gate fills with
   `Expedition.work_progress()`, and the microskill's name shows over the worker, as for a side quest.
-- **R3. A cache waits and glints.** The cache room holds a cache prop at its middle on its floor (a new
+- **R3. A cache waits and glints.** The cache room (`SidePath.room`) holds a cache prop at its middle on its floor (a new
   sprite: a banded strongbox, with a closed and an open part). Full and outside the party's light it
   carries the glint a waiting side quest carries; empty it stands open with no glint until it refills.
 - **R4. Opening a cache is a moment.** On a fresh `CACHE_OPENED` the cache opens with a burst of sparks
@@ -38,12 +39,16 @@ same things in words (the journal, the tally, the away report).
   name, its description, and either who will open it (`The Rogue can open this`) or what would
   (`A Runereader could open this: the Mage learns it at level 4`), named from the party's own heroes and
   their classes; with no hero of a class that learns it, `Nobody in the party learns this`.
-- **R6. Nothing plays for a stale event.** Every move, effect and sound here asks `World.may_animate`; a
+- **R6. A side path is a place.** A cache room has one torch on its back wall and the floor details any
+  room has, placed as the ambience places them (the same every build), clear of its ladder's columns and
+  of the cache. While the party is on a side path the target arrow is hidden (it has no doorway to point
+  at there) and comes back with the party on the main course.
+- **R7. Nothing plays for a stale event.** Every move, effect and sound here asks `World.may_animate`; a
   stall or the time away leaves the gates and caches in their true state (open or closed, full or empty)
   with nothing playing, and a change of stage or area clears and rebuilds them.
-- **R7. The showcase shows them.** `Showcase.ROWS` gains three moments, each begun and seen as its
+- **R8. The showcase shows them.** `Showcase.ROWS` gains three moments, each begun and seen as its
   neighbours are: a gate being opened, a cache opening, a gate nobody can open.
-- **R8. It reads at a glance.** The lane looks at each gate closed and open, the work, the cache full,
+- **R9. It reads at a glance.** The lane looks at each gate closed and open, the work, the cache full,
   opening and empty, and the sealed line and the tip, in 3x crops and whole at 1280x720 and
   `--ui-room=960x540`, in two areas, and says what it saw. The sprites are placeholders in the style
   bible's rules; Zak makes final art.
@@ -52,7 +57,7 @@ same things in words (the journal, the tally, the away report).
 
 A gate's and a cache's sprite is found by its id (`assets/sprites/props/<gate id>.png`, `cache.png`), as a
 side quest's prop is; no rule or data field names a picture. What draws them is the lane's (extending
-`QuestProps` or a class beside it); it reads `LabyrinthLevel.side_paths`, `SidePathRules.is_full` and the
+`QuestProps` or a class beside it); it reads `LabyrinthLevel.side_paths`, `SidePathRules.is_full`, `Expedition.side_path` and the
 events of spec 093, and changes nothing in `sim/`.
 
 ## Acceptance
@@ -66,10 +71,11 @@ In `tests/acceptance/test_094_gates_and_caches_in_the_world.gd` (extends `Colony
 | R3 | `test_r3_a_cache_glints_until_it_is_opened` | the prop on its floor, the glint outside the light and none inside, open and dark after, back after the refill |
 | R4 | `test_r4_a_cache_bursts_and_pays_from_where_it_stands` | effects under the quest budget start at the cache; coins, icons and motes leave from it; the two sounds are asked for once each |
 | R5 | `test_r5_a_sealed_gate_says_what_it_wants` | the rising line's words; the tip's three wordings with parties that can, will later, and never will |
-| R6 | `test_r6_nothing_plays_for_old_events` | after a stall and after time away: states true, no effect, no sound; the effects layer is empty a few seconds after a cache |
-| R7 | (spec 018's test) | every showcase row plays, the three new ones among them |
+| R6 | `test_r6_a_cache_room_is_lit_and_the_arrow_rests` | a torch inside every cache room of 5 stages, the same on a second build, none in a ladder's columns; the arrow hidden from turning off to rejoining, shown after |
+| R7 | `test_r7_nothing_plays_for_old_events` | after a stall and after time away: states true, no effect, no sound; the effects layer is empty a few seconds after a cache |
+| R8 | (spec 018's test) | every showcase row plays, the three new ones among them |
 
-R8 is the lane's report and Zak's playtest.
+R9 is the lane's report and Zak's playtest.
 
 ## Out of scope
 
@@ -79,7 +85,7 @@ R8 is the lane's report and Zak's playtest.
 
 ## Paths
 
-- `game/world/`, `game/effects/`, `game/audio/`, `game/dev/` (the showcase's rows and moments)
+- `game/world/`, `game/ambience/`, `game/effects/`, `game/audio/`, `game/dev/` (the showcase's rows and moments)
 - `assets/sprites/props/` (five new `.px` with their baked sheets), `assets/audio/` (two new `.sfx` with
   their baked sounds), the art's reference lists if the lint needs them
 - `tests/acceptance/test_094_gates_and_caches_in_the_world.gd` (new), `tests/colony_test.gd`, `tests/support/`

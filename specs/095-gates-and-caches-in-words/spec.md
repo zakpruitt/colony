@@ -28,9 +28,12 @@ what the detours brought home and which gates still wait for a skill the party l
   skill on the stage it is on, and a hero of the party will learn that skill, the microskill goal names
   it: `Mage learns Runereader at level 4: opens rune seals`. It is the same goal row the goals show
   today, not a new one.
-- **R5. The words come from the data.** Every gate's and microskill's name in these lines is its
+- **R5. The status says what the halt is.** While a gate is worked the status line reads by the gate
+  (`Picking a lock`, `Clearing rubble`, `Reading a rune seal`, `Searching a crack`) where it reads
+  `Working` today, and on a side path otherwise `Exploring a side path`.
+- **R6. The words come from the data.** Every gate's and microskill's name in these lines is its
   definition's `display_name`; a gate added as data later needs only its sentence in one table.
-- **R6. Nothing is worded on a frame.** These lines are made when their event arrives, and an idle screen
+- **R7. Nothing is worded on a frame.** These lines are made when their event arrives, and an idle screen
   words nothing new (spec 075's idle test passes untouched).
 
 ## Interfaces
@@ -47,9 +50,10 @@ In `tests/acceptance/test_095_gates_and_caches_in_words.gd` (extends `ColonyTest
 | R2 | `test_r2_the_tally_counts_side_paths` | counts and sums after three caches in two areas equal the events' |
 | R3 | `test_r3_the_away_report_tells_of_caches_and_sealed_gates` | an hour away with a party that opens some and passes others: both rows, and neither with a party that meets none |
 | R4 | `test_r4_the_goal_names_the_gate_a_skill_would_open` | the row's words after a sealed gate; unchanged with no such gate; unchanged when no hero learns it |
-| R5 | `test_r5_a_new_gate_needs_only_its_line` | a gate definition added in the test is told with its own name |
+| R5 | `test_r5_the_status_names_the_gate` | the status through a whole side trip for two kinds of gate |
+| R6 | `test_r6_a_new_gate_needs_only_its_line` | a gate definition added in the test is told with its own name |
 
-R6 is spec 075's test.
+R7 is spec 075's test.
 
 ## Out of scope
 
