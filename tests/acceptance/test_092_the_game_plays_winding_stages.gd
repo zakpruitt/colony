@@ -17,7 +17,7 @@ var _path: String = save_path()
 
 
 ## A main scene in the tree, its own processing off, loading from [param store_path] if given.
-func _main(store_path: String = "", away: float = -1.0) -> Main:
+func _started(store_path: String = "", away: float = -1.0) -> Main:
 	var main: Main = make_main()
 	if store_path != "":
 		main.save_store = SaveStore.new(store_path)
@@ -128,7 +128,7 @@ func _assert_on_course(sim: Simulation, what: String) -> void:
 
 
 func test_r1_a_new_game_is_winding() -> void:
-	var main: Main = _main()
+	var main: Main = _started()
 	var sim: Simulation = main.simulation
 	assert_eq(sim.labyrinth.shape, WINDING, "a new game's simulation is winding")
 	assert_eq(sim.tick, 0, "and new")
@@ -166,7 +166,7 @@ func test_r2_a_save_comes_back_winding_with_its_progress() -> void:
 		assert_eq(Simulation.save_problems(data).size(), 0, "%s: the save is good" % what)
 		var flat: Simulation = Simulation.from_save(data)
 		assert_true(SaveStore.new(_path).write(data), "%s: written to the store" % what)
-		var main: Main = _main(_path)
+		var main: Main = _started(_path)
 		var sim: Simulation = main.simulation
 		assert_eq(sim.labyrinth.shape, WINDING, "%s: Main loads it winding" % what)
 		assert_eq(sim.tick, flat.tick, "%s: loaded, not a new game" % what)
@@ -210,7 +210,7 @@ func test_r3_time_away_is_played_winding() -> void:
 	data[Main.SAVED_AT_KEY] = Time.get_unix_time_from_system() - HOUR
 	assert_true(SaveStore.new(_path).write(data), "the stamped save is written")
 	var saved: Dictionary = SaveStore.new(_path).read()
-	var main: Main = _main(_path, HOUR)
+	var main: Main = _started(_path, HOUR)
 	assert_true(main.is_catching_up(), "an hour away is replayed")
 	if not main.is_catching_up():
 		return
