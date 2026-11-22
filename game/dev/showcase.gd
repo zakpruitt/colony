@@ -5,7 +5,8 @@ extends Node
 ## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
 ## labelled with its statuses), side quests (one done, one nobody can do, a tripwire sprung and a
-## microskill learned), the shop, the area map with two areas open and the rest closed, a journey
+## microskill learned), a side path (its gate being opened, its cache opening, and a gate nobody
+## can open), the shop, the area map with two areas open and the rest closed, a journey
 ## to the Claypits and the arrival there (with the map open on the way), the four areas' looks in
 ## turn, the knight's talent tree (a node taken and a path chosen) and the report after time away.
 ##
@@ -52,6 +53,9 @@ const ROWS: Array[Array] = [
 	[&"quest_missed", "A SIDE QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
 	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
 	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
+	[&"gate_opened", "A SIDE PATH: ITS GATE IS OPENED", 0.5, &"gate", SimEvent.Kind.GATE_OPENED],
+	[&"cache_opened", "THE CACHE AT ITS END", 1.5, &"", SimEvent.Kind.CACHE_OPENED],
+	[&"gate_sealed", "A GATE NOBODY CAN OPEN", 2.0, &"gate", SimEvent.Kind.GATE_SEALED],
 	[&"shop", "THE CAMP WINDOW: A FIFTH RANK BOUGHT", 2.5, &"shop", &"shop"],
 	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO", 1.5, &"area_map", &"area_map"],
 	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
@@ -214,7 +218,7 @@ func advance(delta: float) -> void:
 		return
 	elapsed += delta
 	var speed: float = 1.0
-	if _walks_to_a_fight() or _on_a_journey():
+	if _walks_to_a_fight() or _on_a_journey() or _moments.walks_to_a_gate(moment()):
 		speed = WALK_SPEED_UP
 	_steer()
 	main.driver.advance(roundi(delta * speed * 1_000_000.0))
@@ -293,6 +297,8 @@ func _end_moment() -> void:
 				hero.health = hero.max_health()
 		&"depth_stable":
 			sim.expedition.stable_seconds = 600.0
+		&"gate_sealed":
+			_moments.end_gates()
 		&"shop":
 			main.hud.shop.close()
 		&"area_map", &"journey":

@@ -10,7 +10,8 @@ extends Node2D
 ## [code]_process[/code] is turned off), so a test that calls [method sync] sees exactly what a
 ## frame would show.
 ##
-## Children, in draw order: the labyrinth view, the ambience, QuestProps, Characters, Effects,
+## Children, in draw order: the labyrinth view, the ambience, SideProps, QuestProps, Characters,
+## Effects,
 ## and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## and ZoneCrossing, which dims the screen between places.
 ##
@@ -77,6 +78,8 @@ var ambience: Ambience
 var target_marker: TargetMarker
 ## The side quests waiting in chambers, and the work on one.
 var quest_props: QuestProps
+## The gates and caches of the side paths.
+var side_props: SideProps
 ## The fallen heroes, and the story of a wipe.
 var fallen_party: FallenParty
 ## The dimming and the title between places.
@@ -144,6 +147,10 @@ func _ready() -> void:
 	add_child(ambience)
 	ambience.setup(labyrinth_view)
 	# Props stand on the floor behind the characters.
+	side_props = SideProps.new()
+	side_props.name = "SideProps"
+	add_child(side_props)
+	side_props.setup(self, simulation)
 	quest_props = QuestProps.new()
 	quest_props.name = "QuestProps"
 	add_child(quest_props)
@@ -279,6 +286,7 @@ func sync(delta: float) -> void:
 	_follow(game_delta)
 	_act()
 	quest_props.animate(delta)
+	side_props.animate(delta)
 	if _frozen > 0.0:
 		_frozen -= delta
 		for id: int in _sprites:
@@ -459,6 +467,7 @@ func _scan_waiting() -> void:
 				_waiting[monster.id] = true
 				_add_monster(monster, floor_pixels)
 	quest_props.scan(_built)
+	side_props.scan(_built)
 
 
 ## Gives a sprite to every living monster in the fight that has none (after a stall, say).
@@ -626,6 +635,7 @@ func _change_area() -> void:
 	_gone_as.clear()
 	_waiting.clear()
 	quest_props.clear()
+	side_props.clear()
 	labyrinth_view.show_labyrinth(simulation.labyrinth)
 	labyrinth_view.area = simulation.expedition.place
 	_shown = 0  # the next catch-up shows the stage it arrived on

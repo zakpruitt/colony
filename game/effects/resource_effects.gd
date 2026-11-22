@@ -2,7 +2,8 @@ class_name ResourceEffects
 extends Node
 ## Resource drops on screen, as gold's coins are: each
 ## [constant SimEvent.Kind.RESOURCE_GAINED] still recent puts a few [FxResource] icons where the
-## monster fell (or over the hero who finished a side quest), which rise, hang and fly to the
+## monster fell (over the hero who finished a side quest, or on the cache that held them), which
+## rise, hang and fly to the
 ## resource's place beside the gold, and each one's share is counted in as it arrives
 ## ([signal resource_collected]). A drop too old to animate is counted in at once.
 ##
@@ -75,7 +76,9 @@ func _on_sim_event(event: SimEvent) -> void:
 	if not _world.may_animate(event) or _world.fx == null:
 		resource_collected.emit(event.target_id, event.amount)
 		return
-	var feet: Vector2 = _world.feet_position(event.source_id)
+	var feet: Vector2 = SideProps.origin(_world, event)
+	if not feet.is_finite():
+		feet = _world.feet_position(event.source_id)
 	if feet == Vector2.ZERO:
 		feet = _fallen_at.get(event.source_id, Vector2.ZERO)
 	if feet == Vector2.ZERO:

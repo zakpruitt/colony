@@ -466,8 +466,25 @@ path.
 **On screen.** `LabyrinthView` cuts `side_rects()` out of the earth with the route's rectangles
 (`is_open`, `open_rects_near`) and draws `side_ladders()` as it draws the route's; `World` gives a
 hero's `LadderRoute` both lists, so a hero climbs a side ladder in its column; `AmbienceClearings`
-keeps props off a side ladder's columns and the column by a side tunnel's mouth. Nothing is drawn for a
-gate or a cache.
+keeps props off a side ladder's columns and the column by a side tunnel's mouth.
+
+**Gates and caches on screen** (spec 094). `SideProps` (`game/world/side_props.gd`, a child of `World`
+beside `QuestProps`) gives every side path of a built stage two sprites, found by id as a side quest's
+prop is (`assets/sprites/props/<gate id>.png`, `cache.png`), each sheet with a `closed` and an `open`
+part: the gate at `course.point_at(gate_at)` and the strongbox at the middle of the cache room's floor.
+What they show is read from the state on every scan, never kept from events: a cache is closed while
+`SidePathRules.is_full`, and a gate is open while its cache is empty or the party is on that path past
+`gate_at` (a `GATE_OPENED` heard covers the tick it stands on it), so a stall or the time away leaves
+them true. `QuestProps` works a gate as it works a prop (`SideProps.worked_spot`: the worker beside it
+on the side the heroes behind it are, the bar, the name); `PropGlints` is the one glint both use, on a
+quest's prop and on a full cache out of the light. The gains of the tick a cache opens leave from it
+(`SideProps.gains_from`, asked by `CombatEffects` and `ResourceEffects`); `QuestEffects` bursts its
+sparks under the quest budget and raises `Needs a <microskill>` from a sealed gate; `SoundPlayer` plays
+`gate_open` and `cache_open`. A closed gate under the mouse shows `GateTip`, drawn in the world over
+the gate (the world polls its own viewport's mouse: `WorldView` passes no mouse events in), worded by
+`GateTip.who_line`. The ambience dresses each cache room with one torch and a plain room's props, held
+apart in `AmbienceLevel.cache_torches` and `cache_props` (a cache room is no chamber of the route, so
+it has no index for `props_in`). The target arrow hides while `Expedition.side_path >= 0`.
 
 **In words** (spec 095). `SidePathWords` (`game/hud/`) holds every sentence about a side path: a gate's
 and a microskill's name come from their definitions, and `SENTENCES` has one row per gate for what its
