@@ -303,6 +303,7 @@ func sync(delta: float) -> void:
 	_remove_finished()
 	_fly_bolts(game_delta)
 	_place_party_light()
+	ambience.follow_party(simulation.expedition, _shown, _snap_all or _snap_heroes)
 	target_marker.follow(simulation, _party_feet(true), delta)
 	_aim_camera(delta)
 

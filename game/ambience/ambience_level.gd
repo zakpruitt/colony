@@ -12,7 +12,8 @@ extends Node2D
 ## This node draws what is lit like the world (under the darkness, see [Ambience]); its child
 ## Buried draws the things in the earth, behind it and only when the level is built, as they never
 ## move; its child Glow draws what shines on its own (flames, embers, glints, glowing props) over
-## the darkness.
+## the darkness. A torch or a campfire that is not lit ([member AmbienceProp.lit], which
+## [AmbienceRooms] sets) is drawn cold: no flame, no embers.
 
 const DIR: String = "res://assets/sprites/ambience/"
 const TILE: int = LabyrinthView.TILE
@@ -312,6 +313,8 @@ func _place_torches(chamber: LabyrinthChamber, most: int = 0) -> void:
 			AmbienceProp.Anchor.WALL
 		)
 		torch.texture = _part("torch", "bracket")
+		torch.unlit = _part("torch", "unlit")
+		torch.flame = true
 		for frame: int in 4:
 			# The deep stratum's torches burn with an eerie teal flame.
 			var flame: String = "teal_%d" if _band == 3 else "flame_%d"
@@ -623,6 +626,7 @@ func _light_campfire(prop: AmbienceProp) -> void:
 		return
 	for frame: int in 4:
 		prop.frames.append(_part("campfire", "flame_%d" % frame))
+	prop.flame = true
 	prop.frame_rate = FLAME_RATE
 	prop.light = AmbienceLight.new(
 		&"campfire",
@@ -801,7 +805,7 @@ func _move_motes(delta: float) -> void:
 func _spawn_embers(delta: float) -> void:
 	for i: int in _emitters.size():
 		_ember_timers[i] -= delta
-		if _ember_timers[i] > 0.0:
+		if _ember_timers[i] > 0.0 or not _emitters[i].lit:
 			continue
 		var emitter: AmbienceProp = _emitters[i]
 		var every: Vector2 = CAMPFIRE_EMBER_EVERY if emitter.name == &"campfire" else EMBER_EVERY
@@ -896,7 +900,7 @@ func _draw_buried() -> void:
 
 func _draw() -> void:
 	for prop: AmbienceProp in _all_torches:
-		_draw_prop(self, prop, prop.texture)
+		_draw_prop(self, prop, prop.base())
 	for prop: AmbienceProp in _all_props:
 		if prop.texture != null:
 			_draw_prop(self, prop, prop.texture)
@@ -922,10 +926,11 @@ func _draw() -> void:
 
 func _draw_glow() -> void:
 	for prop: AmbienceProp in _all_torches:
-		_draw_prop(_glow, prop, prop.frames[prop.frame])
+		if prop.glowing() != null:
+			_draw_prop(_glow, prop, prop.glowing())
 	for prop: AmbienceProp in _all_props:
-		if not prop.frames.is_empty():
-			_draw_prop(_glow, prop, prop.frames[prop.frame])
+		if prop.glowing() != null:
+			_draw_prop(_glow, prop, prop.glowing())
 	var sparkle: PixelSheet = _sheet("sparkle")
 	for mote: AmbienceMote in motes:
 		match mote.kind:

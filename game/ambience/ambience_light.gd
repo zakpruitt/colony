@@ -23,6 +23,8 @@ var core: float = 0.0
 var base_radius: float
 var base_energy: float
 var flicker: float
+## Its reach and strength as a share of their rest: 1 but while it flares up on being lit.
+var swell: float = 1.0
 ## Seeds its flicker, so neighbouring torches do not flicker together.
 var seed_value: int
 
@@ -47,14 +49,16 @@ func _init(
 	seed_value = seed_from
 
 
-## Sets the flicker for [param time] seconds into the run.
+## Sets the flicker, and the flare, for [param time] seconds into the run.
 func advance(time: float) -> void:
 	if flicker <= 0.0:
+		energy = base_energy * swell
+		radius = base_radius if swell == 1.0 else roundf(base_radius * swell)
 		return
 	var tick: int = floori(time * FLICKER_RATE)
 	var wobble: float = _noise(tick) * 0.6 + _noise(tick >> 2) * 0.4
-	energy = base_energy * (1.0 + flicker * wobble)
-	radius = roundf(base_radius * (1.0 + flicker * 0.5 * _noise(tick + 7919)))
+	energy = base_energy * swell * (1.0 + flicker * wobble)
+	radius = roundf(base_radius * swell * (1.0 + flicker * 0.5 * _noise(tick + 7919)))
 
 
 ## A value from -1 to 1 for this light and [param tick], the same every time.
