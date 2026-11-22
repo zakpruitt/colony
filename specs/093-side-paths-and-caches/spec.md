@@ -18,24 +18,29 @@ words, and spec 096 adds the order to press on past them (it changes the save, s
 ## Requirements
 
 - **R1. Every winding stage has side paths.** A winding level has 1 to 3 side paths
-  (`LabyrinthLevel.side_paths`); a flat level has none, so nothing changes for a flat simulation: its
-  hashes, saves and tests stand. Each side path leaves a room of the main route that is neither the first
-  nor the last, through a gate in that room, along its own tunnel (4 to 10 long) or its own ladder to a
-  neighbouring floor, to a cache room 8 to 12 wide and 4 to 5 tall that nothing else joins. Cache rooms
-  come after the main route's rooms in `chambers`, with kind `CACHE`, and follow spec 089's rules for rooms
-  (no overlap, earth between, inside the band). No room has two gates, and a gate stands at least 2 tiles
-  from a ladder's columns and from a doorway. A level's side paths depend only on the seed, the area and
-  the stage. The main route of every level is what it was before this spec for the same seed (the side
-  paths are rolled from their own stream and fitted round it).
+  (`LabyrinthLevel.side_paths`), as many of three as fit; a flat level has none, so nothing changes for a
+  flat simulation: its hashes, saves and tests stand. (A level where none fits has none; over the seeds
+  tested none is such.) Each side path leaves the main course at a point in a room that is neither the
+  first nor the last, and goes by its own ladder to a neighbouring floor, or along the room's floor to a
+  free side wall and its own tunnel (4 to 10 long), to a cache room 8 to 12 wide and 4 to 5 tall that
+  nothing else joins. The gate stands on the side path: at the head or foot of its ladder in the room it
+  leaves, or at the mouth of its tunnel, at least 2 tiles from the columns of a main route ladder and from
+  a doorway. No room has two gates. **The main route is untouched**: `chambers`, `tunnels`, `ladders`,
+  `open_rects()` and the course of every level are what they were before this spec for the same seed
+  (spec 089's and 091's tests pass unedited); a side path's room, tunnel and ladder live on the
+  `SidePath`, rolled from their own stream and fitted round the route by spec 089's rules for rooms (no
+  overlap, earth between, inside the band). A level's side paths depend only on the seed, the area and
+  the stage.
 - **R2. Gates are content.** A gate is a `GateDef` under `data/gates/` (id, name, description, the
   microskill that opens it, the seconds it takes: 3 to 6), listed by `Content.gate_ids()` and checked by
   the `data` step. This spec adds four: `locked_gate` (lockpicker), `rubble` (strongarm), `rune_seal`
   (runereader), `hidden_crack` (trapspotter). Each side path's gate is drawn evenly from them.
-- **R3. The party opens what it can.** When a travelling party's anchor reaches a side path's gate with a
-  full cache behind it and a living hero has the gate's microskill (the lowest hero id first), the party
-  stops, that hero works for the gate's seconds (`WORKING`, with `GATE_STARTED` and `GATE_OPENED`), and the
-  party walks the side path's course to the cache room's far wall. On entering the cache room it opens
-  the cache (R4), then walks back to the gate and goes on the way it was going. It does this whichever
+- **R3. The party opens what it can.** When a travelling party's anchor reaches the point where a side
+  path leaves (`SidePath.at`) with a full cache behind it and a living hero has the gate's microskill (the
+  lowest hero id first), the party turns onto the side path's course, stops at the gate, that hero works
+  for the gate's seconds (`WORKING`, with `GATE_STARTED` and `GATE_OPENED`), and the party walks on to the
+  cache room's far wall. On entering the cache room it opens
+  the cache (R4), then walks back to where it left the main course and goes on the way it was going. It does this whichever
   way along the main route it is travelling, on its way to another stage or pacing its target stage.
 - **R4. A cache pays what exists.** Opening a cache gives, at its stage: gold worth
   `SidePathRules.CACHE_GOLD_KILLS` (6) average kills there, XP worth `CACHE_XP_KILLS` (3) to every living
@@ -55,7 +60,7 @@ words, and spec 096 adds the order to press on past them (it changes the save, s
   keys it had): a loaded game finds every cache full and every gate closed.
 - **R8. A side path is a quiet place.** A cache room and a side path's tunnel hold no monsters and no side
   quest. A party on a side path does not count as having left the stage for its timers, and a target
-  asked for while it is there applies when it is back at the gate; a journey to another area leaves from
+  asked for while it is there applies when it is back on the main course; a journey to another area leaves from
   where it stands, as today.
 - **R9. A run is better for exploring.** Over seeds 1 to 5, 30 minutes of `sim --winding` with upgrades
   bought and talents spent, every seed opens at least one cache, and its gold plus its resource count is
@@ -68,15 +73,20 @@ words, and spec 096 adds the order to press on past them (it changes the save, s
 # sim/labyrinth/side_path.gd
 class_name SidePath
 extends RefCounted
-var gate: StringName        # a GateDef id
-var at: float               # the distance along the level's main course where the gate stands
-var course: StageCourse     # from the gate to the cache room's far wall; its start is the gate
-var chamber_index: int      # the cache room, in LabyrinthLevel.chambers
+var gate: StringName          # a GateDef id
+var at: float                 # the distance along the level's main course where the side path leaves
+var course: StageCourse       # from that point to the cache room's far wall
+var gate_at: float            # the distance along `course` where the gate stands
+var room: LabyrinthChamber    # the cache room (kind CACHE); not in LabyrinthLevel.chambers
+var tunnel: Rect2i            # its tunnel, or an empty rectangle
+var ladder: Rect2i            # its ladder (as LabyrinthLevel.ladders holds one), or an empty rectangle
 
 # sim/labyrinth/labyrinth_level.gd
 var side_paths: Array[SidePath] = []
-## How many of `chambers` are the main route's, in route order; the cache rooms follow them.
-func route_size() -> int
+## The open rectangles of the side paths: every cache room, side tunnel and side ladder.
+func side_rects() -> Array[Rect2i]
+## The side paths' ladders.
+func side_ladders() -> Array[Rect2i]
 
 # sim/labyrinth/labyrinth_chamber.gd
 enum Kind { START, PLAIN, DEN, VAULT, CACHE }
@@ -115,10 +125,18 @@ ticks. `GATE_OPENED`: source the worker, target the gate's position, amount the 
 `GATE_SEALED`: target the gate's position, amount the microskill's position. `CACHE_OPENED`: amount the
 side path's index; the gains follow it on the same tick.
 
+On a side path `Expedition.chamber()` is the cache room while the anchor is inside it, and
+`Expedition.chamber_index` is -1 (the lane says in its report what else reads the index and how it
+answers).
+
 `Expedition` stays at 20 public methods and `expedition.gd` within 900 lines: the side path's travel and
-work live in a script of their own under `sim/expedition/`, as `QuestWork` does. The level's
-`open_rects()` gives the side paths' tunnels, ladders and cache rooms too, so the view cuts them out of
-the earth with no change of its own.
+work live in a script of their own under `sim/expedition/`, as `QuestWork` does.
+
+The game's part is only this: the zoned view cuts `side_rects()` out of the earth with the stage and
+draws `side_ladders()` as it draws a ladder; the heroes climb a side ladder as they climb any (the
+`LadderRoute` is given the side ladders too); the ambience keeps its props clear of a side ladder's
+columns and of a side tunnel's mouth. A cache room is bare and unlit but for the party's light, and
+nothing is drawn for a gate or a cache: spec 094.
 
 ## Acceptance
 
@@ -126,20 +144,21 @@ In `tests/acceptance/test_093_side_paths_and_caches.gd` (extends `ColonyTest`):
 
 | Requirement | Test | What it shows |
 |---|---|---|
-| R1 | `test_r1_every_winding_stage_has_side_paths_that_fit` | 40 seeds, stages 1 to 12: counts, where each leaves, sizes, spec 089's room rules with the cache rooms in, one gate a room, clear of ladders and doorways, each cache room joined only by its path; a flat level has none |
-| R1 | `test_r1_the_main_route_is_unchanged` | the main route's rectangles and course for 20 seeds equal a list recorded on the code before this spec (the lane records it first) |
+| R1 | `test_r1_every_winding_stage_has_side_paths_that_fit` | 40 seeds, stages 1 to 12: counts, where each leaves, sizes, spec 089's room rules with the cache rooms in, one gate a room, gates clear of the route's ladders and of doorways, each cache room joined only by its path; a flat level has none |
+| R1 | `test_r1_the_main_route_is_unchanged` | a hash of `chambers`, `tunnels`, `ladders`, `open_rects()` and the course for 20 seeds and 6 stages equals the one recorded on the code before this spec (the lane records it first) |
+| R1 | `test_r1_the_view_cuts_the_side_paths` | on a zoned view of 5 stages every tile of `side_rects()` is open, a ladder is drawn on every tile of `side_ladders()`, and a hero sent down a side path is in an open tile at every frame |
 | R2 | `test_r2_gates_are_data` | the four gates load, name real microskills, and a broken one reports its problem; over 400 side paths each gate is seen |
 | R3 | `test_r3_the_party_opens_a_gate_and_comes_back` | a party with the skill: stops at the gate, the right hero works the right time, walks in, opens the cache, returns to the gate and goes on the way it was going; from both directions |
 | R4 | `test_r4_a_cache_pays_gold_xp_and_the_areas_resource` | the three amounts on stages 1 and 6 in two areas, with and without the gold upgrade, and the events in their order |
 | R5 | `test_r5_an_open_cache_is_passed_until_it_refills` | passes with no stop before 600 s, opens again after; a wipe and a stage change in between change nothing; a journey away and back finds it full |
 | R6 | `test_r6_a_gate_nobody_can_open_is_said_once` | no hero with the skill, and the one hero with it dead: walked past, one `GATE_SEALED`; a second after leaving the stage and coming back |
 | R7 | `test_r7_no_gate_opened_keeps_the_hash_and_the_save` | a winding run of heroes with no microskill has the hash recorded before this spec; `to_save()` has the keys it had; a game saved with a cache empty loads with it full |
-| R8 | `test_r8_a_side_path_is_quiet` | no monsters or quest in any cache room over 200 levels; a target asked on a side path applies at the gate; the stage's timer runs on through a side path |
+| R8 | `test_r8_a_side_path_is_quiet` | no monsters or quest in any cache room over 200 levels; a target asked on a side path applies back on the main course; the stage's timer runs on through a side path |
 | R9 | `test_r9_exploring_opens_caches` | the five seeds each open at least one (the comparison with `dev` is the lane's report) |
 
 ## Out of scope
 
-- Anything under `game/`: gates, caches and the news are specs 094 and 095. The game plays on with the side paths'
+- Anything under `game/` beyond what Interfaces names: gates, caches and the news are specs 094 and 095. The game plays on with the side paths'
   rooms cut out of the earth and nothing drawn for a gate or a cache (the party is seen to stop, walk into
   a small room and come back). The lane shoots that once and says how it reads.
 - An order to pass side paths by, and any change to the save: spec 096.
@@ -149,6 +168,8 @@ In `tests/acceptance/test_093_side_paths_and_caches.gd` (extends `ColonyTest`):
 ## Paths
 
 - `sim/`, `data/gates/` (new)
+- `game/world/labyrinth_view.gd`, `game/world/world.gd`, `game/world/ladder_route.gd`, `game/ambience/`:
+  only what Interfaces names
 - `tools/godot/run_sim.gd` (the summary's `caches_opened`, printed only with `--winding`, so the flat
   baselines stand), `tools/godot/validate_data.gd` if the new kind needs it
 - `tests/acceptance/test_093_side_paths_and_caches.gd` (new), `tests/support/`
