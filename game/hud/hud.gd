@@ -335,7 +335,8 @@ func lift_tip(ui: UiRoot) -> void:
 
 ## What the party is doing and why, as the place panel shows it: "Heading on to stage 5",
 ## "Fighting 3 monsters", "Resting, 64% health", "On the way to The Claypits 3" and so on (the
-## area's name names the area the stages are in).
+## area's name names the area the stages are in); on a side path "Exploring a side path", or
+## what is being done to its gate ("Picking a lock").
 func status_text() -> String:
 	var e: Expedition = _simulation.expedition
 	var line: String = HudFrame.STATE_WORDS.get(e.state, "")
@@ -349,6 +350,8 @@ func status_text() -> String:
 				line = "Heading on to stage %d" % e.target_depth
 			elif e.target_depth < e.depth:
 				line = "Heading back to stage %d" % e.target_depth
+			if e.side_path >= 0:
+				line = SidePathWords.EXPLORING
 		Expedition.State.FIGHTING:
 			line = _fight_text(e.battle)
 		Expedition.State.RESTING:
@@ -362,6 +365,9 @@ func status_text() -> String:
 			var quest: SideQuestDef = Content.side_quest(e.working_quest())
 			if quest != null:
 				line = "Working: %s" % quest.display_name
+			elif e.side_path >= 0:
+				var path: SidePath = e.labyrinth.level(e.depth).side_paths[e.side_path]
+				line = SidePathWords.working(Content.gate(path.gate))
 		Expedition.State.JOURNEYING:
 			line = "On the way to " + PlaceText.of(e.area, e.travel.journey_stage(e))
 	return line

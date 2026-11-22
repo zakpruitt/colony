@@ -9,7 +9,9 @@ extends Node
 ## what a command or a test changes between ticks) it reads the simulation and lists the first
 ## [constant MOST] goals that apply, in this order: beating the next guardian (when its depth is
 ## within [constant GUARDIAN_WITHIN] of the deepest depth and it has never been beaten), reaching
-## the next depth, spending a hero's talent points, the microskill nearest to being learned,
+## the next depth, spending a hero's talent points, the microskill nearest to being learned (or,
+## once the party has passed a gate on its stage for want of one a hero will learn, that one, with
+## what it opens),
 ## training a hero (spending its paragon points), and buying an upgrade. A shown goal that is
 ## achieved (the guardian slain, the depth reached, the microskill learned) flashes,
 ## shows a tick for [constant CELEBRATE_SECONDS], writes a line in the journal and emits
@@ -80,6 +82,9 @@ var _wanted: bool = true
 var _stale: bool = false
 ## True while the tracker is shown (see [method is_shown]).
 var _on_screen: bool = true
+## The gates the party has passed for want of a microskill since it arrived on its stage, as
+## heard.
+var _sealed: Dictionary[StringName, bool] = {}
 ## What the goals were last read from: they are read again only when one of these changes.
 var _read_from: ShownValues = ShownValues.new()
 
@@ -443,12 +448,20 @@ func _depth_goal() -> Goal:
 
 
 ## The microskill nearest to being learned by any hero: the least XP still to earn, the first hero
-## in formation order on a tie; null when every hero has all of theirs.
+## in formation order on a tie; null when every hero has all of theirs. A microskill that would
+## open a gate the party has passed on this stage comes before any other, and its sentence says
+## what it opens: [code]Mage learns Runereader at level 4: opens rune seals[/code].
 func _microskill_goal() -> Goal:
+	var opens: Dictionary[StringName, String] = {}
+	for id: StringName in _sealed:
+		var gate: GateDef = Content.gate(id)
+		if gate != null and not opens.has(gate.microskill):
+			opens[gate.microskill] = SidePathWords.opens(gate)
 	var best: Hero = null
 	var best_level: int = 0
 	var best_skill: MicroskillDef = null
 	var best_left: int = 0
+	var best_opens: bool = false
 	for hero: Hero in _simulation.party.heroes:
 		var def: HeroClassDef = hero.def()
 		for i: int in mini(def.microskills.size(), def.microskill_levels.size()):
@@ -457,19 +470,25 @@ func _microskill_goal() -> Goal:
 			if level <= hero.level or skill == null:
 				continue
 			var left: int = Hero.xp_for_level(level) - hero.xp
-			if best == null or left < best_left:
+			var wanted: bool = opens.has(skill.id)
+			var nearer: bool = wanted == best_opens and left < best_left
+			if best == null or nearer or (wanted and not best_opens):
 				best = hero
 				best_level = level
 				best_skill = skill
 				best_left = left
+				best_opens = wanted
 	if best == null:
 		return null
 	var who: String = best.def().display_name
 	var needed: int = maxi(Hero.xp_for_level(best_level), 1)
+	var sentence: String = "%s learns %s at level %d" % [who, best_skill.display_name, best_level]
+	if best_opens:
+		sentence = "%s: %s" % [sentence, opens[best_skill.id]]
 	var goal := Goal.new(
 		"skill/%d/%s" % [best.id, best_skill.id],
 		Kind.MICROSKILL,
-		"%s learns %s at level %d" % [who, best_skill.display_name, best_level],
+		sentence,
 		clampf(float(best.xp) / float(needed), 0.0, 1.0),
 		"%s XP to go" % UiFormat.group_thousands(maxi(best_left, 0)),
 		(
@@ -579,6 +598,7 @@ func _read_from_changed() -> bool:
 	if _area_map != null and _area_map.news != null:
 		_read_from.see(_area_map.news.to_visit.size())
 		_read_from.see(_area_map.news.visited.size())
+	_read_from.see(_sealed.size())
 	return _read_from.changed()
 
 
@@ -596,6 +616,14 @@ func _celebrating() -> bool:
 func _on_sim_event(event: SimEvent) -> void:
 	if _world != null and not _world.may_animate(event):
 		_stale = true
+	match event.kind:
+		SimEvent.Kind.GATE_SEALED:
+			var gate: GateDef = SidePathWords.gate_at(event.target_id)
+			if gate != null:
+				_sealed[gate.id] = true
+		# Arriving on a stage, the simulation tells of its sealed gates anew.
+		SimEvent.Kind.DEPTH_CHANGED, SimEvent.Kind.AREA_CHANGED, SimEvent.Kind.PARTY_REVIVED:
+			_sealed.clear()
 
 
 ## Writes [param goal]'s line in the journal and tells the listeners.

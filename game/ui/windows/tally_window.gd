@@ -4,7 +4,9 @@ extends WindowContent
 ## meter: tabs for Damage, Healing and Taken, the Last fight / Session switch, a line saying which
 ## fight, then one line per hero: its portrait, its name in bold, its number right-aligned in a
 ## column of equal-width digits and its share, over a bar in the hero's class colour scaled to the
-## largest. Under them the session span lists the side quests of each hero who has done any.
+## largest. Under them the session span lists the side quests of each hero who has done any, then
+## the side paths: the gates and caches opened and what the caches paid, for the session and for
+## each area ([method side_path_rows]).
 ##
 ## Clicking a hero's line opens its abilities under it, indented, each with a thin
 ## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950"), largest
@@ -96,6 +98,8 @@ var _names: Array[Label] = []
 var _eased: Array[EasedValue] = []
 var _goals: Array[float] = []
 var _quest_labels: Array[Label] = []
+## The side paths' lines: two for the session, then two for each area.
+var _side_labels: Array[Label] = []
 ## The hero whose line is open, or -1; the box under each hero's line its abilities go in, the
 ## caption over them and the note shown on the Taken tab.
 var _opened: int = -1
@@ -118,6 +122,7 @@ func setup(simulation: Simulation, world: World) -> void:
 	_start_tick = simulation.tick
 	_area = simulation.expedition.place
 	_depth = simulation.expedition.depth
+	tally.side_paths.area = _area
 	_build()
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
@@ -154,7 +159,7 @@ func advance(delta: float) -> void:
 
 ## The lines showing, top first: the fight's line, a line per hero as "<class> <number>
 ## <share>%" ("Knight 1,234 45%"), then the side-quest lines ("Rogue: 4 side quests"), then
-## [method breakdown]. Empty while closed.
+## [method side_path_rows], then [method breakdown]. Empty while closed.
 func rows() -> Array[String]:
 	var lines: Array[String] = []
 	if not is_open():
@@ -165,7 +170,19 @@ func rows() -> Array[String]:
 	for label: Label in _quest_labels:
 		if label.visible:
 			lines.append(label.text)
+	lines.append_array(side_path_rows())
 	lines.append_array(breakdown())
+	return lines
+
+
+## The side paths' lines showing, top first: the session's gates and caches ("Side paths: 3
+## gates, 3 caches") and what the caches paid ("+360 gold, +27 clay, 120 XP"), then the same two
+## for each area that has any, under its name. Empty in the last fight's span, and while closed.
+func side_path_rows() -> Array[String]:
+	var lines: Array[String] = []
+	for label: Label in _side_labels:
+		if is_open() and label.visible:
+			lines.append(label.text)
 	return lines
 
 
@@ -412,6 +429,14 @@ func _build() -> void:
 		line.visible = false
 		add_child(line)
 		_quest_labels.append(line)
+	for i: int in 2 * (1 + Content.area_ids().size()):
+		var line: Label = UiText.label("", &"tan" if i % 2 == 0 else &"silver")
+		line.name = "SidePaths%d" % i
+		line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		line.custom_minimum_size.x = WIDTH
+		line.visible = false
+		add_child(line)
+		_side_labels.append(line)
 	_caption = UiText.label("", &"steel")
 	_caption.name = "ByAbility"
 	_note = UiText.label(TAKEN_NOTE, &"steel")
@@ -550,7 +575,28 @@ func _refresh() -> void:
 		shown += 1
 	for i: int in _quest_labels.size():
 		_quest_labels[i].visible = i < shown
+	var side: Array[String] = _side_path_lines()
+	for i: int in _side_labels.size():
+		_side_labels[i].visible = i < side.size()
+		if i < side.size() and _side_labels[i].text != side[i]:
+			_side_labels[i].text = side[i]
 	_refresh_abilities()
+
+
+## The side paths' lines for the span shown: none in the last fight's, or with nothing counted.
+func _side_path_lines() -> Array[String]:
+	var lines: Array[String] = []
+	var counted: SidePathTally = tally.side_paths
+	if _span != Tally.Span.SESSION or counted.areas().is_empty():
+		return lines
+	var whole: Array[String] = counted.lines()
+	lines.append("Side paths: " + whole[0])
+	lines.append(whole[1])
+	for area: StringName in counted.areas():
+		var part: Array[String] = counted.lines(area)
+		lines.append("%s: %s" % [PlaceText.area_name(area), part[0]])
+		lines.append(part[1])
+	return lines
 
 
 ## Shows the open hero's abilities under its line for the open tab, or hides them.

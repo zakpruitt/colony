@@ -469,6 +469,17 @@ hero's `LadderRoute` both lists, so a hero climbs a side ladder in its column; `
 keeps props off a side ladder's columns and the column by a side tunnel's mouth. Nothing is drawn for a
 gate or a cache.
 
+**In words** (spec 095). `SidePathWords` (`game/hud/`) holds every sentence about a side path: a gate's
+and a microskill's name come from their definitions, and `SENTENCES` has one row per gate for what its
+opener did and what the status reads while it is worked (a gate with no row is "opened"; one whose name
+takes no "a" or "s" is listed in `UNCOUNTED`). `CacheReader` turns the events that follow
+`CACHE_OPENED` on its tick into one `Pay`, complete at the `RESOURCE_GAINED` that ends them; the
+`Journal` writes its line then, and `SidePathTally` (`Tally.side_paths`) adds it to the area the events
+are in. `AwayReplay` counts `CACHE_OPENED` and `GATE_SEALED` by gate into the `AwayReport`. `Goals`
+keeps the gates heard sealed since the party arrived on its stage (cleared on `DEPTH_CHANGED`,
+`AREA_CHANGED` and `PARTY_REVIVED`, as the simulation tells them anew then) and its microskill goal
+prefers a skill that opens one. `Hud.status_text` reads `Expedition.side_path` for the status.
+
 ## Pace by depth
 
 Spec 036. How long things take on a level depends on its depth, in `DepthTiming` (`sim/expedition/`), so a new

@@ -14,7 +14,8 @@ extends RefCounted
 ## taken; the tally's tooltips say so.
 ## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
 ## last fight; [constant SimEvent.Kind.SIDE_QUEST_DONE] counts one side quest for its worker.
-## A hero is any id below [constant Expedition.FIRST_MONSTER_ID].
+## A hero is any id below [constant Expedition.FIRST_MONSTER_ID]. The side paths' gates and
+## caches are counted by [member side_paths].
 ##
 ## Each hero's damage dealt and healing done is also kept by what dealt or gave it (an ability, a
 ## status working, or an ordinary strike or heal), as an [AbilityCredit] reading the same events
@@ -27,6 +28,8 @@ enum Span { LAST_FIGHT, SESSION }
 
 ## What each blow and heal was, and the statuses on every fighter.
 var credit: AbilityCredit = AbilityCredit.new()
+## The side paths' counting: gates, caches and what the caches paid, by area.
+var side_paths: SidePathTally = SidePathTally.new()
 
 ## Amounts by span, then measure, then hero id.
 var _amounts: Array[Array] = []
@@ -51,6 +54,7 @@ func _init() -> void:
 ## Counts what [param event] adds, if anything.
 func observe(event: SimEvent) -> void:
 	credit.observe(event)
+	side_paths.observe(event)
 	match event.kind:
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			for measure: int in Measure.size():
