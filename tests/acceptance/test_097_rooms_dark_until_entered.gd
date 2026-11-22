@@ -88,12 +88,12 @@ func _burns(torch: AmbienceProp) -> bool:
 		_shows_part(torch.base(), &"bracket")
 		and torch.glowing() != null
 		and _handed().has(torch.light)
-		and _drawn(torch.light)
+		and _reaches_shaders(torch.light)
 	)
 
 
 ## True if the darkness's shaders take [param light], or it reaches nowhere into the view.
-func _drawn(light: AmbienceLight) -> bool:
+func _reaches_shaders(light: AmbienceLight) -> bool:
 	var darkness: AmbienceDarkness = _ambience._darkness
 	var in_view: bool = darkness._view_rect.grow(light.radius).has_point(light.position)
 	return darkness._near.has(light) or not in_view

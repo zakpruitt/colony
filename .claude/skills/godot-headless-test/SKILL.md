@@ -230,7 +230,7 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   chose (`_near`), and it chooses again only when it sees the list or the view change. Spec 097's first
   tests asserted the list handed over and passed while a walking party's newly lit torches had flames and
   no pools (the choice was skipped on every frame the camera moved); only a screenshot showed it. Assert
-  what the shaders take (`test_097`'s `_drawn`), and look at a shot with the party moving.
+  what the shaders take (`test_097`'s `_reaches_shaders`), and look at a shot with the party moving.
 
 ## Files
 
