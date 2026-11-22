@@ -98,7 +98,9 @@ func set_zone(look: ZoneLook) -> void:
 func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
 	var cover: Rect2 = view_rect.grow(MARGIN)
 	handed = lights
-	if cover != _view_rect or _moved(lights):
+	# Asked first, and always: it remembers the lights, which come and go while the view moves.
+	var moved: bool = _moved(lights)
+	if moved or cover != _view_rect:
 		_view_rect = cover
 		redraws += 1
 		_choose(view_rect.get_center())

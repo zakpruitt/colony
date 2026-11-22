@@ -4,7 +4,7 @@ extends "res://tests/support/side_path_fixture.gd"
 ##
 ## Each test stands a party on a winding stage, shows the world over it and plays frames, the
 ## ambience moved on with each. A torch is read as it is drawn: the part under the darkness,
-## the flame over it, and whether its light is among those the darkness was handed.
+## the flame over it, and whether its light is among those the darkness was handed and draws.
 
 const TORCH: String = "res://assets/sprites/ambience/torch.png"
 ## The seed most tests play, and the stage (past the first, whose first room holds the campfire).
@@ -30,7 +30,7 @@ func _arrived(seed_value: int, stage: int, target: int) -> Simulation:
 
 
 ## The world over [param sim] at [param speed], its ambience moved on with each frame played.
-func _watch(sim: Simulation, speed: int = 1) -> void:
+func _watch_rooms(sim: Simulation, speed: int = 1) -> void:
 	_show(sim, speed)
 	_ambience = _world.ambience
 	_ambience.set_process(false)
@@ -38,13 +38,13 @@ func _watch(sim: Simulation, speed: int = 1) -> void:
 	_ambience.advance(0.0)
 
 
-func _level() -> LabyrinthLevel:
+func _shown_level() -> LabyrinthLevel:
 	return _sim.labyrinth.level(_world.shown_stage())
 
 
 ## The room of the stage's route the party's anchor is in, or -1.
 func _party_room() -> int:
-	return _level().course.chamber_at(_sim.expedition.x)
+	return _shown_level().course.chamber_at(_sim.expedition.x)
 
 
 ## The lights the darkness was handed last.
@@ -56,7 +56,7 @@ func _handed() -> Array[AmbienceLight]:
 ## [constant AmbienceRooms.CACHE] and its side path's place.
 func _torches() -> Dictionary[int, Array]:
 	var by_room: Dictionary[int, Array] = {}
-	var level: LabyrinthLevel = _level()
+	var level: LabyrinthLevel = _shown_level()
 	var dressed: AmbienceLevel = _ambience.level(_world.shown_stage())
 	for torch: AmbienceProp in dressed.torches:
 		if not by_room.has(torch.chamber):
@@ -88,7 +88,15 @@ func _burns(torch: AmbienceProp) -> bool:
 		_shows_part(torch.base(), &"bracket")
 		and torch.glowing() != null
 		and _handed().has(torch.light)
+		and _drawn(torch.light)
 	)
+
+
+## True if the darkness's shaders take [param light], or it reaches nowhere into the view.
+func _drawn(light: AmbienceLight) -> bool:
+	var darkness: AmbienceDarkness = _ambience._darkness
+	var in_view: bool = darkness._view_rect.grow(light.radius).has_point(light.position)
+	return darkness._near.has(light) or not in_view
 
 
 ## True if [param torch] is drawn out: the unlit part, no flame, and no light handed over.
@@ -188,7 +196,7 @@ func _widest_room(seeds: int) -> Vector3i:
 func test_r1_only_the_partys_room_is_lit_on_arrival() -> void:
 	var caches: int = 0
 	for stage: int in [1, 2, 3]:
-		_watch(_arrived(SEED, stage, stage + 1))
+		_watch_rooms(_arrived(SEED, stage, stage + 1))
 		var what: String = "stage %d" % stage
 		var torches: Dictionary[int, Array] = _torches()
 		var room: int = _party_room()
@@ -214,7 +222,7 @@ func test_r1_only_the_partys_room_is_lit_on_arrival() -> void:
 	sim.set_auto_push(false)
 	set_party_level(sim, 12)
 	var path: SidePath = _stand_before(sim, STAGE, found.y, 1)
-	_watch(sim)
+	_watch_rooms(sim)
 	var cache: int = AmbienceRooms.CACHE + found.y
 	assert_true(_torches().has(cache), "the cache room has its torch")
 	assert_false(_lit_rooms("before the path").has(cache), "a cache room not entered is dark")
@@ -239,7 +247,7 @@ func test_r2_a_room_lights_torch_by_torch() -> void:
 	var line: StageCourse = sim.labyrinth.level(STAGE).course
 	sim.expedition._place(line.stretch_of(found.y).x - 1.5)
 	sim.expedition.facing = 1
-	_watch(sim)
+	_watch_rooms(sim)
 	var torches: Array = _torches().get(found.y, [])
 	assert_eq(torches.size(), found.z, "the room's torches")
 	assert_ne(_party_room(), found.y, "the party starts outside the room")
@@ -305,7 +313,7 @@ func test_r2_a_room_lights_torch_by_torch() -> void:
 ## the stage shows only the party's room lit; the same after a revival, a journey and a load,
 ## with no flare.
 func test_r3_the_stage_is_remembered_until_left() -> void:
-	_watch(_arrived(SEED, STAGE, STAGE + 1), 4)
+	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1), 4)
 	var walked: Array[int] = [0, 1, 2]
 	var fights: Array[int] = [0]
 	var in_room_two := func() -> bool:
@@ -324,7 +332,7 @@ func test_r3_the_stage_is_remembered_until_left() -> void:
 		flared[0] += _ambience.rooms.flares() if there else 0
 		return there and _sim.expedition.state != Expedition.State.CLIMBING
 	_walk_until(crossed.bind(STAGE - 1), "the party crosses back")
-	var last: int = _level().chambers.size() - 1
+	var last: int = _shown_level().chambers.size() - 1
 	assert_eq(_party_room(), last, "it arrives in the stage before's last room")
 	assert_eq(
 		_lit_rooms("a stage back"), [last] as Array[int], "only the party's room is lit there"
@@ -335,7 +343,7 @@ func test_r3_the_stage_is_remembered_until_left() -> void:
 	assert_eq(flared[0], 0, "no flare on arriving by a crossing")
 	# A revival on the stage the party fell on.
 	_world.free()
-	_watch(_arrived(SEED, STAGE, STAGE + 1), 4)
+	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1), 4)
 	var fighting := func() -> bool: return _sim.expedition.battle != null and _party_room() > 0
 	_walk_until(fighting, "the party walks into a fight")
 	assert_gt(_lit_rooms("before the wipe").size(), 1, "more rooms than one are lit")
@@ -364,7 +372,7 @@ func test_r3_the_stage_is_remembered_until_left() -> void:
 		hero.xp = 0  # a save holds no hero kept from levelling
 	var data: Dictionary = _through_json(_sim.to_save())
 	_world.free()
-	_watch(Simulation.from_save(data, Labyrinth.Shape.WINDING))
+	_watch_rooms(Simulation.from_save(data, Labyrinth.Shape.WINDING))
 	assert_eq(_ambience.rooms.flares(), 0, "no flare in a loaded game")
 	assert_eq(_lit_rooms("loaded"), [_party_room()] as Array[int], "only its room is lit")
 
@@ -383,7 +391,7 @@ func test_r4_glints_and_gates_show_in_the_dark() -> void:
 			if sim.expedition.side_quest_in(STAGE, room) != &"" and quest_room < 0:
 				quest_room = room
 		if quest_room >= 0 and not level.side_paths.is_empty():
-			_watch(sim)
+			_watch_rooms(sim)
 			break
 		quest_room = -1
 	assert_gt(quest_room, 0, "a stage with a side quest waiting past its second room")
@@ -422,7 +430,7 @@ func test_r4_glints_and_gates_show_in_the_dark() -> void:
 ## R5: a stall in which the party walks three rooms: after it only the room it stands in is lit
 ## and no flare is running.
 func test_r5_nothing_lights_for_the_past() -> void:
-	_watch(_arrived(SEED, STAGE, STAGE + 1))
+	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1))
 	assert_eq(_lit_rooms("before the stall"), [0] as Array[int], "the first room is lit")
 	var before: int = _sim.tick
 	for i: int in LIMIT_TICKS_10_MIN:
@@ -449,7 +457,7 @@ func test_r5_nothing_lights_for_the_past() -> void:
 ## R6: over 60 idle frames the darkness is handed the same lights object unchanged and is not
 ## redrawn (its own redraw count) but for a handed light's own flicker.
 func test_r6_an_idle_frame_does_nothing() -> void:
-	_watch(_arrived(SEED, STAGE, STAGE + 1))
+	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1))
 	for i: int in 120:
 		_play_frame(false)  # the camera comes to rest
 	var darkness: AmbienceDarkness = _ambience._darkness
@@ -482,5 +490,5 @@ func _shapes(lights: Array[AmbienceLight]) -> Array[Vector4]:
 
 ## True if [param light] is inside route room [param room] of the stage shown.
 func _in_room(light: AmbienceLight, room: int) -> bool:
-	var rect: Rect2i = _level().chambers[room].rect
+	var rect: Rect2i = _shown_level().chambers[room].rect
 	return Rect2(rect.position * int(TILE), rect.size * int(TILE)).has_point(light.position)

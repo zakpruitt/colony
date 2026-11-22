@@ -5,8 +5,9 @@ extends Node
 ## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
 ## labelled with its statuses), side quests (one done, one nobody can do, a tripwire sprung and a
-## microskill learned), a side path (its gate being opened, its cache opening, and a gate nobody
-## can open), the shop, the area map with two areas open and the rest closed, a journey
+## microskill learned), a dark room lighting as the party walks in, a side path (its gate being
+## opened, its cache opening, and a gate nobody can open), the shop, the area map with two areas
+## open and the rest closed, a journey
 ## to the Claypits and the arrival there (with the map open on the way), the four areas' looks in
 ## turn, the knight's talent tree (a node taken and a path chosen) and the report after time away.
 ##
@@ -53,6 +54,7 @@ const ROWS: Array[Array] = [
 	[&"quest_missed", "A SIDE QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
 	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
 	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
+	[&"room_lit", "A DARK ROOM LIGHTS AS THE PARTY WALKS IN", 1.5, &"room", &"room"],
 	[&"gate_opened", "A SIDE PATH: ITS GATE IS OPENED", 0.5, &"gate", SimEvent.Kind.GATE_OPENED],
 	[&"cache_opened", "THE CACHE AT ITS END", 1.5, &"", SimEvent.Kind.CACHE_OPENED],
 	[&"gate_sealed", "A GATE NOBODY CAN OPEN", 2.0, &"gate", SimEvent.Kind.GATE_SEALED],
