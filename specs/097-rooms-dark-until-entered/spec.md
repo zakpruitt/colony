@@ -35,8 +35,9 @@ the simulation does: it is how the stage is shown.
   doorway on is drawn as it is. The target arrow, the heroes' frames and everything on the UI layer are
   untouched.
 - **R5. Nothing plays for the past.** The lighting follows where the party has been, not events: after a
-  stall or time away the rooms the party stood in during it are not lit one by one; the stage shows with
-  the room it stands in now lit, and no flare plays while `World.catching_up()`.
+  stall the rooms lit before it stay lit (a hitch does not darken a stage the party is still on), the room
+  the party stands in now is lit at once, the rooms it passed through unseen during the stall stay dark,
+  and no flare plays while `World.catching_up()`. A stall that ends on another stage is an arrival (R3).
 - **R6. It costs nothing when nothing changes.** A frame in which no room lights and no flare is running
   allocates nothing for this and does not redraw the darkness for it; the lights handed to the darkness
   are those of the lit rooms only.
@@ -65,7 +66,7 @@ world:
 | R2 | `test_r2_a_room_lights_torch_by_torch` | walking into the next room: its torches light in order of distance from the party, each about 0.15 s after the one before, each light past its rest size and back |
 | R3 | `test_r3_the_stage_is_remembered_until_left` | rooms walked stay lit through a fight and a walk back; after a crossing on and back the first stage shows only the party's room lit; the same after a revival, a journey and a load, with no flare |
 | R4 | `test_r4_glints_and_gates_show_in_the_dark` | a side quest's and a full cache's glint in an unlit room; a closed gate's sprite shown; the doorway drawn |
-| R5 | `test_r5_nothing_lights_for_the_past` | a stall in which the party walks three rooms: after it only the room it stands in is lit and no flare is running |
+| R5 | `test_r5_nothing_lights_for_the_past` | two rooms walked, then a stall in which the party walks three more: after it the first two and the one it stands in are lit, the two between are dark, and no flare is running; a stall that ends on another stage shows only the party's room |
 | R6 | `test_r6_an_idle_frame_does_nothing` | over 60 idle frames the darkness is handed the same lights object unchanged and is not redrawn (its own redraw count) |
 | R7 | (spec 018's test) | every showcase row plays, the new one among them |
 
