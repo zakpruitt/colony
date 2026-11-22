@@ -133,7 +133,7 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, caches that pay what exists): in-progress | 092 |
 | 094 | [Gates and caches in the world](094-gates-and-caches-in-the-world/spec.md) (each gate closed and open, the opener at work, the cache's burst, a sealed gate's tip): draft | 093 |
 | 095 | [Gates and caches in words](095-gates-and-caches-in-words/spec.md) (the journal, the tally, the away report, the goal a sealed gate gives): draft, beside 094 | 093 |
-| 096 | The order to press on (Explore or Press on, in the Orders window and the save): to write | 094, 095 |
+| 096 | [The order to press on](096-the-order-to-press-on/spec.md) (Explore or Press on, in the Orders window and the save): draft | 094, 095 |
 | 097 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 092 |
 | later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 096 |
 
