@@ -1,7 +1,8 @@
 class_name WorldCamera
 extends Camera2D
 ## The camera over the labyrinth. It eases toward [member target], keeps the view inside the
-## band's columns, sits on whole pixels, and can be shaken.
+## band's columns and, where [member rows] says, inside a stage's rows, sits on whole pixels, and
+## can be shaken.
 ##
 ## [member position] is the followed point (clamped and rounded); a shake only moves
 ## [member offset], so it never disturbs where the camera is going. A [method travel]
@@ -22,9 +23,14 @@ const BAND_WIDTH: float = Labyrinth.LEVEL_WIDTH * LabyrinthView.TILE
 const FALLBACK_VIEW: Vector2 = Vector2(640, 360)
 ## Seconds a change of zoom level takes to ease from one level to the other.
 const ZOOM_TIME: float = 0.25
+## Rows of earth the view may show above a winding stage's band and below it.
+const EARTH_ROWS: int = 4
 
 ## World pixel position to follow.
 var target: Vector2
+## The world rows the view must stay inside, in pixels (x: top, y: bottom); Vector2.ZERO for no
+## limit.
+var rows: Vector2
 
 var _followed: Vector2
 var _shake: float = 0.0
@@ -71,16 +77,18 @@ func snap_to(world_pixels: Vector2) -> void:
 ## [param seconds], eased in and out, whatever [member target] says meanwhile; then it follows
 ## [member target] again. [param into] seconds of the travel are already over, so the next
 ## [method _process] goes on from there: a travel can be taken up part way. The end is kept inside
-## the band, so the travel ends where the view will rest.
+## the band and the rows, so the travel ends where the view will rest.
 func travel(
 	world_pixels: Vector2, seconds: float, into: float = 0.0, from: Vector2 = Vector2.INF
 ) -> void:
 	if seconds <= 0.0:
 		snap_to(world_pixels)
 		return
-	var half: float = _view_size().x * 0.5 / zoom.x
+	var half: Vector2 = _view_size() * 0.5 / zoom.x
 	_travel_from = _followed if from == Vector2.INF else from
-	_travel_to = Vector2(_clamp_to_band(world_pixels.x, half), world_pixels.y)
+	_travel_to = Vector2(
+		_clamp_to_band(world_pixels.x, half.x), _clamp_to_rows(world_pixels.y, half.y)
+	)
 	_travel_time = seconds
 	_travel_age = clampf(into, 0.0, seconds)
 	target = world_pixels
@@ -107,6 +115,16 @@ func zoom_level() -> int:
 	return _zoom_level
 
 
+## The rows the view stays inside on stage [param depth] of [param labyrinth], for [member rows]:
+## a winding stage's band and [constant EARTH_ROWS] of the earth above and below it; no limit on
+## a flat stage.
+static func rows_of(labyrinth: Labyrinth, depth: int) -> Vector2:
+	if labyrinth.shape != Labyrinth.Shape.WINDING:
+		return Vector2.ZERO
+	var band: Rect2i = labyrinth.level(depth).band
+	return Vector2(band.position.y - EARTH_ROWS, band.end.y + EARTH_ROWS) * LabyrinthView.TILE
+
+
 ## Shakes the view by up to [param strength] pixels, dying away over a fraction of a second.
 ## A stronger shake replaces a weaker one; a weaker one does not cut a stronger one short.
 func shake(strength: float) -> void:
@@ -127,14 +145,16 @@ func _ease_zoom(delta: float) -> void:
 
 
 func _apply() -> void:
-	var half: float = _view_size().x * 0.5 / zoom.x
-	_followed.x = _clamp_to_band(_followed.x, half)
+	var half: Vector2 = _view_size() * 0.5 / zoom.x
+	_followed.x = _clamp_to_band(_followed.x, half.x)
+	_followed.y = _clamp_to_rows(_followed.y, half.y)
 	position = _followed.round()
 	if _shake <= 0.0:
 		offset = Vector2.ZERO
 		return
 	var jolt := Vector2(_rng.randf_range(-_shake, _shake), _rng.randf_range(-_shake, _shake))
-	jolt.x = _clamp_to_band(position.x + jolt.x, half) - position.x
+	jolt.x = _clamp_to_band(position.x + jolt.x, half.x) - position.x
+	jolt.y = _clamp_to_rows(position.y + jolt.y, half.y) - position.y
 	offset = jolt.round()
 
 
@@ -145,6 +165,17 @@ func _clamp_to_band(x: float, half: float) -> float:
 	if low > high:
 		return BAND_WIDTH * 0.5
 	return clampf(x, low, high)
+
+
+## [param y] moved so a view [param half] tall either side of it stays inside [member rows].
+func _clamp_to_rows(y: float, half: float) -> float:
+	if rows == Vector2.ZERO:
+		return y
+	var low: float = ceilf(rows.x + half)
+	var high: float = floorf(rows.y - half)
+	if low > high:
+		return (rows.x + rows.y) * 0.5
+	return clampf(y, low, high)
 
 
 func _view_size() -> Vector2:

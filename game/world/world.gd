@@ -305,6 +305,7 @@ func _catch_up_with_state(delta: float) -> void:
 		if _shown > 0:
 			_change_stage()
 		_shown = stage
+		camera.rows = WorldCamera.rows_of(simulation.labyrinth, stage)
 	var focus: Vector2 = fallen_party.focus(simulation.expedition.hero_position(_leader_id()))
 	labyrinth_view.set_focus(Vector2(focus.x, simulation.labyrinth.level(_shown).floor_y))
 	var built: Array[int] = labyrinth_view.built_depths()

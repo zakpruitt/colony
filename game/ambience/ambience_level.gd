@@ -6,7 +6,8 @@ extends Node2D
 ##
 ## Everything is placed from the level's layout and tile positions, never from a clock, so
 ## rebuilding a level places the same things in the same places. Motion is stepped in
-## [method advance] from a random stream seeded by the level.
+## [method advance] from a random stream seeded by the level. Each chamber is dressed on its own
+## floor and ceiling, so the rooms of a winding stage are, floor by floor.
 ##
 ## This node draws what is lit like the world (under the darkness, see [Ambience]); its child
 ## Buried draws the things in the earth, behind it and only when the level is built, as they never
@@ -71,7 +72,8 @@ const ROOTS: Array[StringName] = [&"root_0", &"root_1"]
 const ORES: Array[StringName] = [&"ore_copper", &"ore_iron", &"ore_gold", &"crystal_ore", &"gem"]
 
 # Motion.
-## Motes alive at most on one level, so five built levels keep under 600 motes.
+## Motes alive at most on one level of [constant Labyrinth.LEVEL_HEIGHT] rows, so five built
+## levels keep under 600 motes; a taller stage, built alone, has as many more as it is taller.
 const MAX_MOTES: int = 120
 const DUST_PER_TORCH: int = 4
 ## How far from its torch a dust mote drifts, in pixels, and how fast.
@@ -123,16 +125,20 @@ var exposure: Image
 var buried_draws: int = 0
 
 var _seed: int
-## Open tiles of the band and a one-tile border round it: 1 open, 0 earth.
-var _open: PackedByteArray = []
+## The band's open tiles, its first world row and how many rows it has.
+var _map: AmbienceOpenMap
 var _top: int
+var _rows: int
 var _band: int
+## The floor line, in world pixels, of the chamber being dressed.
 var _floor_px: float
+var _mote_cap: int = MAX_MOTES
 var _rng := RandomNumberGenerator.new()
 var _glow: Node2D
 var _buried: Node2D
 var _time: float = 0.0
-## Columns a shaft runs through on this level, the one from above included.
+## Of the chamber being dressed: the columns kept clear for a ladder or a doorway, and those of
+## them where its floor is whole (see [AmbienceClearings]).
 var _shaft_columns: Dictionary[int, bool] = {}
 var _incoming_columns: Dictionary[int, bool] = {}
 ## Dust homes: per torch, the open rectangle its chamber gives it.
@@ -140,12 +146,15 @@ var _rooms: Array[Rect2] = []
 ## Things that throw embers (torches and the campfire), and seconds to the next ember of each.
 var _emitters: Array[AmbienceProp] = []
 var _ember_timers: PackedFloat32Array = []
-## Where drips fall from and how often, and seconds to the next drip of each.
+## Where drips fall from, the floor line each falls to and how often, and seconds to the next
+## drip of each.
 var _drip_from: PackedVector2Array = []
+var _drip_floors: PackedFloat32Array = []
 var _drip_every: PackedFloat32Array = []
 var _drip_timers: PackedFloat32Array = []
-## Floor spans a beetle can cross, as (from x, to x) in world pixels.
+## Floor spans a beetle can cross, as (from x, to x) in world pixels, and each one's floor line.
 var _spans: PackedVector2Array = []
+var _span_floors: PackedFloat32Array = []
 var _ores: Array[Vector2i] = []
 var _gleams: Array[AmbienceProp] = []
 var _critter_timer: float
@@ -162,18 +171,16 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	_seed = level_seed(level)
 	_rng.seed = _seed
 	_band = view.band_of(depth)
-	_floor_px = (level.floor_y + 1) * TILE
-	_top = (depth - 1) * Labyrinth.LEVEL_HEIGHT
-	_map_open(view)
-	var shafts: Array[Rect2i] = [level.shaft_down]
-	if depth > 1:
-		shafts.append(view.labyrinth.level(depth - 1).shaft_down)
-		for x: int in range(shafts[1].position.x, shafts[1].end.x):
-			_incoming_columns[x] = true
-	for shaft: Rect2i in shafts:
-		for x: int in range(shaft.position.x, shaft.end.x):
-			_shaft_columns[x] = true
+	_map = AmbienceOpenMap.new(view, depth)
+	exposure = _map.exposure
+	_top = _map.top()
+	_rows = _map.rows()
+	_mote_cap = MAX_MOTES * _rows / Labyrinth.LEVEL_HEIGHT
+	var clearings := AmbienceClearings.new(view, depth)
 	for chamber: LabyrinthChamber in level.chambers:
+		_floor_px = (chamber.floor_row() + 1) * TILE
+		_shaft_columns = clearings.columns(chamber.index)
+		_incoming_columns = clearings.closed_columns(chamber.index)
 		_place_torches(chamber)
 		_place_props(chamber)
 		_place_drips(chamber)
@@ -612,14 +619,14 @@ func _glowing(prop: AmbienceProp, tint: StringName) -> void:
 func _place_details() -> void:
 	var top: int = _top
 	var kinds: Array = BURIED_KINDS[_band]
-	for cell_y: int in range(0, Labyrinth.LEVEL_HEIGHT, DETAIL_CELL.y):
+	for cell_y: int in range(0, _rows, DETAIL_CELL.y):
 		for cell_x: int in range(0, Labyrinth.LEVEL_WIDTH, DETAIL_CELL.x):
 			for attempt: int in DETAIL_TRIES:
 				var roll: int = _roll(20 + attempt, cell_x, cell_y)
 				var tile := Vector2i(
 					cell_x + roll % DETAIL_CELL.x, top + cell_y + (roll >> 8) % DETAIL_CELL.y
 				)
-				if tile.x >= Labyrinth.LEVEL_WIDTH or not _is_buried(tile):
+				if tile.x >= Labyrinth.LEVEL_WIDTH or not _map.is_buried(tile):
 					continue
 				var kind: StringName = kinds[(roll >> 16) % kinds.size()]
 				if depth == 1 and tile.y < ROOT_ROWS and (roll >> 20) % 4 != 0:
@@ -632,58 +639,7 @@ func _place_details() -> void:
 
 ## How much light reaches a world tile of this band: 1 in open space, less in the earth.
 func exposure_at(tile: Vector2i) -> float:
-	var local := Vector2i(tile.x, tile.y - _top)
-	if local.x < 0 or local.y < 0 or local.x >= exposure.get_width():
-		return AmbienceMood.EARTH_EXPOSURE
-	if local.y >= exposure.get_height():
-		return AmbienceMood.EARTH_EXPOSURE
-	return exposure.get_pixelv(local).r
-
-
-## Marks the open tiles of this band as the view draws them (chambers, tunnels and shafts,
-## including the shaft from the level above and those of the levels either side reaching in; a
-## stage shown as its own place has no shafts), and from them how much light reaches
-## each tile.
-func _map_open(view: LabyrinthView) -> void:
-	var width: int = Labyrinth.LEVEL_WIDTH + 2
-	_open.resize(width * (Labyrinth.LEVEL_HEIGHT + 2))
-	var band := Rect2i(-1, _top - 1, width, Labyrinth.LEVEL_HEIGHT + 2)
-	for rect: Rect2i in view.open_rects_near(depth):
-		var overlap: Rect2i = rect.intersection(band)
-		for y: int in range(overlap.position.y, overlap.end.y):
-			for x: int in range(overlap.position.x, overlap.end.x):
-				_open[(y - _top + 1) * width + x + 1] = 1
-	exposure = Image.create_empty(
-		Labyrinth.LEVEL_WIDTH, Labyrinth.LEVEL_HEIGHT, false, Image.FORMAT_R8
-	)
-	for y: int in Labyrinth.LEVEL_HEIGHT:
-		for x: int in Labyrinth.LEVEL_WIDTH:
-			var tile := Vector2i(x, _top + y)
-			var value: float = AmbienceMood.EARTH_EXPOSURE
-			if _is_open(tile):
-				value = 1.0
-			elif not _is_buried(tile):
-				value = AmbienceMood.EDGE_EXPOSURE
-			exposure.set_pixel(x, y, Color(value, 0.0, 0.0))
-
-
-func _is_open(tile: Vector2i) -> bool:
-	# Columns outside the band are earth, as is the sky.
-	if tile.x < 0 or tile.x >= Labyrinth.LEVEL_WIDTH or tile.y < 0:
-		return false
-	var row: int = tile.y - _top + 1
-	if row < 0 or row >= Labyrinth.LEVEL_HEIGHT + 2:
-		return false
-	return _open[row * (Labyrinth.LEVEL_WIDTH + 2) + tile.x + 1] == 1
-
-
-## Earth all round: not open, and no open neighbour, diagonals included.
-func _is_buried(tile: Vector2i) -> bool:
-	for dy: int in [-1, 0, 1]:
-		for dx: int in [-1, 0, 1]:
-			if _is_open(tile + Vector2i(dx, dy)):
-				return false
-	return true
+	return _map.exposure_at(tile)
 
 
 # --------------------------------------------------------------------- motion
@@ -708,6 +664,7 @@ func _place_drips(chamber: LabyrinthChamber) -> void:
 	if from == Vector2.INF:
 		return
 	_drip_from.append(from)
+	_drip_floors.append(_floor_px)
 	var every: float = _rng.randf_range(DRIP_EVERY.x, DRIP_EVERY.y)
 	_drip_every.append(every)
 	_drip_timers.append(_rng.randf_range(0.2, every))
@@ -728,10 +685,11 @@ func _place_span(chamber: LabyrinthChamber) -> void:
 				from = maxf(from, hole_to)
 	if to - from > TILE * 3:
 		_spans.append(Vector2(from, to))
+		_span_floors.append(_floor_px)
 
 
 func _add(mote: AmbienceMote) -> bool:
-	if motes.size() >= MAX_MOTES:
+	if motes.size() >= _mote_cap:
 		return false
 	motes.append(mote)
 	return true
@@ -828,7 +786,7 @@ func _spawn_drips(delta: float) -> void:
 			continue
 		_drip_timers[i] = _drip_every[i]
 		var drip := AmbienceMote.new(&"drip", _drip_from[i], 10.0)
-		drip.origin = Vector2(_drip_from[i].x, _floor_px)
+		drip.origin = Vector2(_drip_from[i].x, _drip_floors[i])
 		_add(drip)
 
 
@@ -855,14 +813,16 @@ func _spawn_critters(delta: float) -> void:
 		)
 		_add(flutter)
 	elif not _spans.is_empty():
-		var span: Vector2 = _spans[_rng.randi_range(0, _spans.size() - 1)]
+		var crossed: int = _rng.randi_range(0, _spans.size() - 1)
+		var span: Vector2 = _spans[crossed]
+		var floor_px: float = _span_floors[crossed]
 		var rightward: bool = _rng.randf() < 0.5
 		var start: float = span.x if rightward else span.y
 		var end: float = span.y if rightward else span.x
 		var beetle := AmbienceMote.new(
-			&"beetle", Vector2(start, _floor_px - 1), absf(end - start) / BEETLE_SPEED + 1.0
+			&"beetle", Vector2(start, floor_px - 1), absf(end - start) / BEETLE_SPEED + 1.0
 		)
-		beetle.origin = Vector2(end, _floor_px - 1)
+		beetle.origin = Vector2(end, floor_px - 1)
 		beetle.velocity = Vector2(signf(end - start) * BEETLE_SPEED, 0)
 		_add(beetle)
 

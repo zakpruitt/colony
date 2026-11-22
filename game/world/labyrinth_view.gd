@@ -11,6 +11,10 @@ extends Node2D
 ## Zoned (as the game's world is), each stage is shown as its own place instead: only the
 ## focus stage is built, with earth all round it, no shafts and no ladders, and a doorway in the
 ## far wall where each shaft left or arrived. Its earth is its area's look ([ZoneLook]).
+##
+## Zoned, a winding labyrinth's stage ([constant Labyrinth.Shape.WINDING]) is cut out whole, as
+## tall as [method Labyrinth.band_height]: its rooms on their floors, its tunnels, a ladder in
+## each of [member LabyrinthLevel.ladders], and a doorway at its course's exit and entry.
 
 ## Emitted after the level at [param depth] has been built, so others can decorate it.
 signal level_built(depth: int)
@@ -29,7 +33,6 @@ const SKY_ROWS: int = 24
 const SURROUND_ROWS: int = 8
 const DOORWAY: String = "res://assets/sprites/props/doorway.png"
 
-const _H: int = Labyrinth.LEVEL_HEIGHT
 const _W: int = Labyrinth.LEVEL_WIDTH
 const _LAYERS: Array[String] = ["Ground", "Edges", "Corners", "Ladder"]
 
@@ -52,7 +55,7 @@ func _ready() -> void:
 ## Tells the view where the action is, in world tiles; it builds and frees levels to suit. Zoned,
 ## only the level the focus is on is kept.
 func set_focus(world_tiles: Vector2) -> void:
-	var depth: int = maxi(1, floori(world_tiles.y / _H) + 1)
+	var depth: int = maxi(1, floori(world_tiles.y / _rows()) + 1)
 	var keep: int = 0 if zoned else KEEP_RADIUS
 	var reach: int = 0 if zoned else BUILD_RADIUS
 	for built: int in _levels.keys():
@@ -87,13 +90,25 @@ func band_of(depth: int) -> int:
 
 ## The doorways shown on [param depth] (zoned only), in world pixels: one where the shaft from it
 ## left (the way on) and one where the shaft from the stage before it arrived (the way back).
-## Each stands on the floor, two tiles wide, centred on the shaft's middle.
+## Each stands on the floor, two tiles wide, centred on the shaft's middle. On a winding stage
+## they are where its course leaves and, from stage 2 on, where it arrives, each on the floor of
+## the room that point is in.
 func doorways(depth: int) -> Array[Rect2]:
 	var rects: Array[Rect2] = []
 	if not zoned:
 		return rects
 	var level: LabyrinthLevel = labyrinth.level(depth)
 	var size: Vector2 = Vector2(PixelSheet.load_sheet(DOORWAY).size)
+	if _winding():
+		var marks: Array[float] = [level.course.exit]
+		if depth > 1:
+			marks.append(level.course.entry)
+		for mark: float in marks:
+			var feet: Vector2 = level.course.point_at(mark)
+			rects.append(
+				Rect2(feet.x * TILE - size.x / 2.0, (feet.y + 1.0) * TILE - size.y, size.x, size.y)
+			)
+		return rects
 	var floor_px: float = (level.floor_y + 1) * TILE
 	var columns: Array[int] = [labyrinth.shaft_column(depth)]
 	if depth > 1:
@@ -104,8 +119,9 @@ func doorways(depth: int) -> Array[Rect2]:
 	return rects
 
 
-## The open rectangles that reach into the band of [param depth], as drawn: zoned, its chambers
-## and tunnels; otherwise those of the levels either side too, shafts included.
+## The open rectangles that reach into the band of [param depth], as drawn: zoned, its chambers,
+## tunnels and the ladders inside it; otherwise those of the levels either side too, shafts
+## included.
 func open_rects_near(depth: int) -> Array[Rect2i]:
 	var rects: Array[Rect2i] = []
 	if zoned:
@@ -113,6 +129,7 @@ func open_rects_near(depth: int) -> Array[Rect2i]:
 		for chamber: LabyrinthChamber in level.chambers:
 			rects.append(chamber.rect)
 		rects.append_array(level.tunnels)
+		rects.append_array(level.ladders)
 		return rects
 	for near: int in range(maxi(1, depth - 1), depth + 2):
 		rects.append_array(labyrinth.level(near).open_rects())
@@ -140,11 +157,17 @@ func built_depths() -> Array[int]:
 
 ## True if this world tile is open space (walkable or climbable air): inside a chamber, a
 ## tunnel or a shaft. The surface sky and everything outside the band's columns are not. Zoned,
-## a shaft is earth.
+## a shaft is earth; and a winding stage that is built stands alone, the rows of earth drawn
+## round it being earth whatever the stages above and below hold there.
 func is_open(tile: Vector2i) -> bool:
 	if tile.y < 0 or tile.x < 0 or tile.x >= _W:
 		return false
-	var depth: int = tile.y / _H + 1
+	if zoned and _winding():
+		for rect: Rect2i in labyrinth.level(_stage_drawn_at(tile.y)).open_rects():
+			if rect.has_point(tile):
+				return true
+		return false
+	var depth: int = tile.y / _rows() + 1
 	var level: LabyrinthLevel = labyrinth.level(depth)
 	for rect: Rect2i in level.open_rects():
 		if rect.has_point(tile):
@@ -156,11 +179,12 @@ func is_open(tile: Vector2i) -> bool:
 ## "loam/buried_2", "loam/edge_1", "ladder/left"). Empty where nothing is built.
 func visuals_at(tile: Vector2i) -> PackedStringArray:
 	var layers: Array[TileMapLayer] = []
-	if tile.y < 0:
+	var depth: int = _stage_drawn_at(tile.y)
+	if tile.y < 0 and not _levels.has(depth):
 		if _surface != null:
 			layers.append(_surface)
-	elif _levels.has(tile.y / _H + 1):
-		for child: Node in _levels[tile.y / _H + 1].get_children():
+	elif _levels.has(depth):
+		for child: Node in _levels[depth].get_children():
 			if child is TileMapLayer:
 				layers.append(child as TileMapLayer)
 	var visuals: PackedStringArray = []
@@ -176,6 +200,27 @@ static func to_pixels(world_tiles: Vector2) -> Vector2:
 	return world_tiles * TILE
 
 
+## Rows of world each stage takes.
+func _rows() -> int:
+	return labyrinth.band_height()
+
+
+func _winding() -> bool:
+	return labyrinth.shape == Labyrinth.Shape.WINDING
+
+
+## The stage whose drawing holds world row [param row]: the one whose band it is in, or, for a
+## winding stage that is built, also the rows of earth drawn above and below it. Less than 1
+## above the ground.
+func _stage_drawn_at(row: int) -> int:
+	if zoned and _winding():
+		for built: int in _levels:
+			var top: int = (built - 1) * _rows()
+			if row >= top - SURROUND_ROWS and row < top + _rows() + SURROUND_ROWS:
+				return built
+	return floori(float(row) / _rows()) + 1
+
+
 func _build_level(depth: int) -> Node2D:
 	var level := Node2D.new()
 	level.name = "Depth%d" % depth
@@ -185,13 +230,13 @@ func _build_level(depth: int) -> Node2D:
 		level.add_child(layers[layer_name])
 	add_child(level)
 
-	var top: int = (depth - 1) * _H
-	var open: PackedByteArray = _open_grid(top)
+	var top: int = (depth - 1) * _rows()
+	var open: PackedByteArray = _open_grid(depth, top)
 	var sheet: StringName = LabyrinthTiles.STRATA[band_of(depth)]
 	var sheet_id: int = LabyrinthTiles.source(sheet)
 	if zoned:
 		_surround(layers["Ground"], sheet, top)
-	for y: int in range(top, top + _H):
+	for y: int in range(top, top + _rows()):
 		for x: int in _W:
 			var tile := Vector2i(x, y)
 			var sides: int = _open_sides(open, top, x, y)
@@ -222,8 +267,13 @@ func _build_level(depth: int) -> Node2D:
 				)
 	if zoned:
 		_place_doorways(level, depth)
+		var ladders: Array[Rect2i] = labyrinth.level(depth).ladders
+		_place_ladders(layers["Ladder"], ladders, top, top + _rows())
 	else:
-		_place_ladders(layers["Ladder"], depth, top)
+		var shafts: Array[Rect2i] = [labyrinth.level(depth).shaft_down]
+		if depth > 1:
+			shafts.append(labyrinth.level(depth - 1).shaft_down)
+		_place_ladders(layers["Ladder"], shafts, top, top + _rows())
 	return level
 
 
@@ -232,7 +282,7 @@ func _surround(layer: TileMapLayer, sheet: StringName, top: int) -> void:
 	var sheet_id: int = LabyrinthTiles.source(sheet)
 	var rows: Array[int] = []
 	rows.assign(range(top - SURROUND_ROWS, top))
-	rows.append_array(range(top + _H, top + _H + SURROUND_ROWS))
+	rows.append_array(range(top + _rows(), top + _rows() + SURROUND_ROWS))
 	for y: int in rows:
 		for x: int in _W:
 			var tile := Vector2i(x, y)
@@ -255,14 +305,12 @@ func _place_doorways(level: Node2D, depth: int) -> void:
 		level.add_child(door)
 
 
-## Ladders in every shaft crossing this band, and the ladder top standing on the floor above.
-func _place_ladders(layer: TileMapLayer, depth: int, top: int) -> void:
-	var shafts: Array[Rect2i] = [labyrinth.level(depth).shaft_down]
-	if depth > 1:
-		shafts.append(labyrinth.level(depth - 1).shaft_down)
+## A ladder down each of [param shafts] in the rows from [param top] to before [param end], and
+## its top piece standing on the floor it goes down from, the row above the shaft.
+func _place_ladders(layer: TileMapLayer, shafts: Array[Rect2i], top: int, end: int) -> void:
 	var ladder_id: int = LabyrinthTiles.source(LabyrinthTiles.LADDER)
 	for shaft: Rect2i in shafts:
-		for y: int in range(maxi(shaft.position.y - 1, top), mini(shaft.end.y, top + _H)):
+		for y: int in range(maxi(shaft.position.y - 1, top), mini(shaft.end.y, end)):
 			var prefix: String = "top_" if y < shaft.position.y else ""
 			for x: int in range(shaft.position.x, shaft.end.x):
 				var side: String = "left" if x == shaft.position.x else "right"
@@ -296,12 +344,21 @@ func _new_layer(layer_name: String) -> TileMapLayer:
 	return layer
 
 
-## Which tiles are open in the band starting at row [param top], with a one-tile border all
-## round so neighbours can be read at the edges: 1 for open, 0 for earth.
-func _open_grid(top: int) -> PackedByteArray:
+## Which tiles are open in the band of [param depth], starting at row [param top], with a
+## one-tile border all round so neighbours can be read at the edges: 1 for open, 0 for earth.
+func _open_grid(depth: int, top: int) -> PackedByteArray:
 	var grid: PackedByteArray = []
-	grid.resize((_W + 2) * (_H + 2))
-	for y: int in range(top - 1, top + _H + 1):
+	grid.resize((_W + 2) * (_rows() + 2))
+	if zoned and _winding():
+		# The stage alone: its own rooms, tunnels and ladders, whatever its neighbours hold.
+		var band := Rect2i(-1, top - 1, _W + 2, _rows() + 2)
+		for rect: Rect2i in labyrinth.level(depth).open_rects():
+			var inside: Rect2i = rect.intersection(band)
+			for y: int in range(inside.position.y, inside.end.y):
+				for x: int in range(inside.position.x, inside.end.x):
+					grid[(y - top + 1) * (_W + 2) + x + 1] = 1
+		return grid
+	for y: int in range(top - 1, top + _rows() + 1):
 		for x: int in range(-1, _W + 1):
 			if is_open(Vector2i(x, y)):
 				grid[(y - top + 1) * (_W + 2) + x + 1] = 1
