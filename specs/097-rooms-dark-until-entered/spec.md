@@ -23,8 +23,8 @@ the simulation does: it is how the stage is shown.
   and are as they are.
 - **R2. A room lights as the party enters.** When the party's anchor first enters a room, its torches
   light one after another, nearest the party first, about 0.15 seconds apart, each with a short flare (its
-  light swells past its rest and settles in about 0.3 seconds). A glint on something in that room goes out
-  as the light reaches it, as it does today in the party's light.
+  light swells past its rest and settles in about 0.3 seconds). A glint is untouched by this: it goes out in the
+  party's own light, as today, whatever the room's torches do.
 - **R3. The stage is remembered while the party is on it.** A room entered stays lit until the party
   leaves the stage. Arriving on a stage by any way (a crossing on or back, a revival, a journey, a loaded
   game, a new game) shows it with only the room the party stands in lit, and that room is lit at once,
@@ -62,7 +62,7 @@ world:
 | Requirement | Test | What it shows |
 |---|---|---|
 | R1 | `test_r1_only_the_partys_room_is_lit_on_arrival` | on 3 stages: every torch of the party's room shows its flame and gives light; every other room's torches show the unlit part and none is among the lights handed to the darkness; a cache room's torch the same |
-| R2 | `test_r2_a_room_lights_torch_by_torch` | walking into the next room: its torches light in order of distance from the party, each about 0.15 s after the one before, each light past its rest size and back; a glint in that room is gone once lit |
+| R2 | `test_r2_a_room_lights_torch_by_torch` | walking into the next room: its torches light in order of distance from the party, each about 0.15 s after the one before, each light past its rest size and back |
 | R3 | `test_r3_the_stage_is_remembered_until_left` | rooms walked stay lit through a fight and a walk back; after a crossing on and back the first stage shows only the party's room lit; the same after a revival, a journey and a load, with no flare |
 | R4 | `test_r4_glints_and_gates_show_in_the_dark` | a side quest's and a full cache's glint in an unlit room; a closed gate's sprite shown; the doorway drawn |
 | R5 | `test_r5_nothing_lights_for_the_past` | a stall in which the party walks three rooms: after it only the room it stands in is lit and no flare is running |
