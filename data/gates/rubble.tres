@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="GateDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/gate_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = &"rubble"
+display_name = "Rubble"
+description = "A fall of stones across the way"
+microskill = &"strongarm"
+work_seconds = 5.0

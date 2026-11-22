@@ -30,6 +30,10 @@ enum Kind {
 	AREA_CHANGED,
 	AREA_OPENED,
 	RESOURCE_GAINED,
+	GATE_STARTED,
+	GATE_OPENED,
+	GATE_SEALED,
+	CACHE_OPENED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -74,7 +78,12 @@ var target_id: int = -1
 ## For AREA_CHANGED and AREA_OPENED: the area's position in [method Content.area_ids].
 ## For RESOURCE_GAINED: how many, with [member target_id] the resource's position in
 ## [method Content.resource_ids] and [member source_id] the monster that dropped it, or the hero
-## who finished a side quest.
+## who finished a side quest or opened a cache's gate.
+## For the side path kinds: GATE_STARTED: the work in ticks, with [member source_id] the worker and
+## [member target_id] the gate's position in [method Content.gate_ids]; GATE_OPENED: the side
+## path's place in [member LabyrinthLevel.side_paths], with the same source and target;
+## GATE_SEALED: the needed microskill's position, with [member target_id] the gate's position;
+## CACHE_OPENED: the side path's place, with [member source_id] the hero who opened its gate.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.

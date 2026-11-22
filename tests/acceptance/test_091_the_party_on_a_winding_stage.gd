@@ -51,6 +51,17 @@ func _stand(
 	_show(simulation)
 
 
+## Empties every cache of [param stage] as of now, so [param simulation]'s party passes its side
+## paths and keeps to the route.
+func _empty_caches(simulation: Simulation, stage: int) -> void:
+	var e: Expedition = simulation.expedition
+	var paths: Array[SidePath] = simulation.labyrinth.level(stage).side_paths
+	assert_gt(paths.size(), 0, "stage %d has side paths to pass" % stage)
+	for index: int in paths.size():
+		e._side._opened[Vector2i(stage, index)] = simulation.tick
+		assert_false(SidePathRules.is_full(e, stage, index), "cache %d is empty" % index)
+
+
 ## The way [param room] is walked in the world by a party going on: 1 right, -1 left.
 func _heading_in(level: LabyrinthLevel, room: LabyrinthChamber) -> int:
 	var stretch: Vector2 = level.course.stretch_of(room.index)
@@ -225,6 +236,7 @@ func test_r3_a_hero_climbs_the_ladder_in_its_column() -> void:
 		var ends: Vector2 = _ladder_ends(line)
 		assert_gt(ends.x, line.start, "seed %d: stage 1 has a ladder on its course" % seed_value)
 		_stand(sim, 1, ends.x - 3.0, 2)
+		_empty_caches(sim, 1)
 		var ladder: Rect2i = level.ladders[0]
 		var rung: float = (ladder.position.x + ladder.size.x / 2.0) * TILE
 		var top: float = ladder.position.y * TILE
@@ -655,6 +667,7 @@ func test_r8_the_camera_follows_down_a_ladder() -> void:
 	var line: StageCourse = level.course
 	var ends: Vector2 = _ladder_ends(line)
 	_stand(sim, 1, ends.x - 3.0, 2)
+	_empty_caches(sim, 1)
 	var camera: WorldCamera = _world.camera
 	var e: Expedition = sim.expedition
 	var from_line: float = _px(line.point_at(ends.x)).y

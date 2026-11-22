@@ -332,6 +332,11 @@ by value, not with `assert_eq` against ints.
   instead, or a row in `CAPS`, with a test in `tools/tests/` that builds a made-up tree with the mistake in
   it (`test_082_text_rules.py`). A test that only proves a refactor happened (a name is gone, a call
   moved) is not written: it fails on a harmless rename and catches nothing new; the reviewer reads the diff.
+- **A failing run prints only its last 400 lines.** A test that fails an assert for every seed and stage
+  fills them, and the names of the other failing tests are cut off: `Failing Tests 4` with two names in
+  sight. Keep the output (`python tools/dev.py test --shard=2/4 > .shots/shard2.log 2>&1`), and when the
+  names are still missing run the scripts of that shard one at a time with `--only=`. Do not pipe a shard
+  through a `grep` that keeps a few lines round each failure: it loses the same names.
 - **`check` runs each lint on the repository once.** A tool test tries the lint on a made-up tree; it does
   not run it on the repository again, and it does not call a real step that runs the tool tests (patch
   `dev.run` and read the commands, as `test_077`'s art step test does).

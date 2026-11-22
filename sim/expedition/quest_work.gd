@@ -37,9 +37,13 @@ static func meet(run: Expedition, room: LabyrinthChamber, quest: StringName) -> 
 		run._emit(SimEvent.Kind.SIDE_QUEST_MISSED, -1, quest_index, skill_index, false)
 
 
-## Waits out the work, then gives the reward, clears the chamber and travels on.
+## Waits out the work, then gives the reward, clears the chamber and travels on. On a side path
+## the work is its gate's ([method SidePathWalk.work]).
 static func work(run: Expedition) -> void:
 	if run._tick - run._work_start < run._work_ticks:
+		return
+	if run.side_path >= 0:
+		run._side.work(run)
 		return
 	var def: SideQuestDef = Content.side_quest(run._work_quest)
 	var quest_index: int = Content.side_quest_ids().find(run._work_quest)

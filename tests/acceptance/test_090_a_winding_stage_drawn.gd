@@ -27,14 +27,26 @@ func _every_stage(each: Callable) -> void:
 			view.free()
 
 
-## The open tiles of [param level]: those of its rooms, tunnels and ladders.
+## The rooms of [param level]: those of its route, then its side paths' cache rooms.
+func _rooms(level: LabyrinthLevel) -> Array[LabyrinthChamber]:
+	var rooms: Array[LabyrinthChamber] = level.chambers.duplicate()
+	for path: SidePath in level.side_paths:
+		rooms.append(path.room)
+	return rooms
+
+
+## The open tiles of [param level]: those of its rooms, tunnels and ladders, its side paths'
+## among them, each listed here from the side path itself.
 func _open_tiles(level: LabyrinthLevel) -> Dictionary[Vector2i, bool]:
 	var open: Dictionary[Vector2i, bool] = {}
 	var rects: Array[Rect2i] = []
-	for room: LabyrinthChamber in level.chambers:
+	for room: LabyrinthChamber in _rooms(level):
 		rects.append(room.rect)
 	rects.append_array(level.tunnels)
 	rects.append_array(level.ladders)
+	for path: SidePath in level.side_paths:
+		rects.append(path.tunnel)
+		rects.append(path.ladder)
 	for rect: Rect2i in rects:
 		for y: int in range(rect.position.y, rect.end.y):
 			for x: int in range(rect.position.x, rect.end.x):
@@ -160,8 +172,10 @@ func test_r2_every_room_tunnel_and_ladder_is_open() -> void:
 			assert_eq(near.size(), open.size(), "%s: open_rects_near covers the stage" % what)
 			assert_true(near.has_all(open.keys()), "%s: open_rects_near covers the stage" % what)
 			var floors: Dictionary[int, bool] = {}
-			for room: LabyrinthChamber in level.chambers:
-				floors[room.floor_row()] = true
+			assert_gt(level.side_paths.size(), 0, "%s: the stage has a side path" % what)
+			for room: LabyrinthChamber in _rooms(level):
+				if room.index >= 0:
+					floors[room.floor_row()] = true
 				var bare_floor: int = 0
 				var bare_ceiling: int = 0
 				var unshaded: int = 0
@@ -191,7 +205,11 @@ func test_r3_a_ladder_stands_between_its_rooms() -> void:
 		func(what: String, level: LabyrinthLevel, view: LabyrinthView) -> void:
 			assert_gt(level.ladders.size(), 0, "%s: the stage has a ladder" % what)
 			var want: Dictionary[Vector2i, String] = {}
-			for ladder: Rect2i in level.ladders:
+			var ladders: Array[Rect2i] = level.ladders.duplicate()
+			for path: SidePath in level.side_paths:
+				if path.ladder.has_area():
+					ladders.append(path.ladder)
+			for ladder: Rect2i in ladders:
 				for y: int in range(ladder.position.y - 1, ladder.end.y):
 					for x: int in range(ladder.position.x, ladder.end.x):
 						var side: String = "left" if x == ladder.position.x else "right"
@@ -199,7 +217,7 @@ func test_r3_a_ladder_stands_between_its_rooms() -> void:
 						want[Vector2i(x, y)] = ("top_" if top else "") + side
 				var upper: bool = false
 				var lower: bool = false
-				for room: LabyrinthChamber in level.chambers:
+				for room: LabyrinthChamber in _rooms(level):
 					upper = upper or room.floor_row() == ladder.position.y - 1
 					lower = lower or room.floor_row() == ladder.end.y - 1
 				assert_true(upper and lower, "%s: %s joins two floors" % [what, ladder])

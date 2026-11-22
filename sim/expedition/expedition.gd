@@ -75,6 +75,8 @@ var stable_seconds: float:
 		_stable_set = value
 ## The fight in progress, or null.
 var battle: Battle
+## The side path the party is on (its place in the level's side_paths), or -1 on the main route.
+var side_path: int = -1
 ## The orders. Read-only outside the class: see [method command_pace].
 var pace: Pace = Pace.STEADY
 var guardian_order: GuardianOrder = GuardianOrder.CHALLENGE
@@ -115,8 +117,11 @@ var _chambers: Dictionary[Vector2i, ChamberState] = {}
 ## a roll depends only on the seed and those three numbers, so this only saves rolling twice, and
 ## hands the view and the battle the same objects. Not in the hash.
 var _rolled: Dictionary[Vector3i, Array] = {}
+## The caches opened, and the party's trip down a side path.
+var _side: SidePathWalk = SidePathWalk.new()
 ## The side quest being done while WORKING: its chamber as Vector2i(depth, index), its id, the
-## worker's hero id, the tick the work began and how many ticks it takes.
+## worker's hero id, the tick the work began and how many ticks it takes. A gate being opened
+## has the last three and no quest.
 var _work_key: Vector2i = Vector2i(0, -1)
 var _work_quest: StringName = &""
 var _worker: int = -1
@@ -244,6 +249,8 @@ func chamber() -> LabyrinthChamber:
 		State.FIGHTING:
 			if _battle_key.x == depth and _battle_key.y >= 0:
 				return level.chambers[_battle_key.y]
+	if side_path >= 0:
+		return _side.chamber(self)
 	var index: int = level.course.chamber_at(x)
 	return level.chambers[index] if index >= 0 else null
 
@@ -388,16 +395,16 @@ func hash_parts() -> Array:
 		_work_ticks,
 		["areas", area, _here.id, _areas.hash_parts()],
 	]
+	parts.append_array(_side.hash_parts(self))
 	var keys: Array[Vector2i] = []
 	keys.assign(_chambers.keys())
 	keys.sort()
 	for key: Vector2i in keys:
 		var fill: ChamberState = _chambers[key]
-		parts.append(
-			[key, fill.visit, fill.cleared_tick, fill.missed, _combatant_parts(fill.monsters)]
-		)
+		var held: Array = EncounterRoll.hash_parts(fill.monsters)
+		parts.append([key, fill.visit, fill.cleared_tick, fill.missed, held])
 	if battle != null:
-		parts.append([battle.tick, battle.result(), _combatant_parts(battle.fighters())])
+		parts.append([battle.tick, battle.result(), EncounterRoll.hash_parts(battle.fighters())])
 	# Only when off their defaults or asked for, to keep the hash of a run without orders.
 	var asked: bool = _pending_pace >= 0 or _pending_guardian_order >= 0
 	if pace != Pace.STEADY or guardian_order != GuardianOrder.CHALLENGE or asked:
@@ -415,8 +422,9 @@ func _apply_commands() -> void:
 	var busy: bool = state == State.FIGHTING or state == State.REVIVING or state == State.WORKING
 	if _areas.pending_area != &"" and not busy:
 		_areas.depart(self)
-	# While the party is down a command waits, so it wins over the fallback target on revival.
-	if _pending_target <= 0 or state == State.REVIVING:
+	# While the party is down a command waits, so it wins over the fallback target on revival;
+	# on a side path it waits for the main course.
+	if _pending_target <= 0 or state == State.REVIVING or side_path >= 0:
 		return
 	var wanted: int = _pending_target
 	_pending_target = 0
@@ -480,8 +488,9 @@ func _travel() -> void:
 	var level: LabyrinthLevel = _labyrinth.level(depth)
 	var holding: bool = is_holding()
 	var goal: float = PartyPlaces.walk_goal(self, holding)
+	if _side.travel(self, goal):
+		return
 	_walk_toward(goal)
-
 	var key: Vector2i = _key_here()
 	if key != _entered_key:
 		_entered_key = key
@@ -513,8 +522,7 @@ func _walk_toward(goal: float) -> void:
 		return
 	if int(direction) != facing:
 		_turn(int(direction))
-	var speed: float = PARTY_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
-	var stride: float = minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - x))
+	var stride: float = PartyPlaces.stride(self, goal)
 	x += direction * stride
 	_odometer += stride
 
@@ -533,6 +541,7 @@ func _reset_trail() -> void:
 
 ## Puts the anchor at distance [param at] of the current depth's course, facing the way on.
 func _place(at: float) -> void:
+	_side.arrived(self)
 	x = at
 	facing = Arrival.facing(PartyPlaces.course(self), x)
 	_reset_trail()
@@ -885,7 +894,3 @@ func _emit(
 	kind: SimEvent.Kind, source: int = -1, target: int = -1, amount: int = 0, flag: bool = false
 ) -> void:
 	_events.append(SimEvent.new(kind, _tick, source, target, amount, flag))
-
-
-func _combatant_parts(fighters: Array) -> Array:
-	return EncounterRoll.hash_parts(fighters)

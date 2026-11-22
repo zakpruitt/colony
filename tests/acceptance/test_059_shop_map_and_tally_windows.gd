@@ -400,9 +400,13 @@ func test_r7_true_in_a_crowded_frame() -> void:
 	_crowd_ready(steady)
 	var fight_line := RegEx.create_from_string(FIGHT_LINE)
 	var places: Dictionary[String, bool] = {}
-	for batch: int in CROWD_TARGETS.size():
+	# Every target once, then round again until fights were seen on more than two stages: a
+	# party that takes side paths is longer on each.
+	for batch: int in CROWD_TARGETS.size() * 3:
+		if batch >= CROWD_TARGETS.size() and places.size() > 2:
+			break
 		for main: Main in [crowded, steady]:
-			main.simulation.set_target_depth(CROWD_TARGETS[batch])
+			main.simulation.set_target_depth(CROWD_TARGETS[batch % CROWD_TARGETS.size()])
 		_frame(crowded, 300)
 		for i: int in 300:
 			_frame(steady)

@@ -11,9 +11,12 @@ extends RefCounted
 const HERO_SPACING: float = 1.0
 
 
-## The course of the stage [param run]'s party is on.
+## The course [param run]'s party is on: its stage's, or, on a side path, that path's own.
 static func course(run: Expedition) -> StageCourse:
-	return run.labyrinth.level(run.depth).course
+	var level: LabyrinthLevel = run.labyrinth.level(run.depth)
+	if run.side_path >= 0:
+		return level.side_paths[run.side_path].course
+	return level.course
 
 
 ## Feet position, in world tiles, of the party's anchor (the point the heroes line up behind).
@@ -60,7 +63,18 @@ static func of(run: Expedition, hero_id: int, rank: int) -> Vector2:
 		Expedition.State.REVIVING:
 			if run._fallen.has(hero_id):
 				return run._fallen[hero_id]
+	# Walking into a side path, a hero not yet turned onto it is still on the main course.
+	var short: float = HERO_SPACING * rank - run.x
+	if run.side_path >= 0 and run.facing > 0 and short > 0.0:
+		return run._side.before(run, short)
 	return course(run).point_at(_formation_distance(run, rank))
+
+
+## How far [param run]'s anchor walks in one tick toward [param goal], a distance along its
+## course: its speed's worth, or what is left.
+static func stride(run: Expedition, goal: float) -> float:
+	var speed: float = Expedition.PARTY_SPEED * run._upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
+	return minf(speed / Simulation.TICKS_PER_SECOND, absf(goal - run.x))
 
 
 ## The distance [param run]'s anchor walks toward on its stage: the way on or the way back toward

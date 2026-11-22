@@ -48,6 +48,12 @@ static func on_quest(run: Expedition, worker: int, stage: int) -> void:
 	_give(run, worker, amount_at(_QUEST_SIZE, stage))
 
 
+## The party opened a cache on [param stage], [param opener] having opened its gate: it pays
+## [param drops] large monsters' drops of the area's resource.
+static func on_cache(run: Expedition, opener: int, stage: int, drops: int) -> void:
+	_give(run, opener, drops * amount_at(MonsterDef.Size.LARGE, stage))
+
+
 static func _give(run: Expedition, source: int, amount: int) -> void:
 	var id: StringName = run._here.resource
 	var position: int = Content.resource_ids().find(id)

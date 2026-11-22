@@ -195,7 +195,7 @@ func arrive(run: Expedition) -> void:
 
 
 ## Makes [param id] the area [param run] is in, with its labyrinth and stages, and its chambers
-## fresh.
+## fresh and its caches full.
 func _enter(run: Expedition, id: StringName) -> void:
 	run.area = id
 	run._here = Content.area(id)
@@ -207,3 +207,4 @@ func _enter(run: Expedition, id: StringName) -> void:
 	run._chambers.clear()
 	run._rolled.clear()
 	run._fallen.clear()
+	run._side.forget(run)
