@@ -242,7 +242,7 @@ and the same commands give the same run; a test asserts it.
 
 ## Content
 
-Classes, talents, items and monsters are custom resource classes with typed `@export` fields, stored as text
+Classes, talents, items, monsters and gates are custom resource classes with typed `@export` fields, stored as text
 `.tres` files under `data/`. Adding content means adding a file, not code. Each content class extends
 `ContentDef` (`sim/defs/content_def.gd`), which declares `key()` (what `Content` finds the definition by: its
 `id`, or a talent tree's `class_id`, one tree a class) and `validate() -> PackedStringArray` (one line per
@@ -424,6 +424,48 @@ come.
 `Expedition.monster_id` leaves room for 8 chambers a stage, so a winding stage's rooms 8 and 9 share
 ids with rooms 0 and 1 of the next stage. No two of those are in one fight, and the world shows one
 stage at a time, forgetting a stage's monsters as it leaves; the span has not been widened.
+
+## Side paths and caches
+
+A winding level has up to three **side paths** (`LabyrinthLevel.side_paths`, `SidePath` in
+`sim/labyrinth/`), fitted after its main route by `SidePathLayout.fit` from a stream of their own
+(`side/<depth>`), so the route, its rooms and its course are what they are without them. Each leaves a
+room that is neither the first nor the last, one a room: by its own ladder to a cache room on a
+neighbouring floor, or along the room's floor to a wall nothing joins and through its own tunnel. A
+level where none fits has none (none has been seen with fewer than one). The cache room is a
+`LabyrinthChamber` of kind `CACHE` with index -1: it is not in `chambers`, holds no monsters and no side
+quest. `side_rects()` and `side_ladders()` are what a view cuts out of the earth and draws beside the
+route's own.
+
+| Field | Is |
+|---|---|
+| `gate` | The id of its `GateDef` (`data/gates/`): the microskill that opens it and the seconds it takes |
+| `at` | Where it leaves, as a distance along the main course |
+| `course` | Its own `StageCourse`, from 0 at `at` to the cache room's far wall |
+| `gate_at` | Where the gate stands on that course: 0 at a ladder, the tunnel's mouth otherwise, at least 2 tiles from the route's ladders and doorways |
+| `room`, `tunnel`, `ladder` | The cache room and the one of the two that joins it (the other has no area) |
+
+**Walking one** (`SidePathWalk`, held by the `Expedition`; the questions anyone may ask are
+`SidePathRules`). Travelling on the main course, a party that reaches `at` with the cache full and a
+living hero with the gate's microskill turns off: `Expedition.side_path` is the path's place in the
+level's list (else -1), `x` is a distance along the path's course and `PartyPlaces.course(run)` is that
+course, so everything that places heroes goes on working. It walks to `gate_at`, is WORKING for the
+gate's seconds (`GATE_STARTED`, then `GATE_OPENED`; `working_quest()` is empty), walks to the far wall,
+opens the cache as its anchor steps onto the cache room's floor (`CACHE_OPENED`, then `GOLD_GAINED`,
+`XP_GAINED` for each living hero and `RESOURCE_GAINED`), walks back and stands at `at` again facing
+the way it was going. `chamber()` is the cache room while the anchor is in it and null on the rest of
+the path. With nobody able the party walks on and `GATE_SEALED` is told once for that gate until the
+party next arrives on the stage. An opened cache is passed for `SidePathRules.REFILL_SECONDS`; a wipe or
+a change of stage does not fill it, a journey to the area does. A target asked for on a side path waits
+until the party is back on the main course. Nothing of this is saved: a loaded party stands on a main
+course with every cache full, and the state hash gains a part only once a party has turned onto a side
+path.
+
+**On screen.** `LabyrinthView` cuts `side_rects()` out of the earth with the route's rectangles
+(`is_open`, `open_rects_near`) and draws `side_ladders()` as it draws the route's; `World` gives a
+hero's `LadderRoute` both lists, so a hero climbs a side ladder in its column; `AmbienceClearings`
+keeps props off a side ladder's columns and the column by a side tunnel's mouth. Nothing is drawn for a
+gate or a cache.
 
 ## Pace by depth
 

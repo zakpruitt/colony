@@ -229,6 +229,10 @@ showcase's leftovers, not the game.</p>
   floors, a doorway in and a doorway on. A new game, a saved game (it keeps all its progress; the party
   stands at the doorway in of its safe stage), the time away and the showcase all play them. The
   separate preview scene is gone: the game is the preview.</td></tr>
+  <tr><td>093 Side paths and caches</td><td>Every stage has up to three side paths off its route, each
+  closed by a gate one microskill opens and ending in a small room with a cache. A party that can open
+  one turns off, works the gate, walks in, takes the cache and comes back. Nothing is drawn for the gate
+  or the cache yet, and the ticker does not speak of them.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -457,6 +461,28 @@ monsters. Each needs a <em>microskill</em>, a small knack a hero picks up at a c
 plus a resource drop. If nobody can, the party walks past and the quest waits for a later visit; a tripwire
 instead springs and every hero loses a fifth of their health (never down to 0, so it cannot wipe the
 party). A quest out in the dark shows a small white glint so you can spot it from afar.</p>
+
+<h3>Side paths and caches</h3>
+<p>Every stage has one to three <em>side paths</em>: a ladder or a short tunnel off a room of the route,
+ending in a small room that holds a <em>cache</em>. A <em>gate</em> closes each, and a microskill opens
+it.</p>
+<div class="table-wrap">
+<table>
+  <tr><th>Gate</th><th>Needs</th><th>Takes</th></tr>
+  <tr><td>Locked gate</td><td>Lockpicker</td><td>4 seconds</td></tr>
+  <tr><td>Rubble</td><td>Strongarm</td><td>5 seconds</td></tr>
+  <tr><td>Rune seal</td><td>Runereader</td><td>5 seconds</td></tr>
+  <tr><td>Hidden crack</td><td>Trapspotter</td><td>3 seconds</td></tr>
+</table>
+</div>
+<p>When the party comes by a gate someone alive can open, it turns off the route, that hero works the
+gate, and everyone walks to the far wall of the cache room and back, then goes on the way it was going.
+The cache pays as the party steps into its room: gold worth six kills of that stage (Fat Purse raises
+it), XP worth three kills for every living hero, and three large monsters' drops of the area's resource.
+An opened cache stays empty, its gate open, for 10 minutes; the party walks past it until then. A wipe or
+a change of stage does not refill it; travelling to the area again does. If nobody can open a gate the
+party walks past. No monsters and no side quests are on a side path. The gate and the cache are not
+drawn yet: you see the party stop, walk into a small empty room and come back.</p>
 
 <h3>Camp upgrades</h3>
 <p>Gold buys permanent upgrades for the whole party, rank by rank, each rank dearer than the last. The
@@ -954,10 +980,10 @@ opened). The screen draws from those events, in order, and not from the simulati
 the frame. That matters when many ticks arrive in one frame (4x speed, a hitch): the most common kind of
 bug in this project has been a view reading the live state too early.</p>
 <h3>Content as data</h3>
-<p>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills and side quests are
+<p>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills, side quests and gates are
 data files under <code>data/</code>, not code. Adding a monster means adding a file. Every data file is
 checked automatically. Today: 4 hero classes, 13 monsters and 4 guardians, 4 areas, 4 resources, 44
-abilities in 4 talent trees, 5 upgrades, 5 microskills and 5 side quests.</p>
+abilities in 4 talent trees, 5 upgrades, 5 microskills, 5 side quests and 4 gates.</p>
 <h3>Fights</h3>
 <p>A fight happens on a chamber floor, as a line. Heroes come in from one side in formation; monsters
 spread over the far half. Every tick, each fighter picks the nearest enemy (the cleric instead picks
@@ -1018,7 +1044,7 @@ a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</cod
   <tr><td>Format the code</td><td><code>python tools/dev.py format</code></td></tr>
   <tr><td>Rebuild the import cache</td><td><code>python tools/dev.py import</code></td></tr>
   <tr><td>Run the game with no window and print what happened as numbers</td><td><code>python tools/dev.py sim --seed=1 --minutes=60</code></td></tr>
-  <tr><td>The same on the stages the game plays (three floors, ladders, a route that doubles back); without <code>--winding</code> it runs the old single-floor stages, which the game no longer makes</td><td><code>python tools/dev.py sim --seed=1 --minutes=60 --winding</code></td></tr>
+  <tr><td>The same on the stages the game plays (three floors, ladders, a route that doubles back); without <code>--winding</code> it runs the old single-floor stages, which the game no longer makes. With it the summary also counts the caches opened (<code>caches_opened</code>)</td><td><code>python tools/dev.py sim --seed=1 --minutes=60 --winding</code></td></tr>
   <tr><td>Screenshot the running game into <code>.shots/</code>: the whole window, world and UI layer, at 1280x720</td><td><code>python tools/dev.py shot --name=look --seconds=5</code></td></tr>
   <tr><td>The same, as a 1920x1080 window shows it (the UI's smallest room, 960x540)</td><td><code>python tools/dev.py shot --name=look --ui-room=960x540</code></td></tr>
   <tr><td>Bake sprites from their text files</td><td><code>python tools/art.py bake</code></td></tr>
@@ -1071,7 +1097,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><th>Folder</th><th>Holds</th></tr>
   <tr><td><code>sim/</code></td><td>The simulation: the game's rules</td></tr>
   <tr><td><code>game/</code></td><td>Scenes, sprites, effects, the HUD</td></tr>
-  <tr><td><code>data/</code></td><td>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills and side quests as data files</td></tr>
+  <tr><td><code>data/</code></td><td>Classes, monsters, areas, abilities, talent trees, upgrades, resources, microskills, side quests and gates as data files</td></tr>
   <tr><td><code>assets/</code></td><td>Sprites (text files and the images baked from them), the palette, the font, audio</td></tr>
   <tr><td><code>tests/</code></td><td>Automated tests</td></tr>
   <tr><td><code>tools/</code></td><td><code>dev.py</code>, <code>art.py</code>, <code>sfx.py</code> and their helpers</td></tr>
