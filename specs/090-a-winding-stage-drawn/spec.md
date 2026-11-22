@@ -1,9 +1,9 @@
 # 090 — A winding stage, drawn
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 089
-- **Pull request:** —
+- **Pull request:** [#90](https://github.com/zakpruitt/colony/pull/90)
 
 ## Intent
 

@@ -1,6 +1,6 @@
 # 091 — The party on a winding stage
 
-- **Status:** draft
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 090
 - **Pull request:** —
@@ -87,4 +87,6 @@ R1 is the unedited suite. R9 is the lane's report and Zak's playtest.
 
 ## Open questions
 
-None, once 090 has landed and its interfaces are checked against this text.
+None. (090 landed as #90: `ColonyTest.winding_simulation`, `winding_labyrinth` and `zoned_view` make the
+test's world; `WorldCamera.rows` and `rows_of` are the camera's limits, which the revival's camera must be
+let out of while it travels to another stage.)
