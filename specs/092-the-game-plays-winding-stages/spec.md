@@ -84,13 +84,17 @@ lane's list. R7 and R8 are the lane's report and Zak's playtest.
 ## Paths
 
 - `game/main.gd`, `game/dev/` (the showcase; the preview's removal), `game/save/` if the replay needs it
+- `game/hud/depth_ladder.gd`, `game/hud/goals.gd`: only where each asks whether a stage's guardian is
+  beaten, which reads the room the way on leaves from by the course
+  (`ChamberRules.way_on_room(level.course)`) instead of a shaft's room, null on a winding stage
 - `sim/simulation.gd` (`from_save`'s parameter only)
 - `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (new), `tests/colony_test.gd`, `tests/support/`
 - The tests the trial saw fail, to repair as R6 says: `test_014_save_progress.gd`,
   `test_018_seeing_the_loop.gd`, `test_032_game_speed.gd`, `test_035_party_orders.gd`,
   `test_038_rough_edges.gd`, `test_049_areas.gd`, `test_054_zones_on_screen.gd`,
   `test_061_the_frame_of_the_screen.gd` (and its test base), `test_062_goals_stages_and_news.gd` (and
-  `frame_062_test_base.gd`), `test_066_milestones_announced.gd`, `test_080_frame_pieces.gd`, all under
+  `frame_062_test_base.gd`), `test_066_milestones_announced.gd`, `test_080_frame_pieces.gd`,
+  `test_019_away_progress.gd` (its reference loads the save in the shape `Main` plays), all under
   `tests/acceptance/`; and `test_090_a_winding_stage_drawn.gd` (its R7 test goes)
 - `docs/architecture.md`, `docs/wiki/index.html`, `CLAUDE.md` (the preview's rows and lesson)
 
