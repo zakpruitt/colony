@@ -176,6 +176,21 @@ In `tests/acceptance/test_093_side_paths_and_caches.gd` (extends `ColonyTest`):
 - Existing tests that list every kind of content, every `LabyrinthChamber.Kind` or every `SimEvent.Kind`,
   to add the new ones only: `tests/acceptance/test_072_content_table.gd`, `test_078_sim_base_types.gd`,
   and whatever else the lane's first full run shows failing for that reason alone (named in its report)
+- Existing tests that fail only because a winding stage now has side paths, each repaired to prove what it
+  proved in a situation at least as hard (none removed; one line each in the report):
+  - `tools/tests/godot/test_sim_winding.py` `test_r8_winding_run`: the winding summary's keys are the flat
+    one's and `caches_opened`
+  - `tests/acceptance/test_089_winding_stages.gd`: `test_r5_a_level_is_its_seed_area_and_stage` (every kind
+    but `CACHE` is seen in `chambers`, and `CACHE` on a side path's room), `test_r7_a_run_plays_on_winding_stages`
+    (the rooms of the route in order, the -1 of a side path apart)
+  - `tests/acceptance/test_090_a_winding_stage_drawn.gd`: `test_r2_every_room_tunnel_and_ladder_is_open`,
+    `test_r3_a_ladder_stands_between_its_rooms`, `test_r5_the_lowest_room_is_lit_as_the_highest` (the open
+    tiles and ladders expected are the route's and the side paths'; nothing else is open)
+  - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd`: `test_r3_a_hero_climbs_the_ladder_in_its_column`,
+    `test_r8_the_camera_follows_down_a_ladder` (the party is stood where no side path lies between it and
+    the ladder, or the stage's caches are emptied first; the ladder is still a main route ladder)
+  - `tests/acceptance/test_059_shop_map_and_tally_windows.gd` `test_r7_true_in_a_crowded_frame` (its setup
+    plays on until fights were seen on more than two stages)
 - `docs/architecture.md`, `docs/standards.md` (the content row), `docs/wiki/index.html`
 
 ## Open questions
