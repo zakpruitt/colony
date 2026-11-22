@@ -175,7 +175,7 @@ func test_r1_the_view_cuts_the_side_paths() -> void:
 		var sim: Simulation = winding_simulation(found.x)
 		raise_party(sim, SKILLED)
 		var level: LabyrinthLevel = sim.labyrinth.level(1)
-		var path: SidePath = _approach(sim, 1, found.y, 1)
+		var path: SidePath = _stand_before(sim, 1, found.y, 1)
 		_show(sim)
 		var e: Expedition = sim.expedition
 		var what: String = "seed %d, by a %s" % [found.x, "tunnel" if tunnel else "ladder"]
@@ -288,7 +288,7 @@ func test_r3_the_party_opens_a_gate_and_comes_back() -> void:
 func _one_trip(sim: Simulation, index: int, way: int, what: String) -> void:
 	var e: Expedition = sim.expedition
 	var level: LabyrinthLevel = sim.labyrinth.level(1)
-	var path: SidePath = _approach(sim, 1, index, way)
+	var path: SidePath = _stand_before(sim, 1, index, way)
 	var def: GateDef = Content.gate(path.gate)
 	var gate: int = Content.gate_ids().find(path.gate)
 	var worker: int = _lowest_with(sim, def.microskill)
@@ -296,7 +296,9 @@ func _one_trip(sim: Simulation, index: int, way: int, what: String) -> void:
 	assert_eq(SidePathRules.opener(e, 1, index).id, worker, "%s: the opener asked for" % what)
 	assert_true(SidePathRules.is_full(e, 1, index), "%s: its cache is full" % what)
 
-	var events: Array[SimEvent] = _run_until(sim, func() -> bool: return e.side_path == index, 20)
+	var events: Array[SimEvent] = _events_until(
+		sim, func() -> bool: return e.side_path == index, 20
+	)
 	assert_eq(e.x, 0.0, "%s: it turns onto the side path's course at its start" % what)
 	assert_eq(PartyPlaces.course(e), path.course, "%s: the course asked for is the path's" % what)
 	assert_true(
@@ -304,7 +306,7 @@ func _one_trip(sim: Simulation, index: int, way: int, what: String) -> void:
 		"%s: where it leaves the main course" % what
 	)
 	events.append_array(
-		_run_until(sim, func() -> bool: return e.state == Expedition.State.WORKING, 100)
+		_events_until(sim, func() -> bool: return e.state == Expedition.State.WORKING, 100)
 	)
 	assert_almost_eq(e.x, path.gate_at, 0.001, "%s: it stops at the gate" % what)
 	assert_eq(e.worker_id(), worker, "%s: the lowest hero with the skill works" % what)
@@ -411,11 +413,11 @@ func _pay_once(area_id: StringName, stage: int, rank: int) -> int:
 	if area_id != e.area:
 		e.travel.open[area_id] = true
 		sim.set_destination(area_id, 1)
-		_run_until(sim, func() -> bool: return e.place == area_id, 400)
+		_events_until(sim, func() -> bool: return e.place == area_id, 400)
 		sim.drain_events()
 	assert_eq(e.place, area_id, "%s: the party is there" % what)
 	sim.upgrades.set_rank(&"fat_purse", rank)
-	var path: SidePath = _approach(sim, stage, 0, 1)
+	var path: SidePath = _stand_before(sim, stage, 0, 1)
 	var worker: int = _lowest_with(sim, Content.gate(path.gate).microskill)
 	# One hero who opens no gate lies dead: a cache gives the dead nothing.
 	var dead: Hero = sim.party.heroes[3]
@@ -438,7 +440,7 @@ func _pay_once(area_id: StringName, stage: int, rank: int) -> int:
 
 	var told: Array[SimEvent] = []
 	var done: Callable = func() -> bool: return not SidePathRules.is_full(e, stage, 0)
-	for event: SimEvent in _run_until(sim, done, 1200):
+	for event: SimEvent in _events_until(sim, done, 1200):
 		var mine: bool = event.tick == sim.tick
 		if mine and event.kind in [SimEvent.Kind.LEVEL_UP, SimEvent.Kind.TALENT_POINT_GAINED]:
 			continue
@@ -485,14 +487,14 @@ func test_r5_an_open_cache_is_passed_until_it_refills() -> void:
 	var sim: Simulation = winding_simulation(found.x)
 	var e: Expedition = sim.expedition
 	raise_party(sim, SKILLED)
-	var path: SidePath = _approach(sim, 1, index, 1)
+	var path: SidePath = _stand_before(sim, 1, index, 1)
 	var first: StringName = e.area
 	var refill: int = roundi(REFILL_SECONDS * TICKS)
 	assert_eq(SidePathRules.REFILL_SECONDS, REFILL_SECONDS, "a cache refills in 600 seconds")
-	_run_until(sim, func() -> bool: return not SidePathRules.is_full(e, 1, index), 1200)
+	_events_until(sim, func() -> bool: return not SidePathRules.is_full(e, 1, index), 1200)
 	var opened: int = sim.tick
 	assert_false(SidePathRules.is_full(e, 1, index), "the cache is empty once opened")
-	_run_until(sim, func() -> bool: return e.side_path < 0, 600)
+	_events_until(sim, func() -> bool: return e.side_path < 0, 600)
 
 	# Pacing the stage, it passes the gate again and again; a wipe and a change of stage between.
 	var passes: int = 0
@@ -555,9 +557,9 @@ func test_r5_an_open_cache_is_passed_until_it_refills() -> void:
 	e.travel.open[other] = true
 	assert_false(SidePathRules.is_full(e, 1, index), "empty as the party leaves the area")
 	sim.set_destination(other, 1)
-	_run_until(sim, func() -> bool: return e.place == other, 3000)
+	_events_until(sim, func() -> bool: return e.place == other, 3000)
 	sim.set_destination(first, 1)
-	_run_until(sim, func() -> bool: return e.place == first, 3000)
+	_events_until(sim, func() -> bool: return e.place == first, 3000)
 	assert_lt(sim.tick, second + refill, "it is back within 600 seconds")
 	for each: int in sim.labyrinth.level(1).side_paths.size():
 		assert_true(SidePathRules.is_full(e, 1, each), "a journey back finds cache %d full" % each)
@@ -590,9 +592,9 @@ func test_r6_a_gate_nobody_can_open_is_said_once() -> void:
 	e.x = line.exit - 0.5
 	e.facing = 1
 	sim.set_target_depth(2)
-	_run_until(sim, func() -> bool: return e.depth == 2, 200)
+	_events_until(sim, func() -> bool: return e.depth == 2, 200)
 	sim.set_target_depth(1)
-	_run_until(sim, func() -> bool: return e.depth == 1, 200)
+	_events_until(sim, func() -> bool: return e.depth == 1, 200)
 	sim.drain_events()
 	_pass_sealed(sim, index, -1, false, 1, "after coming back to the stage")
 	_pass_sealed(sim, index, 1, false, 0, "and passing it once more")
@@ -619,7 +621,7 @@ func _pass_sealed(
 	sim: Simulation, index: int, way: int, fresh: bool, said: int, what: String
 ) -> Array[SimEvent]:
 	var e: Expedition = sim.expedition
-	var path: SidePath = _approach(sim, 1, index, way, 1.5, fresh)
+	var path: SidePath = _stand_before(sim, 1, index, way, 1.5, fresh)
 	var health: Array[int] = []
 	for hero: Hero in sim.party.heroes:
 		health.append(hero.health)
@@ -667,8 +669,8 @@ func test_r7_no_gate_opened_keeps_the_hash_and_the_save() -> void:
 	var e: Expedition = sim.expedition
 	raise_party(sim, SKILLED)
 	var plain: int = sim.state_hash()
-	_approach(sim, 1, found.y, 1)
-	_run_until(sim, func() -> bool: return not SidePathRules.is_full(e, 1, found.y), 1200)
+	_stand_before(sim, 1, found.y, 1)
+	_events_until(sim, func() -> bool: return not SidePathRules.is_full(e, 1, found.y), 1200)
 	assert_false(SidePathRules.is_full(e, 1, found.y), "a cache is empty as the game is saved")
 	assert_ne(sim.state_hash(), plain, "and the state hash knows it")
 	var data: Dictionary = sim.to_save()
@@ -727,11 +729,11 @@ func test_r8_a_side_path_is_quiet() -> void:
 	var sim: Simulation = winding_simulation(found.x)
 	var e: Expedition = sim.expedition
 	raise_party(sim, SKILLED)
-	_approach(sim, 2, found.y, 1)
+	_stand_before(sim, 2, found.y, 1)
 	# The stage is not yet safe: its timer has 12 seconds to run, less than the trip takes.
 	e.last_stable_depth = 1
 	e.stable_seconds = 12.0
-	_run_until(sim, func() -> bool: return e.side_path == found.y, 20)
+	_events_until(sim, func() -> bool: return e.side_path == found.y, 20)
 	var began: int = sim.tick
 	var left_at_start: float = e.seconds_to_stable()
 	assert_gt(left_at_start, 10.0, "the stage's timer is running as the party turns off")
@@ -766,8 +768,8 @@ func test_r8_a_side_path_is_quiet() -> void:
 	var away: Simulation = winding_simulation(found.x)
 	var run: Expedition = away.expedition
 	raise_party(away, SKILLED)
-	var path: SidePath = _approach(away, 2, found.y, 1)
-	_run_until(away, func() -> bool: return not SidePathRules.is_full(run, 2, found.y), 1200)
+	var path: SidePath = _stand_before(away, 2, found.y, 1)
+	_events_until(away, func() -> bool: return not SidePathRules.is_full(run, 2, found.y), 1200)
 	var other: StringName = Content.area_ids()[1]
 	run.travel.open[other] = true
 	away.set_destination(other, 1)
@@ -777,7 +779,7 @@ func test_r8_a_side_path_is_quiet() -> void:
 	assert_true(
 		path.room.rect.has_point(Vector2i(run.hero_position(1).floor())), "in the cache room"
 	)
-	_run_until(away, func() -> bool: return run.place == other, 400)
+	_events_until(away, func() -> bool: return run.place == other, 400)
 	assert_eq(run.side_path, -1, "and it arrives on a main course")
 	assert_eq(run.state, Expedition.State.TRAVELLING, "travelling")
 

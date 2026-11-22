@@ -68,7 +68,7 @@ func _find(stage: int, tunnel: bool, from: int = 1) -> Vector2i:
 ## where side path [param index] leaves, going [param way] along the course and pacing the
 ## stage, the room it leaves from cleared so nothing is met there. Not [param fresh], the party
 ## is moved without arriving: what it was told on this stage stays told.
-func _approach(
+func _stand_before(
 	sim: Simulation, stage: int, index: int, way: int, back: float = 1.5, fresh: bool = true
 ) -> SidePath:
 	var e: Expedition = sim.expedition
@@ -91,7 +91,7 @@ func _approach(
 
 ## Steps [param sim] until [param done], at most [param limit] ticks, and returns the events of
 ## those ticks.
-func _run_until(sim: Simulation, done: Callable, limit: int) -> Array[SimEvent]:
+func _events_until(sim: Simulation, done: Callable, limit: int) -> Array[SimEvent]:
 	var events: Array[SimEvent] = []
 	for i: int in limit:
 		if done.call():
