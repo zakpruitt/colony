@@ -7,9 +7,10 @@ extends RefCounted
 ## party first, each with a flare; the room's other lamps catch with the torch nearest them.
 ##
 ## It follows where the party is, never events ([method follow], once a frame). Told the party
-## has arrived, or that the picture is catching up, it forgets the stage and lights the room the
-## party stands in at once, with no flare. Until it is first told of a party every lamp is lit,
-## so an [Ambience] with no party to follow shows every room.
+## has arrived, it forgets the stage and lights the room the party stands in at once, with no
+## flare. Told the picture is catching up on a stall, it keeps what it has and lights the room the
+## party stands in now at once: the rooms passed unseen stay dark. Until it is first told of a
+## party every lamp is lit, so an [Ambience] with no party to follow shows every room.
 ##
 ## A room is named by a number: a room of the route by its index, a cache room by
 ## [constant CACHE] plus its side path's place in the level's list.
@@ -41,6 +42,7 @@ var changes: int = 0
 var _following: bool = false
 ## The stage remembered, the room the party was in at the last look, and the rooms lit.
 var _stage: int = 0
+var _maze: Labyrinth
 var _room: int = NONE
 var _lit: Dictionary[int, bool] = {}
 var _dressed: Dictionary[int, Dressing] = {}
@@ -89,16 +91,21 @@ func strip(depth: int) -> void:
 
 
 ## Looks where [param run]'s party is on [param stage], the stage shown. A room its anchor has
-## stepped into since the last look starts to light. With [param at_once] (the party has just
-## arrived, or the picture is catching up) the stage is forgotten first and the room the party
-## stands in is lit whole, with no flare; so is the first look, and one at another stage.
-func follow(run: Expedition, stage: int, at_once: bool) -> void:
+## stepped into since the last look starts to light. With [param arrived] (the party has just
+## come to the stage, or been revived) the stage is forgotten first and the room the party
+## stands in is lit whole, with no flare; so is the first look, and one at another stage or
+## another area's. With [param quiet] (the picture is catching up on a stall) what was lit stays
+## lit and the room the party stands in now is lit whole, with no flare.
+func follow(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
 	var room: int = room_of(run, stage)
-	if at_once or not _following or stage != _stage:
+	var fresh: bool = arrived or not _following or stage != _stage or run.labyrinth != _maze
+	if fresh or quiet:
+		if fresh:
+			_lit.clear()
 		_following = true
 		_stage = stage
+		_maze = run.labyrinth
 		_room = room
-		_lit.clear()
 		if room != NONE:
 			_lit[room] = true
 		_settle()

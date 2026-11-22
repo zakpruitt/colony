@@ -427,28 +427,49 @@ func test_r4_glints_and_gates_show_in_the_dark() -> void:
 # --- R5 ------------------------------------------------------------------------
 
 
-## R5: a stall in which the party walks three rooms: after it only the room it stands in is lit
-## and no flare is running.
+## R5: two rooms walked, then a stall in which the party walks three more: after it the first
+## two and the one it stands in are lit, the two between are dark, and no flare is running; a
+## stall that ends on another stage shows only the party's room.
 func test_r5_nothing_lights_for_the_past() -> void:
-	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1))
-	assert_eq(_lit_rooms("before the stall"), [0] as Array[int], "the first room is lit")
+	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1), 4)
+	_walk_until(_settled_in.bind(1), "the party walks into the second room")
+	assert_eq(_lit_rooms("before the stall"), [0, 1] as Array[int], "two rooms walked and lit")
+	var stall: int = World.STALL_TICKS * _world.speed
 	var before: int = _sim.tick
 	for i: int in LIMIT_TICKS_10_MIN:
-		if _party_room() == 3:
+		if _party_room() == 4:
 			break
 		_hurry()
 		_sim.step()
-	assert_eq(_party_room(), 3, "the party walked three rooms unseen")
-	assert_gt(_sim.tick - before, World.STALL_TICKS, "a stall to the world")
+	assert_eq(_party_room(), 4, "the party walked three more rooms unseen")
+	assert_gt(_sim.tick - before, stall, "a stall to the world")
 	_world.sync(STEP)
 	assert_true(_world.catching_up(), "the world catches up")
 	_ambience.advance(STEP)
 	assert_eq(_ambience.rooms.flares(), 0, "no flare while catching up")
-	assert_eq(_lit_rooms("after the stall"), [3] as Array[int], "only the room it stands in is lit")
+	var kept: Array[int] = [0, 1, 4]
+	assert_eq(_lit_rooms("after the stall"), kept, "the rooms lit before stay lit, and its own")
 	for i: int in 30:
 		_play_frame(false)
 		assert_eq(_ambience.rooms.flares(), 0, "and none after it")
-	assert_eq(_lit_rooms("a while after"), [3] as Array[int], "the rooms passed stay dark")
+	assert_eq(_lit_rooms("a while after"), kept, "the rooms passed unseen stay dark")
+	# A stall that ends on another stage is an arrival.
+	before = _sim.tick
+	for i: int in LIMIT_TICKS_10_MIN:
+		var e: Expedition = _sim.expedition
+		if e.depth == STAGE + 1 and e.state == Expedition.State.TRAVELLING:
+			break
+		_hurry()
+		_sim.step()
+	assert_eq(_sim.expedition.depth, STAGE + 1, "the party crossed on unseen")
+	assert_gt(_sim.tick - before, stall, "a stall to the world again")
+	_world.sync(STEP)
+	assert_true(_world.catching_up(), "the world catches up")
+	_ambience.advance(STEP)
+	assert_eq(_world.shown_stage(), STAGE + 1, "the next stage is shown")
+	assert_eq(_ambience.rooms.flares(), 0, "no flare on arriving in a stall")
+	assert_true(_party_room() >= 0, "the party stands in a room there")
+	assert_eq(_lit_rooms("a stage on"), [_party_room()] as Array[int], "only its room is lit")
 
 
 # --- R6 ------------------------------------------------------------------------

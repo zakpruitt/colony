@@ -87,10 +87,11 @@ func advance(delta: float) -> void:
 
 
 ## Tells the rooms where [param run]'s party is on [param stage], the stage shown, once a frame:
-## a room it steps into lights, and with [param at_once] (an arrival, or a picture catching up)
-## only the room it stands in is lit, with no flare. See [method AmbienceRooms.follow].
-func follow_party(run: Expedition, stage: int, at_once: bool) -> void:
-	rooms.follow(run, stage, at_once)
+## a room it steps into lights; with [param arrived] only the room it stands in is lit, at once;
+## with [param quiet] (a picture catching up) that room is lit at once and the rest kept. See
+## [method AmbienceRooms.follow].
+func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
+	rooms.follow(run, stage, arrived, quiet)
 
 
 ## How many lights there are, for tests and the budget of lights.

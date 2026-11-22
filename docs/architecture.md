@@ -634,14 +634,16 @@ earth above and below, and the ambience's open map, exposure map and buried deta
 - **A room is dark until the party has stood in it** (spec 097). `AmbienceRooms`
   (`game/ambience/ambience_rooms.gd`, `Ambience.rooms`) is the view's memory of the rooms lit on the
   stage shown, a route room by its index and a cache room by `CACHE` plus its side path's place;
-  nothing in `sim/` or the save knows of it. `World.sync` ends by calling `Ambience.follow_party(expedition,
-  shown stage, at once)`, and the memory follows where the party is, never events: a room the anchor
-  steps into (`AmbienceRooms.room_of`: `Expedition.chamber()`, or the room of the doorway while the party
-  changes stage) lights, its torches catching `CATCH_GAP` apart from the nearest to the party, each with
-  a flare (`AmbienceLight.swell`), the room's other lamps with the torch nearest them. "At once" is
-  the world's own snap (its first picture, a change of stage or area, a sync that catches up on a
-  stall) or a revival heard: the memory is cleared, the room the party stands in is lit whole and
-  nothing flares, so a stall darkens the rooms walked before it. A lamp of an unlit room has
+  nothing in `sim/` or the save knows of it. `World.sync` ends by calling
+  `Ambience.follow_party(expedition, shown stage, arrived, quiet)`, and the memory follows where the
+  party is, never events: a room the anchor steps into (`AmbienceRooms.room_of`:
+  `Expedition.chamber()`, or the room of the doorway while the party changes stage) lights, its
+  torches catching `CATCH_GAP` apart from the nearest to the party, each with a flare
+  (`AmbienceLight.swell`), the room's other lamps with the torch nearest them. An arrival (the
+  world's first picture, a change of stage or area, a revival heard; the memory also sees for itself
+  another stage or another labyrinth) clears the memory and lights the room the party stands in
+  whole, with no flare. A sync that catches up on a stall is quiet: what was lit stays lit, the room
+  the party stands in now is lit whole with no flare, and the rooms it passed unseen stay dark. A lamp of an unlit room has
   `AmbienceProp.lit` false: `AmbienceLevel` draws a torch's `unlit` part and no flame, throws no
   embers from it, and its light is not in `Ambience.lights()`. That list is one array, filled again
   only when `AmbienceRooms.changes` moves, and it is what `AmbienceDarkness` is handed; a frame in
