@@ -207,12 +207,11 @@ func test_r1_only_the_partys_room_is_lit_on_arrival() -> void:
 		assert_eq(_ambience.rooms.flares(), 0, "%s: lit at once, nothing catching" % what)
 		for key: int in torches:
 			caches += int(key >= AmbienceRooms.CACHE)
+		assert_gt(_handed().size(), 1, "%s: the party's light and its room's" % what)
 		for light: AmbienceLight in _handed():
-			var near: bool = false
-			for torch: AmbienceProp in torches.get(room, []):
-				near = near or torch.light == light
 			assert_true(
-				near or light.kind != &"torch", "%s: no torch of another room gives light" % what
+				light.kind == &"party" or _in_room(light, room),
+				"%s: a %s outside the party's room gives light" % [what, light.kind]
 			)
 		_world.free()
 	assert_gt(caches, 0, "cache rooms with a torch were among them")

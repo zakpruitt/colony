@@ -83,10 +83,12 @@ func dress(decoration: AmbienceLevel, level: LabyrinthLevel) -> void:
 	changes += 1
 
 
-## Forgets a level about to be freed, and whatever was catching.
+## Forgets a level about to be freed. Whatever was catching on a level that stays is lit whole.
 func strip(depth: int) -> void:
 	if _dressed.erase(depth):
 		_settle()
+		for kept: int in _dressed:
+			_apply(kept)
 		changes += 1
 
 
@@ -198,7 +200,8 @@ func _apply(depth: int) -> void:
 		)
 
 
-## Ends every flare and forgets the lamps yet to catch.
+## Ends every flare and forgets the lamps yet to catch, which are left out: the caller lights
+## every lamp as the memory has its room ([method _apply]).
 func _settle() -> void:
 	for light: AmbienceLight in _flaring:
 		light.swell = 1.0
