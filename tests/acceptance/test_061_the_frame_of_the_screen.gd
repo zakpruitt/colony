@@ -248,19 +248,22 @@ func test_r4_things_still_fly_to_it() -> void:
 		_emit(main, SimEvent.Kind.XP_GAINED, monster.id, hero.id, 40)
 		sim.party.set_resource(ids[1], 32)
 		_emit(main, SimEvent.Kind.RESOURCE_GAINED, monster.id, 1, 2)
-		var coin_end := Vector2.INF
+		# A fight on a winding stage can be floors below the purse: a coin or an icon is then
+		# flying fast when it arrives, so where it lands is read from its last two frames.
+		_flights.clear()
+		var coin_id: int = 0
 		var mote_end := Vector2.INF
-		var icon_end := Vector2.INF
+		var icon_id: int = 0
 		var flown: int = 0
 		var landed: bool = false
 		for frame: int in 300:
 			for coin: FxCoin in main.effects.coins():
-				coin_end = _on_ui(main, coin)
+				coin_id = _watch_flight(main, coin)
 			for mote: FxMote in main.effects.motes():
 				mote_end = _on_ui(main, mote)
 			var flying: int = main.effects.resource_effects.live_icons().size()
 			for icon: FxResource in main.effects.resource_effects.live_icons():
-				icon_end = _on_ui(main, icon)
+				icon_id = _watch_flight(main, icon)
 			main.effects.advance(STEP)
 			hud.advance(STEP)
 			if landed:
@@ -278,11 +281,12 @@ func test_r4_things_still_fly_to_it() -> void:
 		var counter: Rect2 = hud.purse.icons[ids[1]].get_global_rect().grow(3.0)
 		var frame_rect: Rect2 = hud.frames[2].get_global_rect()
 		assert_true(
-			coin.has_point(coin_end), "%s: a coin ends on the coin %s %s" % [what, coin_end, coin]
+			_lands_in(coin_id, coin),
+			"%s: a coin ends on the coin %s %s" % [what, _flights.get(coin_id), coin]
 		)
 		assert_true(
-			counter.has_point(icon_end),
-			"%s: an icon ends on its counter %s %s" % [what, icon_end, counter]
+			_lands_in(icon_id, counter),
+			"%s: an icon ends on its counter %s %s" % [what, _flights.get(icon_id), counter]
 		)
 		assert_true(
 			frame_rect.has_point(mote_end),

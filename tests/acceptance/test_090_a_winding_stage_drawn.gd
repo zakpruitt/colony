@@ -1,7 +1,8 @@
 extends "res://tests/support/play_fixture.gd"
 ## Spec 090: the zoned view, the ambience and the camera's limits draw a winding stage whole (its
 ## rooms on their floors, its ladders, a doorway where the party arrives and where it leaves,
-## light and dark to its full height), and a preview scene plays a winding game.
+## light and dark to its full height). Its R7, a preview scene that played a winding game, went
+## when the game itself came to play them (spec 092).
 
 const WINDING: Labyrinth.Shape = Labyrinth.Shape.WINDING
 const SEEDS: int = 10
@@ -11,9 +12,6 @@ const SURROUND: int = LabyrinthView.SURROUND_ROWS
 ## R6: rows of earth the camera may show above the band and below it.
 const EARTH_ROWS: int = 4
 const SCREEN_SIZE: Vector2 = Vector2(640, 360)
-const PREVIEW: String = "res://game/dev/winding.tscn"
-## R7: how long the preview is played.
-const PREVIEW_SECONDS: float = 30.0
 const N: int = LabyrinthTiles.N
 const S: int = LabyrinthTiles.S
 
@@ -493,73 +491,3 @@ func test_r6_the_camera_stays_in_the_stage() -> void:
 	var free_camera: WorldCamera = autofree(WorldCamera.new())
 	free_camera.snap_to(middle + Vector2.DOWN * far)
 	assert_eq(free_camera.position, middle + Vector2.DOWN * far, "no limit, no clamp")
-
-
-# --- R7 ------------------------------------------------------------------------
-
-
-func test_r7_the_preview_plays_a_winding_game() -> void:
-	var scene: PackedScene = load(PREVIEW) as PackedScene
-	assert_not_null(scene, "the scene loads")
-	if scene == null:
-		return
-	var preview: WindingPreview = scene.instantiate() as WindingPreview
-	assert_not_null(preview, "it is a WindingPreview")
-	if preview == null:
-		return
-	# A store it is handed is not kept, read or written.
-	var path: String = save_path("preview")
-	var store := SaveStore.new(path)
-	store.write(Simulation.new(7).to_save())
-	var kept: String = FileAccess.get_file_as_string(path)
-	preview.save_store = SaveStore.new(path)
-	# Settings that have not seen the help: the game would welcome the player and note it there.
-	var settings_path: String = save_path("preview", "settings")
-	assert_true(SoundSettings.new(settings_path).set_muted(true), "the settings file is written")
-	var settings_kept: PackedByteArray = FileAccess.get_file_as_bytes(settings_path)
-	preview.settings = SoundSettings.new(settings_path)
-	add_child(preview)
-	preview.driver.set_process(false)
-	preview.world.set_process(false)
-	assert_null(preview.save_store, "it has no save store")
-	assert_true(preview.ui.windows.is_open(UiRoot.HELP), "it welcomes with the help window")
-	assert_true(preview.settings.muted(), "it reads the settings it was given")
-	preview.settings.set_muted(false)
-	assert_false(preview.settings.muted(), "a choice made in it holds while it runs")
-	assert_eq(
-		FileAccess.get_file_as_bytes(settings_path),
-		settings_kept,
-		"and is never written to the file"
-	)
-	var sim: Simulation = preview.simulation
-	assert_eq(sim.labyrinth.shape, WINDING, "its simulation is winding")
-	assert_eq(sim.tick, 0, "a new game")
-	assert_eq(preview.world.labyrinth_view.labyrinth, sim.labyrinth, "the world shows it")
-	assert_gt(sim.labyrinth.level(1).ladders.size(), 0, "stage 1 has a ladder")
-	var off_screen: int = 0
-	for i: int in ticks_in(PREVIEW_SECONDS):
-		sim.step()
-		preview.world.sync(0.1)
-		preview.hud.advance(0.1)
-		var camera: WorldCamera = preview.world.camera
-		var half: Vector2 = preview.world.get_viewport_rect().size / (2.0 * camera.zoom.x)
-		var shown := Rect2(camera.position - half, half * 2.0)
-		for hero: Hero in sim.party.heroes:
-			var sprite: CharacterSprite = preview.world.character(hero.id)
-			if sprite == null or not shown.has_point(sprite.position):
-				off_screen += 1
-	assert_eq(sim.tick, ticks_in(PREVIEW_SECONDS), "it steps for 30 game seconds")
-	assert_eq(off_screen, 0, "with every hero on screen all the while")
-	preview.save_now()
-	assert_eq(FileAccess.get_file_as_string(path), kept, "and it never writes a save")
-	assert_eq(
-		FileAccess.get_file_as_bytes(settings_path),
-		settings_kept,
-		"nor the settings file, after welcoming and thirty seconds of play"
-	)
-	var worked_on: String = preview.settings.file_path()
-	assert_ne(worked_on, settings_path, "it works on a copy of the settings")
-	preview.free()
-	assert_false(FileAccess.file_exists(worked_on), "which goes with it")
-	assert_eq(FileAccess.get_file_as_bytes(settings_path), settings_kept, "the file as it was")
-	assert_eq(FileAccess.get_file_as_string(path), kept, "and the save as it was")

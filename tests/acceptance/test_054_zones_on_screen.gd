@@ -586,11 +586,22 @@ func test_r6_the_marker_and_the_ladder() -> void:
 		for i: int in 120 if way > 0 else FRAMES_PER_TICK:
 			_play_frame()
 			main.hud.advance(FRAME)
-		var leaves_from: int = 2 if way > 0 else 1
-		var door: float = _door_x(_sim, leaves_from)
-		var toward: int = signi(roundi(door - _world.feet_position(KNIGHT).x))
+		# The game's stage winds: the way to the doorway it leaves by (the way on, or the way it
+		# came in) is along its course. On the doorway's own floor that is straight at it;
+		# with floors between, the way the course runs from where the party stands.
+		var e: Expedition = _sim.expedition
+		var line: StageCourse = _sim.labyrinth.level(2).course
+		var door: float = line.exit if way > 0 else line.entry
+		var here: Vector2 = line.point_at(e.x)
+		var aim: Vector2 = line.point_at(door)
+		var next: Vector2 = line.point_at(move_toward(e.x, door, 1.0))
+		var toward: int = signi(roundi((next.x - here.x) * TILE))
+		if is_equal_approx(aim.y, here.y):
+			toward = signi(roundi(aim.x * TILE - _world.feet_position(KNIGHT).x))
+		assert_ne(toward, 0, "the party is on a floor, with the doorway to one side along it")
 		assert_true(marker.visible, "the arrow shows for a target %d" % (2 + way))
 		assert_eq(marker.side(), toward, "it points sideways at the doorway it leaves by")
+		assert_eq(marker.heading().y, 0, "and neither up nor down")
 	# Through the crossing back to stage 1 (the target is 1 now).
 	var offset: float = INF
 	var hidden: int = 0

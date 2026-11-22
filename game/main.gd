@@ -17,6 +17,8 @@ signal speed_changed(value: int)
 
 ## The seed of a new game.
 const SIMULATION_SEED: int = 1
+## The shape of every stage the game plays, new or loaded. No save holds it.
+const STAGE_SHAPE: Labyrinth.Shape = Labyrinth.Shape.WINDING
 ## Real seconds between automatic saves.
 const SAVE_SECONDS: float = 30.0
 ## The most time away replayed on starting with a save (8 hours), in seconds.
@@ -262,7 +264,7 @@ func _load_or_new() -> Simulation:
 	if save_store != null:
 		var saved: Dictionary = save_store.read()
 		if not saved.is_empty():
-			var loaded: Simulation = Simulation.from_save(saved)
+			var loaded: Simulation = Simulation.from_save(saved, STAGE_SHAPE)
 			if loaded != null:
 				var away: float = time_away(saved, Time.get_unix_time_from_system())
 				if away_seconds_override >= 0.0 and saved.has(SAVED_AT_KEY):
@@ -271,7 +273,7 @@ func _load_or_new() -> Simulation:
 					replay = AwayReplay.new(loaded, away)
 				_loaded_save = true
 				return loaded
-	return Simulation.new(SIMULATION_SEED)
+	return Simulation.new(SIMULATION_SEED, STAGE_SHAPE)
 
 
 ## True when a person is playing: in a window, and not run by a script (tests and

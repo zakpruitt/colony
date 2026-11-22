@@ -3,7 +3,9 @@ extends RefCounted
 ## How each of the [Showcase]'s moments begins and how it is known to have been seen, as its row
 ## in [constant Showcase.ROWS] names them (&"x" in the row calls [code]_begin_x[/code] or
 ## [code]_watch_x[/code] here), and the cuts they make: stepping the simulation to a fight, a
-## depth, an area, a shaft or a side quest at once. The showcase hands it its [Main].
+## depth, an area, the way on or a side quest at once. A cut that places the party gives it a
+## distance along its stage's course and the way it travels along it, never a world column. The
+## showcase hands it its [Main].
 
 ## The areas of the band fights (one in each area after the first, each its own look), and the
 ## stage each is fought on there.
@@ -39,12 +41,16 @@ const QUEST_SEARCH: int = 40
 ## The rogue's id, and the level of its first microskill.
 const ROGUE: int = 2
 const FIRST_SKILL_LEVEL: int = 2
-## How many tiles before a quest's chamber the party is put, at most, so the walk in shows.
+## How many tiles of course before a quest's chamber the party is put, at most, so the walk in
+## shows.
 const QUEST_APPROACH: float = 3.0
+## How many tiles of course outside a guardian's chamber the party is put.
+const GUARDIAN_APPROACH: float = 1.0
 ## The depth the climbs happen from (down to the next and back up).
 const CLIMB_DEPTH: int = 2
-## How many tiles short of the shaft the cut to a climb stops, so the walk onto the ladder shows.
-const SHAFT_APPROACH: float = 4.0
+## How many tiles of course short of the way on the cut to a climb stops, so the walk to the
+## doorway shows.
+const WAY_ON_APPROACH: float = 4.0
 ## The most ticks stepped at once to cut to the next fight.
 const CUT_TICKS: int = 1200
 ## The area the map moments open and the journey goes to.
@@ -123,7 +129,7 @@ func _begin_level_up(_current: StringName) -> void:
 func _begin_climb_down(_current: StringName) -> void:
 	settle_now()
 	_cut_to_depth(CLIMB_DEPTH, CLIMB_DEPTH + 1)
-	_cut_to_shaft()
+	_cut_to_way_on()
 
 
 func _begin_climb_up(_current: StringName) -> void:
@@ -435,37 +441,31 @@ func cut_to_fight() -> void:
 		sim.step()
 
 
-## Steps the simulation (ending any fight on the way at once) until the party is a few tiles from
-## the shaft down from its depth, or on it.
-func _cut_to_shaft() -> void:
+## Steps the simulation (ending any fight on the way at once) until the party is a few tiles of
+## course short of the way on from its stage, or leaving by it.
+func _cut_to_way_on() -> void:
 	var sim: Simulation = main.simulation
-	var shaft: float = sim.labyrinth.shaft_column(CLIMB_DEPTH) + Labyrinth.SHAFT_WIDTH / 2.0
 	for i: int in CUT_TICKS:
 		var expedition: Expedition = sim.expedition
 		if expedition.state == Expedition.State.CLIMBING:
 			return
 		if expedition.state == Expedition.State.TRAVELLING:
-			if absf(expedition.x - shaft) <= SHAFT_APPROACH:
+			var way_on: float = PartyPlaces.course(expedition).exit
+			if absf(expedition.x - way_on) <= WAY_ON_APPROACH:
 				return
 		settle_now()
 		sim.step()
 
 
-## Puts the party a step outside the chamber of the guardian holding its depth's way down,
-## walking in.
+## Puts the party a step outside the chamber of the guardian holding its stage's way on, walking
+## in.
 func _cut_to_guardian() -> void:
-	var expedition: Expedition = main.simulation.expedition
-	var lair: LabyrinthChamber = main.simulation.labyrinth.level(expedition.depth).shaft_chamber()
-	if lair.index > 0:
-		expedition.x = lair.rect.position.x - 1.0
-		expedition.facing = 1
-	else:
-		expedition.x = lair.rect.end.x
-		expedition.facing = -1
+	var line: StageCourse = PartyPlaces.course(main.simulation.expedition)
+	_stand_before(ChamberRules.way_on_room(line), GUARDIAN_APPROACH)
 
 
 ## Cuts to the first depth from QUEST_DEPTH holding [param quest] in a chamber, and puts the party
-## a few tiles before that chamber, in the tunnel, walking in.
+## a few tiles of course before that chamber, walking in.
 func _cut_to_quest(quest: StringName) -> void:
 	var sim: Simulation = main.simulation
 	for depth: int in range(QUEST_DEPTH, QUEST_SEARCH + 1):
@@ -482,12 +482,22 @@ func _cut_to_quest(quest: StringName) -> void:
 		settle_now()
 		if sim.expedition.side_quest_in(depth, found.index) != quest:
 			continue
-		var back: float = QUEST_APPROACH
-		while back > 0.1 and level.chamber_at(floori(found.rect.position.x - back)) != null:
-			back -= 0.5
-		sim.expedition.x = found.rect.position.x - maxf(back, 0.1)
-		sim.expedition.facing = 1
+		_stand_before(found.index, QUEST_APPROACH)
 		return
+
+
+## Stands the party [param back] tiles of course before chamber [param index] of its stage,
+## nearer if that would be inside another chamber, travelling on along the course: it walks in
+## from the side the course comes from, off a tunnel or a ladder.
+func _stand_before(index: int, back: float) -> void:
+	var expedition: Expedition = main.simulation.expedition
+	var line: StageCourse = PartyPlaces.course(expedition)
+	var first: float = line.stretch_of(index).x
+	var gap: float = back
+	while gap > 0.1 and line.chamber_at(first - gap) not in [-1, index]:
+		gap -= 0.5
+	expedition.x = maxf(first - maxf(gap, 0.1), line.start)
+	expedition.facing = 1
 
 
 ## The four areas' moment: each area in turn for AREA_SECONDS, cut to its first stage; seen once

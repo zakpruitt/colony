@@ -364,12 +364,15 @@ func to_save() -> Dictionary:
 ## A simulation carrying on from saved progress, or null if [param data] has
 ## problems ([method save_problems] says which). Every hero stands up at the level its XP earns,
 ## alive and full, where revival would put the party: at its last stable depth, travelling,
-## with every chamber freshly populated and no events pending.
-static func from_save(data: Dictionary) -> Simulation:
+## with every chamber freshly populated and no events pending. Every area's stages are of
+## [param shape], which no save holds: it is what the caller plays.
+static func from_save(
+	data: Dictionary, shape: Labyrinth.Shape = Labyrinth.Shape.FLAT
+) -> Simulation:
 	if not save_problems(data).is_empty():
 		return null
 	var current: Dictionary = upgrade_save(data)
-	var sim := Simulation.new(SaveChecks.whole(current["seed"]))
+	var sim := Simulation.new(SaveChecks.whole(current["seed"]), shape)
 	sim._tick = SaveChecks.whole(current["tick"])
 	sim.party.gold = SaveChecks.whole(current["gold"])
 	var ranks: Dictionary = current["upgrades"]
