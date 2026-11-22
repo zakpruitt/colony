@@ -1,9 +1,9 @@
 # 097 — Rooms dark until entered
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 094
-- **Pull request:** —
+- **Pull request:** [#97](https://github.com/zakpruitt/colony/pull/97)
 
 ## Intent
 
