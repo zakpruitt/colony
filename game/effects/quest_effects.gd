@@ -144,8 +144,7 @@ func _sealed(gate_index: int, skill_index: int) -> void:
 	if index < 0 or words.is_empty():
 		return
 	var stage: int = _simulation.expedition.depth
-	var gate: Sprite2D = props.gate(stage, index)
-	var height: float = float(gate.texture.get_height()) if gate != null else 16.0
+	var height: float = maxf(SideProps.height_of(props.gate(stage, index)), 16.0)
 	var at: Vector2 = props.gate_spot(stage, index) + Vector2(0, -height - OVER_PROP)
 	_words(words, MISS_COLOUR, MISS_SCALE, SEALED_LIFE, at)
 

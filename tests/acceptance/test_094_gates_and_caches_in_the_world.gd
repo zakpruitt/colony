@@ -40,7 +40,7 @@ func _before(
 
 ## The world, its effects and a sound player over [member _sim], the gate tip not following the
 ## real mouse.
-func _watch() -> void:
+func _watch_gates() -> void:
 	_show(_sim, 1, true)
 	_sound = SoundPlayer.new()
 	add_child_autofree(_sound)
@@ -131,7 +131,7 @@ func test_r1_each_gate_stands_closed_then_open() -> void:
 	for kind: StringName in GATES:
 		var found: Vector3i = _find_gate(kind)
 		var path: SidePath = _before(found.x, found.y, found.z)
-		_watch()
+		_watch_gates()
 		var props: SideProps = _world.side_props
 		var gate: Sprite2D = props.gate(found.y, found.z)
 		assert_true(_shows(gate, kind, &"closed"), "%s: closed while its cache is full" % kind)
@@ -170,7 +170,7 @@ func test_r2_the_opener_works_at_the_gate() -> void:
 			var found: Vector2i = _find(2, tunnel)
 			var path: SidePath = _before(found.x, 2, found.y, way)
 			var what: String = "%s, walked %d" % ["tunnel" if tunnel else "ladder", way]
-			_watch()
+			_watch_gates()
 			var run: Expedition = _sim.expedition
 			var main: StageCourse = _sim.labyrinth.level(2).course
 			assert_true(_play_until(SimEvent.Kind.GATE_STARTED, 300), "%s: work starts" % what)
@@ -251,7 +251,7 @@ func _glints_seen(index: int, seconds: float) -> Dictionary[StringName, bool]:
 func test_r3_a_cache_glints_until_it_is_opened() -> void:
 	var found: Vector2i = _far_cache()
 	var path: SidePath = _before(found.x, 2, found.y)
-	_watch()
+	_watch_gates()
 	var props: SideProps = _world.side_props
 	var cache: Sprite2D = props.cache(2, found.y)
 	assert_not_null(cache, "the cache is drawn")
@@ -304,7 +304,7 @@ func test_r3_a_cache_glints_until_it_is_opened() -> void:
 func test_r4_a_cache_bursts_and_pays_from_where_it_stands() -> void:
 	var found: Vector2i = _far_cache()
 	var path: SidePath = _before(found.x, 2, found.y)
-	_watch()
+	_watch_gates()
 	var at: Vector2 = _cache_feet(path)
 	var started: Array[StringName] = []
 	var opened: bool = false
@@ -359,7 +359,7 @@ func test_r5_a_sealed_gate_says_what_it_wants() -> void:
 		var def: GateDef = Content.gate(kind)
 		# A party that will later: nobody has the microskill yet.
 		var path: SidePath = _before(found.x, found.y, found.z, 1, false)
-		_watch()
+		_watch_gates()
 		var props: SideProps = _world.side_props
 		var gate: Sprite2D = props.gate(found.y, found.z)
 		var rect := Rect2(gate.position + gate.offset, gate.texture.get_size())
@@ -406,7 +406,7 @@ func test_r5_a_sealed_gate_says_what_it_wants() -> void:
 		_sound.free()
 		# A party that can.
 		path = _before(found.x, found.y, found.z)
-		_watch()
+		_watch_gates()
 		props = _world.side_props
 		props.point_at(rect.get_center())
 		assert_eq(props.tip.who, "The %s can open this" % who[1], "%s: who can" % kind)
@@ -503,7 +503,7 @@ func test_r6_a_cache_room_is_lit_and_the_arrow_rests() -> void:
 	_before(found.x, 2, found.y)
 	_sim.expedition.deepest_depth = 3
 	_sim.expedition.target_depth = 3
-	_watch()
+	_watch_gates()
 	var marker: TargetMarker = _world.target_marker
 	_play_frame(false)
 	assert_true(marker.visible, "the arrow shows on the main course")
@@ -540,7 +540,7 @@ func test_r7_nothing_plays_for_old_events() -> void:
 	var found: Vector2i = _far_cache()
 	# A stall that holds the whole trip.
 	_before(found.x, 2, found.y)
-	_watch()
+	_watch_gates()
 	var props: SideProps = _world.side_props
 	_play_frame(false)
 	_sound.drain_started()
@@ -563,7 +563,7 @@ func test_r7_nothing_plays_for_old_events() -> void:
 	# A stall that ends at a sealed gate.
 	var sealed: Vector3i = _find_gate(&"rune_seal")
 	_before(sealed.x, sealed.y, sealed.z, 1, false)
-	_watch()
+	_watch_gates()
 	_play_frame(false)
 	var told: Array[SimEvent] = _events_until(_sim, _passed.bind(sealed), 600)
 	assert_eq(_of_kind(told, SimEvent.Kind.GATE_SEALED).size(), 1, "the gate was sealed, unseen")
@@ -582,7 +582,7 @@ func test_r7_nothing_plays_for_old_events() -> void:
 	var run: Expedition = _sim.expedition
 	_unseen_until(func() -> bool: return run.side_path >= 0 and run.x > path.gate_at + 1.0)
 	_sim.drain_events()
-	_watch()
+	_watch_gates()
 	props = _world.side_props
 	_play_frame(false)
 	_nothing_plays("after time away")

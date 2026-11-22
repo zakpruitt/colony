@@ -166,7 +166,14 @@ func worked_side() -> int:
 func worked_height() -> float:
 	var run: Expedition = _simulation.expedition
 	var shown: Sprite2D = gate(run.depth, run.side_path)
-	return float(shown.texture.get_height()) if shown != null else 0.0
+	return height_of(shown)
+
+
+## How tall [param shown] is, in pixels; 0 for none, or for a gate with no sheet.
+static func height_of(shown: Sprite2D) -> float:
+	if shown == null or shown.texture == null:
+		return 0.0
+	return float(shown.texture.get_height())
 
 
 ## The name of the microskill that opens the gate the party is working at; "" with none.
@@ -299,6 +306,8 @@ static func _sheet_id(shown: Sprite2D) -> StringName:
 
 
 static func _rect_of(shown: Sprite2D) -> Rect2:
+	if shown.texture == null:
+		return Rect2(shown.position, Vector2.ZERO)
 	return Rect2(shown.position + shown.offset, shown.texture.get_size())
 
 
@@ -361,7 +370,7 @@ func _draw_draught() -> void:
 		if not has_draught(key.x, key.y):
 			continue
 		var shown: Sprite2D = _gates[key]
-		var height: float = shown.texture.get_height()
+		var height: float = height_of(shown)
 		for i: int in MOTES:
 			var along: float = fposmod(_mote_step / (MOTE_STEPS * 2.5) + float(i) / MOTES, 1.0)
 			if along > 0.85:
