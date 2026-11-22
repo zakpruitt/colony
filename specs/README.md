@@ -129,7 +129,7 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 089 | [Winding stages in the simulation](089-winding-stages-in-the-simulation/spec.md) (a second shape of level, used by nothing yet): landed on dev, [#89](https://github.com/zakpruitt/colony/pull/89), provisional | 088 |
 | 090 | [A winding stage, drawn](090-a-winding-stage-drawn/spec.md) (rooms on their floors, ladders, doorways, light, the camera's limits, a preview scene): landed on dev, [#90](https://github.com/zakpruitt/colony/pull/90), provisional | 089 |
 | 091 | [The party on a winding stage](091-the-party-on-a-winding-stage/spec.md) (monsters, props, the fallen and the crossing in their room; the camera follows up and down): landed on dev, [#91](https://github.com/zakpruitt/colony/pull/91), provisional | 090 |
-| 092 | The game plays winding stages (new games, loaded saves and the showcase; tests that make their own flat simulation stay as they are): to write | 091 |
+| 092 | [The game plays winding stages](092-the-game-plays-winding-stages/spec.md) (new games, loaded saves and the showcase; tests that make their own flat simulation stay as they are): in-progress | 091 |
 | 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, the Explore and Press on order): draft | 092 |
 | 094 | Side paths on screen (gates, caches, sealed ways and what would open them): to write | 093 |
 | 095 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 092 |
