@@ -1,9 +1,9 @@
 # 096 — The order to press on
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 094, 095
-- **Pull request:** —
+- **Pull request:** [#96](https://github.com/zakpruitt/colony/pull/96)
 
 ## Intent
 
