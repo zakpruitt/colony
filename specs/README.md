@@ -130,10 +130,11 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 090 | [A winding stage, drawn](090-a-winding-stage-drawn/spec.md) (rooms on their floors, ladders, doorways, light, the camera's limits, a preview scene): landed on dev, [#90](https://github.com/zakpruitt/colony/pull/90), provisional | 089 |
 | 091 | [The party on a winding stage](091-the-party-on-a-winding-stage/spec.md) (monsters, props, the fallen and the crossing in their room; the camera follows up and down): landed on dev, [#91](https://github.com/zakpruitt/colony/pull/91), provisional | 090 |
 | 092 | [The game plays winding stages](092-the-game-plays-winding-stages/spec.md) (new games, loaded saves and the showcase; tests that make their own flat simulation stay as they are): in-progress | 091 |
-| 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, the Explore and Press on order): draft | 092 |
+| 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, caches that pay what exists): provisional, waits for 092 | 092 |
 | 094 | Side paths on screen (gates, caches, sealed ways and what would open them): to write | 093 |
-| 095 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 092 |
-| later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 094 |
+| 095 | The order to press on (Explore or Press on, in the Orders window and the save): to write | 094 |
+| 096 | Unexplored dark (rooms unseen until entered, rooms of more shapes): to write | 092 |
+| later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 095 |
 
 A trial on 2026-11-22 with winding as the default everywhere failed 47 of 112 test scripts, so the switch
 is made for the game alone first (092) and the tests follow as their own work.
