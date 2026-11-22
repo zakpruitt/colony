@@ -3,7 +3,7 @@ extends SceneTree
 ##
 ## Run: godot --headless --path . -s res://tools/godot/run_sim.gd -- --seed=1 --minutes=10
 ##      [--target-depth=3] [--stable-seconds=120] [--buy-upgrades=true] [--timeline=true]
-##      [--area=claypits] [--spend-talents=true]
+##      [--area=claypits] [--spend-talents=true] [--winding=true]
 ## or, more simply: python tools/dev.py sim --seed=1 --minutes=10
 ##
 ## With --buy-upgrades the run buys the cheapest upgrade it can afford whenever it can.
@@ -21,6 +21,8 @@ extends SceneTree
 ## win over the Slime King, or null, and "wipes_before_slime_king" counts the wipes before it (all
 ## of the run's, without one).
 ## The summary names the resources the party holds at the end ("resources").
+## With --winding the simulation's stages are winding ones ([constant Labyrinth.Shape.WINDING]);
+## the summary is the same.
 ## The summary is printed on one line that starts with "[sim] ".
 
 ## The firsts --timeline reports, in order.
@@ -39,7 +41,10 @@ func _init() -> void:
 	var options: Dictionary[String, String] = _options()
 	var seed_value: int = _option(options, "seed", "1").to_int()
 	var minutes: float = _option(options, "minutes", "10").to_float()
-	var sim := Simulation.new(seed_value)
+	var shape: Labyrinth.Shape = Labyrinth.Shape.FLAT
+	if options.has("winding"):
+		shape = Labyrinth.Shape.WINDING
+	var sim := Simulation.new(seed_value, shape)
 	if options.has("stable-seconds"):
 		sim.expedition.stable_seconds = _option(options, "stable-seconds", "").to_float()
 	if options.has("target-depth"):

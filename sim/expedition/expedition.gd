@@ -550,32 +550,29 @@ func _key_here() -> Vector2i:
 func _start_climb(direction: int) -> void:
 	state = State.CLIMBING
 	_climb_direction = direction
-	var here: StageCourse = PartyPlaces.course(self)
-	var there: StageCourse = _labyrinth.level(depth + direction).course
-	_climb_from_y = here.point_at(here.exit if direction > 0 else here.entry).y
-	_climb_y = _climb_from_y
-	_climb_to_y = there.point_at(there.entry if direction > 0 else there.exit).y
+	var rows: Vector2 = StageCrossing.rows(self, direction)
+	_climb_from_y = rows.x
+	_climb_y = rows.x
+	_climb_to_y = rows.y
 
 
 func _climb() -> void:
-	# Hold set on the way up to a living guardian: back down the ladder to the level it left.
+	# Hold set on the way up to a living guardian: back down to the level it left.
 	if _climb_direction < 0 and guardian_order == GuardianOrder.HOLD and _guardian_alive(depth - 1):
-		var y: float = _climb_y
-		depth -= 1
-		_start_climb(1)
-		_climb_y = y
+		StageCrossing.turn_back(self)
 	var speed: float = CLIMB_SPEED * _upgrade(UpgradeDef.Stat.TRAVEL_SPEED)
 	var stride: float = speed / Simulation.TICKS_PER_SECOND
 	if absf(_climb_to_y - _climb_y) > stride:
 		_climb_y += _climb_direction * stride
 		return
 	_climb_y = _climb_to_y
+	var landing: float = StageCrossing.landing(self)
 	depth += _climb_direction
 	state = State.TRAVELLING
-	_place(x)
+	_place(landing)
 	_restart_depth_count(_tick)
 	_emit(SimEvent.Kind.DEPTH_CHANGED, -1, -1, depth)
-	# Climbing up into a guardian's chamber: the guardian is met where the ladder ends.
+	# Back up into a guardian's chamber: the guardian is met where the party lands.
 	if _entered_key.y >= 0 and is_populated(depth, _entered_key.y):
 		_start_battle(_labyrinth.level(depth).chambers[_entered_key.y])
 

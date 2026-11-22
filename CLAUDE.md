@@ -71,7 +71,10 @@ incomplete, stop and report the question.
 - **gdlint caps a class at 20 public methods (statics apart) and a file at 1000 lines.** `Expedition` and
   `Hero` are at the method cap: a read-only helper goes in its own small class (as `ClimbProgress` does under
   `sim/expedition/`). `expedition.gd` is held to 900 lines by the `harness` step: a spec that adds to it must
-  first move a read-only part out of it. The tighter caps (that one, 750 lines for `combat_effects.gd` and
+  first move a read-only part out of it. A private member that only the moved code still writes or reads
+  (`_climb_from_y`, once `StageCrossing` set it) is "declared but never used in the class", a warning, so
+  an error in every script that loads `Expedition`: leave the assignment in the class and move the working
+  out into a function that returns the value. The tighter caps (that one, 750 lines for `combat_effects.gd` and
   `showcase.gd`, 15 public methods for `hud.gd`) are one table, `CAPS` in `tools/dev.py`; a new cap is a row.
   A test file is held under 985 lines (spec 081's `test_r4_no_test_file_is_near_the_cap`, run in the `art`
   step, not by `test`): when asserts move into one near that, move a whole check into its test base
@@ -120,7 +123,7 @@ incomplete, stop and report the question.
 | Bake sounds (`.sfx` recipes to `.wav`) | `python tools/sfx.py bake [<path>]` |
 | Lint the sounds (missing, stale, over 1.2 s, peak above -3 dB) | `python tools/sfx.py lint` |
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
-| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents]` |
+| Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents] [--winding]` (`--winding`: on winding stages, which only the simulation makes so far) |
 | Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=110` |
 | Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 

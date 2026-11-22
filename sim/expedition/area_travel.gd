@@ -62,11 +62,12 @@ static func label(id: StringName) -> String:
 	return "" if id == first_area() else "area/" + String(id) + "/"
 
 
-## The labyrinth of area [param id], made from the first area's seed once and then kept.
+## The labyrinth of area [param id], made from the first area's seed, in its shape, once and
+## then kept.
 func labyrinth(id: StringName) -> Labyrinth:
 	if not _labyrinths.has(id):
 		var first: Labyrinth = _labyrinths[first_area()]
-		_labyrinths[id] = Labyrinth.new(first.seed_value, label(id))
+		_labyrinths[id] = Labyrinth.new(first.seed_value, label(id), first.shape)
 	return _labyrinths[id]
 
 

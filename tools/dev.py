@@ -14,7 +14,7 @@
                                          the whole window, 1280x720 (--ui-room=960x540:
                                          as a 1920x1080 window shows it)
     python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S]
-                            [--buy-upgrades] [--timeline] [--spend-talents]
+                            [--buy-upgrades] [--timeline] [--spend-talents] [--winding]
                                          run the simulation headless, print a JSON summary
 
 Standard library only. Godot is found through the GODOT environment
@@ -1039,6 +1039,8 @@ def command_sim(args: argparse.Namespace) -> int:
         options.append(f"--area={args.area}")
     if args.spend_talents:
         options.append("--spend-talents=true")
+    if args.winding:
+        options.append("--winding=true")
     try:
         # The script needs every class_name registered; a fresh checkout has no cache yet.
         ensure_imported()
@@ -1119,6 +1121,11 @@ def build_parser() -> argparse.ArgumentParser:
     sim.add_argument(
         "--area",
         help="send the party to this area (an id, e.g. claypits) at the start, opening it",
+    )
+    sim.add_argument(
+        "--winding",
+        action="store_true",
+        help="play on winding stages: three floors, ladders, a route that doubles back",
     )
     sim.set_defaults(handler=command_sim)
     return parser

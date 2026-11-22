@@ -2,8 +2,9 @@ class_name PartyPlaces
 extends RefCounted
 ## Where an [Expedition]'s party stands and walks to, all of it asked of the stage's
 ## [StageCourse]: each hero's place (its fighter's in a fight, on the ladder while climbing to
-## another stage, where it fell while down, else in line behind the anchor along the course,
-## retracing the anchor's last turn) and the anchor's goal. Reading changes nothing. Kept apart
+## another stage or, between stages joined by doors, where [StageCrossing] puts it, where it fell
+## while down, else in line behind the anchor along the course, retracing the anchor's last
+## turn) and the anchor's goal. Reading changes nothing. Kept apart
 ## from [Expedition] so its file has room.
 
 ## Tiles of course between heroes walking in line.
@@ -19,6 +20,8 @@ static func course(run: Expedition) -> StageCourse:
 static func anchor(run: Expedition) -> Vector2:
 	var feet: Vector2 = course(run).point_at(run.x)
 	if run.state == Expedition.State.CLIMBING:
+		if StageCrossing.by_door(run):
+			return StageCrossing.feet(run, 0)
 		feet.y = run._climb_y
 	return feet
 
@@ -45,6 +48,8 @@ static func of(run: Expedition, hero_id: int, rank: int) -> Vector2:
 			if fighter != null:
 				return Vector2(fighter.x, _fight_row(run))
 		Expedition.State.CLIMBING:
+			if StageCrossing.by_door(run):
+				return StageCrossing.feet(run, rank)
 			var lag: float = HERO_SPACING * rank * run._climb_direction
 			var y: float = run._climb_y - lag
 			if run._climb_direction > 0:
@@ -81,8 +86,10 @@ static func walk_goal(run: Expedition, holding: bool) -> float:
 
 
 ## Where hero [param hero_id], at place [param rank], lies if the party falls now: where it
-## stands, or, on the ladder to another stage, on the floor the party left.
+## stands, or, on the way to another stage, on the floor the party left.
 static func fallen(run: Expedition, hero_id: int, rank: int) -> Vector2:
+	if run.state == Expedition.State.CLIMBING and StageCrossing.by_door(run):
+		return StageCrossing.left_from(run, rank)
 	var feet: Vector2 = of(run, hero_id, rank)
 	if run.state == Expedition.State.CLIMBING:
 		feet.y = course(run).point_at(run.x).y
