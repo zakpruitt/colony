@@ -226,6 +226,12 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   tree shows the node under the mouse, so moving straight from a node to the strip's `Learn` finds the
   button hidden until the HUD's next frame. Move the mouse away and advance a frame first (`_point_away`).
 
+- A light that is in `Ambience.lights()` is not yet a light on screen: `AmbienceDarkness` draws the ones it
+  chose (`_near`), and it chooses again only when it sees the list or the view change. Spec 097's first
+  tests asserted the list handed over and passed while a walking party's newly lit torches had flames and
+  no pools (the choice was skipped on every frame the camera moved); only a screenshot showed it. Assert
+  what the shaders take (`test_097`'s `_drawn`), and look at a shot with the party moving.
+
 ## Files
 
 `user://` is one folder shared by every worktree on the machine. A test that writes there takes its path from
