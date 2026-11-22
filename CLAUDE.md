@@ -125,6 +125,7 @@ incomplete, stop and report the question.
 | Look at every sprite (the gallery) | `python tools/dev.py shot --scene=res://game/art/gallery.tscn --name=gallery` |
 | Run the simulation headless, print a JSON summary | `python tools/dev.py sim --seed=N --minutes=M [--target-depth=D] [--stable-seconds=S] [--buy-upgrades] [--timeline] [--area=ID] [--spend-talents] [--winding]` (`--winding`: on winding stages, which only the simulation makes so far) |
 | Play every moment of the loop, labelled (rare ones too), and screenshot it | `python tools/dev.py shot --scene=res://game/dev/showcase.tscn --name=show --seconds=1 --count=110` |
+| Play the winding preview (the game on winding stages, no save), or screenshot it | `godot --path . res://game/dev/winding.tscn`, `python tools/dev.py shot --scene=res://game/dev/winding.tscn --name=winding` |
 | Screenshot the running game (the whole window, 1280x720) | `python tools/dev.py shot [--name=<n>] [--seconds=2] [--count=1] [--scene=res://…] [--ui-room=960x540]` → `.shots/<n>.png` |
 
 ## Looking at the game

@@ -379,7 +379,8 @@ as a column, which it is on every level the game makes.
 Spec 089. A `Labyrinth` has a `shape`, given when it is made: `FLAT` (the default, and all the game
 makes) or `WINDING`. `Simulation.new(seed, shape)` passes it on, every area's labyrinth has the first
 one's (`AreaTravel.labyrinth`), and a simulation loaded from a save is flat. `python tools/dev.py sim
---winding` plays a winding one. Nothing under `game/` draws a winding stage yet.
+--winding` plays a winding one. The view draws one ("A winding stage on screen", below) and the preview
+scene plays one; where the monsters, the props and the fallen stand on it is spec 091.
 
 A winding stage is made by `WindingStage` (`sim/labyrinth/winding_stage.gd`) from the level's own
 stream alone, so it lines up with no other stage. It lies in a band `Labyrinth.band_height()` (32) rows
@@ -517,6 +518,36 @@ quarters, and the world switches to the next stage under it at half (`ZoneCrossi
 heroes fade into the doorway as they reach it and stand at the far doorway when the screen opens. Because it
 is read from the state, a crowded frame at any speed shows the right stage. The HUD's `CrossingVeil`, drawn
 under the rest of the HUD, paints the dark and the title.
+
+## A winding stage on screen
+
+Spec 090. The zoned view cuts a winding stage out whole. Everything that asked for
+`Labyrinth.LEVEL_HEIGHT` asks the labyrinth's `band_height()` instead, so a stage is 32 rows for a
+winding labyrinth and 16 for a flat one, whose picture has not changed: `LabyrinthView.set_focus` takes
+the stage from the focus row over it, the level's node holds that many rows and `SURROUND_ROWS` of
+earth above and below, and the ambience's open map, exposure map and buried details cover them.
+
+- **Open space** is every chamber, tunnel and ladder of the level (`open_rects_near`), and nothing of
+  its neighbours: a winding stage that is built stands alone, so `is_open` and `visuals_at` answer
+  earth for the rows drawn round it, whatever the stage above or below holds there.
+- **Ladders** are drawn in each of `LabyrinthLevel.ladders` with the tiles an un-zoned shaft has, the
+  top piece standing on the upper room's floor row.
+- **Doorways** (`doorways(depth)`) stand where the course leaves (`exit`) and, from stage 2 on, where
+  it arrives (`entry`), each centred on `course.point_at` and on the floor of the room that is in. A
+  flat stage's stay where its shafts were.
+- **The ambience** dresses each chamber on its own floor and ceiling (`AmbienceLevel`), keeping clear
+  the columns `AmbienceClearings` gives for that chamber: on a winding stage the ladders that meet that
+  room and the doorways in it, on a flat one the two shafts' columns as before. `AmbienceOpenMap` holds
+  the band's open tiles and how much lamplight reaches each. A level's motes are capped by its height
+  (`MAX_MOTES` for 16 rows).
+- **The camera** has `WorldCamera.rows`, the world rows its view stays inside (`Vector2.ZERO`: no
+  limit). `World` sets it when the stage shown changes, from `WorldCamera.rows_of`: a winding stage's
+  band and 4 rows of earth either side, nothing for a flat stage. Inside it the camera follows its
+  target up and down as it does sideways.
+
+`res://game/dev/winding.tscn` (`WindingPreview`, a `Main` on `Simulation.new(seed, WINDING)` that drops
+its save store) plays a winding game; no menu opens it. Tests make one with
+`ColonyTest.winding_simulation()` and a view of one with `zoned_view()`.
 
 ## Side quests and microskills
 
