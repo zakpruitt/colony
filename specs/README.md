@@ -129,8 +129,8 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 089 | [Winding stages in the simulation](089-winding-stages-in-the-simulation/spec.md) (a second shape of level, used by nothing yet): landed on dev, [#89](https://github.com/zakpruitt/colony/pull/89), provisional | 088 |
 | 090 | [A winding stage, drawn](090-a-winding-stage-drawn/spec.md) (rooms on their floors, ladders, doorways, light, the camera's limits, a preview scene): landed on dev, [#90](https://github.com/zakpruitt/colony/pull/90), provisional | 089 |
 | 091 | [The party on a winding stage](091-the-party-on-a-winding-stage/spec.md) (monsters, props, the fallen and the crossing in their room; the camera follows up and down): landed on dev, [#91](https://github.com/zakpruitt/colony/pull/91), provisional | 090 |
-| 092 | [The game plays winding stages](092-the-game-plays-winding-stages/spec.md) (new games, loaded saves and the showcase; tests that make their own flat simulation stay as they are): in-progress | 091 |
-| 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, caches that pay what exists): provisional, waits for 092 | 092 |
+| 092 | [The game plays winding stages](092-the-game-plays-winding-stages/spec.md) (new games, loaded saves and the showcase; tests that make their own flat simulation stay as they are): landed on dev, [#92](https://github.com/zakpruitt/colony/pull/92), provisional | 091 |
+| 093 | [Side paths and caches](093-side-paths-and-caches/spec.md) (gates a microskill opens, caches that pay what exists): in-progress | 092 |
 | 094 | [Gates and caches in the world](094-gates-and-caches-in-the-world/spec.md) (each gate closed and open, the opener at work, the cache's burst, a sealed gate's tip): draft | 093 |
 | 095 | [Gates and caches in words](095-gates-and-caches-in-words/spec.md) (the journal, the tally, the away report, the goal a sealed gate gives): draft, beside 094 | 093 |
 | 096 | The order to press on (Explore or Press on, in the Orders window and the save): to write | 094, 095 |

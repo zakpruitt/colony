@@ -1,9 +1,9 @@
 # 092 — The game plays winding stages
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 091
-- **Pull request:** —
+- **Pull request:** [#92](https://github.com/zakpruitt/colony/pull/92)
 
 ## Intent
 

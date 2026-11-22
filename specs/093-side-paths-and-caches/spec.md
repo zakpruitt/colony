@@ -1,6 +1,6 @@
 # 093 — Side paths and caches
 
-- **Status:** provisional
+- **Status:** in-progress (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 092
 - **Pull request:** —
