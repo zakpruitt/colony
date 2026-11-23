@@ -94,13 +94,14 @@ func advance(delta: float) -> void:
 	_darkness.show_lights(_visible_rect(), lights())
 
 
-## Tells the rooms where [param run]'s party is on [param stage], the stage shown, once a frame:
+## Tells the rooms where [param run]'s party is on [param stage], the stage shown, once a frame,
+## at simulation tick [param tick]:
 ## a room it steps into lights; with [param arrived] only the room it stands in is lit, at once;
 ## with [param quiet] (a picture catching up) that room is lit at once and the rest kept. See
 ## [method AmbienceRooms.follow]. What the party has not seen of a winding stage shown as its
 ## own place is black from then on ([AmbienceSeen]).
-func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
-	rooms.follow(run, stage, arrived, quiet)
+func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool, tick: int) -> void:
+	rooms.follow(run, stage, arrived, quiet, tick)
 	var hides_it: bool = (
 		_view != null and _view.zoned and run.labyrinth.shape == Labyrinth.Shape.WINDING
 	)

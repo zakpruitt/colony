@@ -47,6 +47,8 @@ var _rooms: Array[Place] = []
 var _links: Array[Place] = []
 var _size: Vector2i = Vector2i.ZERO
 var _bytes: PackedByteArray = []
+## The map's pixels as the texture takes them: one object, filled again from the bytes.
+var _map: Image
 var _lit_at: int = -1
 var _fading: int = 0
 
@@ -178,8 +180,8 @@ func _survey() -> void:
 				touched.append(room)
 		_links.append(_place(way, touched))
 	_bytes.fill(0)
-	var map: Image = Image.create_from_data(_size.x, _size.y, false, Image.FORMAT_R8, _bytes)
-	texture.set_image(map)
+	_map = Image.create_from_data(_size.x, _size.y, false, Image.FORMAT_R8, _bytes)
+	texture.set_image(_map)
 
 
 ## The place of [param rect] (world tiles), seen while one of [param rooms] is lit.
@@ -209,24 +211,32 @@ func _place(rect: Rect2i, rooms: PackedInt32Array) -> Place:
 ## room shows into it, but for a seen ladder that runs through one.
 func _compose() -> void:
 	_bytes.fill(0)
-	for places: Array[Place] in [_rooms, _links]:
-		for place: Place in places:
-			if place.shown <= 0.0:
-				continue
-			for i: int in place.around.size():
-				var near: int = int(place.nearness[i] * place.shown)
-				if near > _bytes[place.around[i]]:
-					_bytes[place.around[i]] = near
-	for places: Array[Place] in [_links, _rooms]:
-		for place: Place in places:
-			var own: int = int(255.0 * place.shown)
-			for cell: int in place.inside:
-				_bytes[cell] = own
-	for place: Place in _links:
+	_spread(_rooms)
+	_spread(_links)
+	_own(_links, false)
+	_own(_rooms, false)
+	_own(_links, true)
+	_map.set_data(_size.x, _size.y, false, Image.FORMAT_R8, _bytes)
+	texture.update(_map)
+	changes += 1
+
+
+## Gives the earth round each of [param places] its share, where that is the most so far.
+func _spread(places: Array[Place]) -> void:
+	for place: Place in places:
+		if place.shown <= 0.0:
+			continue
+		for i: int in place.around.size():
+			var near: int = int(place.nearness[i] * place.shown)
+			if near > _bytes[place.around[i]]:
+				_bytes[place.around[i]] = near
+
+
+## Gives the tiles of each of [param places] its own share; with [param most], only where that
+## is more than they have.
+func _own(places: Array[Place], most: bool) -> void:
+	for place: Place in places:
 		var own: int = int(255.0 * place.shown)
 		for cell: int in place.inside:
-			if own > _bytes[cell]:
+			if not most or own > _bytes[cell]:
 				_bytes[cell] = own
-	var map: Image = Image.create_from_data(_size.x, _size.y, false, Image.FORMAT_R8, _bytes)
-	texture.update(map)
-	changes += 1

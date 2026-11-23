@@ -14,6 +14,7 @@ extends RefCounted
 ##
 ## A lit room the party is not in whose monsters have come back is forgotten: its torches go out
 ## one after another and it is as a room never entered. Seen after a stall, they are out at once.
+## The simulation is asked what a room holds only at the ticks its answer can change.
 ##
 ## A room is named by a number: a room of the route by its index, a cache room by
 ## [constant CACHE] plus its side path's place in the level's list.
@@ -25,9 +26,8 @@ const CACHE: int = 100
 const CATCH_GAP: float = 0.15
 ## Seconds from one torch of a forgotten room going out to the next.
 const GUTTER_GAP: float = 0.15
-## The lit rooms are asked whether they hold monsters again once in this many looks (four times
-## a second at 60 looks a second): the asking is the simulation's, and not free.
-const REFILL_LOOKS: int = 15
+## A tick that never comes.
+const NEVER: int = 1 << 60
 ## A flare: the seconds it lasts, and the lamp's reach and strength as a share of their rest when
 ## it catches, at its peak, and the second the peak comes.
 const FLARE_SECONDS: float = 0.3
@@ -46,6 +46,8 @@ class Dressing:
 
 ## Goes up with every change to which lamps are lit; whoever lists the lit lamps compares it.
 var changes: int = 0
+## How many times the simulation has been asked what a room holds, for tests.
+var questions: int = 0
 ## True when the last look settled everything at once: an arrival, or a picture catching up.
 var at_once: bool = false
 
@@ -64,8 +66,18 @@ var _ages: PackedFloat32Array = []
 ## Lamps of forgotten rooms yet to go out, and the seconds each still burns.
 var _guttering: Array[AmbienceProp] = []
 var _burns: PackedFloat32Array = []
-## Looks since the lit rooms were last asked whether they have refilled.
-var _looks: int = 0
+## When each lit room the party has left may hold monsters again: the ticks between which the
+## simulation is asked about it at each look ([constant NEVER] once asked to the end).
+var _ask_from: Dictionary[int, int] = {}
+var _ask_until: Dictionary[int, int] = {}
+## The party's stay in the room it is in: the tick it came, and the last look at which it was
+## fighting or working there and the first after it (-1: none yet).
+var _entered: int = 0
+var _busy_from: int = -1
+var _busy_to: int = -1
+## Whether the last look was quiet, and the tick at which every lit room is asked about once.
+var _quiet: bool = false
+var _sweep_at: int = NEVER
 
 
 ## The room of [param stage], the stage shown, that [param run]'s anchor is in: while it changes
@@ -107,55 +119,70 @@ func strip(depth: int) -> void:
 		changes += 1
 
 
-## Looks where [param run]'s party is on [param stage], the stage shown. A room its anchor has
-## stepped into since the last look starts to light. With [param arrived] (the party has just
-## come to the stage, or been revived) the stage is forgotten first and the room the party
-## stands in is lit whole, with no flare; so is the first look, and one at another stage or
-## another area's. With [param quiet] (the picture is catching up on a stall) what was lit stays
-## lit and the room the party stands in now is lit whole, with no flare.
+## Looks where [param run]'s party is on [param stage], the stage shown, at simulation tick
+## [param tick]. A room its anchor has stepped into since the last look starts to light. With
+## [param arrived] (the party has just come to the stage, or been revived) the stage is
+## forgotten first and the room the party stands in is lit whole, with no flare; so is the first
+## look, and one at another stage or another area's. With [param quiet] (the picture is catching
+## up on a stall) what was lit stays lit and the room the party stands in now is lit whole, with
+## no flare.
 ##
-## A lit room of the route the party is not in, holding monsters again, is forgotten (asked
-## every [constant REFILL_LOOKS] looks): its torches go out in turn, or at once with
-## [param quiet].
-func follow(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
+## A lit room of the route the party is not in, holding monsters again, is forgotten: its
+## torches go out in turn, or at once with [param quiet]. The simulation is asked about a room
+## only when its answer can have changed ([method _leave]).
+func follow(run: Expedition, stage: int, arrived: bool, quiet: bool, tick: int) -> void:
 	var room: int = room_of(run, stage)
 	var fresh: bool = arrived or not _following or stage != _stage or run.labyrinth != _maze
+	var sweep: bool = quiet != _quiet or tick >= _sweep_at
+	_quiet = quiet
 	at_once = fresh or quiet
-	if at_once:
-		if fresh:
-			_lit.clear()
+	if fresh:
+		_lit.clear()
+		_ask_from.clear()
+		_ask_until.clear()
 		_following = true
 		_stage = stage
 		_maze = run.labyrinth
+		_room = NONE
+		sweep = false
+	if sweep:
+		_sweep_at = NEVER
+	if quiet:
+		# A room cleared in a stall was not seen cleared: one more look at them all when it
+		# must have refilled.
+		_sweep_at = tick + _refill_ticks(run, NONE) + 2
+	var from: Vector2 = PartyPlaces.anchor(run) * TILE
+	if room != _room:
+		_leave(run, tick)
 		_room = room
-		if room != NONE:
+		_entered = tick
+		_busy_from = -1
+		_busy_to = -1
+		if room != NONE and not _lit.has(room):
 			_lit[room] = true
-		while _lit.erase(_refilled(run, room)):
-			pass
-		_looks = 0
+			changes += 1
+			if not at_once:
+				_stagger(room, from, true)
+	if room != NONE and room < CACHE:
+		if run.battle != null or run.state == Expedition.State.WORKING:
+			_busy_from = tick
+			_busy_to = -1
+		elif _busy_from >= 0 and _busy_to < 0:
+			_busy_to = tick
+	var refilled: int = _due(run, tick, sweep)
+	while refilled != NONE:
+		_lit.erase(refilled)
+		_ask_from.erase(refilled)
+		_ask_until.erase(refilled)
+		if not at_once:
+			_stagger(refilled, from, false)
+		changes += 1
+		refilled = _due(run, tick, sweep)
+	if at_once:
 		_settle()
 		for depth: int in _dressed:
 			_apply(depth)
 		changes += 1
-		return
-	_looks += 1
-	var refilled: int = NONE
-	if _looks >= REFILL_LOOKS:
-		_looks = 0
-		refilled = _refilled(run, room)
-	while refilled != NONE:
-		_lit.erase(refilled)
-		_stagger(refilled, PartyPlaces.anchor(run) * TILE, false)
-		changes += 1
-		refilled = _refilled(run, room)
-	if room == _room:
-		return
-	_room = room
-	if room == NONE or _lit.has(room):
-		return
-	_lit[room] = true
-	changes += 1
-	_stagger(room, PartyPlaces.anchor(run) * TILE, true)
 
 
 ## Moves the lamps catching and the flares on by [param delta] seconds. Nothing to do, and
@@ -260,12 +287,63 @@ func _settle() -> void:
 	_burns.clear()
 
 
-## The first lit room of the route other than [param room] (where the party is) that holds
-## monsters again, or [constant NONE]. A cache room never does.
-func _refilled(run: Expedition, room: int) -> int:
-	for lit: int in _lit:
-		if lit != room and lit < CACHE and run.is_populated(_stage, lit):
-			return lit
+## Notes when the room the party has just left may hold monsters again. A room refills a set
+## time after it is cleared, and until then, or while a side quest waits in it, the simulation's
+## answer cannot change: asking is not free (a waiting quest is drawn again at each asking), so
+## a room is asked about only from the tick it can first have refilled to the tick it must have.
+## It was cleared between the last look at which the party fought or worked in it and the next;
+## with no such look, at some tick of the stay, unless an earlier stay's time still stands.
+func _leave(run: Expedition, tick: int) -> void:
+	var left: int = _room
+	if left == NONE or left >= CACHE or not _lit.has(left):
+		return
+	var wait: int = _refill_ticks(run, left)
+	if _busy_from >= 0:
+		_ask_from[left] = _busy_from + wait - 1
+		_ask_until[left] = (_busy_to if _busy_to >= 0 else tick) + wait + 2
+		return
+	if _ask_from.get(left, NEVER) != NEVER:
+		return
+	questions += 1
+	if run.is_populated(_stage, left):
+		_ask_from[left] = tick
+		_ask_until[left] = tick
+		return
+	questions += 1
+	if run.side_quest_in(_stage, left) == &"":
+		_ask_from[left] = _entered + wait - 1
+		_ask_until[left] = tick + wait + 2
+
+
+## Ticks a cleared [param room] of the stage shown stays empty; [constant NONE]: a plain room.
+func _refill_ticks(run: Expedition, room: int) -> int:
+	var seconds: float = DepthTiming.respawn_seconds_at(_stage)
+	if room != NONE:
+		var area: AreaDef = Content.area(run.place)
+		if ChamberRules.is_guardians(run.labyrinth, area, _stage, room):
+			seconds = Expedition.GUARDIAN_RESPAWN_SECONDS
+	return Combatant.seconds_to_ticks(seconds)
+
+
+## The first lit room of the route the party is not in that is due to be asked about at
+## [param tick] (with [param sweep], every one) and holds monsters again, or [constant NONE].
+## A cache room never does.
+func _due(run: Expedition, tick: int, sweep: bool) -> int:
+	if sweep:
+		for lit: int in _lit:
+			if lit != _room and lit < CACHE:
+				questions += 1
+				if run.is_populated(_stage, lit):
+					return lit
+		return NONE
+	for room: int in _ask_from:
+		if room == _room or tick < _ask_from[room]:
+			continue
+		questions += 1
+		if run.is_populated(_stage, room):
+			return room
+		if tick >= _ask_until[room]:
+			_ask_from[room] = NEVER
 	return NONE
 
 
@@ -308,8 +386,10 @@ func _stagger(room: int, from: Vector2, lighting: bool) -> void:
 			_guttering.remove_at(going)
 			_burns.remove_at(going)
 		if lighting:
-			_waiting.append(lamp)
-			_waits.append(turn * CATCH_GAP)
+			# A lamp still burning in a room that was going dark burns on, with no flare.
+			if not lamp.lit:
+				_waiting.append(lamp)
+				_waits.append(turn * CATCH_GAP)
 		elif lamp.lit:
 			_guttering.append(lamp)
 			_burns.append(turn * GUTTER_GAP)

@@ -21,8 +21,10 @@ const HEAD_MOST: float = 6.0
 var redraws: int = 0
 
 var _world: World
-## Each waiting monster's head, from its sprite's position.
+## Each waiting monster's head, from its sprite's position, and the sprite it was measured on:
+## an id comes round again, on another monster.
 var _heads: Dictionary[int, Vector2] = {}
+var _bodies: Dictionary[int, int] = {}
 ## Each pair showing: where its middle is, the seconds until it shuts (shut at 0 and under) and
 ## its part of the sheet.
 var _at: Dictionary[int, Vector2] = {}
@@ -70,7 +72,8 @@ func watch(waiting: Dictionary[int, bool], delta: float) -> void:
 		if sprite == null or sprite.is_dead():
 			changed = _clock.erase(id) or changed
 			continue
-		if not _heads.has(id):
+		if _bodies.get(id, 0) != sprite.get_instance_id():
+			_bodies[id] = sprite.get_instance_id()
 			_heads[id] = _head_of(sprite)
 		var at: Vector2 = (sprite.position + _heads[id]).round()
 		if not _world.ambience.hides(at):
@@ -104,6 +107,7 @@ func _forget(waiting: Dictionary[int, bool]) -> bool:
 	for id: int in _heads.keys():
 		if not waiting.has(id):
 			_heads.erase(id)
+			_bodies.erase(id)
 			_at.erase(id)
 			_parts.erase(id)
 			went = _clock.erase(id) or went

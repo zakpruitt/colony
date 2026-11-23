@@ -112,8 +112,21 @@ func test_r1_only_what_is_seen_is_not_black() -> void:
 		assert_eq(_ambience.seen.fading(), 0, "%s: shown at once" % what)
 		var home: Rect2i = level.chambers[room].rect
 		assert_gt(_bright(home), 0.0, "%s: the party's room is seen" % what)
-		var above := Rect2i(home.position.x + home.size.x / 2, home.position.y - 1, 1, 1)
-		assert_gt(_bright(above), 0.0, "%s: earth a tile from it is seen" % what)
+		# Earth a tile over the room, at the corner furthest from the party's own light.
+		var glow: Vector2 = _ambience.party_light_position
+		var above := Rect2i(home.position.x, home.position.y - 1, 1, 1)
+		var other_end := Rect2i(home.end.x - 1, home.position.y - 1, 1, 1)
+		if _middle(other_end).distance_to(glow) > _middle(above).distance_to(glow):
+			above = other_end
+		assert_gt(
+			_middle(above).distance_to(glow),
+			Ambience.PARTY_RADIUS + TILE,
+			"%s: a tile of earth by the room, beyond the party's light" % what
+		)
+		assert_eq(
+			_ambience._unveiled(_middle(above)), 1.0, "%s: earth a tile from it is seen" % what
+		)
+		assert_false(_ambience.hides(_middle(above)), "%s: and not drawn black" % what)
 		for other: LabyrinthChamber in level.chambers:
 			if other.index != room:
 				assert_eq(_bright(other.rect), 0.0, "%s: room %d is black" % [what, other.index])
@@ -353,59 +366,93 @@ func test_r4_a_room_is_shown_as_the_party_enters() -> void:
 
 ## R5: a room cleared and left, then its refill tick passed: its torches go out in turn, its
 ## middle is black within 0.8 s, it shows eyes, and walking back in lights it again with a
-## flare; the party's own room refilling under it does not go black; a cache room stays seen.
+## flare; the party's own room refilling under it does not go black, and the monsters waiting
+## in it, a seen place, have no eyes; a cache room stays seen.
 func test_r5_a_refilled_room_goes_black() -> void:
 	_watch_rooms(_arrived(SEED, STAGE, STAGE + 1), 4)
 	var level: LabyrinthLevel = _shown_level()
+	var e: Expedition = _sim.expedition
 	var here: int = 0
 	var back: int = -1
-	# Walk on until a room behind the party, cleared, holds monsters again when it refills.
-	for room: int in range(1, level.chambers.size() - 1):
+	var refilled: int = -1
+	var played: int = 0
+	var torches: Array[AmbienceProp] = []
+	var out: Dictionary[AmbienceProp, int] = {}
+	var black: int = -1
+	var forgotten: int = -1
+	# The party fights on in each room in turn until the room behind it refills, and with monsters.
+	for room: int in range(2, level.chambers.size() - 1):
 		_walk_until(_settled_in.bind(room), "the party walks to room %d" % room)
-		_walk_until(
-			func() -> bool: return _sim.expedition.battle == null,
-			"the fight in room %d ends" % room
-		)
 		here = room
-		if _torch_count(room - 1) > 1 and room > 1 and _refill(room - 1):
-			back = room - 1
+		if _torch_count(room - 1) < 2 or not _ambience.rooms.is_lit(room - 1):
+			_walk_until(func() -> bool: return e.battle == null, "the fight in it ends")
+			continue
+		assert_not_null(e.battle, "the party fights in room %d" % room)
+		var behind: Rect2i = level.chambers[room - 1].rect
+		torches = _torches_of(room - 1)
+		for wait: int in 900:
+			if refilled < 0:
+				assert_gt(_bright(behind), 0.0, "the room behind is seen until it refills")
+				_held_frame()
+			else:
+				_play_frame()
+			played += 1
+			if refilled < 0 and e.side_quest_in(STAGE, room - 1) != &"":
+				break
+			if refilled < 0 and e.is_populated(STAGE, room - 1):
+				refilled = played
+				back = room - 1
+			if refilled < 0:
+				continue
+			if forgotten < 0 and not _ambience.rooms.is_lit(back):
+				forgotten = played
+			for torch: AmbienceProp in torches:
+				if not torch.lit and not out.has(torch):
+					out[torch] = played
+			if black < 0 and _bright(behind) == 0.0:
+				black = played
+			if played - refilled >= 90:
+				break
+		if back >= 0:
 			break
+		_walk_until(func() -> bool: return e.battle == null, "the fight in it ends")
 	assert_gt(back, 0, "a room behind the party refills with monsters")
 	if back < 0:
 		return
 	var rect: Rect2i = level.chambers[back].rect
-	assert_gt(_bright(rect), 0.0, "it was seen")
-	var torches: Array[AmbienceProp] = _torches_of(back)
-	var out: Dictionary[AmbienceProp, int] = {}
-	var black: int = -1
-	var forgotten: int = -1
-	for frame: int in 90:
-		_play_frame(false)
-		if forgotten < 0 and not _ambience.rooms.is_lit(back):
-			forgotten = frame
-		for torch: AmbienceProp in torches:
-			if not torch.lit and not out.has(torch):
-				out[torch] = frame
-		if black < 0 and _bright(rect) == 0.0:
-			black = frame
 	assert_false(_ambience.rooms.is_lit(back), "the room is forgotten")
+	assert_lt((forgotten - refilled) * STEP, 0.2, "as soon as it refills")
 	assert_eq(out.size(), torches.size(), "every torch of it went out")
 	var times: Array = out.values()
 	times.sort()
 	for i: int in range(1, times.size()):
 		var gap: float = (times[i] - times[i - 1]) * STEP
 		assert_almost_eq(gap, AmbienceRooms.GUTTER_GAP, 0.035, "one about 0.15 s after another")
-	assert_lt(black * STEP, 0.8, "its middle is black within 0.8 s of the refill")
+	assert_lt((black - refilled) * STEP, 0.8, "its middle is black within 0.8 s of the refill")
 	assert_gt((black - forgotten) * STEP, 0.3, "the black closes over it, not at once")
 	assert_eq(_ambience.seen.fading(), 0, "the black has closed")
 	assert_gt(_eyes_in(back).size(), 0, "it shows eyes")
-	assert_true(_ambience.rooms.is_lit(here), "the party's room is still lit")
-	# The party's own room refilling under it does not go black.
+	assert_eq(_party_room(), here, "the party is still in its room")
+	assert_true(_ambience.rooms.is_lit(here), "which is still lit")
+	# The party's own room refilling under it does not go black, and shows no eyes.
+	_walk_until(func() -> bool: return e.battle == null, "the fight in the party's room ends")
+	assert_eq(_party_room(), here, "the party is still in its room")
 	assert_true(_refill(here), "the party's room holds monsters again too")
-	for frame: int in 60:
+	for i: int in 60:
 		_play_frame(false)
 	assert_true(_ambience.rooms.is_lit(here), "the room the party stands in stays lit")
 	assert_gt(_bright(level.chambers[here].rect), 0.0, "and seen")
+	var under: int = 0
+	var rooms: Dictionary[int, int] = _waiting_rooms()
+	for id: int in rooms:
+		if rooms[id] != here:
+			continue
+		under += 1
+		assert_true(_world._waiting.has(id), "monster %d waits in the party's room" % id)
+		assert_not_null(_world.character(id), "monster %d stands there" % id)
+		assert_eq(_world.eyes.part(id), &"", "monster %d, in a seen place, has no eyes" % id)
+	assert_gt(under, 0, "monsters wait in the party's room")
+	assert_gt(_eyes_in(back).size(), 0, "while those in the black room keep theirs")
 	# Walking back in lights it again, with a flare.
 	_sim.set_target_depth(STAGE - 1)
 	var flared: Array[int] = [0]
@@ -419,7 +466,6 @@ func test_r5_a_refilled_room_goes_black() -> void:
 	assert_gt(flared[0], 0, "its torches catch again with a flare")
 	assert_true(_ambience.rooms.is_lit(back), "it is lit again")
 	assert_gt(_bright(rect), 0.0, "and seen")
-	assert_eq(_eyes_in(back).size(), 0, "with no eyes")
 	_world.free()
 	# A cache room, which never holds monsters, stays seen once seen.
 	var found: Vector2i = _find(STAGE, true)
@@ -452,6 +498,26 @@ func _torches_of(room: int) -> Array[AmbienceProp]:
 
 func _torch_count(room: int) -> int:
 	return _torches_of(room).size()
+
+
+## A frame in which the fight the party is in does not end: everyone whole before each tick.
+func _held_frame() -> void:
+	if _frames_played % FRAMES_PER_TICK == 0:
+		for i: int in maxi(_world.speed, 1):
+			_hold_fight()
+			_sim.step()
+	_play_frame(false)
+
+
+func _hold_fight() -> void:
+	var e: Expedition = _sim.expedition
+	if e.battle != null:
+		for monster: Combatant in e.battle.monsters:
+			if monster.is_alive():
+				monster.health = monster.max_health
+	for hero: Hero in _sim.party.heroes:
+		if hero.is_alive():
+			hero.health = hero.max_health()
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -600,3 +666,33 @@ func test_r8_an_idle_frame_does_nothing() -> void:
 	assert_gt(eyes.redraws - blinks, 3, "the eyes blinked")
 	assert_gt(quiet_blinks, 0, "and a blink redrew no darkness")
 	assert_eq(seen.fading(), 0, "nothing was fading")
+	_world.free()
+	# A lit room behind the party whose side quest waits: the simulation is not asked about it.
+	var quest := Vector2i(-1, -1)
+	for seed_value: int in range(1, 60):
+		var sim: Simulation = _arrived(seed_value, STAGE, STAGE + 1)
+		for room: int in range(1, sim.labyrinth.level(STAGE).chambers.size() - 2):
+			var id: StringName = sim.expedition.side_quest_in(STAGE, room)
+			if id != &"" and Content.side_quest(id).miss_damage <= 0.0 and quest.x < 0:
+				quest = Vector2i(seed_value, room)
+	assert_gt(quest.x, 0, "a stage with a side quest that stays when nobody can do it")
+	if quest.x < 0:
+		return
+	_watch_rooms(_arrived(quest.x, STAGE, STAGE + 1), 4)
+	_walk_until(_settled_in.bind(quest.y + 1), "the party walks past the quest's room")
+	var e: Expedition = _sim.expedition
+	var rooms: AmbienceRooms = _ambience.rooms
+	assert_true(rooms.is_lit(quest.y), "the quest's room is lit")
+	assert_ne(e.side_quest_in(STAGE, quest.y), &"", "and its quest still waits")
+	var asked: int = rooms.questions
+	for i: int in 240:
+		_play_frame(false)
+	assert_eq(rooms.questions, asked, "idle frames ask the simulation nothing")
+	# Nor in most of a minute of the game played on, but as a room is left or due to refill.
+	for i: int in 600:
+		_held_frame()
+	assert_eq(_world.shown_stage(), STAGE, "the party is still on the stage")
+	assert_true(rooms.is_lit(quest.y), "the quest's room is still lit")
+	assert_ne(e.side_quest_in(STAGE, quest.y), &"", "its quest still waiting")
+	var most: int = _shown_level().chambers.size() * 5
+	assert_lt(rooms.questions - asked, most, "a room is asked about only as it can have refilled")

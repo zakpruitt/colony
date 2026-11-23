@@ -310,7 +310,7 @@ func sync(delta: float) -> void:
 	_fly_bolts(game_delta)
 	_place_party_light()
 	var arrived: bool = _snap_heroes or (_snap_all and not _catching_up)
-	ambience.follow_party(simulation.expedition, _shown, arrived, _catching_up)
+	ambience.follow_party(simulation.expedition, _shown, arrived, _catching_up, now)
 	eyes.watch(_waiting, delta)
 	target_marker.follow(simulation, _party_feet(true), delta)
 	_aim_camera(delta)
