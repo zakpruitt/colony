@@ -621,6 +621,22 @@ earth above and below, and the ambience's open map, exposure map and buried deta
 - **Open space** is every chamber, tunnel and ladder of the level (`open_rects_near`), and nothing of
   its neighbours: a winding stage that is built stands alone, so `is_open` and `visuals_at` answer
   earth for the rows drawn round it, whatever the stage above or below holds there.
+- **A room is cut to a shape** (spec 100). `RoomShape` (`game/world/room_shape.gd`) is one room as
+  drawn: a ceiling row of its own over each column of the rectangle, everything under it open, so some
+  tiles of the rectangle are earth and some above it are open. It is drawing only: the simulation's
+  room is still `LabyrinthChamber.rect`, the floor is whole, and nothing in `sim/` knows. The shape
+  comes from the labyrinth's seed, the stage and the room (`SimRng.fork`), cut by the numbers of the
+  area's `RoomCut`, one row of `ZoneLook.CUTS` (reach, step, run width, lean, round corners, raised
+  middle): a new manner is a row there. Three things hold whatever the cut: `STANDING_ROWS` (4) rows
+  over the whole floor are open, as tall as the tallest sheet that stands on one (the 64-pixel
+  bosses) and a row over a tunnel's mouth and a doorway; a ladder's columns are open for the
+  rectangle's height; and nothing opens outside the room's columns, more than `MOST_ROWS` (8) over
+  the floor, or beside another place the rectangle does not touch. `StageShapes`
+  (`LabyrinthView.shapes(depth)`, null for a flat or un-zoned view, which draw their boxes) holds a
+  stage's shapes and its open tiles. **Ask `LabyrinthView.is_open` for the truth of a tile**:
+  `open_rects_near` answers a room with its shape's `bounds()`, which holds earth too. Whatever hangs
+  from a ceiling asks the shape for its column's (`AmbienceLevel._ceiling_px`); what stands on a floor
+  needs nothing, the lowest four rows being open.
 - **Ladders** are drawn in each of `LabyrinthLevel.ladders` with the tiles an un-zoned shaft has, the
   top piece standing on the upper room's floor row.
 - **Doorways** (`doorways(depth)`) stand where the course leaves (`exit`) and, from stage 2 on, where

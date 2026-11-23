@@ -8,6 +8,21 @@ extends RefCounted
 ## How much of the ambient light each stage after the first takes away, and the most taken.
 const STAGE_DIM: float = 0.02
 const MOST_DIM: float = 0.2
+## How the rooms of each look are cut ([RoomCut]), in [constant LabyrinthTiles.STRATA] order. A
+## row is: the ceiling's reach in rows; the least and the most rows it moves between runs; the
+## least and the most columns a run is wide; the columns a wall leans over; whether the corners
+## are round; whether the ceiling is built (level sides, a raised middle); the chance in a
+## hundred that it turns back, up for down, at a run.
+const CUTS: Array[Array] = [
+	# Mossy Hollow: soft and rounded.
+	[2, 1, 1, 3, 5, 2, true, false, 0],
+	# Claypits: broad flat steps.
+	[3, 2, 3, 6, 10, 0, false, false, 0],
+	# Old Crypt: built, with square walls, level runs and a raised middle.
+	[1, 1, 1, 2, 5, 0, false, true, 0],
+	# Ember Deep: jagged, its ceiling moving most.
+	[3, 1, 3, 1, 2, 1, false, false, 50],
+]
 
 ## The look's index in [constant LabyrinthTiles.STRATA].
 var band: int
@@ -29,6 +44,11 @@ static func of(area_id: StringName, stage_number: int) -> ZoneLook:
 ## The earth sheet the area is drawn with.
 func stratum() -> StringName:
 	return LabyrinthTiles.STRATA[band]
+
+
+## The manner the area's rooms are cut in.
+func cut() -> RoomCut:
+	return RoomCut.new(CUTS[band])
 
 
 ## The palette colour the area's lamplight leans toward.

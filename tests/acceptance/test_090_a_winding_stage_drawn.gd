@@ -35,13 +35,19 @@ func _rooms(level: LabyrinthLevel) -> Array[LabyrinthChamber]:
 	return rooms
 
 
-## The open tiles of [param level]: those of its rooms, tunnels and ladders, its side paths'
-## among them, each listed here from the side path itself.
-func _open_tiles(level: LabyrinthLevel) -> Dictionary[Vector2i, bool]:
+## The open tiles of [param level] as [param view] cuts it: those of its rooms' shapes (spec 100:
+## a room is no longer its whole rectangle), tunnels and ladders, its side paths' among them, each
+## listed here from the side path itself.
+func _open_tiles(level: LabyrinthLevel, view: LabyrinthView) -> Dictionary[Vector2i, bool]:
 	var open: Dictionary[Vector2i, bool] = {}
 	var rects: Array[Rect2i] = []
 	for room: LabyrinthChamber in _rooms(level):
-		rects.append(room.rect)
+		var shape: RoomShape = _shape(view, room)
+		var bounds: Rect2i = shape.bounds()
+		for y: int in range(bounds.position.y, bounds.end.y):
+			for x: int in range(bounds.position.x, bounds.end.x):
+				if shape.is_open(Vector2i(x, y)):
+					open[Vector2i(x, y)] = true
 	rects.append_array(level.tunnels)
 	rects.append_array(level.ladders)
 	for path: SidePath in level.side_paths:
@@ -52,6 +58,12 @@ func _open_tiles(level: LabyrinthLevel) -> Dictionary[Vector2i, bool]:
 			for x: int in range(rect.position.x, rect.end.x):
 				open[Vector2i(x, y)] = true
 	return open
+
+
+## The shape [param view] cuts [param room] to.
+func _shape(view: LabyrinthView, room: LabyrinthChamber) -> RoomShape:
+	var depth: int = floori(float(room.rect.position.y) / view.labyrinth.band_height()) + 1
+	return view.shapes(depth).shape_of(room)
 
 
 ## The sides (N, E, S, W bits) of the edge drawn at [param tile], or 0 for none.
@@ -148,7 +160,7 @@ func test_r2_every_room_tunnel_and_ladder_is_open() -> void:
 			assert_eq(
 				view.built_depths(), [level.depth] as Array[int], "%s: only it is built" % what
 			)
-			var open: Dictionary[Vector2i, bool] = _open_tiles(level)
+			var open: Dictionary[Vector2i, bool] = _open_tiles(level, view)
 			var wrong_open: int = 0
 			var wrong_ground: int = 0
 			for y: int in range(band.position.y - SURROUND, band.end.y + SURROUND):
@@ -169,8 +181,15 @@ func test_r2_every_room_tunnel_and_ladder_is_open() -> void:
 				for y: int in range(rect.position.y, rect.end.y):
 					for x: int in range(rect.position.x, rect.end.x):
 						near[Vector2i(x, y)] = true
-			assert_eq(near.size(), open.size(), "%s: open_rects_near covers the stage" % what)
-			assert_true(near.has_all(open.keys()), "%s: open_rects_near covers the stage" % what)
+			# A room answers with its shape's bounds, which hold the earth left in it too.
+			var held: Dictionary[Vector2i, bool] = open.duplicate()
+			for room: LabyrinthChamber in _rooms(level):
+				var bounds: Rect2i = _shape(view, room).bounds()
+				for y: int in range(bounds.position.y, bounds.end.y):
+					for x: int in range(bounds.position.x, bounds.end.x):
+						held[Vector2i(x, y)] = true
+			assert_eq(near.size(), held.size(), "%s: open_rects_near covers the stage" % what)
+			assert_true(near.has_all(held.keys()), "%s: open_rects_near covers the stage" % what)
 			var floors: Dictionary[int, bool] = {}
 			assert_gt(level.side_paths.size(), 0, "%s: the stage has a side path" % what)
 			for room: LabyrinthChamber in _rooms(level):
@@ -183,10 +202,11 @@ func test_r2_every_room_tunnel_and_ladder_is_open() -> void:
 					var under := Vector2i(x, room.floor_row() + 1)
 					if not open.has(under) and _edge_sides(view, under) & N == 0:
 						bare_floor += 1
-					var over := Vector2i(x, room.rect.position.y - 1)
+					var ceiling: int = _shape(view, room).ceiling_row(x)
+					var over := Vector2i(x, ceiling - 1)
 					if not open.has(over) and _edge_sides(view, over) & S == 0:
 						bare_ceiling += 1
-					var top := Vector2i(x, room.rect.position.y)
+					var top := Vector2i(x, ceiling)
 					if not open.has(over) and _shade_sides(view, top) & N == 0:
 						unshaded += 1
 				var room_name: String = "%s room %d" % [what, room.index]
@@ -286,7 +306,7 @@ func test_r5_every_room_is_dressed_on_its_own_floor() -> void:
 			if dressed == null:
 				continue
 			var doors: Array[Rect2] = view.doorways(stage)
-			var open: Dictionary[Vector2i, bool] = _open_tiles(level)
+			var open: Dictionary[Vector2i, bool] = _open_tiles(level, view)
 			var torches: Dictionary[int, int] = {}
 			var placed: Array[AmbienceProp] = dressed.torches.duplicate()
 			placed.append_array(dressed.props)
@@ -309,9 +329,10 @@ func test_r5_every_room_is_dressed_on_its_own_floor() -> void:
 						if prop.name == &"chest":
 							chests += 1
 					AmbienceProp.Anchor.CEILING:
+						var column: int = floori(prop.rect.get_center().x / TILE)
 						assert_eq(
 							prop.rect.position.y,
-							room.rect.position.y * TILE - 2.0,
+							_shape(view, room).ceiling_row(column) * TILE - 2.0,
 							"%s: on its ceiling" % where
 						)
 					AmbienceProp.Anchor.WALL:
@@ -363,7 +384,10 @@ func test_r5_every_room_is_dressed_on_its_own_floor() -> void:
 						floor_y = mote.origin.y
 					var home: bool = false
 					for room: LabyrinthChamber in level.chambers:
-						var pixels: Rect2 = _room_pixels(room)
+						var bounds: Rect2i = _shape(view, room).bounds()
+						var pixels := Rect2(
+							Vector2(bounds.position) * TILE, Vector2(bounds.size) * TILE
+						)
 						var in_columns: bool = (
 							mote.position.x >= pixels.position.x and mote.position.x <= pixels.end.x
 						)
@@ -392,7 +416,7 @@ func test_r5_the_lowest_room_is_lit_as_the_highest() -> void:
 			var dressed: AmbienceLevel = ambience.level(stage)
 			var band: Rect2i = level.band
 			assert_eq(dressed.exposure.get_size(), band.size, "%s: the map covers the band" % what)
-			var open: Dictionary[Vector2i, bool] = _open_tiles(level)
+			var open: Dictionary[Vector2i, bool] = _open_tiles(level, view)
 			var wrong: int = 0
 			var buried_seen: int = 0
 			for y: int in range(band.position.y, band.end.y):

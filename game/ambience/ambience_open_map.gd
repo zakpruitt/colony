@@ -13,21 +13,24 @@ var _top: int
 var _rows: int
 
 
-## Marks the open tiles of the band of [param depth] as [param view] draws them (chambers, tunnels
-## and shafts, including the shaft from the level above and those of the levels either side
-## reaching in; a stage shown as its own place has no shafts, only the ladders inside it), and
-## from them how much light reaches each tile.
+## Marks the open tiles of the band of [param depth] as [param view] draws them (chambers as
+## they are cut, tunnels and shafts, including the shaft from the level above and those of the
+## levels either side reaching in; a stage shown as its own place has no shafts, only the
+## ladders inside it), and from them how much light reaches each tile.
 func _init(view: LabyrinthView, depth: int) -> void:
 	_rows = view.labyrinth.band_height()
 	_top = (depth - 1) * _rows
 	var width: int = Labyrinth.LEVEL_WIDTH + 2
 	_open.resize(width * (_rows + 2))
 	var band := Rect2i(-1, _top - 1, width, _rows + 2)
+	# Rooms cut to shapes hold earth inside their rectangles: there each tile is asked.
+	var shapes: StageShapes = view.shapes(depth)
 	for rect: Rect2i in view.open_rects_near(depth):
 		var overlap: Rect2i = rect.intersection(band)
 		for y: int in range(overlap.position.y, overlap.end.y):
 			for x: int in range(overlap.position.x, overlap.end.x):
-				_open[(y - _top + 1) * width + x + 1] = 1
+				if shapes == null or shapes.is_open(Vector2i(x, y)):
+					_open[(y - _top + 1) * width + x + 1] = 1
 	exposure = Image.create_empty(Labyrinth.LEVEL_WIDTH, _rows, false, Image.FORMAT_R8)
 	for y: int in _rows:
 		for x: int in Labyrinth.LEVEL_WIDTH:
