@@ -51,7 +51,7 @@ func test_a_far_revival_is_a_cut() -> void:
 	assert_lt(world.camera.position.distance_to(there), 1.0, "onto the revival's place")
 
 
-func test_a_hero_fallen_in_a_won_fight_goes_when_it_ends() -> void:
+func test_a_hero_fallen_in_a_won_fight_lies_on_while_they_rest() -> void:
 	var sim := Simulation.new(1)
 	var world: World = _world(sim)
 	var fought: bool = false
@@ -74,11 +74,14 @@ func test_a_hero_fallen_in_a_won_fight_goes_when_it_ends() -> void:
 		world.sync(FRAME)
 		lay = lay or world.fallen_party.is_lying(4)
 	assert_true(lay, "the fallen cleric lay on the field")
+	# Spec 102 R6: the fight won, the party rests, and the cleric lies on, shown, until healed.
+	assert_eq(sim.expedition.state, Expedition.State.RESTING, "the party rests")
 	for i: int in 3:
 		world.sync(FRAME)
-	assert_false(world.fallen_party.is_lying(4), "the fight won, it lies there no longer")
-	assert_false(world.character(4).visible, "it is out of sight, as a fallen hero was before")
-	assert_eq(world.character(4).rotation, 0.0, "and upright again for when it is healed")
+	assert_false(cleric.is_alive(), "not healed yet")
+	assert_true(world.fallen_party.is_lying(4), "the fight won, it lies on while they rest")
+	assert_true(world.character(4).visible, "in sight")
+	assert_true(world.character(4).is_dead(), "and down")
 
 
 func test_bodies_are_their_opaque_pixels_either_side_of_the_feet() -> void:

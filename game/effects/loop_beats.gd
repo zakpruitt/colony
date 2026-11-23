@@ -1,7 +1,8 @@
 class_name LoopBeats
 extends RefCounted
 ## The beats of the loop on screen: LEVEL UP over a hero with its rising sparks, z's drifting up
-## from resting heroes, the WIPED and stage-stable banners, the columns of light of a revival, and
+## from resting heroes, the WIPED and stage-stable banners, the light and sparks of every revival
+## (the party's, a revive in a fight, a hero getting up at the camp), and
 ## a guardian's coming (its name and the depth it guards) and its fall (GUARDIAN SLAIN).
 ##
 ## It hears [signal World.sim_event] itself and makes its texts and particles through
@@ -20,6 +21,15 @@ const BANNER_LIFE_STABLE: float = 2.0
 const STABLE_RAISE: float = 40.0
 const LIGHT_HEIGHT: int = 56
 const LIGHT_LIFE: float = 0.9
+## The sparks of a revival, rising from the hero's feet beside its column of light.
+const REVIVAL_SPARKS: int = 12
+## The longest a revival's spark lives, in seconds, and how far either side of the feet one
+## starts, in pixels: within the hero's own width.
+const SPARK_LIFE: float = 1.0
+const SPARK_SPREAD: float = 5.0
+## How high above a standing hero's feet its z's start, in pixels: over its head. A sitting
+## hero's start as much lower as its head is.
+const Z_HEIGHT: float = 28.0
 ## A guardian's coming: the name's and the depth line's font multiples, how far above the middle
 ## of the screen each sits, how long both stay, and the camera's one shake.
 const ANNOUNCE_SCALE: int = 4
@@ -62,6 +72,8 @@ func setup(
 	_spark_texture = spark_texture
 	if not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
+	if not world.fallen_party.rose_at_camp.is_connected(revival_effect):
+		world.fallen_party.rose_at_camp.connect(revival_effect)
 
 
 ## Shows a revival seen since the last frame. [CombatEffects] calls it before the guardian's waves
@@ -70,6 +82,44 @@ func light_revival() -> void:
 	if _revival_due:
 		_revival_due = false
 		_revival_lights()
+
+
+## The revival effect at hero [param hero_id]'s feet: its column of light, a yellow outer one and
+## a white core, and green and white sparks rising from the floor and fading. The same for every
+## revival: one at the camp, a revive in a fight, and the party's after a wipe.
+func revival_effect(hero_id: int) -> void:
+	if _world.character(hero_id) == null:
+		return
+	var feet: Vector2 = _world.feet_position(hero_id)  # on the floor, under a hero still lying
+	if not _light_column(feet, &"yellow", 16) or not _light_column(feet, &"white", 8):
+		return
+	for i: int in REVIVAL_SPARKS:
+		var spark: FxParticle = _fx.new_particle(&"revival_spark")
+		if spark == null:
+			return
+		spark.color = Palette.color(&"white" if i % 3 == 0 else &"green")
+		spark.texture = _spark_texture if i % 4 == 0 else null
+		spark.size = 1 + i % 2
+		spark.velocity = Vector2(_rng.randf_range(-6.0, 6.0), -_rng.randf_range(30.0, 60.0))
+		spark.gravity = -10.0
+		spark.life = _rng.randf_range(0.5, SPARK_LIFE)
+		var side: float = _rng.randf_range(-SPARK_SPREAD, SPARK_SPREAD)
+		spark.start(feet + Vector2(side, -_rng.randf_range(0.0, 3.0)).round())
+
+
+## A column of revival light [param width] pixels wide standing on [param feet]; false when the
+## budget has no room for it.
+func _light_column(feet: Vector2, colour: StringName, width: int) -> bool:
+	var light: FxParticle = _fx.new_particle(&"light")
+	if light == null:
+		return false
+	light.shape = FxParticle.Shape.COLUMN
+	light.color = Palette.color(colour)
+	light.size = width
+	light.height = LIGHT_HEIGHT
+	light.life = LIGHT_LIFE
+	light.start(feet)
+	return true
 
 
 ## Moves the resting heroes' z's on by [param delta] seconds.
@@ -103,6 +153,9 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.PARTY_REVIVED:
 			if recent:
 				_revival_due = true
+		SimEvent.Kind.REVIVED:
+			if recent:
+				revival_effect(event.target_id)
 		SimEvent.Kind.STABLE_DEPTH_REACHED:
 			if recent:
 				var words: String = (
@@ -198,27 +251,7 @@ func _guardian_words(
 
 func _revival_lights() -> void:
 	for hero: Hero in _simulation.party.heroes:
-		var sprite: CharacterSprite = _world.character(hero.id)
-		if sprite == null:
-			continue
-		var outer: FxParticle = _fx.new_particle(&"light")
-		if outer == null:
-			return
-		outer.shape = FxParticle.Shape.COLUMN
-		outer.color = Palette.color(&"yellow")
-		outer.size = 16
-		outer.height = LIGHT_HEIGHT
-		outer.life = LIGHT_LIFE
-		outer.start(_world.feet_position(hero.id))  # on the floor, under a hero still lying
-		var core: FxParticle = _fx.new_particle(&"light")
-		if core == null:
-			return
-		core.shape = FxParticle.Shape.COLUMN
-		core.color = Palette.color(&"white")
-		core.size = 8
-		core.height = LIGHT_HEIGHT
-		core.life = LIGHT_LIFE
-		core.start(_world.feet_position(hero.id))
+		revival_effect(hero.id)
 
 
 ## While the party rests, a z drifts up from each living hero now and then.
@@ -244,5 +277,9 @@ func _rest_z(delta: float) -> void:
 		z.velocity = Vector2(5, -16)
 		z.sway = 2.0
 		z.sway_period = 0.9
-		z.start(sprite.position + Vector2(5, -28))
+		var sat: float = sprite.shown_sit()
+		var height: float = (
+			Z_HEIGHT * lerpf(1.0, CharacterSprite.SIT_HEIGHT, sat) - CharacterSprite.SIT_DROP * sat
+		)
+		z.start(sprite.position + Vector2(5, -roundf(height)))
 		_fx.show_text(z)

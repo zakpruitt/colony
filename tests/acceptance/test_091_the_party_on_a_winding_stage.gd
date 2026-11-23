@@ -311,17 +311,20 @@ func test_r3_heroes_face_left_in_a_room_walked_leftward() -> void:
 		"and the camera looks ahead of the leader: to its left"
 	)
 
-	# With no one to face: resting where it stands.
+	# Resting where it stands (spec 102): every hero faces the camp's fire.
 	for hero: Hero in sim.party.heroes:
 		hero.health = 1
 	e._start_rest()
 	for i: int in 60:
 		_play_frame()
+		var fire: Vector2 = _world.camp.fire_feet()
 		for hero: Hero in sim.party.heroes:
-			if i > 30 and _faces(_world.character(hero.id)) != -1:
-				_mark_wrong("frame %d: hero %d rests facing right" % [i, hero.id])
+			var sprite: CharacterSprite = _world.character(hero.id)
+			var toward: int = 1 if fire.x > sprite.position.x else -1
+			if i > 30 and _faces(sprite) != toward:
+				_mark_wrong("frame %d: hero %d rests facing away from the fire" % [i, hero.id])
 	assert_eq(e.state, Expedition.State.RESTING, "it rested all the while")
-	_assert_nothing_wrong("resting, every hero faces left")
+	_assert_nothing_wrong("resting, every hero faces the fire")
 
 
 # --- R4 ------------------------------------------------------------------------

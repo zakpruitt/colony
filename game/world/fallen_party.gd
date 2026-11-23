@@ -2,7 +2,8 @@ class_name FallenParty
 extends Node
 ## The fallen on screen. A hero who falls in a fight, or with the party when it
 ## is wiped, starts its collapse, topples over backwards and lies there on its back rather than
-## vanishing, until the fight is won or the party is revived. A wipe is told as a story: the
+## vanishing, until it is revived: in the fight, at the camp of the rest after a fight won
+## ([method rise_at_camp]), or with the party after a wipe. A wipe is told as a story: the
 ## camera holds on the fallen party, then travels to where the simulation will revive it,
 ## arriving before the revival; there the heroes appear, still lying, under the revival light,
 ## and rise back onto their feet. However the world learns of the wipe (as it happens, late after a
@@ -22,6 +23,10 @@ extends Node
 ## Lying is the sprite itself turned a quarter turn about its feet, head away from the way it
 ## faced, and lifted so its back rests on the floor: a quarter turn keeps every pixel whole, so a
 ## fallen hero is its own sprite on its side, not a squashed one.
+
+## A hero that fell in a fight the party won began to rise at the camp: the revival's light and
+## sparks go with it.
+signal rose_at_camp(hero_id: int)
 
 ## How far into its collapse a fallen hero topples, in seconds: where the collapse has begun to
 ## sag (a fifth of the way down its eased fall) but has not yet squashed the body.
@@ -48,7 +53,7 @@ var _world: World
 ## Per dead hero: real seconds since its collapse began, and the way it faced as it fell.
 var _dying: Dictionary[int, float] = {}
 var _facing: Dictionary[int, int] = {}
-## Per held hero (fallen, until the fight is won or the party revived): where its feet were.
+## Per held hero (fallen, until it rises): where its feet were.
 var _spots: Dictionary[int, Vector2] = {}
 ## Per hero standing up: game seconds since the revival, and where it stands (once known).
 var _standing: Dictionary[int, float] = {}
@@ -169,6 +174,23 @@ func stand(id: int) -> void:
 	_standing[id] = _rise_at(over)
 
 
+## Hero [param id], fallen in a fight the party won, is alive again while it rests: it rises from
+## where it lies as [method stand] has it, and [signal rose_at_camp] tells of it.
+func rise_at_camp(id: int) -> void:
+	if _standing.has(id):
+		return
+	stand(id)
+	if _standing.has(id):
+		rose_at_camp.emit(id)
+
+
+## Lets hero [param id] go at once, upright, with no rise: it is up already when it is seen.
+func let_go(id: int, sprite: CharacterSprite) -> void:
+	_standing.erase(id)
+	_stand_spots.erase(id)
+	_forget(id, sprite)
+
+
 ## Hero [param id] fell: one that was rising after a revive in the fight lies down
 ## again from where its rise had got to, rather than finishing it.
 func fell(id: int) -> void:
@@ -237,11 +259,13 @@ func animate(id: int, sprite: CharacterSprite, delta: float) -> bool:
 		# Out of sight already (a death not acted out): it has fallen all the way.
 		_dying[id] = 0.0 if sprite.visible else FALL_AT + TOPPLE_SECONDS
 	var expedition: Expedition = _world.simulation.expedition
-	var down: bool = expedition.state == Expedition.State.REVIVING
+	# The party rests after a fight it won: one who fell lies on until the rest heals it.
+	var down: bool = expedition.state in [Expedition.State.REVIVING, Expedition.State.RESTING]
 	down = down or (expedition.state == Expedition.State.FIGHTING and expedition.battle != null)
 	if not down:
 		if _spots.has(id):
-			# The fight was won: the fallen hero's collapse ends as it would have, out of sight.
+			# Down no longer with no rise (a journey stands the fallen): its collapse ends out of
+			# sight, as it would have.
 			_forget(id, sprite)
 			sprite.advance(CharacterSprite.DEATH_TIME)
 			return true

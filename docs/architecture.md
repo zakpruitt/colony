@@ -737,6 +737,31 @@ shows a flat stage (where the answers are what they always were) and a winding o
   the way the party faces in the world. A revival on another stage cuts as the stage shown
   changes, so it lands inside the new stage's rows.
 
+## A camp when they rest
+
+Spec 102, view only. `CampView` (`game/world/camp_view.gd`, `World.camp`) is a child of `World`
+beside `QuestProps`, under the characters: four sprites made once (the `campfire` sheet's logs and
+flames, a `bedroll` at each end of the line) and reused for every rest. While the expedition is
+RESTING it lays the camp out from where the simulation has the heroes as the rest begins: the fire at
+the middle of the line, each hero moved at most `CAMP_CLEARANCE` off it and facing it
+(`goal_for`, chained by `World._follow` between `QuestProps.goal_for` and `FallenParty.goal_for`;
+`facing_of`, read by `World._act`). `World.camp.animate` runs in `sync` before the heroes are placed.
+A `REST_STARTED` that `may_animate` allows sets the camp up over `CAMP_SETUP`; a rest found any other
+way is whole at once, and `World._act` snaps a hero's sit (`CharacterSprite.snap_sit`) on a frame that
+snaps every sprite. Packing takes `CAMP_PACK`; the puffs are `&"combat"` particles in `World.fx`. While
+the fire burns `Ambience.set_camp_light` keeps one more light in `Ambience.lights()`.
+
+- **Sitting** is a layer of `CharacterSprite`'s pose (`sitting`, eased over `SIT_TIME`, `shown_sit()`):
+  the rig shorter and lower about the feet, the head bowed, the weapon laid down behind. `World._act`
+  sits a hero that stands at its camp place.
+- **The fallen of a won fight** lie on while the party rests (`FallenParty.animate` counts RESTING as
+  down). When the simulation has one alive again, `World._settle_heroes` calls
+  `FallenParty.rise_at_camp`, the same rise as a revive in a fight, which emits `rose_at_camp`; seen late
+  (`_snap_all`) it is let go upright at once (`FallenParty.let_go`).
+- **One revival effect**: `LoopBeats.revival_effect(hero_id)` (two columns of light and
+  `REVIVAL_SPARKS` rising sparks at the hero's feet) for `rose_at_camp`, a `REVIVED` and each hero of a
+  `PARTY_REVIVED`, each only for an event `may_animate` allows.
+
 ## Side quests and microskills
 
 Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists
