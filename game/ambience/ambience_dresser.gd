@@ -271,6 +271,11 @@ func _fit(row: Array, more: Dictionary, column: int, variant: int, shift: int) -
 		box.position.x = sheet.size.x - box.end.x
 	var rect := Rect2(at + Vector2(box.position), Vector2(box.size))
 	if place == AmbienceDecor.Place.SPAN:
+		# As wide as the widest of its pieces, from its top to the floor.
+		for piece: String in ["_shaft", "_foot"]:
+			if sheet.has_part(StringName(part + piece)):
+				var wide: Rect2i = SpriteBounds.opaque(sheet.part(StringName(part + piece)))
+				rect = rect.merge(Rect2(at.x + wide.position.x, rect.position.y, wide.size.x, 1.0))
 		rect.size.y = _room.floor_px - rect.position.y
 	if not _clear(rect, more.has(AmbienceDecor.CORNER)):
 		return null
