@@ -49,8 +49,6 @@ const GLOW_ENERGY: float = 0.5
 ## Glowing props past this many on a level still glow, but cast no light, to keep the
 ## lights in view few.
 const MAX_GLOW_LIGHTS: int = 2
-## How many props a PLAIN chamber has at most (at least one).
-const MAX_PLAIN_PROPS: int = 3
 ## What a cache room's rolls are salted with, by its side path's place: past any chamber's index.
 const CACHE_SALT: int = 16
 
@@ -171,7 +169,6 @@ var _gleams: Array[AmbienceProp] = []
 var _critter_timer: float
 var _glint_timer: float
 var _gleam_timer: float
-var _glow_lights: int = 0
 ## Every torch and every prop, the route's and the cache rooms': what is lit, moved and drawn.
 var _all_torches: Array[AmbienceProp] = []
 var _all_props: Array[AmbienceProp] = []
@@ -192,12 +189,13 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	_rows = _map.rows()
 	_mote_cap = MAX_MOTES * _rows / Labyrinth.LEVEL_HEIGHT
 	var clearings := AmbienceClearings.new(view, depth)
+	var own := AmbienceRoomProps.new()
 	for chamber: LabyrinthChamber in level.chambers:
 		_floor_px = (chamber.floor_row() + 1) * TILE
 		_shaft_columns = clearings.columns(chamber.index)
 		_incoming_columns = clearings.closed_columns(chamber.index)
 		_place_torches(chamber)
-		_place_props(chamber)
+		own.place(_room(chamber))
 		_place_drips(chamber)
 		_place_span(chamber)
 	var route_torches: Array[AmbienceProp] = torches
@@ -211,7 +209,7 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 		_shaft_columns = clearings.cache_columns(place)
 		_incoming_columns = clearings.cache_closed_columns(place)
 		_place_torches(room, 1)
-		_place_props(room, (CACHE_SALT + place) * 101)
+		own.place(_room(room), (CACHE_SALT + place) * 101)
 	torches = route_torches
 	props = route_props
 	_all_torches = torches + cache_torches
@@ -288,6 +286,23 @@ static func _part(sheet_name: String, part_name: String) -> AtlasTexture:
 	return _sheet(sheet_name).part(StringName(part_name))
 
 
+## Whether [param x] or a column next to it is in [param columns].
+static func _near(columns: Dictionary[int, bool], x: int) -> bool:
+	return columns.has(x - 1) or columns.has(x) or columns.has(x + 1)
+
+
+## [param chamber] as its props see it: the room being dressed, with the lists they join.
+func _room(chamber: LabyrinthChamber) -> AmbienceRoom:
+	var room := AmbienceRoom.new(chamber, _band, _seed, _shapes, _map)
+	room.clear = _shaft_columns
+	room.closed = _incoming_columns
+	room.torches = torches
+	room.props = props
+	room.emitters = _emitters
+	room.gleams = _gleams
+	return room
+
+
 ## A number from this level's seed, [param salt] and a position: the same every build.
 func _roll(salt: int, a: int, b: int = 0) -> int:
 	return mix(mix(mix(_seed, salt), a), b)
@@ -357,310 +372,6 @@ func _clear_of_ladder(column: int, rect: Rect2i, used: Dictionary[int, bool]) ->
 				continue
 			return candidate
 	return -1
-
-
-# ---------------------------------------------------------------------- props
-
-
-## The props of [param chamber] by its kind, rolled with [param salt] (-1: its index's).
-func _place_props(chamber: LabyrinthChamber, salt: int = -1) -> void:
-	var rect: Rect2i = chamber.rect
-	var floor_free: Array[int] = []
-	var ceiling_free: Array[int] = []
-	for x: int in range(rect.position.x + 1, rect.end.x - 1):
-		if _near(_shaft_columns, x):
-			continue
-		floor_free.append(x)
-		var under_torch: bool = false
-		for torch: AmbienceProp in torches:
-			under_torch = under_torch or roundi(torch.rect.position.x / TILE) == x
-		if not under_torch:
-			ceiling_free.append(x)
-	var centre: float = rect.position.x + rect.size.x * 0.5
-	if salt < 0:
-		salt = chamber.index * 101
-	match chamber.kind:
-		LabyrinthChamber.Kind.START:
-			_light_campfire(
-				_floor_prop(chamber, &"campfire", "campfire", "logs", 2, floor_free, centre)
-			)
-			_floor_prop(chamber, &"bedroll", "bedroll", "red", 2, floor_free, centre - 4)
-			_floor_prop(chamber, &"bedroll", "bedroll", "green", 2, floor_free, centre + 4)
-		LabyrinthChamber.Kind.DEN:
-			_web_corner(chamber, "left", rect.position.x)
-			_web_corner(chamber, "right", rect.end.x - 1)
-			var spot: float = rect.position.x + (_roll(salt, 1) % rect.size.x)
-			_ceiling_prop(chamber, &"spider", "web", "strand", ceiling_free, spot, 0)
-			spot = rect.position.x + (_roll(salt, 2) % rect.size.x)
-			_floor_prop(chamber, &"bones", "bones", "pile", 1, floor_free, spot)
-			_floor_prop(chamber, &"skull", "bones", "skull", 1, floor_free, spot + 3)
-			_floor_prop(chamber, &"nest", "nest", "eggs", 1, floor_free, spot - 4)
-		LabyrinthChamber.Kind.VAULT:
-			_place_hoard(chamber, floor_free, centre)
-		LabyrinthChamber.Kind.PLAIN:
-			_place_plain(chamber, floor_free, ceiling_free, salt, 0)
-		LabyrinthChamber.Kind.CACHE:
-			# Cache rooms share an index: count from the props there were before this one's.
-			_place_plain(chamber, floor_free, ceiling_free, salt, _props_in_chamber(-1))
-
-
-## Whether [param x] or a column next to it is in [param columns].
-static func _near(columns: Dictionary[int, bool], x: int) -> bool:
-	return columns.has(x - 1) or columns.has(x) or columns.has(x + 1)
-
-
-## Takes [param width] free neighbouring columns as close to [param target] as there are, and
-## returns the leftmost, or -1.
-static func _take(free: Array[int], width: int, target: float) -> int:
-	var best: int = -1
-	var best_distance: float = INF
-	for start: int in free:
-		var fits: bool = true
-		for x: int in range(start, start + width):
-			fits = fits and free.has(x)
-		var distance: float = absf(start + width * 0.5 - target)
-		if fits and distance < best_distance:
-			best = start
-			best_distance = distance
-	if best >= 0:
-		for x: int in range(best, best + width):
-			free.erase(x)
-	return best
-
-
-func _floor_prop(
-	chamber: LabyrinthChamber,
-	prop_name: StringName,
-	sheet_name: String,
-	part_name: String,
-	width: int,
-	free: Array[int],
-	target: float
-) -> AmbienceProp:
-	var column: int = _take(free, width, target)
-	if column < 0:
-		return null
-	var sheet: PixelSheet = _sheet(sheet_name)
-	var size := Vector2(sheet.size)
-	# A puddle sinks into the floor's crust; everything else stands on it.
-	var sink: float = 2.0 if prop_name == &"puddle" else 0.0
-	var x: float = column * TILE + floorf((width * TILE - size.x) * 0.5)
-	var prop := AmbienceProp.new(
-		prop_name,
-		chamber.index,
-		Rect2(Vector2(x, _floor_px - size.y + sink), size),
-		AmbienceProp.Anchor.FLOOR
-	)
-	prop.texture = sheet.part(StringName(part_name))
-	prop.flip = _roll(7, column) % 2 == 0 and prop_name != &"bedroll"
-	props.append(prop)
-	return prop
-
-
-func _ceiling_prop(
-	chamber: LabyrinthChamber,
-	prop_name: StringName,
-	sheet_name: String,
-	part_name: String,
-	free: Array[int],
-	target: float,
-	offset_x: int
-) -> AmbienceProp:
-	var column: int = _take(free, 1, target)
-	if column < 0:
-		return null
-	var sheet: PixelSheet = _sheet(sheet_name)
-	var size := Vector2(sheet.size)
-	var x: float = column * TILE + floorf((TILE - size.x) * 0.5) + offset_x
-	# Two rows sink into the ragged ceiling, so nothing hangs in the air.
-	var prop := AmbienceProp.new(
-		prop_name,
-		chamber.index,
-		Rect2(Vector2(x, _ceiling_px(chamber, column) - 2), size),
-		AmbienceProp.Anchor.CEILING
-	)
-	prop.texture = sheet.part(StringName(part_name))
-	props.append(prop)
-	return prop
-
-
-func _web_corner(chamber: LabyrinthChamber, part_name: String, column: int) -> void:
-	if _near(_incoming_columns, column):
-		return
-	var prop := AmbienceProp.new(
-		&"web",
-		chamber.index,
-		Rect2(column * TILE, _ceiling_px(chamber, column) - 2, TILE, TILE),
-		AmbienceProp.Anchor.CEILING
-	)
-	prop.texture = _part("web", part_name)
-	props.append(prop)
-
-
-## A VAULT's chest among piles of coins (four tiles of them where the floor allows, three
-## otherwise), and the gleam over them.
-func _place_hoard(chamber: LabyrinthChamber, floor_free: Array[int], centre: float) -> void:
-	var parts: Array[Array] = [
-		[&"coins", "coins", "big"],
-		[&"chest", "chest", "closed"],
-		[&"coins", "coins", "small"],
-		[&"coins", "coins", "big"],
-	]
-	var width: int = parts.size()
-	var column: int = _take(floor_free, width, centre)
-	if column < 0:
-		width = 3
-		parts.resize(width)
-		column = _take(floor_free, width, centre)
-	if column < 0:
-		push_error("AmbienceLevel: no room for a hoard at depth %d" % depth)
-		return
-	var flip: bool = _roll(8, column) % 2 == 0
-	for i: int in width:
-		var part: Array = parts[width - 1 - i] if flip else parts[i]
-		var prop_name: StringName = part[0]
-		var sheet_name: String = part[1]
-		var part_name: String = part[2]
-		var sheet: PixelSheet = _sheet(sheet_name)
-		var size := Vector2(sheet.size)
-		var prop := AmbienceProp.new(
-			prop_name,
-			chamber.index,
-			Rect2(Vector2((column + i) * TILE, _floor_px - size.y), size),
-			AmbienceProp.Anchor.FLOOR
-		)
-		prop.texture = sheet.part(StringName(part_name))
-		props.append(prop)
-	var gleam := AmbienceProp.new(
-		&"gleam",
-		chamber.index,
-		Rect2(Vector2((column + 0.5) * TILE, _floor_px - 20), Vector2(TILE * (width - 1), 20)),
-		AmbienceProp.Anchor.FLOOR
-	)
-	gleam.light = AmbienceLight.new(
-		&"gleam",
-		Vector2((column + width * 0.5) * TILE, _floor_px - 8),
-		GLEAM_RADIUS,
-		GLEAM_ENERGY,
-		Palette.color(&"yellow"),
-		GLEAM_FLICKER,
-		_roll(9, column)
-	)
-	props.append(gleam)
-	_gleams.append(gleam)
-
-
-func _place_plain(
-	chamber: LabyrinthChamber,
-	floor_free: Array[int],
-	ceiling_free: Array[int],
-	salt: int,
-	before: int
-) -> void:
-	var pool: Array[StringName] = [&"stalactite", &"stalactite", &"mushroom", &"crate", &"puddle"]
-	# Glowing things grow from the stone stratum down.
-	if _band >= 2:
-		pool.append_array([&"glow_mushroom", &"glow_mushroom", &"glow_mushroom", &"glow_mushroom"])
-	if _band == 3:
-		pool.append_array([&"crystal", &"crystal", &"crystal", &"crystal"])
-	var count: int = 1 + _roll(salt, 3) % MAX_PLAIN_PROPS
-	var rect: Rect2i = chamber.rect
-	for i: int in count * 3:
-		if _props_in_chamber(chamber.index) - before >= count:
-			return
-		var kind: StringName = pool[_roll(salt, 10 + i) % pool.size()]
-		var target: float = rect.position.x + 1 + (_roll(salt, 40 + i) % maxi(rect.size.x - 2, 1))
-		var variant: int = _roll(salt, 70 + i)
-		match kind:
-			&"stalactite":
-				var offset: int = variant % 5 - 2
-				_ceiling_prop(
-					chamber,
-					kind,
-					"stalactite",
-					LabyrinthTiles.STRATA[_band],
-					ceiling_free,
-					target,
-					offset
-				)
-			&"mushroom":
-				var part: String = "brown" if variant % 2 == 0 else "red"
-				_floor_prop(chamber, kind, "mushroom", part, 1, floor_free, target)
-			&"crate":
-				_floor_prop(chamber, kind, "crate", "broken", 1, floor_free, target)
-			&"puddle":
-				_floor_prop(chamber, kind, "puddle", "water", 1, floor_free, target)
-			&"glow_mushroom":
-				var green: bool = variant % 3 == 0
-				_glowing(
-					_floor_prop(
-						chamber,
-						kind,
-						"mushroom",
-						"glow_green" if green else "glow_cyan",
-						1,
-						floor_free,
-						target
-					),
-					&"green" if green else &"cyan"
-				)
-			&"crystal":
-				var orchid: bool = variant % 3 == 0
-				_glowing(
-					_floor_prop(
-						chamber,
-						kind,
-						"crystal",
-						"orchid" if orchid else "cyan",
-						1,
-						floor_free,
-						target
-					),
-					&"orchid" if orchid else &"cyan"
-				)
-
-
-func _props_in_chamber(index: int) -> int:
-	var count: int = 0
-	for prop: AmbienceProp in props:
-		if prop.chamber == index:
-			count += 1
-	return count
-
-
-## Gives the START chamber's campfire its flames, its light and its embers.
-func _light_campfire(prop: AmbienceProp) -> void:
-	if prop == null:
-		return
-	for frame: int in 4:
-		prop.frames.append(_part("campfire", "flame_%d" % frame))
-	prop.flame = true
-	prop.frame_rate = FLAME_RATE
-	prop.light = AmbienceLight.new(
-		&"campfire",
-		prop.rect.position + Vector2(12, 13),
-		CAMPFIRE_RADIUS,
-		CAMPFIRE_ENERGY,
-		AmbienceMood.band_tint(_band).lerp(Palette.color(&"orange"), 0.3),
-		CAMPFIRE_FLICKER,
-		_roll(3, roundi(prop.rect.position.x))
-	)
-	_emitters.append(prop)
-
-
-## Makes a placed prop shine on its own (drawn over the darkness) in [param tint], and light its
-## corner while the level has light to spare.
-func _glowing(prop: AmbienceProp, tint: StringName) -> void:
-	if prop == null:
-		return
-	prop.frames.append(prop.texture)
-	prop.texture = null
-	if _glow_lights >= MAX_GLOW_LIGHTS:
-		return
-	_glow_lights += 1
-	prop.light = AmbienceLight.new(
-		&"glow", prop.rect.get_center(), GLOW_RADIUS, GLOW_ENERGY, Palette.color(tint), 0.0, 0
-	)
 
 
 # ------------------------------------------------------------- buried things
