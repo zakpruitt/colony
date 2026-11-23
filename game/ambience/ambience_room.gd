@@ -19,6 +19,11 @@ var closed: Dictionary[int, bool] = {}
 ## The torches placed so far, and the list this room's props join: the level's own lists.
 var torches: Array[AmbienceProp] = []
 var props: Array[AmbienceProp] = []
+## What stands in the room that no decoration may meet, in world pixels (see
+## [AmbienceClearings]), and where its own torches and props begin in the lists above.
+var kept: Array[Rect2] = []
+var first_torch: int = 0
+var first_prop: int = 0
 ## The level's lists of what throws embers and of what gleams.
 var emitters: Array[AmbienceProp] = []
 var gleams: Array[AmbienceProp] = []
@@ -72,10 +77,31 @@ func near_closed(x: int) -> bool:
 	return closed.has(x - 1) or closed.has(x) or closed.has(x + 1)
 
 
-## How many props of [member props] are in the chamber of index [param index].
-func props_in(index: int) -> int:
-	var count: int = 0
-	for prop: AmbienceProp in props:
-		if prop.chamber == index:
-			count += 1
-	return count
+## The world row of the highest open tile over the floor in [param column], whatever opened it:
+## over a ladder it is higher than the room's own ceiling.
+func open_top(column: int) -> int:
+	var row: int = chamber.floor_row()
+	var highest: int = row - RoomShape.MOST_ROWS * 2
+	while row > highest and is_open(Vector2i(column, row - 1)):
+		row -= 1
+	return row
+
+
+## The columns under a dip of the ceiling that holds [param column], as (first, last): a level
+## run lower than the ceiling either side of it, between the walls' columns. (-1, -1) if
+## [param column] is under none.
+func dip_at(column: int) -> Vector2i:
+	var from: int = chamber.rect.position.x + 1
+	var to: int = chamber.rect.end.x - 2
+	if column < from or column > to:
+		return Vector2i(-1, -1)
+	var row: int = open_top(column)
+	var first: int = column
+	var last: int = column
+	while first > from and open_top(first - 1) == row:
+		first -= 1
+	while last < to and open_top(last + 1) == row:
+		last += 1
+	if open_top(first - 1) < row and open_top(last + 1) < row:
+		return Vector2i(first, last)
+	return Vector2i(-1, -1)

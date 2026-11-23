@@ -10,6 +10,14 @@ extends RefCounted
 ## doorways that stand in it: a ladder two floors away takes nothing from it. A side path's
 ## cache room keeps clear its own ladder, the column by its tunnel's mouth and the columns its
 ## cache stands in.
+##
+## And what stands in each room that no decoration may meet ([method standing],
+## [method cache_standing]): those columns for the room's whole height, the mouths of its
+## tunnels, a side path's gate, its cache, and the place a side quest's prop takes.
+
+const TILE: int = LabyrinthView.TILE
+
+var _level: LabyrinthLevel
 
 ## By chamber index: the columns kept clear, and those of them nothing opens the floor in (a
 ## ladder that comes down to this floor, a doorway).
@@ -22,6 +30,7 @@ var _cache_closed: Array[Dictionary] = []
 
 func _init(view: LabyrinthView, depth: int) -> void:
 	var level: LabyrinthLevel = view.labyrinth.level(depth)
+	_level = level
 	if view.labyrinth.shape == Labyrinth.Shape.WINDING:
 		_note_winding(view, level)
 		return
@@ -66,6 +75,70 @@ func cache_closed_columns(place: int) -> Dictionary[int, bool]:
 	var found: Dictionary[int, bool] = {}
 	if place >= 0 and place < _cache_closed.size():
 		found.assign(_cache_closed[place])
+	return found
+
+
+## What stands in [param room], a chamber of the route, that no decoration may meet, in world
+## pixels.
+func standing(room: LabyrinthChamber) -> Array[Rect2]:
+	var found: Array[Rect2] = _in_room(room, columns(room.index))
+	var spot: Vector2 = _middle(room)
+	for path: String in QuestProps.SHEETS.values():
+		found.append(_stood(PixelSheet.load_sheet(path), spot))
+	return found
+
+
+## The same for the cache room of the side path at [param place].
+func cache_standing(place: int) -> Array[Rect2]:
+	var room: LabyrinthChamber = _level.side_paths[place].room
+	var found: Array[Rect2] = _in_room(room, cache_columns(place))
+	found.append(_stood(SideProps.sheet_of(SideProps.CACHE), _middle(room)))
+	return found
+
+
+## The middle of the floor of [param room], where a side quest's prop or a cache stands.
+static func _middle(room: LabyrinthChamber) -> Vector2:
+	var middle: float = floorf((room.rect.position.x + room.rect.end.x) / 2.0)
+	return Vector2(middle * TILE, room.rect.end.y * TILE)
+
+
+## The rectangle a sprite of [param sheet] covers standing at [param feet], as the world's props
+## are stood; nothing if it has no sheet.
+static func _stood(sheet: PixelSheet, feet: Vector2) -> Rect2:
+	if sheet == null:
+		return Rect2(feet, Vector2.ZERO)
+	return Rect2(feet - Vector2(sheet.pivot) - Vector2(0, 1), Vector2(sheet.size))
+
+
+## For [param room]: each of [param clear] (its columns kept clear) for its whole height, the
+## column beside each tunnel's mouth for the mouth's height and a row over it, and the gates
+## that stand in it.
+func _in_room(room: LabyrinthChamber, clear: Dictionary[int, bool]) -> Array[Rect2]:
+	var found: Array[Rect2] = []
+	var rect: Rect2i = room.rect
+	var floor_px: float = rect.end.y * TILE
+	var top: float = minf(rect.position.y, rect.end.y - RoomShape.MOST_ROWS) * TILE
+	for column: int in clear:
+		found.append(Rect2(column * TILE, top, TILE, floor_px - top))
+	var tunnels: Array[Rect2i] = _level.tunnels.duplicate()
+	var pixels := Rect2(rect.position * TILE, rect.size * TILE)
+	for path: SidePath in _level.side_paths:
+		tunnels.append(path.tunnel)
+		var feet: Vector2 = path.course.point_at(path.gate_at)
+		var gate: Rect2 = _stood(SideProps.sheet_of(path.gate), (feet + Vector2(0, 1)) * TILE)
+		if gate.has_area() and pixels.intersects(gate):
+			found.append(gate)
+	for tunnel: Rect2i in tunnels:
+		if not tunnel.has_area() or tunnel.end.y != rect.end.y:
+			continue
+		var beside: int = -1
+		if tunnel.position.x == rect.end.x:
+			beside = rect.end.x - 1
+		elif tunnel.end.x == rect.position.x:
+			beside = rect.position.x
+		if beside >= 0:
+			var mouth: float = (tunnel.position.y - 1) * TILE
+			found.append(Rect2(beside * TILE, mouth, TILE, floor_px - mouth))
 	return found
 
 
@@ -116,14 +189,12 @@ func _note_winding(view: LabyrinthView, level: LabyrinthLevel) -> void:
 			elif ladder.end.y - 1 == room.floor_row():
 				_note(clear, ladder.position.x, ladder.end.x)
 				_note(closed, ladder.position.x, ladder.end.x)
-		var pixels := Rect2(
-			room.rect.position * LabyrinthView.TILE, room.rect.size * LabyrinthView.TILE
-		)
+		var pixels := Rect2(room.rect.position * TILE, room.rect.size * TILE)
 		for door: Rect2 in view.doorways(level.depth):
 			if not pixels.intersects(door):
 				continue
-			var from: int = floori(door.position.x / LabyrinthView.TILE)
-			var to: int = ceili(door.end.x / LabyrinthView.TILE)
+			var from: int = floori(door.position.x / TILE)
+			var to: int = ceili(door.end.x / TILE)
 			_note(clear, from, to)
 			_note(closed, from, to)
 		_clear[room.index] = clear

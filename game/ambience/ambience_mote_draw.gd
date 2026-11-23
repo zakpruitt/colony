@@ -1,7 +1,8 @@
 class_name AmbienceMoteDraw
 extends RefCounted
-## Draws the small things that move on a level ([AmbienceMote]) for [AmbienceLevel]: what is lit
-## like the world (dust, drips, critters) and what shines over the darkness (embers, glints).
+## Draws for [AmbienceLevel]: its props, and the small things that move on it ([AmbienceMote]),
+## those lit like the world (dust, drips, critters) and those that shine over the darkness
+## (embers, glints).
 
 
 ## The motes lit like the world, onto [param canvas], [param time] seconds into the level's run.
@@ -43,6 +44,20 @@ static func glow(canvas: CanvasItem, motes: Array[AmbienceMote]) -> void:
 				var big: bool = mote.progress() > 0.3 and mote.progress() < 0.7
 				var part: Texture2D = sparkle.part(&"big" if big else &"small")
 				canvas.draw_texture(part, mote.position - Vector2(3, 3))
+
+
+## [param texture] of [param shown] where it is drawn, on [param canvas]; and, for a thing that
+## reaches from ceiling to floor, its shaft repeated down to its foot, under both.
+static func prop(canvas: CanvasItem, shown: AmbienceProp, texture: Texture2D) -> void:
+	if shown.foot != null:
+		var step: float = texture.get_height()
+		var foot_at := Vector2(shown.drawn_at.x, shown.rect.end.y - shown.foot.get_height())
+		var y: float = shown.drawn_at.y + step
+		while shown.shaft != null and y < foot_at.y:
+			canvas.draw_texture(shown.shaft, Vector2(shown.drawn_at.x, y))
+			y += step
+		canvas.draw_texture(shown.foot, foot_at)
+	flipped(canvas, texture, shown.drawn_at, shown.flip)
 
 
 ## [param texture] at [param at] on [param canvas], mirrored if [param flip].

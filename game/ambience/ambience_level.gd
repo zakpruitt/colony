@@ -111,9 +111,13 @@ const GLINT_LIFE: float = 0.45
 
 ## The depth this level decorates.
 var depth: int
+## What its rooms are dressed from: [constant AmbienceDecor.TABLE], or a copy set before
+## [method build].
+var table: Array[Dictionary] = AmbienceDecor.TABLE
 ## Torches, left to right.
 var torches: Array[AmbienceProp] = []
-## Chamber props (the campfire, webs, chests, stalactites...).
+## Chamber props: those that say what kind a room is (the campfire, webs, a chest...) and its
+## decorations ([member AmbienceProp.decor]), drawn from [member table].
 var props: Array[AmbienceProp] = []
 ## The same for the cache rooms of the level's side paths, which are no chamber of its route:
 ## each one's torch, and its props.
@@ -189,13 +193,15 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	_rows = _map.rows()
 	_mote_cap = MAX_MOTES * _rows / Labyrinth.LEVEL_HEIGHT
 	var clearings := AmbienceClearings.new(view, depth)
-	var own := AmbienceRoomProps.new()
+	var dresser := AmbienceDresser.new(table)
 	for chamber: LabyrinthChamber in level.chambers:
 		_floor_px = (chamber.floor_row() + 1) * TILE
 		_shaft_columns = clearings.columns(chamber.index)
 		_incoming_columns = clearings.closed_columns(chamber.index)
+		var dressed: AmbienceRoom = _room(chamber, clearings.standing(chamber))
 		_place_torches(chamber)
-		own.place(_room(chamber))
+		AmbienceRoomProps.place(dressed)
+		dresser.dress(dressed, chamber.index * 101, false)
 		_place_drips(chamber)
 		_place_span(chamber)
 	var route_torches: Array[AmbienceProp] = torches
@@ -203,13 +209,14 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	torches = cache_torches
 	props = cache_props
 	for place: int in level.side_paths.size():
-		# A cache room: one torch, and the floor details of a plain room.
+		# A cache room: one torch, and a room's decoration, more sparsely.
 		var room: LabyrinthChamber = level.side_paths[place].room
 		_floor_px = (room.floor_row() + 1) * TILE
 		_shaft_columns = clearings.cache_columns(place)
 		_incoming_columns = clearings.cache_closed_columns(place)
+		var dressed: AmbienceRoom = _room(room, clearings.cache_standing(place))
 		_place_torches(room, 1)
-		own.place(_room(room), (CACHE_SALT + place) * 101)
+		dresser.dress(dressed, (CACHE_SALT + place) * 101, true)
 	torches = route_torches
 	props = route_props
 	_all_torches = torches + cache_torches
@@ -291,13 +298,17 @@ static func _near(columns: Dictionary[int, bool], x: int) -> bool:
 	return columns.has(x - 1) or columns.has(x) or columns.has(x + 1)
 
 
-## [param chamber] as its props see it: the room being dressed, with the lists they join.
-func _room(chamber: LabyrinthChamber) -> AmbienceRoom:
+## [param chamber] as its props see it, before its torches are placed: the room being dressed,
+## with [param kept] (what stands in it already) and the lists its props join.
+func _room(chamber: LabyrinthChamber, kept: Array[Rect2]) -> AmbienceRoom:
 	var room := AmbienceRoom.new(chamber, _band, _seed, _shapes, _map)
 	room.clear = _shaft_columns
 	room.closed = _incoming_columns
+	room.kept = kept
 	room.torches = torches
 	room.props = props
+	room.first_torch = torches.size()
+	room.first_prop = props.size()
 	room.emitters = _emitters
 	room.gleams = _gleams
 	return room
@@ -436,8 +447,8 @@ func _place_drips(chamber: LabyrinthChamber) -> void:
 	var from: Vector2 = Vector2.INF
 	for prop: AmbienceProp in props:
 		if prop.chamber == chamber.index and prop.name == &"stalactite":
-			# The stalactite's tip: its lowest pixel, in the middle of its 8-pixel canvas.
-			from = Vector2(prop.rect.position.x + 3, prop.rect.position.y + 14)
+			# The stalactite's tip: under its lowest pixel, in the middle of its 8-pixel canvas.
+			from = Vector2(prop.drawn_at.x + 3, prop.rect.end.y)
 	if from == Vector2.INF:
 		for attempt: int in 6:
 			var x: int = (
@@ -665,4 +676,4 @@ func _draw_glow() -> void:
 
 
 static func _draw_prop(canvas: CanvasItem, prop: AmbienceProp, texture: Texture2D) -> void:
-	AmbienceMoteDraw.flipped(canvas, texture, prop.rect.position, prop.flip)
+	AmbienceMoteDraw.prop(canvas, prop, texture)

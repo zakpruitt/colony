@@ -1,19 +1,33 @@
 class_name AmbienceProp
 extends RefCounted
-## One placed piece of decoration: a torch on a back wall or a prop on a chamber's
-## floor or ceiling. It is data; [AmbienceLevel] draws it.
+## One placed piece of decoration: a torch on a back wall, or a prop on a chamber's floor, hanging
+## from its ceiling or set in its back wall. It is data; [AmbienceLevel] draws it.
 
-enum Anchor { FLOOR, CEILING, WALL }
+## What it is fixed to. FLOOR: it stands on the floor line. CEILING: it hangs from the ceiling of
+## its column, two pixels sunk into it, and may reach the floor. WALL: a torch's bracket on the
+## back wall. BACK: a thing set in the back wall that gives no light.
+enum Anchor { FLOOR, CEILING, WALL, BACK }
 
 ## What it is, as [method Ambience.props_in] reports it (&"campfire", &"web", &"torch", ...).
 var name: StringName
 ## The index of the chamber it is in.
 var chamber: int
 var anchor: Anchor = Anchor.FLOOR
-## Where it is drawn, in world pixels.
+## Where it is, in world pixels: the canvas it is drawn on or, for a decoration, the box of its
+## own pixels.
 var rect: Rect2
+## Where the top left of its canvas is drawn, in world pixels.
+var drawn_at: Vector2
+## True for a decoration of [AmbienceDecor]'s table; false for a torch and for a prop that says
+## what kind of room it is.
+var decor: bool = false
 ## Drawn under the darkness, so it is lit like the world. May be null.
 var texture: Texture2D
+## For a thing taller than a sheet's canvas, floor to ceiling: [member foot] is drawn with its
+## canvas's bottom on the bottom of [member rect], and [member shaft] repeated between
+## [member texture] and it. Either may be null.
+var shaft: Texture2D
+var foot: Texture2D
 ## Drawn over the darkness, so it glows: flame frames or a glowing prop. May be empty.
 var frames: Array[Texture2D] = []
 ## The glowing frame showing now, and how many frames a second they step through.
@@ -38,6 +52,7 @@ func _init(prop_name: StringName, chamber_index: int, at: Rect2, prop_anchor: An
 	name = prop_name
 	chamber = chamber_index
 	rect = at
+	drawn_at = at.position
 	anchor = prop_anchor
 
 
