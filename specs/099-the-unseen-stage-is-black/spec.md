@@ -64,7 +64,16 @@ simulation does.
 
 ## Interfaces
 
-None that other work relies on. What is seen is the view's own memory, beside 097's (`AmbienceRooms`),
+One read-only question of the simulation, so the view never copies its refill rule:
+
+```gdscript
+# sim/expedition/chamber_rules.gd
+## The tick the chamber at [param chamber_index] of [param level_depth] refills on, or -1 if it is
+## not cleared (never entered, holding monsters, or with its quest waiting). Reads; changes nothing.
+static func refill_tick(run: Expedition, level_depth: int, chamber_index: int) -> int
+```
+
+Nothing else in `sim/` changes; state hashes stay as they are. What is seen is the view's own memory, beside 097's (`AmbienceRooms`),
 cleared when the stage shown changes; nothing in `sim/` or the save knows of it. `Ambience.light_at` and
 `brightness_at` answer for the black (0 in an unseen place), as the shader draws it. The eyes are one new
 sheet, `assets/sprites/ambience/eyes.px`.
@@ -103,6 +112,7 @@ R10 is the lane's report and Zak's playtest.
 
 ## Paths
 
+- `sim/expedition/chamber_rules.gd` (only `refill_tick` above), `tests/unit/` (its unit test)
 - `game/ambience/ambience.gd`, `ambience_rooms.gd`, `ambience_darkness.gd`, `ambience_mood.gd`,
   `ambience_light.gd`, the shaders in `game/ambience/`, and new scripts there
 - `game/world/world.gd` (only what telling the ambience needs, and the eyes' layer), `game/world/gate_tip.gd`,
