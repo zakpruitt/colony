@@ -36,10 +36,10 @@ func _seen_rects() -> Array[Rect2i]:
 	var lit: Array[Rect2i] = []
 	for room: LabyrinthChamber in level.chambers:
 		if _ambience.rooms.is_lit(room.index):
-			lit.append(_drawn(room))
+			lit.append(_room_bounds(room))
 	for place: int in level.side_paths.size():
 		if _ambience.rooms.is_lit(AmbienceRooms.CACHE + place):
-			lit.append(_drawn(level.side_paths[place].room))
+			lit.append(_room_bounds(level.side_paths[place].room))
 	var seen: Array[Rect2i] = lit.duplicate()
 	for way: Rect2i in _ways(level):
 		if _touches(way, lit):
@@ -49,7 +49,7 @@ func _seen_rects() -> Array[Rect2i]:
 
 ## The tiles [param room] of the stage shown reaches as drawn: its rectangle and what is opened
 ## over it.
-func _drawn(room: LabyrinthChamber) -> Rect2i:
+func _room_bounds(room: LabyrinthChamber) -> Rect2i:
 	var shapes: StageShapes = _world.labyrinth_view.shapes(_world.shown_stage())
 	var shape: RoomShape = shapes.shape_of(room) if shapes != null else null
 	return shape.bounds() if shape != null else room.rect
@@ -221,7 +221,7 @@ func _room_opened_upward() -> void:
 	sim.expedition._place(stretch.x + 0.5 if from_first else stretch.y - 0.5)
 	_watch_rooms(sim)
 	assert_eq(_party_room(), found.y, "the party stands in it")
-	var top: int = _drawn(tall).position.y
+	var top: int = _room_bounds(tall).position.y
 	assert_lt(top, tall.rect.position.y - 2, "it is drawn open 3 rows over its rectangle")
 	var near: Vector2 = (Vector2(found.z, top - 1) + Vector2(0.5, 0.5)) * TILE
 	var far: Vector2 = (Vector2(found.z, top - 6) + Vector2(0.5, 0.5)) * TILE
