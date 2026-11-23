@@ -666,6 +666,30 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   which nothing catches or flares does nothing for any of this. An `Ambience` never told of a party
   (the demo, a view in a test) has every room lit. Glints are `PropGlints`' own and do not look at
   the rooms.
+- **What the party has not seen is black** (spec 099). `AmbienceSeen`
+  (`game/ambience/ambience_seen.gd`, `Ambience.seen`) is a second memory beside the rooms', fed by
+  `follow_party` from the lit rooms and the level's rectangles only (a room's is the bounds of
+  its drawn shape, `RoomShape.bounds()`, or `LabyrinthChamber.rect` with no shape; tunnels,
+  ladders, side paths; never which tiles are open): a place is seen if it is a lit room,
+  a tunnel or ladder that touches one (`grow(1)` meets its rectangle), or earth within
+  `AmbienceSeen.REACH` tiles of those. It keeps one map, a pixel a tile, of how near each tile is
+  to something seen; `AmbienceDarkness`'s third rectangle, the Veil (`veil.gdshader`, z `VEIL_Z`,
+  over each level's glow), reads it blended between tiles and cut into the darkness's steps, and
+  draws black over the rest, but for where the party's own light reaches. `Ambience.light_at` and
+  `brightness_at` answer with the veil (`AmbienceMood.unveiled`), and `Ambience.hides(point)` is
+  true where the world is drawn black. A room entered comes out over `SHOW_SECONDS`; a lit room
+  the party is not in that holds monsters again is forgotten. `AmbienceRooms` never copies the
+  refill rule: as the party leaves a room, and as a stall starts or ends, it asks
+  `ChamberRules.refill_tick` (read-only) and asks `Expedition.is_populated` only once that tick
+  has passed. A forgotten room's torches go out `GUTTER_GAP` apart and the black
+  closes over it in `HIDE_SECONDS`; an arrival or a sync that catches up settles all of it at once.
+  The map is one `ImageTexture`, remade only in a frame in which a place fades. What shows in the
+  black is drawn at `AmbienceDarkness.HINTS_Z`, over the veil and under the effects: `PropGlints`
+  and `UnseenEyes` (`game/world/unseen_eyes.gd`, `World.eyes`), a blinking pair from
+  `ambience/eyes.px` at the head of each waiting monster standing where `hides` is true (the
+  larger pair for the stage's guardian), redrawn only when a pair comes, goes or blinks.
+  `SideProps` shows no `GateTip` for a gate where `hides` is true. A flat labyrinth, an un-zoned
+  view and an `Ambience` never told of a party have no veil.
 - **The camera** has `WorldCamera.rows`, the world rows its view stays inside (`Vector2.ZERO`: no
   limit). `World` sets it when the stage shown changes, from `WorldCamera.rows_of`: a winding stage's
   band and 4 rows of earth either side, nothing for a flat stage. Inside it the camera follows its

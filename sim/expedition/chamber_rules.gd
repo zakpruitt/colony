@@ -48,6 +48,16 @@ static func visit_now(fill: ChamberState, tick: int) -> int:
 	return fill.visit
 
 
+## The tick the chamber at [param chamber_index] of [param level_depth] refills on, or -1 if it is
+## not cleared (never entered, holding monsters, or with its quest waiting). Reads; changes nothing.
+static func refill_tick(run: Expedition, level_depth: int, chamber_index: int) -> int:
+	var fill: ChamberState = run._chambers.get(Vector2i(level_depth, chamber_index), null)
+	if fill == null or fill.cleared_tick < 0:
+		return -1
+	var due: int = fill.refill_tick()
+	return due if run._tick < due else -1
+
+
 ## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
 ## chamber that is not always empty and holds no guardian, with chance [constant SIDE_QUEST_SHARE],
 ## drawn from a fork of [param rng].

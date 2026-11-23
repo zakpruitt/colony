@@ -46,6 +46,8 @@ const FIRST_SKILL_LEVEL: int = 2
 const QUEST_APPROACH: float = 3.0
 ## How many tiles of course before the room that lights the party is put.
 const ROOM_APPROACH: float = 2.0
+## The stage a room is seen to refill on: the first, whose rooms refill soonest.
+const REFILL_STAGE: int = 1
 ## The side path moments: the stage their search starts from, the heroes' level (every
 ## microskill learned), and how many tiles of course short of where the path leaves the party is
 ## put.
@@ -91,6 +93,11 @@ var _moment_time: float = 0.0
 var _since: float = -1.0
 ## Set by a watch once its moment has been seen.
 var _seen: bool = false
+## The room that is to refill, and whether it has been lit.
+var _refill_room: int = 1
+var _room_lit: bool = false
+## Where along the course the party is held once it has left that room; -1 before.
+var _held_at: float = -1.0
 ## True once the journey's map has been opened on the way.
 var _map_on_the_way: bool = false
 ## The tree's moment: the clicks made so far.
@@ -224,6 +231,25 @@ func _begin_room(_current: StringName) -> void:
 		if room.rect.size.x > widest.rect.size.x:
 			widest = room
 	_stand_before(widest.index, ROOM_APPROACH)
+
+
+## The party a few steps short of the first room of a stage near the surface that holds
+## monsters: it clears the room, and is held a step outside it until the room has refilled.
+func _begin_refill(_current: StringName) -> void:
+	settle_now()
+	var sim: Simulation = main.simulation
+	sim.set_auto_push(false)
+	_cut_to_depth(REFILL_STAGE, REFILL_STAGE)
+	settle_now()
+	_refill_room = 1
+	while (
+		_refill_room < sim.labyrinth.level(REFILL_STAGE).chambers.size() - 2
+		and not sim.expedition.is_populated(REFILL_STAGE, _refill_room)
+	):
+		_refill_room += 1
+	_room_lit = false
+	_held_at = -1.0
+	_stand_before(_refill_room, ROOM_APPROACH)
 
 
 ## A side path: the party a few steps short of one, able to open its gate, or, for the sealed
@@ -413,6 +439,22 @@ func _watch_stable(event: SimEvent) -> void:
 func _watch_room(event: SimEvent) -> void:
 	if event == null and main.world.ambience.rooms.flares() > 0:
 		_seen = true
+
+
+func _watch_refill(event: SimEvent) -> void:
+	var rooms: AmbienceRooms = main.world.ambience.rooms
+	if event != null or main.world.shown_stage() != REFILL_STAGE:
+		return
+	if rooms.is_lit(_refill_room):
+		_room_lit = true
+	elif _room_lit:
+		_seen = true
+	var run: Expedition = main.simulation.expedition
+	if _room_lit and AmbienceRooms.room_of(run, REFILL_STAGE) != _refill_room:
+		# Out of the room: the party marks time there, so the room is in view as it goes black.
+		if _held_at < 0.0:
+			_held_at = run.x
+		run.x = _held_at
 
 
 func _watch_quest_done(event: SimEvent) -> void:

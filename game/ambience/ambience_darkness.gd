@@ -6,9 +6,16 @@ extends Node2D
 ## share of the lamps' light back (glow.gdshader), so a dark back wall near a torch turns warm.
 ## It is handed the lights in view each frame; it chooses and sorts them again, and redraws, only
 ## when the view or the lights' places change, and otherwise only passes on their flicker.
+## Its child Veil covers the same rectangle over the glow and everything that shines there, and
+## blacks out what the party has not seen (veil.gdshader, [method set_seen]).
 
 const DARKNESS: Shader = preload("res://game/ambience/darkness.gdshader")
 const GLOW: Shader = preload("res://game/ambience/glow.gdshader")
+const VEIL: Shader = preload("res://game/ambience/veil.gdshader")
+## Where the veil is drawn: over each level's glow. What shows in the black (eyes, glints) is
+## drawn at [constant HINTS_Z], over it and under the effects.
+const VEIL_Z: int = 103
+const HINTS_Z: int = 104
 ## The most lights the shaders take at once (MAX_LIGHTS in light.gdshaderinc); the nearest to the
 ## middle of the view win.
 const MAX_LIGHTS: int = 32
@@ -22,6 +29,8 @@ const MARGIN: float = 32.0
 ## for, for tests.
 var handed: Array[AmbienceLight] = []
 var redraws: int = 0
+## The map of seen places the veil reads, or null while nothing is hidden.
+var seen: Texture2D
 
 var _view_rect: Rect2
 ## The lights handed over last, and each one's place, reach and core then (x, y, radius, core).
@@ -34,6 +43,8 @@ var _colors: Array[Vector4] = []
 var _darkness := ShaderMaterial.new()
 var _glow := ShaderMaterial.new()
 var _glow_node := Node2D.new()
+var _veil := ShaderMaterial.new()
+var _veil_node := Node2D.new()
 
 
 func _init() -> void:
@@ -47,6 +58,17 @@ func _init() -> void:
 	_glow_node.material = _glow
 	_glow_node.draw.connect(_draw_glow)
 	add_child(_glow_node)
+	_veil.shader = VEIL
+	_veil.set_shader_parameter(&"steps", float(AmbienceMood.STEPS))
+	_veil.set_shader_parameter(&"ring_power", AmbienceMood.RING_POWER)
+	_veil.set_shader_parameter(&"tile_size", float(LabyrinthView.TILE))
+	_veil_node.name = "Veil"
+	_veil_node.material = _veil
+	_veil_node.z_index = VEIL_Z
+	_veil_node.z_as_relative = false
+	_veil_node.visible = false
+	_veil_node.draw.connect(_draw_veil)
+	add_child(_veil_node)
 	var ambient: Array[Vector4] = []
 	for stratum: int in LabyrinthTiles.STRATA.size():
 		var color: Color = AmbienceMood.ambient_color(
@@ -93,6 +115,17 @@ func set_zone(look: ZoneLook) -> void:
 	_darkness.set_shader_parameter(&"daylight_levels", sun)
 
 
+## Blacks out what the party has not seen: [param map] holds one pixel per tile, how near that
+## tile is to something seen, starting at world tile [param origin]. Null: nothing is hidden.
+func set_seen(map: Texture2D, origin: Vector2i) -> void:
+	seen = map
+	_veil_node.visible = map != null
+	if map != null:
+		_veil.set_shader_parameter(&"seen", map)
+		_veil.set_shader_parameter(&"seen_origin", Vector2(origin))
+		_veil.set_shader_parameter(&"seen_size", Vector2(map.get_size()))
+
+
 ## Covers [param view_rect] (world pixels) and lights it with those of [param lights] that reach
 ## into it.
 func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
@@ -106,6 +139,7 @@ func show_lights(view_rect: Rect2, lights: Array[AmbienceLight]) -> void:
 		_choose(view_rect.get_center())
 		queue_redraw()
 		_glow_node.queue_redraw()
+		_veil_node.queue_redraw()
 	for i: int in _near.size():
 		var light: AmbienceLight = _near[i]
 		var c: Color = light.color * light.energy
@@ -145,13 +179,17 @@ func _choose(centre: Vector2) -> void:
 				)
 		)
 		_near.resize(MAX_LIGHTS)
+	var party := Vector4.ZERO
 	for i: int in MAX_LIGHTS:
 		var shape := Vector4.ZERO
 		_colors[i] = Vector4.ZERO
 		if i < _near.size():
 			var light: AmbienceLight = _near[i]
 			shape = Vector4(light.position.x, light.position.y, light.radius, light.core)
+			if light.core > 0.0:
+				party = shape
 		_shapes[i] = shape
+	_veil.set_shader_parameter(&"party", party)
 	_set_both(&"light_shape", _shapes)
 	_set_both(&"light_count", _near.size())
 
@@ -167,3 +205,7 @@ func _draw() -> void:
 
 func _draw_glow() -> void:
 	_glow_node.draw_rect(_view_rect, Color.WHITE)
+
+
+func _draw_veil() -> void:
+	_veil_node.draw_rect(_view_rect, Color.WHITE)

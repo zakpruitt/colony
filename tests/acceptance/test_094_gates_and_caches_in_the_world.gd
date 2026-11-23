@@ -38,8 +38,8 @@ func _before(
 	return _stand_before(_sim, stage, index, way)
 
 
-## The world, its effects and a sound player over [member _sim], the gate tip not following the
-## real mouse.
+## The world, its effects, its ambience and a sound player over [member _sim], the gate tip not
+## following the real mouse.
 func _watch_gates() -> void:
 	_show(_sim, 1, true)
 	_sound = SoundPlayer.new()
@@ -48,6 +48,9 @@ func _watch_gates() -> void:
 	_sound.setup(_world, _fx, _sim, null)
 	_frame_parts.append(_sound._process)
 	_world.side_props.follows_mouse = false
+	# A room the party walks into comes out of the black over frames: the ambience plays them.
+	_world.ambience.set_process(false)
+	_frame_parts.append(_world.ambience.advance)
 
 
 ## The first side path closed by [param gate] over the seeds and [constant STAGES] stages, as
@@ -444,6 +447,11 @@ func test_r5_a_sealed_gate_says_what_it_wants() -> void:
 		path = _before(found.x, found.y, found.z)
 		_watch_gates()
 		props = _world.side_props
+		# A gate in the black has no tip: the party first walks to where it sees it.
+		for i: int in 240:
+			if not _world.ambience.hides(rect.get_center()):
+				break
+			_play_frame(false)
 		props.point_at(rect.get_center())
 		assert_eq(props.tip.who, "The %s can open this" % who[1], "%s: who can" % kind)
 		assert_true(_play_until(SimEvent.Kind.GATE_OPENED, 600), "%s: it opens" % kind)

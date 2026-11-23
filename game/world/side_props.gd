@@ -11,7 +11,8 @@ extends Node2D
 ## A child of [World], beside [QuestProps] and drawn under the darkness like it. The world calls
 ## [method scan] whenever it looks for waiting monsters and [method animate] once a frame.
 ## A full cache out of the party's light carries a glint ([PropGlints]); a closed hidden crack
-## breathes a few motes; a closed gate under the mouse shows its [GateTip].
+## breathes a few motes; a closed gate under the mouse shows its [GateTip], unless it stands
+## where the world is drawn black ([method Ambience.hides]).
 ## [QuestProps] asks which gate is being worked ([method worked_spot]) to stand the worker by it.
 
 ## Where the sheets are, each named for its gate's id; and the cache's.
@@ -282,20 +283,26 @@ func animate(delta: float) -> void:
 
 
 ## Puts the mouse at [param at], in world pixels: a closed gate standing there shows its tip,
-## and anywhere else hides it.
+## and anywhere else hides it. A gate the party has not seen shows none.
 func point_at(at: Vector2) -> void:
 	_hovered = NONE
 	for key: Vector2i in _gates:
 		var shown: Sprite2D = _gates[key]
-		if part_of(shown) == CLOSED and _rect_of(shown).has_point(at):
+		if part_of(shown) == CLOSED and _rect_of(shown).has_point(at) and not _unseen(shown):
 			_hovered = key
 			break
 	_show_tip()
 
 
+## True if [param shown] stands where the world is drawn black.
+func _unseen(shown: Sprite2D) -> bool:
+	var ambience: Ambience = _world.ambience
+	return ambience != null and ambience.hides(_rect_of(shown).get_center())
+
+
 func _show_tip() -> void:
 	var shown: Sprite2D = _gates.get(_hovered, null)
-	if shown == null or part_of(shown) != CLOSED:
+	if shown == null or part_of(shown) != CLOSED or _unseen(shown):
 		_hovered = NONE
 		tip.hide_tip()
 		return

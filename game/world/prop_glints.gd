@@ -1,8 +1,9 @@
 class_name PropGlints
 extends Node2D
 ## The glints on props waiting out of the party's light: the ambience's sparkle at a prop's top
-## corner, drawn over the darkness like the glints on ore, slowly swelling and fading, so a prop
-## waiting in the dark reads from across the level. In the party's light a prop has none.
+## corner, drawn over the darkness and over the black on what the party has not seen, slowly
+## swelling and fading, so a prop waiting in the dark reads from across the level. In the
+## party's light a prop has none.
 ##
 ## Whoever shows the props ([QuestProps], [SideProps]) makes one as its child and calls
 ## [method pulse] once a frame with the props that may glint.
@@ -27,7 +28,7 @@ var _next: Dictionary[Vector2i, StringName] = {}
 func setup(world: World) -> void:
 	_world = world
 	name = "Glints"
-	z_index = AmbienceLevel.GLOW_Z
+	z_index = AmbienceDarkness.HINTS_Z
 	z_as_relative = false
 
 

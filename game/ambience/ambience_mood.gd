@@ -138,6 +138,15 @@ static func lamps_at(point: Vector2, lights: Array[AmbienceLight], exposure: flo
 	return strongest
 
 
+## How much of the world shows through the black over what the party has not seen, 0 (black) to
+## 1: [param nearness] is how near the pixel is to something seen ([method
+## AmbienceSeen.nearness_at]), cut into [constant STEPS] steps; [param party] is how much of the
+## party's light reaches it ([method falloff]), which the black does not cover.
+static func unveiled(nearness: float, party: float) -> float:
+	var shown: float = floorf(nearness * STEPS + 0.5) / STEPS
+	return 1.0 - (1.0 - shown) * (1.0 - party)
+
+
 ## How bright a light colour looks, 0 to 1.
 static func brightness(light: Color) -> float:
 	return 0.299 * light.r + 0.587 * light.g + 0.114 * light.b

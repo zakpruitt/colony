@@ -1,4 +1,4 @@
-extends "res://tests/support/side_path_fixture.gd"
+extends "res://tests/support/dark_stage_fixture.gd"
 ## Acceptance tests for specs/097-rooms-dark-until-entered/spec.md, one per requirement: a
 ## winding stage's rooms dark until the party walks into them.
 ##
@@ -7,49 +7,11 @@ extends "res://tests/support/side_path_fixture.gd"
 ## the flame over it, and whether its light is among those the darkness was handed and draws.
 
 const TORCH: String = "res://assets/sprites/ambience/torch.png"
-## The seed most tests play, and the stage (past the first, whose first room holds the campfire).
-const SEED: int = 1
-const STAGE: int = 2
 ## Seconds from one torch catching to the next, and those a flare lasts.
 const CATCH_GAP: float = 0.15
 const FLARE_SECONDS: float = 0.3
 
-var _ambience: Ambience
-
 # --- Helpers -------------------------------------------------------------------
-
-
-## A winding simulation of [param seed_value] whose party has arrived on [param stage] and is
-## heading for [param target], its heroes never learning a microskill (so they pass every gate).
-func _arrived(seed_value: int, stage: int, target: int) -> Simulation:
-	var sim: Simulation = winding_simulation(seed_value)
-	sim.set_auto_push(false)
-	_keep_unskilled(sim)
-	Arrival.from_save(sim.expedition, sim.tick, stage, stage, target, false)
-	return sim
-
-
-## The world over [param sim] at [param speed], its ambience moved on with each frame played.
-func _watch_rooms(sim: Simulation, speed: int = 1) -> void:
-	_show(sim, speed)
-	_ambience = _world.ambience
-	_ambience.set_process(false)
-	_frame_parts.append(_ambience.advance)
-	_ambience.advance(0.0)
-
-
-func _shown_level() -> LabyrinthLevel:
-	return _sim.labyrinth.level(_world.shown_stage())
-
-
-## The room of the stage's route the party's anchor is in, or -1.
-func _party_room() -> int:
-	return _shown_level().course.chamber_at(_sim.expedition.x)
-
-
-## The lights the darkness was handed last.
-func _handed() -> Array[AmbienceLight]:
-	return _ambience._darkness.handed
 
 
 ## The torches of the stage shown by room: a room of the route by its index, a cache room by
@@ -134,57 +96,6 @@ func _lit_rooms(what: String) -> Array[int]:
 			lit.append(room)
 	lit.sort()
 	return lit
-
-
-## Ends the fight the party is in and keeps the living whole, so a walk is not held up.
-func _hurry() -> void:
-	var e: Expedition = _sim.expedition
-	if e.state == Expedition.State.FIGHTING and e.battle != null:
-		for monster: Combatant in e.battle.monsters:
-			if monster.is_alive():
-				monster.health = 1
-	for hero: Hero in _sim.party.heroes:
-		if hero.is_alive():
-			hero.health = hero.max_health()
-
-
-## Plays frames, hurried, until [param done]; fails the test after [param seconds] of them.
-func _walk_until(done: Callable, what: String, seconds: float = 240.0) -> void:
-	for i: int in roundi(seconds / STEP):
-		if done.call():
-			return
-		_hurry()
-		_play_frame()
-	fail_test("%s: not within %d s of frames" % [what, roundi(seconds)])
-
-
-## True once the party's anchor is in route room [param room] and nothing is catching.
-func _settled_in(room: int) -> bool:
-	return _party_room() == room and _ambience.rooms.flares() == 0
-
-
-## The sparkle parts [param glinting] shows over a glint's pulse and a half of idle frames.
-func _glints_seen(glinting: Callable) -> Dictionary[StringName, bool]:
-	var seen: Dictionary[StringName, bool] = {}
-	for i: int in ceili(QuestProps.GLINT_PERIOD * 1.5 / STEP):
-		_play_frame(false)
-		var part: StringName = glinting.call()
-		seen[part] = true
-	return seen
-
-
-## The route room with the most torches over [param seeds] seeds' [constant STAGE], neither its
-## first nor its last, as Vector3i(seed, room, torches).
-func _widest_room(seeds: int) -> Vector3i:
-	var best := Vector3i(SEED, 1, 0)
-	for seed_value: int in range(1, seeds + 1):
-		var level: LabyrinthLevel = winding_labyrinth(seed_value).level(STAGE)
-		for room: int in range(1, level.chambers.size() - 1):
-			var width: int = level.chambers[room].rect.size.x
-			var count: int = maxi(1, roundi(width / AmbienceLevel.TORCH_SPACING))
-			if count > best.z:
-				best = Vector3i(seed_value, room, count)
-	return best
 
 
 # --- R1 ------------------------------------------------------------------------
@@ -379,8 +290,9 @@ func test_r3_the_stage_is_remembered_until_left() -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## R4: a side quest's and a full cache's glint in an unlit room; a closed gate's sprite shown;
-## the doorway drawn.
+## R4: a side quest's and a full cache's glint in an unlit room; a closed gate's sprite and the
+## doorways are there as they were, and the doorway on, in a room not entered, is under the
+## black (spec 099), which is the ambience's and no change to the sprite.
 func test_r4_glints_and_gates_show_in_the_dark() -> void:
 	var quest_room: int = -1
 	for seed_value: int in range(1, 30):
@@ -421,6 +333,10 @@ func test_r4_glints_and_gates_show_in_the_dark() -> void:
 	for door: Node in doors:
 		var sprite: Sprite2D = door as Sprite2D
 		assert_true(sprite.visible and sprite.modulate == Color.WHITE, "a doorway drawn as it is")
+	var black: int = 0
+	for door: Rect2 in view.doorways(STAGE):
+		black += int(_ambience.brightness_at(door.get_center()) == 0.0)
+	assert_eq(black, doors.size() - 1, "every doorway but the party's is under the black")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -442,6 +358,10 @@ func test_r5_nothing_lights_for_the_past() -> void:
 		_sim.step()
 	assert_eq(_party_room(), 4, "the party walked three more rooms unseen")
 	assert_gt(_sim.tick - before, stall, "a stall to the world")
+	# A lit room whose monsters came back in the stall is forgotten (spec 099): the second room
+	# is kept empty, so what stays lit is what was lit.
+	_sim.expedition._chambers[Vector2i(STAGE, 1)].cleared_tick = _sim.tick
+	assert_false(_sim.expedition.is_populated(STAGE, 1), "the second room has not refilled")
 	_world.sync(STEP)
 	assert_true(_world.catching_up(), "the world catches up")
 	_ambience.advance(STEP)
@@ -499,16 +419,3 @@ func test_r6_an_idle_frame_does_nothing() -> void:
 	assert_gt(quiet, 30, "most idle frames move nothing")
 	for light: AmbienceLight in lights:
 		assert_true(light.kind == &"party" or _in_room(light, 0), "a light of the lit room only")
-
-
-func _shapes(lights: Array[AmbienceLight]) -> Array[Vector4]:
-	var shapes: Array[Vector4] = []
-	for light: AmbienceLight in lights:
-		shapes.append(Vector4(light.position.x, light.position.y, light.radius, light.core))
-	return shapes
-
-
-## True if [param light] is inside route room [param room] of the stage shown.
-func _in_room(light: AmbienceLight, room: int) -> bool:
-	var rect: Rect2i = _shown_level().chambers[room].rect
-	return Rect2(rect.position * int(TILE), rect.size * int(TILE)).has_point(light.position)
