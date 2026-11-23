@@ -14,7 +14,10 @@ extends Node2D
 ##
 ## Zoned, a winding labyrinth's stage ([constant Labyrinth.Shape.WINDING]) is cut out whole, as
 ## tall as [method Labyrinth.band_height]: its rooms on their floors, its tunnels, a ladder in
-## each of [member LabyrinthLevel.ladders], and a doorway at its course's exit and entry.
+## each of [member LabyrinthLevel.ladders], and a doorway at its course's exit and entry. Its
+## rooms are cut to shapes ([RoomShape], in the manner of the area's look): some tiles of a room's
+## rectangle are earth and some above it are open, and every answer here about a tile is about
+## the tile as drawn.
 
 ## Emitted after the level at [param depth] has been built, so others can decorate it.
 signal level_built(depth: int)
@@ -45,6 +48,10 @@ var area: StringName = &""
 
 var _levels: Dictionary[int, Node2D] = {}
 var _surface: TileMapLayer
+## Zoned and winding: the shapes of the stages asked about, by depth, and the area they were cut
+## for.
+var _shapes: Dictionary[int, StageShapes] = {}
+var _shaped_for: StringName = &""
 
 
 func _ready() -> void:
@@ -88,6 +95,19 @@ func band_of(depth: int) -> int:
 	return AmbienceMood.band(depth)
 
 
+## The rooms of stage [param depth] as drawn, or null where rooms are drawn as their rectangles
+## (a flat labyrinth, a view that is not zoned).
+func shapes(depth: int) -> StageShapes:
+	if not zoned or not _winding():
+		return null
+	if _shaped_for != area or _shapes.size() > KEEP_RADIUS * 2:
+		_shapes.clear()
+		_shaped_for = area
+	if not _shapes.has(depth):
+		_shapes[depth] = StageShapes.of(labyrinth, depth, ZoneLook.of(area, depth))
+	return _shapes[depth]
+
+
 ## The doorways shown on [param depth] (zoned only), in world pixels: one where the shaft from it
 ## left (the way on) and one where the shaft from the stage before it arrived (the way back).
 ## Each stands on the floor, two tiles wide, centred on the shaft's middle. On a winding stage
@@ -121,9 +141,13 @@ func doorways(depth: int) -> Array[Rect2]:
 
 ## The open rectangles that reach into the band of [param depth], as drawn: zoned, its chambers,
 ## tunnels and the ladders inside it, and its side paths' rooms, tunnels and ladders; otherwise
-## those of the levels either side too, shafts included.
+## those of the levels either side too, shafts included. A room cut to a shape answers with its
+## [method RoomShape.bounds], which holds earth too: [method is_open] is the truth of a tile.
 func open_rects_near(depth: int) -> Array[Rect2i]:
 	var rects: Array[Rect2i] = []
+	var cut: StageShapes = shapes(depth)
+	if cut != null:
+		return cut.open_rects()
 	if zoned:
 		var level: LabyrinthLevel = labyrinth.level(depth)
 		for chamber: LabyrinthChamber in level.chambers:
@@ -145,6 +169,7 @@ func show_labyrinth(other: Labyrinth) -> void:
 		_levels.erase(built)
 		level_freed.emit(built)
 	labyrinth = other
+	_shapes.clear()
 
 
 ## Depths currently built, ascending.
@@ -164,12 +189,7 @@ func is_open(tile: Vector2i) -> bool:
 	if tile.y < 0 or tile.x < 0 or tile.x >= _W:
 		return false
 	if zoned and _winding():
-		var stage: LabyrinthLevel = labyrinth.level(_stage_drawn_at(tile.y))
-		for rects: Array[Rect2i] in [stage.open_rects(), stage.side_rects()]:
-			for rect: Rect2i in rects:
-				if rect.has_point(tile):
-					return true
-		return false
+		return shapes(_stage_drawn_at(tile.y)).is_open(tile)
 	var depth: int = tile.y / _rows() + 1
 	var level: LabyrinthLevel = labyrinth.level(depth)
 	for rect: Rect2i in level.open_rects():
@@ -356,11 +376,10 @@ func _open_grid(depth: int, top: int) -> PackedByteArray:
 	grid.resize((_W + 2) * (_rows() + 2))
 	if zoned and _winding():
 		# The stage alone: its own rooms, tunnels and ladders, whatever its neighbours hold.
-		var band := Rect2i(-1, top - 1, _W + 2, _rows() + 2)
-		for rect: Rect2i in open_rects_near(depth):
-			var inside: Rect2i = rect.intersection(band)
-			for y: int in range(inside.position.y, inside.end.y):
-				for x: int in range(inside.position.x, inside.end.x):
+		var cut: StageShapes = shapes(depth)
+		for y: int in range(top, top + _rows()):
+			for x: int in _W:
+				if cut.is_open(Vector2i(x, y)):
 					grid[(y - top + 1) * (_W + 2) + x + 1] = 1
 		return grid
 	for y: int in range(top - 1, top + _rows() + 1):

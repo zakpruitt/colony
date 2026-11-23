@@ -83,6 +83,8 @@ const DUST_PER_TORCH: int = 4
 const DUST_RANGE: Vector2 = Vector2(46, 28)
 const DUST_SPEED: float = 3.0
 const DUST_LIFE: Vector2 = Vector2(3.0, 7.0)
+## Pixels a dust home keeps under a ceiling: more than a mote may stray from its home.
+const DUST_CLEAR: float = 5.0
 ## Seconds between embers from one torch, how long one lives and how fast it rises.
 const EMBER_EVERY: Vector2 = Vector2(0.8, 3.2)
 const CAMPFIRE_EMBER_EVERY: Vector2 = Vector2(0.15, 0.6)
@@ -134,6 +136,8 @@ var buried_draws: int = 0
 var _seed: int
 ## The band's open tiles, its first world row and how many rows it has.
 var _map: AmbienceOpenMap
+## The level's rooms as drawn, or null where each is drawn as its rectangle.
+var _shapes: StageShapes
 var _top: int
 var _rows: int
 var _band: int
@@ -182,6 +186,7 @@ func build(view: LabyrinthView, level_depth: int) -> void:
 	_rng.seed = _seed
 	_band = view.band_of(depth)
 	_map = AmbienceOpenMap.new(view, depth)
+	_shapes = view.shapes(depth)
 	exposure = _map.exposure
 	_top = _map.top()
 	_rows = _map.rows()
@@ -333,7 +338,10 @@ func _place_torches(chamber: LabyrinthChamber, most: int = 0) -> void:
 		torches.append(torch)
 		_emitters.append(torch)
 		var room := Rect2(rect.position * TILE, rect.size * TILE).grow(-3)
-		_rooms.append(room.intersection(Rect2(torch.light.position - DUST_RANGE, DUST_RANGE * 2)))
+		var home: Rect2 = room.intersection(
+			Rect2(torch.light.position - DUST_RANGE, DUST_RANGE * 2)
+		)
+		_rooms.append(_under_ceiling(chamber, home))
 
 
 ## [param column] or the nearest column inside the chamber's walls that is not on or next to a
@@ -468,7 +476,7 @@ func _ceiling_prop(
 	var prop := AmbienceProp.new(
 		prop_name,
 		chamber.index,
-		Rect2(Vector2(x, chamber.rect.position.y * TILE - 2), size),
+		Rect2(Vector2(x, _ceiling_px(chamber, column) - 2), size),
 		AmbienceProp.Anchor.CEILING
 	)
 	prop.texture = sheet.part(StringName(part_name))
@@ -482,7 +490,7 @@ func _web_corner(chamber: LabyrinthChamber, part_name: String, column: int) -> v
 	var prop := AmbienceProp.new(
 		&"web",
 		chamber.index,
-		Rect2(column * TILE, chamber.rect.position.y * TILE - 2, TILE, TILE),
+		Rect2(column * TILE, _ceiling_px(chamber, column) - 2, TILE, TILE),
 		AmbienceProp.Anchor.CEILING
 	)
 	prop.texture = _part("web", part_name)
@@ -684,6 +692,31 @@ func exposure_at(tile: Vector2i) -> float:
 	return _map.exposure_at(tile)
 
 
+## Where drips fall from, in world pixels.
+func drip_points() -> PackedVector2Array:
+	return _drip_from
+
+
+## The ceiling line, in world pixels, over [param column] of [param chamber] as it is drawn.
+func _ceiling_px(chamber: LabyrinthChamber, column: int) -> float:
+	if _shapes == null:
+		return chamber.rect.position.y * TILE
+	return _shapes.shape_of(chamber).ceiling_row(column) * TILE
+
+
+## [param home], a dust home in [param chamber], kept under the lowest ceiling over its columns.
+func _under_ceiling(chamber: LabyrinthChamber, home: Rect2) -> Rect2:
+	var lowest: float = home.position.y
+	for column: int in range(floori(home.position.x / TILE), ceili(home.end.x / TILE)):
+		lowest = maxf(lowest, _ceiling_px(chamber, column) + DUST_CLEAR)
+	return home.grow_side(SIDE_TOP, home.position.y - lowest)
+
+
+## True if a mote at [param at] has drifted into the earth of a room cut to a shape.
+func _in_earth(at: Vector2) -> bool:
+	return _shapes != null and not _map.is_open(Vector2i((at / TILE).floor()))
+
+
 # --------------------------------------------------------------------- motion
 
 
@@ -701,7 +734,7 @@ func _place_drips(chamber: LabyrinthChamber) -> void:
 			)
 			if not _near(_shaft_columns, x):
 				var inside: int = 3 + _roll(36, x) % 10
-				from = Vector2(x * TILE + inside, rect.position.y * TILE)
+				from = Vector2(x * TILE + inside, _ceiling_px(chamber, x))
 				break
 	if from == Vector2.INF:
 		return
@@ -761,11 +794,14 @@ func _move_motes(delta: float) -> void:
 			&"dust":
 				mote.position += mote.velocity * delta
 				mote.position.x += sin(mote.age * 1.7 + mote.phase) * 2.0 * delta
-				if not _rooms[mote.source].grow(4).has_point(mote.position):
+				var strayed: bool = not _rooms[mote.source].grow(4).has_point(mote.position)
+				if strayed or _in_earth(mote.position):
 					mote.age = mote.life
 			&"ember":
 				mote.velocity.x += sin(mote.age * 9.0 + mote.phase) * 30.0 * delta
 				mote.position += mote.velocity * delta
+				if _in_earth(mote.position):
+					mote.age = mote.life
 			&"drip":
 				if mote.age > DRIP_SWELL:
 					mote.velocity.y += GRAVITY * delta
@@ -904,24 +940,7 @@ func _draw() -> void:
 	for prop: AmbienceProp in _all_props:
 		if prop.texture != null:
 			_draw_prop(self, prop, prop.texture)
-	var critters: PixelSheet = _sheet("critters")
-	var step: int = floori(_time * 8.0)
-	for mote: AmbienceMote in motes:
-		var at: Vector2 = mote.position.round()
-		match mote.kind:
-			&"dust":
-				draw_rect(Rect2(at, Vector2.ONE), Palette.color(&"sand"))
-			&"drip":
-				var swell: bool = mote.age < DRIP_SWELL * 0.5
-				draw_rect(Rect2(at, Vector2(1, 1 if swell else 2)), Palette.color(&"cyan"))
-			&"splash":
-				draw_rect(Rect2(at, Vector2.ONE), Palette.color(&"cyan"))
-			&"beetle":
-				var beetle: Texture2D = critters.part(&"beetle_%d" % (step % 2))
-				_draw_flipped(self, beetle, at + Vector2(-4, -7), mote.velocity.x < 0.0)
-			&"moth":
-				var moth: Texture2D = critters.part(&"moth_%d" % ((step + 1) % 2))
-				draw_texture(moth, at - Vector2(4, 4))
+	AmbienceMoteDraw.lit(self, motes, _time)
 
 
 func _draw_glow() -> void:
@@ -931,32 +950,8 @@ func _draw_glow() -> void:
 	for prop: AmbienceProp in _all_props:
 		if prop.glowing() != null:
 			_draw_prop(_glow, prop, prop.glowing())
-	var sparkle: PixelSheet = _sheet("sparkle")
-	for mote: AmbienceMote in motes:
-		match mote.kind:
-			&"ember":
-				var t: float = mote.progress()
-				var color: Color = Palette.color(&"yellow")
-				if t > 0.7:
-					color = Palette.color(&"red")
-				elif t > 0.35:
-					color = Palette.color(&"orange")
-				_glow.draw_rect(Rect2(mote.position.round(), Vector2.ONE), color)
-			&"glint":
-				var big: bool = mote.progress() > 0.3 and mote.progress() < 0.7
-				var part: Texture2D = sparkle.part(&"big" if big else &"small")
-				_glow.draw_texture(part, mote.position - Vector2(3, 3))
+	AmbienceMoteDraw.glow(_glow, motes)
 
 
 static func _draw_prop(canvas: CanvasItem, prop: AmbienceProp, texture: Texture2D) -> void:
-	_draw_flipped(canvas, texture, prop.rect.position, prop.flip)
-
-
-static func _draw_flipped(canvas: CanvasItem, texture: Texture2D, at: Vector2, flip: bool) -> void:
-	if not flip:
-		canvas.draw_texture(texture, at)
-		return
-	var size := Vector2(texture.get_size())
-	canvas.draw_texture_rect(
-		texture, Rect2(at + Vector2(size.x, 0), Vector2(-size.x, size.y)), false
-	)
+	AmbienceMoteDraw.flipped(canvas, texture, prop.rect.position, prop.flip)

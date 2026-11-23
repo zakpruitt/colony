@@ -142,10 +142,19 @@ func test_r1_the_view_cuts_the_side_paths() -> void:
 		var view: LabyrinthView = zoned_view(maze, stage)
 		var where: String = "stage %d" % stage
 		assert_gt(level.side_rects().size(), 0, "%s has side paths" % where)
+		# A cache room is cut to a shape (spec 100): its open tiles are its shape's, in the shape's
+		# bounds, and so is its rectangle in open_rects_near.
+		var cut: Dictionary[Rect2i, RoomShape] = {}
+		for path: SidePath in level.side_paths:
+			cut[path.room.rect] = view.shapes(stage).shape_of(path.room)
 		for rect: Rect2i in level.side_rects():
-			for y: int in range(rect.position.y, rect.end.y):
-				for x: int in range(rect.position.x, rect.end.x):
+			var shape: RoomShape = cut.get(rect)
+			var reach: Rect2i = shape.bounds() if shape != null else rect
+			for y: int in range(reach.position.y, reach.end.y):
+				for x: int in range(reach.position.x, reach.end.x):
 					var tile := Vector2i(x, y)
+					if shape != null and not shape.is_open(tile):
+						continue
 					var drawn: PackedStringArray = view.visuals_at(tile)
 					if not view.is_open(tile):
 						_wrong.append("%s: %s is not open" % [where, tile])
@@ -153,7 +162,8 @@ func test_r1_the_view_cuts_the_side_paths() -> void:
 						_wrong.append("%s: %s is drawn as earth" % [where, tile])
 		var near: Array[Rect2i] = view.open_rects_near(stage)
 		for rect: Rect2i in level.side_rects():
-			if not near.has(rect):
+			var shape: RoomShape = cut.get(rect)
+			if not near.has(shape.bounds() if shape != null else rect):
 				_wrong.append("%s: open_rects_near leaves %s out" % [where, rect])
 		for ladder: Rect2i in level.side_ladders():
 			for y: int in range(ladder.position.y - 1, ladder.end.y):

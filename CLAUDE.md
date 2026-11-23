@@ -40,7 +40,8 @@ incomplete, stop and report the question.
 - **A comment states a contract or a why the code cannot show.** No spec or requirement numbers, no history
   ("since", "the old", "as it was", "before spec"), nothing that restates the line under it: specs and git
   hold the history. This is for `sim/`, `game/` and `tools/`; a test still names the requirement it proves.
-  The `harness` step checks (`dev.py`'s `HISTORY`).
+  The `harness` step checks (`dev.py`'s `HISTORY`), by words: a comment that names "The Old Crypt" in
+  full reads to it as "the old" and fails, so write "Old Crypt" or the area's id there.
 - **Content is data.** New classes, items, monsters and talents are resources under `data/`, not code.
 - **Tests come from the spec.** One acceptance test per requirement, written before the code, seen to fail
   first. In a spec that changes nothing the game does, a test that pins today's behaviour is instead seen to
@@ -100,6 +101,12 @@ incomplete, stop and report the question.
   Windows are drawn over the bar's tags, and a hero window stands 4 pixels from the bar: whatever sits on a
   button stays within 2 pixels of it. Headless Godot still calls `_draw`, so a test can read what a control
   recorded there (`UiButton.cap_drawn`), though never a pixel.
+- **A room on screen is not its rectangle** (spec 100). On a winding stage each room is drawn cut to a
+  `RoomShape`: only the lowest 4 rows of `LabyrinthChamber.rect` are sure to be open, and tiles above the
+  rectangle may be. Whatever hangs from a ceiling or stands against a wall above those rows asks
+  `LabyrinthView.shapes(depth).shape_of(room).ceiling_row(column)` or `LabyrinthView.is_open(tile)`;
+  `open_rects_near` answers a room with a rectangle that holds earth. A test that wants a room's open
+  tiles takes them from the shape too (`test_090`'s `_open_tiles`).
 - **A view that reacts to events starts nothing for a stale one.** Ask `World.may_animate(event)` (and
   nothing else) before starting a move, an effect, a sound or a flash, and clear what is running when
   `World.catching_up()`; otherwise a stall or a fast-forward leaves things playing for events long past
