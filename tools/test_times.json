@@ -30,5 +30,7 @@
  "tests/acceptance/test_064_the_talent_tree_as_a_tree.gd": 13,
  "tests/acceptance/test_065_camp_upgrades_you_can_see.gd": 8,
  "tests/acceptance/test_066_milestones_announced.gd": 11,
- "tests/acceptance/test_075_a_smaller_hud.gd": 18
+ "tests/acceptance/test_075_a_smaller_hud.gd": 18,
+ "tests/acceptance/test_100_rooms_shaped_like_caves.gd": 40,
+ "tests/acceptance/test_101_what_stands_in_a_cave.gd": 22
 }

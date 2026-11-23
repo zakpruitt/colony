@@ -29,6 +29,8 @@ plug in.
 | Rule about what source text may say | A check in `rule_problems`, with a test that builds a made-up tree; never a GUT test that reads scripts | `tools/dev.py`, `tools/tests/` | `check`'s `harness` step |
 | Cap on one file's lines or public methods | A row in `CAPS` | `tools/dev.py` | `check`'s `harness` step |
 | Tool test | A `test_*.py` in `tools/tests/`, or in `tools/tests/godot/` if it starts Godot | | `check`'s `art` step; its `tools` step |
+| Kind of decoration in a room (stalagmite, urn, pillar...) | A row in its area's entry of `AmbienceDecor.TABLE`: kind, place (floor, ceiling, floor to ceiling, back wall), how often, sheet, parts, and what more holds for it | `game/ambience/ambience_decor.gd` | spec 101's tests (every decoration placed is a row of its area; a row added to a copy stands) |
+| Manner of cutting a room | A row of `ZoneLook.CUTS` (a `RoomCut`) | `game/world/zone_look.gd` | spec 100's tests |
 | Sprite | A `.px` file, baked | `create-sprite` skill | `check`'s `art` step |
 | Sound | A `.sfx` recipe, baked | `tools/sfx.py` | the sound lint |
 

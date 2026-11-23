@@ -644,7 +644,13 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   flat stage's stay where its shafts were.
 - **The ambience** dresses each chamber on its own floor and ceiling (`AmbienceLevel`), keeping clear
   the columns `AmbienceClearings` gives for that chamber: on a winding stage the ladders that meet that
-  room and the doorways in it, on a flat one the two shafts' columns as before. `AmbienceOpenMap` holds
+  room and the doorways in it, on a flat one the two shafts' columns as before. What a room holds by its
+  kind (campfire, webs, chest) is `AmbienceRoomProps`'; everything else it is dressed with (spec 101) is
+  a row of `AmbienceDecor.TABLE`, one entry per area, stood by `AmbienceDresser` where its rectangle
+  meets nothing `AmbienceClearings.standing` names (ladders, doorways, tunnel mouths, gates, the cache,
+  a quest prop's place), no torch flame, no other prop and no earth. Decorations are drawing only, give
+  no light (but for the area's glowing kinds, under `MAX_GLOW_LIGHTS`) and are rolled from the level's
+  seed and the room alone. `AmbienceOpenMap` holds
   the band's open tiles and how much lamplight reaches each. A level's motes are capped by its height
   (`MAX_MOTES` for 16 rows).
 - **A room is dark until the party has stood in it** (spec 097). `AmbienceRooms`

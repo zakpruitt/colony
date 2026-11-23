@@ -1,1 +1,1 @@
-{"category": "fx", "width": 8, "height": 16, "pivot": [4, 15], "parts": ["loam", "clay", "stone", "deep"]}
+{"category": "fx", "width": 8, "height": 16, "pivot": [4, 15], "parts": ["loam", "clay", "stone", "deep", "loam_mid", "loam_short", "clay_mid", "clay_short", "stone_mid", "stone_short", "deep_mid", "deep_short"]}

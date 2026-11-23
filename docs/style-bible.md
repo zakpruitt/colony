@@ -183,9 +183,20 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
   tenth of a second and settles in 0.3 (`AmbienceRooms`). **Props** stand on the floor (a puddle sinks two pixels into the crust) or hang from the ceiling (two
   pixels sunk into its ragged edge), never over a shaft, and never suggest a wall or a ledge.
 - **Each chamber kind has a look:** START a campfire between bedrolls; DEN corner webs, a hanging spider,
-  bones, a skull and a nest; VAULT a chest among coin piles with a gold gleam; PLAIN one to three of
-  stalactites, mushrooms, a broken crate or a puddle, with glowing mushrooms from the stone band down and
-  crystals in the deep.
+  bones, a skull and a nest; VAULT a chest among coin piles with a gold gleam.
+- **Each area dresses its rooms its own way** (`AmbienceDecor.TABLE`, one row per kind): Mossy Hollow
+  roots, mushrooms, dripstone and puddles; the Claypits urns, pots, crates and squat stalagmites; the Old
+  Crypt pillars in even rows, alcoves holding a skull or an unlit candle stub, and corner webs, but no
+  dripstone; the Ember Deep crystals singly and in clusters, glowing mushrooms, tall stalagmites and the
+  most stalactites. A room holds one decoration to one per two columns, a cache room fewer.
+- **Dripstone** is unoutlined, part of the cave, and comes in a part for each stratum (`loam`, `clay`,
+  `stone`, `deep`), like the earth. Stalagmites are 8, 14 and 22 pixels tall; stalactites three lengths,
+  hanging in groups of two to four under a dip of the ceiling. A column (`column.px`) is a `_top` and a
+  `_foot` for each stratum and each gap of 4 or 5 rows, meeting between floor and ceiling; the crypt's
+  pillar (`crypt.px`, outlined in `ink`) is a capital, a drum repeated down to the base, and a base, in
+  dressed stone. Nothing on the floor taller than 12 pixels
+  stands in the middle third of a room 12 columns wide or less, where the fight is, and no new
+  decoration gives light.
 - **Side-quest props** (`assets/sprites/props/`, spec 028): one plain prop per side quest, placeholder by
   decision: `chest` (locked chest, `item`), `door` (stuck door, `fx` 24x24), `wanderer` (hurt wanderer, `item`),
   `stone` (rune stone, `fx` 24x24, `cyan` runes) and `wire` (tripwire, `item`). Each has a hand-drawn `ink`
