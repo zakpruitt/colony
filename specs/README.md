@@ -136,7 +136,7 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 096 | [The order to press on](096-the-order-to-press-on/spec.md) (Explore or Press on, in the Orders window and the save): landed on dev, [#96](https://github.com/zakpruitt/colony/pull/96), provisional | 094, 095 |
 | 097 | [Rooms dark until entered](097-rooms-dark-until-entered/spec.md) (torches out until the party walks in; rooms of more shapes are left for after the playtest): landed on dev, [#97](https://github.com/zakpruitt/colony/pull/97), provisional | 094 |
 | 098 | The gate's tip on the UI layer (so a window over a gate hides it properly): to write | 096 |
-| 099 | [The unseen stage is black](099-the-unseen-stage-is-black/spec.md) (unvisited rooms, their tunnels and the earth round them black; eyes and glints in it; a refilled room goes black again): in-progress, provisional | 097 |
+| 099 | [The unseen stage is black](099-the-unseen-stage-is-black/spec.md) (unvisited rooms, their tunnels and the earth round them black; eyes and glints in it; a refilled room goes black again): landed on dev, [#99](https://github.com/zakpruitt/colony/pull/99), provisional | 097 |
 | 100 | [Rooms shaped like caves](100-rooms-shaped-like-caves/spec.md) (uneven ceilings, leaning walls, each area cut its own way; drawing only, flat floors): landed on dev, [#98](https://github.com/zakpruitt/colony/pull/98), provisional | 094 |
 | 101 | [What stands in a cave](101-what-stands-in-a-cave/spec.md) (stalagmites, columns, stalactites in groups, each area's own decoration from one table): in-progress, provisional | 100 |
 | later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 096 |
