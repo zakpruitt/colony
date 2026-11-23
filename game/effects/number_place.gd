@@ -68,13 +68,27 @@ static func place(
 	var best_clash: float = INF
 	var best_at: Vector2 = base
 	var best_velocity := Vector2(drift * lean, -leap)
+	# The paths of the numbers showing do not depend on the spot tried: worked out once.
+	var paths: Array[Array] = []
+	var bounds: Array[Rect2] = []
+	for other: FxText in showing:
+		if other == number or (other.kind != &"damage" and other.kind != &"heal"):
+			continue
+		var boxes: Array[Rect2] = []
+		var t: float = 0.0
+		while t < number.life and other.age + t < other.life:
+			boxes.append(other.rect_at(other.age + t))
+			t += PATH_STEP
+		if not boxes.is_empty():
+			paths.append(boxes)
+			bounds.append(_bounds(boxes))
 	for spot: Vector2i in SPOTS:
 		var side: float = signf(spot.x) if spot.x != 0 else lean
 		number.velocity = Vector2(drift * side, -leap)
 		number.start(base + Vector2(spot.x * STEP, -spot.y * RISE))
 		if keep_on_screen:
 			number.start(number.position + _shift_inside(number, inside))
-		var clash: float = _clash(number, showing)
+		var clash: float = _clash(_path(number), paths, bounds)
 		if clash < best_clash:
 			best_clash = clash
 			best_at = number.position
@@ -88,23 +102,42 @@ static func place(
 	return true
 
 
-## How badly the path of [param number] crosses the paths of the numbers in [param showing]: the
-## most any of its boxes shares with theirs beyond OVERLAP, as a share; 0 when clear.
-static func _clash(number: FxText, showing: Array[FxText]) -> float:
+## How badly the path [param mine] crosses [param paths] (each another number's boxes at the same
+## moments, with its [param bounds]): the most any of its boxes shares with theirs at the same
+## moment beyond OVERLAP, as a share; 0 when clear.
+static func _clash(mine: Array[Rect2], paths: Array[Array], bounds: Array[Rect2]) -> float:
 	var worst: float = 0.0
-	for other: FxText in showing:
-		if other == number or (other.kind != &"damage" and other.kind != &"heal"):
-			continue
-		var t: float = 0.0
-		while t < number.life and other.age + t < other.life:
-			var mine: Rect2 = number.rect_at(t)
-			var theirs: Rect2 = other.rect_at(other.age + t)
-			var shared: Rect2 = mine.intersection(theirs)
-			var smaller: float = minf(mine.get_area(), theirs.get_area())
+	var mine_bounds: Rect2 = _bounds(mine)
+	for k: int in paths.size():
+		if not mine_bounds.intersects(bounds[k]):
+			continue  # no box of one can share anything with a box of the other
+		var theirs: Array = paths[k]
+		for i: int in mini(mine.size(), theirs.size()):
+			var my_box: Rect2 = mine[i]
+			var their_box: Rect2 = theirs[i]
+			var smaller: float = minf(my_box.get_area(), their_box.get_area())
 			if smaller > 0.0:
-				worst = maxf(worst, shared.get_area() / smaller - OVERLAP)
-			t += PATH_STEP
+				var shared: float = my_box.intersection(their_box).get_area()
+				worst = maxf(worst, shared / smaller - OVERLAP)
 	return maxf(worst, 0.0)
+
+
+## The boxes of [param number] from its start, PATH_STEP seconds apart, for its whole life.
+static func _path(number: FxText) -> Array[Rect2]:
+	var boxes: Array[Rect2] = []
+	var t: float = 0.0
+	while t < number.life:
+		boxes.append(number.rect_at(t))
+		t += PATH_STEP
+	return boxes
+
+
+## The smallest box holding every box of [param boxes] (not empty).
+static func _bounds(boxes: Array[Rect2]) -> Rect2:
+	var all: Rect2 = boxes[0]
+	for one: Rect2 in boxes:
+		all = all.merge(one)
+	return all
 
 
 ## The move that keeps every box on the path of [param number] inside [param view].

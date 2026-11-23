@@ -148,6 +148,14 @@ static func _sheet_path(sprite: CharacterSprite) -> String:
 static func _posed_span(posed: CharacterSprite) -> Vector2:
 	var span := Vector2(INF, -INF)
 	var frame: float = 1.0 / 60.0
+	# A character's parts and their textures are made once, with it: read them once, not each frame.
+	var parts: Array[Sprite2D] = []
+	var boxes: Array[Rect2i] = []
+	for part: Sprite2D in parts_of(posed):
+		var box: Rect2i = opaque(part.texture as AtlasTexture)
+		if box.size != Vector2i.ZERO:
+			parts.append(part)
+			boxes.append(box)
 	for walking: bool in [false, true]:
 		if walking:
 			posed.play_walk()
@@ -157,16 +165,20 @@ static func _posed_span(posed: CharacterSprite) -> Vector2:
 				if i == roundi(REACH_SECONDS / frame / 2.0):
 					posed.play_hit()
 				posed.advance(frame)
-				span = _widest(span, _drawn_span(posed))
+				span = _widest(span, _drawn_span(posed, parts, boxes))
 	return span
 
 
-## The leftmost and rightmost pixel edges (x, y) of [param posed]'s opaque parts as posed now.
-static func _drawn_span(posed: CharacterSprite) -> Vector2:
+## The leftmost and rightmost pixel edges (x, y) of [param posed]'s [param parts] as posed now,
+## each with its opaque box in [param boxes].
+static func _drawn_span(
+	posed: CharacterSprite, parts: Array[Sprite2D], boxes: Array[Rect2i]
+) -> Vector2:
 	var span := Vector2(INF, -INF)
-	for part: Sprite2D in parts_of(posed):
-		var box: Rect2i = opaque(part.texture as AtlasTexture)
-		if not part.visible or box.size == Vector2i.ZERO:
+	for index: int in parts.size():
+		var part: Sprite2D = parts[index]
+		var box: Rect2i = boxes[index]
+		if not part.visible:
 			continue
 		var drawn: Transform2D = part.transform
 		var parent: Node = part.get_parent()

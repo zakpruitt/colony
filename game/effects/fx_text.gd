@@ -40,6 +40,10 @@ var slot: int = 0
 var follow: Callable
 
 var _exact: Vector2
+## [method box] of [member _boxed_text] by font size: shaping the text is slow, and placing a
+## number asks for its box thousands of times.
+var _boxes: Dictionary[int, Rect2] = {}
+var _boxed_text: String = ""
 
 
 ## Places the text at [param at] before its first advance.
@@ -87,13 +91,13 @@ func position_at(at_age: float) -> Vector2:
 
 ## The box it covers at [param at_age] seconds old, glyphs and shadow, in its parent's pixels.
 func rect_at(at_age: float) -> Rect2:
-	var shape: Rect2 = box(text, _size_at(at_age))
+	var shape: Rect2 = _box(_size_at(at_age))
 	return Rect2(shape.position + position_at(at_age), shape.size)
 
 
 ## The box it covers now, where it is drawn (its outline too).
 func rect() -> Rect2:
-	var shape: Rect2 = box(text, font_size())
+	var shape: Rect2 = _box(font_size())
 	if outline:
 		var factor: float = float(font_size()) / PixelText.SIZE
 		shape = shape.grow(factor)
@@ -110,6 +114,16 @@ static func box(words: String, font_px: int) -> Rect2:
 	return Rect2(-floori(width / 2.0), -top, width + factor, top + bottom + factor)
 
 
+## [method box] of [member text] at [param font_px], shaped once per text and size.
+func _box(font_px: int) -> Rect2:
+	if text != _boxed_text:
+		_boxes.clear()
+		_boxed_text = text
+	if not _boxes.has(font_px):
+		_boxes[font_px] = box(text, font_px)
+	return _boxes[font_px]
+
+
 func _size_at(at_age: float) -> int:
 	return PixelText.SIZE * (scale_factor + (1 if pops and at_age < POP_TIME else 0))
 
@@ -123,8 +137,7 @@ func _draw() -> void:
 	var font: Font = PixelText.font()
 	var font_px: int = font_size()
 	var factor: int = font_px / PixelText.SIZE
-	var width: float = font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, font_px).x
-	var left := Vector2(-floori(width / 2.0), 0)
+	var left := Vector2(_box(font_px).position.x, 0)
 	var shadow := Vector2(factor, factor)
 	var ink: Color = Palette.color(&"ink")
 	if outline:
