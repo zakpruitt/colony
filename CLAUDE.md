@@ -112,6 +112,14 @@ incomplete, stop and report the question.
   `World.catching_up()`; otherwise a stall or a fast-forward leaves things playing for events long past
   (specs 057, 076). A passing effect goes in `World.fx`, the one `FxPool`, under its budget; a listener
   connects its own `_on_sim_event` to `World.sim_event` in its own setup.
+- **Code that runs per event, per frame or per step of a path is hot, and the late game multiplies it.**
+  A fight at depth sends dozens of events in a frame and keeps ~40 numbers and hundreds of particles
+  alive, so a cost nobody sees in a fresh game stalls a level-250 party (a kill once froze for tens of
+  milliseconds this way). Inside such a loop do not measure text (`Font.get_string_size`), search the
+  tree (`find_children`), format a string key or read pixels (`Image.get_pixel`): work it out once and
+  keep it (`FxText._box`, `SpriteBounds._posed_span`), and lift whatever does not change out of the
+  loop (`NumberPlace.place` works out the paths of the numbers showing once, not once per spot it
+  tries). Call `queue_redraw` only while something drawn is changing (`UiMoment.advance`).
 - **Lessons go back into the harness.** If you hit a trap a future lane would hit too, add it to the relevant
   skill or to this file, as its own commit.
 
@@ -162,6 +170,23 @@ it polls `get_global_mouse_position()`. Give such a node a method that takes the
 Shots are timed by the wall clock, so the same `--seconds` lands a few frames apart on a loaded machine, and
 `show_NN` from two runs can be different moments. To show nothing changed against a baseline, pair shots by
 the moment's label and compare the UI, not by file number or a pixel diff.
+
+## Measuring a stutter
+
+Measure it, do not guess. A fresh game hides most costs: profile with a copy of Zak's save
+(`%APPDATA%/Godot/app_userdata/Colony/colony.save`, copied into `.shots/`, never the file itself).
+Write a throwaway `.shots/perf_main.gd` that `extends Main`, returns `Simulation.from_save(SaveStore.new(<the
+copy's absolute path>).read(), STAGE_SHAPE)` from `_load_or_new()`, and in its first `_process` turns off
+`driver`, `world` and `effects` processing and calls them itself with `Time.get_ticks_usec()` around each.
+To time each listener, disconnect every connection of `world.sim_event` and reconnect it wrapped in a lambda
+that times it. Print every frame over ~20 ms with the event kinds it heard. Give it a `.tscn` that instances
+`res://game/main.tscn` with that script, and run Godot directly so its prints show (`dev.py shot` hides
+them): `godot_console --path . -s res://tools/godot/shot.gd -- --out=<abs>/.shots/perf --seconds=60
+--count=1 --window-default --scene=res://.shots/perf_main.tscn --window=1920x1080`. Traps: a window without
+focus drops to 10 fps (`SimDriver.BACKGROUND_MAX_FPS`), so set `Engine.max_fps = 0` every frame or every
+frame looks slow; `Performance.TIME_PROCESS` includes rendering, so it is not "script time"; the
+first use of each hero or monster sheet costs a few milliseconds once (`SpriteBounds.reach`), so do not
+mistake that for a frame-by-frame cost.
 
 ## Skills (`.claude/skills/`)
 
