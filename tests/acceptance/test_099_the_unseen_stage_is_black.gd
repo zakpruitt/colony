@@ -486,6 +486,7 @@ func test_r5_a_refilled_room_goes_black() -> void:
 		return
 	var rect: Rect2i = level.chambers[back].rect
 	assert_false(_ambience.rooms.is_lit(back), "the room is forgotten")
+	assert_gt(forgotten, 0, "while the test watched")
 	assert_lt((forgotten - refilled) * STEP, 0.2, "as soon as it refills")
 	assert_eq(out.size(), torches.size(), "every torch of it went out")
 	var times: Array = out.values()

@@ -678,9 +678,11 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   draws black over the rest, but for where the party's own light reaches. `Ambience.light_at` and
   `brightness_at` answer with the veil (`AmbienceMood.unveiled`), and `Ambience.hides(point)` is
   true where the world is drawn black. A room entered comes out over `SHOW_SECONDS`; a lit room
-  the party is not in that holds monsters again (`Expedition.is_populated`, asked only from the tick the room can first have refilled, by
-  `AmbienceRooms.follow`) is forgotten, its torches going out `GUTTER_GAP` apart and the black
-  closing over `HIDE_SECONDS`; an arrival or a sync that catches up settles all of it at once.
+  the party is not in that holds monsters again is forgotten. `AmbienceRooms` never copies the
+  refill rule: as the party leaves a room, and as a stall starts or ends, it asks
+  `ChamberRules.refill_tick` (read-only) and asks `Expedition.is_populated` only once that tick
+  has passed. A forgotten room's torches go out `GUTTER_GAP` apart and the black
+  closes over it in `HIDE_SECONDS`; an arrival or a sync that catches up settles all of it at once.
   The map is one `ImageTexture`, remade only in a frame in which a place fades. What shows in the
   black is drawn at `AmbienceDarkness.HINTS_Z`, over the veil and under the effects: `PropGlints`
   and `UnseenEyes` (`game/world/unseen_eyes.gd`, `World.eyes`), a blinking pair from
