@@ -1,9 +1,9 @@
 # 100 — Rooms shaped like caves
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 094
-- **Pull request:** —
+- **Pull request:** [#98](https://github.com/zakpruitt/colony/pull/98)
 
 ## Intent
 

@@ -137,7 +137,7 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 097 | [Rooms dark until entered](097-rooms-dark-until-entered/spec.md) (torches out until the party walks in; rooms of more shapes are left for after the playtest): landed on dev, [#97](https://github.com/zakpruitt/colony/pull/97), provisional | 094 |
 | 098 | The gate's tip on the UI layer (so a window over a gate hides it properly): to write | 096 |
 | 099 | [The unseen stage is black](099-the-unseen-stage-is-black/spec.md) (unvisited rooms, their tunnels and the earth round them black; eyes and glints in it; a refilled room goes black again): in-progress, provisional | 097 |
-| 100 | [Rooms shaped like caves](100-rooms-shaped-like-caves/spec.md) (uneven ceilings, leaning walls, each area cut its own way; drawing only, flat floors): in-progress, provisional | 094 |
+| 100 | [Rooms shaped like caves](100-rooms-shaped-like-caves/spec.md) (uneven ceilings, leaning walls, each area cut its own way; drawing only, flat floors): landed on dev, [#98](https://github.com/zakpruitt/colony/pull/98), provisional | 094 |
 | 101 | What stands in a cave (stalagmites, columns, each area's decoration): to write | 100 |
 | later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 096 |
 
