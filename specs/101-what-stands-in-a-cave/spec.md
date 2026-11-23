@@ -1,9 +1,9 @@
 # 101 — What stands in a cave
 
-- **Status:** in-progress (provisional)
+- **Status:** landed (provisional)
 - **Milestone:** M9 (the dungeon overhaul)
 - **Depends on:** 100
-- **Pull request:** —
+- **Pull request:** [#100](https://github.com/zakpruitt/colony/pull/100)
 
 ## Intent
 

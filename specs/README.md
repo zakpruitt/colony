@@ -138,7 +138,7 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 | 098 | The gate's tip on the UI layer (so a window over a gate hides it properly): to write | 096 |
 | 099 | [The unseen stage is black](099-the-unseen-stage-is-black/spec.md) (unvisited rooms, their tunnels and the earth round them black; eyes and glints in it; a refilled room goes black again): landed on dev, [#99](https://github.com/zakpruitt/colony/pull/99), provisional | 097 |
 | 100 | [Rooms shaped like caves](100-rooms-shaped-like-caves/spec.md) (uneven ceilings, leaning walls, each area cut its own way; drawing only, flat floors): landed on dev, [#98](https://github.com/zakpruitt/colony/pull/98), provisional | 094 |
-| 101 | [What stands in a cave](101-what-stands-in-a-cave/spec.md) (stalagmites, columns, stalactites in groups, each area's own decoration from one table): in-progress, provisional | 100 |
+| 101 | [What stands in a cave](101-what-stands-in-a-cave/spec.md) (stalagmites, columns, stalactites in groups, each area's own decoration from one table): landed on dev, [#100](https://github.com/zakpruitt/colony/pull/100), provisional | 100 |
 | later | The old tests move to winding stages, and the flat generator and the un-zoned view go, in batches: to write | 096 |
 
 A trial on 2026-11-22 with winding as the default everywhere failed 47 of 112 test scripts, so the switch
