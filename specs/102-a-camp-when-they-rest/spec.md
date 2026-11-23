@@ -31,7 +31,10 @@ This is all view. The simulation, its events, its state hashes and saves stay as
   and those on its right face left. "Left" and "right" go by where the simulation has them; with an odd number
   of heroes, the middle one goes to the side away from the way ahead. Each hero's place moves from where the
   simulation has it just enough that no hero's feet are within `CAMP_CLEARANCE` (10) pixels of the fire's
-  middle. No hero moves more than 12 pixels. A hero that has to move walks there.
+  middle. No hero moves more than 12 pixels. A hero that has to move walks there. The camp stands on the
+  floor of the hero at the front. A hero whose feet are not on that floor (the line bent up a ladder or round
+  a turn) stays where the simulation has it, faces the fire, and does not sit. Heroes level in x go to a side
+  by rank.
 - **R3. They sit.** A hero standing at its camp place sits. The sitting pose is made from the hero's existing
   parts, with no new frames:
   - the body is lower, so the head part sits at least 3 pixels lower than standing;
