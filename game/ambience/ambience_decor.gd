@@ -103,7 +103,8 @@ const TABLE: Array[Dictionary] = [
 		[
 			[&"pillar", Place.SPAN, 6, "crypt", ["pillar"], {COLONNADE: 14}],
 			[&"alcove", Place.BACK, 5, "crypt", ["alcove_skull", "alcove_candle"]],
-			[&"web", Place.CEILING, 2, "web", ["left", "right"], {CORNER: true}],		],
+			[&"web", Place.CEILING, 2, "web", ["left", "right"], {CORNER: true}],
+		],
 	},
 	# Ember Deep: crystals and glowing mushrooms, tall dripstone, the most stalactites.
 	{
