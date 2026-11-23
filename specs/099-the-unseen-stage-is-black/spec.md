@@ -69,9 +69,10 @@ cleared when the stage shown changes; nothing in `sim/` or the save knows of it.
 `brightness_at` answer for the black (0 in an unseen place), as the shader draws it. The eyes are one new
 sheet, `assets/sprites/ambience/eyes.px`.
 
-Spec 100 (rooms shaped like caves) is built at the same time and changes which tiles of a room's rectangle
-are open: decide what is seen from the level's rectangles (`LabyrinthChamber.rect`, tunnels, ladders, side
-paths), never from which tiles are open.
+Spec 100 (rooms shaped like caves, landed) changes which tiles of a room's rectangle are open and may
+open a room upward past it: decide what is seen from rectangles, never from which tiles are open, and take
+a room's rectangle as the bounds of its drawn shape (`RoomShape.bounds()`, its `LabyrinthChamber.rect`
+where it has no shape), so the earth over a room opened upward is seen as it is over any other.
 
 ## Acceptance
 
