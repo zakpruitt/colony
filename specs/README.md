@@ -143,3 +143,9 @@ view removed. All are provisional, land on `dev` only, and wait for his playtest
 
 A trial on 2026-11-22 with winding as the default everywhere failed 47 of 112 test scripts, so the switch
 is made for the game alone first (092) and the tests follow as their own work.
+
+### Feel (2026-11-23 on)
+
+| Spec | Status | Depends on |
+|---|---|---|
+| 102 | [A camp when they rest, and a revival you can see](102-a-camp-when-they-rest/spec.md) (a fire and bedrolls, heroes sit facing the fire; a hero fallen in a won fight rises at camp; one light-and-sparks effect for every revival): approved | 012, 038, 048, 057, 076, 097 |
