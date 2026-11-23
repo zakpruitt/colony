@@ -1,0 +1,18 @@
+# The eyes of a monster waiting in a place the party has not seen: drawn unlit, over the black.
+# A guardian's are the large pair.
+category = fx
+size = 10x5
+
+[small]
+..........
+..bb..bb..
+..ab..ba..
+..........
+..........
+
+[large]
+..........
+qq......qq
+qtq....qtq
+.qq....qq.
+..........

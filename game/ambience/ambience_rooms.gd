@@ -12,6 +12,9 @@ extends RefCounted
 ## party stands in now at once: the rooms passed unseen stay dark. Until it is first told of a
 ## party every lamp is lit, so an [Ambience] with no party to follow shows every room.
 ##
+## A lit room the party is not in whose monsters have come back is forgotten: its torches go out
+## one after another and it is as a room never entered. Seen after a stall, they are out at once.
+##
 ## A room is named by a number: a room of the route by its index, a cache room by
 ## [constant CACHE] plus its side path's place in the level's list.
 
@@ -20,6 +23,11 @@ const NONE: int = -1
 const CACHE: int = 100
 ## Seconds from one torch catching to the next.
 const CATCH_GAP: float = 0.15
+## Seconds from one torch of a forgotten room going out to the next.
+const GUTTER_GAP: float = 0.15
+## The lit rooms are asked whether they hold monsters again once in this many looks (four times
+## a second at 60 looks a second): the asking is the simulation's, and not free.
+const REFILL_LOOKS: int = 15
 ## A flare: the seconds it lasts, and the lamp's reach and strength as a share of their rest when
 ## it catches, at its peak, and the second the peak comes.
 const FLARE_SECONDS: float = 0.3
@@ -38,6 +46,8 @@ class Dressing:
 
 ## Goes up with every change to which lamps are lit; whoever lists the lit lamps compares it.
 var changes: int = 0
+## True when the last look settled everything at once: an arrival, or a picture catching up.
+var at_once: bool = false
 
 var _following: bool = false
 ## The stage remembered, the room the party was in at the last look, and the rooms lit.
@@ -51,6 +61,11 @@ var _waiting: Array[AmbienceProp] = []
 var _waits: PackedFloat32Array = []
 var _flaring: Array[AmbienceLight] = []
 var _ages: PackedFloat32Array = []
+## Lamps of forgotten rooms yet to go out, and the seconds each still burns.
+var _guttering: Array[AmbienceProp] = []
+var _burns: PackedFloat32Array = []
+## Looks since the lit rooms were last asked whether they have refilled.
+var _looks: int = 0
 
 
 ## The room of [param stage], the stage shown, that [param run]'s anchor is in: while it changes
@@ -98,10 +113,15 @@ func strip(depth: int) -> void:
 ## stands in is lit whole, with no flare; so is the first look, and one at another stage or
 ## another area's. With [param quiet] (the picture is catching up on a stall) what was lit stays
 ## lit and the room the party stands in now is lit whole, with no flare.
+##
+## A lit room of the route the party is not in, holding monsters again, is forgotten (asked
+## every [constant REFILL_LOOKS] looks): its torches go out in turn, or at once with
+## [param quiet].
 func follow(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
 	var room: int = room_of(run, stage)
 	var fresh: bool = arrived or not _following or stage != _stage or run.labyrinth != _maze
-	if fresh or quiet:
+	at_once = fresh or quiet
+	if at_once:
 		if fresh:
 			_lit.clear()
 		_following = true
@@ -110,25 +130,47 @@ func follow(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
 		_room = room
 		if room != NONE:
 			_lit[room] = true
+		while _lit.erase(_refilled(run, room)):
+			pass
+		_looks = 0
 		_settle()
 		for depth: int in _dressed:
 			_apply(depth)
 		changes += 1
 		return
+	_looks += 1
+	var refilled: int = NONE
+	if _looks >= REFILL_LOOKS:
+		_looks = 0
+		refilled = _refilled(run, room)
+	while refilled != NONE:
+		_lit.erase(refilled)
+		_stagger(refilled, PartyPlaces.anchor(run) * TILE, false)
+		changes += 1
+		refilled = _refilled(run, room)
 	if room == _room:
 		return
 	_room = room
 	if room == NONE or _lit.has(room):
 		return
 	_lit[room] = true
-	_kindle(room, PartyPlaces.anchor(run) * TILE)
+	changes += 1
+	_stagger(room, PartyPlaces.anchor(run) * TILE, true)
 
 
 ## Moves the lamps catching and the flares on by [param delta] seconds. Nothing to do, and
 ## nothing done, while no room is lighting.
 func advance(delta: float) -> void:
-	if _waiting.is_empty() and _flaring.is_empty():
+	if _waiting.is_empty() and _flaring.is_empty() and _guttering.is_empty():
 		return
+	for i: int in range(_guttering.size() - 1, -1, -1):
+		_burns[i] -= delta
+		if _burns[i] > 0.0001:
+			continue
+		_guttering[i].lit = false
+		_guttering.remove_at(i)
+		_burns.remove_at(i)
+		changes += 1
 	var at: int = 0
 	while at < _flaring.size():
 		_ages[at] += delta
@@ -174,6 +216,11 @@ func flares() -> int:
 	return _waiting.size() + _flaring.size()
 
 
+## How many lamps of forgotten rooms are still to go out.
+func gutters() -> int:
+	return _guttering.size()
+
+
 ## Adds to [param into] the lights of the lit lamps of the level at [param depth], in the
 ## level's own order.
 func lit_lights(depth: int, into: Array[AmbienceLight]) -> void:
@@ -209,12 +256,23 @@ func _settle() -> void:
 	_waits.clear()
 	_flaring.clear()
 	_ages.clear()
+	_guttering.clear()
+	_burns.clear()
 
 
-## Starts [param room]'s lamps catching: its torches by their distance from [param from] (world
-## pixels), [constant CATCH_GAP] apart, the nearest now; its other lamps with the torch nearest
-## each.
-func _kindle(room: int, from: Vector2) -> void:
+## The first lit room of the route other than [param room] (where the party is) that holds
+## monsters again, or [constant NONE]. A cache room never does.
+func _refilled(run: Expedition, room: int) -> int:
+	for lit: int in _lit:
+		if lit != room and lit < CACHE and run.is_populated(_stage, lit):
+			return lit
+	return NONE
+
+
+## Starts [param room]'s lamps catching ([param lighting]) or going out: its torches by their
+## distance from [param from] (world pixels), [constant CATCH_GAP] or [constant GUTTER_GAP]
+## apart, the nearest now; its other lamps with the torch nearest each.
+func _stagger(room: int, from: Vector2, lighting: bool) -> void:
 	var dressing: Dressing = _dressed.get(_stage, null)
 	if dressing == null:
 		return
@@ -240,8 +298,21 @@ func _kindle(room: int, from: Vector2) -> void:
 				var gap: float = torches[t].light.position.distance_squared_to(lamp.light.position)
 				if gap < torches[turn].light.position.distance_squared_to(lamp.light.position):
 					turn = t
-		_waiting.append(lamp)
-		_waits.append(turn * CATCH_GAP)
+		# A lamp is in one list at most: lighting ends its going out, and the other way round.
+		var catching: int = _waiting.find(lamp)
+		if catching >= 0:
+			_waiting.remove_at(catching)
+			_waits.remove_at(catching)
+		var going: int = _guttering.find(lamp)
+		if going >= 0:
+			_guttering.remove_at(going)
+			_burns.remove_at(going)
+		if lighting:
+			_waiting.append(lamp)
+			_waits.append(turn * CATCH_GAP)
+		elif lamp.lit:
+			_guttering.append(lamp)
+			_burns.append(turn * GUTTER_GAP)
 	advance(0.0)
 
 

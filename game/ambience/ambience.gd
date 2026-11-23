@@ -4,7 +4,7 @@ extends Node2D
 ## a light that follows the party, things buried in the earth, props that say what kind each
 ## chamber is, and small motion everywhere (flames, dust, embers, drips, critters, glints).
 ## Told where a party is ([method follow_party]), it keeps every room dark until the party has
-## stepped into it ([AmbienceRooms]).
+## stepped into it ([AmbienceRooms]), and everything it has not seen black ([AmbienceSeen]).
 ## It changes no rules and decides nothing.
 ##
 ## Put it in the tree after the [LabyrinthView] and before the characters, at the view's
@@ -29,6 +29,10 @@ var party_light_position: Vector2
 
 ## Which rooms of the stage shown are lit, and the torches catching in one just entered.
 var rooms := AmbienceRooms.new()
+## What of the stage shown is out of the black: the lit rooms, the ways that touch them and the
+## earth round those. Off (nothing black) until a party is followed on a winding stage.
+var seen := AmbienceSeen.new()
+var _seen_at: int = -1
 ## The lit lights, listed again only when [member AmbienceRooms.changes] has moved on.
 var _lights: Array[AmbienceLight] = []
 var _lights_at: int = -1
@@ -79,6 +83,10 @@ func advance(delta: float) -> void:
 		_darkness.set_zone(look)
 	_party_light.position = party_light_position
 	rooms.advance(delta)
+	seen.advance(delta)
+	if _seen_at != seen.changes:
+		_seen_at = seen.changes
+		_darkness.set_seen(seen.texture if seen.is_on() else null, seen.origin)
 	for depth: int in _levels:
 		_levels[depth].advance(delta)
 	if _exposure_stale:
@@ -89,9 +97,14 @@ func advance(delta: float) -> void:
 ## Tells the rooms where [param run]'s party is on [param stage], the stage shown, once a frame:
 ## a room it steps into lights; with [param arrived] only the room it stands in is lit, at once;
 ## with [param quiet] (a picture catching up) that room is lit at once and the rest kept. See
-## [method AmbienceRooms.follow].
+## [method AmbienceRooms.follow]. What the party has not seen of a winding stage shown as its
+## own place is black from then on ([AmbienceSeen]).
 func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool) -> void:
 	rooms.follow(run, stage, arrived, quiet)
+	var hides_it: bool = (
+		_view != null and _view.zoned and run.labyrinth.shape == Labyrinth.Shape.WINDING
+	)
+	seen.follow(run.labyrinth.level(stage) if hides_it else null, rooms, rooms.at_once)
 
 
 ## How many lights there are, for tests and the budget of lights.
@@ -146,10 +159,35 @@ func lights() -> Array[AmbienceLight]:
 	return _lights
 
 
-## The light at a world pixel, as the darkness draws it (1 in each channel is unlit).
+## The light at a world pixel, as the darkness and the black over the unseen draw it (1 in each
+## channel is unlit, 0 in each is black).
 func light_at(world_pixels: Vector2) -> Color:
 	var look: ZoneLook = _view.zone_look() if _view != null else null
-	return AmbienceMood.light_at(world_pixels, lights(), _exposure_at(world_pixels), look)
+	var light: Color = AmbienceMood.light_at(
+		world_pixels, lights(), _exposure_at(world_pixels), look
+	)
+	var kept: float = _unveiled(world_pixels)
+	return Color(light.r * kept, light.g * kept, light.b * kept)
+
+
+## True where the world is drawn black at a world pixel: a place the party has not seen, out of
+## its own light. What shows only in the black (eyes) and what must not (a tip) ask this.
+func hides(world_pixels: Vector2) -> bool:
+	return _unveiled(world_pixels) <= 0.0
+
+
+## How much of the world shows through the black at a world pixel, 0 to 1
+## ([method AmbienceMood.unveiled]).
+func _unveiled(world_pixels: Vector2) -> float:
+	if not seen.is_on():
+		return 1.0
+	var point := Vector2(floorf(world_pixels.x) + 0.5, floorf(world_pixels.y) + 0.5)
+	var party: float = 0.0
+	if _party_light != null:
+		party = AmbienceMood.falloff(
+			point.distance_to(_party_light.position), _party_light.radius, _party_light.core
+		)
+	return AmbienceMood.unveiled(seen.nearness_at(world_pixels), party)
 
 
 ## How bright the world is drawn at a world pixel, 0 (black) to 1 (unlit).

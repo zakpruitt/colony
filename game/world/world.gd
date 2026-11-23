@@ -12,7 +12,8 @@ extends Node2D
 ##
 ## Children, in draw order: the labyrinth view, the ambience, SideProps, QuestProps, Characters,
 ## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
-## and ZoneCrossing, which dims the screen between places.
+## ZoneCrossing, which dims the screen between places, and UnseenEyes, the eyes of the monsters
+## waiting in the black.
 ##
 ## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
 ## The party never climbs on screen: it walks into a doorway, the screen dims, the world changes
@@ -83,6 +84,8 @@ var side_props: SideProps
 var fallen_party: FallenParty
 ## The dimming and the title between places.
 var crossing: ZoneCrossing
+## The eyes of the monsters waiting where the party has not seen.
+var eyes: UnseenEyes
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -93,7 +96,7 @@ var _ranges: Dictionary[int, float] = {}
 ## Each monster's combatant (the simulation's own, never changed here) and its feet's pixel row.
 var _monsters: Dictionary[int, Combatant] = {}
 var _floors: Dictionary[int, float] = {}
-## Monsters waiting in built levels at the last scan.
+## Monsters waiting in built levels at the last scan: true for one that is its stage's guardian.
 var _waiting: Dictionary[int, bool] = {}
 ## Monsters that have died, with the depth they died on: never shown again. Forgotten when that
 ## level is freed, as its dead are never asked about again.
@@ -182,6 +185,9 @@ func _ready() -> void:
 	crossing = ZoneCrossing.new()
 	crossing.name = "ZoneCrossing"
 	add_child(crossing)
+	eyes = UnseenEyes.new()
+	add_child(eyes)
+	eyes.setup(self)
 	sync(0.0)
 
 
@@ -305,6 +311,7 @@ func sync(delta: float) -> void:
 	_place_party_light()
 	var arrived: bool = _snap_heroes or (_snap_all and not _catching_up)
 	ambience.follow_party(simulation.expedition, _shown, arrived, _catching_up)
+	eyes.watch(_waiting, delta)
 	target_marker.follow(simulation, _party_feet(true), delta)
 	_aim_camera(delta)
 
@@ -460,12 +467,13 @@ func _scan_waiting() -> void:
 	var expedition: Expedition = simulation.expedition
 	for depth: int in _built:
 		var level: LabyrinthLevel = simulation.labyrinth.level(depth)
+		var holder: StringName = expedition.guardian_of(depth)
 		for chamber_index: int in level.chambers.size():
 			if not expedition.is_populated(depth, chamber_index):
 				continue
 			var floor_pixels: float = WorldPlaces.floor_line(level.chambers[chamber_index])
 			for monster: Combatant in expedition.monsters_in(depth, chamber_index):
-				_waiting[monster.id] = true
+				_waiting[monster.id] = monster.def_id == holder
 				_add_monster(monster, floor_pixels)
 	quest_props.scan(_built)
 	side_props.scan(_built)
