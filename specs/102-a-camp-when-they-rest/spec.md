@@ -46,8 +46,8 @@ This is all view. The simulation, its events, its state hashes and saves stay as
     (0.5 s): each bedroll unrolls from nothing to its full width; the fire's logs set down with a small puff of
     dust; then its flames catch.
   - **Already set up.** A rest the world first sees any other way shows the camp whole and the heroes already
-    sitting, with no setting-up. That covers a stale event, `World.catching_up()`, a game loaded mid-rest, and
-    finding the party resting after time away.
+    sitting, with no setting-up. That covers a stale event, `World.catching_up()`, and finding the party resting
+    after time away (a save keeps no rest: a loaded game is travelling).
   - **Packing.** When the state leaves `RESTING`, the heroes get up and go on as they do today. The fire goes
     out in a puff of smoke, and the bedrolls roll up to nothing over `CAMP_PACK` (0.5 s). One second after the
     rest ends, nothing of the camp is shown.
@@ -139,7 +139,7 @@ a real simulation; the party is made to rest by lowering health after a fight, a
 | R1 | `test_r1_a_camp_while_resting` | Before a rest there is no camp. During a rest, `camp.is_shown()` is true, the fire is between the first and last hero's x and on their floor's y, and both bedrolls are outside the outermost heroes. After the rest plus 1 s, none of it is shown. Across two rests, the camp's child nodes are the same instances. |
 | R2 | `test_r2_heroes_face_the_fire` | After 1 s of rest, every hero's facing points toward `fire_feet()`. No hero's feet are within 10 px of it, and none is more than 12 px from `WorldPlaces.feet(hero_position)`. During travel after the rest, facing is the way ahead again. |
 | R3 | `test_r3_they_sit` | After 1 s of rest, every hero has `shown_sit()` 1 and its head part's global y is at least 3 px lower than a standing hero's. Travelling or fighting: `shown_sit()` 0. Halfway through `SIT_TIME`, the share is between 0 and 1. |
-| R4 | `test_r4_set_up_and_packed` | A fresh rest: `setup_share()` rises from 0 to 1 within `CAMP_SETUP` plus a frame. A rest seen while `catching_up()`, and a `Main` loaded from a save made mid-rest: 1 on the first frame, heroes sitting. A rest ended after 0.2 s packs from below 1. `effects_layer` holds nothing of the camp. |
+| R4 | `test_r4_set_up_and_packed` | A fresh rest: `setup_share()` rises from 0 to 1 within `CAMP_SETUP` plus a frame. A rest seen while `catching_up()`, and a `Main` whose away replay ends with the party resting (a stamped save, `away_seconds_override`, the rest started near the replay's end so its `REST_STARTED` goes into the away report): 1 on the first frame, heroes sitting. A rest ended after 0.2 s packs from below 1. `effects_layer` holds nothing of the camp. |
 | R5 | `test_r5_the_fire_gives_light` | `ambience.lights()` has one more light during the rest than before it, at the fire's place within a tile. One second after the rest, the count is back. |
 | R6 | `test_r6_fallen_rise_at_camp` | A fight is won with one hero dead (its health set to 0 in the fight, the others winning). From the fight's end until the simulation has it alive, its sprite is visible, dead and turned onto its back. Then `fallen_party.is_standing(id)` is true. It is never hidden or upright-and-alive before that. It ends sitting at the camp. A failure case: the same with the rest seen stale shows it sitting at once, with no rise. |
 | R7 | `test_r7_one_revival_effect` | For each of the three revivals: two `&"light"` columns and `REVIVAL_SPARKS` rising particles appear at the hero's feet. A `REVIVED` event `may_animate` refuses shows none. |
@@ -176,6 +176,8 @@ fire. That is the only change to that test.
 - `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
 - `tests/acceptance/test_102_a_camp_when_they_rest.gd`
 - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd` (the resting facing check only)
+- `tests/unit/test_world_fallen.gd` (`test_a_hero_fallen_in_a_won_fight_goes_when_it_ends` becomes R6's
+  rule: the hero lies on, shown, while the party rests)
 - `tests/support/play_fixture.gd` (a helper two tests share, if one is needed)
 - `docs/architecture.md` (the World's children), `docs/wiki/index.html`
 
