@@ -148,4 +148,4 @@ is made for the game alone first (092) and the tests follow as their own work.
 
 | Spec | Status | Depends on |
 |---|---|---|
-| 102 | [A camp when they rest, and a revival you can see](102-a-camp-when-they-rest/spec.md) (a fire and bedrolls, heroes sit facing the fire; a hero fallen in a won fight rises at camp; one light-and-sparks effect for every revival): approved | 012, 038, 048, 057, 076, 097 |
+| 102 | [A camp when they rest, and a revival you can see](102-a-camp-when-they-rest/spec.md) (a fire and bedrolls, heroes sit facing the fire; a hero fallen in a won fight rises at camp; one light-and-sparks effect for every revival): in progress | 012, 038, 048, 057, 076, 097 |
