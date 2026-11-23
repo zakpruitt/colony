@@ -5,8 +5,9 @@ extends Node2D
 ## While [member Expedition.state] is RESTING the world shows, on the floor the party rests on, a
 ## lit campfire at the middle of its line and a bedroll just past each end, drawn under the
 ## characters. The heroes on the fire's left face right and those on its right face left, each
-## moved from where the simulation has it just far enough to stand clear of the fire
-## ([method goal_for], [method facing_of]); the world sits them down there.
+## moved from where the simulation has it to stand clear of the fire, but never more than
+## CAMP_REACH ([method goal_for], [method facing_of]); the world sits them down there. A hero
+## off the camp's floor stays put, faces the fire and stands ([method sits]).
 ##
 ## A rest heard as it starts ([constant SimEvent.Kind.REST_STARTED], allowed by
 ## [method World.may_animate]) sets the camp up over CAMP_SETUP: the bedrolls unroll, the logs set
@@ -20,6 +21,8 @@ enum Phase { NONE, SETTING, WHOLE, PACKING }
 
 ## No hero's feet stand nearer the fire's middle than this many pixels.
 const CAMP_CLEARANCE: float = 10.0
+## No hero is moved further than this from where the simulation has it, clear of the fire or not.
+const CAMP_REACH: float = 12.0
 ## Seconds the camp takes to set up, and to pack.
 const CAMP_SETUP: float = 0.5
 const CAMP_PACK: float = 0.5
@@ -89,6 +92,11 @@ func goal_for(id: int, goal: Vector2) -> Vector2:
 	if _resting and _places.has(id):
 		return _places[id]
 	return goal
+
+
+## True if hero [param id] has a place at the camp (its feet on the camp's floor): it sits there.
+func sits(id: int) -> bool:
+	return _resting and _places.has(id)
 
 
 ## The way hero [param id] faces while it rests (1 right, -1 left), or [param otherwise].
@@ -165,36 +173,54 @@ func _on_sim_event(event: SimEvent) -> void:
 
 
 ## Works out the fire's place and each hero's place and facing by it, from where the simulation
-## has the heroes standing as the rest begins.
+## has the heroes standing as the rest begins. The camp stands on the front hero's floor; a hero
+## off it (up a ladder, round a turn) keeps its place and only faces the fire.
 func _lay_out() -> void:
 	var run: Expedition = _simulation.expedition
-	var order: Array[Hero] = _simulation.party.heroes.duplicate()
-	if order.is_empty():
-		return
-	var feet: Dictionary[int, Vector2] = {}
-	for hero: Hero in order:
-		feet[hero.id] = WorldPlaces.feet(run.hero_position(hero.id))
-	order.sort_custom(func(a: Hero, b: Hero) -> bool: return feet[a.id].x < feet[b.id].x)
-	var low: float = feet[order[0].id].x
-	var high: float = feet[order[-1].id].x
-	_fire = Vector2(roundf((low + high) / 2.0), feet[_simulation.party.heroes[0].id].y)
-	# With an odd number, the middle hero goes to the side away from the way ahead.
-	var left_count: int = order.size() / 2
-	if order.size() % 2 == 1 and PartyPlaces.world_facing(run) > 0:
-		left_count += 1
+	var heroes: Array[Hero] = _simulation.party.heroes
 	_places.clear()
 	_facings.clear()
+	if heroes.is_empty():
+		return
+	var ahead: int = PartyPlaces.world_facing(run)
+	var feet: Dictionary[int, Vector2] = {}
+	var rank: Dictionary[int, int] = {}
+	for i: int in heroes.size():
+		feet[heroes[i].id] = WorldPlaces.feet(run.hero_position(heroes[i].id))
+		rank[heroes[i].id] = i
+	var floor_y: float = feet[heroes[0].id].y
+	var order: Array[int] = []
+	for hero: Hero in heroes:
+		if absf(feet[hero.id].y - floor_y) < 1.0:
+			order.append(hero.id)
+	# Level in x, the hero nearer the front stands nearer the way ahead.
+	order.sort_custom(
+		func(a: int, b: int) -> bool:
+			if feet[a].x != feet[b].x:
+				return feet[a].x < feet[b].x
+			return rank[a] > rank[b] if ahead > 0 else rank[a] < rank[b]
+	)
+	var low: float = feet[order[0]].x
+	var high: float = feet[order[-1]].x
+	_fire = Vector2(roundf((low + high) / 2.0), floor_y)
+	# With an odd number, the middle hero goes to the side away from the way ahead.
+	var left_count: int = order.size() / 2
+	if order.size() % 2 == 1 and ahead > 0:
+		left_count += 1
 	for i: int in order.size():
-		var at: Vector2 = feet[order[i].id]
+		var at: Vector2 = feet[order[i]]
 		var left: bool = i < left_count
 		if left:
-			at.x = minf(at.x, _fire.x - CAMP_CLEARANCE)
+			at.x = maxf(minf(at.x, _fire.x - CAMP_CLEARANCE), at.x - CAMP_REACH)
 		else:
-			at.x = maxf(at.x, _fire.x + CAMP_CLEARANCE)
-		_places[order[i].id] = at
-		_facings[order[i].id] = 1 if left else -1
-	low = minf(low, _places[order[0].id].x)
-	high = maxf(high, _places[order[-1].id].x)
+			at.x = minf(maxf(at.x, _fire.x + CAMP_CLEARANCE), at.x + CAMP_REACH)
+		_places[order[i]] = at
+		_facings[order[i]] = 1 if left else -1
+	for hero: Hero in heroes:
+		if not _facings.has(hero.id):
+			_facings[hero.id] = 1 if feet[hero.id].x < _fire.x else -1
+	low = minf(low, _places[order[0]].x)
+	high = maxf(high, _places[order[-1]].x)
 	var bed: Vector2 = Vector2(_red.texture.get_size())
 	_red.position = Vector2(low - BED_GAP - bed.x, _fire.y - bed.y)
 	_green.position = Vector2(high + BED_GAP, _fire.y - bed.y)

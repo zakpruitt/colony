@@ -801,7 +801,7 @@ func _act() -> void:
 					walking = false
 			if absf(gap.x) > MOVING_GAP:
 				facing = 1 if gap.x > 0.0 else -1
-			sits = camping and not moving  # at its place by the fire
+			sits = camping and not moving and camp.sits(id)  # at its place by the fire
 		sprite.sitting = sits
 		if _snap_all:
 			sprite.snap_sit()

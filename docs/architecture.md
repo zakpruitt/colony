@@ -743,7 +743,8 @@ Spec 102, view only. `CampView` (`game/world/camp_view.gd`, `World.camp`) is a c
 beside `QuestProps`, under the characters: four sprites made once (the `campfire` sheet's logs and
 flames, a `bedroll` at each end of the line) and reused for every rest. While the expedition is
 RESTING it lays the camp out from where the simulation has the heroes as the rest begins: the fire at
-the middle of the line, each hero moved at most `CAMP_CLEARANCE` off it and facing it
+the middle of the line on the front hero's floor, each hero there kept at least `CAMP_CLEARANCE` from it,
+moved at most `CAMP_REACH` (12 px) and facing it; a hero off that floor stays put, faces it and stands
 (`goal_for`, chained by `World._follow` between `QuestProps.goal_for` and `FallenParty.goal_for`;
 `facing_of`, read by `World._act`). `World.camp.animate` runs in `sync` before the heroes are placed.
 A `REST_STARTED` that `may_animate` allows sets the camp up over `CAMP_SETUP`; a rest found any other

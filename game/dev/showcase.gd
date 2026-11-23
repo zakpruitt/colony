@@ -404,8 +404,7 @@ func _walks_to_a_fight() -> bool:
 	if done or main.simulation.expedition.state != Expedition.State.TRAVELLING:
 		return false
 	var current: StringName = moment()
-	var fights: Array[StringName] = [&"crit", &"monster_death", &"heal", &"level_up"]
-	return current in fights + [&"resting", &"camp_rise"]
+	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting", &"camp_rise"]
 
 
 ## Puts every status on the fight's fighters through the battle's own rules (each with

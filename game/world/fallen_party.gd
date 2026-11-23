@@ -260,7 +260,8 @@ func animate(id: int, sprite: CharacterSprite, delta: float) -> bool:
 		_dying[id] = 0.0 if sprite.visible else FALL_AT + TOPPLE_SECONDS
 	var expedition: Expedition = _world.simulation.expedition
 	# The party rests after a fight it won: one who fell lies on until the rest heals it.
-	var down: bool = expedition.state in [Expedition.State.REVIVING, Expedition.State.RESTING]
+	var down: bool = expedition.state == Expedition.State.REVIVING
+	down = down or expedition.state == Expedition.State.RESTING
 	down = down or (expedition.state == Expedition.State.FIGHTING and expedition.battle != null)
 	if not down:
 		if _spots.has(id):

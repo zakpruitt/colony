@@ -194,6 +194,52 @@ func test_r2_heroes_face_the_fire() -> void:
 		assert_eq(_faces(_world.character(hero.id)), ahead, "hero %d faces ahead" % hero.id)
 
 
+## A distance on stage 1's course at which [param simulation]'s party stands on more than one
+## floor (part way up or down a ladder), or -1.
+func _bent_line(simulation: Simulation) -> float:
+	var e: Expedition = simulation.expedition
+	var line: StageCourse = simulation.labyrinth.level(1).course
+	var at: float = line.start
+	while at <= line.end:
+		e._place(at)
+		var floors: Dictionary[float, bool] = {}
+		for hero: Hero in simulation.party.heroes:
+			floors[WorldPlaces.feet(e.hero_position(hero.id)).y] = true
+		if floors.size() > 1:
+			return at
+		at += 0.25
+	return -1.0
+
+
+func test_r2_a_bent_line_keeps_its_places() -> void:
+	var sim: Simulation = ColonyTest.winding_simulation()
+	sim.party.heroes.pop_back()
+	assert_eq(sim.party.heroes.size() % 2, 1, "(an odd number of heroes)")
+	assert_gt(_bent_line(sim), 0.0, "(a place where the line is bent over two floors)")
+	_show(sim)
+	_begin_rest()
+	_play(1.0)
+	assert_eq(_sim.expedition.state, Expedition.State.RESTING, "the party rests")
+	var e: Expedition = _sim.expedition
+	var fire: Vector2 = _camp().fire_feet()
+	var front: Hero = _sim.party.heroes[0]
+	assert_eq(fire.y, WorldPlaces.feet(e.hero_position(front.id)).y, "on the front hero's floor")
+	var off: int = 0
+	for hero: Hero in _sim.party.heroes:
+		var sprite: CharacterSprite = _world.character(hero.id)
+		var placed: Vector2 = WorldPlaces.feet(e.hero_position(hero.id))
+		assert_lte(sprite.position.distance_to(placed), 12.0, "hero %d moved a little" % hero.id)
+		var toward: int = 1 if fire.x > sprite.position.x else -1
+		assert_eq(_faces(sprite), toward, "hero %d faces the fire" % hero.id)
+		if absf(placed.y - fire.y) >= 1.0:
+			off += 1
+			assert_lt(
+				sprite.position.distance_to(placed), 1.0, "hero %d off the floor stays" % hero.id
+			)
+			assert_eq(sprite.shown_sit(), 0.0, "hero %d off the floor stands" % hero.id)
+	assert_gt(off, 0, "(a hero off the camp's floor)")
+
+
 # --- R3 ------------------------------------------------------------------------
 
 
@@ -273,11 +319,13 @@ func test_r4_set_up_and_packed() -> void:
 		hero.health = hero.max_health()
 	var after: float = 1.0
 	for i: int in 20:
+		reached = _camp().setup_share()
 		_play_frame()
 		if _sim.expedition.state != Expedition.State.RESTING:
 			after = _camp().setup_share()
 			break
-	assert_lt(after, 1.0, "it packs from below whole")
+	assert_lt(reached, 1.0, "(the rest ended before the camp was whole)")
+	assert_lte(after, reached, "it packs from where it had got to")
 	_play(1.0, false)
 	assert_eq(_camp().setup_share(), 0.0, "and is packed")
 
@@ -315,15 +363,24 @@ func test_r4_a_rest_found_after_time_away() -> void:
 func test_r5_the_fire_gives_light() -> void:
 	_show(ColonyTest.winding_simulation())
 	_play(0.5)
-	var before: int = _world.ambience.lights().size()
+	var earlier: Array[AmbienceLight] = _world.ambience.lights().duplicate()
+	var before: int = earlier.size()
 	_begin_rest()
 	_play(1.0)
 	var lights: Array[AmbienceLight] = _world.ambience.lights()
 	assert_eq(lights.size(), before + 1, "one more light while the fire burns")
-	var near: bool = false
+	var added: Array[AmbienceLight] = []
 	for light: AmbienceLight in lights:
-		near = near or light.position.distance_to(_camp().fire_feet()) < TILE
-	assert_true(near, "at the fire")
+		if not earlier.has(light):
+			added.append(light)
+	assert_eq(added.size(), 1, "one light that was not there before")
+	if added.size() != 1:
+		return
+	var fire: Vector2 = _camp().fire_feet()
+	assert_eq(added[0].position.x, fire.x, "over the fire's middle")
+	assert_between(added[0].position.y, fire.y - TILE, fire.y, "just above the fire")
+	assert_eq(added[0].base_radius, AmbienceLevel.CAMPFIRE_RADIUS, "a campfire's radius")
+	assert_eq(added[0].base_energy, AmbienceLevel.CAMPFIRE_ENERGY, "and a campfire's energy")
 	_end_rest()
 	_play(1.0, false)
 	assert_eq(_world.ambience.lights().size(), before, "and none once it is out")
