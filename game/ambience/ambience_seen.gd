@@ -6,7 +6,8 @@ extends RefCounted
 ##
 ## It is decided from the level's rectangles (rooms, tunnels, ladders, side paths), never from
 ## which tiles are open. A room drawn in a shape of its own counts as the bounds of that shape,
-## so the earth over a room opened upward is seen as over any other. It keeps one small map, a pixel a tile, that the darkness's veil reads
+## so the earth over a room opened upward is seen as over any other. It keeps one small map,
+## a pixel a tile, that the darkness's veil reads
 ## ([member texture]): how near each tile is to something seen, so the black's edge is soft. A
 ## place just seen comes out of the black over [constant SHOW_SECONDS], one forgotten goes back
 ## into it over [constant HIDE_SECONDS]; told to settle at once, neither fades. The map is
