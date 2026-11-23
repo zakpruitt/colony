@@ -468,12 +468,13 @@ func _scan_waiting() -> void:
 	for depth: int in _built:
 		var level: LabyrinthLevel = simulation.labyrinth.level(depth)
 		var holder: StringName = expedition.guardian_of(depth)
+		var lair: int = ChamberRules.way_on_room(level.course) if holder != &"" else -1
 		for chamber_index: int in level.chambers.size():
 			if not expedition.is_populated(depth, chamber_index):
 				continue
 			var floor_pixels: float = WorldPlaces.floor_line(level.chambers[chamber_index])
 			for monster: Combatant in expedition.monsters_in(depth, chamber_index):
-				_waiting[monster.id] = monster.def_id == holder
+				_waiting[monster.id] = chamber_index == lair and monster.def_id == holder
 				_add_monster(monster, floor_pixels)
 	quest_props.scan(_built)
 	side_props.scan(_built)
