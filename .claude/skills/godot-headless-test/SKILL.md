@@ -352,3 +352,10 @@ by value, not with `assert_eq` against ints.
 - **`check` runs each lint on the repository once.** A tool test tries the lint on a made-up tree; it does
   not run it on the repository again, and it does not call a real step that runs the tool tests (patch
   `dev.run` and read the commands, as `test_077`'s art step test does).
+- **A cleared room refills in seconds near the surface, and the view forgets it.** A room of stage 1 holds
+  monsters again 5 seconds after it is cleared (`DepthTiming.respawn_seconds_at`, rising with depth), and a lit room
+  the party is not in that holds monsters goes black, its torches out (spec 099). A test that walks on and
+  then expects a room behind to be lit or seen must keep it cleared
+  (`expedition._chambers[Vector2i(stage, room)].cleared_tick = sim.tick`), and one that wants it to refill
+  sets that tick far back instead of waiting. A point "in an unseen place" within `Ambience.PARTY_RADIUS` of
+  the party's light is not black: measure further off.
