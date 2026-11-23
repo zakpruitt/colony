@@ -12,16 +12,17 @@ const MOST_DIM: float = 0.2
 ## row is: the ceiling's reach in rows; the least and the most rows it moves between runs; the
 ## least and the most columns a run is wide; the columns a wall leans over; whether the corners
 ## are round; whether the ceiling is built (level sides, a raised middle); the chance in a
-## hundred that it turns back, up for down, at a run.
+## hundred that it turns back, up for down, at a run; the least and the most columns of the ledge
+## a wall steps in by (0 for none).
 const CUTS: Array[Array] = [
 	# Mossy Hollow: soft and rounded.
-	[2, 1, 1, 3, 5, 2, true, false, 0],
-	# Claypits: broad flat steps.
-	[3, 2, 3, 6, 10, 0, false, false, 0],
+	[2, 1, 1, 3, 5, 2, true, false, 0, 0, 0],
+	# Claypits: broad flat steps, and a ledge where each wall steps in.
+	[3, 2, 3, 6, 10, 0, false, false, 0, 2, 3],
 	# Old Crypt: built, with square walls, level runs and a raised middle.
-	[1, 1, 1, 2, 5, 0, false, true, 0],
+	[1, 1, 1, 2, 5, 0, false, true, 0, 0, 0],
 	# Ember Deep: jagged, its ceiling moving most.
-	[3, 1, 3, 1, 2, 1, false, false, 50],
+	[3, 1, 3, 1, 2, 1, false, false, 50, 0, 0],
 ]
 
 ## The look's index in [constant LabyrinthTiles.STRATA].

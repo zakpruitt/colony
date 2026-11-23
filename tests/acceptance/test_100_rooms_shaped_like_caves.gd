@@ -172,7 +172,8 @@ func test_r1_the_simulation_is_as_it_was() -> void:
 
 func test_r2_rooms_are_not_boxes() -> void:
 	for area: StringName in AREAS:
-		var seen: Array[int] = [0, 0, 0]  # rooms; of more than one height; with earth in the rect
+		# Rooms; of more than one height; with earth in the rectangle; walls; walls that come in.
+		var seen: Array[int] = [0, 0, 0, 0, 0]
 		for seed_value: int in range(1, 4):
 			_stages_of(
 				seed_value,
@@ -187,6 +188,17 @@ func test_r2_rooms_are_not_boxes() -> void:
 						seen[0] += 1
 						seen[1] += 1 if heights.size() > 1 else 0
 						seen[2] += 1 if earth > 0 else 0
+						var rows: PackedInt32Array = _profile(view, room)
+						for side: int in 2:
+							# A wall leans or steps in, and its corner is cut, if the ceiling over the wall's
+							# own column is lower than the ceiling a few columns into the room.
+							var wall: int = rows[0] if side == 0 else rows[rows.size() - 1]
+							var inner: int = wall
+							for steps: int in range(1, 5):
+								var at: int = steps if side == 0 else rows.size() - 1 - steps
+								inner = mini(inner, rows[at])
+							seen[3] += 1
+							seen[4] += 1 if wall > inner else 0
 					var bare: int = 0
 					var unshaded: int = 0
 					var band: Rect2i = level.band
@@ -205,6 +217,9 @@ func test_r2_rooms_are_not_boxes() -> void:
 		assert_gt(seen[0], 60, "%s: rooms were looked at" % area)
 		assert_gt(seen[1] * 2, seen[0], "%s: most rooms have a ceiling of several heights" % area)
 		assert_gt(seen[2] * 2, seen[0], "%s: most rooms leave some of their rectangle earth" % area)
+		gut.p("%s: %d of %d walls lean or step in under a cut corner" % [area, seen[4], seen[3]])
+		if area != CRYPT:
+			assert_gte(seen[4] * 20, seen[3] * 19, "%s: walls come in and corners are cut" % area)
 
 	# A view that is not zoned, and a flat one, draw their boxes.
 	var plain := LabyrinthView.new()
@@ -400,12 +415,17 @@ func test_r5_each_area_is_cut_its_own_way() -> void:
 					labyrinth, level, room, ZoneLook.of(area, stage)
 				)
 				var rows: PackedInt32Array = _profile_of(shape, room.rect)
+				# The runs are the ceiling's, between the walls: the columns a wall leans or steps in
+				# over are the wall's, by the table.
+				var walls: RoomCut = ZoneLook.of(area, stage).cut()
+				var wall: int = maxi(walls.lean, walls.ledge.y)
 				runs += 1
-				columns += rows.size()
+				columns += rows.size() - 2 * wall
 				for i: int in range(1, rows.size()):
 					moved += absi(rows[i] - rows[i - 1])
 					pairs += 1
-					runs += 1 if rows[i] != rows[i - 1] else 0
+					if i > wall and i < rows.size() - wall and rows[i] != rows[i - 1]:
+						runs += 1
 				corners += 2
 				cut += 1 if rows[0] > rows[1] else 0
 				cut += 1 if rows[rows.size() - 1] > rows[rows.size() - 2] else 0

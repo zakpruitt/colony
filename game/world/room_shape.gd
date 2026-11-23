@@ -38,17 +38,19 @@ static func of(
 	# Row numbers grow downward: the lowest a ceiling may be is the greatest row.
 	var lowest: int = rect.end.y - mini(STANDING_ROWS, rect.size.y)
 	var highest: int = rect.end.y - MOST_ROWS
-	# Under a leaning wall the ceiling keeps a row over the wall's foot, so the wall has a lean.
-	var deepest: int = lowest - (1 if cut.lean > 0 else 0)
+	# Under a wall that leans or steps in, the ceiling keeps a row over the wall's foot.
+	var deepest: int = lowest - (1 if cut.lean > 0 or cut.ledge.y > 0 else 0)
 	var reach: int = mini(cut.reach, deepest - highest)
 	var top: int = clampi(rect.position.y - reach / 2, highest, deepest - reach)
 	var rows: PackedInt32Array
 	if cut.raised_middle:
 		rows = _built(rng, cut, rect.size.x, top, top + reach)
+	elif cut.ledge.y > 0:
+		rows = _ledged(rng, cut, rect.size.x, Vector3i(top, top + reach, lowest))
 	else:
-		rows = _runs(rng, cut, rect.size.x, top, top + reach)
+		rows = _runs(rng, cut, rect.size.x, top, top + reach, true)
 	_lean(rows, cut, lowest)
-	_clear_ladders(rows, level, room, cut.lean == 0)
+	_clear_ladders(rows, level, room, cut.lean == 0 and cut.ledge.y == 0)
 	_keep_earth(rows, level, room)
 	shape._ceilings = rows
 	return shape
@@ -77,12 +79,15 @@ func bounds() -> Rect2i:
 
 ## A ceiling of [param width] columns in level runs between the rows [param high] and
 ## [param low], each run a step of the cut's size from the one before: on the same way, up or
-## down, until a step would leave those rows or the cut turns it, and then back.
-static func _runs(rng: SimRng, cut: RoomCut, width: int, high: int, low: int) -> PackedInt32Array:
+## down, until a step would leave those rows or the cut turns it, and then back. With
+## [param split] a ceiling too narrow for two runs is cut in two all the same.
+static func _runs(
+	rng: SimRng, cut: RoomCut, width: int, high: int, low: int, split: bool
+) -> PackedInt32Array:
 	var rows: PackedInt32Array = []
 	var row: int = rng.next_int(high, low)
 	var way: int = 1 if rng.next_int(0, 1) == 1 else -1
-	for run_width: int in _run_widths(rng, cut.run, width):
+	for run_width: int in _run_widths(rng, cut.run, width, split):
 		if not rows.is_empty():
 			var move: int = rng.next_int(cut.step.x, cut.step.y)
 			if row + way * move < high or row + way * move > low:
@@ -93,6 +98,27 @@ static func _runs(rng: SimRng, cut: RoomCut, width: int, high: int, low: int) ->
 		for i: int in run_width:
 			rows.append(row)
 	return rows
+
+
+## A ceiling of [param width] columns whose walls step in: runs between the rows
+## [code]rows.x[/code] and [code]rows.y[/code], and at each wall a level ledge of the cut's
+## width, a row or two lower than the run beside it and no lower than [code]rows.z[/code].
+static func _ledged(rng: SimRng, cut: RoomCut, width: int, rows: Vector3i) -> PackedInt32Array:
+	var ledges: Array[int] = []
+	for side: int in 2:
+		ledges.append(mini(rng.next_int(cut.ledge.x, cut.ledge.y), (width - 2) / 2))
+	var between: PackedInt32Array = _runs(
+		rng, cut, width - ledges[0] - ledges[1], rows.x, rows.y, false
+	)
+	var ceiling: PackedInt32Array = []
+	var left: int = mini(rows.z, between[0] + rng.next_int(1, 2))
+	var right: int = mini(rows.z, between[between.size() - 1] + rng.next_int(1, 2))
+	for i: int in ledges[0]:
+		ceiling.append(left)
+	ceiling.append_array(between)
+	for i: int in ledges[1]:
+		ceiling.append(right)
+	return ceiling
 
 
 ## A built ceiling of [param width] columns: a level run at each side at the row [param low],
@@ -107,15 +133,15 @@ static func _built(rng: SimRng, cut: RoomCut, width: int, high: int, low: int) -
 
 ## The widths of the runs of a ceiling [param width] columns wide, each between the least
 ## ([code]run.x[/code]) and the most ([code]run.y[/code]) where the room allows: the last takes
-## what is left, and a room too narrow for two runs is still cut in two.
-static func _run_widths(rng: SimRng, run: Vector2i, width: int) -> Array[int]:
+## what is left, and with [param split] a room too narrow for two runs is still cut in two.
+static func _run_widths(rng: SimRng, run: Vector2i, width: int, split: bool) -> Array[int]:
 	var widths: Array[int] = []
 	var left: int = width
 	while left > 0:
 		var run_width: int = mini(rng.next_int(run.x, run.y), left)
 		if left - run_width < run.x:
 			run_width = left
-			if widths.is_empty() and left > 1:
+			if split and widths.is_empty() and left > 1:
 				var least: int = maxi(left * 2 / 5, 1)
 				run_width = rng.next_int(least, left - least)
 				widths.append(left - run_width)

@@ -627,7 +627,7 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   room is still `LabyrinthChamber.rect`, the floor is whole, and nothing in `sim/` knows. The shape
   comes from the labyrinth's seed, the stage and the room (`SimRng.fork`), cut by the numbers of the
   area's `RoomCut`, one row of `ZoneLook.CUTS` (reach, step, run width, lean, round corners, raised
-  middle): a new manner is a row there. Three things hold whatever the cut: `STANDING_ROWS` (4) rows
+  middle, turn, ledge): a new manner is a row there. Three things hold whatever the cut: `STANDING_ROWS` (4) rows
   over the whole floor are open, as tall as the tallest sheet that stands on one (the 64-pixel
   bosses) and a row over a tunnel's mouth and a doorway; a ladder's columns are open for the
   rectangle's height; and nothing opens outside the room's columns, more than `MOST_ROWS` (8) over

@@ -18,6 +18,9 @@ var raised_middle: bool
 ## The chance in a hundred that the ceiling, going up or down from run to run, turns back at a
 ## run before it has gone as far as its reach: 0 rolls like hills, more is ragged.
 var turn: int
+## Columns of the ledge each wall steps in by under the ceiling, a flat step a row or two
+## lower than the ceiling beside it: the least (x) and the most (y); none at (0, 0).
+var ledge: Vector2i
 
 
 ## From a row of [constant ZoneLook.CUTS].
@@ -33,3 +36,6 @@ func _init(row: Array) -> void:
 	round_corners = row[6]
 	raised_middle = row[7]
 	turn = row[8]
+	var least_ledge: int = row[9]
+	var most_ledge: int = row[10]
+	ledge = Vector2i(least_ledge, most_ledge)
