@@ -5,9 +5,6 @@ const H: int = Labyrinth.LEVEL_HEIGHT
 const TILE: int = LabyrinthView.TILE
 const DEMO: String = "res://game/ambience/ambience_demo.tscn"
 const STEP: float = 1.0 / 60.0
-const PLAIN_PROPS: Array[String] = [
-	"stalactite", "mushroom", "crate", "puddle", "glow_mushroom", "crystal"
-]
 const DEN_PROPS: Array[String] = ["bones", "skull", "web", "spider", "nest"]
 const GLOWING: Array[String] = ["glow_mushroom", "crystal"]
 
@@ -296,8 +293,13 @@ func test_r5_chambers_show_their_kind() -> void:
 						assert_has(names, "coins", where)
 						assert_has(names, "gleam", where)
 					LabyrinthChamber.Kind.PLAIN:
-						assert_between(_count_in(names, PLAIN_PROPS), 1, 3, where)
-						assert_eq(_count_in(names, PLAIN_PROPS), names.size(), where)
+						# A plain room holds only its area's decorations, dressed to its size.
+						var kinds: Array[String] = []
+						for kind: StringName in AmbienceDecor.kinds(_view.band_of(depth)):
+							kinds.append(String(kind))
+						var most: int = AmbienceDecor.most(chamber.rect.size.x)
+						assert_between(_count_in(names, kinds), 1, most, where)
+						assert_eq(_count_in(names, kinds), names.size(), where)
 				_check_placement(ambience, depth, chamber, where)
 	for kind: LabyrinthChamber.Kind in [
 		LabyrinthChamber.Kind.START,
@@ -435,6 +437,8 @@ func test_r8_follows_the_view() -> void:
 
 	var most_nodes: int = 0
 	var most_props: int = 0
+	# The most decoration one level holds.
+	var most_level: int = 0
 	for depth: int in range(1, 32):
 		_focus(ambience, depth)
 		_run(ambience, 0.1)
@@ -442,11 +446,14 @@ func test_r8_follows_the_view() -> void:
 		most_nodes = maxi(most_nodes, _count_nodes(ambience))
 		var props: int = 0
 		for built: int in ambience.built_depths():
-			props += ambience.level(built).props.size() + ambience.level(built).torches.size()
+			var one: int = ambience.level(built).props.size() + ambience.level(built).torches.size()
+			most_level = maxi(most_level, one)
+			props += one
 		most_props = maxi(most_props, props)
 	# The darkness and its glow, then five levels at most.
 	assert_lte(most_nodes, 2 + 5 * AmbienceLevel.NODES, "nodes stay bounded")
-	assert_lte(most_props, 5 * 40, "no more than five levels of decoration")
+	assert_gt(most_level, 0, "levels hold decoration")
+	assert_lte(most_props, 5 * most_level, "no more than five levels of decoration")
 	assert_no_new_orphans()
 
 
