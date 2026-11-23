@@ -436,24 +436,39 @@ func test_r8_follows_the_view() -> void:
 	_view = first_view
 
 	var most_nodes: int = 0
-	var most_props: int = 0
-	# The most decoration one level holds.
-	var most_level: int = 0
+	var most_built: int = 0
+	var decorated: int = 0
 	for depth: int in range(1, 32):
 		_focus(ambience, depth)
 		_run(ambience, 0.1)
 		assert_eq(ambience.built_depths(), _view.built_depths(), "at depth %d" % depth)
 		most_nodes = maxi(most_nodes, _count_nodes(ambience))
-		var props: int = 0
+		most_built = maxi(most_built, ambience.built_depths().size())
 		for built: int in ambience.built_depths():
-			var one: int = ambience.level(built).props.size() + ambience.level(built).torches.size()
-			most_level = maxi(most_level, one)
-			props += one
-		most_props = maxi(most_props, props)
+			var level: AmbienceLevel = ambience.level(built)
+			# Each room's decorations, at most one per two of its columns as the table allows.
+			var room_widths: Array[int] = []
+			for chamber: LabyrinthChamber in _view.labyrinth.level(built).chambers:
+				room_widths.append(chamber.rect.size.x)
+			for path: SidePath in _view.labyrinth.level(built).side_paths:
+				room_widths.append(path.room.rect.size.x)
+			var allowed: int = 0
+			for width: int in room_widths:
+				allowed += AmbienceDecor.most(width)
+			var decor: int = 0
+			var others: int = level.torches.size() + level.cache_torches.size()
+			for prop: AmbienceProp in level.props + level.cache_props:
+				decor += 1 if prop.decor else 0
+				others += 0 if prop.decor else 1
+			decorated += decor
+			var where: String = "depth %d level %d" % [depth, built]
+			assert_lte(decor, allowed, "%s: decorations as the table allows" % where)
+			# Torches and the props that say a room's kind: as many as before decorations.
+			assert_lte(others, 40, "%s: torches and rooms' own props" % where)
 	# The darkness and its glow, then five levels at most.
 	assert_lte(most_nodes, 2 + 5 * AmbienceLevel.NODES, "nodes stay bounded")
-	assert_gt(most_level, 0, "levels hold decoration")
-	assert_lte(most_props, 5 * most_level, "no more than five levels of decoration")
+	assert_lte(most_built, 5, "no more than five levels of decoration")
+	assert_gt(decorated, 0, "levels hold decoration")
 	assert_no_new_orphans()
 
 
