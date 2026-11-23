@@ -193,6 +193,7 @@ func advance(delta: float) -> void:
 	if world != null and world.catching_up():
 		_drop_all()
 		return
+	var drawn: bool = not _bursts.is_empty()  # only bursts are drawn: redrawn while they run
 	for running: Burst in _bursts.duplicate():
 		running.time += delta
 		if not is_instance_valid(running.control) or running.time >= BURST_SECONDS:
@@ -208,7 +209,8 @@ func advance(delta: float) -> void:
 		_show_banner(next)
 	if _shown != null:
 		_place_banner()
-	queue_redraw()
+	if drawn:
+		queue_redraw()
 
 
 ## True while [param control] is bursting.
