@@ -36,15 +36,23 @@ func _seen_rects() -> Array[Rect2i]:
 	var lit: Array[Rect2i] = []
 	for room: LabyrinthChamber in level.chambers:
 		if _ambience.rooms.is_lit(room.index):
-			lit.append(room.rect)
+			lit.append(_drawn(room))
 	for place: int in level.side_paths.size():
 		if _ambience.rooms.is_lit(AmbienceRooms.CACHE + place):
-			lit.append(level.side_paths[place].room.rect)
+			lit.append(_drawn(level.side_paths[place].room))
 	var seen: Array[Rect2i] = lit.duplicate()
 	for way: Rect2i in _ways(level):
 		if _touches(way, lit):
 			seen.append(way)
 	return seen
+
+
+## The tiles [param room] of the stage shown reaches as drawn: its rectangle and what is opened
+## over it.
+func _drawn(room: LabyrinthChamber) -> Rect2i:
+	var shapes: StageShapes = _world.labyrinth_view.shapes(_world.shown_stage())
+	var shape: RoomShape = shapes.shape_of(room) if shapes != null else null
+	return shape.bounds() if shape != null else room.rect
 
 
 func _touches(way: Rect2i, rooms: Array[Rect2i]) -> bool:
@@ -161,12 +169,69 @@ func test_r1_only_what_is_seen_is_not_black() -> void:
 		assert_gt(far, 1000, "%s: most of the stage is far from anything seen" % what)
 		assert_eq(lit, 0, "%s: and every tile of it is black" % what)
 		_world.free()
+	_room_opened_upward()
 	# A flat stage is as it is.
 	var flat := Simulation.new(SEED)
 	_watch_rooms(flat)
 	assert_false(_ambience.seen.is_on(), "nothing of a flat stage is black")
 	var last: LabyrinthChamber = flat.labyrinth.level(1).chambers[-1]
 	assert_gt(_bright(last.rect), 0.0, "its far rooms are drawn as they were")
+
+
+## R1, for a room drawn open above its rectangle: with the party in it, the earth a tile over
+## its highest open row is seen as over any room, and the earth 6 tiles over it is black.
+func _room_opened_upward() -> void:
+	# A room opened 3 rows over its rectangle, and a column of its highest ceiling with no tunnel
+	# or ladder near: Vector3i(stage, room, column).
+	var found := Vector3i(-1, -1, -1)
+	for stage: int in range(2, 9):
+		var maze: Labyrinth = winding_labyrinth(SEED)
+		var plan: LabyrinthLevel = maze.level(stage)
+		var cut: StageShapes = StageShapes.of(
+			maze, stage, ZoneLook.of(Content.area_ids()[0], stage)
+		)
+		for room: LabyrinthChamber in plan.chambers.slice(1, -1):
+			var drawn: Rect2i = cut.shape_of(room).bounds()
+			if room.rect.position.y - drawn.position.y < 3 or found.x >= 0:
+				continue
+			var ways: Array[Rect2i] = []
+			for way: Rect2i in _ways(plan):
+				if _touches(way, [drawn]):
+					ways.append(way)
+			for column: int in range(drawn.position.x, drawn.end.x):
+				var high: bool = cut.shape_of(room).ceiling_row(column) == drawn.position.y
+				var ends: int = maxi(column - drawn.position.x, drawn.end.x - 1 - column)
+				var clear: bool = _tiles_from(Vector2i(column, drawn.position.y - 1), ways) >= 5
+				if high and clear and ends >= 10 and found.x < 0:
+					found = Vector3i(stage, room.index, column)
+	assert_gt(found.x, 0, "a room opened 3 rows over its rectangle, wide enough to stand aside in")
+	if found.x < 0:
+		return
+	var sim: Simulation = _arrived(SEED, found.x, found.x)
+	var level: LabyrinthLevel = sim.labyrinth.level(found.x)
+	var tall: LabyrinthChamber = level.chambers[found.y]
+	var cleared := ChamberState.new(found.x)
+	cleared.cleared_tick = sim.tick
+	sim.expedition._chambers[Vector2i(found.x, found.y)] = cleared
+	# The party stands at the end of the room furthest from that column.
+	var stretch: Vector2 = level.course.stretch_of(found.y)
+	var first: Vector2 = level.course.point_at(stretch.x)
+	var last: Vector2 = level.course.point_at(stretch.y)
+	var from_first: bool = absf(first.x - found.z) > absf(last.x - found.z)
+	sim.expedition._place(stretch.x + 0.5 if from_first else stretch.y - 0.5)
+	_watch_rooms(sim)
+	assert_eq(_party_room(), found.y, "the party stands in it")
+	var top: int = _drawn(tall).position.y
+	assert_lt(top, tall.rect.position.y - 2, "it is drawn open 3 rows over its rectangle")
+	var near: Vector2 = (Vector2(found.z, top - 1) + Vector2(0.5, 0.5)) * TILE
+	var far: Vector2 = (Vector2(found.z, top - 6) + Vector2(0.5, 0.5)) * TILE
+	var glow: Vector2 = _ambience.party_light_position
+	assert_gt(near.distance_to(glow), Ambience.PARTY_RADIUS + TILE, "beyond the party's light")
+	assert_eq(_ambience._unveiled(near), 1.0, "earth a tile over its highest open row is seen")
+	assert_false(_ambience.hides(near), "and not drawn black")
+	assert_true(_ambience.hides(far), "earth 6 tiles over it is black")
+	assert_eq(_ambience.brightness_at(far), 0.0, "as it is drawn")
+	_world.free()
 
 
 # --- R2 ------------------------------------------------------------------------

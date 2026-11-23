@@ -668,8 +668,9 @@ earth above and below, and the ambience's open map, exposure map and buried deta
   the rooms.
 - **What the party has not seen is black** (spec 099). `AmbienceSeen`
   (`game/ambience/ambience_seen.gd`, `Ambience.seen`) is a second memory beside the rooms', fed by
-  `follow_party` from the lit rooms and the level's rectangles only (`LabyrinthChamber.rect`,
-  tunnels, ladders, side paths; never which tiles are open): a place is seen if it is a lit room,
+  `follow_party` from the lit rooms and the level's rectangles only (a room's is the bounds of
+  its drawn shape, `RoomShape.bounds()`, or `LabyrinthChamber.rect` with no shape; tunnels,
+  ladders, side paths; never which tiles are open): a place is seen if it is a lit room,
   a tunnel or ladder that touches one (`grow(1)` meets its rectangle), or earth within
   `AmbienceSeen.REACH` tiles of those. It keeps one map, a pixel a tile, of how near each tile is
   to something seen; `AmbienceDarkness`'s third rectangle, the Veil (`veil.gdshader`, z `VEIL_Z`,

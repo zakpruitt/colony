@@ -5,7 +5,8 @@ extends RefCounted
 ## length), or earth within [constant REACH] tiles of one of those; everything else is black.
 ##
 ## It is decided from the level's rectangles (rooms, tunnels, ladders, side paths), never from
-## which tiles are open. It keeps one small map, a pixel a tile, that the darkness's veil reads
+## which tiles are open. A room drawn in a shape of its own counts as the bounds of that shape,
+## so the earth over a room opened upward is seen as over any other. It keeps one small map, a pixel a tile, that the darkness's veil reads
 ## ([member texture]): how near each tile is to something seen, so the black's edge is soft. A
 ## place just seen comes out of the black over [constant SHOW_SECONDS], one forgotten goes back
 ## into it over [constant HIDE_SECONDS]; told to settle at once, neither fades. The map is
@@ -64,13 +65,16 @@ func fading() -> int:
 
 
 ## Takes what is seen from [param rooms], the lit rooms of [param level] (the stage shown);
-## null for a stage with nothing hidden. [param at_once], or a level not followed before,
-## shows it with no fade.
-func follow(level: LabyrinthLevel, rooms: AmbienceRooms, at_once: bool) -> void:
+## null for a stage with nothing hidden. [param shapes] are its rooms as drawn, or null where
+## they are drawn as their rectangles. [param at_once], or a level not followed before, shows
+## it with no fade.
+func follow(
+	level: LabyrinthLevel, shapes: StageShapes, rooms: AmbienceRooms, at_once: bool
+) -> void:
 	var fresh: bool = level != _level
 	if fresh:
 		_level = level
-		_survey()
+		_survey(shapes)
 	if level == null or not (fresh or at_once or _lit_at != rooms.changes):
 		return
 	_lit_at = rooms.changes
@@ -148,7 +152,7 @@ func _fade(place: Place, delta: float) -> void:
 
 ## Lists the level's places and makes the map's room: the level's band and the earth round it
 ## that can be seen, with a tile of black beyond.
-func _survey() -> void:
+func _survey(shapes: StageShapes) -> void:
 	_rooms.clear()
 	_links.clear()
 	_lit_at = -1
@@ -162,9 +166,9 @@ func _survey() -> void:
 	_bytes.resize(_size.x * _size.y)
 	var lit_by: Dictionary[int, Rect2i] = {}
 	for room: LabyrinthChamber in _level.chambers:
-		lit_by[room.index] = room.rect
+		lit_by[room.index] = _bounds(shapes, room)
 	for at: int in _level.side_paths.size():
-		lit_by[AmbienceRooms.CACHE + at] = _level.side_paths[at].room.rect
+		lit_by[AmbienceRooms.CACHE + at] = _bounds(shapes, _level.side_paths[at].room)
 	for room: int in lit_by:
 		_rooms.append(_place(lit_by[room], PackedInt32Array([room])))
 	var ways: Array[Rect2i] = _level.tunnels + _level.ladders
@@ -182,6 +186,12 @@ func _survey() -> void:
 	_bytes.fill(0)
 	_map = Image.create_from_data(_size.x, _size.y, false, Image.FORMAT_R8, _bytes)
 	texture.set_image(_map)
+
+
+## The tiles [param room] reaches as drawn: its shape's bounds, or its rectangle with no shape.
+static func _bounds(shapes: StageShapes, room: LabyrinthChamber) -> Rect2i:
+	var shape: RoomShape = shapes.shape_of(room) if shapes != null else null
+	return shape.bounds() if shape != null else room.rect
 
 
 ## The place of [param rect] (world tiles), seen while one of [param rooms] is lit.

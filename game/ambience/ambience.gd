@@ -105,7 +105,10 @@ func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool, tick:
 	var hides_it: bool = (
 		_view != null and _view.zoned and run.labyrinth.shape == Labyrinth.Shape.WINDING
 	)
-	seen.follow(run.labyrinth.level(stage) if hides_it else null, rooms, rooms.at_once)
+	if hides_it:
+		seen.follow(run.labyrinth.level(stage), _view.shapes(stage), rooms, rooms.at_once)
+	else:
+		seen.follow(null, null, rooms, rooms.at_once)
 
 
 ## How many lights there are, for tests and the budget of lights.
