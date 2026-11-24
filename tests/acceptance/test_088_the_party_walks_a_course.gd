@@ -388,11 +388,11 @@ func test_r5_arrival_is_the_entry_facing_the_exit() -> void:
 	for stage: int in [1, 2, 3, 4, 6, 7]:
 		for room: int in 2:
 			var empty: bool = not ends.is_populated(stage, room)
-			empty = empty and ends.side_quest_in(stage, room) == &""
+			empty = empty and ends.quest_in(stage, room) == &""
 			assert_true(empty, "stage %d: the entry's and the exit's rooms are empty" % stage)
 		assert_false(plain.is_populated(stage, 0), "with both in the first room, it is empty")
-		assert_eq(plain.side_quest_in(stage, 0), &"", "of quests too")
-		var held: bool = plain.is_populated(stage, 1) or plain.side_quest_in(stage, 1) != &""
+		assert_eq(plain.quest_in(stage, 0), &"", "of quests too")
+		var held: bool = plain.is_populated(stage, 1) or plain.quest_in(stage, 1) != &""
 		assert_true(held, "stage %d: the room that is neither holds something" % stage)
 	assert_true(ends.is_populated(GUARDIAN_STAGE, 1), "a guardian holds the exit's room")
 	assert_false(ends.is_populated(GUARDIAN_STAGE, 0), "and not the entry's")

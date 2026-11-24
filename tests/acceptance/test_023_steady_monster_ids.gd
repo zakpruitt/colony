@@ -29,13 +29,13 @@ func _nearby(sim: Simulation) -> Array[int]:
 	return depths
 
 
-## Asks for the monsters and the side quest of every chamber of the nearby levels, and for the
+## Asks for the monsters and the quest of every chamber of the nearby levels, and for the
 ## work under way, as the world does.
 func _watch(sim: Simulation) -> void:
 	var e: Expedition = sim.expedition
 	for depth: int in _nearby(sim):
 		for index: int in sim.labyrinth.level(depth).chambers.size():
-			e.side_quest_in(depth, index)
+			e.quest_in(depth, index)
 			if e.is_populated(depth, index):
 				e.monsters_in(depth, index)
 	e.working_quest()
@@ -52,7 +52,7 @@ func _storm(sim: Simulation) -> void:
 			var count: int = sim.labyrinth.level(maxi(depth, 1)).chambers.size()
 			for index: int in range(-1, count + 1):
 				e.is_populated(depth, index)
-				e.side_quest_in(depth, index)
+				e.quest_in(depth, index)
 				e.monsters_in(depth, index)
 				e.monsters_in(depth, index)
 		e.chamber()

@@ -29,7 +29,7 @@ func test_nothing_counted_at_first() -> void:
 		for span: Tally.Span in [LAST, SESSION]:
 			assert_eq(tally.value(KNIGHT, measure, span), 0)
 			assert_eq(tally.share(KNIGHT, measure, span), 0.0, "no share of nothing")
-	assert_eq(tally.side_quests(ROGUE), 0)
+	assert_eq(tally.quests(ROGUE), 0)
 	assert_eq(tally.fights(), 0)
 
 
@@ -107,20 +107,20 @@ func test_a_trap_hurts_in_the_session_only() -> void:
 	assert_eq(tally.value(KNIGHT, TAKEN, SESSION), 25)
 
 
-func test_side_quests_count_their_worker() -> void:
+func test_quests_count_their_worker() -> void:
 	var tally := Tally.new()
 	_feed(
 		tally,
 		[
-			_event(SimEvent.Kind.SIDE_QUEST_STARTED, ROGUE, 0, 30),
-			_event(SimEvent.Kind.SIDE_QUEST_DONE, ROGUE, 0, 15),
+			_event(SimEvent.Kind.QUEST_STARTED, ROGUE, 0, 30),
+			_event(SimEvent.Kind.QUEST_DONE, ROGUE, 0, 15),
 			_event(SimEvent.Kind.GOLD_GAINED, ROGUE, -1, 15),
-			_event(SimEvent.Kind.SIDE_QUEST_DONE, ROGUE, 0, 15),
-			_event(SimEvent.Kind.SIDE_QUEST_MISSED, -1, 1, 2),
+			_event(SimEvent.Kind.QUEST_DONE, ROGUE, 0, 15),
+			_event(SimEvent.Kind.QUEST_MISSED, -1, 1, 2),
 		]
 	)
-	assert_eq(tally.side_quests(ROGUE), 2)
-	assert_eq(tally.side_quests(KNIGHT), 0)
+	assert_eq(tally.quests(ROGUE), 2)
+	assert_eq(tally.quests(KNIGHT), 0)
 
 
 func test_shares_sum_to_one() -> void:

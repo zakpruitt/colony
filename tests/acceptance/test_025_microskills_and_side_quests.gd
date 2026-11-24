@@ -1,7 +1,7 @@
 extends ColonyTest
 ## Acceptance tests for specs/025-microskills-and-side-quests/spec.md, one per requirement.
 ##
-## Most tests find a seed whose labyrinth has the side quest wanted on its first visit, put the
+## Most tests find a seed whose labyrinth has the quest wanted on its first visit, put the
 ## party one step outside that chamber walking in, and step the simulation.
 
 ## [microskill, class, level learned at, description].
@@ -12,13 +12,13 @@ const MICROSKILLS: Array = [
 	[&"runereader", &"mage", 4, "Reads old runes"],
 	[&"trapspotter", &"rogue", 6, "Sees a trap before it sees you"],
 ]
-## [side quest, microskill, reward, kills worth, share of max health lost when it springs].
-const SIDE_QUESTS: Array = [
-	[&"locked_chest", &"lockpicker", SideQuestDef.Reward.GOLD, 3.0, 0.0],
-	[&"stuck_door", &"strongarm", SideQuestDef.Reward.GOLD, 2.0, 0.0],
-	[&"hurt_wanderer", &"mender", SideQuestDef.Reward.GOLD, 2.0, 0.0],
-	[&"rune_stone", &"runereader", SideQuestDef.Reward.XP, 2.0, 0.0],
-	[&"tripwire", &"trapspotter", SideQuestDef.Reward.GOLD, 1.0, 0.2],
+## [quest, microskill, reward, kills worth, share of max health lost when it springs].
+const QUESTS: Array = [
+	[&"locked_chest", &"lockpicker", QuestDef.Reward.GOLD, 3.0, 0.0],
+	[&"stuck_door", &"strongarm", QuestDef.Reward.GOLD, 2.0, 0.0],
+	[&"hurt_wanderer", &"mender", QuestDef.Reward.GOLD, 2.0, 0.0],
+	[&"rune_stone", &"runereader", QuestDef.Reward.XP, 2.0, 0.0],
+	[&"tripwire", &"trapspotter", QuestDef.Reward.GOLD, 1.0, 0.2],
 ]
 ## Hero ids of the starting party, by class.
 const HERO_OF_CLASS: Dictionary[StringName, int] = {
@@ -41,7 +41,7 @@ func _before_quest(kind: StringName, min_depth: int = 1) -> Simulation:
 		var e: Expedition = sim.expedition
 		for depth: int in range(min_depth, min_depth + 3):
 			for room: LabyrinthChamber in sim.labyrinth.level(depth).chambers:
-				if e.side_quest_in(depth, room.index) != kind:
+				if e.quest_in(depth, room.index) != kind:
 					continue
 				sim.set_auto_push(false)
 				e.depth = depth
@@ -157,14 +157,14 @@ func test_r1_microskills() -> void:
 
 
 func test_r2_side_quests_are_valid() -> void:
-	assert_eq(Content.side_quest_ids().size(), SIDE_QUESTS.size(), "five side quests")
-	for row: Array in SIDE_QUESTS:
+	assert_eq(Content.quest_ids().size(), QUESTS.size(), "five quests")
+	for row: Array in QUESTS:
 		var id: StringName = row[0]
 		var skill: StringName = row[1]
-		var reward: SideQuestDef.Reward = row[2]
+		var reward: QuestDef.Reward = row[2]
 		var kills: float = row[3]
 		var hazard: float = row[4]
-		var def: SideQuestDef = Content.side_quest(id)
+		var def: QuestDef = Content.quest(id)
 		assert_not_null(def, "%s loads" % id)
 		if def == null:
 			continue
@@ -181,7 +181,7 @@ func test_r2_side_quests_are_valid() -> void:
 func _with_and_without(row: Array) -> void:
 	var id: StringName = row[0]
 	var skill: StringName = row[1]
-	var reward: SideQuestDef.Reward = row[2]
+	var reward: QuestDef.Reward = row[2]
 	var kills: float = row[3]
 	var hazard: float = row[4]
 	var learner_class: StringName = &""
@@ -207,7 +207,7 @@ func _with_and_without(row: Array) -> void:
 	assert_eq(sim.expedition.state, Expedition.State.WORKING, "%s: the party does it" % id)
 	var ticks: Array[int] = [0]
 	_work_out(sim, ticks)
-	if reward == SideQuestDef.Reward.GOLD:
+	if reward == QuestDef.Reward.GOLD:
 		_assert_worth(sim.party.gold - gold_before, kills, worth.x, "%s's gold" % id)
 		for hero: Hero in sim.party.heroes:
 			assert_eq(hero.xp, xp_before[hero.id], "%s gives no XP" % id)
@@ -253,7 +253,7 @@ func test_r3_some_chambers_hold_side_quests() -> void:
 			var level: LabyrinthLevel = sim.labyrinth.level(depth)
 			var shaft: LabyrinthChamber = level.shaft_chamber()
 			for room: LabyrinthChamber in level.chambers:
-				var quest: StringName = e.side_quest_in(depth, room.index)
+				var quest: StringName = e.quest_in(depth, room.index)
 				var populated: bool = e.is_populated(depth, room.index)
 				var guardian: bool = (
 					e.guardian_of(depth) != &"" and shaft != null and shaft.index == room.index
@@ -272,11 +272,9 @@ func test_r3_some_chambers_hold_side_quests() -> void:
 					quests += 1
 					kinds[quest] = kinds.get(quest, 0) + 1
 	var share: float = float(quests) / visits
-	gut.p(
-		"%d plain visits over %d seeds, %.3f side quests: %s" % [visits, seed_value, share, kinds]
-	)
-	assert_between(share, 0.25, 0.35, "side quests are 25% to 35% of plain-chamber visits")
-	for id: StringName in Content.side_quest_ids():
+	gut.p("%d plain visits over %d seeds, %.3f quests: %s" % [visits, seed_value, share, kinds])
+	assert_between(share, 0.25, 0.35, "quests are 25% to 35% of plain-chamber visits")
+	for id: StringName in Content.quest_ids():
 		assert_true(kinds.has(id), "%s appears" % id)
 	assert_gt(others, 100, "plenty of other chambers looked at")
 	assert_eq(wrong, 0, "no other chamber holds one, and none holds both monsters and a quest")
@@ -307,7 +305,7 @@ func test_r4_the_party_does_it() -> void:
 	_set_level(front, 2)
 	sim.party.heroes.insert(0, front)
 	_set_level(sim.party.hero(2), 2)
-	var def: SideQuestDef = Content.side_quest(&"locked_chest")
+	var def: QuestDef = Content.quest(&"locked_chest")
 	var gold_before: int = sim.party.gold
 	sim.step()
 	sim.drain_events()
@@ -329,7 +327,7 @@ func test_r4_the_party_does_it() -> void:
 	assert_eq(e.worker_id(), -1)
 	assert_eq(e.work_progress(), 0.0)
 	_assert_worth(sim.party.gold - gold_before, 3.0, _kill_value(at.x).x, "the chest's gold")
-	assert_eq(e.side_quest_in(at.x, at.y), &"", "done: the chamber is cleared")
+	assert_eq(e.quest_in(at.x, at.y), &"", "done: the chamber is cleared")
 	assert_false(e.is_populated(at.x, at.y), "and holds no monsters")
 
 	# Refilled after the usual respawn time, and not before. The expedition is stepped on its own
@@ -337,10 +335,10 @@ func test_r4_the_party_does_it() -> void:
 	var done_tick: int = sim.tick
 	var respawn: int = ticks_in(DepthTiming.respawn_seconds_at(at.x))  # quicker near the surface
 	e.step(done_tick + respawn - 1)
-	assert_eq(e.side_quest_in(at.x, at.y), &"", "still empty just before the respawn time")
+	assert_eq(e.quest_in(at.x, at.y), &"", "still empty just before the respawn time")
 	assert_false(e.is_populated(at.x, at.y))
 	e.step(done_tick + respawn)
-	var refilled: bool = e.side_quest_in(at.x, at.y) != &"" or e.is_populated(at.x, at.y)
+	var refilled: bool = e.quest_in(at.x, at.y) != &"" or e.is_populated(at.x, at.y)
 	assert_true(refilled, "refilled after the respawn time")
 
 
@@ -359,8 +357,8 @@ func test_r5_the_party_passes() -> void:
 	var events: Array[SimEvent] = sim.drain_events()
 	assert_ne(e.state, Expedition.State.WORKING, "nobody can: the party does not stop")
 	assert_gt(e.x, x_before, "it walks on")
-	assert_eq(_of_kind(events, SimEvent.Kind.SIDE_QUEST_MISSED).size(), 1, "missed, once")
-	assert_eq(e.side_quest_in(at.x, at.y), &"locked_chest", "the chest stays where it is")
+	assert_eq(_of_kind(events, SimEvent.Kind.QUEST_MISSED).size(), 1, "missed, once")
+	assert_eq(e.quest_in(at.x, at.y), &"locked_chest", "the chest stays where it is")
 
 	# Later passes in the same visit report nothing; once the rogue is level 2, the next does it.
 	var missed: int = 0
@@ -372,9 +370,9 @@ func test_r5_the_party_passes() -> void:
 			rogue.xp = 0  # the rogue stays level 1 for one more pass
 		sim.step()
 		for event: SimEvent in sim.drain_events():
-			if event.kind == SimEvent.Kind.SIDE_QUEST_MISSED:
+			if event.kind == SimEvent.Kind.QUEST_MISSED:
 				missed += 1
-			elif event.kind == SimEvent.Kind.SIDE_QUEST_STARTED:
+			elif event.kind == SimEvent.Kind.QUEST_STARTED:
 				started += 1
 		var here: LabyrinthChamber = e.chamber()
 		var now_inside: bool = e.depth == at.x and here != null and here.index == at.y
@@ -407,7 +405,7 @@ func test_r5_the_party_passes() -> void:
 	events = sim.drain_events()
 	assert_eq(e.state, Expedition.State.TRAVELLING, "the party does not stop")
 	assert_gt(e.x, x_before, "it walks on")
-	var sprung: Array[SimEvent] = _of_kind(events, SimEvent.Kind.SIDE_QUEST_MISSED)
+	var sprung: Array[SimEvent] = _of_kind(events, SimEvent.Kind.QUEST_MISSED)
 	assert_eq(sprung.size(), 1)
 	if sprung.size() == 1:
 		assert_true(sprung[0].flag, "a hazard sprang")
@@ -417,7 +415,7 @@ func test_r5_the_party_passes() -> void:
 	assert_eq(rogue_now.health, health_before[2] - roundi(0.2 * rogue_now.max_health()))
 	assert_eq(sim.party.hero(3).health, 1, "never below 1")
 	assert_eq(sim.party.hero(4).health, 0, "the dead are not hurt")
-	assert_eq(e.side_quest_in(at.x, at.y), &"", "a sprung trap is cleared")
+	assert_eq(e.quest_in(at.x, at.y), &"", "a sprung trap is cleared")
 	assert_false(e.is_populated(at.x, at.y))
 
 
@@ -427,13 +425,13 @@ func test_r5_the_party_passes() -> void:
 func test_r6_events() -> void:
 	for kind: SimEvent.Kind in [
 		SimEvent.Kind.MICROSKILL_LEARNED,
-		SimEvent.Kind.SIDE_QUEST_STARTED,
-		SimEvent.Kind.SIDE_QUEST_DONE,
-		SimEvent.Kind.SIDE_QUEST_MISSED,
+		SimEvent.Kind.QUEST_STARTED,
+		SimEvent.Kind.QUEST_DONE,
+		SimEvent.Kind.QUEST_MISSED,
 	]:
 		assert_lt(kind, SimEvent.Kind.ENCOUNTER_STARTED, "placed before ENCOUNTER_STARTED")
 	var skills: Array[StringName] = Content.microskill_ids()
-	var quests: Array[StringName] = Content.side_quest_ids()
+	var quests: Array[StringName] = Content.quest_ids()
 
 	# A rune stone: started, done, XP to every living hero, and a microskill learned on the way.
 	var sim: Simulation = _before_quest(&"rune_stone")
@@ -446,15 +444,15 @@ func test_r6_events() -> void:
 	sim.party.hero(4).health = 0
 	sim.step()
 	var events: Array[SimEvent] = sim.drain_events()
-	var started: Array[SimEvent] = _of_kind(events, SimEvent.Kind.SIDE_QUEST_STARTED)
+	var started: Array[SimEvent] = _of_kind(events, SimEvent.Kind.QUEST_STARTED)
 	assert_eq(started.size(), 1)
 	if started.size() == 1:
 		assert_eq(started[0].source_id, 3, "the worker")
 		assert_eq(started[0].target_id, quests.find(&"rune_stone"), "the quest's position")
-		assert_eq(started[0].amount, ticks_in(Content.side_quest(&"rune_stone").work_seconds))
+		assert_eq(started[0].amount, ticks_in(Content.quest(&"rune_stone").work_seconds))
 	var ticks: Array[int] = [0]
 	events = _work_out(sim, ticks)
-	var done: Array[SimEvent] = _of_kind(events, SimEvent.Kind.SIDE_QUEST_DONE)
+	var done: Array[SimEvent] = _of_kind(events, SimEvent.Kind.QUEST_DONE)
 	assert_eq(done.size(), 1)
 	var xp: Array[SimEvent] = _of_kind(events, SimEvent.Kind.XP_GAINED)
 	assert_eq(xp.size(), 3, "XP for the three living heroes")
@@ -482,7 +480,7 @@ func test_r6_events() -> void:
 	sim.step()
 	sim.drain_events()
 	events = _work_out(sim, ticks)
-	done = _of_kind(events, SimEvent.Kind.SIDE_QUEST_DONE)
+	done = _of_kind(events, SimEvent.Kind.QUEST_DONE)
 	var gold: Array[SimEvent] = _of_kind(events, SimEvent.Kind.GOLD_GAINED)
 	assert_eq(done.size(), 1)
 	assert_eq(gold.size(), 1)
@@ -494,7 +492,7 @@ func test_r6_events() -> void:
 	sim = _before_quest(&"tripwire")
 	sim.step()
 	events = sim.drain_events()
-	var missed: Array[SimEvent] = _of_kind(events, SimEvent.Kind.SIDE_QUEST_MISSED)
+	var missed: Array[SimEvent] = _of_kind(events, SimEvent.Kind.QUEST_MISSED)
 	assert_eq(missed.size(), 1)
 	if missed.size() == 1:
 		assert_eq(missed[0].target_id, quests.find(&"tripwire"))
@@ -509,7 +507,7 @@ func test_r6_events() -> void:
 	# A locked chest missed: not a hazard.
 	sim = _before_quest(&"locked_chest")
 	sim.step()
-	missed = _of_kind(sim.drain_events(), SimEvent.Kind.SIDE_QUEST_MISSED)
+	missed = _of_kind(sim.drain_events(), SimEvent.Kind.QUEST_MISSED)
 	assert_eq(missed.size(), 1)
 	if missed.size() == 1:
 		assert_eq(missed[0].target_id, quests.find(&"locked_chest"))
@@ -547,7 +545,7 @@ func test_r7_still_the_game() -> void:
 		sim.party.heroes[i].health = lows[i]
 	sim.step()
 	var events: Array[SimEvent] = sim.drain_events()
-	assert_eq(_of_kind(events, SimEvent.Kind.SIDE_QUEST_MISSED).size(), 1, "it sprang")
+	assert_eq(_of_kind(events, SimEvent.Kind.QUEST_MISSED).size(), 1, "it sprang")
 	for hero: Hero in sim.party.heroes:
 		assert_gte(hero.health, 1, "hero %d still stands" % hero.id)
 	assert_eq(_of_kind(events, SimEvent.Kind.PARTY_WIPED).size(), 0, "no wipe")
@@ -570,9 +568,9 @@ func test_r7_still_the_game() -> void:
 				match event.kind:
 					SimEvent.Kind.MICROSKILL_LEARNED:
 						learned[event.source_id] = true
-					SimEvent.Kind.SIDE_QUEST_DONE:
+					SimEvent.Kind.QUEST_DONE:
 						done += 1
-					SimEvent.Kind.SIDE_QUEST_MISSED:
+					SimEvent.Kind.QUEST_MISSED:
 						missed += 1
 					SimEvent.Kind.GUARDIAN_SLAIN:
 						if event.amount == 5:
@@ -597,8 +595,8 @@ func test_r7_still_the_game() -> void:
 		assert_gte(e.last_stable_depth, 2, "stable on depth 2 or deeper, " + where)
 		for hero: Hero in run.party.heroes:
 			assert_true(learned.has(hero.id), "hero %d learned a microskill, %s" % [hero.id, where])
-		assert_gte(done, 5, "at least five side quests done, " + where)
+		assert_gte(done, 5, "at least five quests done, " + where)
 		if missed >= 1:
 			missing_runs += 1
 	assert_gte(beaten_runs, 3, "at least three of five runs beat the first guardian")
-	assert_gte(missing_runs, 4, "at least four of five runs miss a side quest")
+	assert_gte(missing_runs, 4, "at least four of five runs miss a quest")

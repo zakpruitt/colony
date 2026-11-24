@@ -1,7 +1,7 @@
 class_name ResourceDrops
 extends RefCounted
 ## What the party gathers of the area's resource: a monster killed may drop some, by its
-## size, and a side quest finished pays some; the amount grows with the stage. Kept apart from
+## size, and a quest finished pays some; the amount grows with the stage. Kept apart from
 ## [Expedition] so its file stays under gdlint's 1000 lines.
 ##
 ## Each kill's roll comes from its own stream, forked from the expedition's under the area's label
@@ -23,7 +23,7 @@ const _DROP_BASE: Dictionary[MonsterDef.Size, int] = {
 }
 ## Each stage past the first adds this share of the stage-1 amount, so farming further pays more.
 const _STAGE_GROWTH: float = 0.25
-## A side quest finished pays what a large monster's drop on its stage is.
+## A quest finished pays what a large monster's drop on its stage is.
 const _QUEST_SIZE: MonsterDef.Size = MonsterDef.Size.LARGE
 
 
@@ -42,7 +42,7 @@ static func on_kill(run: Expedition, dead: Combatant, def: MonsterDef) -> void:
 	_give(run, dead.id, amount_at(def.size, run._battle_key.x))
 
 
-## The party finished a side quest on [param stage], [param worker] doing it: it pays some of the
+## The party finished a quest on [param stage], [param worker] doing it: it pays some of the
 ## area's resource.
 static func on_quest(run: Expedition, worker: int, stage: int) -> void:
 	_give(run, worker, amount_at(_QUEST_SIZE, stage))

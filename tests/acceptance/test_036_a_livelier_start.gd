@@ -8,7 +8,7 @@ extends ColonyTest
 const SEEDS: Array[int] = [1, 2, 3, 4, 5]
 const PLAIN_MINUTES: int = 35
 const LONG_MINUTES: int = 180
-## Average gold and XP of one kill at depths 10 and 20 (SideQuestDef.kill_value) before this spec.
+## Average gold and XP of one kill at depths 10 and 20 (QuestDef.kill_value) before this spec.
 const KILL_VALUE_10: Vector2 = Vector2(15.851352, 39.81081)
 const KILL_VALUE_20: Vector2 = Vector2(35.685394, 96.77528)
 
@@ -56,7 +56,7 @@ func _measure(seed_value: int, buying: bool, minutes: int) -> Dictionary:
 					guardian_fight = _holds_guardian(e)
 					if guardian_fight and not found.has("guardian_met"):
 						found["guardian_met"] = now
-				SimEvent.Kind.SIDE_QUEST_STARTED:
+				SimEvent.Kind.QUEST_STARTED:
 					busy_10 += 1 if now <= 600.0 else 0
 				SimEvent.Kind.ENCOUNTER_ENDED:
 					if guardian_fight and not event.flag and not found.has("guardian_beaten"):
@@ -110,15 +110,15 @@ func _holds_guardian(e: Expedition) -> bool:
 	return false
 
 
-## True when no chamber on the party's level holds monsters or a side quest a living hero can do.
+## True when no chamber on the party's level holds monsters or a quest a living hero can do.
 func _dead(sim: Simulation) -> bool:
 	var e: Expedition = sim.expedition
 	for room: LabyrinthChamber in sim.labyrinth.level(e.depth).chambers:
 		if e.is_populated(e.depth, room.index):
 			return false
-		var quest: StringName = e.side_quest_in(e.depth, room.index)
+		var quest: StringName = e.quest_in(e.depth, room.index)
 		if quest != &"":
-			var def: SideQuestDef = Content.side_quest(quest)
+			var def: QuestDef = Content.quest(quest)
 			if sim.party.hero_with_microskill(def.microskill) != null:
 				return false
 	return true
@@ -258,13 +258,13 @@ func test_r7_deep_game_keeps_pace() -> void:
 		var fill := ChamberState.new(depth)
 		assert_eq(DepthTiming.refill_seconds(fill), 90.0, "a chamber refills as before")
 	assert_almost_eq(
-		SideQuestDef.kill_value(10),
+		QuestDef.kill_value(10),
 		KILL_VALUE_10,
 		Vector2(0.001, 0.001),
 		"a kill at depth 10 is worth the same"
 	)
 	assert_almost_eq(
-		SideQuestDef.kill_value(20),
+		QuestDef.kill_value(20),
 		KILL_VALUE_20,
 		Vector2(0.001, 0.001),
 		"a kill at depth 20 is worth the same"

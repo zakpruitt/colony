@@ -362,7 +362,7 @@ func status_text() -> String:
 		Expedition.State.REVIVING:
 			line = "Chased home! Regrouping"
 		Expedition.State.WORKING:
-			var quest: SideQuestDef = Content.side_quest(e.working_quest())
+			var quest: QuestDef = Content.quest(e.working_quest())
 			if quest != null:
 				line = "Working: %s" % quest.display_name
 			elif e.side_path >= 0:

@@ -442,7 +442,7 @@ func test_r3_ordinary_fights_are_unchanged() -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## A simulation of seed 1 or later whose depth 2 or 3 holds side quest [param quest] on its first
+## A simulation of seed 1 or later whose depth 2 or 3 holds quest [param quest] on its first
 ## visit two chambers or more along from the party's way in; the party, at [param level], stands at
 ## the start of that depth facing it, auto-push off. Returns Vector2i(depth, chamber).
 func _quest_far_away(level: int, quest: StringName) -> Vector2i:
@@ -452,7 +452,7 @@ func _quest_far_away(level: int, quest: StringName) -> Vector2i:
 		for depth: int in [2, 3]:
 			var rooms: Array[LabyrinthChamber] = sim.labyrinth.level(depth).chambers
 			for room: LabyrinthChamber in rooms:
-				if room.index < 2 or e.side_quest_in(depth, room.index) != quest:
+				if room.index < 2 or e.quest_in(depth, room.index) != quest:
 					continue
 				sim.set_auto_push(false)
 				e.depth = depth
@@ -513,7 +513,7 @@ func test_r4_side_quests_in_the_dark() -> void:
 			lit = true
 			assert_false(props.is_glinting(at.x, at.y), "in the party's light: no glint")
 			assert_eq(props.glint_part(at.x, at.y), &"", "none drawn")
-		missed = missed or _has(events, SimEvent.Kind.SIDE_QUEST_MISSED)
+		missed = missed or _has(events, SimEvent.Kind.QUEST_MISSED)
 		if missed and lit and props.is_glinting(at.x, at.y):
 			break
 	assert_true(lit, "the party came into the stone's chamber")
@@ -526,7 +526,7 @@ func test_r4_a_done_quest_loses_its_glint() -> void:
 	var at: Vector2i = _quest_far_away(6, &"locked_chest")
 	var props: QuestProps = _world.quest_props
 	assert_true(props.is_glinting(at.x, at.y), "the chest glints from afar")
-	assert_true(_play_until(SimEvent.Kind.SIDE_QUEST_DONE), "the rogue opens it")
+	assert_true(_play_until(SimEvent.Kind.QUEST_DONE), "the rogue opens it")
 	_play_frame()
 	assert_null(props.prop(at.x, at.y), "the chest is gone")
 	assert_false(props.is_glinting(at.x, at.y), "and its glint with it")

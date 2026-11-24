@@ -17,7 +17,7 @@ enum Kind {
 	UPGRADES,
 	TRAINING,
 	MICROSKILLS,
-	SIDE_QUESTS,
+	QUESTS,
 	AREAS,
 	ABILITIES,
 	TALENTS,
@@ -49,11 +49,7 @@ const KINDS: Array[Dictionary] = [
 		"def": preload("res://sim/defs/microskill_def.gd"),
 		"order": Order.BY_ID
 	},
-	{
-		"folder": "sidequests",
-		"def": preload("res://sim/defs/side_quest_def.gd"),
-		"order": Order.BY_ID
-	},
+	{"folder": "quests", "def": preload("res://sim/defs/quest_def.gd"), "order": Order.BY_ID},
 	{"folder": "areas", "def": preload("res://sim/defs/area_def.gd"), "order": Order.BY_ORDER},
 	{"folder": "abilities", "def": preload("res://sim/defs/ability_def.gd"), "order": Order.BY_ID},
 	{
@@ -126,14 +122,14 @@ static func microskill_ids() -> Array[StringName]:
 	return _ids_of(Kind.MICROSKILLS)
 
 
-## The side quest with this id, or null if there is none.
-static func side_quest(id: StringName) -> SideQuestDef:
-	return _find(Kind.SIDE_QUESTS, id)
+## The quest with this id, or null if there is none.
+static func quest(id: StringName) -> QuestDef:
+	return _find(Kind.QUESTS, id)
 
 
-## Every side quest id, sorted.
-static func side_quest_ids() -> Array[StringName]:
-	return _ids_of(Kind.SIDE_QUESTS)
+## Every quest id, sorted.
+static func quest_ids() -> Array[StringName]:
+	return _ids_of(Kind.QUESTS)
 
 
 ## The area with this id, or null if there is none.

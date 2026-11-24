@@ -2,7 +2,7 @@ class_name HeroSkillsTab
 extends Control
 ## A hero window's Skills tab: a [HeroSkillsTab.Card] per microskill the hero's class learns, in the
 ## class's order. A learned one shows its picture owned, its name in white, what it does, and which
-## side quests it answers; one still to come is dimmed, its picture locked with its level under it.
+## quests it answers; one still to come is dimmed, its picture locked with its level under it.
 ## Read from the simulation at each [method refresh].
 
 ## UI pixels between two cards, and between a card's picture and its words.
@@ -67,7 +67,7 @@ func lines() -> Array[String]:
 
 ## One microskill's card: its picture in a large [UiIcon], owned when the hero has it and locked,
 ## its level under it ([code]Level 8[/code]), when not; beside it its name, what it does (or the
-## level it comes at), and the side quests it answers, the words wrapped to the card's width.
+## level it comes at), and the quests it answers, the words wrapped to the card's width.
 class Card:
 	extends Control
 
@@ -119,8 +119,8 @@ class Card:
 		answers_label = WindowText.label("Answers", "", &"green")
 		add_child(answers_label)
 		var quests: Array[String] = []
-		for quest_id: StringName in Content.side_quest_ids():
-			var quest: SideQuestDef = Content.side_quest(quest_id)
+		for quest_id: StringName in Content.quest_ids():
+			var quest: QuestDef = Content.quest(quest_id)
 			if quest != null and quest.microskill == shown.id:
 				quests.append(
 					"%s (%s)" % [quest.display_name, UiFormat.lower_first(quest.description)]

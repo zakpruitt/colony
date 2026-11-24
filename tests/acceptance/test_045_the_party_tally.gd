@@ -366,21 +366,21 @@ func test_r4_side_quests_count() -> void:
 	tally.set_span(SESSION)
 	_hud.advance(STEP)
 	assert_eq(tally.rows().size(), _sim.party.heroes.size() + 1, "no quest lines before any")
-	# A party that can do every side quest walks the first depths until two are done.
+	# A party that can do every quest walks the first depths until two are done.
 	raise_party(_sim, STRONG_LEVEL)
-	var two: Callable = func() -> bool: return _count(SimEvent.Kind.SIDE_QUEST_DONE) >= 2
-	assert_true(_run_until(two, 10, 200000), "two side quests done")
+	var two: Callable = func() -> bool: return _count(SimEvent.Kind.QUEST_DONE) >= 2
+	assert_true(_run_until(two, 10, 200000), "two quests done")
 	_hud.advance(STEP)
 	var done: Dictionary[int, int] = {}
 	for event: SimEvent in _events:
-		if event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+		if event.kind == SimEvent.Kind.QUEST_DONE:
 			done[event.source_id] = done.get(event.source_id, 0) + 1
 	var wanted: Array[String] = []
 	for hero: Hero in _sim.party.heroes:
 		var count: int = done.get(hero.id, 0)
-		assert_eq(tally.tally.side_quests(hero.id), count, "%s" % hero.class_id)
+		assert_eq(tally.tally.quests(hero.id), count, "%s" % hero.class_id)
 		if count > 0:
-			var noun: String = "side quest" if count == 1 else "side quests"
+			var noun: String = "quest" if count == 1 else "quests"
 			wanted.append("%s: %d %s" % [hero.def().display_name, count, noun])
 	var rows: Array[String] = tally.rows()
 	assert_eq(rows.slice(_sim.party.heroes.size() + 1), wanted, "a line per hero with any")
@@ -462,7 +462,7 @@ func test_r5_nothing_from_time_away() -> void:
 		for measure: Tally.Measure in [DAMAGE, HEALING, TAKEN]:
 			for span: Tally.Span in [LAST, SESSION]:
 				assert_eq(tally.tally.value(hero.id, measure, span), 0, "%s" % hero.class_id)
-		assert_eq(tally.tally.side_quests(hero.id), 0, "%s's side quests" % hero.class_id)
+		assert_eq(tally.tally.quests(hero.id), 0, "%s's quests" % hero.class_id)
 
 
 # --- R6 ------------------------------------------------------------------------

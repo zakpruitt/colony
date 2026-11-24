@@ -13,7 +13,7 @@ extends RefCounted
 ##
 ## And what stands in each room that no decoration may meet ([method standing],
 ## [method cache_standing]): those columns for the room's whole height, the mouths of its
-## tunnels, a side path's gate, its cache, and the place a side quest's prop takes.
+## tunnels, a side path's gate, its cache, and the place a quest's prop takes.
 
 const TILE: int = LabyrinthView.TILE
 
@@ -96,7 +96,7 @@ func cache_standing(place: int) -> Array[Rect2]:
 	return found
 
 
-## The middle of the floor of [param room], where a side quest's prop or a cache stands.
+## The middle of the floor of [param room], where a quest's prop or a cache stands.
 static func _middle(room: LabyrinthChamber) -> Vector2:
 	var middle: float = floorf((room.rect.position.x + room.rect.end.x) / 2.0)
 	return Vector2(middle * TILE, room.rect.end.y * TILE)

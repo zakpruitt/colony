@@ -447,8 +447,8 @@ func test_r6_skills() -> void:
 				assert_true(card.is_visible_in_tree(), "%s shows" % named)
 				assert_eq(card.name_label.text, skill.display_name, "%s: its name" % named)
 				var answers: Array[String] = []
-				for quest_id: StringName in Content.side_quest_ids():
-					var quest: SideQuestDef = Content.side_quest(quest_id)
+				for quest_id: StringName in Content.quest_ids():
+					var quest: QuestDef = Content.quest(quest_id)
 					if quest.microskill == skill.id:
 						answers.append(quest.display_name)
 				assert_eq(hero.level >= level, hero_level == 30, "%s: learned only by 30" % named)

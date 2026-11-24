@@ -306,7 +306,7 @@ func test_r4_the_showcase_cuts_by_the_course() -> void:
 	assert_not_null(GuardianSpacing.fighting_guardian(sim), "the guardian: the fight begins")
 	showcase.free()
 
-	# To a side quest: a few tiles of course before its room, in no other room, walking in.
+	# To a quest: a few tiles of course before its room, in no other room, walking in.
 	showcase = _showcase_at(&"quest_done")
 	sim = showcase.main.simulation
 	e = sim.expedition
@@ -322,7 +322,7 @@ func test_r4_the_showcase_cuts_by_the_course() -> void:
 		var before: bool = (
 			e.x < stretch.x and e.x >= stretch.x - ShowcaseMoments.QUEST_APPROACH - 1.0
 		)
-		if before and e.side_quest_in(e.depth, room.index) == quest:
+		if before and e.quest_in(e.depth, room.index) == quest:
 			meant = room
 	assert_not_null(meant, "the quest: a few tiles of course before a room that holds it")
 	if meant == null:

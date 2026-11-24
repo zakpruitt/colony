@@ -5,7 +5,7 @@ extends Node
 ##
 ## It listens to [signal World.sim_event] and writes a line for a new deepest depth, a depth turning
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
-## bought, a microskill learned, a side quest done (with its reward), passed by or sprung (with
+## bought, a microskill learned, a quest done (with its reward), passed by or sprung (with
 ## the microskill it needed), a gate opened or passed for want of its microskill and what a
 ## cache paid ([SidePathWords]), an order changed, a talent point gained and a path chosen
 ## ([code]The Knight is now a Berserker[/code]) and the first of each resource gathered. The
@@ -224,7 +224,7 @@ func _sentence(event: SimEvent) -> String:
 			var skill: MicroskillDef = _microskill(event.target_id)
 			if learner != null and skill != null:
 				sentence = "%s learned %s" % [learner.def().display_name, skill.display_name]
-		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
+		SimEvent.Kind.QUEST_DONE, SimEvent.Kind.QUEST_MISSED:
 			sentence = _quest_sentence(event)
 		SimEvent.Kind.GATE_OPENED, SimEvent.Kind.GATE_SEALED:
 			sentence = _gate_sentence(event)
@@ -288,15 +288,15 @@ func _order_sentence(event: SimEvent) -> String:
 	return ""
 
 
-## The sentence for a side quest done, passed by or sprung, or "".
+## The sentence for a quest done, passed by or sprung, or "".
 func _quest_sentence(event: SimEvent) -> String:
-	var ids: Array[StringName] = Content.side_quest_ids()
+	var ids: Array[StringName] = Content.quest_ids()
 	if event.target_id < 0 or event.target_id >= ids.size():
 		return ""
-	var quest: SideQuestDef = Content.side_quest(ids[event.target_id])
-	if event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+	var quest: QuestDef = Content.quest(ids[event.target_id])
+	if event.kind == SimEvent.Kind.QUEST_DONE:
 		var done: String = QuestProps.DONE_WORDS.get(quest.id, quest.display_name)
-		if quest.reward == SideQuestDef.Reward.XP:
+		if quest.reward == QuestDef.Reward.XP:
 			return "%s: %d XP each" % [done, event.amount]
 		return "%s: %d gold" % [done, event.amount]
 	var skill: MicroskillDef = _microskill(event.amount)

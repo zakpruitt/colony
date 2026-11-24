@@ -173,11 +173,11 @@ func _deep_game() -> Simulation:
 	return Simulation.from_save(data)
 
 
-## True when the chamber has something in it again: monsters or a side quest.
+## True when the chamber has something in it again: monsters or a quest.
 func _refilled(sim: Simulation, chamber_index: int) -> bool:
 	return (
 		sim.expedition.is_populated(DEEP, chamber_index)
-		or sim.expedition.side_quest_in(DEEP, chamber_index) != &""
+		or sim.expedition.quest_in(DEEP, chamber_index) != &""
 	)
 
 

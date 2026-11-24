@@ -11,7 +11,7 @@ func test_r5_every_def_reports_a_missing_name_the_same_way() -> void:
 		"TrainingDef": [TrainingDef.new(), named],
 		"MicroskillDef": [MicroskillDef.new(), named],
 		"UpgradeDef": [UpgradeDef.new(), named],
-		"SideQuestDef": [SideQuestDef.new(), named],
+		"QuestDef": [QuestDef.new(), named],
 		"AbilityDef": [AbilityDef.new(), named],
 		"ResourceDef":
 		[

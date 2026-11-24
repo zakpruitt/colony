@@ -63,7 +63,7 @@ func _lists() -> Dictionary[String, Array]:
 		"upgrades": Content.upgrade_ids(),
 		"training": Content.training_ids(),
 		"microskills": Content.microskill_ids(),
-		"sidequests": Content.side_quest_ids(),
+		"quests": Content.quest_ids(),
 		"areas": Content.area_ids(),
 		"abilities": Content.ability_ids(),
 		"resources": Content.resource_ids(),
@@ -85,8 +85,8 @@ func _getter(folder: String, id: StringName) -> Resource:
 			found = Content.training(id)
 		"microskills":
 			found = Content.microskill(id)
-		"sidequests":
-			found = Content.side_quest(id)
+		"quests":
+			found = Content.quest(id)
 		"areas":
 			found = Content.area(id)
 		"abilities":
@@ -130,7 +130,7 @@ func test_r2_every_kind_of_content_is_one_row() -> void:
 		"upgrades": _ids_on_disk("upgrades", _by_order("upgrades")),
 		"training": _ids_on_disk("training", _by_order("training")),
 		"microskills": _ids_on_disk("microskills", _by_id),
-		"sidequests": _ids_on_disk("sidequests", _by_id),
+		"quests": _ids_on_disk("quests", _by_id),
 		"areas": _ids_on_disk("areas", _by_order("areas")),
 		"abilities": _ids_on_disk("abilities", _by_id),
 		"resources": _ids_on_disk("resources", _by_area),

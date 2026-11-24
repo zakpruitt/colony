@@ -244,7 +244,7 @@ func test_r2_the_opener_works_at_the_gate() -> void:
 				props._bar_at.y, gate.y - shown.texture.get_height(), "%s: the bar over it" % what
 			)
 			assert_lt(props._name_at.y, props._bar_at.y, "%s: the name over the bar" % what)
-			# The slow repeat a side quest uses: a swing every SWING_SECONDS.
+			# The slow repeat a quest uses: a swing every SWING_SECONDS.
 			var swings: Array[int] = []
 			props.worked.connect(func(id: int) -> void: swings.append(id))
 			for i: int in roundi(QuestProps.SWING_SECONDS * 60.0) + 2:
@@ -298,7 +298,7 @@ func test_r3_a_cache_glints_until_it_is_opened() -> void:
 	assert_true(_shows(cache, &"cache", &"closed"), "full: the closed strongbox")
 	assert_true(props.is_glinting(2, found.y), "full and out of the light: it glints")
 	var seen: Dictionary[StringName, bool] = _glints_seen(found.y, QuestProps.GLINT_PERIOD * 1.5)
-	assert_true(seen.has(&"small") and seen.has(&"big"), "the glint a side quest's prop has")
+	assert_true(seen.has(&"small") and seen.has(&"big"), "the glint a quest's prop has")
 	assert_true(seen.has(&""), "pulsing")
 	# In the party's light, still full, it has none.
 	for i: int in roundi(QuestProps.GLINT_PERIOD * 60.0):

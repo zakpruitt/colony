@@ -10,7 +10,8 @@ plug in.
 
 | To add a… | Do this | Where | What holds you to it |
 |---|---|---|---|
-| Hero class, monster, upgrade, ability, area, resource, side quest, microskill, gate, talent tree | A `.tres` under `data/<kind>/`, named for its id | `data/` | `check`'s `data` step runs every definition's `validate()` |
+| Hero class, monster, upgrade, ability, area, resource, quest, microskill, gate, talent tree | A `.tres` under `data/<kind>/`, named for its id | `data/` | `check`'s `data` step runs every definition's `validate()` |
+| Job a microskill does in a number of seconds (quest, gate, and the next kind) | A def class that extends `JobDef` (`id`, `display_name`, `description`, `microskill`, `work_seconds`; its `validate()` checks them), adds only its own fields and checks (calling `super()`) and gives its own `work_range()`; then the rows for a kind of content | `sim/defs/job_def.gd` | spec 103's tests: every quest and gate is a `JobDef`, with the same problems reported |
 | Kind of content | A row in `Content.KINDS`, a `Content.Kind` name, its two getters, a def class extending `ContentDef` (`key()`, `validate()`) | `sim/defs/content.gd` | spec 072's tests compare every getter with its folder; spec 078's, every definition with its key |
 | Check on a definition | A function on `DefChecks` that returns problems | `sim/defs/def_checks.gd` | |
 | Check on a save field | `SaveChecks.check_whole` / `check_counts` | `sim/save_checks.gd` | spec 072's tests pin every problem's wording |

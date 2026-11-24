@@ -4,7 +4,7 @@ extends WindowContent
 ## meter: tabs for Damage, Healing and Taken, the Last fight / Session switch, a line saying which
 ## fight, then one line per hero: its portrait, its name in bold, its number right-aligned in a
 ## column of equal-width digits and its share, over a bar in the hero's class colour scaled to the
-## largest. Under them the session span lists the side quests of each hero who has done any, then
+## largest. Under them the session span lists the quests of each hero who has done any, then
 ## the side paths: the gates and caches opened and what the caches paid, for the session and for
 ## each area ([method side_path_rows]).
 ##
@@ -160,7 +160,7 @@ func advance(delta: float) -> void:
 
 
 ## The lines showing, top first: the fight's line, a line per hero as "<class> <number>
-## <share>%" ("Knight 1,234 45%"), then the side-quest lines ("Rogue: 4 side quests"), then
+## <share>%" ("Knight 1,234 45%"), then the quest lines ("Rogue: 4 quests"), then
 ## [method side_path_rows], then [method breakdown]. Empty while closed.
 func rows() -> Array[String]:
 	var lines: Array[String] = []
@@ -566,13 +566,13 @@ func _refresh() -> void:
 		share_labels[i].text = "%d%%" % percents[i]
 		(hero_lines[i] as HeroLine).opened = heroes[i].id == _opened
 	_fight_label.text = _fight_text()
-	# The side quests: the session's, a line for each hero who has done any.
+	# The quests: the session's, a line for each hero who has done any.
 	var shown: int = 0
 	for hero: Hero in heroes:
-		var count: int = tally.side_quests(hero.id)
+		var count: int = tally.quests(hero.id)
 		if count <= 0 or _span != Tally.Span.SESSION or shown >= _quest_labels.size():
 			continue
-		var noun: String = "side quest" if count == 1 else "side quests"
+		var noun: String = "quest" if count == 1 else "quests"
 		_quest_labels[shown].text = "%s: %d %s" % [hero.def().display_name, count, noun]
 		shown += 1
 	for i: int in _quest_labels.size():

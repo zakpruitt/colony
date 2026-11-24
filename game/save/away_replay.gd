@@ -17,7 +17,7 @@ var _levels_before: Dictionary[int, int] = {}
 var _gold_before: int
 ## The depth of the deepest guardian slain so far, or -1.
 var _deepest_guardian_depth: int = -1
-## Side quests missed for want of each microskill (by its position in
+## Quests missed for want of each microskill (by its position in
 ## [method Content.microskill_ids]), in the order each was first missed.
 var _missed_by_skill: Dictionary[int, int] = {}
 ## Gates passed with nobody able to open them (by position in [method Content.gate_ids]), in the
@@ -62,10 +62,10 @@ func run(budget_usec: int) -> bool:
 				SimEvent.Kind.GUARDIAN_SLAIN:
 					report.guardians_slain += 1
 					_deepest_guardian_depth = maxi(_deepest_guardian_depth, event.amount)
-				SimEvent.Kind.SIDE_QUEST_DONE:
-					report.side_quests_done += 1
-				SimEvent.Kind.SIDE_QUEST_MISSED:
-					report.side_quests_missed += 1
+				SimEvent.Kind.QUEST_DONE:
+					report.quests_done += 1
+				SimEvent.Kind.QUEST_MISSED:
+					report.quests_missed += 1
 					var missed: int = _missed_by_skill.get(event.amount, 0)
 					_missed_by_skill[event.amount] = missed + 1
 				SimEvent.Kind.CACHE_OPENED:
@@ -120,7 +120,7 @@ func _update_report() -> void:
 		report.gates_sealed = _sealed_by_gate[sealed]
 
 
-## The microskill the missed side quests needed most often, or &"" if none was missed. A tie goes
+## The microskill the missed quests needed most often, or &"" if none was missed. A tie goes
 ## to the one missed first.
 func _most_needed() -> StringName:
 	var best: int = _most_of(_missed_by_skill)

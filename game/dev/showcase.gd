@@ -5,7 +5,7 @@ extends Node
 ## won fight getting up at the camp, going on a stage and back (the
 ## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
-## labelled with its statuses), side quests (one done, one nobody can do, a tripwire sprung and a
+## labelled with its statuses), quests (one done, one nobody can do, a tripwire sprung and a
 ## microskill learned), a dark room lighting as the party walks in (the black leaving it), a room
 ## behind the party refilling and going black, a side path (its gate being
 ## opened, its cache opening, and a gate nobody can open), the shop, the area map with two areas
@@ -53,8 +53,8 @@ const ROWS: Array[Array] = [
 	[&"mage_actions", "THE MAGE'S ACTIONS", 1.2, &"class", &"class"],
 	[&"cleric_actions", "THE CLERIC'S ACTIONS", 1.2, &"class", &"class"],
 	[&"statuses", "EVERY STATUS, ON A ROW OF FIGHTERS", 2.0, &"class", &"statuses"],
-	[&"quest_done", "A SIDE QUEST: THE ROGUE PICKS A LOCK", 1.0, &"quest", &"quest_done"],
-	[&"quest_missed", "A SIDE QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
+	[&"quest_done", "A QUEST: THE ROGUE PICKS A LOCK", 1.0, &"quest", &"quest_done"],
+	[&"quest_missed", "A QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
 	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
 	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
 	[&"room_lit", "A DARK ROOM LIGHTS AS THE PARTY WALKS IN", 1.5, &"room", &"room"],

@@ -456,7 +456,7 @@ func _build_tabs(tip: UiTip) -> void:
 	if tip != null:
 		tip.attach(tab_buttons[Page.STATS], "What the hero can do, and what raises it.")
 		tip.attach(tab_buttons[Page.TALENTS], "The hero's talent tree and paragon points.")
-		tip.attach(tab_buttons[Page.SKILLS], "The small skills that open side quests.")
+		tip.attach(tab_buttons[Page.SKILLS], "The small skills that open quests.")
 
 
 func _add_line(key: StringName, colour: StringName, at: Vector2) -> void:

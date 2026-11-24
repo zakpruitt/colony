@@ -77,7 +77,7 @@ var guardians: GuardianRecord = GuardianRecord.new()
 var ambience: Ambience
 ## The arrow over the party pointing toward its target depth.
 var target_marker: TargetMarker
-## The side quests waiting in chambers, and the work on one.
+## The quests waiting in chambers, and the work on one.
 var quest_props: QuestProps
 ## The gates and caches of the side paths.
 var side_props: SideProps
@@ -602,7 +602,7 @@ func _show(event: SimEvent, animate: bool) -> void:
 		SimEvent.Kind.AREA_CHANGED:
 			if labyrinth_view.labyrinth != simulation.labyrinth:
 				_change_area()
-		SimEvent.Kind.SIDE_QUEST_DONE, SimEvent.Kind.SIDE_QUEST_MISSED:
+		SimEvent.Kind.QUEST_DONE, SimEvent.Kind.QUEST_MISSED:
 			_scan_due = true  # a cleared quest's prop goes at once
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_cut_short_everything()

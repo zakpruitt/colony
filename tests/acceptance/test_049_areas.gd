@@ -426,7 +426,7 @@ func test_r4_leaves_rest_work_and_revival() -> void:
 	assert_eq(rester.expedition.state, Expedition.State.JOURNEYING, "it leaves the rest")
 	assert_eq(_kinds(seen, SimEvent.Kind.REST_ENDED).size(), 1, "and the rest ends")
 
-	# Working a side quest: the party finishes it (SIDE_QUEST_DONE), then leaves.
+	# Working a quest: the party finishes it (QUEST_DONE), then leaves.
 	var worker: Simulation = null
 	for seed_value: int in range(1, 40):
 		var candidate := Simulation.new(seed_value)
@@ -436,7 +436,7 @@ func test_r4_leaves_rest_work_and_revival() -> void:
 		if _until_state(candidate, Expedition.State.WORKING, 3000, none):
 			worker = candidate
 			break
-	assert_not_null(worker, "setup: some seed's party works a side quest")
+	assert_not_null(worker, "setup: some seed's party works a quest")
 	if worker == null:
 		return
 	worker.drain_events()
@@ -444,7 +444,7 @@ func test_r4_leaves_rest_work_and_revival() -> void:
 	worker.set_destination(&"claypits", 1)
 	var done: Array[SimEvent] = []
 	assert_true(_until_state(worker, Expedition.State.JOURNEYING, 600, done), "then it leaves")
-	assert_eq(_kinds(done, SimEvent.Kind.SIDE_QUEST_DONE).size(), 1, "after the work is done")
+	assert_eq(_kinds(done, SimEvent.Kind.QUEST_DONE).size(), 1, "after the work is done")
 
 	# Down after a wipe: the party stands up first, then leaves.
 	var beaten := Simulation.new(5)

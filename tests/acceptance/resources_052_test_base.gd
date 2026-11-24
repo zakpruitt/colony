@@ -98,7 +98,7 @@ func _heard_of(kind: SimEvent.Kind) -> Array[SimEvent]:
 
 
 ## What [param sim] did over [param ticks] ticks: every kill as [size, stage, monster id, def id],
-## the drops by monster (or worker) id, the side quests done, and all the events.
+## the drops by monster (or worker) id, the quests done, and all the events.
 func _watch(sim: Simulation, ticks: int) -> Dictionary:
 	var kills: Array = []
 	var drops: Dictionary = {}

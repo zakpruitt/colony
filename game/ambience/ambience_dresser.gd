@@ -4,7 +4,7 @@ extends RefCounted
 ## and stands each where it fits. One is made for a level and dresses its rooms in turn.
 ##
 ## A decoration fits where its rectangle meets nothing that stands in the room (a ladder's
-## columns, a doorway and what is over it, a tunnel's mouth, a gate, a cache, a side quest's
+## columns, a doorway and what is over it, a tunnel's mouth, a gate, a cache, a quest's
 ## prop, the room's own props, the tiles round a torch's flame, another decoration), lies in no
 ## earth, and, tall and on the floor of a small room, is out of the middle third, where the
 ## fight is. Everything comes from the level's seed, so a room is dressed the same every build.

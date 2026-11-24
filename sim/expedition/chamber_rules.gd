@@ -1,15 +1,15 @@
 class_name ChamberRules
 extends RefCounted
 ## What a chamber of an area's labyrinth holds on a visit, as [Expedition] reads it: whether it is
-## always empty or a guardian's, its side quest and its monsters. Plain functions of their
+## always empty or a guardian's, its quest and its monsters. Plain functions of their
 ## arguments, depending only on the seed, the stage, the chamber and the visit; nothing here
 ## keeps state or changes the game.
 
-## The chance that a plain chamber holds a side quest instead of monsters, on each visit.
-const SIDE_QUEST_SHARE: float = 0.3
+## The chance that a plain chamber holds a quest instead of monsters, on each visit.
+const QUEST_SHARE: float = 0.3
 
 
-## True if chamber [param chamber_index] of [param level] never holds monsters or a side quest: the
+## True if chamber [param chamber_index] of [param level] never holds monsters or a quest: the
 ## START chamber, and the chambers a party arrives in and the way on leaves from, unless a
 ## guardian of [param area] holds it.
 static func always_empty(
@@ -58,8 +58,8 @@ static func refill_tick(run: Expedition, level_depth: int, chamber_index: int) -
 	return due if run._tick < due else -1
 
 
-## The side quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
-## chamber that is not always empty and holds no guardian, with chance [constant SIDE_QUEST_SHARE],
+## The quest a chamber holds on [param visit] in place of monsters, or &"": only a plain
+## chamber that is not always empty and holds no guardian, with chance [constant QUEST_SHARE],
 ## drawn from a fork of [param rng].
 static func quest_on_visit(
 	labyrinth: Labyrinth,
@@ -78,10 +78,12 @@ static func quest_on_visit(
 		return &""
 	# Joined by hand: a format string builds an array, and this is asked as the party walks.
 	var where: String = str(level_depth) + "/" + str(chamber_index) + "/" + str(visit)
+	# The label keeps this spelling: every game's roll of which rooms hold a quest is seeded from
+	# its text, so a new word would change every recorded game and every saved one.
 	var quest_rng: SimRng = rng.fork(AreaTravel.label(area.id) + "sidequest/" + where)
-	if not quest_rng.chance(SIDE_QUEST_SHARE):
+	if not quest_rng.chance(QUEST_SHARE):
 		return &""
-	var ids: Array[StringName] = Content.side_quest_ids()
+	var ids: Array[StringName] = Content.quest_ids()
 	if ids.is_empty():
 		return &""
 	return ids[quest_rng.next_int(0, ids.size() - 1)]

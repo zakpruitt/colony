@@ -1,7 +1,7 @@
 extends "res://tests/support/hud_fixture.gd"
 ## Acceptance tests for specs/028-seeing-side-quests/spec.md, one per requirement.
 ##
-## Most tests find a seed whose labyrinth has the side quest wanted on its first visit, put the
+## Most tests find a seed whose labyrinth has the quest wanted on its first visit, put the
 ## party one step outside that chamber walking in (as spec 025's tests do), build the world, the
 ## effects, the HUD and the sound player on it with their own clocks turned off, and step them
 ## all together one tick at a time.
@@ -11,7 +11,7 @@ const KNIGHT: int = 1
 const ROGUE: int = 2
 const MAGE: int = 3
 const CLERIC: int = 4
-## [side quest, its prop's sheet, the words when done, the reward's colour].
+## [quest, its prop's sheet, the words when done, the reward's colour].
 const QUESTS: Array = [
 	[&"locked_chest", "res://assets/sprites/props/chest.png", "Chest opened", &"yellow"],
 	[&"stuck_door", "res://assets/sprites/props/door.png", "Door forced", &"yellow"],
@@ -44,7 +44,7 @@ func _before_quest(kind: StringName, level: int = 6, min_depth: int = 2) -> Simu
 		var e: Expedition = sim.expedition
 		for depth: int in range(min_depth, min_depth + 3):
 			for room: LabyrinthChamber in sim.labyrinth.level(depth).chambers:
-				if e.side_quest_in(depth, room.index) != kind:
+				if e.quest_in(depth, room.index) != kind:
 					continue
 				sim.set_auto_push(false)
 				e.depth = depth
@@ -179,7 +179,7 @@ func test_r1_props_wait_in_chambers() -> void:
 		var wanted: int = 0
 		for depth: int in _world.labyrinth_view.built_depths():
 			for chamber: LabyrinthChamber in sim.labyrinth.level(depth).chambers:
-				var holds: bool = sim.expedition.side_quest_in(depth, chamber.index) != &""
+				var holds: bool = sim.expedition.quest_in(depth, chamber.index) != &""
 				if holds:
 					wanted += 1
 				var shown: Sprite2D = props.prop(depth, chamber.index)
@@ -549,7 +549,7 @@ func test_r10_old_events_show_nothing() -> void:
 		var wanted: int = 0
 		for depth: int in _world.labyrinth_view.built_depths():
 			for chamber: LabyrinthChamber in sim.labyrinth.level(depth).chambers:
-				var holds: bool = sim.expedition.side_quest_in(depth, chamber.index) != &""
+				var holds: bool = sim.expedition.quest_in(depth, chamber.index) != &""
 				wanted += 1 if holds else 0
 				var shown: bool = props.prop(depth, chamber.index) != null
 				assert_eq(shown, holds, "%s: d%d c%d matches" % [quest, depth, chamber.index])

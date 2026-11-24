@@ -304,7 +304,7 @@ func test_r2_waiting_monsters_show_eyes() -> void:
 # --- R3 ------------------------------------------------------------------------
 
 
-## R3: a full cache's and a side quest's glint drawn in an unseen room, over the black; the
+## R3: a full cache's and a quest's glint drawn in an unseen room, over the black; the
 ## world black at the cache, the quest's prop, a closed gate, an unlit torch and the doorway on
 ## in unseen places.
 func test_r3_glints_show_and_nothing_else() -> void:
@@ -316,7 +316,7 @@ func test_r3_glints_show_and_nothing_else() -> void:
 		quest_room = -1
 		gated = -1
 		for room: int in range(2, level.chambers.size()):
-			if sim.expedition.side_quest_in(STAGE, room) != &"" and quest_room < 0:
+			if sim.expedition.quest_in(STAGE, room) != &"" and quest_room < 0:
 				quest_room = room
 		for place: int in level.side_paths.size():
 			if _room_of(level, level.side_paths[place]) > 0:
@@ -462,7 +462,7 @@ func test_r5_a_refilled_room_goes_black() -> void:
 			else:
 				_play_frame()
 			played += 1
-			if refilled < 0 and e.side_quest_in(STAGE, room - 1) != &"":
+			if refilled < 0 and e.quest_in(STAGE, room - 1) != &"":
 				break
 			if refilled < 0 and e.is_populated(STAGE, room - 1):
 				refilled = played
@@ -733,15 +733,15 @@ func test_r8_an_idle_frame_does_nothing() -> void:
 	assert_gt(quiet_blinks, 0, "and a blink redrew no darkness")
 	assert_eq(seen.fading(), 0, "nothing was fading")
 	_world.free()
-	# A lit room behind the party whose side quest waits: the simulation is not asked about it.
+	# A lit room behind the party whose quest waits: the simulation is not asked about it.
 	var quest := Vector2i(-1, -1)
 	for seed_value: int in range(1, 60):
 		var sim: Simulation = _arrived(seed_value, STAGE, STAGE + 1)
 		for room: int in range(1, sim.labyrinth.level(STAGE).chambers.size() - 2):
-			var id: StringName = sim.expedition.side_quest_in(STAGE, room)
-			if id != &"" and Content.side_quest(id).miss_damage <= 0.0 and quest.x < 0:
+			var id: StringName = sim.expedition.quest_in(STAGE, room)
+			if id != &"" and Content.quest(id).miss_damage <= 0.0 and quest.x < 0:
 				quest = Vector2i(seed_value, room)
-	assert_gt(quest.x, 0, "a stage with a side quest that stays when nobody can do it")
+	assert_gt(quest.x, 0, "a stage with a quest that stays when nobody can do it")
 	if quest.x < 0:
 		return
 	_watch_rooms(_arrived(quest.x, STAGE, STAGE + 1), 4)
@@ -749,7 +749,7 @@ func test_r8_an_idle_frame_does_nothing() -> void:
 	var e: Expedition = _sim.expedition
 	var rooms: AmbienceRooms = _ambience.rooms
 	assert_true(rooms.is_lit(quest.y), "the quest's room is lit")
-	assert_ne(e.side_quest_in(STAGE, quest.y), &"", "and its quest still waits")
+	assert_ne(e.quest_in(STAGE, quest.y), &"", "and its quest still waits")
 	var asked: int = rooms.questions
 	for i: int in 240:
 		_play_frame(false)
@@ -759,6 +759,6 @@ func test_r8_an_idle_frame_does_nothing() -> void:
 		_held_frame()
 	assert_eq(_world.shown_stage(), STAGE, "the party is still on the stage")
 	assert_true(rooms.is_lit(quest.y), "the quest's room is still lit")
-	assert_ne(e.side_quest_in(STAGE, quest.y), &"", "its quest still waiting")
+	assert_ne(e.quest_in(STAGE, quest.y), &"", "its quest still waiting")
 	var most: int = _shown_level().chambers.size() * 5
 	assert_lt(rooms.questions - asked, most, "a room is asked about only as it can have refilled")

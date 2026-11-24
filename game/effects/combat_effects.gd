@@ -103,7 +103,7 @@ var gold_screen_target: Vector2 = Vector2(600, 12)
 ## Where each hero's XP motes fly to, in screen pixels, by hero id: its frame. The HUD sets it;
 ## a hero with none has its motes fly to its chest.
 var frame_screen_targets: Dictionary[int, Vector2] = {}
-## The effects of side quests and microskills, advanced with these.
+## The effects of quests and microskills, advanced with these.
 var quest_effects: QuestEffects
 ## Abilities and statuses on screen, advanced with these.
 var ability_effects: AbilityEffects

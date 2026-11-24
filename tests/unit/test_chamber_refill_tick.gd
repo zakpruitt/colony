@@ -39,7 +39,7 @@ func test_refill_tick_of_a_cleared_chamber() -> void:
 	# Once that tick has passed the chamber is no longer cleared, though its record is not moved on.
 	step_until(sim, func() -> bool: return sim.tick >= due, LIMIT_TICKS)
 	assert_eq(ChamberRules.refill_tick(e, key.x, key.y), -1, "refilled: -1")
-	var waiting: bool = e.is_populated(key.x, key.y) or e.side_quest_in(key.x, key.y) != &""
+	var waiting: bool = e.is_populated(key.x, key.y) or e.quest_in(key.x, key.y) != &""
 	assert_true(waiting, "and it holds monsters or a quest again")
 
 
