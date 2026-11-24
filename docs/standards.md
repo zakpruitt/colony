@@ -21,6 +21,7 @@ plug in.
 | Key | A row in `KeyBook.ROWS`; input asks `KeyBook.pressed`, text asks `KeyBook.label` | `game/ui/key_book.gd` | spec 030's tests (every key listed and pressed); `check`'s `harness` step (only `KeyBook` reads `.echo`) |
 | Panel of the screen's frame | A class that extends `FramePiece` (`advance`, `catch_up`, `add_tips`), added with `Hud.add_piece` and placed in `Hud._lay_out_frame` | `game/ui/frame/` | spec 080's new-piece and idle-frame tests |
 | Passing effect (particle, text, flash) | A class that extends `FxNode` and overrides `advance(delta) -> bool`, added with `World.fx.add(node, budget)` | `game/effects/` | spec 076's budget and empty-layer tests; `FxPool.add` takes nothing but an `FxNode` |
+| Line a character says | `World.say(speaker, text)` (a hero or monster id, or a `Callable` returning a world point); a listener uses `World.say_for(event, …)` | `game/world/world.gd`, `game/ui/speech_bubbles.gd` | spec 105's tests (follows its speaker, under the windows, nothing for a stale event) |
 | View that reacts to events | Its own `_on_sim_event`, connected in its own setup, asking `World.may_animate(event)` | | spec 076's old-event tests |
 | Label's text or colour | `WindowText.set_text` / `set_colour`, which set only on a change | `game/ui/windows/window_text.gd` | spec 075's idle-screen test; `check`'s `harness` step (a font colour set by hand in the UI's code) |
 | Number or time shown to the player | `UiFormat` | `game/ui/ui_format.gd` | spec 075 |

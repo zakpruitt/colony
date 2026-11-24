@@ -85,6 +85,10 @@ const CLASS_STAGE: int = 2
 const TREE_LEVEL: int = 8
 const TREE_STEP: float = 0.6
 
+## What the front hero says in the chat bubble's moment, and for how long.
+const BUBBLE_LINE: String = "Keep close, everyone. Something moves up ahead."
+const BUBBLE_SECONDS: float = 3.0
+
 ## The game the showcase runs.
 var main: Main
 
@@ -139,6 +143,10 @@ func watch(
 
 
 # --- How each moment begins ---------------------------------------------------
+
+
+func _begin_chat_bubble(_current: StringName) -> void:
+	_say_ahead()
 
 
 func _begin_level_up(_current: StringName) -> void:
@@ -372,6 +380,16 @@ func _watch_travelling(event: SimEvent) -> void:
 			_seen = true
 
 
+func _watch_chat_bubble(event: SimEvent) -> void:
+	var walking: bool = main.simulation.expedition.state == Expedition.State.TRAVELLING
+	if event != null or not walking:
+		return
+	if main.ui.bubbles.line_of(_front()) == "":
+		_say_ahead()  # a fight or a stage's crossing took the first away: the walk says it again
+	else:
+		_seen = true
+
+
 func _watch_crit(event: SimEvent) -> void:
 	if event != null and event.kind == SimEvent.Kind.HIT and event.flag:
 		_seen = true
@@ -539,6 +557,15 @@ func _watch_away_report(event: SimEvent) -> void:
 
 
 # --- Cuts ----------------------------------------------------------------------
+
+
+## The front hero says [constant BUBBLE_LINE].
+func _say_ahead() -> void:
+	main.world.say(_front(), BUBBLE_LINE, BUBBLE_SECONDS)
+
+
+func _front() -> int:
+	return main.simulation.party.heroes[0].id
 
 
 ## Ends any fight and rest at once, stepping the simulation (the world snaps to the result).

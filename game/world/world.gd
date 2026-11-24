@@ -89,6 +89,13 @@ var fallen_party: FallenParty
 var crossing: ZoneCrossing
 ## The eyes of the monsters waiting where the party has not seen.
 var eyes: UnseenEyes
+## The bubbles on the UI layer that characters speak in, set by [Main]; null in a world with no UI
+## layer, where [method say] does nothing. The world moves them on at the end of each sync.
+var bubbles: SpeechBubbles:
+	set(value):
+		bubbles = value
+		if value != null:
+			value.world = self
 
 var _characters: Node2D
 var _sprites: Dictionary[int, CharacterSprite] = {}
@@ -247,6 +254,23 @@ func catching_up() -> bool:
 	return _catching_up
 
 
+## Shows [param text] in a bubble over [param speaker]: a hero or monster id, or a Callable that
+## returns a point in the world, matched by identity: to replace its line, say again with the
+## same Callable, not a new one that returns the same point. [param seconds] of 0 or less holds
+## it for a time by its length ([method SpeechBubbles.hold_for]). A new line for the same speaker
+## replaces the one showing.
+func say(speaker: Variant, text: String, seconds: float = 0.0) -> void:
+	if bubbles != null:
+		bubbles.show_line(speaker, text, seconds)
+
+
+## [method say] for a listener to [signal sim_event]: only when [param event] may start something
+## ([method may_animate]).
+func say_for(event: SimEvent, speaker: Variant, text: String, seconds: float = 0.0) -> void:
+	if may_animate(event):
+		say(speaker, text, seconds)
+
+
 ## Holds every character's animation still for [param seconds] (a hit-stop): [method sync] goes on
 ## following the simulation, but does not advance the sprites' animation until it is over. A
 ## shorter freeze does not cut a longer one short.
@@ -267,6 +291,8 @@ func sync(delta: float) -> void:
 	_last_tick = now
 	if _snap_all:
 		_fight_moves.stop_all(self)  # a stall leaves every body at rest
+	if _catching_up and bubbles != null:
+		bubbles.clear()  # what was said before a stall is long past
 
 	# When the party has gone to another area, the events from before its arrival are shown in
 	# the area it left first, and the world changes area when it reaches AREA_CHANGED (monster
@@ -324,6 +350,8 @@ func sync(delta: float) -> void:
 	eyes.watch(_waiting, delta)
 	target_marker.follow(simulation, _party_feet(true), delta)
 	_aim_camera(delta)
+	if bubbles != null:
+		bubbles.advance(delta)  # after the camera: a bubble is placed through it
 
 
 ## Brings the view up to the simulation's state before its events are shown: the levels built
@@ -657,6 +685,8 @@ func _died(id: int, animate: bool) -> void:
 ## jump to their places.
 func _change_area() -> void:
 	_cut_short_everything()
+	if bubbles != null:
+		bubbles.clear()
 	for id: int in _monsters.keys():
 		_remove(id)
 	_gone.clear()
@@ -676,6 +706,8 @@ func _change_area() -> void:
 ## and every sprite and the camera jump to their places on the new one, out of sight in the dark.
 func _change_stage() -> void:
 	_cut_short_everything()
+	if bubbles != null:
+		bubbles.clear()
 	for id: int in _monsters.keys():
 		_remove(id)
 	_waiting.clear()

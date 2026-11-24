@@ -196,6 +196,20 @@ The picture is drawn in two layers, each in its own pixels.
   and start nothing for one that is not recent or while the world catches up, and a catch-up drops what
   waits and what runs. Which gains get one is for specs 064 and 065. `PictureSpecimen`
   (`game/ui/picture_specimen.tscn`) shows every picture in every state.
+- **Chat bubbles** (spec 105, `game/ui/speech_bubbles.gd`, `speech_bubble.gd`): a line a character
+  says goes through `World.say(speaker, text, seconds)` (a listener uses `World.say_for(event, …)`,
+  which asks `may_animate`). The speaker is a hero or monster id (the bubble sits on the top of its
+  sprite at rest, `SpriteBounds.body_rect`, and goes when the world frees that sprite) or a
+  `Callable` returning a point in the world. `UiRoot.setup` makes `UiRoot.bubbles` right after the
+  frame of the screen, so it draws over that and under the bar, every window, the moment and the tips,
+  and takes no mouse; `Main` hands it to `World.bubbles` (null in a world with no UI layer: `say`
+  does nothing). `World.sync` moves it on last, after the camera: each bubble's point goes through
+  the world's canvas transform to the 640x360 screen and `UiRoot.world_to_ui` to the layer, the panel
+  slid sideways to stay in the room while the tail (a child control) keeps under the speaker, and a
+  later bubble lifted clear of an earlier one. A speaker has one bubble; at most 8 nodes, reused, the
+  oldest first. A line is measured and wrapped once (160 UI pixels, 3 lines) and the panel drawn
+  again only then: a frame only moves nodes. A bubble pops in by its `scale` and blinks out, as
+  `FxText` does. A catch-up and a change of stage or area clear them all.
 - **Shop cards** (spec 065): each `ShopRow` is a card: a large `UiIcon` (the rank as its count),
   `ShopPips`, and what the upgrade gives now and next, its stat named by `UpgradeDef.gives` (a view
   hint no rule reads). The simulation's `UPGRADE_BOUGHT` does not say who bought, so `ShopWindow`

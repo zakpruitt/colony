@@ -1,17 +1,17 @@
 class_name Showcase
 extends Node
-## A development scene that plays the loop's moments on demand, one after another, each labelled
-## on screen: travel, a crit, a kill, a heal, a level up, a rest at its camp, a hero who fell in a
-## won fight getting up at the camp, going on a stage and back (the
-## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
+## A development scene that plays the loop's moments on demand, one after another, each labelled on
+## screen: travel, a hero saying a line in a chat bubble, a crit, a kill, a heal, a level up, a rest
+## at its camp, a hero who fell in a won fight getting up at the camp, going on a stage and back
+## (the crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
 ## labelled with its statuses), quests (one done, one nobody can do, a tripwire sprung and a
 ## microskill learned), a dark room lighting as the party walks in (the black leaving it), a room
-## behind the party refilling and going black, a side path (its gate being
-## opened, its cache opening, and a gate nobody can open), the shop, the area map with two areas
-## open and the rest closed, a journey
-## to the Claypits and the arrival there (with the map open on the way), the four areas' looks in
-## turn, the knight's talent tree (a node taken and a path chosen) and the report after time away.
+## behind the party refilling and going black, a side path (its gate being opened, its cache
+## opening, and a gate nobody can open), the shop, the area map with two areas open and the rest
+## closed, a journey to the Claypits and the arrival there (with the map open on the way), the four
+## areas' looks in turn, the knight's talent tree (a node taken and a path chosen) and the report
+## after time away.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -32,6 +32,7 @@ signal finished
 ## calls _watch_x there.
 const ROWS: Array[Array] = [
 	[&"travelling", "TRAVELLING IN A TUNNEL", 1.0, &"", &"travelling"],
+	[&"chat_bubble", "A CHAT BUBBLE OVER A WALKING HERO", 1.5, &"chat_bubble", &"chat_bubble"],
 	[&"crit", "A FIGHT WITH A CRIT", 1.2, &"", &"crit"],
 	[&"monster_death", "A MONSTER DIES: COINS AND XP", 1.2, &"", SimEvent.Kind.GOLD_GAINED],
 	[&"heal", "THE CLERIC HEALS", 1.2, &"", &"heal"],
