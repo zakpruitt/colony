@@ -77,11 +77,13 @@ const ACROSS: float = 2.0 / 3.0
 const STAND_SECONDS: float = 0.6
 const STEP_SECONDS: float = 0.15
 ## The rune overlays of a stone, one more lit for each quarter of the work.
-const RUNES: int = 4
-## The pixel size of the times sign drawn after the name when several work.
+const RUNES: Array[StringName] = [&"rune_1", &"rune_2", &"rune_3", &"rune_4"]
+## A walking wanderer's two steps.
+const STEPS: Array[StringName] = [&"walk_0", &"walk_1"]
 ## The times sign in [method worker_label]'s text. It is never drawn with the font, which has
 ## no glyph for it: [method _draw_overlay] draws a cross.
 const TIMES: String = "\u00d7"
+## The pixel size of the times sign drawn after the name when several work.
 const TIMES_SIZE: int = 3
 
 var _world: World
@@ -112,6 +114,11 @@ var _name: String = ""
 var _name_at: Vector2 = Vector2.ZERO
 var _skill: String = ""
 var _skill_width: int = 0
+## While several work: the count as text, the space before the cross, and the width of all
+## that follows the name (worked out when the count changes, not on each redraw).
+var _count_text: String = ""
+var _space_width: int = 0
+var _tail_width: int = 0
 var _count: int = 0
 ## The glints of the props out of the party's light.
 var _glints: PropGlints
@@ -167,7 +174,7 @@ func overlay_of(depth: int, chamber_index: int) -> StringName:
 	var shown: Shown = _shown_at(Vector2i(depth, chamber_index))
 	if shown == null or shown.runes == null or not shown.runes.visible:
 		return &""
-	return StringName(shown.runes.name.to_lower())
+	return RUNES[shown.runes_lit - 1]
 
 
 ## The sprites of the dressing round that chamber's prop.
@@ -401,39 +408,45 @@ func _open_gate(delta: float, gate: Vector2) -> void:
 func _light_runes(working: Shown, progress: float) -> void:
 	if working.runes == null:
 		return
-	var lit: int = mini(floori(progress * RUNES), RUNES)
+	var lit: int = mini(floori(progress * RUNES.size()), RUNES.size())
 	working.runes.visible = lit > 0
-	if lit > 0:
-		var part := StringName("rune_%d" % lit)
-		if working.runes.name != String(part):
-			working.runes.name = String(part)
-			var sheet: PixelSheet = sheet_of(STONE)
-			working.runes.texture = sheet.part(working.looks.part_name(part))
+	if lit > 0 and working.runes_lit != lit:
+		working.runes_lit = lit
+		var sheet: PixelSheet = sheet_of(STONE)
+		working.runes.texture = sheet.part(working.looks.part_name(RUNES[lit - 1]))
 
 
 ## Moves the done props on: a mended wanderer stands, then walks off the way the party came and
 ## goes once out of its room. A done prop on a stage the world no longer shows goes.
 func _advance_done(delta: float) -> void:
-	for key: Vector2i in _done.keys():
+	if _done.is_empty():
+		return
+	var gone: Array[Vector2i] = []
+	var stage: int = _world.shown_stage()
+	var catching_up: bool = _world.catching_up()
+	for key: Vector2i in _done:
 		var shown: Shown = _done[key]
-		if key.x != _world.shown_stage():
-			_free(shown)
-			_done.erase(key)
+		if key.x != stage:
+			gone.append(key)
 			continue
 		if shown.way == 0:
+			continue
+		if catching_up:
+			gone.append(key)  # a wanderer leaving: the picture jumps on past it
 			continue
 		shown.since += delta
 		if shown.since < STAND_SECONDS:
 			continue
 		var walked: float = shown.since - STAND_SECONDS
-		var step: int = floori(walked / STEP_SECONDS) % 2
-		_show_part(shown, StringName("walk_%d" % step))
+		_show_part(shown, STEPS[floori(walked / STEP_SECONDS) % STEPS.size()])
 		shown.sprite.flip_h = shown.way < 0
 		shown.sprite.position.x += shown.way * World.WALK_SPEED * delta * maxi(_world.speed, 1)
 		var x: float = shown.sprite.position.x
 		if x < shown.room.x or x > shown.room.y:
-			_free(shown)
-			_done.erase(key)
+			gone.append(key)
+	for key: Vector2i in gone:
+		_free(_done[key])
+		_done.erase(key)
 
 
 func _on_sim_event(event: SimEvent) -> void:
@@ -511,8 +524,7 @@ func _add(key: Vector2i, quest: StringName) -> void:
 	shown.looks = QuestLooks.choose(
 		view.area, key.x, key.y, quest, at, floor_span(view, key.x, key.y)
 	)
-	var room: LabyrinthChamber = _simulation.labyrinth.level(key.x).chambers[key.y]
-	shown.room = Vector2(room.rect.position.x, room.rect.end.x) * World.TILE
+	shown.room = floor_span(view, key.x, key.y)
 	var made := Sprite2D.new()
 	made.name = String(quest)
 	made.centered = false
@@ -526,7 +538,7 @@ func _add(key: Vector2i, quest: StringName) -> void:
 	_show_part(shown, waiting)
 	if quest == STONE:
 		var runes := Sprite2D.new()
-		runes.name = "rune_0"
+		runes.name = "Runes"
 		runes.centered = false
 		runes.offset = made.offset
 		runes.flip_h = made.flip_h
@@ -603,6 +615,10 @@ func _set_overlay(fraction: float, words: String, count: int = 0) -> void:
 		_count = count
 		_skill_width = PixelText.width(words)
 		_name = words if count < 2 or words.is_empty() else "%s %s%d" % [words, TIMES, count]
+		_count_text = str(count) if count >= 2 else ""
+		_space_width = PixelText.width(" ") if count >= 2 else 0
+		var number: int = PixelText.width(_count_text)
+		_tail_width = _space_width + TIMES_SIZE + 1 + number if count >= 2 else 0
 	if fraction < 0.0:
 		_name = ""
 		_skill = ""
@@ -626,10 +642,9 @@ func _draw_overlay() -> void:
 	if _skill.is_empty():
 		return
 	# The pixel font has no times sign: it is a small drawn cross before the number.
-	var count: String = str(_count) if _count >= 2 else ""
-	var space: int = PixelText.width(" ") if _count >= 2 else 0
-	var tail: int = space + TIMES_SIZE + 1 + PixelText.width(count) if _count >= 2 else 0
-	var width: int = _skill_width + tail
+	var count: String = _count_text
+	var space: int = _space_width
+	var width: int = _skill_width + _tail_width
 	var left := Vector2(_name_at.x - floorf(width / 2.0), _name_at.y)
 	var shadow := Vector2(PixelText.SHADOW_OFFSET, PixelText.SHADOW_OFFSET)
 	var amber: Color = Palette.color(&"amber")
@@ -665,5 +680,7 @@ class Shown:
 	## does not).
 	var since: float = 0.0
 	var way: int = 0
-	## The room's left and right walls, in world pixels.
+	## The left and right walls of the room's open floor, in world pixels.
 	var room: Vector2 = Vector2.ZERO
+	## The runes lit over a stone (0 to 4).
+	var runes_lit: int = 0

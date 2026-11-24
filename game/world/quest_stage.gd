@@ -11,8 +11,9 @@ extends RefCounted
 ##
 ## Made by [World], which calls [method update] each frame before it moves the heroes, chains
 ## [method goal_for] in its [code]_follow[/code] as it chains [method CampView.goal_for], and
-## reads [method sits] and [method facing_of] as it poses them. Everything is read from the
-## simulation's state each frame, so a catch-up needs nothing more.
+## reads [method sits] and [method facing_of] as it poses them. Everything comes from the
+## simulation's state, so a catch-up needs nothing more; the stage is worked out again only when
+## the work changes (its chamber, its quest, its lead or who is alive), not every frame.
 
 ## Pixels a third or a fourth worker stands behind the lead or the second.
 const BEHIND: float = 7.0
@@ -28,6 +29,13 @@ var _workers: Array[int] = []
 var _spots: Dictionary[int, Vector2] = {}
 ## The living heroes who watch.
 var _watching: Dictionary[int, bool] = {}
+## What the stage was worked out for: the area, the chamber, the quest, the lead and the living
+## heroes (a bit per party slot); the quest is &"" while none is worked.
+var _for_key: Vector2i = Vector2i(0, -1)
+var _for_quest: StringName = &""
+var _for_lead: int = -1
+var _for_living: int = 0
+var _for_area: StringName = &""
 
 
 func setup(world: World, simulation: Simulation) -> void:
@@ -36,17 +44,31 @@ func setup(world: World, simulation: Simulation) -> void:
 
 
 ## Reads the simulation's state for this frame: who works, where each stands, who watches.
+## Cheap when nothing has changed: it compares a few numbers and returns.
 func update() -> void:
+	var run: Expedition = _simulation.expedition
+	var quest: StringName = run.working_quest()
+	var key: Vector2i = _world.quest_props.party_chamber() if quest != &"" else Vector2i(0, -1)
+	var lead: int = run.worker_id() if quest != &"" else -1
+	var living: int = 0
+	var heroes: Array[Hero] = _simulation.party.heroes
+	for i: int in heroes.size():
+		if heroes[i].is_alive():
+			living |= 1 << i
+	var area: StringName = _world.labyrinth_view.area
+	var same_work: bool = key == _for_key and quest == _for_quest and lead == _for_lead
+	if same_work and living == _for_living and area == _for_area:
+		return
+	_for_area = area
+	_for_key = key
+	_for_quest = quest
+	_for_lead = lead
+	_for_living = living
 	_spots.clear()
 	_watching.clear()
 	_workers.clear()
-	var run: Expedition = _simulation.expedition
-	_working = run.working_quest() != &""
+	_working = quest != &"" and key.y >= 0
 	if not _working:
-		return
-	var key: Vector2i = _world.quest_props.party_chamber()
-	if key.y < 0:
-		_working = false
 		return
 	_prop = _world.quest_props.spot(key.x, key.y)
 	_workers.assign(QuestWork.workers(run))
