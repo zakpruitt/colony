@@ -33,7 +33,6 @@ const QUEST_OF: Dictionary[StringName, StringName] = {
 	&"quest_stone": &"rune_stone",
 	&"quest_wire": &"tripwire",
 	&"two_clerics": &"hurt_wanderer",
-	&"quest_wanderer": &"hurt_wanderer",
 	&"quest_missed": &"locked_chest",
 	&"tripwire_sprung": &"tripwire",
 	&"microskill_learned": &"rune_stone",
@@ -44,10 +43,10 @@ const QUEST_DEPTH: int = 2
 const QUEST_LEVEL: int = 6
 const QUEST_SEARCH: int = 40
 ## Seconds of a quest's work the showcase lets run once the work begins.
-const QUEST_WORK_LEFT: float = 2.0
+const QUEST_WORK_LEFT: float = 4.0
 ## The moments in which every hero can do every quest; in the others the rogue cannot.
 const QUESTS_DONE: Array[StringName] = [
-	&"quest_chest", &"quest_door", &"quest_stone", &"quest_wire", &"two_clerics", &"quest_wanderer"
+	&"quest_chest", &"quest_door", &"quest_stone", &"quest_wire", &"two_clerics"
 ]
 ## The rogue's id, and the level of its first microskill.
 const ROGUE: int = 2
@@ -132,6 +131,8 @@ var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
 ## The hero the second cleric stands in for, while it does; null otherwise.
 var _stood_down: Hero = null
+## The two clerics' moment: true once both stand at their spots (and the work was hurried).
+var _both_at_work: bool = false
 
 
 ## Begins moment [param current] as its row's [param how] says (&"" for nothing to do).
@@ -238,10 +239,7 @@ func _begin_guardian(_current: StringName) -> void:
 
 func _begin_quest(current: StringName) -> void:
 	var sim: Simulation = main.simulation
-	var mending: bool = sim.expedition.working_quest() == QUEST_OF[&"quest_wanderer"]
-	if current == &"quest_wanderer" and mending:
-		_hurry_work()  # the two clerics' work goes on, hurried only once both are at it
-		return
+	_both_at_work = false
 	settle_now()
 	_stand_up(current == &"two_clerics")
 	for hero: Hero in sim.party.heroes:
@@ -550,8 +548,12 @@ func _watch_quest_done(event: SimEvent) -> void:
 		_seen = true
 
 
-## Seen once two or more work a quest, each at its spot.
-func _watch_both_work(_event: SimEvent) -> void:
+## Seen when the quest is done after two or more worked it, each at its spot. The work is
+## hurried only once they all stand there, so the last to walk round the prop is seen at it.
+func _watch_both_mend(event: SimEvent) -> void:
+	if _both_at_work:
+		_watch_quest_done(event)
+		return
 	var stage: QuestStage = main.world.quest_stage
 	var workers: Array[int] = stage.workers()
 	if workers.size() < 2:
@@ -561,7 +563,8 @@ func _watch_both_work(_event: SimEvent) -> void:
 		var spot: Vector2 = stage.goal_for(id, Vector2.INF)
 		if sprite == null or sprite.position.distance_to(spot) > QuestProps.ARRIVED:
 			return
-	_seen = true
+	_both_at_work = true
+	_hurry_work()
 
 
 func _watch_learned(event: SimEvent) -> void:

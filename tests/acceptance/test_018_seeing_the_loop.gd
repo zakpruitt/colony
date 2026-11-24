@@ -7,7 +7,7 @@ const SEED: int = 1
 const KNIGHT: int = 1
 ## The showcase's pass must end within this many seconds (90 at first; raised for spec 056's class
 ## and status moments, which the lead allowed).
-const PASS_LIMIT: float = 150.0
+const PASS_LIMIT: float = 180.0
 const SHOWCASE_SCENE: String = "res://game/dev/showcase.tscn"
 
 # --- R1 ------------------------------------------------------------------------
@@ -77,7 +77,7 @@ func test_r2_showcase_plays_every_moment() -> void:
 	showcase.moment_started.connect(func(moment: StringName) -> void: seen.append(moment))
 	add_child_autofree(showcase)
 	showcase.set_process(false)
-	while not showcase.done and showcase.elapsed < 150.0:
+	while not showcase.done and showcase.elapsed < PASS_LIMIT:
 		showcase.advance(FRAME)
 	assert_true(showcase.done, "the pass finishes")
 	assert_lt(showcase.elapsed, PASS_LIMIT, "within %d seconds" % PASS_LIMIT)

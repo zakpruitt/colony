@@ -22,7 +22,6 @@ const ROWS: Dictionary[StringName, StringName] = {
 	&"quest_door": &"stuck_door",
 	&"quest_stone": &"rune_stone",
 	&"quest_wire": &"tripwire",
-	&"quest_wanderer": &"hurt_wanderer",
 }
 const TWO_CLERICS: StringName = &"two_clerics"
 ## Each quest's states as R4 names them.
@@ -422,7 +421,7 @@ func test_r8_the_showcase_shows_each_quest() -> void:
 	showcase.set_process(false)
 	var workers: int = 0
 	for moment: StringName in [
-		&"quest_chest", &"quest_door", &"quest_stone", &"quest_wire", TWO_CLERICS, &"quest_wanderer"
+		&"quest_chest", &"quest_door", &"quest_stone", &"quest_wire", TWO_CLERICS
 	]:
 		showcase.skip_to(moment)
 		var limit: float = showcase.elapsed + 30.0

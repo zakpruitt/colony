@@ -59,9 +59,7 @@ const ROWS: Array[Array] = [
 	[&"quest_door", "A QUEST: THE KNIGHT FORCES A DOOR", 1.0, &"quest", &"quest_done"],
 	[&"quest_stone", "A QUEST: THE MAGE READS A RUNE STONE", 1.0, &"quest", &"quest_done"],
 	[&"quest_wire", "A QUEST: THE ROGUE DISARMS A TRIPWIRE", 1.0, &"quest", &"quest_done"],
-	# The second row goes on with the first's work: the wanderer mended walks off.
-	[&"two_clerics", "TWO CLERICS MEND A WANDERER", 0.5, &"quest", &"both_work"],
-	[&"quest_wanderer", "A QUEST: THE WANDERER IS MENDED", 1.0, &"quest", &"quest_done"],
+	[&"two_clerics", "TWO CLERICS MEND A WANDERER", 1.0, &"quest", &"both_mend"],
 	[&"quest_missed", "A QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
 	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
 	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
