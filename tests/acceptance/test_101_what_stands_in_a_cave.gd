@@ -148,11 +148,12 @@ func _in_the_way(
 			var mouth_top: float = (tunnel.position.y - 1) * TILE
 			found["mouth"].append(Rect2(beside * TILE, mouth_top, TILE, floor_px - mouth_top))
 	if room.index >= 0:
-		var middle: float = floorf((rect.position.x + rect.end.x) / 2.0)
-		for path: String in QuestProps.SHEETS.values():
-			found["quest"].append(
-				_stood(PixelSheet.load_sheet(path), Vector2(middle * TILE, floor_px))
-			)
+		# Spec 106: the prop's spot, and the dressing round it, whichever quest it holds.
+		var spot: Vector2 = QuestProps.spot_in(view, level.depth, room.index)
+		for quest: StringName in QuestProps.SHEETS:
+			found["quest"].append(_stood(PixelSheet.load_sheet(QuestProps.SHEETS[quest]), spot))
+			var looks: QuestLooks = QuestProps.looks_in(view, level.depth, room.index, quest)
+			found["quest"].append_array(looks.dressing_rects(spot))
 	for prop: AmbienceProp in props_of(dressed, room, false):
 		found["prop"].append(prop.rect)
 	for torch: AmbienceProp in dressed.torches + dressed.cache_torches:
