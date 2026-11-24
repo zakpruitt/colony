@@ -1,6 +1,6 @@
 # 106 — The quest's stage
 
-- **Status:** approved (2026-11-24)
+- **Status:** in-progress
 - **Milestone:** M0
 - **Depends on:** 028, 100, 102, 103, 104, 105
 - **Pull request:** —
@@ -63,6 +63,7 @@ Spec 107 then gives each worker their own way of doing the job, and gives the sc
 - **R8. The showcase shows each quest.**
   - The `quest_done` row is replaced by one row for each of the five quests ("A QUEST: …"), each seen at its `QUEST_DONE`.
   - One more row, "TWO CLERICS MEND A WANDERER", sets up two clerics and is seen while both work.
+  - Quest moments keep spec 104's hurry: `ShowcaseMoments._hurry_work` leaves `QUEST_WORK_LEFT` seconds of work once a quest begins. That may rise to 4 s so the workers are seen walking over and the others sitting down, as long as `test_018`'s whole showcase pass still fits its limit, which this spec does not change. If it cannot fit, stop and report.
 
 - **R9. Each room's quest looks a little different.** Two chests in two rooms should not look like copies.
   - Each prop sheet has **3 looks**, each with every part R4 lists for that quest:

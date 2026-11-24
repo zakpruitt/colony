@@ -1,9 +1,9 @@
 # 104 — The skilled party works, and it takes time
 
-- **Status:** in-progress
+- **Status:** landed
 - **Milestone:** M0
 - **Depends on:** 025, 093, 103
-- **Pull request:** —
+- **Pull request:** [#104](https://github.com/zakpruitt/colony/pull/104)
 
 Status is one of `draft`, `approved (YYYY-MM-DD)`, `provisional`, `in-progress`, `landed`.
 
