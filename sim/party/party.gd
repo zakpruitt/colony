@@ -70,6 +70,16 @@ func hero_with_microskill(id: StringName) -> Hero:
 	return found
 
 
+## Every living hero with this microskill, in ascending id order.
+func heroes_with_microskill(id: StringName) -> Array[Hero]:
+	var found: Array[Hero] = []
+	for h: Hero in heroes:
+		if h.is_alive() and h.has_microskill(id):
+			found.append(h)
+	found.sort_custom(func(a: Hero, b: Hero) -> bool: return a.id < b.id)
+	return found
+
+
 ## The party's state as plain values, for the simulation's state hash.
 func hash_parts() -> Array:
 	var parts: Array = [gold]

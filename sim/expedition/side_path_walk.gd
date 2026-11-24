@@ -143,6 +143,7 @@ func work(run: Expedition) -> void:
 	run._emit(SimEvent.Kind.GATE_OPENED, run._worker, gate, run.side_path)
 	_gate_open = true
 	run._worker = -1
+	run._workers = []
 	run.state = Expedition.State.TRAVELLING
 
 
@@ -207,6 +208,7 @@ func _start_work(run: Expedition, path: SidePath) -> void:
 	_opener = hero.id
 	run.state = Expedition.State.WORKING
 	run._worker = hero.id
+	run._workers = [hero.id]
 	run._work_start = run._tick
 	run._work_ticks = Combatant.seconds_to_ticks(def.work_seconds)
 	var gate: int = Content.gate_ids().find(path.gate)

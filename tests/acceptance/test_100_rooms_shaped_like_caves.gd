@@ -22,7 +22,8 @@ const EMBER: StringName = &"ember_deep"
 const AREAS: Array[StringName] = [MOSSY, CLAY, CRYPT, EMBER]
 ## R1: `Simulation.state_hash()` of a winding game after 5 game minutes, by seed, recorded on
 ## `dev` at 0847f61.
-const RECORDED_HASHES: Dictionary[int, int] = {1: 2922150097, 2: 3388009046, 3: 3466308177}
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
+const RECORDED_HASHES: Dictionary[int, int] = {1: 2264431711, 2: 2383618878, 3: 2535858815}
 const NEAR: Array[Vector2i] = [
 	Vector2i(-1, -1),
 	Vector2i(0, -1),

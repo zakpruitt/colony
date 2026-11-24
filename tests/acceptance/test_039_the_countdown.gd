@@ -13,19 +13,20 @@ const GUARDIAN_DEPTH: int = 5
 ## this spec (R5).
 ## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
 ## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
 const RECORDED_HASHES: Dictionary = {
 	7:
 	[
 		2894827325,
 		1945528636,
-		1128693549,
-		1276362820,
-		2139888516,
-		1167871002,
-		1988223463,
-		625401331,
-		455972621,
-		3181058316,
+		3118677635,
+		1550622442,
+		1680118055,
+		1451778370,
+		2373762612,
+		1212175059,
+		1901514851,
+		3541346057,
 	],
 	39:
 	[
@@ -34,11 +35,11 @@ const RECORDED_HASHES: Dictionary = {
 		2065065973,
 		2243162567,
 		1931022560,
-		444176140,
-		3351257073,
-		3374559654,
-		2868346502,
-		3505079905,
+		2238887718,
+		1702414982,
+		1681896107,
+		240244308,
+		3264276818,
 	],
 }
 

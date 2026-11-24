@@ -123,11 +123,12 @@ var _rolled: Dictionary[Vector3i, Array] = {}
 ## The caches opened, and the party's trip down a side path.
 var _side: SidePathWalk = SidePathWalk.new()
 ## The quest being done while WORKING: its chamber as Vector2i(depth, index), its id, the
-## worker's hero id, the tick the work began and how many ticks it takes. A gate being opened
-## has the last three and no quest.
+## lead worker's hero id, every worker's (lead first), the tick the work began and how many
+## ticks it takes. A gate being opened has the last four and no quest.
 var _work_key: Vector2i = Vector2i(0, -1)
 var _work_quest: StringName = &""
 var _worker: int = -1
+var _workers: Array[int] = []
 var _work_start: int = 0
 var _work_ticks: int = 0
 var _battle_count: int = 0
@@ -393,6 +394,9 @@ func hash_parts() -> Array:
 		_work_ticks,
 		["areas", area, _here.id, _areas.hash_parts()],
 	]
+	# Left out while nobody works, so a run that never works hashes as it would without them.
+	if not _workers.is_empty():
+		parts.append(["workers", _workers])
 	parts.append_array(_side.hash_parts(self))
 	var keys: Array[Vector2i] = []
 	keys.assign(_chambers.keys())

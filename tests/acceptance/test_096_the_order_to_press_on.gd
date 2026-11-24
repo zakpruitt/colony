@@ -18,9 +18,10 @@ const GATE_KINDS: Array[SimEvent.Kind] = [
 ]
 ## The state hash of seed 3's winding game, its party raised to level 12, after 3000 ticks with
 ## no order given, recorded on the code before this spec.
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
 const HASH_SEED: int = 3
 const HASH_TICKS: int = 3000
-const EXPLORE_HASH: int = 2998448915
+const EXPLORE_HASH: int = 3549241326
 const SAVED: Array[String] = ["explore", "press_on"]
 const NAMES: Array[String] = ["Explore", "Press on"]
 const LINES: Array[String] = [

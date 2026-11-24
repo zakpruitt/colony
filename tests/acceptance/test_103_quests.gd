@@ -21,7 +21,8 @@ const OLD_SAVE: String = (
 )
 ## The steps played from that save, and the hash they gave on the code before the rename.
 const OLD_SAVE_STEPS: int = 600
-const OLD_SAVE_HASH: int = 96563266
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
+const OLD_SAVE_HASH: int = 1594568790
 ## The folders whose scripts and resources must not say "side quest", and the one line allowed to.
 const CHECKED_FOLDERS: Array[String] = ["res://sim", "res://game", "res://data"]
 const FORK_LABEL: String = '"sidequest/"'
@@ -144,8 +145,11 @@ func test_r4_quests_and_gates_are_jobs() -> void:
 	assert_eq(jobs.size(), Content.quest_ids().size() + Content.gate_ids().size())
 	for job: Resource in jobs:
 		assert_true(job is JobDef, "%s is a JobDef" % job.resource_path)
+		if job is QuestDef:
+			assert_eq((job as JobDef).work_range(), Vector2(8.0, 18.0), "a quest: 8 to 18 seconds")
+		elif job is JobDef:
+			assert_eq((job as JobDef).work_range(), Vector2(3.0, 6.0), "a gate: 3 to 6 seconds")
 		if job is JobDef:
-			assert_eq((job as JobDef).work_range(), Vector2(3.0, 6.0), "3 to 6 seconds")
 			assert_eq((job as JobDef).validate(), PackedStringArray(), "and sound")
 	var quest: QuestDef = Content.quest(Content.quest_ids()[0]).duplicate()
 	var gate: GateDef = Content.gate(Content.gate_ids()[0]).duplicate()
@@ -158,12 +162,15 @@ func test_r4_quests_and_gates_are_jobs() -> void:
 		var none: JobDef = job.duplicate()
 		none.microskill = &""
 		assert_eq(none.validate(), PackedStringArray(["microskill is empty"]), "no microskill")
-		for seconds: float in [9.0, 2.5]:
+		var span: Vector2 = job.work_range()
+		for seconds: float in [span.y + 3.0, span.x - 0.5]:
 			var slow: JobDef = job.duplicate()
 			slow.work_seconds = seconds
 			assert_eq(
 				slow.validate(),
-				PackedStringArray(["work_seconds %s is outside 3.0 to 6.0" % seconds]),
+				PackedStringArray(
+					["work_seconds %s is outside %s to %s" % [seconds, span.x, span.y]]
+				),
 				"work out of range"
 			)
 		var unnamed: JobDef = job.duplicate()
