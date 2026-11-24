@@ -30,9 +30,16 @@ description: For the lead session - spawn an implementer lane for an approved Co
 
 ## Merge
 
-- Approved spec, CI green, no must-fix findings: `gh pr merge <n> --squash` into `dev`, then
-  `git push origin --delete <branch>` (`--delete-branch` fails on the local branch while the lane's worktree
-  holds it, after the merge has already happened). One feature is one squashed commit.
+- Approved spec, CI green, no must-fix findings: `gh pr merge <n> --squash` into `dev`. One feature is one
+  squashed commit.
+- **Right after the merge, destroy the feature branch everywhere** (Zak, 2026-11-24): nothing of a merged
+  lane stays behind.
+  - `git push origin --delete <branch>`. `--delete-branch` fails on the local branch while the lane's
+    worktree holds it, after the merge has already happened.
+  - `git worktree unlock <path>` (an agent's worktree is locked), then `git worktree remove --force <path>`.
+    First check that `git -C <path> status --porcelain` is empty: ignored files such as `.godot/` and
+    `.shots/` are why `--force` is needed.
+  - `git branch -D <branch>`, and the `worktree-agent-…` branch the harness made, if one is left.
 - Provisional spec: merge to `dev` the same way only while Zak has authorised an autonomous run (see
   `specs/README.md`); otherwise leave the pull request open for him. Never merge anything to `main`: Zak
   promotes `dev` after a playtest.
