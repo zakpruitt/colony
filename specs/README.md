@@ -149,7 +149,7 @@ is made for the game alone first (092) and the tests follow as their own work.
 | Spec | Status | Depends on |
 |---|---|---|
 | 102 | [A camp when they rest, and a revival you can see](102-a-camp-when-they-rest/spec.md) (a fire and bedrolls, heroes sit facing the fire; a hero fallen in a won fight rises at camp; one light-and-sparks effect for every revival): landed on dev, [#102](https://github.com/zakpruitt/colony/pull/102), provisional | 012, 038, 048, 057, 076, 097 |
-| 103 | [Quests](103-quests/spec.md) ("side quests" become quests in words, code and data; quests and gates are kinds of one `JobDef`; nothing the game does changes): approved | 025, 093 |
+| 103 | [Quests](103-quests/spec.md) ("side quests" become quests in words, code and data; quests and gates are kinds of one `JobDef`; nothing the game does changes): in progress | 025, 093 |
 | 104 | [The skilled party works, and it takes time](104-the-skilled-party-works/spec.md) (quests take 10 to 15 s; every hero with the microskill works, each helper shortening it): approved | 103 |
 | 105 | [Chat bubbles](105-chat-bubbles/spec.md) (a line over a character's head, sharp on the UI layer, following them; `World.say`): approved | 103 |
 | 106 | [The quest's stage](106-the-quest-stage/spec.md) (the prop on the far side, every worker at it, the rest sit; props that open, light and walk off; three looks, a tint and dressing so each room differs): approved | 104, 105 |

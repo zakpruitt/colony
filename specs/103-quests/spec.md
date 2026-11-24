@@ -1,6 +1,6 @@
 # 103 — Quests
 
-- **Status:** approved (2026-11-24)
+- **Status:** in-progress
 - **Milestone:** M0
 - **Depends on:** 025, 093
 - **Pull request:** —
