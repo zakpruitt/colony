@@ -211,6 +211,7 @@ func _start_play() -> void:
 	_show_clock()
 	_save_in = SAVE_SECONDS
 	ui.setup(simulation, hud, settings)
+	world.bubbles = ui.bubbles  # what characters say, on the sharp layer
 	ui.moment.world = world  # moments only for what just happened, with their sounds
 	ui.moment.sound = sound
 	ui.moment.keep_clear = [hud.goals_view, hud.ladder] as Array[Control]

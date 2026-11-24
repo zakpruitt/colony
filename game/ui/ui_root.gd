@@ -14,8 +14,8 @@ extends CanvasLayer
 ## [constant MIN_ROOM] of room, so the room is between 960x540 and about 1280x720.
 ##
 ## Everything on the layer is a child of [member frame], a [Control] as big as [method room] that
-## carries the theme ([UiTheme]). Windows ([member windows]) and the button bar ([member bar]) are
-## made by [method setup].
+## carries the theme ([UiTheme]). Windows ([member windows]), the button bar ([member bar]) and the
+## bubbles characters speak in ([member bubbles]) are made by [method setup].
 
 ## The world's own size in its pixels; the window is a whole multiple of it.
 const WORLD_SIZE: Vector2i = Vector2i(640, 360)
@@ -46,6 +46,9 @@ var bar: UiButtonBar
 var hero_windows: HeroWindows
 ## The keys the front window answers, made by [method setup] when there is a HUD.
 var keys: WindowKeys
+## The lines characters say, over the frame of the screen and under the bar and every window,
+## made by [method setup].
+var bubbles: SpeechBubbles
 
 ## The windows on the bar as [WindowBook] lists them, each with a window, made by
 ## [method setup].
@@ -124,6 +127,9 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 	if hud != null:  # the frame of the screen, under everything else on the layer
 		_hud = hud
 		hud.adopt_frame(self)
+	bubbles = SpeechBubbles.new()  # over the frame of the screen, under the bar and the windows
+	frame.add_child(bubbles)
+	bubbles.setup(self)
 	bar = UiButtonBar.new()
 	frame.add_child(bar)
 	frame.add_child(windows)  # over the bar
@@ -336,6 +342,8 @@ func _apply() -> void:
 		bar.fit_room(_room)
 	if moment != null:
 		moment.fit_room(_room)
+	if bubbles != null:
+		bubbles.fit_room(_room)
 	if _hud != null:
 		_hud.fit_frame(_room)
 	if is_instance_valid(_away) and not _away.is_queued_for_deletion():
