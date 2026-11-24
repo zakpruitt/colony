@@ -38,6 +38,8 @@ const QUEST_DEPTH: int = 2
 ## deepest depth searched for a quest.
 const QUEST_LEVEL: int = 6
 const QUEST_SEARCH: int = 40
+## Seconds of a quest's work the showcase lets run once the work begins.
+const QUEST_WORK_LEFT: float = 2.0
 ## The rogue's id, and the level of its first microskill.
 const ROGUE: int = 2
 ## The hero that falls in the camp moment's fight (the mage) and gets up at the camp.
@@ -138,6 +140,8 @@ func watch(
 	_moment_time = moment_time
 	_since = since_seen
 	_seen = false
+	if event != null and event.kind == SimEvent.Kind.QUEST_STARTED and QUEST_OF.has(current):
+		_hurry_work()
 	call("_watch_%s" % how, event)
 	return _seen
 
@@ -493,6 +497,14 @@ func _watch_refill(event: SimEvent) -> void:
 		if _held_at < 0.0:
 			_held_at = run.x
 		run.x = _held_at
+
+
+## A quest's work, once begun, is left [constant QUEST_WORK_LEFT] seconds to run, so the pass
+## shows its end without waiting out the whole of it.
+func _hurry_work() -> void:
+	var run: Expedition = main.simulation.expedition
+	var left: int = Combatant.seconds_to_ticks(QUEST_WORK_LEFT)
+	run._work_start -= maxi(run._work_ticks - left, 0)
 
 
 func _watch_quest_done(event: SimEvent) -> void:
