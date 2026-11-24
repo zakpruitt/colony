@@ -130,6 +130,8 @@ Existing tests:
 
 - `test_028_seeing_side_quests.gd` checks the prop at the room's middle, a single worker's spot and the bar between the worker and the prop. Change those checks to R1, R2 and R7. Leave everything else in it.
 - `test_092_the_game_plays_winding_stages.gd` names the `quest_done` row; it follows R8.
+- `test_028`'s `test_r11_showcase` names the `quest_done` row as well; it follows R8.
+- `QuestProps.prop()` and `prop_count()` keep meaning the props of waiting quests. Done props are kept in their own table, read through `part_of` and `is_done`, and carry no glint. So `test_038`'s `test_r4_a_done_quest_loses_its_glint` and the null and count checks in `test_028` pass unchanged.
 
 For Zak's playtest, and for the lane's shots of every new showcase row at 1280x720 and `--ui-room=960x540`, with the props cropped and enlarged 3x:
 
@@ -157,6 +159,11 @@ For Zak's playtest, and for the lane's shots of every new showcase row at 1280x7
 - `tests/acceptance/test_028_seeing_side_quests.gd` (the spot, worker and bar checks)
 - `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (the `quest_done` row's name only)
 - `tests/support/play_fixture.gd` (only if a helper is shared)
+- Added on 2026-11-24 after the lane's question:
+  - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd`: `test_r5_props_and_the_fallen_are_in_their_room`'s prop-spot and bar-x checks only. They follow R1 and R7.
+  - `game/ambience/ambience_clearings.gd`: `standing()` (and `_middle` if it then goes unused) asks for the same spot `QuestProps` uses, and keeps decorations clear of the R9 dressing too.
+    - That spot comes from one static function, for example `QuestProps.spot_in(labyrinth_view, simulation, depth, chamber)` or the same function on `QuestLooks`, so the prop and the clearing cannot disagree.
+    - Decorations must not overlap a prop or its dressing.
 - `docs/architecture.md` (World's children), `docs/wiki/index.html`
 
 ## Open questions
