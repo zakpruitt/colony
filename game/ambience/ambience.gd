@@ -23,6 +23,10 @@ const DARKNESS_Z: int = 100
 const PARTY_CORE: float = 58.0
 const PARTY_RADIUS: float = 100.0
 const PARTY_ENERGY: float = 0.9
+## The camp's fire is tinted toward orange by this share, as the start room's campfire is, and
+## seeds its flicker with this.
+const CAMP_ORANGE: float = 0.3
+const CAMP_LIGHT_SEED: int = 7177
 
 ## Where the party's light is, in world pixels. Whoever owns the party sets it every frame.
 var party_light_position: Vector2
@@ -36,6 +40,11 @@ var _seen_at: int = -1
 ## The lit lights, listed again only when [member AmbienceRooms.changes] has moved on.
 var _lights: Array[AmbienceLight] = []
 var _lights_at: int = -1
+## The light of the party's camp fire, made at the first camp, and whether it burns now.
+var _camp_light: AmbienceLight
+var _camp_lit: bool = false
+## Seconds since the ambience began: the camp fire flickers by it.
+var _time: float = 0.0
 
 var _view: LabyrinthView
 var _levels: Dictionary[int, AmbienceLevel] = {}
@@ -82,6 +91,9 @@ func advance(delta: float) -> void:
 		_zone = key
 		_darkness.set_zone(look)
 	_party_light.position = party_light_position
+	_time += delta
+	if _camp_lit:
+		_camp_light.advance(_time)
 	rooms.advance(delta)
 	seen.advance(delta)
 	if _seen_at != seen.changes:
@@ -109,6 +121,33 @@ func follow_party(run: Expedition, stage: int, arrived: bool, quiet: bool, tick:
 		seen.follow(run.labyrinth.level(stage), _view.shapes(stage), rooms, rooms.at_once)
 	else:
 		seen.follow(null, null, rooms, rooms.at_once)
+
+
+## Lights the camp's fire at [param at] (world pixels), or puts it out with [param lit] false.
+func set_camp_light(at: Vector2, lit: bool) -> void:
+	if not lit:
+		if _camp_lit:
+			_camp_lit = false
+			_lights_at = -1
+		return
+	if _camp_light == null:
+		_camp_light = AmbienceLight.new(
+			&"campfire",
+			at,
+			AmbienceLevel.CAMPFIRE_RADIUS,
+			AmbienceLevel.CAMPFIRE_ENERGY,
+			Color.WHITE,
+			AmbienceLevel.CAMPFIRE_FLICKER,
+			CAMP_LIGHT_SEED
+		)
+	var look: ZoneLook = _view.zone_look() if _view != null else null
+	var band: int = look.band if look != null else 0
+	_camp_light.color = AmbienceMood.band_tint(band).lerp(Palette.color(&"orange"), CAMP_ORANGE)
+	_camp_light.position = at
+	_camp_light.advance(_time)
+	if not _camp_lit:
+		_camp_lit = true
+		_lights_at = -1
 
 
 ## How many lights there are, for tests and the budget of lights.
@@ -150,14 +189,16 @@ func built_depths() -> Array[int]:
 	return depths
 
 
-## Every light that is lit now: the party's, then each level's in its lit rooms. The ambience's
-## own list, the same one every time: read it, never change it.
+## Every light that is lit now: the party's, its camp fire's while it burns, then each level's in
+## its lit rooms. The ambience's own list, the same one every time: read it, never change it.
 func lights() -> Array[AmbienceLight]:
 	if _lights_at != rooms.changes:
 		_lights_at = rooms.changes
 		_lights.clear()
 		if _party_light != null:
 			_lights.append(_party_light)
+		if _camp_lit:
+			_lights.append(_camp_light)
 		for depth: int in _levels:
 			rooms.lit_lights(depth, _lights)
 	return _lights

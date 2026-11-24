@@ -113,6 +113,13 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
   timeout, so run only the guarded test, by hand, under `timeout` (`-gunit_test_name=<test>`). If `timeout`
   stops `godot_console`, the `godot.exe` under it keeps running: stop it by its process id (its command line
   names your worktree), never by name.
+- An event the expedition sends from a call a test makes directly (`_start_rest()`, `_place()`) sits in
+  the expedition until the next `Simulation.step()` moves it into the simulation's events, so a `World`
+  synced before that step sees the new state with no event (a rest found "late", not set up). Step the sim
+  once after such a call, then sync.
+- Code under `game/` that asks `World.catching_up()` must be listed in test_076's `CLEARING`, which only
+  allows clearing what runs. A view whose `animate` is called by the world gets a `catch_up()` the world
+  calls in a stalled frame instead (`CampView`).
 - When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
   line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
   Windows writes CRLF; when editing files from a script, read and write bytes.

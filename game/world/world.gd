@@ -10,7 +10,8 @@ extends Node2D
 ## [code]_process[/code] is turned off), so a test that calls [method sync] sees exactly what a
 ## frame would show.
 ##
-## Children, in draw order: the labyrinth view, the ambience, SideProps, QuestProps, Characters,
+## Children, in draw order: the labyrinth view, the ambience, SideProps, QuestProps, the Camp
+## (the party's while it rests), Characters,
 ## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## ZoneCrossing, which dims the screen between places, and UnseenEyes, the eyes of the monsters
 ## waiting in the black.
@@ -80,6 +81,8 @@ var target_marker: TargetMarker
 var quest_props: QuestProps
 ## The gates and caches of the side paths.
 var side_props: SideProps
+## The party's camp while it rests.
+var camp: CampView
 ## The fallen heroes, and the story of a wipe.
 var fallen_party: FallenParty
 ## The dimming and the title between places.
@@ -157,6 +160,10 @@ func _ready() -> void:
 	quest_props.name = "QuestProps"
 	add_child(quest_props)
 	quest_props.setup(self, simulation)
+	camp = CampView.new()
+	camp.name = "Camp"
+	add_child(camp)
+	camp.setup(self, simulation)
 	_characters = Node2D.new()
 	_characters.name = "Characters"
 	_characters.position = FEET_LIFT
@@ -287,6 +294,9 @@ func sync(delta: float) -> void:
 
 	_settle_heroes()
 	_remove_unwanted()
+	camp.animate(delta)  # before the heroes are given their places: a rest's are the camp's
+	if _catching_up:
+		camp.catch_up()
 	var game_delta: float = delta * maxi(speed, 1)
 	_follow(game_delta)
 	_act()
@@ -514,6 +524,14 @@ func _settle_heroes() -> void:
 			alive = false
 		if not alive and not sprite.is_dead():
 			_kill(sprite, not _snap_all)
+		elif alive and sprite.is_dead() and fallen_party.is_lying(hero.id):
+			# Fallen in a fight won, healed by the rest: it gets up where it lies, or, seen late,
+			# is simply up.
+			if expedition.state == Expedition.State.RESTING and not _snap_all:
+				fallen_party.rise_at_camp(hero.id)
+			else:
+				fallen_party.let_go(hero.id, sprite)
+				sprite.revive()
 		elif alive and sprite.is_dead() and not sprite.visible:
 			sprite.revive()
 
@@ -724,7 +742,8 @@ func _follow(delta: float) -> void:
 		if _monsters.has(id):
 			goal = Vector2(_monsters[id].x * TILE, _floors[id])
 		else:
-			goal = fallen_party.goal_for(id, quest_props.goal_for(id, _hero_feet(id)))
+			var standing: Vector2 = camp.goal_for(id, quest_props.goal_for(id, _hero_feet(id)))
+			goal = fallen_party.goal_for(id, standing)
 		_goals[id] = goal
 	_spacing.space(self, _goals)
 	for id: int in _sprites:
@@ -756,6 +775,7 @@ func _act() -> void:
 	var fighting: bool = expedition.state == Expedition.State.FIGHTING and expedition.battle != null
 	var ahead: int = PartyPlaces.world_facing(expedition)
 	var party_at: float = PartyPlaces.anchor(expedition).x * TILE
+	var camping: bool = expedition.state == Expedition.State.RESTING and camp.is_shown()
 	for id: int in _sprites:
 		var sprite: CharacterSprite = _sprites[id]
 		if sprite.is_dead():
@@ -764,6 +784,7 @@ func _act() -> void:
 		var moving: bool = gap.length() > MOVING_GAP
 		var facing: int = ahead
 		var walking: bool = moving
+		var sits: bool = false
 		if fighting and expedition.battle.combatant(id) != null:
 			var fighter: Combatant = expedition.battle.combatant(id)
 			walking = moving or fighter.state == Combatant.State.MOVING
@@ -772,6 +793,7 @@ func _act() -> void:
 			# Waiting: facing the side the party is on.
 			facing = 1 if party_at >= sprite.position.x else -1
 		else:
+			facing = camp.facing_of(id, ahead)
 			match expedition.state:
 				Expedition.State.TRAVELLING, Expedition.State.CLIMBING:
 					walking = true
@@ -779,6 +801,10 @@ func _act() -> void:
 					walking = false
 			if absf(gap.x) > MOVING_GAP:
 				facing = 1 if gap.x > 0.0 else -1
+			sits = camping and not moving and camp.sits(id)  # at its place by the fire
+		sprite.sitting = sits
+		if _snap_all:
+			sprite.snap_sit()
 		sprite.set_facing(facing)
 		if walking:
 			sprite.play_walk()

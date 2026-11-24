@@ -40,6 +40,8 @@ const QUEST_LEVEL: int = 6
 const QUEST_SEARCH: int = 40
 ## The rogue's id, and the level of its first microskill.
 const ROGUE: int = 2
+## The hero that falls in the camp moment's fight (the mage) and gets up at the camp.
+const FALLS: int = 3
 const FIRST_SKILL_LEVEL: int = 2
 ## How many tiles of course before a quest's chamber the party is put, at most, so the walk in
 ## shows.
@@ -106,6 +108,8 @@ var _tree_clicks: int = 0
 ## one was an action.
 var _moves_used: Dictionary[StringName, bool] = {}
 var _actions_used: bool = false
+## The camp moment: true once the fallen hero has been seen rising with the camp up.
+var _rose: bool = false
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
@@ -141,6 +145,10 @@ func _begin_level_up(_current: StringName) -> void:
 	# The front hero is one XP short of its next level: the next kill pays for it.
 	var hero: Hero = main.simulation.party.heroes[0]
 	hero.xp = Hero.xp_for_level(hero.level + 1) - 1
+
+
+func _begin_camp_rise(_current: StringName) -> void:
+	_rose = false
 
 
 func _begin_climb_down(_current: StringName) -> void:
@@ -374,9 +382,21 @@ func _watch_heal(event: SimEvent) -> void:
 		_seen = true
 
 
+## Seen once the camp is up.
 func _watch_resting(event: SimEvent) -> void:
 	if event == null and main.simulation.expedition.state == Expedition.State.RESTING:
-		_seen = true
+		_seen = main.world.camp.setup_share() >= 1.0
+
+
+## Seen once the fallen hero has risen with the camp up and sits by the fire.
+func _watch_camp_rise(event: SimEvent) -> void:
+	var world: World = main.world
+	if event != null or main.simulation.expedition.state != Expedition.State.RESTING:
+		return
+	if world.fallen_party.is_standing(FALLS) and world.camp.setup_share() >= 1.0:
+		_rose = true
+	var sprite: CharacterSprite = world.character(FALLS)
+	_seen = _rose and sprite != null and sprite.shown_sit() >= 1.0
 
 
 func _watch_climb(event: SimEvent) -> void:

@@ -1,7 +1,8 @@
 class_name Showcase
 extends Node
 ## A development scene that plays the loop's moments on demand, one after another, each labelled
-## on screen: travel, a crit, a kill, a heal, a level up, a rest, going on a stage and back (the
+## on screen: travel, a crit, a kill, a heal, a level up, a rest at its camp, a hero who fell in a
+## won fight getting up at the camp, going on a stage and back (the
 ## crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
 ## labelled with its statuses), side quests (one done, one nobody can do, a tripwire sprung and a
@@ -36,6 +37,7 @@ const ROWS: Array[Array] = [
 	[&"heal", "THE CLERIC HEALS", 1.2, &"", &"heal"],
 	[&"level_up", "A LEVEL UP", 1.2, &"level_up", SimEvent.Kind.LEVEL_UP],
 	[&"resting", "RESTING", 1.5, &"", &"resting"],
+	[&"camp_rise", "A HERO FALLS AND RISES AT CAMP", 1.5, &"camp_rise", &"camp_rise"],
 	[&"climb_down", "ON TO THE NEXT STAGE", 1.0, &"climb_down", &"climb"],
 	[&"climb_up", "BACK A STAGE", 1.0, &"climb_up", &"climb"],
 	[&"wipe", "THE PARTY IS WIPED", 1.8, &"wipe", SimEvent.Kind.PARTY_WIPED],
@@ -295,7 +297,7 @@ func _end_moment() -> void:
 					if fighter != null:
 						var own: Combatant = Combatant.from_hero(hero.def(), hero.level, hero.id)
 						fighter.crit_chance = own.crit_chance
-		&"resting":
+		&"resting", &"camp_rise":
 			# The rest has been seen: everyone is whole, and the party moves on.
 			for hero: Hero in sim.party.heroes:
 				hero.health = hero.max_health()
@@ -366,6 +368,17 @@ func _steer() -> void:
 			for monster: Combatant in battle.monsters:
 				if monster.is_alive():
 					monster.health = 1
+		&"camp_rise":
+			# One hero falls; once it lies there, the monsters fall too, and the fight is won.
+			var falls: Combatant = battle.combatant(ShowcaseMoments.FALLS)
+			if not _steered.has(key) and falls != null:
+				_steered[key] = true
+				falls.health = 0
+				main.simulation.party.hero(ShowcaseMoments.FALLS).health = 0
+			elif main.world.fallen_party.is_lying(ShowcaseMoments.FALLS):
+				for monster: Combatant in battle.monsters:
+					if monster.is_alive():
+						monster.health = 1
 
 
 func _on_sim_event(event: SimEvent) -> void:
@@ -391,7 +404,7 @@ func _walks_to_a_fight() -> bool:
 	if done or main.simulation.expedition.state != Expedition.State.TRAVELLING:
 		return false
 	var current: StringName = moment()
-	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting"]
+	return current in [&"crit", &"monster_death", &"heal", &"level_up", &"resting", &"camp_rise"]
 
 
 ## Puts every status on the fight's fighters through the battle's own rules (each with

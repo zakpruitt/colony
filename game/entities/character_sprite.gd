@@ -109,6 +109,21 @@ const HIT_SQUASH: float = 0.18
 const DEATH_TIME: float = 0.34
 const DEATH_POP_TIME: float = 0.07
 
+# Sitting.
+## Seconds the sitting pose takes to ease in, and out again.
+const SIT_TIME: float = 0.25
+## A sitting body's height as a share of its standing height (squashed about its feet), and how
+## many pixels it sinks besides: together they lower a hero's head by four pixels or so.
+const SIT_HEIGHT: float = 0.8
+const SIT_DROP: float = 1.0
+## How much wider a sitting body spreads, as a share of its width.
+const SIT_SPREAD: float = 0.06
+## How far a sitting character bows its head, and turns its arm and weapon to lay the weapon
+## down toward the floor behind it, in radians (positive turns forward, toward its facing).
+const SIT_BOW: float = 0.25
+const SIT_ARM: float = -0.2
+const SIT_WEAPON: float = -1.6
+
 ## How far apart in their cycles two characters created one after another start (a fraction of a
 ## cycle: the golden ratio spreads any number of them evenly).
 const PHASE_SPREAD: float = 0.618034
@@ -121,6 +136,8 @@ var held: bool = false
 ## The moves it performs for its abilities, laid over every other layer of its pose.
 ## Read it to see what is playing; start and end moves with [method play_move].
 var moves: CharacterMoves = CharacterMoves.new()
+## True to sit (eased in over SIT_TIME), false to stand (eased out). World sets it.
+var sitting: bool = false
 
 var _sheet: PixelSheet
 var _mirror: Node2D
@@ -160,6 +177,8 @@ var _dead: bool = false
 var _tint_share: float = 0.0
 var _fade: float = 1.0
 var _glow: float = 0.0
+## How far into the sitting pose it is, moving toward [member sitting] over SIT_TIME.
+var _sit: float = 0.0
 
 # The pose being built in _apply_pose: whole-body channels and per-part channels.
 var _rig_shift: Vector2
@@ -272,6 +291,8 @@ func play_death() -> void:
 	_dead = true
 	_death_time = 0.0
 	_walking = false
+	sitting = false
+	_sit = 0.0
 	moves.stop()
 	_attack_time = -1.0
 	_cancel_time = -1.0
@@ -290,6 +311,8 @@ func revive() -> void:
 	_walking = false
 	_walk_weight = 0.0
 	_walk_time = 0.0
+	sitting = false
+	_sit = 0.0
 	_attack_time = -1.0
 	_cancel_time = -1.0
 	_hit_time = -1.0
@@ -343,6 +366,19 @@ func shown_glow() -> float:
 	return _glow
 
 
+## How far into the sitting pose it is, 0 standing to 1 sat.
+func shown_sit() -> float:
+	return _sit
+
+
+## Puts the pose where [member sitting] says at once, with no easing: a picture caught up.
+func snap_sit() -> void:
+	var settled: float = 1.0 if sitting and not _dead else 0.0
+	if settled != _sit:
+		_sit = settled
+		_apply_pose()
+
+
 ## Advances animation by this much time. Called from _process; tests call it directly.
 func advance(delta: float) -> void:
 	if _dead and _death_time < 0.0:
@@ -370,6 +406,7 @@ func _advance_motion(delta: float) -> void:
 	var target: float = 1.0 if _walking else 0.0
 	_walk_weight = move_toward(_walk_weight, target, delta / WALK_BLEND)
 	_walk_time = _walk_time + delta if _walk_weight > 0.0 else 0.0
+	_sit = move_toward(_sit, 1.0 if sitting and not _dead else 0.0, delta / SIT_TIME)
 	if _attack_time >= 0.0:
 		_attack_time += delta
 		if not _released and _attack_time >= _windup:
@@ -455,6 +492,9 @@ func _apply_pose() -> void:
 		_part_turn[&"arm"] = clampf(_part_turn[&"arm"], ARM_LIMITS.x, ARM_LIMITS.y)
 	if _part_turn.has(&"weapon"):
 		_part_turn[&"weapon"] = clampf(_part_turn[&"weapon"], WEAPON_LIMITS.x, WEAPON_LIMITS.y)
+	# Sitting lays the weapon further down than a swing may reach, behind the hero on the floor.
+	if _sit > 0.0:
+		_pose_sit(smoothstep(0.0, 1.0, _sit))
 	if _hit_time >= 0.0:
 		_pose_hit(_hit_time)
 		if _hit_time < FLASH_TIME:
@@ -591,6 +631,17 @@ func _pose_attack(curve: float) -> void:
 	for leg: StringName in _legs:
 		var side: float = -1.0 if String(leg).ends_with("back") else 1.0
 		_turn(leg, side * 0.25 * (back - forward))
+
+
+## The sitting layer, [param share] of the way down: lower and shorter about the feet, a little
+## wider, the head bowed and the weapon laid toward the floor. Made of the parts it has; no frame
+## of its own.
+func _pose_sit(share: float) -> void:
+	_rig_scale *= Vector2(1.0 + SIT_SPREAD * share, lerpf(1.0, SIT_HEIGHT, share))
+	_rig_shift.y += SIT_DROP * share
+	_turn(&"head", SIT_BOW * share)
+	_turn(&"arm", SIT_ARM * share)
+	_turn(&"weapon", SIT_WEAPON * share)
 
 
 func _pose_hit(t: float) -> void:
