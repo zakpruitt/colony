@@ -728,7 +728,7 @@ shows a flat stage (where the answers are what they always were) and a winding o
 - **Places** (`WorldPlaces`, `game/world/world_places.gd`): the feet pixel of a place in tiles, a
   room's floor line, the floor a fight is on (`Expedition.chamber()`'s) and where and facing which
   way the party will be revived (`course.point_at(entry)`, the course's heading there). Waiting
-  monsters, fighters, quest props (the middle of their room's floor) and the revival's camera use
+  monsters, fighters, quest props (two-thirds across their room's floor, spec 106) and the revival's camera use
   them; the fallen lie where their sprites fell.
 - **Heroes** go where `Expedition.hero_position` says. On a stage with ladders a hero on its feet
   is moved by `LadderRoute` (`game/world/ladder_route.gd`): along its floor, and from one floor to
@@ -759,7 +759,7 @@ flames, a `bedroll` at each end of the line) and reused for every rest. While th
 RESTING it lays the camp out from where the simulation has the heroes as the rest begins: the fire at
 the middle of the line on the front hero's floor, each hero there kept at least `CAMP_CLEARANCE` from it,
 moved at most `CAMP_REACH` (12 px) and facing it; a hero off that floor stays put, faces it and stands
-(`goal_for`, chained by `World._follow` between `QuestProps.goal_for` and `FallenParty.goal_for`;
+(`goal_for`, chained by `World._follow` between `QuestStage.goal_for` and `FallenParty.goal_for`;
 `facing_of`, read by `World._act`). `World.camp.animate` runs in `sync` before the heroes are placed.
 A `REST_STARTED` that `may_animate` allows sets the camp up over `CAMP_SETUP`; a rest found any other
 way is whole at once, and `World._act` snaps a hero's sit (`CharacterSprite.snap_sit`) on a frame that
@@ -776,6 +776,37 @@ the fire burns `Ambience.set_camp_light` keeps one more light in `Ambience.light
 - **One revival effect**: `LoopBeats.revival_effect(hero_id)` (two columns of light and
   `REVIVAL_SPARKS` rising sparks at the hero's feet) for `rose_at_camp`, a `REVIVED` and each hero of a
   `PARTY_REVIVED`, each only for an event `may_animate` allows.
+
+## The quest's stage
+
+Spec 106, view only. A quest's prop stands on its room's floor two-thirds of the way across it, the
+way the stage's course runs through the room, at least 2 tiles from the walls of its shape (the
+middle of a floor under 6 tiles): `QuestProps.spot_in(view, depth, chamber)`, a static that
+`AmbienceClearings.standing` asks too, so no decoration stands on a prop or its dressing.
+
+- **Looks** (`QuestLooks`, `game/world/quest_looks.gd`): each prop sheet has three looks, each with
+  every state's part (`<look>_<state>`: `iron_open`, `pilgrim_walk_1`), all on one bottom-centre
+  pivot. A chamber's look, tint (a palette swap done by a shared `ShaderMaterial` on `COLOR`),
+  mirroring (never the door's: its hinge goes on the nearer wall's side) and 1 to 3 pieces of
+  dressing (`quest_dressing.png`, clear of every work spot) come from a `RandomNumberGenerator`
+  seeded from the area, the stage and the chamber, never the simulation's stream.
+- **The stage** (`QuestStage`, `game/world/quest_stage.gd`, `World.quest_stage`, a `RefCounted`
+  the world makes): while the party works a quest, `update` (called in `sync` before the heroes
+  move) reads `QuestWork.workers`: the lead `WORK_GAP` short of the prop on the side the party came
+  from, the second as far past it, a third and fourth `BEHIND` (7) pixels further out, each facing
+  it; every other living hero stays where the simulation has it and `World._act` sits it
+  (`CharacterSprite.sitting`) facing the prop once it has stopped. `goal_for` is chained by
+  `World._follow` inside `CampView.goal_for`. A gate keeps its one opener (`QuestProps.goal_for`).
+- **Props** (`QuestProps`): each worker swings on the slow repeat once at its spot, offset by
+  `SWING_OFFSET` a rank; the bar and the microskill's name (`Mender ×2`, the cross drawn by hand:
+  the pixel font has none) stand over the prop. A stone being read shows `rune_1` to `rune_4` over
+  its `dim` part, one more each quarter of the work. On `QUEST_DONE` (heard on `World.sim_event`;
+  a scan earlier in the same sync keeps what it takes away until `animate`) the prop takes its
+  done part and moves to its own table: `prop()` and `prop_count()` are waiting props only,
+  `part_of` and `is_done` read both. A done prop stays until its room holds something again or
+  the world shows another stage; a mended wanderer stands `STAND_SECONDS`, walks back the way the
+  party came at a hero's pace and goes once out of its room. A `QUEST_DONE` `may_animate` refuses,
+  or one heard while catching up, is done at once, and its wanderer gone. Nothing of it is saved.
 
 ## Quests and microskills
 
