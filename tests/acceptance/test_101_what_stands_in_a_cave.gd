@@ -8,7 +8,8 @@ const SEEDS: int = 10
 const MOST_ROWS: int = RoomShape.MOST_ROWS
 ## R1: `Simulation.state_hash()` of a winding game after 5 game minutes, by seed, recorded on
 ## `dev` at db5fe0d.
-const RECORDED_HASHES: Dictionary[int, int] = {1: 2922150097, 2: 3388009046, 3: 3466308177}
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
+const RECORDED_HASHES: Dictionary[int, int] = {1: 2264431711, 2: 2383618878, 3: 2535858815}
 ## The props that say what kind a room is: no row of the table.
 const OWN: Array[StringName] = [
 	&"campfire",

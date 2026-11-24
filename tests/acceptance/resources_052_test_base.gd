@@ -21,6 +21,7 @@ const STRONG_LEVEL: int = 25
 const AWAY: Vector2 = Vector2(320, 200)
 ## Spec 016's recorded hashes (an untouched simulation, every 1500 ticks up to 20 minutes) as they
 ## were on dev before this spec: R11 shows the game is the same once the resources are left out.
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
 const HASHES_BEFORE: Dictionary = {
 	3:
 	[
@@ -31,18 +32,18 @@ const HASHES_BEFORE: Dictionary = {
 		637789871,
 		3221476330,
 		3183358185,
-		3928131485,
+		553252925,
 	],
 	11:
 	[
 		3372118570,
-		622540149,
-		1375365754,
-		1948124930,
-		1885808759,
-		1752451346,
-		2263356909,
-		2125969758,
+		553707688,
+		4259576955,
+		125095287,
+		1890890579,
+		3423291533,
+		2651354059,
+		81195415,
 	],
 }
 ## R10: minutes the Mossy-only party plays, and the most it may then take to hold clay.

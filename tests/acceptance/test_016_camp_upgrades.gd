@@ -18,6 +18,7 @@ const UPGRADES: Array = [
 ## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
 ## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
 ## Seeds 5 and 17 are spec 022's recording of the same run (auto-buy off changes nothing).
+## Re-recorded by spec 104, whose quests take longer and are worked by every able hero.
 const RECORDED_HASHES: Dictionary = {
 	3:
 	[
@@ -28,40 +29,40 @@ const RECORDED_HASHES: Dictionary = {
 		1954781545,
 		2695845907,
 		298120728,
-		2082791177,
+		2521887225,
 	],
 	11:
 	[
 		4212334920,
-		3973968880,
-		2586099486,
-		722505920,
-		91127050,
-		1110065276,
-		2240902745,
-		42202787,
+		1902897000,
+		3087390968,
+		3009595022,
+		1047932645,
+		2380097275,
+		3899491894,
+		973451811,
 	],
 	5:
 	[
-		2175997582,
-		763909170,
-		504535480,
-		977110909,
-		1672667560,
-		3599790346,
-		3333976926,
-		3308732211,
+		4161349112,
+		589937850,
+		3496278183,
+		3087470846,
+		1329161453,
+		1956871145,
+		1749824610,
+		1015512758,
 	],
 	17:
 	[
 		3055813990,
 		2078239010,
 		1371108405,
-		1490681253,
-		1127691303,
-		2999623990,
-		686771038,
-		3864756292,
+		2723105309,
+		914520713,
+		2012202071,
+		4234211567,
+		2388688206,
 	],
 }
 const HOUR_TICKS: int = 36_000
