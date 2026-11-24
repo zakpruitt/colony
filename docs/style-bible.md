@@ -200,7 +200,8 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
 - **Quest props** (`assets/sprites/props/`, spec 028): one plain prop per quest, placeholder by
   decision: `chest` (locked chest, `item`), `door` (stuck door, `fx` 24x24), `wanderer` (hurt wanderer, `item`),
   `stone` (rune stone, `fx` 24x24, `cyan` runes) and `wire` (tripwire, `item`). Each has a hand-drawn `ink`
-  outline, stands on the floor line at the middle of its chamber, and is drawn under the darkness like the
+  outline, stands on the floor line two-thirds of the way across its chamber (spec 106, `QuestProps.spot_in`),
+  and is drawn under the darkness like the
   monsters. Its colours are its burst when the quest is done. Out of the party's light (spec 038) it
   carries a glint (the ambience `sparkle`) at its opaque box's top corner, drawn above the darkness: a
   slow pulse (small, big, small, then nothing, every 2 s), gone in the light and gone for good when the
