@@ -1,10 +1,10 @@
 class_name QuestDef
 extends JobDef
-## A quest: a job ([JobDef]) a chamber can hold instead of monsters. A living hero with
-## [member microskill] does it in [member work_seconds] for a reward worth
-## [member reward_factor] kills of that depth; with nobody able, the party walks past, or a
-## hazard ([member miss_damage] above 0) springs on it. One .tres file per quest under
-## res://data/quests.
+## A quest: a job ([JobDef]) a chamber can hold instead of monsters. Every living hero with
+## [member microskill] works on it, one alone in [member work_seconds] and quicker with help
+## ([method QuestWork.work_ticks]), for a reward worth [member reward_factor] kills of that
+## depth; with nobody able, the party walks past, or a hazard ([member miss_damage] above 0)
+## springs on it. One .tres file per quest under res://data/quests.
 
 enum Reward { GOLD, XP }
 

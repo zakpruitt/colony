@@ -783,8 +783,13 @@ Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive
 the ones it learns and the level of each, and a hero has one from that level on (`Hero.microskills()`), so
 nothing about them is saved. A quest (`QuestDef`, `data/quests/`) is what a plain chamber holds
 in place of monsters on a visit, with chance `ChamberRules.QUEST_SHARE`, rolled like the monsters from the
-seed, depth, chamber and visit only (`fork("sidequest/d/c/v")`). Reaching one, the living hero with its
-microskill (lowest id first, `Party.hero_with_microskill`) does it while the expedition is `WORKING`; the
+seed, depth, chamber and visit only (`fork("sidequest/d/c/v")`). Reaching one, every living hero with its
+microskill (`Party.heroes_with_microskill`, ascending id) works on it while the expedition is `WORKING`.
+The lowest id is the lead: `Expedition.worker_id()`, the source of the quest's events and its gold, and the
+one the view moves until it shows the others. `QuestWork.workers(run)` reads them all, lead first (only the
+opener at a gate), and they are in the state hash. The work takes `QuestWork.work_ticks(def, n)`: one
+worker's `work_seconds`, divided by `1 + HELPER_SHARE * (n - 1)`; that function is the one place a later
+upgrade shortens it. The reward does not depend on how many worked, and work in progress is not saved. The
 reward is `QuestDef.reward_at(depth)`, a number of average kills of that depth, and the chamber is cleared
 like a fought one. With nobody able the party walks on: a quest stays for a later pass (its `ChamberState`
 remembers the miss so it is reported once per visit), a hazard springs, hurts every living hero (never below
@@ -793,7 +798,8 @@ with the usual gold, XP and hit events beside them.
 
 A quest and a gate (spec 093) are both a job a microskill does: `QuestDef` and `GateDef` extend `JobDef`
 (`sim/defs/job_def.gd`), which holds the id, names, microskill and `work_seconds` and checks them against
-each kind's own `work_range()` (3 to 6 seconds for both). A quest adds its reward and hazard.
+each kind's own `work_range()` (8 to 18 seconds for a quest, 3 to 6 for a gate, which one hero opens
+alone, `Party.hero_with_microskill`). A quest adds its reward and hazard.
 
 ## Abilities in combat
 
