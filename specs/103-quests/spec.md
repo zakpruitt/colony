@@ -1,9 +1,9 @@
 # 103 — Quests
 
-- **Status:** in-progress
+- **Status:** landed
 - **Milestone:** M0
 - **Depends on:** 025, 093
-- **Pull request:** —
+- **Pull request:** [#103](https://github.com/zakpruitt/colony/pull/103)
 
 Status is one of `draft`, `approved (YYYY-MM-DD)`, `provisional`, `in-progress`, `landed`.
 

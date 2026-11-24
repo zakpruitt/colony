@@ -1,6 +1,6 @@
 # 104 — The skilled party works, and it takes time
 
-- **Status:** approved (2026-11-24)
+- **Status:** in-progress
 - **Milestone:** M0
 - **Depends on:** 025, 093, 103
 - **Pull request:** —

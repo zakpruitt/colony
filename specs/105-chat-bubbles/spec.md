@@ -1,6 +1,6 @@
 # 105 — Chat bubbles
 
-- **Status:** approved (2026-11-24)
+- **Status:** in-progress
 - **Milestone:** M0
 - **Depends on:** 058, 062, 076, 103 (its Paths touch `world.gd` and the showcase too; it may run beside 104)
 - **Pull request:** —
