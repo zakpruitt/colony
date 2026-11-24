@@ -265,7 +265,8 @@ func test_r3_a_hero_climbs_the_ladder_in_its_column() -> void:
 						_mark_wrong("%s: hero %d not drawn climbing at %s" % [what, hero.id, at])
 		var past: Callable = func() -> bool:
 			return e.x >= ends.y + 4.0 or e.state != Expedition.State.TRAVELLING
-		assert_true(_play_onto(far_line, 15.0, past, each), "%s: all reach the far floor" % what)
+		# Time for the walk, and for the longest quest worked on the way.
+		assert_true(_play_onto(far_line, 30.0, past, each), "%s: all reach the far floor" % what)
 		for hero: Hero in sim.party.heroes:
 			var seen: int = between.get(hero.id, 0)
 			assert_gt(seen, 60, "%s: hero %d was seen on the ladder" % [what, hero.id])

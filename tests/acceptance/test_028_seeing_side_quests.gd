@@ -493,7 +493,8 @@ func test_r9_sounds() -> void:
 		_frame(1, FRAME)
 		clicks += _sound.drain_started().count(&"ui_click")
 	assert_gte(clicks, 3, "a click repeats while the party works")
-	assert_lte(clicks, 10, "softly, not every frame")
+	var swings: int = ceili(Content.quest(&"stuck_door").work_seconds / QuestProps.SWING_SECONDS)
+	assert_lte(clicks, swings + 1, "softly, not every frame")
 	for i: int in 20:
 		_frame(1, FRAME)
 		assert_false(_sound.drain_started().has(&"ui_click"), "and stops when the work does")
