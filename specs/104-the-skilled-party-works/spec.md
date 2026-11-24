@@ -141,6 +141,13 @@ For Zak's playtest: quests feel long enough to notice, but not so long they stal
   - `test_080_frame_pieces.gd`
 
   If a test outside this list breaks only because a run's timing moved, stop and report it.
+- Added on 2026-11-24, after the lane reported five failures this list missed. Each is allowed only this change:
+  - `tests/acceptance/test_103_quests.gd`:
+    - R4's range checks: gates 3 to 6, quests 8 to 18, with the messages that follow;
+    - R1's `OLD_SAVE_HASH`: re-record it with the comment line above.
+  - `tests/acceptance/test_028_seeing_side_quests.gd`, `test_r9_sounds`: the bound on work clicks follows the quest's work time (`ceil(work_seconds / QuestProps.SWING_SECONDS) + 1`) instead of a fixed 10.
+  - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd`, `test_r3_a_hero_climbs_the_ladder_in_its_column`: its time limit only, raised enough to cover a quest on the way.
+  - `game/dev/showcase_moments.gd`: a quest moment starts its work with 2 s left (move the expedition's `_work_start` back once the work begins), so the showcase pass stays inside `test_018`'s limit. `test_018` itself is not changed. Spec 106 decides how the showcase shows whole quests.
 - `docs/architecture.md` (the "Quests and microskills" section)
 - `docs/wiki/index.html`
 

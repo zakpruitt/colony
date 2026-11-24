@@ -1,9 +1,9 @@
 # 105 — Chat bubbles
 
-- **Status:** in-progress
+- **Status:** landed
 - **Milestone:** M0
 - **Depends on:** 058, 062, 076, 103 (its Paths touch `world.gd` and the showcase too; it may run beside 104)
-- **Pull request:** —
+- **Pull request:** [#105](https://github.com/zakpruitt/colony/pull/105)
 
 Status is one of `draft`, `approved (YYYY-MM-DD)`, `provisional`, `in-progress`, `landed`.
 
