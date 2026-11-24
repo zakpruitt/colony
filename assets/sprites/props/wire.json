@@ -1,1 +1,1 @@
-{"category": "item", "width": 16, "height": 16, "pivot": [8, 15], "parts": ["taut"]}
+{"category": "item", "width": 16, "height": 16, "pivot": [8, 15], "parts": ["plain_taut", "plain_slack", "bells_taut", "bells_slack", "darts_taut", "darts_slack"]}

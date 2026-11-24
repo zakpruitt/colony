@@ -1,1 +1,1 @@
-{"category": "item", "width": 16, "height": 16, "pivot": [8, 15], "parts": ["locked"]}
+{"category": "item", "width": 16, "height": 16, "pivot": [8, 15], "parts": ["plain_locked", "plain_open", "iron_locked", "iron_open", "coffer_locked", "coffer_open"]}

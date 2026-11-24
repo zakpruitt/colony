@@ -1,1 +1,1 @@
-{"category": "item", "width": 16, "height": 16, "pivot": [8, 15], "parts": ["sitting"]}
+{"category": "fx", "width": 16, "height": 24, "pivot": [8, 23], "parts": ["hooded_hurt", "hooded_stand", "hooded_walk_0", "hooded_walk_1", "miner_hurt", "miner_stand", "miner_walk_0", "miner_walk_1", "pilgrim_hurt", "pilgrim_stand", "pilgrim_walk_0", "pilgrim_walk_1"]}
