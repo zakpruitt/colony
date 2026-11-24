@@ -173,7 +173,7 @@ func test_r2_side_quests_are_valid() -> void:
 		assert_eq(def.reward, reward, "%s's reward" % id)
 		assert_eq(def.reward_factor, kills, "%s is worth %s kills" % [id, kills])
 		assert_eq(def.miss_damage, hazard, "%s's hazard" % id)
-		assert_between(def.work_seconds, 3.0, 6.0, "%s takes 3 to 6 seconds" % id)
+		assert_between(def.work_seconds, 8.0, 18.0, "%s takes 8 to 18 seconds" % id)
 		_with_and_without(row)
 
 
@@ -311,17 +311,17 @@ func test_r4_the_party_does_it() -> void:
 	sim.drain_events()
 	assert_eq(e.state, Expedition.State.WORKING, "the party stops to work")
 	assert_eq(e.working_quest(), &"locked_chest")
-	assert_eq(e.worker_id(), 2, "the lowest hero id with the microskill")
+	assert_eq(e.worker_id(), 2, "the lowest hero id with the microskill leads")
 	assert_almost_eq(e.work_progress(), 0.0, 0.001)
 	var x_working: float = e.x
-	var work_ticks: int = ticks_in(def.work_seconds)
+	var work_ticks: int = QuestWork.work_ticks(def, 2)  # both lockpickers work
 	for i: int in work_ticks / 2:
 		sim.step()
 	assert_almost_eq(e.work_progress(), float(work_ticks / 2) / work_ticks, 0.001, "half way")
 	assert_eq(e.x, x_working, "the party stands still while it works")
 	var ticks: Array[int] = [0]
 	_work_out(sim, ticks)
-	assert_eq(ticks[0] + work_ticks / 2, work_ticks, "the work takes work_seconds")
+	assert_eq(ticks[0] + work_ticks / 2, work_ticks, "the work takes its ticks for two workers")
 	assert_eq(e.state, Expedition.State.TRAVELLING, "then the party travels on")
 	assert_eq(e.working_quest(), &"")
 	assert_eq(e.worker_id(), -1)
@@ -449,7 +449,7 @@ func test_r6_events() -> void:
 	if started.size() == 1:
 		assert_eq(started[0].source_id, 3, "the worker")
 		assert_eq(started[0].target_id, quests.find(&"rune_stone"), "the quest's position")
-		assert_eq(started[0].amount, ticks_in(Content.quest(&"rune_stone").work_seconds))
+		assert_eq(started[0].amount, QuestWork.work_ticks(Content.quest(&"rune_stone"), 1))
 	var ticks: Array[int] = [0]
 	events = _work_out(sim, ticks)
 	var done: Array[SimEvent] = _of_kind(events, SimEvent.Kind.QUEST_DONE)

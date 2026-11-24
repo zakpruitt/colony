@@ -8,7 +8,7 @@ extends JobDef
 
 enum Reward { GOLD, XP }
 
-const _WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
+const _WORK_SECONDS_RANGE: Vector2 = Vector2(8.0, 18.0)
 
 @export var reward: Reward
 @export var reward_factor: float  # in kills of that depth
