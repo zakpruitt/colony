@@ -21,7 +21,7 @@ const QUEST: StringName = &"hurt_wanderer"
 ## A level at which every hero has every microskill of its class.
 const SKILLED: int = 12
 
-## Where [method _before_quest] put the party: Vector2i(depth, chamber index).
+## Where [method _party_before_wanderer] put the party: Vector2i(depth, chamber index).
 var _quest_at: Vector2i = Vector2i(0, -1)
 ## The GATE_STARTED events [method _at_gate] saw.
 var _gate_started: Array[SimEvent] = []
@@ -32,7 +32,7 @@ var _gate_started: Array[SimEvent] = []
 ## A flat simulation whose party stands one step outside a chamber holding [constant QUEST] on its
 ## first visit, walking in, with auto-push off. Its party is a level-3 knight (id 1) and one
 ## cleric per entry of [param cleric_levels], at that level, ids from 4 up.
-func _before_quest(cleric_levels: Array[int]) -> Simulation:
+func _party_before_wanderer(cleric_levels: Array[int]) -> Simulation:
 	for seed_value: int in range(1, 1000):
 		var sim := Simulation.new(seed_value)
 		var e: Expedition = sim.expedition
@@ -131,7 +131,7 @@ func test_r1_quests_take_ten_to_fifteen_seconds() -> void:
 
 
 func test_r2_every_able_hero_works() -> void:
-	var sim: Simulation = _before_quest([MENDER_LEVEL, MENDER_LEVEL])
+	var sim: Simulation = _party_before_wanderer([MENDER_LEVEL, MENDER_LEVEL])
 	if sim == null:
 		return
 	# The second cleric stands before the first: the lead is the lower id, not the front one.
@@ -160,7 +160,7 @@ func test_r2_every_able_hero_works() -> void:
 	assert_gt(sim.party.gold, gold_before, "the quest paid")
 
 	# One cleric dead: only the other works, and leads.
-	sim = _before_quest([MENDER_LEVEL, MENDER_LEVEL])
+	sim = _party_before_wanderer([MENDER_LEVEL, MENDER_LEVEL])
 	sim.party.hero(4).health = 0
 	events = _do_quest(sim, ticks)
 	started = _one(events, SimEvent.Kind.QUEST_STARTED, "one cleric dead")
@@ -172,12 +172,12 @@ func test_r2_every_able_hero_works() -> void:
 		assert_eq(done.source_id, 5)
 
 	# A cleric too young to mend does not work either.
-	sim = _before_quest([MENDER_LEVEL, MENDER_LEVEL - 1])
+	sim = _party_before_wanderer([MENDER_LEVEL, MENDER_LEVEL - 1])
 	sim.step()
 	assert_eq(QuestWork.workers(sim.expedition), [4] as Array[int], "only the one who can")
 
 	# No cleric: the party walks past.
-	sim = _before_quest([])
+	sim = _party_before_wanderer([])
 	var x_before: float = sim.expedition.x
 	sim.step()
 	events = sim.drain_events()
@@ -209,7 +209,7 @@ func test_r3_helpers_shorten_the_work() -> void:
 		var count: int = i + 1
 		var expected: int = TWELVE_SECOND_TICKS[i]
 		assert_eq(QuestWork.work_ticks(def, count), expected, "%d workers" % count)
-		var sim: Simulation = _before_quest(_menders(count))
+		var sim: Simulation = _party_before_wanderer(_menders(count))
 		if sim == null:
 			return
 		var ticks: Array[int] = [0]
@@ -230,7 +230,7 @@ func test_r3_helpers_shorten_the_work() -> void:
 
 
 func test_r4_the_workers_can_be_read() -> void:
-	var sim: Simulation = _before_quest([MENDER_LEVEL, MENDER_LEVEL, MENDER_LEVEL])
+	var sim: Simulation = _party_before_wanderer([MENDER_LEVEL, MENDER_LEVEL, MENDER_LEVEL])
 	if sim == null:
 		return
 	var e: Expedition = sim.expedition
@@ -255,7 +255,7 @@ func test_r4_the_workers_can_be_read() -> void:
 	# Two runs that differ only in whether a second cleric can mend.
 	var hashes: Array[int] = []
 	for level: int in [MENDER_LEVEL, MENDER_LEVEL - 1]:
-		var run: Simulation = _before_quest([MENDER_LEVEL, level])
+		var run: Simulation = _party_before_wanderer([MENDER_LEVEL, level])
 		run.step()
 		assert_eq(run.expedition.state, Expedition.State.WORKING)
 		hashes.append(run.state_hash())
@@ -285,7 +285,7 @@ func _holds_workers(parts: Array, ids: Array[int]) -> bool:
 func test_r5_the_reward_does_not_depend_on_workers() -> void:
 	var paid: Array[int] = []
 	for count: int in [1, 2]:
-		var sim: Simulation = _before_quest(_menders(count))
+		var sim: Simulation = _party_before_wanderer(_menders(count))
 		if sim == null:
 			return
 		var ticks: Array[int] = [0]
