@@ -249,12 +249,16 @@ func test_r6_it_is_cheap() -> void:
 	main.world.say(KNIGHT, LINE, 30.0)
 	assert_gt(SpeechBubble.measures, before, "showing a line measures it")
 	_frames_of(main, 12)  # past the pop
+	await get_tree().process_frame  # the engine draws what was queued
 	var bubble: SpeechBubble = bubbles.bubble_of(KNIGHT)
+	assert_gte(bubble.redraws, 2, "its panel and its tail were drawn once shown")
 	var measured: int = SpeechBubble.measures
 	var redraws: int = bubble.redraws
 	var nodes: int = bubbles.get_child_count() + bubble.get_child_count()
 	var from: Vector2 = bubble.position
-	_frames_of(main, 30, 1)
+	for i: int in 30:
+		_frame(main)
+		await get_tree().process_frame  # a redraw queued by a move would be drawn here
 	assert_ne(bubble.position, from, "the bubble moved with its speaker")
 	assert_eq(SpeechBubble.measures, measured, "moving measures no text")
 	assert_eq(bubble.redraws, redraws, "a bubble that only moves does not redraw")

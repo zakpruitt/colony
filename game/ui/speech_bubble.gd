@@ -44,7 +44,7 @@ var sprite: CharacterSprite
 var head: Vector2 = Vector2.ZERO
 ## The tail under the panel: its own control, so moving it draws nothing.
 var tail: Control
-## How many times its panel was drawn again, for tests.
+## How many times its panel or its tail has been drawn, for tests.
 var redraws: int = 0
 ## When it was shown, as [SpeechBubbles] counts: a later one is nudged clear of an earlier one.
 var order: int = 0
@@ -88,7 +88,6 @@ func start(who: Variant, line: String, seconds: float) -> void:
 		)
 		size = panel
 		tail.position.y = panel.y - 1
-		redraws += 1
 		queue_redraw()
 
 
@@ -208,6 +207,7 @@ static func _colours() -> void:
 
 
 func _draw() -> void:
+	redraws += 1
 	_colours()
 	var w: float = size.x
 	var h: float = size.y
@@ -236,6 +236,9 @@ class _Tail:
 	extends Control
 
 	func _draw() -> void:
+		var bubble: SpeechBubble = get_parent() as SpeechBubble
+		if bubble != null:
+			bubble.redraws += 1
 		SpeechBubble._colours()
 		var half: int = SpeechBubble.TAIL_HALF
 		for row: int in SpeechBubble.TAIL_DROP + 1:

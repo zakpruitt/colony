@@ -255,8 +255,10 @@ func catching_up() -> bool:
 
 
 ## Shows [param text] in a bubble over [param speaker]: a hero or monster id, or a Callable that
-## returns a point in the world. [param seconds] of 0 or less holds it for a time by its length
-## ([method SpeechBubbles.hold_for]). A new line for the same speaker replaces the one showing.
+## returns a point in the world, matched by identity: to replace its line, say again with the
+## same Callable, not a new one that returns the same point. [param seconds] of 0 or less holds
+## it for a time by its length ([method SpeechBubbles.hold_for]). A new line for the same speaker
+## replaces the one showing.
 func say(speaker: Variant, text: String, seconds: float = 0.0) -> void:
 	if bubbles != null:
 		bubbles.show_line(speaker, text, seconds)

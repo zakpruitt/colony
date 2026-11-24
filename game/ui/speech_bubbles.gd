@@ -56,7 +56,8 @@ func fit_room(ui_room: Vector2i) -> void:
 
 ## Shows [param text] over [param speaker] (an int character id, or a Callable returning a world
 ## point) for [param seconds] ([method hold_for] when 0 or less), in place of any line it is
-## saying. An id with no sprite in the world says nothing.
+## saying. A Callable is matched by identity: a caller who wants its line replaced keeps the
+## Callable and passes it again. An id with no sprite in the world says nothing.
 func show_line(speaker: Variant, text: String, seconds: float = 0.0) -> void:
 	var sprite: CharacterSprite = null
 	if speaker is int:
