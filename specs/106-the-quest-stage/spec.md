@@ -164,6 +164,13 @@ For Zak's playtest, and for the lane's shots of every new showcase row at 1280x7
   - `game/ambience/ambience_clearings.gd`: `standing()` (and `_middle` if it then goes unused) asks for the same spot `QuestProps` uses, and keeps decorations clear of the R9 dressing too.
     - That spot comes from one static function, for example `QuestProps.spot_in(labyrinth_view, simulation, depth, chamber)` or the same function on `QuestLooks`, so the prop and the clearing cannot disagree.
     - Decorations must not overlap a prop or its dressing.
+- Added on 2026-11-24 after the lane's second report:
+  - Six quest rows do not fit the showcase pass into `test_018`'s 150 s, so the showcase changes in three ways:
+    - Drop the separate wanderer row; "TWO CLERICS MEND A WANDERER" shows the wanderer.
+    - Set `QUEST_WORK_LEFT` to 4 s, as R8's note allows.
+    - In `tests/acceptance/test_018_seeing_the_loop.gd`, raise `PASS_LIMIT` to 180 s. That limit is the only change there.
+  - `tests/acceptance/test_101_what_stands_in_a_cave.gd`: its decoration check takes the prop's spot from `QuestProps.spot_in(...)`, and the dressing from `QuestProps.looks_in(...).dressing_rects(spot)`, instead of the room's middle. That block only.
+  - `docs/style-bible.md`: the line saying props stand at the room's middle.
 - `docs/architecture.md` (World's children), `docs/wiki/index.html`
 
 ## Open questions
