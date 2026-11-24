@@ -198,7 +198,8 @@ func bar_fraction() -> float:
 	return _bar
 
 
-## The microskill's name over the work, with a times sign and N after it when N work, or "" when nobody works.
+## The microskill's name over the work, with a times sign and N after it when N work, or ""
+## when nobody works.
 func worker_label() -> String:
 	return _name
 
