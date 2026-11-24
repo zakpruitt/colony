@@ -687,10 +687,10 @@ func _play(
 						tally["guardians_met"] += 1
 						if e.chamber().index != last or e.guardian_of(e.depth) == &"":
 							wrong.append("%s: the guardian in room %d" % [where, e.chamber().index])
-				SimEvent.Kind.SIDE_QUEST_STARTED:
+				SimEvent.Kind.QUEST_STARTED:
 					tally["quests"] += 1
 					if e.chamber().kind != LabyrinthChamber.Kind.PLAIN:
-						wrong.append("%s: a side quest in a room that is not plain" % where)
+						wrong.append("%s: a quest in a room that is not plain" % where)
 		if e.battle != null:
 			var room: LabyrinthChamber = e.chamber()
 			var columns: Vector2i = room.floor_columns()
@@ -750,7 +750,7 @@ func test_r7_a_run_plays_on_winding_stages() -> void:
 		assert_gt(tally["wipes"], 0, what + "the party was wiped")
 		assert_eq(tally["revivals"], tally["wipes"], what + "and revived each time")
 		assert_eq(tally["went_on"], tally["revivals"], what + "and went on from the entry")
-		assert_gt(tally["quests"], 0, what + "side quests were met")
+		assert_gt(tally["quests"], 0, what + "quests were met")
 		assert_gte(tally["furthest"], 3, what + "it reached stage 3")
 		assert_eq(_play(seed_value, false, {}, []), first, what + "the same seed, the same state")
 		hashes[first] = true

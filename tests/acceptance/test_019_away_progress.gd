@@ -45,7 +45,7 @@ func _reference(saved: Dictionary, ticks: int) -> Dictionary:
 	for i: int in ticks:
 		sim.step()
 		for event: SimEvent in sim.drain_events():
-			# A kill is a monster's death (spec 031), not a gain of gold: side quests pay gold.
+			# A kill is a monster's death (spec 031), not a gain of gold: quests pay gold.
 			if event.kind == SimEvent.Kind.DIED and event.source_id >= Expedition.FIRST_MONSTER_ID:
 				kills += 1
 			elif event.kind == SimEvent.Kind.PARTY_WIPED:

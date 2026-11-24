@@ -3,7 +3,7 @@ extends RefCounted
 ## How each of the [Showcase]'s moments begins and how it is known to have been seen, as its row
 ## in [constant Showcase.ROWS] names them (&"x" in the row calls [code]_begin_x[/code] or
 ## [code]_watch_x[/code] here), and the cuts they make: stepping the simulation to a fight, a
-## depth, an area, the way on or a side quest at once. A cut that places the party gives it a
+## depth, an area, the way on or a quest at once. A cut that places the party gives it a
 ## distance along its stage's course and the way it travels along it, never a world column. The
 ## showcase hands it its [Main].
 
@@ -26,7 +26,7 @@ const GUARDIAN_DEPTH: int = Expedition.GUARDIAN_EVERY
 const GUARDIAN_LEVEL: int = 10
 ## Seconds the guardian's fight is watched before the guardian is made to fall.
 const GUARDIAN_WATCH: float = 3.2
-## The side quest each quest moment walks into, and the depth its search starts from.
+## The quest each quest moment walks into, and the depth its search starts from.
 const QUEST_OF: Dictionary[StringName, StringName] = {
 	&"quest_done": &"locked_chest",
 	&"quest_missed": &"locked_chest",
@@ -478,7 +478,7 @@ func _watch_refill(event: SimEvent) -> void:
 
 
 func _watch_quest_done(event: SimEvent) -> void:
-	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_DONE:
+	if event != null and event.kind == SimEvent.Kind.QUEST_DONE:
 		_seen = true
 
 
@@ -488,12 +488,12 @@ func _watch_learned(event: SimEvent) -> void:
 
 
 func _watch_missed(event: SimEvent) -> void:
-	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and not event.flag:
+	if event != null and event.kind == SimEvent.Kind.QUEST_MISSED and not event.flag:
 		_seen = true
 
 
 func _watch_sprung(event: SimEvent) -> void:
-	if event != null and event.kind == SimEvent.Kind.SIDE_QUEST_MISSED and event.flag:
+	if event != null and event.kind == SimEvent.Kind.QUEST_MISSED and event.flag:
 		_seen = true
 
 
@@ -611,7 +611,7 @@ func _cut_to_quest(quest: StringName) -> void:
 		var level: LabyrinthLevel = sim.labyrinth.level(depth)
 		var found: LabyrinthChamber = null
 		for room: LabyrinthChamber in level.chambers:
-			if sim.expedition.side_quest_in(depth, room.index) == quest:
+			if sim.expedition.quest_in(depth, room.index) == quest:
 				found = room
 				break
 		if found == null:
@@ -619,7 +619,7 @@ func _cut_to_quest(quest: StringName) -> void:
 		sim.set_auto_push(false)
 		_cut_to_depth(depth, depth)
 		settle_now()
-		if sim.expedition.side_quest_in(depth, found.index) != quest:
+		if sim.expedition.quest_in(depth, found.index) != quest:
 			continue
 		_stand_before(found.index, QUEST_APPROACH)
 		return
@@ -704,7 +704,7 @@ func _away_report() -> AwayReport:
 	report.wipes = 2
 	report.guardians_slain = 1
 	report.deepest_guardian = e.guardian_of(Expedition.GUARDIAN_EVERY)
-	report.side_quests_done = 3
+	report.quests_done = 3
 	for hero: Hero in main.simulation.party.heroes:
 		report.levels_gained[hero.id] = 2
 	return report

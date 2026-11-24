@@ -31,12 +31,12 @@ static func opener(run: Expedition, stage: int, index: int) -> Hero:
 ## The gold a cache on [param stage] of the area [param run] is in holds, before the gold
 ## upgrade: [constant CACHE_GOLD_KILLS] average kills there, at least 1.
 static func gold_at(run: Expedition, stage: int) -> int:
-	var value: Vector2 = SideQuestDef.kill_value(run.level_at(stage))
+	var value: Vector2 = QuestDef.kill_value(run.level_at(stage))
 	return maxi(roundi(CACHE_GOLD_KILLS * value.x), 1)
 
 
 ## The XP a cache on [param stage] gives each living hero: [constant CACHE_XP_KILLS] average
 ## kills there, at least 1.
 static func xp_at(run: Expedition, stage: int) -> int:
-	var value: Vector2 = SideQuestDef.kill_value(run.level_at(stage))
+	var value: Vector2 = QuestDef.kill_value(run.level_at(stage))
 	return maxi(roundi(CACHE_XP_KILLS * value.y), 1)

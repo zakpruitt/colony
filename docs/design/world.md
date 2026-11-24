@@ -24,14 +24,14 @@ mean simulating daily life. It means the party keeps meeting different challenge
 its members' skills, in ways the player can optimise for.
 
 - **Fights stay the most common thing** a chamber holds.
-- **Side quests** are everything else: a locked chest, a tripwire, a stuck door, a rune stone, a hurt
+- **Quests** are everything else: a locked chest, a tripwire, a stuck door, a rune stone, a hurt
   wanderer, and more later. They are small things the party comes across, not gathering.
 - **Microskills open them.** A microskill is a minor passive a hero has (Lockpicker, Trapspotter, Strongarm,
-  Runereader, Mender). If someone in the party has the one a side quest asks for, the party can do it;
+  Runereader, Mender). If someone in the party has the one a quest asks for, the party can do it;
   if nobody does, the party walks past, or the hazard catches them. Heroes pick microskills up as they level.
 - **Professions are a different thing** (crafting or gathering trades), not designed yet. Microskills are
   not professions.
-- **The player tunes the party.** Which microskills the party has decides which side quests pay off.
+- **The player tunes the party.** Which microskills the party has decides which quests pay off.
 
 ## Ease first
 
@@ -44,7 +44,7 @@ upgraded and managed.
 - **Art is placeholder.** Zak will make characters himself and the world's look will be agreed with him. New
   specs reuse existing sprites or add the plainest prop, and say so.
 - **Names move toward the premise** as specs touch them; nothing is renamed for its own sake.
-- **Order:** readability and a sheet for each hero; side quests and microskills with the four existing
+- **Order:** readability and a sheet for each hero; quests and microskills with the four existing
   heroes; per-hero upgrades; then choosing who goes down (a roster); then new classes, starting with the one
   Zak wants to draw.
 

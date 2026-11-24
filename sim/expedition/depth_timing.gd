@@ -44,7 +44,7 @@ static func push_left(run: Expedition, now: int, timers: Array[int]) -> float:
 	return _left(run.stable_seconds, now, maxi(held, set_at))
 
 
-## Seconds a cleared chamber at [param level_depth] stays empty before monsters (or a side quest)
+## Seconds a cleared chamber at [param level_depth] stays empty before monsters (or a quest)
 ## come back: from [constant _SURFACE_RESPAWN_SECONDS] at depth 1, rising evenly to
 ## [constant Expedition.RESPAWN_SECONDS] at DEEP_DEPTH and staying there.
 static func respawn_seconds_at(level_depth: int) -> float:

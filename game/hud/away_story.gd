@@ -68,7 +68,7 @@ static func rows(report: AwayReport, party: Party) -> Array[Row]:
 	return made
 
 
-## Guardians slain, side quests done and missed, and the microskill the misses needed most;
+## Guardians slain, quests done and missed, and the microskill the misses needed most;
 ## then the caches opened and the kind of gate passed most often for want of a microskill.
 static func _quest_rows(report: AwayReport, made: Array[Row]) -> void:
 	if report.guardians_slain > 0:
@@ -81,15 +81,11 @@ static func _quest_rows(report: AwayReport, made: Array[Row]) -> void:
 			else "?"
 		)
 		made.append(Row.new("Furthest guardian", deepest, &"amber"))
-	if report.side_quests_done > 0:
+	if report.quests_done > 0:
+		made.append(Row.new("Quests done", UiFormat.group_thousands(report.quests_done), &"green"))
+	if report.quests_missed > 0:
 		made.append(
-			Row.new("Side quests done", UiFormat.group_thousands(report.side_quests_done), &"green")
-		)
-	if report.side_quests_missed > 0:
-		made.append(
-			Row.new(
-				"Side quests missed", UiFormat.group_thousands(report.side_quests_missed), &"orange"
-			)
+			Row.new("Quests missed", UiFormat.group_thousands(report.quests_missed), &"orange")
 		)
 		if report.most_needed_microskill != &"":
 			var skill: String = Content.microskill(report.most_needed_microskill).display_name

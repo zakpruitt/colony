@@ -41,7 +41,7 @@ func _init(first: Labyrinth) -> void:
 
 ## Asks to send the party to [param stage] (1 or more) of area [param id]. Whether the area is open
 ## is judged now: a closed one is ignored. The party goes once it is free
-## (after any fight or side quest, and up from a wipe); on its way, it turns to the new destination
+## (after any fight or quest, and up from a wipe); on its way, it turns to the new destination
 ## and starts the journey again.
 func ask(id: StringName, stage_asked: int) -> void:
 	if not open.has(id):

@@ -1,7 +1,7 @@
 class_name QuestProps
 extends Node2D
-## The side quests waiting in the labyrinth, and the work on one. Each chamber of a
-## built level that holds a side quest ([method Expedition.side_quest_in]) shows its prop on the
+## The quests waiting in the labyrinth, and the work on one. Each chamber of a
+## built level that holds a quest ([method Expedition.quest_in]) shows its prop on the
 ## floor near its middle, as far away as monsters are shown; a cleared quest's prop goes until the
 ## chamber refills. While the party works a quest, the worker stands at the prop and swings on a
 ## slow repeat (emitting [signal worked] each time), a small bar over the prop fills with
@@ -21,7 +21,7 @@ extends Node2D
 ## The worker swung at the prop: a strike of the slow repeat.
 signal worked(hero_id: int)
 
-## Each side quest's prop sheet.
+## Each quest's prop sheet.
 const SHEETS: Dictionary[StringName, String] = {
 	&"locked_chest": "res://assets/sprites/props/chest.png",
 	&"stuck_door": "res://assets/sprites/props/door.png",
@@ -29,7 +29,7 @@ const SHEETS: Dictionary[StringName, String] = {
 	&"rune_stone": "res://assets/sprites/props/stone.png",
 	&"tripwire": "res://assets/sprites/props/wire.png",
 }
-## What happened, in a few words, when each side quest is done.
+## What happened, in a few words, when each quest is done.
 const DONE_WORDS: Dictionary[StringName, String] = {
 	&"locked_chest": "Chest opened",
 	&"stuck_door": "Door forced",
@@ -57,7 +57,7 @@ const GLINT_PERIOD: float = PropGlints.PERIOD
 
 var _world: World
 var _simulation: Simulation
-## The prop of each chamber holding a side quest, by Vector2i(depth, chamber index).
+## The prop of each chamber holding a quest, by Vector2i(depth, chamber index).
 var _props: Dictionary[Vector2i, Sprite2D] = {}
 ## The bar and the name, over the darkness.
 var _overlay: Node2D
@@ -120,7 +120,7 @@ func worker_label() -> String:
 	return _name
 
 
-## Where a side quest's prop stands in that chamber: the middle of its own floor, in world
+## Where a quest's prop stands in that chamber: the middle of its own floor, in world
 ## pixels.
 func spot(depth: int, chamber_index: int) -> Vector2:
 	var level: LabyrinthLevel = _simulation.labyrinth.level(depth)
@@ -151,7 +151,7 @@ func clear() -> void:
 		_props.erase(key)
 
 
-## Gives every chamber of [param built] that holds a side quest its prop, and takes away the
+## Gives every chamber of [param built] that holds a quest its prop, and takes away the
 ## props of those that do not.
 func scan(built: Array[int]) -> void:
 	var wanted: Dictionary[Vector2i, StringName] = {}
@@ -159,7 +159,7 @@ func scan(built: Array[int]) -> void:
 	for depth: int in built:
 		var level: LabyrinthLevel = _simulation.labyrinth.level(depth)
 		for chamber_index: int in level.chambers.size():
-			var quest: StringName = expedition.side_quest_in(depth, chamber_index)
+			var quest: StringName = expedition.quest_in(depth, chamber_index)
 			if quest != &"":
 				wanted[Vector2i(depth, chamber_index)] = quest
 	for key: Vector2i in _props.keys():
@@ -231,7 +231,7 @@ func _gate_worked() -> Vector2:
 func _work_name(at_gate: bool) -> String:
 	if at_gate:
 		return _world.side_props.worked_name()
-	var quest: SideQuestDef = Content.side_quest(_simulation.expedition.working_quest())
+	var quest: QuestDef = Content.quest(_simulation.expedition.working_quest())
 	var skill: MicroskillDef = Content.microskill(quest.microskill) if quest != null else null
 	return skill.display_name if skill != null else ""
 

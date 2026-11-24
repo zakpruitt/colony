@@ -83,8 +83,8 @@ func _full_report(party: Party) -> AwayReport:
 	report.upgrades_bought = 3
 	report.guardians_slain = 2
 	report.deepest_guardian = &"clay_colossus"
-	report.side_quests_done = 14
-	report.side_quests_missed = 3
+	report.quests_done = 14
+	report.quests_missed = 3
 	report.most_needed_microskill = &"trapspotter"
 	var ids: Array[StringName] = Content.microskill_ids()
 	for i: int in 6:
@@ -101,7 +101,7 @@ func test_r1_kills_are_kills() -> void:
 			deaths += 1
 		elif event.kind == SimEvent.Kind.GOLD_GAINED:
 			gold_gains += 1
-	assert_gt(_count(SimEvent.Kind.SIDE_QUEST_DONE), 0, "the hour includes side quests done")
+	assert_gt(_count(SimEvent.Kind.QUEST_DONE), 0, "the hour includes quests done")
 	assert_gt(deaths, 0, "and monsters slain")
 	assert_ne(gold_gains, deaths, "gold gains are not kills in this run")
 	assert_eq(_report.kills, deaths, "kills are monster deaths")
@@ -117,7 +117,7 @@ func test_r2_it_counts_the_rest() -> void:
 			SimEvent.Kind.GUARDIAN_SLAIN:
 				guardians += 1
 				deepest = maxi(deepest, event.amount)
-			SimEvent.Kind.SIDE_QUEST_MISSED:
+			SimEvent.Kind.QUEST_MISSED:
 				var seen: int = missed.get(event.amount, 0)
 				missed[event.amount] = seen + 1
 			SimEvent.Kind.MICROSKILL_LEARNED:
@@ -127,8 +127,8 @@ func test_r2_it_counts_the_rest() -> void:
 			"guardians %d, done %d, missed %d, learned %d"
 			% [
 				guardians,
-				_count(SimEvent.Kind.SIDE_QUEST_DONE),
-				_count(SimEvent.Kind.SIDE_QUEST_MISSED),
+				_count(SimEvent.Kind.QUEST_DONE),
+				_count(SimEvent.Kind.QUEST_MISSED),
 				learned.size()
 			]
 		)
@@ -140,10 +140,8 @@ func test_r2_it_counts_the_rest() -> void:
 		_report.deepest_guardian, _stepped.expedition.guardian_of(deepest), "deepest guardian"
 	)
 	assert_ne(_report.deepest_guardian, &"", "named")
-	assert_eq(_report.side_quests_done, _count(SimEvent.Kind.SIDE_QUEST_DONE), "side quests done")
-	assert_eq(
-		_report.side_quests_missed, _count(SimEvent.Kind.SIDE_QUEST_MISSED), "side quests missed"
-	)
+	assert_eq(_report.quests_done, _count(SimEvent.Kind.QUEST_DONE), "quests done")
+	assert_eq(_report.quests_missed, _count(SimEvent.Kind.QUEST_MISSED), "quests missed")
 	assert_eq(_report.microskills_learned, learned, "microskills learned, in order")
 	if missed.is_empty():
 		assert_eq(_report.most_needed_microskill, &"", "nothing missed, nothing needed")
@@ -169,8 +167,8 @@ func test_r3_the_panel_says_it() -> void:
 	var rows: PackedStringArray = panel.text().split("\n")
 	assert_has(rows, "Guardians slain 2")  # spec 062 R5: a row each
 	assert_has(rows, "Furthest guardian Clay Colossus")
-	assert_has(rows, "Side quests done 14")
-	assert_has(rows, "Side quests missed 3")
+	assert_has(rows, "Quests done 14")
+	assert_has(rows, "Quests missed 3")
 	assert_has(rows, "Upgrades bought 3")
 	var ids: Array[StringName] = Content.microskill_ids()
 	var learned: PackedStringArray = []
@@ -195,7 +193,7 @@ func test_r3_the_panel_says_it() -> void:
 	var text: String = few.text()
 	assert_string_contains(text, "Guardians slain 1\nFurthest guardian Slime King")
 	assert_string_contains(text, "%s learned Lockpicker" % party.heroes[1].def().display_name)
-	assert_false(text.contains("Side quests"), "no side quest lines at zero")
+	assert_false(text.contains("Quests"), "no quest lines at zero")
 	assert_false(text.contains("more"), "no 'and N more' under the cap")
 
 
@@ -206,7 +204,7 @@ func test_r4_misses_teach() -> void:
 	assert_has(panel.text().split("\n"), "Most needed: Trapspotter")
 
 	var clean: AwayReport = _full_report(party)
-	clean.side_quests_missed = 0
+	clean.quests_missed = 0
 	clean.most_needed_microskill = &""
 	var none := AwayWindow.new(clean, party)
 	add_child_autofree(none)

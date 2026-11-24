@@ -1,7 +1,7 @@
 class_name Tally
 extends RefCounted
 ## The counting behind the party tally: each hero's damage dealt, healing done and damage taken,
-## for the last fight and for the session, and the side quests each hero has done. It is fed
+## for the last fight and for the session, and the quests each hero has done. It is fed
 ## the simulation's events one at a time through [method observe] and changes nothing.
 ##
 ## What counts, from [SimEvent]: [constant SimEvent.Kind.HIT] from a hero to a monster is damage
@@ -13,7 +13,7 @@ extends RefCounted
 ## how much health its target had left, so a killing blow's overkill is counted in damage dealt and
 ## taken; the tally's tooltips say so.
 ## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
-## last fight; [constant SimEvent.Kind.SIDE_QUEST_DONE] counts one side quest for its worker.
+## last fight; [constant SimEvent.Kind.QUEST_DONE] counts one quest for its worker.
 ## A hero is any id below [constant Expedition.FIRST_MONSTER_ID]. The side paths' gates and
 ## caches are counted by [member side_paths].
 ##
@@ -75,7 +75,7 @@ func observe(event: SimEvent) -> void:
 			if _is_hero(event.source_id) and _is_hero(event.target_id):
 				_add(Measure.HEALING, event.source_id, event.amount, true)
 				_add_credit(Measure.HEALING, event.source_id, event.amount)
-		SimEvent.Kind.SIDE_QUEST_DONE:
+		SimEvent.Kind.QUEST_DONE:
 			if _is_hero(event.source_id):
 				_quests[event.source_id] = _quests.get(event.source_id, 0) + 1
 
@@ -119,8 +119,8 @@ func by_ability(hero_id: int, measure: Measure, span: Span) -> Dictionary[String
 	return found
 
 
-## How many side quests the hero with id [param hero_id] has done this session.
-func side_quests(hero_id: int) -> int:
+## How many quests the hero with id [param hero_id] has done this session.
+func quests(hero_id: int) -> int:
 	return _quests.get(hero_id, 0)
 
 

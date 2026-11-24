@@ -9,7 +9,7 @@ extends WindowContent
 
 ## What the game is about, one short line each.
 const IDEA: Array[String] = [
-	"Your party explores on its own; heroes' skills unlock side quests.",
+	"Your party explores on its own; heroes' skills unlock quests.",
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
 	"Gold buys upgrades in the Camp: every fifth rank is a milestone.",
 	"It keeps going while the game is closed.",

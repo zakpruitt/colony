@@ -197,7 +197,7 @@ Underground is dark, and light comes from torches, the campfire, gold and glowin
   dressed stone. Nothing on the floor taller than 12 pixels
   stands in the middle third of a room 12 columns wide or less, where the fight is, and no new
   decoration gives light.
-- **Side-quest props** (`assets/sprites/props/`, spec 028): one plain prop per side quest, placeholder by
+- **Quest props** (`assets/sprites/props/`, spec 028): one plain prop per quest, placeholder by
   decision: `chest` (locked chest, `item`), `door` (stuck door, `fx` 24x24), `wanderer` (hurt wanderer, `item`),
   `stone` (rune stone, `fx` 24x24, `cyan` runes) and `wire` (tripwire, `item`). Each has a hand-drawn `ink`
   outline, stands on the floor line at the middle of its chamber, and is drawn under the darkness like the
@@ -482,7 +482,7 @@ pieces above now, and they stay for their colours and marks.
   20x20 `ink` box with a `dusk` edge, the class in `white`, the number in `white` and the share in `steel` at
   the right, over an 8-pixel bar on `ink` in the class's colour (knight `red`/`crimson`, rogue
   `orchid`/`plum`, mage `blue`/`navy`, cleric `amber`/`copper`), the largest row full and the bars easing as
-  every bar does. On the Session span each hero's side quests are a `green` line under the bars. Its button
+  every bar does. On the Session span each hero's quests are a `green` line under the bars. Its button
   sits left of the party frames, as tall as one: three small bars in `red`, `blue` and `amber` on `ink`
   edges over a `T`, lit while the tally is open.
 - **The area map** (spec 053) is an overlay like the help panel: centred under the top band, left of the

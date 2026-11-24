@@ -48,7 +48,7 @@ const REPEAT_SECONDS: float = 0.05
 const SPACED: Dictionary[StringName, float] = {&"gain_small": 0.15, &"gain_grand": 0.15}
 ## How far a start's pitch may stray from the sound's own, either way, as a share (under 6%).
 const PITCH_SPREAD: float = 0.05
-## How much quieter than its own the click of each swing at a side quest is, in dB.
+## How much quieter than its own the click of each swing at a quest is, in dB.
 const WORK_CLICK_DB: float = -10.0
 
 ## Where the mute choice is kept. Null means nowhere: tests, screenshots and headless runs. Set it
@@ -97,7 +97,7 @@ func setup(world: World, effects: CombatEffects, simulation: Simulation, goals: 
 	# of the gain itself) can be told apart from a coin that flew to the purse.
 	if not effects.coin_collected.is_connected(_on_coin_collected):
 		effects.coin_collected.connect(_on_coin_collected, CONNECT_DEFERRED)
-	# Each swing of a hero working a side quest clicks, softly.
+	# Each swing of a hero working a quest clicks, softly.
 	if world.quest_props != null and not world.quest_props.worked.is_connected(_on_worked):
 		world.quest_props.worked.connect(_on_worked)
 	# A goal finished on the HUD's tracker plays the stable chime.
@@ -222,7 +222,7 @@ func _on_sim_event(event: SimEvent) -> void:
 				play(&"hero_die")
 		SimEvent.Kind.LEVEL_UP, SimEvent.Kind.MICROSKILL_LEARNED:
 			play(&"level_up")
-		SimEvent.Kind.SIDE_QUEST_MISSED:
+		SimEvent.Kind.QUEST_MISSED:
 			if event.flag:
 				play(&"hero_hurt")  # a trap sprang
 		SimEvent.Kind.GATE_OPENED:

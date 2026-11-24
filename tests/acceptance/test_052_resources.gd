@@ -129,12 +129,12 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 		if guardian_drop != null:
 			assert_eq(guardian_drop.source_id, slain.source_id, "the guardian's own drop")
 			assert_eq(guardian_drop.amount, 12, "several: 12 glowcaps on stage 5")
-	# A side quest finished pays some too: the worker gets the area's resource for the party.
+	# A quest finished pays some too: the worker gets the area's resource for the party.
 	var quests: int = 0
 	for watched: Dictionary in [hollow, clay_run]:
 		var events: Array[SimEvent] = watched["events"]
 		for i: int in events.size():
-			if events[i].kind != SimEvent.Kind.SIDE_QUEST_DONE:
+			if events[i].kind != SimEvent.Kind.QUEST_DONE:
 				continue
 			var paid: SimEvent = null
 			# On the same tick, after the reward (and any XP and level-ups it brings).
@@ -144,7 +144,7 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 				if events[later].kind == SimEvent.Kind.RESOURCE_GAINED:
 					paid = events[later]
 					break
-			assert_not_null(paid, "a side quest done pays the resource")
+			assert_not_null(paid, "a quest done pays the resource")
 			if paid != null:
 				assert_eq(paid.source_id, events[i].source_id, "for the hero who did it")
 				var quest_stage: int = 0
@@ -159,7 +159,7 @@ func test_r2_the_party_gathers_it_by_fighting_there() -> void:
 						"as much as a large monster's drop there"
 					)
 				quests += 1
-	assert_gt(quests, 0, "(side quests were done)")
+	assert_gt(quests, 0, "(quests were done)")
 	# The party keeps every drop.
 	var total: int = 0
 	for event: SimEvent in clay_run["events"]:
@@ -600,7 +600,7 @@ func test_r8_told_like_gold() -> void:
 	assert_gt(drops_seen, 0, "(drops seen)")
 	assert_eq(with_drops.fights(), without.fights(), "the same fights")
 	for hero: Hero in fights.party.heroes:
-		assert_eq(with_drops.side_quests(hero.id), without.side_quests(hero.id), "quests")
+		assert_eq(with_drops.quests(hero.id), without.quests(hero.id), "quests")
 		for measure: int in Tally.Measure.values():
 			for span: int in Tally.Span.values():
 				assert_eq(

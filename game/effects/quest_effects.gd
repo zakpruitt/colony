@@ -1,6 +1,6 @@
 class_name QuestEffects
 extends Node
-## The effects of side quests and microskills: a done quest's prop bursting in its own
+## The effects of quests and microskills: a done quest's prop bursting in its own
 ## colours under words in the reward's colour, a miss's muted "Needs <microskill>" rising from the
 ## prop, a sprung trap's red "Sprung!" with a shake and every hero flashing, and "Learned
 ## <microskill>" over a hero; and of side paths: "Needs a <microskill>" rising from a gate
@@ -45,9 +45,9 @@ const SPRUNG_SHAKE: float = 5.0
 const MISS_COLOUR: StringName = &"steel"
 const SPRUNG_COLOUR: StringName = &"red"
 const LEARNED_COLOUR: StringName = &"yellow"
-const REWARD_COLOURS: Dictionary[SideQuestDef.Reward, StringName] = {
-	SideQuestDef.Reward.GOLD: &"yellow",
-	SideQuestDef.Reward.XP: &"cyan",
+const REWARD_COLOURS: Dictionary[QuestDef.Reward, StringName] = {
+	QuestDef.Reward.GOLD: &"yellow",
+	QuestDef.Reward.XP: &"cyan",
 }
 
 var _world: World
@@ -73,9 +73,9 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _world.quest_props == null or not _world.may_animate(event):
 		return
 	match event.kind:
-		SimEvent.Kind.SIDE_QUEST_DONE:
+		SimEvent.Kind.QUEST_DONE:
 			_done(_quest(event.target_id))
-		SimEvent.Kind.SIDE_QUEST_MISSED:
+		SimEvent.Kind.QUEST_MISSED:
 			if event.flag:
 				_sprung(_quest(event.target_id))
 			else:
@@ -89,7 +89,7 @@ func _on_sim_event(event: SimEvent) -> void:
 
 
 func _done(quest: StringName) -> void:
-	var def: SideQuestDef = Content.side_quest(quest)
+	var def: QuestDef = Content.quest(quest)
 	if def == null:
 		return
 	var at: Vector2 = _prop_spot()
@@ -238,7 +238,7 @@ func _particle(kind: StringName) -> FxParticle:
 
 
 func _quest(index: int) -> StringName:
-	var ids: Array[StringName] = Content.side_quest_ids()
+	var ids: Array[StringName] = Content.quest_ids()
 	return ids[index] if index >= 0 and index < ids.size() else &""
 
 

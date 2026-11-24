@@ -544,7 +544,7 @@ func _pay_once(area_id: StringName, stage: int, rank: int) -> int:
 	dead.health = 0
 	assert_ne(dead.id, worker, "%s: the dead hero is not the opener" % what)
 	var area: AreaDef = Content.area(area_id)
-	var value: Vector2 = SideQuestDef.kill_value(area.level_at(stage))
+	var value: Vector2 = QuestDef.kill_value(area.level_at(stage))
 	var bonus: float = sim.upgrades.multiplier(UpgradeDef.Stat.GOLD)
 	assert_eq(bonus > 1.0, rank > 0, "%s: the gold upgrade is at that rank" % what)
 	var gold: int = roundi(maxi(roundi(GOLD_KILLS * value.x), 1) * bonus)
@@ -815,7 +815,7 @@ func test_r7_no_gate_opened_keeps_the_hash_and_the_save() -> void:
 # --- R8 ------------------------------------------------------------------------
 
 
-## R8: no monsters and no side quest on a side path; a target asked for on one waits for the
+## R8: no monsters and no quest on a side path; a target asked for on one waits for the
 ## main course; the stage's timer runs on through one.
 func test_r8_a_side_path_is_quiet() -> void:
 	var levels: int = 0
@@ -830,8 +830,8 @@ func test_r8_a_side_path_is_quiet() -> void:
 			for index: int in [-1, rooms, rooms + 1, rooms + 2]:
 				if all.is_populated(depth, index) or not all.monsters_in(depth, index).is_empty():
 					_wrong.append("%s: monsters in chamber %d" % [where, index])
-				if all.side_quest_in(depth, index) != &"":
-					_wrong.append("%s: a side quest in chamber %d" % [where, index])
+				if all.quest_in(depth, index) != &"":
+					_wrong.append("%s: a quest in chamber %d" % [where, index])
 			for index: int in rooms:
 				var room: LabyrinthChamber = level.chambers[index]
 				for monster: Combatant in all.monsters_in(depth, index):

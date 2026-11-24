@@ -290,7 +290,7 @@ func test_r3_the_stage_is_remembered_until_left() -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## R4: a side quest's and a full cache's glint in an unlit room; a closed gate's sprite and the
+## R4: a quest's and a full cache's glint in an unlit room; a closed gate's sprite and the
 ## doorways are there as they were, and the doorway on, in a room not entered, is under the
 ## black (spec 099), which is the ambience's and no change to the sprite.
 func test_r4_glints_and_gates_show_in_the_dark() -> void:
@@ -299,13 +299,13 @@ func test_r4_glints_and_gates_show_in_the_dark() -> void:
 		var sim: Simulation = _arrived(seed_value, STAGE, STAGE + 1)
 		var level: LabyrinthLevel = sim.labyrinth.level(STAGE)
 		for room: int in range(2, level.chambers.size()):
-			if sim.expedition.side_quest_in(STAGE, room) != &"" and quest_room < 0:
+			if sim.expedition.quest_in(STAGE, room) != &"" and quest_room < 0:
 				quest_room = room
 		if quest_room >= 0 and not level.side_paths.is_empty():
 			_watch_rooms(sim)
 			break
 		quest_room = -1
-	assert_gt(quest_room, 0, "a stage with a side quest waiting past its second room")
+	assert_gt(quest_room, 0, "a stage with a quest waiting past its second room")
 	if quest_room < 0:
 		return
 	var lit: Array[int] = _lit_rooms("on arrival")

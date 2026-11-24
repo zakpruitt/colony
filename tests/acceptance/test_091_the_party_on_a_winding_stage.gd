@@ -331,7 +331,7 @@ func test_r3_heroes_face_left_in_a_room_walked_leftward() -> void:
 
 
 func test_r4_the_worker_and_the_guardians_side_follow_the_world() -> void:
-	# A side quest in a room walked leftward.
+	# A quest in a room walked leftward.
 	var found: bool = false
 	for seed_value: int in range(1, SEEDS + 1):
 		var sim: Simulation = winding_simulation(seed_value)
@@ -339,7 +339,7 @@ func test_r4_the_worker_and_the_guardians_side_follow_the_world() -> void:
 		var room: LabyrinthChamber = _room(
 			level,
 			func(tried: LabyrinthChamber) -> bool:
-				var quest: StringName = sim.expedition.side_quest_in(1, tried.index)
+				var quest: StringName = sim.expedition.quest_in(1, tried.index)
 				return quest != &"" and _heading_in(level, tried) < 0
 		)
 		if room == null:
@@ -347,7 +347,7 @@ func test_r4_the_worker_and_the_guardians_side_follow_the_world() -> void:
 		found = true
 		raise_party(sim, 30)
 		_stand(sim, 1, _short_of(level, room), 2)
-		assert_true(_play_until(SimEvent.Kind.SIDE_QUEST_STARTED, 30), "the party finds it")
+		assert_true(_play_until(SimEvent.Kind.QUEST_STARTED, 30), "the party finds it")
 		var e: Expedition = sim.expedition
 		var prop: Vector2 = _world.quest_props.spot(1, room.index)
 		var sides: Dictionary[int, bool] = {}
@@ -361,7 +361,7 @@ func test_r4_the_worker_and_the_guardians_side_follow_the_world() -> void:
 		assert_true(sides.has(1), "seed %d: the worker stands right of the prop" % seed_value)
 		assert_false(sides.has(-1), "seed %d: and never left of it" % seed_value)
 		break
-	assert_true(found, "a seed has a side quest in a room walked leftward")
+	assert_true(found, "a seed has a quest in a room walked leftward")
 
 	# A guardian in a room walked leftward, and a hero standing on its middle.
 	found = false
@@ -414,7 +414,7 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 			func(tried: LabyrinthChamber) -> bool:
 				var before: Vector2 = line.point_at(line.stretch_of(tried.index).x - 4.0)
 				return (
-					sim.expedition.side_quest_in(3, tried.index) != &""
+					sim.expedition.quest_in(3, tried.index) != &""
 					and tried.floor_row() != level.floor_y
 					and before.y == tried.floor_row()
 				)
@@ -433,7 +433,7 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 			break
 		assert_eq(prop.position, Vector2(middle, line_y), "%s: at its room's middle" % what)
 		assert_eq(_world.quest_props.spot(3, room.index), prop.position, "%s: its spot" % what)
-		assert_true(_play_until(SimEvent.Kind.SIDE_QUEST_STARTED, 30), "%s: work starts" % what)
+		assert_true(_play_until(SimEvent.Kind.QUEST_STARTED, 30), "%s: work starts" % what)
 		for i: int in 30:
 			_play_frame()
 		var props: QuestProps = _world.quest_props
@@ -480,7 +480,7 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 		for hero: Hero in sim.party.heroes:
 			assert_eq(_world.feet_position(hero.id).y, _px(entry).y, "%s: on its floor" % what)
 		break
-	assert_true(found, "a seed has a side quest off stage 3's first floor")
+	assert_true(found, "a seed has a quest off stage 3's first floor")
 
 
 # --- R6 ------------------------------------------------------------------------

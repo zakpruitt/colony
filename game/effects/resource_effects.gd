@@ -2,7 +2,7 @@ class_name ResourceEffects
 extends Node
 ## Resource drops on screen, as gold's coins are: each
 ## [constant SimEvent.Kind.RESOURCE_GAINED] still recent puts a few [FxResource] icons where the
-## monster fell (over the hero who finished a side quest, or on the cache that held them), which
+## monster fell (over the hero who finished a quest, or on the cache that held them), which
 ## rise, hang and fly to the
 ## resource's place beside the gold, and each one's share is counted in as it arrives
 ## ([signal resource_collected]). A drop too old to animate is counted in at once.

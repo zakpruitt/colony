@@ -20,7 +20,7 @@ func _kinds() -> Array[Array]:
 		[Content.upgrade_ids(), Content.upgrade],
 		[Content.training_ids(), Content.training],
 		[Content.microskill_ids(), Content.microskill],
-		[Content.side_quest_ids(), Content.side_quest],
+		[Content.quest_ids(), Content.quest],
 		[Content.area_ids(), Content.area],
 		[Content.ability_ids(), Content.ability],
 		[Content.hero_class_ids(), Content.talent_tree],
@@ -187,7 +187,7 @@ func test_r2_data_reports_what_it_did() -> void:
 		[func(d: TrainingDef) -> void: d.per_rank = -0.5, ["per_rank -0.5 is not above 0"]],
 		[func(d: MicroskillDef) -> void: d.description = "", ["description is empty"]],
 		[
-			func(d: SideQuestDef) -> void: d.microskill = &"juggling",
+			func(d: QuestDef) -> void: d.microskill = &"juggling",
 			["microskill juggling does not exist"]
 		],
 		[func(d: AreaDef) -> void: d.order = 0, ["order 0 is below 1"]],

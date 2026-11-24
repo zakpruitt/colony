@@ -294,7 +294,7 @@ by value, not with `assert_eq` against ints.
   under it with small helpers (one that returns the amounts of every event of a kind, say) rather than
   repeated `if x.size() == 1:` guards. `tests/acceptance/test_005_expedition_loop.gd` sits at exactly 1000:
   an update there must not add lines. The cap counts for `sim/` too: `sim/expedition/expedition.gd` is near
-  it, so put a new rule's arithmetic on its def (spec 025's `SideQuestDef.reward_at`), not in the expedition.
+  it, so put a new rule's arithmetic on its def (spec 025's `QuestDef.reward_at`), not in the expedition.
   When a spec's tests outgrow one file, move the helpers they share into a base with no tests of its own
   (spec 050's `tests/unit/ability_kit_test_base.gd`, which `extends ColonyTest`) and have each test file
   `extends "res://tests/unit/ability_kit_test_base.gd"`; a helper another spec could use goes on
@@ -320,7 +320,7 @@ by value, not with `assert_eq` against ints.
   script the test loads, or a freed object touched) that `dev.py test` cut from what it shows. Run GUT
   yourself to see it: `godot_console --headless --path . -s res://addons/gut/gut_cmdln.gd -gexit
   -gselect=test_038 -gunit_test_name=<test>` and grep the output for `SCRIPT ERROR`.
-- A test that needs a party that *cannot* do a side quest must stay robust to faster levelling (spec 036):
+- A test that needs a party that *cannot* do a quest must stay robust to faster levelling (spec 036):
   a level-1 rogue can reach level 2 and learn Lockpicker on one walk. Pick a quest whose microskill comes
   late (a rune stone, Runereader at mage level 4) rather than the locked chest.
 - `dev.py test` shows a test's `print` output only when something fails. To read a trace while debugging,

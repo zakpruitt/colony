@@ -13,7 +13,7 @@ const UPGRADES: Array = [
 ## State hashes of an untouched simulation every 1500 ticks up to 20 minutes,
 ## recorded on dev before this spec changed any sim code. Re-recorded by spec 023, whose
 ## monster ids (part of the hash) come from where the monster is; the game is otherwise the same.
-## Re-recorded by spec 025, whose side quests stand in for some chambers' monsters.
+## Re-recorded by spec 025, whose quests stand in for some chambers' monsters.
 ## Re-recorded by spec 036, whose opening (stability, respawn and XP) is quicker.
 ## Re-recorded by spec 052, whose hash includes the resources the party holds; the game is
 ## otherwise the same (test_052 R11 checks it against spec 016's hashes from before).
@@ -308,7 +308,7 @@ func test_r4_upgrades_change_the_game() -> void:
 	for i: int in 6000:
 		poor.step()
 		rich.step()
-		# Kills only: a side quest's gold is not the purse's (its source is the worker).
+		# Kills only: a quest's gold is not the purse's (its source is the worker).
 		for event: SimEvent in _events_of(poor.drain_events(), SimEvent.Kind.GOLD_GAINED):
 			if event.source_id >= Expedition.FIRST_MONSTER_ID:
 				poor_gold.append(event.amount)

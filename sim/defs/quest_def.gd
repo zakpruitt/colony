@@ -1,21 +1,15 @@
-class_name SideQuestDef
-extends ContentDef
-## A side quest: something a chamber can hold instead of monsters. A living hero with
+class_name QuestDef
+extends JobDef
+## A quest: a job ([JobDef]) a chamber can hold instead of monsters. A living hero with
 ## [member microskill] does it in [member work_seconds] for a reward worth
 ## [member reward_factor] kills of that depth; with nobody able, the party walks past, or a
-## hazard ([member miss_damage] above 0) springs on it. One .tres file per side quest under
-## res://data/sidequests.
+## hazard ([member miss_damage] above 0) springs on it. One .tres file per quest under
+## res://data/quests.
 
 enum Reward { GOLD, XP }
 
-## The shortest and longest work a side quest may take, in seconds.
 const _WORK_SECONDS_RANGE: Vector2 = Vector2(3.0, 6.0)
 
-@export var id: StringName
-@export var display_name: String
-@export var description: String
-@export var microskill: StringName
-@export var work_seconds: float
 @export var reward: Reward
 @export var reward_factor: float  # in kills of that depth
 ## Share of max health every living hero loses if nobody has the microskill; 0 for no hazard.
@@ -49,27 +43,14 @@ static func kill_value(level_depth: int) -> Vector2:
 	return Vector2(gold, xp) / weight
 
 
-## What Content finds this definition by: its id.
-func key() -> StringName:
-	return id
+## The shortest and longest work a quest may take, in seconds.
+func work_range() -> Vector2:
+	return _WORK_SECONDS_RANGE
 
 
-## One line per problem; empty when the side quest is usable.
+## One line per problem; empty when the quest is usable: the job's, then the reward and hazard.
 func validate() -> PackedStringArray:
-	var problems: PackedStringArray = DefChecks.naming_problems(
-		id, display_name, description, "description"
-	)
-	if String(microskill).is_empty():
-		problems.append("microskill is empty")
-	elif Content.microskill(microskill) == null:
-		problems.append("microskill %s does not exist" % microskill)
-	if work_seconds < _WORK_SECONDS_RANGE.x or work_seconds > _WORK_SECONDS_RANGE.y:
-		problems.append(
-			(
-				"work_seconds %s is outside %s to %s"
-				% [work_seconds, _WORK_SECONDS_RANGE.x, _WORK_SECONDS_RANGE.y]
-			)
-		)
+	var problems: PackedStringArray = super()
 	if reward_factor <= 0.0:
 		problems.append("reward_factor %s is not above 0" % reward_factor)
 	if miss_damage < 0.0 or miss_damage >= 1.0:

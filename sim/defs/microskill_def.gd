@@ -1,7 +1,7 @@
 class_name MicroskillDef
 extends ContentDef
 ## A microskill: a minor passive a hero picks up at a level of their class (see
-## [member HeroClassDef.microskills]), which lets the party do side quests that ask for it.
+## [member HeroClassDef.microskills]), which lets the party do quests that ask for it.
 ## One .tres file per microskill under res://data/microskills.
 
 @export var id: StringName

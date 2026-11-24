@@ -8,7 +8,7 @@ extends RefCounted
 ## and y down). A fight is in world columns on its chamber's own floor
 ## ([method LabyrinthChamber.floor_columns], [method LabyrinthChamber.floor_row]).
 ##
-## Some plain chambers hold a side quest instead of monsters: a hero with its
+## Some plain chambers hold a quest instead of monsters: a hero with its
 ## microskill does it while the party stands WORKING, and without one the party walks past.
 ##
 ## Every change worth showing is reported as a [SimEvent] stamped with the
@@ -122,7 +122,7 @@ var _chambers: Dictionary[Vector2i, ChamberState] = {}
 var _rolled: Dictionary[Vector3i, Array] = {}
 ## The caches opened, and the party's trip down a side path.
 var _side: SidePathWalk = SidePathWalk.new()
-## The side quest being done while WORKING: its chamber as Vector2i(depth, index), its id, the
+## The quest being done while WORKING: its chamber as Vector2i(depth, index), its id, the
 ## worker's hero id, the tick the work began and how many ticks it takes. A gate being opened
 ## has the last three and no quest.
 var _work_key: Vector2i = Vector2i(0, -1)
@@ -329,9 +329,9 @@ func seconds_to_push() -> float:
 	return DepthTiming.push_left(self, _tick, timers)
 
 
-## The id of the side quest that chamber holds on its current visit, or &"". Like the monsters,
+## The id of the quest that chamber holds on its current visit, or &"". Like the monsters,
 ## it depends only on the seed, depth, chamber and visit, and asking changes nothing in the game.
-func side_quest_in(level_depth: int, chamber_index: int) -> StringName:
+func quest_in(level_depth: int, chamber_index: int) -> StringName:
 	if not _exists(level_depth, chamber_index):
 		return &""
 	var fill: ChamberState = _chambers.get(Vector2i(level_depth, chamber_index), null)
@@ -412,7 +412,7 @@ func hash_parts() -> Array:
 
 func _apply_commands() -> void:
 	_orders.apply(self)
-	# A destination waits for the fight or side quest to end and the party to stand.
+	# A destination waits for the fight or quest to end and the party to stand.
 	var busy: bool = state == State.FIGHTING or state == State.REVIVING or state == State.WORKING
 	if _areas.pending_area != &"" and not busy:
 		_areas.depart(self)
@@ -480,7 +480,7 @@ func _travel() -> void:
 		if here != null and is_populated(depth, here.index):
 			_start_battle(here)
 			return
-		var quest: StringName = side_quest_in(depth, here.index) if here != null else &""
+		var quest: StringName = quest_in(depth, here.index) if here != null else &""
 		if quest != &"":
 			QuestWork.meet(self, here, quest)
 			if state != State.TRAVELLING:
@@ -624,7 +624,7 @@ func _record(level_depth: int, chamber_index: int) -> ChamberState:
 	return fill
 
 
-## The side quest that chamber holds on [param visit] (see [method ChamberRules.quest_on_visit]).
+## The quest that chamber holds on [param visit] (see [method ChamberRules.quest_on_visit]).
 func _quest_on_visit(level_depth: int, chamber_index: int, visit: int) -> StringName:
 	return ChamberRules.quest_on_visit(_labyrinth, _here, _rng, level_depth, chamber_index, visit)
 

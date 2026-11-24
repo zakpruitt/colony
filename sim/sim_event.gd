@@ -13,9 +13,9 @@ enum Kind {
 	UPGRADE_BOUGHT,
 	GUARDIAN_SLAIN,
 	MICROSKILL_LEARNED,
-	SIDE_QUEST_STARTED,
-	SIDE_QUEST_DONE,
-	SIDE_QUEST_MISSED,
+	QUEST_STARTED,
+	QUEST_DONE,
+	QUEST_MISSED,
 	TALENT_POINT_GAINED,
 	TALENT_TAKEN,
 	PARAGON_SPENT,
@@ -61,9 +61,9 @@ var target_id: int = -1
 ## with [member source_id] the guardian's combatant id.
 ## For MICROSKILL_LEARNED: the hero's level, with [member source_id] the hero and
 ## [member target_id] the microskill's position in [method Content.microskill_ids].
-## For SIDE_QUEST_STARTED and SIDE_QUEST_DONE: the work in ticks, or the gold or XP given,
+## For QUEST_STARTED and QUEST_DONE: the work in ticks, or the gold or XP given,
 ## with [member source_id] the worker and [member target_id] the quest's position in
-## [method Content.side_quest_ids]. For SIDE_QUEST_MISSED: the needed microskill's position,
+## [method Content.quest_ids]. For QUEST_MISSED: the needed microskill's position,
 ## with [member target_id] the quest's position. For the talent kinds, with [member source_id] the
 ## hero: TALENT_POINT_GAINED: the level that earned it; TALENT_TAKEN: the talent points left, with
 ## [member ability_id] the node; PARAGON_SPENT: the points now in the stat, with
@@ -78,7 +78,7 @@ var target_id: int = -1
 ## For AREA_CHANGED and AREA_OPENED: the area's position in [method Content.area_ids].
 ## For RESOURCE_GAINED: how many, with [member target_id] the resource's position in
 ## [method Content.resource_ids] and [member source_id] the monster that dropped it, or the hero
-## who finished a side quest or opened a cache's gate.
+## who finished a quest or opened a cache's gate.
 ## For the side path kinds: GATE_STARTED: the work in ticks, with [member source_id] the worker and
 ## [member target_id] the gate's position in [method Content.gate_ids]; GATE_OPENED: the side
 ## path's place in [member LabyrinthLevel.side_paths], with the same source and target;
@@ -86,7 +86,7 @@ var target_id: int = -1
 ## CACHE_OPENED: the side path's place, with [member source_id] the hero who opened its gate.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
-## "a hazard sprang" for SIDE_QUEST_MISSED; "a shield absorbed it" for MISSED.
+## "a hazard sprang" for QUEST_MISSED; "a shield absorbed it" for MISSED.
 var flag: bool = false
 ## The [AbilityDef] id for ABILITY_STARTED, ABILITY_USED and STATUS_BEGAN (the ability that put
 ## the status there), and for STATUS_ENDED; the node for TALENT_TAKEN; empty otherwise.

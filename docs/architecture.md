@@ -322,7 +322,7 @@ of any version loads on either with the same progress.
   there and hunts on that level, and `Expedition.is_holding` says so. At their defaults the orders add nothing
   to the state hash. `EncounterRoll` holds the expedition's encounter roll, guardian lookup and fighters' hash
   parts, kept apart so `expedition.gd` stays under gdlint's 1000 lines. Spec 078 holds that file to 900
-  lines: what a chamber holds on a visit (always empty, a guardian's, its side quest and its monsters)
+  lines: what a chamber holds on a visit (always empty, a guardian's, its quest and its monsters)
   is `ChamberRules`, and where the heroes stand and the anchor walks is `PartyPlaces`, both read-only
   under `sim/expedition/`. `PartyPlaces` asks the stage's course (below) for every place:
   `PartyPlaces.anchor(run)` is the anchor's feet in world tiles, `world_facing(run)` the way the party
@@ -345,7 +345,7 @@ of any version loads on either with the same progress.
   nothing from the time away is drawn, and an `AwayWindow` reports it (`AwayStory` words the rows). No save is written during a replay, so
   quitting part way loses nothing. Tests set `away_seconds_override`; a run with no `save_store` never replays.
   Watching changes nothing (spec 023): the expedition's reads (`monsters_in`, `is_populated`,
-  `side_quest_in`, `working_quest`, `worker_id`, `work_progress`, `hero_position`, `chamber`,
+  `quest_in`, `working_quest`, `worker_id`, `work_progress`, `hero_position`, `chamber`,
   `guardian_of`, `hash_parts`) never change the state hash, so a watched game and
   the same game run headless stay hash-equal. A chamber's record is made only when the party fights there;
   a read works out the visit the chamber is on and takes its monsters from a roll cache outside the hash.
@@ -477,7 +477,7 @@ hero's `LadderRoute` both lists, so a hero climbs a side ladder in its column; `
 keeps props off a side ladder's columns and the column by a side tunnel's mouth.
 
 **Gates and caches on screen** (spec 094). `SideProps` (`game/world/side_props.gd`, a child of `World`
-beside `QuestProps`) gives every side path of a built stage two sprites, found by id as a side quest's
+beside `QuestProps`) gives every side path of a built stage two sprites, found by id as a quest's
 prop is (`assets/sprites/props/<gate id>.png`, `cache.png`), each sheet with a `closed` and an `open`
 part: the gate at `course.point_at(gate_at)` and the strongbox at the middle of the cache room's floor.
 What they show is read from the state on every scan, never kept from events: a cache is closed while
@@ -527,17 +527,17 @@ opens it. Inside an area the party moves through stages exactly as it moved thro
 keeps the old names: `Expedition.depth`, `target_depth`, `last_stable_depth` and `deepest_depth` are stages
 of the area the party is in. A stage's level is `base level + stage - 1` (`Expedition.level_at`): monsters
 are made at that level (`Combatant.from_monster`, growing from `MonsterDef.base_level`, which kept the
-numbers of the old `min_depth`), and `SideQuestDef.reward_at` reads it. The timers to become safe and to refill
+numbers of the old `min_depth`), and `QuestDef.reward_at` reads it. The timers to become safe and to refill
 a chamber (`DepthTiming`) go by the stage number instead, so every area's first stage is safe in a minute.
 A chamber holds only
 its area's monsters that have appeared by its stage (`EncounterRoll`), and the guardian stands at its stage
 and every `GUARDIAN_EVERY` stages after.
 
 Each area has its own `Labyrinth`: the first area's is the seed's own, every other's is forked under
-`area/<id>/`, as are its encounter and side-quest rolls. `AreaTravel` (owned by the expedition, read as
+`area/<id>/`, as are its encounter and quest rolls. `AreaTravel` (owned by the expedition, read as
 `Expedition.travel`) keeps the open areas, every other area's safe and furthest stage, each area's labyrinth
 and a journey. `Simulation.set_destination(area, stage)` asks for one, and is ignored if the area is not open
-then. Once the party is out of any fight or side quest and standing, it leaves (`JOURNEYING`; a rest it
+then. Once the party is out of any fight or quest and standing, it leaves (`JOURNEYING`; a rest it
 leaves ends with `REST_ENDED`). The journey is a rest: the heroes heal as `AreaTravel.JOURNEY_SECONDS` of
 resting would, and the fallen stand. That long after it left, it arrives at the start of the stage asked for
 or the area's safe stage if that is nearer, with the stage asked for as its target (or a target chosen on the
@@ -556,7 +556,7 @@ from that event, as the defeat note does. The screen names a place as an area an
 Spec 052. Each area names one resource (`AreaDef.resource`, a `ResourceDef` under `data/resources/`; its
 icon is its part of `assets/sprites/ui/resource_icons.px`). `ResourceDrops` (`sim/expedition/`) gives it:
 a monster killed drops some with `DROP_CHANCE` by its size (small 0.3, large 0.8, a guardian always), as much
-as `ResourceDrops.amount_at(size, stage)` (1, 2 or 6 on stage 1, a quarter more each stage on), and a side quest
+as `ResourceDrops.amount_at(size, stage)` (1, 2 or 6 on stage 1, a quarter more each stage on), and a quest
 finished pays a large monster's drop. Each kill's roll is its own stream,
 `fork("<area label>resource/<monster id>")`, so a drop takes nothing from any other roll and leaves nothing to
 save. `Party.resource(id)` holds the counts; `RESOURCE_GAINED` reports a drop (the source, the resource's
@@ -763,19 +763,23 @@ the fire burns `Ambience.set_camp_light` keeps one more light in `Ambience.light
   `REVIVAL_SPARKS` rising sparks at the hero's feet) for `rose_at_camp`, a `REVIVED` and each hero of a
   `PARTY_REVIVED`, each only for an event `may_animate` allows.
 
-## Side quests and microskills
+## Quests and microskills
 
 Spec 025. A microskill (`MicroskillDef`, `data/microskills/`) is a minor passive: each `HeroClassDef` lists
 the ones it learns and the level of each, and a hero has one from that level on (`Hero.microskills()`), so
-nothing about them is saved. A side quest (`SideQuestDef`, `data/sidequests/`) is what a plain chamber holds
-in place of monsters on a visit, with chance `ChamberRules.SIDE_QUEST_SHARE`, rolled like the monsters from the
+nothing about them is saved. A quest (`QuestDef`, `data/quests/`) is what a plain chamber holds
+in place of monsters on a visit, with chance `ChamberRules.QUEST_SHARE`, rolled like the monsters from the
 seed, depth, chamber and visit only (`fork("sidequest/d/c/v")`). Reaching one, the living hero with its
 microskill (lowest id first, `Party.hero_with_microskill`) does it while the expedition is `WORKING`; the
-reward is `SideQuestDef.reward_at(depth)`, a number of average kills of that depth, and the chamber is cleared
+reward is `QuestDef.reward_at(depth)`, a number of average kills of that depth, and the chamber is cleared
 like a fought one. With nobody able the party walks on: a quest stays for a later pass (its `ChamberState`
 remembers the miss so it is reported once per visit), a hazard springs, hurts every living hero (never below
-1) and is cleared. Events: `MICROSKILL_LEARNED`, `SIDE_QUEST_STARTED`, `SIDE_QUEST_DONE`, `SIDE_QUEST_MISSED`,
+1) and is cleared. Events: `MICROSKILL_LEARNED`, `QUEST_STARTED`, `QUEST_DONE`, `QUEST_MISSED`,
 with the usual gold, XP and hit events beside them.
+
+A quest and a gate (spec 093) are both a job a microskill does: `QuestDef` and `GateDef` extend `JobDef`
+(`sim/defs/job_def.gd`), which holds the id, names, microskill and `work_seconds` and checks them against
+each kind's own `work_range()` (3 to 6 seconds for both). A quest adds its reward and hazard.
 
 ## Abilities in combat
 
