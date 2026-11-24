@@ -52,8 +52,21 @@ const TINTS: Dictionary[StringName, Array] = {
 	&"hurt_wanderer":
 	[
 		{},
-		{&"green": &"blue", &"forest": &"navy", &"pine": &"night"},
-		{&"green": &"red", &"forest": &"crimson", &"pine": &"plum"},
+		# A pilgrim's robe (sand, shaded tan) changes too, and with it the staffs' tan.
+		{
+			&"green": &"blue",
+			&"forest": &"navy",
+			&"pine": &"night",
+			&"sand": &"silver",
+			&"tan": &"steel",
+		},
+		{
+			&"green": &"red",
+			&"forest": &"crimson",
+			&"pine": &"plum",
+			&"sand": &"clay",
+			&"tan": &"umber",
+		},
 	],
 }
 ## The quest whose prop is never mirrored: a door hangs on the wall side (its hinge is drawn on
@@ -69,9 +82,11 @@ const DRESSING: Dictionary[StringName, Array] = {
 }
 const DRESSING_SHEET: String = "res://assets/sprites/props/quest_dressing.png"
 ## Where a piece of dressing may lie: its middle this many pixels to either side of the prop's
-## foot. Within 2 tiles of it, and clear of every work spot ([constant QuestProps.WORK_GAP], and
-## [constant QuestStage.BEHIND] past it).
-const SLOTS: Array[float] = [-30.0, -23.0, 23.0, 30.0]
+## foot. A piece spans [constant PIECE_HALF] each way, so it stays within 2 tiles of the foot
+## (32 pixels) and at least 2 pixels clear of the furthest work spot
+## ([constant QuestProps.WORK_GAP] and [constant QuestStage.BEHIND], 18 pixels). Two on one
+## side lie a little over each other, a small heap.
+const SLOTS: Array[float] = [-28.0, -24.0, 24.0, 28.0]
 ## Half the widest piece of dressing, in pixels: a slot is used only where a piece this wide
 ## still lies on the room's open floor.
 const PIECE_HALF: float = 4.0

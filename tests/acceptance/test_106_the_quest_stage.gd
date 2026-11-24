@@ -380,6 +380,20 @@ func test_r6_late_events_snap() -> void:
 			assert_eq(props.part_of(_at.x, _at.y), &"", "no wanderer at all")
 			assert_false(props.is_done(_at.x, _at.y), "none walking off")
 			assert_eq(props.find_children(String(WANDERER), "Sprite2D", false, false).size(), 0)
+	# A wanderer already walking off when a catch-up comes is gone with it.
+	var again: Simulation = _before(WANDERER, true)
+	if again == null:
+		return
+	_show(again)
+	assert_true(_play_until(SimEvent.Kind.QUEST_DONE), "mended in view")
+	for i: int in 30:
+		_play_frame()
+	var shown: QuestProps = _world.quest_props
+	assert_true(shown.is_done(_at.x, _at.y), "(walking off)")
+	for i: int in World.STALL_TICKS + 2:
+		again.step()
+	_play_frame(false)
+	assert_false(shown.is_done(_at.x, _at.y), "the walking wanderer is gone after a catch-up")
 
 
 # --- R7 ------------------------------------------------------------------------
@@ -468,6 +482,8 @@ func test_r9_each_room_looks_its_own() -> void:
 				for box: Rect2 in looks.dressing_rects(at):
 					assert_gte(box.position.x, walls.x, "on the floor")
 					assert_lte(box.end.x, walls.y, "on the floor")
+					assert_gte(box.position.x, at.x - 2 * TILE, "within 2 tiles of the prop")
+					assert_lte(box.end.x, at.x + 2 * TILE, "within 2 tiles of the prop")
 					for gap: float in [
 						QuestProps.WORK_GAP, QuestProps.WORK_GAP + QuestStage.BEHIND
 					]:
@@ -499,3 +515,12 @@ func test_r9_each_room_looks_its_own() -> void:
 	var first: Array = shown[0]
 	var second: Array = shown[1]
 	assert_eq(str(first), str(second), "the same both times")
+	# Chosen from the area, the depth and the chamber, never the simulation's stream: games of
+	# two seeds show their first chamber's chest of stage 2 the same way.
+	var chosen: Array[String] = []
+	for seed_value: int in [11, 29]:
+		var sim: Simulation = winding_simulation(seed_value)
+		var view: LabyrinthView = zoned_view(sim.labyrinth, 2)
+		var looks: QuestLooks = QuestProps.looks_in(view, 2, 0, CHEST)
+		chosen.append("%s %d %s" % [looks.look, looks.tint, looks.mirrored])
+	assert_eq(chosen[0], chosen[1], "the same look in games of different seeds")
