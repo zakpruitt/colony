@@ -390,11 +390,13 @@ func hash_parts() -> Array:
 		_work_key,
 		_work_quest,
 		_worker,
-		_workers,
 		_work_start,
 		_work_ticks,
 		["areas", area, _here.id, _areas.hash_parts()],
 	]
+	# Left out while nobody works, so a run that never works hashes as it would without them.
+	if not _workers.is_empty():
+		parts.append(["workers", _workers])
 	parts.append_array(_side.hash_parts(self))
 	var keys: Array[Vector2i] = []
 	keys.assign(_chambers.keys())

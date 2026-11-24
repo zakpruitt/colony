@@ -264,16 +264,18 @@ func test_r4_the_workers_can_be_read() -> void:
 	assert_ne(hashes[0], hashes[1], "they hash differently while working")
 
 
-## True if one of [param parts] is the list of workers [param ids].
+## True if [param parts], or a list within it at any depth, is the list of workers [param ids].
 func _holds_workers(parts: Array, ids: Array[int]) -> bool:
+	if parts.size() == ids.size():
+		var same: bool = true
+		for i: int in ids.size():
+			var value: Variant = parts[i]
+			same = same and value is int and value == ids[i]
+		if same:
+			return true
 	for part: Variant in parts:
-		if part is Array and (part as Array).size() == ids.size():
-			var same: bool = true
-			for i: int in ids.size():
-				var value: Variant = (part as Array)[i]
-				same = same and value is int and value == ids[i]
-			if same:
-				return true
+		if part is Array and _holds_workers(part as Array, ids):
+			return true
 	return false
 
 
