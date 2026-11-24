@@ -79,6 +79,9 @@ const STEP_SECONDS: float = 0.15
 ## The rune overlays of a stone, one more lit for each quarter of the work.
 const RUNES: int = 4
 ## The pixel size of the times sign drawn after the name when several work.
+## The times sign in [method worker_label]'s text. It is never drawn with the font, which has
+## no glyph for it: [method _draw_overlay] draws a cross.
+const TIMES: String = "\u00d7"
 const TIMES_SIZE: int = 3
 
 var _world: World
@@ -195,7 +198,7 @@ func bar_fraction() -> float:
 	return _bar
 
 
-## The microskill's name over the work, with "×N" after it when N work, or "" when nobody works.
+## The microskill's name over the work, with a times sign and N after it when N work, or "" when nobody works.
 func worker_label() -> String:
 	return _name
 
@@ -455,7 +458,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		shown.runes.visible = false
 	_show_part(shown, QuestLooks.DONE[quest])
 	if quest == WANDERER:
-		if not _world.may_animate(event) or _world.catching_up():
+		if not _world.may_animate(event):
 			_free(shown)  # a late mending: the wanderer has long gone
 			return
 		shown.way = -PartyPlaces.world_facing(_simulation.expedition)
@@ -598,7 +601,7 @@ func _set_overlay(fraction: float, words: String, count: int = 0) -> void:
 		_skill = words
 		_count = count
 		_skill_width = PixelText.width(words)
-		_name = words if count < 2 or words.is_empty() else "%s ×%d" % [words, count]
+		_name = words if count < 2 or words.is_empty() else "%s %s%d" % [words, TIMES, count]
 	if fraction < 0.0:
 		_name = ""
 		_skill = ""
@@ -621,7 +624,7 @@ func _draw_overlay() -> void:
 		)
 	if _skill.is_empty():
 		return
-	# The pixel font has no times sign: "×N" is a small drawn cross and the number.
+	# The pixel font has no times sign: it is a small drawn cross before the number.
 	var count: String = str(_count) if _count >= 2 else ""
 	var space: int = PixelText.width(" ") if _count >= 2 else 0
 	var tail: int = space + TIMES_SIZE + 1 + PixelText.width(count) if _count >= 2 else 0

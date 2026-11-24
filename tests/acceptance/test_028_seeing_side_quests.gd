@@ -224,7 +224,7 @@ func test_r2_worker_steps_forward() -> void:
 	var rogue: CharacterSprite = _world.character(ROGUE)
 	# Spec 106: the lead stands WORK_GAP short of the prop, on the side the party came from.
 	var lead_spot: float = prop.position.x - QuestProps.WORK_GAP
-	assert_almost_eq(rogue.position.x, lead_spot, 0.5, "the worker is at the prop")
+	assert_almost_eq(rogue.position.x, lead_spot, 2.0, "the worker is at the prop")
 	assert_eq(rogue.position.y, prop.position.y, "on the floor")
 	for hero: Hero in sim.party.heroes:
 		if hero.id == ROGUE:

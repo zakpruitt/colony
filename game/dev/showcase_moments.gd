@@ -153,7 +153,8 @@ func watch(
 	_moment_time = moment_time
 	_since = since_seen
 	_seen = false
-	if event != null and event.kind == SimEvent.Kind.QUEST_STARTED and QUEST_OF.has(current):
+	var started: bool = event != null and event.kind == SimEvent.Kind.QUEST_STARTED
+	if started and QUEST_OF.has(current) and current != &"two_clerics":
 		_hurry_work()
 	call("_watch_%s" % how, event)
 	return _seen
@@ -239,7 +240,8 @@ func _begin_quest(current: StringName) -> void:
 	var sim: Simulation = main.simulation
 	var mending: bool = sim.expedition.working_quest() == QUEST_OF[&"quest_wanderer"]
 	if current == &"quest_wanderer" and mending:
-		return  # the two clerics' work goes on to its end
+		_hurry_work()  # the two clerics' work goes on, hurried only once both are at it
+		return
 	settle_now()
 	_stand_up(current == &"two_clerics")
 	for hero: Hero in sim.party.heroes:
