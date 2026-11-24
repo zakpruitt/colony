@@ -1,9 +1,9 @@
 # 102 — A camp when they rest, and a revival you can see
 
-- **Status:** in-progress (approved 2026-11-23)
+- **Status:** landed (approved 2026-11-23)
 - **Milestone:** M7
 - **Depends on:** 012, 038, 048, 057, 076, 097
-- **Pull request:** —
+- **Pull request:** [#102](https://github.com/zakpruitt/colony/pull/102)
 
 ## Intent
 
