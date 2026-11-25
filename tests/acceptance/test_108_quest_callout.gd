@@ -290,6 +290,34 @@ func test_r6_it_does_not_crowd() -> void:
 	_emit_now(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
 	_never_crowded(CLERIC, "a lesson and a name before it")
 
+	# A lesson alone, put over a showing "QUEST!": the word keeps its place under it.
+	for i: int in 240:
+		if _world.fx.count(&"quest_text") + _world.fx.count(&"ability_name") == 0:
+			break
+		_play_frame()
+	_emit_now(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
+	_play_frame()
+	var word: FxText = _callout_over(CLERIC)
+	_play_frame()
+	assert_not_null(word, "a word to put a lesson over")
+	if word == null:
+		return
+	# Alone, and raised to where the lesson starts, so the lesson stacks just over it.
+	_world.fx.remove(_callout_over(SECOND_CLERIC))
+	word.screen_offset.y = -QuestEffects.LEARNED_RAISE + 4.0
+	_play_frame()
+	_emit_now(SimEvent.Kind.MICROSKILL_LEARNED, CLERIC, 2, LEVEL)
+	var lesson: FxText = _other_words_over(CLERIC).back()
+	assert_almost_eq(
+		word.rect().position.y - lesson.rect().end.y, QuestEffects.STACK_GAP, 1.0, "just over"
+	)
+	var offset: float = word.screen_offset.y
+	var moved: int = 0
+	while _world.fx.has(word):
+		moved += int(word.screen_offset.y != offset)
+		_play_frame()
+	assert_eq(moved, 0, "the word never leaps over the lesson")
+
 
 ## Plays the life of hero [param id]'s "QUEST!", asserting each frame that it overlaps none of
 ## the other words over that hero, and that at least one other word showed with it.
