@@ -154,6 +154,7 @@ For Zak's playtest, with a `--count` shot sequence across one wanderer scene and
 - Added on 2026-11-25 after the lane's questions:
   - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd`: in `test_r5_props_and_the_fallen_are_in_their_room`, only the quest's microskill-name checks (about lines 443-445). They follow R6: no name for a quest, and the name-over-bar check is dropped. The bar checks stay.
   - `game/effects/spell_effects.gd`: spec 057's heal light becomes one public function that takes a point, for example `light_column_at(feet: Vector2)`. The hero path calls it with the sprite's position, and the quest story calls it with the wanderer's spot. No second copy of it.
+  - `tests/acceptance/test_105_chat_bubbles.gd`, `test_r5_stale_time_starts_nothing` (about lines 228-236): the per-frame `shown_count() == 1` becomes "the test's own bubble is still up" (`line_of(...) == LINE`), because quests on the way now speak. The check that a stage change clears every bubble stays.
 - R6 is about quests only. A gate keeps its microskill name over its bar, and its swing.
 - `docs/architecture.md`, `docs/standards.md` (a row: a quest's lines are `QuestLine`s on its def), `docs/wiki/index.html`
 
