@@ -72,7 +72,7 @@ func _callouts() -> Array[FxText]:
 	return found
 
 
-func _shown() -> int:
+func _callouts_now() -> int:
 	return _fx.quest_effects.callouts_shown()
 
 
@@ -85,7 +85,7 @@ func _callout_over(id: int) -> FxText:
 
 
 ## Tells the world [param kind] now, as the simulation would.
-func _tell(
+func _emit_now(
 	kind: SimEvent.Kind, source: int, target: int, amount: int = 0, flag: bool = false
 ) -> SimEvent:
 	var event := SimEvent.new(kind, _sim.tick, source, target, amount, flag)
@@ -121,7 +121,7 @@ func test_r1_quest_pops_over_every_worker() -> void:
 	assert_true(_clerics_meet_the_wanderer(), "the clerics find the wanderer")
 	var workers: Array[int] = QuestWork.workers(_sim.expedition)
 	assert_eq(workers.size(), 2, "two clerics work")
-	assert_eq(_shown(), 2, "two words")
+	assert_eq(_callouts_now(), 2, "two words")
 	for id: int in workers:
 		var text: FxText = _callout_over(id)
 		assert_not_null(text, "a word over hero %d" % id)
@@ -152,7 +152,7 @@ func test_r1_quest_pops_over_every_worker() -> void:
 	while frames < 120 and gone_at < 0:
 		_play_frame()
 		frames += 1
-		if _shown() == 0:
+		if _callouts_now() == 0:
 			gone_at = frames
 	assert_between(gone_at, 60, 84, "gone after about 1.2 s, and by 1.4 s")
 
@@ -168,7 +168,7 @@ func test_r2_it_follows_its_hero() -> void:
 		starts[id] = _world.character(id).position.x
 		walked[id] = 0.0
 	var frames: int = 0
-	while _shown() > 0 and frames < 120:
+	while _callouts_now() > 0 and frames < 120:
 		for id: int in starts:
 			var text: FxText = _callout_over(id)
 			var sprite: CharacterSprite = _world.character(id)
@@ -187,9 +187,9 @@ func test_r2_it_follows_its_hero() -> void:
 
 func test_r3_gates_too() -> void:
 	_fresh_world()
-	_tell(SimEvent.Kind.GATE_STARTED, ROGUE, 0, 30)
+	_emit_now(SimEvent.Kind.GATE_STARTED, ROGUE, 0, 30)
 	_play_frame(false)
-	assert_eq(_shown(), 1, "one word")
+	assert_eq(_callouts_now(), 1, "one word")
 	var text: FxText = _callout_over(ROGUE)
 	assert_not_null(text, "over the opener")
 	if text != null:
@@ -210,7 +210,7 @@ func test_r4_only_when_someone_can() -> void:
 	assert_true(_play_until(SimEvent.Kind.QUEST_MISSED, 120), "the chest is walked past")
 	for i: int in 10:
 		_play_frame()
-	assert_eq(_shown(), 0, "no word for a walked-past quest")
+	assert_eq(_callouts_now(), 0, "no word for a walked-past quest")
 
 	# A tripwire nobody spots springs.
 	sim = _party_at(WIRE, false, 1)
@@ -222,16 +222,16 @@ func test_r4_only_when_someone_can() -> void:
 	assert_true(sprung, "it sprang")
 	for i: int in 10:
 		_play_frame()
-	assert_eq(_shown(), 0, "no word for a sprung hazard")
+	assert_eq(_callouts_now(), 0, "no word for a sprung hazard")
 
 	# A sealed gate; the same world shows a word for a gate that is opened.
 	_fresh_world(1)
-	_tell(SimEvent.Kind.GATE_SEALED, -1, 0, 0)
+	_emit_now(SimEvent.Kind.GATE_SEALED, -1, 0, 0)
 	_play_frame(false)
-	assert_eq(_shown(), 0, "no word for a sealed gate")
-	_tell(SimEvent.Kind.GATE_STARTED, ROGUE, 0, 30)
+	assert_eq(_callouts_now(), 0, "no word for a sealed gate")
+	_emit_now(SimEvent.Kind.GATE_STARTED, ROGUE, 0, 30)
 	_play_frame(false)
-	assert_eq(_shown(), 1, "but one for a gate being opened")
+	assert_eq(_callouts_now(), 1, "but one for a gate being opened")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -252,7 +252,7 @@ func test_r5_stale_time_shows_nothing() -> void:
 		sim.step()
 	_play_frame(false)
 	assert_true(_world.catching_up(), "a catch-up")
-	assert_eq(_shown(), 0, "no word for a start heard in a catch-up")
+	assert_eq(_callouts_now(), 0, "no word for a start heard in a catch-up")
 
 	# A start older than ANIMATE_TICKS, heard with no catch-up; a fresh one is called out.
 	for i: int in 5:
@@ -263,10 +263,10 @@ func test_r5_stale_time_shows_nothing() -> void:
 	)
 	_world.sim_event.emit(stale)
 	_play_frame(false)
-	assert_eq(_shown(), 0, "no word for a stale start")
-	_tell(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
+	assert_eq(_callouts_now(), 0, "no word for a stale start")
+	_emit_now(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
 	_play_frame(false)
-	assert_eq(_shown(), 2, "a fresh one is called out over both clerics")
+	assert_eq(_callouts_now(), 2, "a fresh one is called out over both clerics")
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -275,19 +275,19 @@ func test_r5_stale_time_shows_nothing() -> void:
 func test_r6_it_does_not_crowd() -> void:
 	# "QUEST!" first, then a lesson and an ability name over the same cleric.
 	assert_true(_clerics_meet_the_wanderer(), "the clerics find the wanderer")
-	_tell(SimEvent.Kind.MICROSKILL_LEARNED, CLERIC, 0, LEVEL)
+	_emit_now(SimEvent.Kind.MICROSKILL_LEARNED, CLERIC, 0, LEVEL)
 	var named := SimEvent.new(SimEvent.Kind.ABILITY_USED, _sim.tick, CLERIC, CLERIC)
 	named.ability_id = NAMED
 	_world.sim_event.emit(named)
 	_never_crowded(CLERIC, "a lesson and a name after it")
 
 	# A lesson and a name first, then "QUEST!" over the same cleric.
-	_tell(SimEvent.Kind.MICROSKILL_LEARNED, CLERIC, 1, LEVEL)
+	_emit_now(SimEvent.Kind.MICROSKILL_LEARNED, CLERIC, 1, LEVEL)
 	named = SimEvent.new(SimEvent.Kind.ABILITY_USED, _sim.tick, CLERIC, CLERIC)
 	named.ability_id = NAMED
 	_world.sim_event.emit(named)
 	_play_frame()
-	_tell(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
+	_emit_now(SimEvent.Kind.QUEST_STARTED, CLERIC, 0, 100)
 	_never_crowded(CLERIC, "a lesson and a name before it")
 
 
