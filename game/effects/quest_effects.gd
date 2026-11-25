@@ -5,7 +5,8 @@ extends Node
 ## flaring and sending a mote to each living hero, a snip where the wire was; a wanderer's is its
 ## heal light, [QuestStory]'s), dust at a stuck door's foot at each shove, a miss's muted "Needs
 ## <microskill>" rising from the prop, a sprung trap's red "Sprung!" with a shake and every hero
-## flashing, and "Learned <microskill>" over a hero; and of side paths: "Needs a <microskill>"
+## flashing, "Learned <microskill>" over a hero, and "QUEST!" popping over each hero who takes on
+## a quest or opens a gate; and of side paths: "Needs a <microskill>"
 ## rising from a gate nobody can open, and a cache bursting into sparks as it opens. The coins and
 ## XP of a reward come from their own events, through [CombatEffects].
 ##
@@ -13,6 +14,27 @@ extends Node
 ## particles through the world's [FxPool], at most [constant MAX_PARTICLES] particles at once.
 ## An event that may not animate ([method World.may_animate]) shows nothing.
 
+## The word over a hero who takes on a quest or a gate, and its colour.
+const CALLOUT: String = "QUEST!"
+const CALLOUT_COLOUR: StringName = &"orange"
+const CALLOUT_SCALE: int = 2
+## Its pop: from [constant CALLOUT_FROM] of its size to [constant CALLOUT_PEAK] and back to its
+## size, over [constant CALLOUT_RISE] and [constant CALLOUT_SETTLE] seconds. Then it holds for
+## [constant CALLOUT_HOLD] seconds, drifting up [constant CALLOUT_DRIFT] pixels, and blinks out:
+## gone before the lead says its first line at the work spot.
+const CALLOUT_FROM: float = 0.6
+const CALLOUT_PEAK: float = 1.25
+const CALLOUT_RISE: float = 0.1
+const CALLOUT_SETTLE: float = 0.05
+const CALLOUT_HOLD: float = 0.9
+const CALLOUT_DRIFT: float = 4.0
+const CALLOUT_LIFE: float = CALLOUT_RISE + CALLOUT_SETTLE + CALLOUT_HOLD + FxText.BLINK_TIME
+## Pixels between the top of its hero's body and its baseline.
+const CALLOUT_RAISE: float = 10.0
+## The pool's budget the words are counted under.
+const CALLOUT_BUDGET: StringName = &"quest_callout"
+## Pixels kept between words stacked over one hero.
+const STACK_GAP: float = 2.0
 ## The most particles these effects make at once.
 const MAX_PARTICLES: int = FxPool.QUEST
 ## The words' font multiples: a done quest and a sprung trap large, a miss and a lesson small.
@@ -95,6 +117,11 @@ func _on_sim_event(event: SimEvent) -> void:
 	if _world.quest_props == null or not _world.may_animate(event):
 		return
 	match event.kind:
+		SimEvent.Kind.QUEST_STARTED:
+			for id: int in QuestWork.workers(_simulation.expedition):
+				_call_out(id)
+		SimEvent.Kind.GATE_STARTED:
+			_call_out(event.source_id)
 		SimEvent.Kind.QUEST_DONE:
 			_done(_quest(event.target_id), event.source_id)
 		SimEvent.Kind.QUEST_MISSED:
@@ -260,6 +287,41 @@ func _learned(hero_id: int, skill_index: int) -> void:
 	text.screen_offset = Vector2(0, -LEARNED_RAISE)
 	text.follow = _keep_over_hero
 	text.start(_world.feet_position(hero_id) + text.screen_offset)
+	_stack(text, _callouts_over(hero_id))
+
+
+## "QUEST!" pops over hero [param hero_id], who takes something on; one already there starts
+## again.
+func _call_out(hero_id: int) -> void:
+	var sprite: CharacterSprite = _world.character(hero_id)
+	if sprite == null:
+		return
+	var showing: Array[FxText] = _callouts_over(hero_id)
+	if not showing.is_empty():
+		showing[0].age = 0.0
+		return
+	var text := FxText.new()
+	text.name = "QuestCallout"
+	text.kind = &"callout"
+	text.text = CALLOUT
+	text.color = Palette.color(CALLOUT_COLOUR)
+	text.scale_factor = CALLOUT_SCALE
+	text.outline = true
+	text.pops = false
+	text.grow_from = CALLOUT_FROM
+	text.grow_peak = CALLOUT_PEAK
+	text.grow_rise = CALLOUT_RISE
+	text.grow_settle = CALLOUT_SETTLE
+	text.life = CALLOUT_LIFE
+	text.velocity = Vector2(0, -CALLOUT_DRIFT / CALLOUT_HOLD)
+	text.z_index = 2
+	text.follow_id = hero_id
+	var head: float = SpriteBounds.body_rect(sprite, Vector2.ZERO).position.y
+	text.screen_offset = Vector2(0, head - CALLOUT_RAISE)
+	text.follow = _keep_callout
+	text.start(_world.feet_position(hero_id) + text.screen_offset)
+	_stack(text, _crowding(hero_id, text))
+	_world.fx.add(text, CALLOUT_BUDGET)
 
 
 ## "Needs a <microskill>" rising from the gate nobody can open.
@@ -303,6 +365,67 @@ func _keep_over_hero(text: FxText) -> bool:
 	if _world.character(text.follow_id) != null:
 		text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
 	return true
+
+
+## As [method _keep_over_hero], and a "QUEST!" that a word it keeps clear of has reached moves up
+## over that word: names over a hero rise faster than it does, and workers walk into one another.
+func _keep_callout(text: FxText) -> bool:
+	if _world.character(text.follow_id) == null:
+		return true
+	_keep_over_hero(text)
+	var fx: FxPool = _world.fx
+	if fx.count(&"ability_name") + fx.count(&"quest_text") + fx.count(CALLOUT_BUDGET) > 1:
+		_stack(text, _crowding(text.follow_id, text))
+	return true
+
+
+## Moves [param text], over its hero, up over each of [param others] it would touch, and gives it
+## the slot over the highest of them it is moved over.
+func _stack(text: FxText, others: Array[FxText]) -> void:
+	for _pass: int in others.size():
+		var moved: bool = false
+		var mine: Rect2 = text.rect()
+		for other: FxText in others:
+			var theirs: Rect2 = other.rect()
+			if not theirs.grow(STACK_GAP).intersects(mine):
+				continue
+			text.screen_offset.y += theirs.position.y - STACK_GAP - mine.end.y
+			text.slot = maxi(text.slot, other.slot + 1)
+			text.set_anchor(_world.feet_position(text.follow_id) + text.screen_offset)
+			moved = true
+			break
+		if not moved:
+			return
+
+
+## What [param callout], a "QUEST!" over hero [param hero_id], keeps clear of: the words and
+## names over that hero, and each "QUEST!" older than it (two workers side by side would have
+## theirs on top of one another). Never a younger one: heroes bob apart as they walk, and two
+## words each keeping clear of the other would leapfrog up the screen.
+func _crowding(hero_id: int, callout: FxText) -> Array[FxText]:
+	var found: Array[FxText] = []
+	for budget: StringName in [&"quest_text", &"ability_name"]:
+		for node: Node2D in _world.fx.nodes(budget):
+			var text := node as FxText
+			if text != null and text.follow_id == hero_id:
+				found.append(text)
+	for node: Node2D in _world.fx.nodes(CALLOUT_BUDGET):
+		if node == callout:
+			break
+		found.append(node as FxText)
+	return found
+
+
+## The "QUEST!" words over hero [param hero_id].
+func _callouts_over(hero_id: int) -> Array[FxText]:
+	var found: Array[FxText] = []
+	if _world.fx.count(CALLOUT_BUDGET) == 0:
+		return found
+	for node: Node2D in _world.fx.nodes(CALLOUT_BUDGET):
+		var text := node as FxText
+		if text.follow_id == hero_id:
+			found.append(text)
+	return found
 
 
 ## The prop's colours flying out from its middle, with a puff.
@@ -358,6 +481,11 @@ func _particle(kind: StringName) -> FxParticle:
 	made.name = "QuestParticle"
 	made.kind = kind
 	return made if _world.fx.add(made, &"quest") else null
+
+
+## How many "QUEST!" words show now (for tests).
+func callouts_shown() -> int:
+	return _world.fx.count(CALLOUT_BUDGET)
 
 
 # --- Reading -------------------------------------------------------------------
