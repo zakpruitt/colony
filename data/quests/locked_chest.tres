@@ -1,6 +1,84 @@
-[gd_resource type="Resource" script_class="QuestDef" format=3]
+[gd_resource type="Resource" script_class="QuestDef" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://sim/defs/quest_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/quest_line.gd" id="2"]
+
+[sub_resource type="Resource" id="line_0"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Ooh, a locked one. My favourite."
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Stand back, this wants a light touch."
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &"rogue"
+text = "Nobody breathe. Lockwork is shy."
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Come on, little tumbler..."
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Almost... almost..."
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Who makes locks this fussy?"
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "Don't drop a pin in there."
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "How do they even do that?"
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "Is it gold? Tell me it's gold."
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "And... open! Gold, friends!"
+
+[sub_resource type="Resource" id="line_10"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "Click! Never fails."
 
 [resource]
 script = ExtResource("1")
@@ -12,3 +90,5 @@ work_seconds = 12.0
 reward = 0
 reward_factor = 3.0
 miss_damage = 0.0
+work_move = &"kneel_work"
+lines = Array[ExtResource("2")]([SubResource("line_0"), SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10")])

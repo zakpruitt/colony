@@ -229,7 +229,8 @@ func test_r5_stale_time_starts_nothing() -> void:
 		if bubbles.shown_count() == 0:
 			main.world.say(wanderer, LINE, 30.0)
 			_frame(main, 0)
-		assert_eq(bubbles.shown_count(), 1, "a bubble is up")
+		# Quests met on the way say their own lines too (spec 107): this one stays up among them.
+		assert_eq(bubbles.line_of(wanderer), LINE, "a bubble is up")
 		_frame(main)
 		if main.world.shown_stage() != stage:
 			changed = true

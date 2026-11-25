@@ -280,6 +280,13 @@ showcase's leftovers, not the game.</p>
   the room fills again or the party leaves the stage. Each prop has three looks, three tints and a
   few things lying round it (coins, broken planks, candles, a dropped pack), so no two rooms look
   quite the same. The art is a placeholder.</td></tr>
+  <tr><td>107 The quest's story</td><td>Each quest plays out as a little story. The heroes work in a
+  pose that fits the job (kneeling at a lock, shouldering a door, reading a stone, tending the wanderer)
+  instead of hitting it, and say short lines at its moments: the wanderer's plea, the lead's first line
+  as it starts (the microskill's name no longer sits over the bar), a few words as the work goes on, a
+  comment from someone sitting, a done line and the wanderer's thanks. The cleric prays and light falls
+  on the wanderer; a chest spills coins, a stone sends XP motes to every hero, a cut wire snips, a door
+  raises dust. About sixty lines, kept as data.</td></tr>
   <tr><td>067 Opens at a size you can read</td><td>The game opens maximized on a screen with room for it,
   so the UI is at twice the size; <kbd>F11</kbd> is full screen; and it remembers how you left the
   window.</td></tr>
@@ -516,13 +523,24 @@ plus a resource drop. If nobody can, the party walks past and the quest waits fo
 instead springs and every hero loses a fifth of their health (never down to 0, so it cannot wipe the
 party). A quest out in the dark shows a small white glint so you can spot it from afar.</p>
 <p>On screen a quest is a scene: the prop stands two thirds of the way into the room, the workers walk
-over and work at it from both sides (the bar over the prop says <em>Mender ×2</em> when two work), and
+over and work at it from both sides, with a bar over the prop filling as they go, and
 everyone else sits down and watches. The prop shows the job: a chest opens, a door swings back, a rune
 stone lights a rune for each quarter of the work, a tripwire goes slack, a mended wanderer stands up and
 walks out of the room. A done prop stays until the room fills again or the party leaves the stage (it is
 not saved). Each room picks one of three looks for its prop (a plain, iron-banded or round chest; a
 hooded traveller, a miner or a pilgrim), a tint, which way it faces and a few things on the floor
 round it, and shows them the same way every time.</p>
+<p>Each quest also plays out as a short story. Every job has its own pose: the rogue kneels and works at
+a chest or a wire, the knight shoulders a stuck door (dust puffs at its foot with each shove), the mage
+stands with a hand raised to the rune stone, the cleric kneels and tends the wanderer. The heroes talk:
+the wanderer cries for help as the party comes in, the lead says something as they reach the job (the
+first place you learn who is doing it), the workers mutter as it goes, one of the sitting heroes chips
+in halfway, the lead says it is done, and the wanderer thanks them. Near the end the cleric stops to
+pray and a column of light falls on the wanderer. When the job is done there is a payoff: coins spill
+out of the chest and fly to the rogue, the stone's runes flare and send a mote of XP to every hero, and
+the cut wire gives a little white snip. The lines are kept in the quest's data file, several for each
+moment, so the same quest reads a little differently each time (the same moment always says the same
+thing). At 4x speed only the plea, the done line and the thanks are said.</p>
 
 <h3>Side paths and caches</h3>
 <p>Every stage has one to three <em>side paths</em>: a ladder or a short tunnel off a room of the route,
@@ -977,8 +995,8 @@ the mouse is on it), and it is drawn over every window, so a window you open fro
   small dark panel like the windows, sharp at any size, with a tail pointing at the speaker. It follows
   the speaker as they walk and as the camera moves, stays on screen at the edges, and blinks out after one
   to four seconds (longer lines stay longer). Two bubbles never overlap: the later one moves up. Windows
-  and the button bar cover them, and the mouse passes through them. Nothing in the game speaks yet
-  (spec 107 gives the quests their lines); the showcase's second moment shows one.</li>
+  and the button bar cover them, and the mouse passes through them. The heroes and the wanderer speak in them during a quest
+  (see Quests and microskills); the showcase's second moment shows one.</li>
   <li><strong>The arrow.</strong> While the party is heading for another stage a small yellow arrow over
   its heads points the way it is going: along the floor, or up or down at a ladder.</li>
   <li><strong>A wipe.</strong> The party lies where it fell; if it revives on another stage the screen

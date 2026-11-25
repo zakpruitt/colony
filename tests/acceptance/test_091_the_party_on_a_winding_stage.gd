@@ -440,9 +440,8 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 			_play_frame()
 		var props: QuestProps = _world.quest_props
 		assert_gt(props.bar_fraction(), 0.0, "%s: the bar shows" % what)
-		assert_ne(props.worker_label(), "", "%s: and the microskill's name" % what)
+		assert_eq(props.worker_label(), "", "%s: no microskill's name (spec 107)" % what)
 		assert_eq(props._bar_at.y, line_y - QuestProps.BAR_RAISE, "%s: over the prop" % what)
-		assert_lt(props._name_at.y, props._bar_at.y, "%s: the name over the bar" % what)
 		var bar_middle: float = props._bar_at.x + QuestProps.BAR_SIZE.x / 2.0
 		assert_almost_eq(bar_middle, prop_x, 1.0, "%s: the bar over the prop" % what)
 

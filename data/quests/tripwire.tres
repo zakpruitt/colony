@@ -1,6 +1,70 @@
-[gd_resource type="Resource" script_class="QuestDef" format=3]
+[gd_resource type="Resource" script_class="QuestDef" load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://sim/defs/quest_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/quest_line.gd" id="2"]
+
+[sub_resource type="Resource" id="line_0"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Hold! There's a wire here."
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Nobody take another step."
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Gently... gently..."
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Which end is the clever end?"
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Steady hands, steady hands."
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "We'll just stand very still."
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "Breathe softly. Wires hear everything."
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "Snip! Safe to pass."
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "Disarmed. You may breathe again."
 
 [resource]
 script = ExtResource("1")
@@ -12,3 +76,5 @@ work_seconds = 10.0
 reward = 0
 reward_factor = 1.0
 miss_damage = 0.2
+work_move = &"kneel_work"
+lines = Array[ExtResource("2")]([SubResource("line_0"), SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8")])
