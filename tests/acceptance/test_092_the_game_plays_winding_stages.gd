@@ -307,12 +307,12 @@ func test_r4_the_showcase_cuts_by_the_course() -> void:
 	showcase.free()
 
 	# To a quest: a few tiles of course before its room, in no other room, walking in.
-	showcase = _showcase_at(&"quest_done")
+	showcase = _showcase_at(&"quest_chest")
 	sim = showcase.main.simulation
 	e = sim.expedition
 	var level: LabyrinthLevel = sim.labyrinth.level(e.depth)
 	line = level.course
-	var quest: StringName = ShowcaseMoments.QUEST_OF[&"quest_done"]
+	var quest: StringName = ShowcaseMoments.QUEST_OF[&"quest_chest"]
 	_assert_on_course(sim, "the quest")
 	assert_eq(line.chamber_at(e.x), -1, "the quest: in no room")
 	assert_eq(e.facing, 1, "the quest: facing along the course")

@@ -13,11 +13,14 @@ extends RefCounted
 ##
 ## And what stands in each room that no decoration may meet ([method standing],
 ## [method cache_standing]): those columns for the room's whole height, the mouths of its
-## tunnels, a side path's gate, its cache, and the place a quest's prop takes.
+## tunnels, a side path's gate, its cache, and the place a quest's prop takes with its dressing
+## ([method QuestProps.spot_in], [method QuestProps.looks_in]), whichever quest it holds.
 
 const TILE: int = LabyrinthView.TILE
 
 var _level: LabyrinthLevel
+var _view: LabyrinthView
+var _depth: int = 0
 
 ## By chamber index: the columns kept clear, and those of them nothing opens the floor in (a
 ## ladder that comes down to this floor, a doorway).
@@ -31,6 +34,8 @@ var _cache_closed: Array[Dictionary] = []
 func _init(view: LabyrinthView, depth: int) -> void:
 	var level: LabyrinthLevel = view.labyrinth.level(depth)
 	_level = level
+	_view = view
+	_depth = depth
 	if view.labyrinth.shape == Labyrinth.Shape.WINDING:
 		_note_winding(view, level)
 		return
@@ -82,9 +87,11 @@ func cache_closed_columns(place: int) -> Dictionary[int, bool]:
 ## pixels.
 func standing(room: LabyrinthChamber) -> Array[Rect2]:
 	var found: Array[Rect2] = _in_room(room, columns(room.index))
-	var spot: Vector2 = _middle(room)
-	for path: String in QuestProps.SHEETS.values():
-		found.append(_stood(PixelSheet.load_sheet(path), spot))
+	var spot: Vector2 = QuestProps.spot_in(_view, _depth, room.index)
+	for quest: StringName in QuestProps.SHEETS:
+		found.append(_stood(PixelSheet.load_sheet(QuestProps.SHEETS[quest]), spot))
+		var looks: QuestLooks = QuestProps.looks_in(_view, _depth, room.index, quest)
+		found.append_array(looks.dressing_rects(spot))
 	return found
 
 
@@ -96,7 +103,7 @@ func cache_standing(place: int) -> Array[Rect2]:
 	return found
 
 
-## The middle of the floor of [param room], where a quest's prop or a cache stands.
+## The middle of the floor of [param room], where a cache stands.
 static func _middle(room: LabyrinthChamber) -> Vector2:
 	var middle: float = floorf((room.rect.position.x + room.rect.end.x) / 2.0)
 	return Vector2(middle * TILE, room.rect.end.y * TILE)

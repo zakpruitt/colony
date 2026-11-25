@@ -427,12 +427,13 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 		raise_party(sim, 30)
 		_stand(sim, 3, _short_of(level, room), 4, 2)
 		var line_y: float = _floor_line(room)
-		var middle: float = floorf((room.rect.position.x + room.rect.end.x) / 2.0) * TILE
+		# Spec 106: the prop stands at its spot, toward the far side of its room.
+		var prop_x: float = QuestProps.spot_in(_world.labyrinth_view, 3, room.index).x
 		var prop: Sprite2D = _world.quest_props.prop(3, room.index)
 		assert_not_null(prop, "%s: the quest's prop shows" % what)
 		if prop == null:
 			break
-		assert_eq(prop.position, Vector2(middle, line_y), "%s: at its room's middle" % what)
+		assert_eq(prop.position, Vector2(prop_x, line_y), "%s: on its room's floor" % what)
 		assert_eq(_world.quest_props.spot(3, room.index), prop.position, "%s: its spot" % what)
 		assert_true(_play_until(SimEvent.Kind.QUEST_STARTED, 30), "%s: work starts" % what)
 		for i: int in 30:
@@ -442,7 +443,8 @@ func test_r5_props_and_the_fallen_are_in_their_room() -> void:
 		assert_ne(props.worker_label(), "", "%s: and the microskill's name" % what)
 		assert_eq(props._bar_at.y, line_y - QuestProps.BAR_RAISE, "%s: over the prop" % what)
 		assert_lt(props._name_at.y, props._bar_at.y, "%s: the name over the bar" % what)
-		assert_almost_eq(props._bar_at.x, middle, TILE, "%s: the bar by the prop" % what)
+		var bar_middle: float = props._bar_at.x + QuestProps.BAR_SIZE.x / 2.0
+		assert_almost_eq(bar_middle, prop_x, 1.0, "%s: the bar over the prop" % what)
 
 		# Wiped there: every hero lies where the simulation says it fell, on that floor.
 		var worker: int = sim.expedition.worker_id()

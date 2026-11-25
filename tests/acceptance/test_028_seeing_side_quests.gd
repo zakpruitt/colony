@@ -170,9 +170,12 @@ func test_r1_props_wait_in_chambers() -> void:
 		)
 		var feet: Vector2 = prop.position
 		assert_eq(feet.y, _floor_pixels(_quest_at.x), "%s: on the floor line" % quest)
+		# Spec 106: toward the far side of its room, where the party walks in from.
 		var room: Rect2 = _room_pixels(_quest_at)
 		var middle: float = room.position.x + room.size.x / 2.0
-		assert_lt(absf(feet.x - middle), room.size.x / 4.0, "%s: near the middle" % quest)
+		var spot: Vector2 = QuestProps.spot_in(_world.labyrinth_view, _quest_at.x, _quest_at.y)
+		assert_eq(feet, spot, "%s: on its spot" % quest)
+		assert_gt(feet.x, middle, "%s: past the middle" % quest)
 		assert_true(prop.is_visible_in_tree(), "%s: shown" % quest)
 
 		# A prop for every chamber of the built levels with a quest, and none elsewhere.
@@ -219,7 +222,9 @@ func test_r2_worker_steps_forward() -> void:
 	for i: int in 10:
 		_frame(1, FRAME)
 	var rogue: CharacterSprite = _world.character(ROGUE)
-	assert_lt(absf(rogue.position.x - prop.position.x), 14.0, "the worker is at the prop")
+	# Spec 106: the lead stands WORK_GAP short of the prop, on the side the party came from.
+	var lead_spot: float = prop.position.x - QuestProps.WORK_GAP
+	assert_almost_eq(rogue.position.x, lead_spot, 2.0, "the worker is at the prop")
 	assert_eq(rogue.position.y, prop.position.y, "on the floor")
 	for hero: Hero in sim.party.heroes:
 		if hero.id == ROGUE:
@@ -227,8 +232,11 @@ func test_r2_worker_steps_forward() -> void:
 		var other: CharacterSprite = _world.character(hero.id)
 		var gap: float = absf(other.position.x - rogue.position.x)
 		assert_gt(gap, 8.0, "hero %d stands apart from the worker" % hero.id)
-	assert_eq(props.worker_label(), "Lockpicker", "the microskill's name over the worker")
+	assert_eq(props.worker_label(), "Lockpicker", "the microskill's name over the work")
 	assert_almost_eq(props.bar_fraction(), sim.expedition.work_progress(), 0.001, "the bar")
+	# Spec 106: the bar is over the prop's middle, no longer between the worker and the prop.
+	var bar_middle: float = props._bar_at.x + QuestProps.BAR_SIZE.x / 2.0
+	assert_almost_eq(bar_middle, prop.position.x, 1.0, "the bar over the prop")
 	var before: float = props.bar_fraction()
 	for i: int in 10:
 		_frame(1, FRAME)
@@ -572,7 +580,7 @@ func test_r10_old_events_show_nothing() -> void:
 
 func test_r11_showcase() -> void:
 	var moments: Array[StringName] = [
-		&"quest_done", &"quest_missed", &"tripwire_sprung", &"microskill_learned"
+		&"quest_chest", &"quest_missed", &"tripwire_sprung", &"microskill_learned"
 	]
 	for moment: StringName in moments:
 		assert_has(Showcase.names(), moment, "%s is a moment" % moment)

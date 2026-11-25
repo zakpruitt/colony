@@ -1,1 +1,1 @@
-{"category": "fx", "width": 24, "height": 24, "pivot": [12, 23], "parts": ["stuck"]}
+{"category": "fx", "width": 24, "height": 24, "pivot": [12, 23], "parts": ["planks_stuck", "planks_open", "studded_stuck", "studded_open", "round_stuck", "round_open"]}

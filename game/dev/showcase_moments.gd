@@ -28,7 +28,11 @@ const GUARDIAN_LEVEL: int = 10
 const GUARDIAN_WATCH: float = 3.2
 ## The quest each quest moment walks into, and the depth its search starts from.
 const QUEST_OF: Dictionary[StringName, StringName] = {
-	&"quest_done": &"locked_chest",
+	&"quest_chest": &"locked_chest",
+	&"quest_door": &"stuck_door",
+	&"quest_stone": &"rune_stone",
+	&"quest_wire": &"tripwire",
+	&"two_clerics": &"hurt_wanderer",
 	&"quest_missed": &"locked_chest",
 	&"tripwire_sprung": &"tripwire",
 	&"microskill_learned": &"rune_stone",
@@ -39,9 +43,15 @@ const QUEST_DEPTH: int = 2
 const QUEST_LEVEL: int = 6
 const QUEST_SEARCH: int = 40
 ## Seconds of a quest's work the showcase lets run once the work begins.
-const QUEST_WORK_LEFT: float = 2.0
+const QUEST_WORK_LEFT: float = 4.0
+## The moments in which every hero can do every quest; in the others the rogue cannot.
+const QUESTS_DONE: Array[StringName] = [
+	&"quest_chest", &"quest_door", &"quest_stone", &"quest_wire", &"two_clerics"
+]
 ## The rogue's id, and the level of its first microskill.
 const ROGUE: int = 2
+## The hero a second cleric stands in for while two clerics mend a wanderer (the mage).
+const STAND_IN: int = 3
 ## The hero that falls in the camp moment's fight (the mage) and gets up at the camp.
 const FALLS: int = 3
 const FIRST_SKILL_LEVEL: int = 2
@@ -119,6 +129,10 @@ var _rose: bool = false
 ## The four areas' moment: the area being shown (an index into the areas), and those seen.
 var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
+## The hero the second cleric stands in for, while it does; null otherwise.
+var _stood_down: Hero = null
+## The two clerics' moment: true once both stand at their spots (and the work was hurried).
+var _both_at_work: bool = false
 
 
 ## Begins moment [param current] as its row's [param how] says (&"" for nothing to do).
@@ -140,7 +154,8 @@ func watch(
 	_moment_time = moment_time
 	_since = since_seen
 	_seen = false
-	if event != null and event.kind == SimEvent.Kind.QUEST_STARTED and QUEST_OF.has(current):
+	var started: bool = event != null and event.kind == SimEvent.Kind.QUEST_STARTED
+	if started and QUEST_OF.has(current) and current != &"two_clerics":
 		_hurry_work()
 	call("_watch_%s" % how, event)
 	return _seen
@@ -223,18 +238,39 @@ func _begin_guardian(_current: StringName) -> void:
 
 
 func _begin_quest(current: StringName) -> void:
-	settle_now()
 	var sim: Simulation = main.simulation
+	_both_at_work = false
+	settle_now()
+	_stand_up(current == &"two_clerics")
 	for hero: Hero in sim.party.heroes:
 		_set_level(hero, QUEST_LEVEL)
 	var rogue: Hero = sim.party.hero(ROGUE)
-	if current != &"quest_done":
+	if current not in QUESTS_DONE:
 		# Nobody else picks locks or spots traps: at level 1, neither does the rogue.
 		_set_level(rogue, 1)
 	if current == &"microskill_learned":
 		# One XP short of level 2, and Lockpicker: the rune stone's XP pays for it.
 		rogue.xp = Hero.xp_for_level(FIRST_SKILL_LEVEL) - 1
 	_cut_to_quest(QUEST_OF[current])
+
+
+## With [param second_cleric] a cleric stands in for the mage, so two mend a wanderer; without
+## it the mage is back. The world draws the hero again as its class.
+func _stand_up(second_cleric: bool) -> void:
+	var heroes: Array[Hero] = main.simulation.party.heroes
+	var at: int = -1
+	for i: int in heroes.size():
+		if heroes[i].id == STAND_IN:
+			at = i
+	if at < 0 or second_cleric == (_stood_down != null):
+		return
+	if second_cleric:
+		_stood_down = heroes[at]
+		heroes[at] = Hero.new(STAND_IN, Content.hero_class(&"cleric"))
+	else:
+		heroes[at] = _stood_down
+		_stood_down = null
+	main.world._remove(STAND_IN)
 
 
 ## The party a few steps short of the widest room of its stage that it has not stood in, so the
@@ -512,6 +548,25 @@ func _watch_quest_done(event: SimEvent) -> void:
 		_seen = true
 
 
+## Seen when the quest is done after two or more worked it, each at its spot. The work is
+## hurried only once they all stand there, so the last to walk round the prop is seen at it.
+func _watch_both_mend(event: SimEvent) -> void:
+	if _both_at_work:
+		_watch_quest_done(event)
+		return
+	var stage: QuestStage = main.world.quest_stage
+	var workers: Array[int] = stage.workers()
+	if workers.size() < 2:
+		return
+	for id: int in workers:
+		var sprite: CharacterSprite = main.world.character(id)
+		var spot: Vector2 = stage.goal_for(id, Vector2.INF)
+		if sprite == null or sprite.position.distance_to(spot) > QuestProps.ARRIVED:
+			return
+	_both_at_work = true
+	_hurry_work()
+
+
 func _watch_learned(event: SimEvent) -> void:
 	if event != null and event.kind == SimEvent.Kind.MICROSKILL_LEARNED:
 		_seen = true
@@ -642,26 +697,34 @@ func _cut_to_guardian() -> void:
 	_stand_before(ChamberRules.way_on_room(line), GUARDIAN_APPROACH)
 
 
-## Cuts to the first depth from QUEST_DEPTH holding [param quest] in a chamber, and puts the party
-## a few tiles of course before that chamber, walking in.
+## Cuts to the first depth from QUEST_DEPTH holding [param quest] in a chamber (one walked into
+## along its floor if there is one), and puts the party a few tiles of course before that
+## chamber, walking in.
 func _cut_to_quest(quest: StringName) -> void:
 	var sim: Simulation = main.simulation
-	for depth: int in range(QUEST_DEPTH, QUEST_SEARCH + 1):
-		var level: LabyrinthLevel = sim.labyrinth.level(depth)
-		var found: LabyrinthChamber = null
-		for room: LabyrinthChamber in level.chambers:
-			if sim.expedition.quest_in(depth, room.index) == quest:
-				found = room
-				break
-		if found == null:
-			continue
-		sim.set_auto_push(false)
-		_cut_to_depth(depth, depth)
-		settle_now()
-		if sim.expedition.quest_in(depth, found.index) != quest:
-			continue
-		_stand_before(found.index, QUEST_APPROACH)
-		return
+	# A room walked into along its floor first: the party stops in it, in sight of the work.
+	for along_floor: bool in [true, false]:
+		for depth: int in range(QUEST_DEPTH, QUEST_SEARCH + 1):
+			var level: LabyrinthLevel = sim.labyrinth.level(depth)
+			var found: LabyrinthChamber = null
+			for room: LabyrinthChamber in level.chambers:
+				var line: StageCourse = level.course
+				var by_ladder: bool = line.on_ladder(line.stretch_of(room.index).x - 1.0)
+				if (
+					sim.expedition.quest_in(depth, room.index) == quest
+					and not (along_floor and by_ladder)
+				):
+					found = room
+					break
+			if found == null:
+				continue
+			sim.set_auto_push(false)
+			_cut_to_depth(depth, depth)
+			settle_now()
+			if sim.expedition.quest_in(depth, found.index) != quest:
+				continue
+			_stand_before(found.index, QUEST_APPROACH)
+			return
 
 
 ## Stands the party [param back] tiles of course before chamber [param index] of its stage,

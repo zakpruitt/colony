@@ -14,7 +14,8 @@ extends Node2D
 ## (the party's while it rests), Characters,
 ## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## ZoneCrossing, which dims the screen between places, and UnseenEyes, the eyes of the monsters
-## waiting in the black.
+## waiting in the black. Beside them it keeps a QuestStage (not a node): who works a quest, where,
+## and who sits and watches.
 ##
 ## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
 ## The party never climbs on screen: it walks into a doorway, the screen dims, the world changes
@@ -83,6 +84,8 @@ var quest_props: QuestProps
 var side_props: SideProps
 ## The party's camp while it rests.
 var camp: CampView
+## Who works a quest and who sits and watches.
+var quest_stage: QuestStage
 ## The fallen heroes, and the story of a wipe.
 var fallen_party: FallenParty
 ## The dimming and the title between places.
@@ -171,6 +174,8 @@ func _ready() -> void:
 	camp.name = "Camp"
 	add_child(camp)
 	camp.setup(self, simulation)
+	quest_stage = QuestStage.new()
+	quest_stage.setup(self, simulation)
 	_characters = Node2D.new()
 	_characters.name = "Characters"
 	_characters.position = FEET_LIFT
@@ -323,6 +328,8 @@ func sync(delta: float) -> void:
 	camp.animate(delta)  # before the heroes are given their places: a rest's are the camp's
 	if _catching_up:
 		camp.catch_up()
+		quest_props.catch_up()
+	quest_stage.update()  # before the heroes are given their places: the workers' are its
 	var game_delta: float = delta * maxi(speed, 1)
 	_follow(game_delta)
 	_act()
@@ -774,8 +781,10 @@ func _follow(delta: float) -> void:
 		if _monsters.has(id):
 			goal = Vector2(_monsters[id].x * TILE, _floors[id])
 		else:
-			var standing: Vector2 = camp.goal_for(id, quest_props.goal_for(id, _hero_feet(id)))
-			goal = fallen_party.goal_for(id, standing)
+			var working: Vector2 = quest_stage.goal_for(
+				id, quest_props.goal_for(id, _hero_feet(id))
+			)
+			goal = fallen_party.goal_for(id, camp.goal_for(id, working))
 		_goals[id] = goal
 	_spacing.space(self, _goals)
 	for id: int in _sprites:
@@ -825,7 +834,7 @@ func _act() -> void:
 			# Waiting: facing the side the party is on.
 			facing = 1 if party_at >= sprite.position.x else -1
 		else:
-			facing = camp.facing_of(id, ahead)
+			facing = quest_stage.facing_of(id, camp.facing_of(id, ahead))
 			match expedition.state:
 				Expedition.State.TRAVELLING, Expedition.State.CLIMBING:
 					walking = true
@@ -833,7 +842,8 @@ func _act() -> void:
 					walking = false
 			if absf(gap.x) > MOVING_GAP:
 				facing = 1 if gap.x > 0.0 else -1
-			sits = camping and not moving and camp.sits(id)  # at its place by the fire
+			# At its place by the fire, or watching the work on a quest.
+			sits = not moving and ((camping and camp.sits(id)) or quest_stage.sits(id))
 		sprite.sitting = sits
 		if _snap_all:
 			sprite.snap_sit()

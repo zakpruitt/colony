@@ -5,8 +5,9 @@ extends Node
 ## at its camp, a hero who fell in a won fight getting up at the camp, going on a stage and back
 ## (the crossing), a wipe and the revival, a stage becoming stable, a fight in each other area, a
 ## guardian's fight, each class's hero using its actions, every status on a row of fighters (each
-## labelled with its statuses), quests (one done, one nobody can do, a tripwire sprung and a
-## microskill learned), a dark room lighting as the party walks in (the black leaving it), a room
+## labelled with its statuses), quests (each of the five done, two clerics mending a wanderer
+## while the others sit and watch, one nobody can do, a tripwire sprung and a microskill
+## learned), a dark room lighting as the party walks in (the black leaving it), a room
 ## behind the party refilling and going black, a side path (its gate being opened, its cache
 ## opening, and a gate nobody can open), the shop, the area map with two areas open and the rest
 ## closed, a journey to the Claypits and the arrival there (with the map open on the way), the four
@@ -54,7 +55,11 @@ const ROWS: Array[Array] = [
 	[&"mage_actions", "THE MAGE'S ACTIONS", 1.2, &"class", &"class"],
 	[&"cleric_actions", "THE CLERIC'S ACTIONS", 1.2, &"class", &"class"],
 	[&"statuses", "EVERY STATUS, ON A ROW OF FIGHTERS", 2.0, &"class", &"statuses"],
-	[&"quest_done", "A QUEST: THE ROGUE PICKS A LOCK", 1.0, &"quest", &"quest_done"],
+	[&"quest_chest", "A QUEST: THE ROGUE PICKS A LOCK", 1.0, &"quest", &"quest_done"],
+	[&"quest_door", "A QUEST: THE KNIGHT FORCES A DOOR", 1.0, &"quest", &"quest_done"],
+	[&"quest_stone", "A QUEST: THE MAGE READS A RUNE STONE", 1.0, &"quest", &"quest_done"],
+	[&"quest_wire", "A QUEST: THE ROGUE DISARMS A TRIPWIRE", 1.0, &"quest", &"quest_done"],
+	[&"two_clerics", "TWO CLERICS MEND A WANDERER", 1.0, &"quest", &"both_mend"],
 	[&"quest_missed", "A QUEST NOBODY CAN DO", 1.0, &"quest", &"missed"],
 	[&"tripwire_sprung", "A TRIPWIRE NOBODY SPOTS", 1.0, &"quest", &"sprung"],
 	[&"microskill_learned", "THE ROGUE LEARNS A MICROSKILL", 1.0, &"quest", &"learned"],
