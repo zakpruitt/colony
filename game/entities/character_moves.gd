@@ -96,6 +96,8 @@ class Slot:
 	var landed: bool = false
 	## Seconds a cycle of a work pose takes; 0 for a move with a blow.
 	var loop: float = 0.0
+	## Its `_pose_<move>` function, found once as it starts.
+	var pose: Callable
 
 	## How far through the lead it is, 0 to 1 (1 once the blow has fallen, or with no lead).
 	func before() -> float:
@@ -118,6 +120,7 @@ func play(move: StringName, lead: float, room: float, pace: float) -> void:
 	if LOOPS.has(move):
 		_main = Slot.new()
 		_main.move = move
+		_main.pose = Callable(self, "_pose_" + String(move))
 		_main.loop = LOOPS[move]
 		_main.landed = true
 		cycles += 1
@@ -128,6 +131,7 @@ func play(move: StringName, lead: float, room: float, pace: float) -> void:
 		return
 	var slot := Slot.new()
 	slot.move = move
+	slot.pose = Callable(self, "_pose_" + String(move))
 	slot.lead = maxf(lead, 0.0)
 	slot.recover = RECOVER[move] / maxf(pace, 1.0)
 	slot.room = maxf(room, 0.0)
@@ -188,9 +192,10 @@ func pose() -> void:
 	turn = 0.0
 	scale = Vector2.ONE
 	turns.clear()
-	for slot: Slot in [_main, _over]:
-		if slot != null:
-			call("_pose_" + String(slot.move), slot)
+	if _main != null:
+		_main.pose.call(_main)
+	if _over != null:
+		_over.pose.call(_over)
 	if turn != 0.0:
 		shift.y -= absf(sin(turn)) * FOOT_REACH
 
@@ -454,16 +459,10 @@ func _pose_cheer(slot: Slot) -> void:
 func _pose_kneel_work(slot: Slot) -> void:
 	var k: float = _loop_in(slot)
 	var fiddle: float = sin(TAU * 2.0 * _loop_phase(slot))
-	_add(
-		Vector2(1.0 * k, 0.0),
-		0.06 * k,
-		Vector2(1.0 + 0.08 * k, 1.0 - KNEEL_DROP * k),
-		{
-			&"head": (0.4 + 0.06 * fiddle) * k,
-			&"arm": (0.75 + 0.35 * fiddle) * k,
-			&"weapon": -0.5 * k
-		}
-	)
+	_add_body(Vector2(1.0 * k, 0.0), 0.06 * k, Vector2(1.0 + 0.08 * k, 1.0 - KNEEL_DROP * k))
+	_add_turn(&"head", (0.4 + 0.06 * fiddle) * k)
+	_add_turn(&"arm", (0.75 + 0.35 * fiddle) * k)
+	_add_turn(&"weapon", -0.5 * k)
 
 
 ## A shoulder into the prop: a shove early in each cycle, a recoil, and the lean building again.
@@ -471,12 +470,14 @@ func _pose_push(slot: Slot) -> void:
 	var k: float = _loop_in(slot)
 	var p: float = _loop_phase(slot)
 	var shove: float = _ease_out(p / 0.2) * (1.0 - smoothstep(0.2, 0.75, p))
-	_add(
+	_add_body(
 		Vector2((1.0 + 2.0 * shove) * k, 0.0),
 		(0.14 + 0.12 * shove) * k,
-		Vector2.ONE.lerp(_squash(0.08), shove * k),
-		{&"arm": (-0.5 - 0.3 * shove) * k, &"head": (0.15 + 0.1 * shove) * k, &"weapon": 0.4 * k}
+		Vector2.ONE.lerp(_squash(0.08), shove * k)
 	)
+	_add_turn(&"arm", (-0.5 - 0.3 * shove) * k)
+	_add_turn(&"head", (0.15 + 0.1 * shove) * k)
+	_add_turn(&"weapon", 0.4 * k)
 
 
 ## Upright, one hand raised toward the prop, swaying slowly over two cycles.
@@ -484,24 +485,20 @@ func _pose_read(slot: Slot) -> void:
 	var k: float = _loop_in(slot)
 	var sway: float = sin(PI * slot.time / slot.loop)
 	var hand: float = sin(TAU * _loop_phase(slot))
-	_add(
-		Vector2.ZERO,
-		0.03 * sway * k,
-		Vector2.ONE,
-		{&"arm": (-1.3 + 0.12 * hand) * k, &"head": (-0.15 + 0.05 * sway) * k, &"weapon": 0.4 * k}
-	)
+	_add_body(Vector2.ZERO, 0.03 * sway * k, Vector2.ONE)
+	_add_turn(&"arm", (-1.3 + 0.12 * hand) * k)
+	_add_turn(&"head", (-0.15 + 0.05 * sway) * k)
+	_add_turn(&"weapon", 0.4 * k)
 
 
 ## Kneeling, leaning in over the one tended, the hands moving gently.
 func _pose_tend(slot: Slot) -> void:
 	var k: float = _loop_in(slot)
 	var hands: float = sin(TAU * 2.0 * _loop_phase(slot))
-	_add(
-		Vector2(1.5 * k, 0.0),
-		0.16 * k,
-		Vector2(1.0 + 0.06 * k, 1.0 - KNEEL_DROP * k),
-		{&"head": 0.45 * k, &"arm": (0.5 + 0.4 * hands) * k, &"weapon": 0.6 * k}
-	)
+	_add_body(Vector2(1.5 * k, 0.0), 0.16 * k, Vector2(1.0 + 0.06 * k, 1.0 - KNEEL_DROP * k))
+	_add_turn(&"head", 0.45 * k)
+	_add_turn(&"arm", (0.5 + 0.4 * hands) * k)
+	_add_turn(&"weapon", 0.6 * k)
 
 
 # --- Shapes shared by moves --------------------------------------------------
@@ -635,9 +632,19 @@ static func _keys(
 func _add(
 	by: Vector2, radians: float, times: Vector2, parts: Dictionary[StringName, float]
 ) -> void:
+	_add_body(by, radians, times)
+	for key: StringName in parts:
+		_add_turn(key, parts[key])
+
+
+## Adds to the body's shift, turn and scale, building nothing: what a work pose calls each frame.
+func _add_body(by: Vector2, radians: float, times: Vector2) -> void:
 	shift += by
 	turn += radians
 	scale *= times
-	for key: StringName in parts:
-		if parts[key] != 0.0:
-			turns[key] = _part(turns, key) + parts[key]
+
+
+## Adds [param radians] to part [param key]'s turn; nothing for none.
+func _add_turn(key: StringName, radians: float) -> void:
+	if radians != 0.0:
+		turns[key] = _part(turns, key) + radians

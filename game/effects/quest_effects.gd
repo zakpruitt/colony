@@ -96,7 +96,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		return
 	match event.kind:
 		SimEvent.Kind.QUEST_DONE:
-			_done(_quest(event.target_id))
+			_done(_quest(event.target_id), event.source_id)
 		SimEvent.Kind.QUEST_MISSED:
 			if event.flag:
 				_sprung(_quest(event.target_id))
@@ -110,7 +110,8 @@ func _on_sim_event(event: SimEvent) -> void:
 			_cache_opened(event.amount)
 
 
-func _done(quest: StringName) -> void:
+## [param quest] is done by [param opener], its lead.
+func _done(quest: StringName, opener: int) -> void:
 	var def: QuestDef = Content.quest(quest)
 	if def == null:
 		return
@@ -122,7 +123,7 @@ func _done(quest: StringName) -> void:
 	_burst(quest, at, height)
 	match quest:
 		&"locked_chest":
-			_spill_coins(at)
+			_spill_coins(at, opener)
 		&"rune_stone":
 			_flare(at)
 		&"tripwire":
@@ -146,9 +147,8 @@ func _on_worked(_hero_id: int) -> void:
 		puff.start((foot + Vector2(_rng.randf_range(-DUST_SPREAD, DUST_SPREAD), -1.0)).round())
 
 
-## Coins spill out of the open chest, bounce, and fly to the hero who opened it.
-func _spill_coins(feet: Vector2) -> void:
-	var opener: int = _simulation.expedition.worker_id()
+## Coins spill out of the open chest, bounce, and fly to [param opener], who opened it.
+func _spill_coins(feet: Vector2, opener: int) -> void:
 	for i: int in _rng.randi_range(CHEST_COINS_MIN, CHEST_COINS_MAX):
 		var coin := FxCoin.new()
 		coin.name = "ChestCoin"

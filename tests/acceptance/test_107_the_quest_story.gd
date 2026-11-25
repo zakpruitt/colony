@@ -205,7 +205,11 @@ func test_r2_the_wanderer_is_healed() -> void:
 		if now and not praying:
 			prayers.append(progress)
 		praying = now
-		for node: Node2D in _world.fx.nodes(&"spell"):
+		# Only while the work goes on: DONE lights a wanderer no prayer lit, and must not hide it.
+		var lights: Array[Node2D] = []
+		if _is_working():
+			lights = _world.fx.nodes(&"spell")
+		for node: Node2D in lights:
 			var bit := node as FxParticle
 			if bit != null and bit.kind == &"light_column":
 				light_on_wanderer = light_on_wanderer or absf(bit.position.x - spot.x) <= 4.0
@@ -217,7 +221,7 @@ func test_r2_the_wanderer_is_healed() -> void:
 	assert_eq(prayers.size(), 1, "the cleric prays once")
 	if not prayers.is_empty():
 		assert_gte(prayers[0], 0.74, "past three quarters of the work")
-	assert_true(light_on_wanderer, "the heal light stands on the wanderer")
+	assert_true(light_on_wanderer, "the heal light stands on the wanderer before it is done")
 	assert_gt(sparkles, 0, "small heal sparkles while it is tended")
 
 
@@ -225,10 +229,21 @@ func test_r2_the_wanderer_is_healed() -> void:
 
 
 func test_r3_each_job_ends_visibly() -> void:
-	# The chest spills coins.
+	# The chest spills coins, which fly to the hero who opened it.
 	assert_true(_quest_done(CHEST), "the chest opens")
 	var coins: int = _effects_of(FxCoin)
 	assert_between(coins, 5, 8, "5 to 8 coins out of the chest")
+	var opener: int = -1
+	for event: SimEvent in _events:
+		if event.kind == SimEvent.Kind.QUEST_DONE:
+			opener = event.source_id
+	assert_eq(opener, ROGUE, "the rogue opened it")
+	var chest: Vector2 = _world.feet_position(opener) + Vector2(0, -QuestEffects.CHEST_HEIGHT)
+	for node: Node2D in _world.fx.nodes(&"quest"):
+		var coin := node as FxCoin
+		if coin != null:
+			var goal: Vector2 = coin.target.call()
+			assert_eq(goal, chest, "a coin flies to the opener")
 	# The stone sends a mote to each living hero, and its runes flare.
 	assert_true(_quest_done(STONE), "the stone is read")
 	assert_eq(_effects_of(FxMote), _sim.party.heroes.size(), "a mote for each living hero")
@@ -448,3 +463,31 @@ func test_r7_late_events_stay_quiet() -> void:
 	_play_frame(false)
 	assert_eq(cleric.moves.playing(), &"", "a catch-up stops the pose")
 	assert_eq(_bubbles.shown_count(), 0, "and clears the bubbles")
+
+	# A stall across the start and past half the work: what it passed is not told late.
+	sim = _party_before(WANDERER)
+	sim.expedition.x -= 2.0  # far enough out that the world sees the party before it starts
+	_show_talking(sim)
+	_play_frame()
+	assert_false(_is_working(), "the world has seen the party before the work")
+	while not _is_working():
+		sim.step()
+	while sim.expedition.work_progress() < 0.51:
+		sim.step()
+	_play_frame(false)
+	var def: QuestDef = Content.quest(WANDERER)
+	var posed: bool = false
+	var late: Array[StringName] = []
+	var prayed: bool = false
+	for i: int in 90:
+		_play_frame()
+		posed = posed or _world.character(CLERIC).moves.playing() == &"tend"
+		prayed = prayed or _world.character(CLERIC).moves.playing() == &"prayer"
+		for hero: Hero in sim.party.heroes:
+			var line: QuestLine = _line_of(def, _bubbles.line_of(hero.id))
+			if line != null and line.beat in [&"work", &"watch"] and not late.has(line.beat):
+				late.append(line.beat)
+	assert_eq(late, [] as Array[StringName], "no work or watch line told late")
+	assert_false(prayed, "no prayer")
+	assert_true(posed, "the cleric reached the wanderer and tended")
+	assert_lt(sim.expedition.work_progress(), 2.0 / 3.0, "still short of the next beat")

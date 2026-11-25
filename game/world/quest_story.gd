@@ -94,24 +94,30 @@ func subject() -> Callable:
 ## in a catch-up starts nothing.
 func pose(id: int, rank: int, clock: float, move: StringName) -> bool:
 	var worker: CharacterSprite = _world.character(id)
-	if _held or worker == null or worker.is_dead() or move == &"":
-		return false
-	if clock < rank * QuestProps.SWING_OFFSET:
-		return false
-	var place: Vector2 = _world.quest_stage.goal_for(id, worker.position)
-	if worker.position.distance_to(place) > QuestProps.ARRIVED:
+	if not _may_work(worker, id, rank, clock) or move == &"":
 		return false
 	var playing: StringName = worker.moves.playing()
 	if playing == PRAYER:
 		return false
 	if playing != move:
 		worker.play_move(move, 0.0)
+		if worker.moves.playing() != move:
+			return false
 		_posing[id] = true
 	var cycles: int = worker.moves.cycles
 	if _cycles.get(id, -1) == cycles:
 		return false
 	_cycles[id] = cycles
 	return true
+
+
+## True when [param worker] (hero [param id], of [param rank]) may work now: alive, its turn come
+## after [param clock] seconds of work, standing at its spot, and the world not catching up.
+func _may_work(worker: CharacterSprite, id: int, rank: int, clock: float) -> bool:
+	if _held or worker == null or worker.is_dead() or clock < rank * QuestProps.SWING_OFFSET:
+		return false
+	var place: Vector2 = _world.quest_stage.goal_for(id, worker.position)
+	return worker.position.distance_to(place) <= QuestProps.ARRIVED
 
 
 ## Tells the beats the work has reached, prays, lights and sparkles, and stops the poses once no
@@ -142,7 +148,9 @@ func catch_up() -> void:
 	_stop_poses()
 	_thanks_in = -1.0
 	_light_in = -1.0
-	if _key.y >= 0 and _world.quest_stage.is_working():
+	# The stage is brought up to date after this, so the simulation says whether a quest is worked.
+	if _simulation.expedition.working_quest() != &"":
+		_follow_work()
 		_pass_to(_simulation.expedition.work_progress())
 
 
@@ -242,6 +250,7 @@ func _tend(workers: Array[int], progress: float, delta: float) -> void:
 			continue
 		sprite.play_move(PRAYER, PRAYER_LEAD / pace, INF, pace)
 		if not _lit:
+			_lit = true
 			_light_in = PRAYER_LEAD / pace
 
 
@@ -259,6 +268,7 @@ func _done(event: SimEvent) -> void:
 
 func _light() -> void:
 	_lit = true
+	_light_in = -1.0
 	var feet: Vector2 = _props.spot(_key.x, _key.y)
 	SpellEffects.light_column_at(_world.fx, feet, _fx_rng)
 

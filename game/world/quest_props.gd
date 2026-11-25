@@ -23,8 +23,8 @@ extends Node2D
 ## A waiting prop out of the party's light carries a glint ([PropGlints]), so a quest waiting in
 ## the dark reads from across the level. In the party's light, or done, it has none.
 ##
-## A side path's gate is worked as a quest once was: while the party opens one
-## ([method SideProps.worked_spot]) the worker stands beside it on the side the party came from,
+## A side path's gate is opened by one worker: while the party opens one
+## ([method SideProps.worked_spot]) it stands beside the gate on the side the party came from and
 ## swings at it on the slow repeat, and the bar and the microskill's name show between it and
 ## the gate.
 

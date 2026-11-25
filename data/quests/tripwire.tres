@@ -50,7 +50,7 @@ script = ExtResource("2")
 beat = &"watch"
 speaker = &"watcher"
 class_id = &""
-text = "Is it the red one? Cut the red one!"
+text = "Breathe softly. Wires hear everything."
 
 [sub_resource type="Resource" id="line_7"]
 script = ExtResource("2")
