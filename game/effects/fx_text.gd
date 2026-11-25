@@ -1,9 +1,9 @@
 class_name FxText
 extends FxNode
-## A word or number of an effect in the pixel font, at a whole multiple of its size,
-## with a 1-pixel-per-multiple ink shadow. It pops one size larger as it appears, moves in an arc
-## (or drifts), and blinks out at the end of its life: it never fades. Its position is the centre
-## of its baseline. An effect class makes it; the [FxPool] advances it.
+## A word or number of an effect in the pixel font, at a whole multiple of its size, with a
+## 1-pixel-per-multiple ink shadow. It pops one size larger (or by its scale) as it appears, moves
+## in an arc (or drifts), and blinks out at the end of its life: it never fades. Its position is
+## the centre of its baseline. An effect class makes it; the [FxPool] advances it.
 
 ## Seconds a new text shows one size larger.
 const POP_TIME: float = 0.07
@@ -19,6 +19,13 @@ var color: Color = Color.WHITE
 var scale_factor: int = 1
 ## Pops one size larger when it appears.
 var pops: bool = true
+## A pop by its scale instead (set [member pops] false): it appears at [member grow_from] of its
+## size, swells to [member grow_peak] over [member grow_rise] seconds and settles back to its size
+## over [member grow_settle], about the centre of its baseline. No such pop while both times are 0.
+var grow_from: float = 1.0
+var grow_peak: float = 1.0
+var grow_rise: float = 0.0
+var grow_settle: float = 0.0
 var velocity: Vector2 = Vector2.ZERO
 var gravity: float = 0.0
 ## Pixels a drifting text sways side to side, and seconds per sway.
@@ -128,8 +135,19 @@ func _size_at(at_age: float) -> int:
 	return PixelText.SIZE * (scale_factor + (1 if pops and at_age < POP_TIME else 0))
 
 
+## Its scale at [param at_age] seconds old: 1 once its pop by scale is over.
+func grow_at(at_age: float) -> float:
+	if at_age < grow_rise:
+		return lerpf(grow_from, grow_peak, ease(at_age / grow_rise, 0.5))
+	if at_age < grow_rise + grow_settle:
+		return lerpf(grow_peak, 1.0, (at_age - grow_rise) / grow_settle)
+	return 1.0
+
+
 func _place() -> void:
 	position = position_at(age)
+	if grow_rise + grow_settle > 0.0 and (age <= grow_rise + grow_settle or scale != Vector2.ONE):
+		scale = Vector2.ONE * grow_at(age)
 	queue_redraw()
 
 

@@ -131,8 +131,10 @@ var _area_turn: int = -1
 var _areas_seen: Dictionary[StringName, bool] = {}
 ## The hero the second cleric stands in for, while it does; null otherwise.
 var _stood_down: Hero = null
-## The two clerics' moment: true once both stand at their spots (and the work was hurried).
+## The two clerics' moment: true once both stand at their spots (and the work was hurried), and
+## the heroes a "QUEST!" has been seen over.
 var _both_at_work: bool = false
+var _called_out: Dictionary[int, bool] = {}
 
 
 ## Begins moment [param current] as its row's [param how] says (&"" for nothing to do).
@@ -240,6 +242,7 @@ func _begin_guardian(_current: StringName) -> void:
 func _begin_quest(current: StringName) -> void:
 	var sim: Simulation = main.simulation
 	_both_at_work = false
+	_called_out.clear()
 	settle_now()
 	_stand_up(current == &"two_clerics")
 	for hero: Hero in sim.party.heroes:
@@ -548,11 +551,16 @@ func _watch_quest_done(event: SimEvent) -> void:
 		_seen = true
 
 
-## Seen when the quest is done after two or more worked it, each at its spot. The work is
-## hurried only once they all stand there, so the last to walk round the prop is seen at it.
+## Seen when the quest is done after two or more worked it, each at its spot, a "QUEST!" having
+## popped over each. The work is hurried only once they all stand there, so the last to walk round
+## the prop is seen at it.
 func _watch_both_mend(event: SimEvent) -> void:
+	if event == null and main.effects.quest_effects.callouts_shown() > 0:
+		for node: Node2D in main.world.fx.nodes(QuestEffects.CALLOUT_BUDGET):
+			_called_out[(node as FxText).follow_id] = true
 	if _both_at_work:
-		_watch_quest_done(event)
+		if _called_out.size() >= 2:
+			_watch_quest_done(event)
 		return
 	var stage: QuestStage = main.world.quest_stage
 	var workers: Array[int] = stage.workers()

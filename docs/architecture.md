@@ -836,6 +836,18 @@ catches up) plays each quest as a short story.
   to its opener, a stone's runes flaring with an XP mote (`FxMote`) to each living hero, a snip
   spark where a wire was, dust at a stuck door's foot at each shove, all in `World.fx`'s quest
   budget.
+- **The callout** (`QuestEffects`, spec 108): on `QUEST_STARTED` each of `QuestWork.workers`, and
+  on `GATE_STARTED` the opener, gets `QuestEffects.CALLOUT` in `CALLOUT_COLOUR`, outlined, at 2x,
+  under the pool's `quest_callout` budget. It pops by its scale (`FxText.grow_*`: 0.6, 1.25, 1 over
+  0.15 s), holds 0.9 s drifting 4 pixels and blinks out, gone before the lead's `arrive` line. It
+  follows its hero's feet (`_keep_over_hero`) and keeps clear (`_stack`, giving it an
+  `FxText.slot` over what it clears) of the words and ability names over its hero and of every older
+  callout: placed STACK_GAP over them when it starts, and moved up over one that overlaps it later
+  (a rising name). Never over a younger callout, and a frame moves it only on a real overlap, not
+  inside the gap, or two words a rounded pixel apart (a "Learned" stacked over it, two workers
+  bobbing as they walk) would leapfrog up the screen. What each callout keeps clear of is kept in
+  `QuestEffects._crowds` and worked out again only when the count of quest words, names or callouts
+  changes: a frame compares boxes and allocates nothing. A "Learned" starts over every callout.
 - **Late events**: nothing starts for an event `may_animate` refuses; a catch-up stops the poses,
   drops what waits to be told and marks the beats the work is past as told.
 
