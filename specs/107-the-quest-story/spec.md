@@ -1,6 +1,6 @@
 # 107 — The quest's story
 
-- **Status:** approved (2026-11-24)
+- **Status:** in-progress
 - **Milestone:** M0
 - **Depends on:** 057, 104, 105, 106
 - **Pull request:** —
@@ -78,6 +78,7 @@ Each kind of job has its own pose. The lines live in data, several for each mome
   | `thanks` | the wanderer | 0.4 s after `done`, while it stands |
 
   - A line tagged with the speaker's class is chosen before an untagged one. Among the lines that fit, one is chosen at random.
+  - A speaker that is not a character (the wanderer) is one `Callable` kept for the quest's whole story. Spec 105 matches a `Callable` speaker by identity, so only a kept `Callable` has its line replaced rather than stacked.
   - The choice uses a `RandomNumberGenerator` seeded from the chamber's key and the event's tick, so the same moment always says the same line. The simulation's random stream is never touched.
   - The beats follow `work_progress()`, not the wall clock, so at a higher speed the lines still come in order. At speed 4 or above, only `plea`, `done` and `thanks` are said.
 - **R6. The microskill's name moves into the story.** The name over the bar (spec 106, R7) goes. The bar stays.
