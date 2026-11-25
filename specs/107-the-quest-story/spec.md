@@ -1,9 +1,9 @@
 # 107 — The quest's story
 
-- **Status:** in-progress
+- **Status:** landed
 - **Milestone:** M0
 - **Depends on:** 057, 104, 105, 106
-- **Pull request:** —
+- **Pull request:** [#107](https://github.com/zakpruitt/colony/pull/107)
 
 Status is one of `draft`, `approved (YYYY-MM-DD)`, `provisional`, `in-progress`, `landed`.
 
