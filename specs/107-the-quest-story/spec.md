@@ -151,6 +151,10 @@ For Zak's playtest, with a `--count` shot sequence across one wanderer scene and
 - `tests/acceptance/test_107_the_quest_story.gd` and its `.uid`
 - `tests/acceptance/test_106_the_quest_stage.gd` (its R2 swing check becomes "plays its `work_move`", and its R7 name check follows R6; those two only)
 - `tests/acceptance/test_028_seeing_side_quests.gd` (any swing or name check, to follow R1 and R6)
+- Added on 2026-11-25 after the lane's questions:
+  - `tests/acceptance/test_091_the_party_on_a_winding_stage.gd`: in `test_r5_props_and_the_fallen_are_in_their_room`, only the quest's microskill-name checks (about lines 443-445). They follow R6: no name for a quest, and the name-over-bar check is dropped. The bar checks stay.
+  - `game/effects/spell_effects.gd`: spec 057's heal light becomes one public function that takes a point, for example `light_column_at(feet: Vector2)`. The hero path calls it with the sprite's position, and the quest story calls it with the wanderer's spot. No second copy of it.
+- R6 is about quests only. A gate keeps its microskill name over its bar, and its swing.
 - `docs/architecture.md`, `docs/standards.md` (a row: a quest's lines are `QuestLine`s on its def), `docs/wiki/index.html`
 
 ## Open questions
