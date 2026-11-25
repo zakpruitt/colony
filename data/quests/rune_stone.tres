@@ -1,6 +1,84 @@
-[gd_resource type="Resource" script_class="QuestDef" format=3]
+[gd_resource type="Resource" script_class="QuestDef" load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://sim/defs/quest_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/quest_line.gd" id="2"]
+
+[sub_resource type="Resource" id="line_0"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Old runes. Let me see..."
+
+[sub_resource type="Resource" id="line_1"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &""
+text = "Ah, someone left us a riddle."
+
+[sub_resource type="Resource" id="line_2"]
+script = ExtResource("2")
+beat = &"arrive"
+speaker = &"worker"
+class_id = &"mage"
+text = "Hush now, the stone is speaking."
+
+[sub_resource type="Resource" id="line_3"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Ith... vael... no, vaeth."
+
+[sub_resource type="Resource" id="line_4"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "Rune of the hearth, rune of the road..."
+
+[sub_resource type="Resource" id="line_5"]
+script = ExtResource("2")
+beat = &"work"
+speaker = &"worker"
+class_id = &""
+text = "This bit is smudged, honestly."
+
+[sub_resource type="Resource" id="line_6"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "Can you read it? I can't."
+
+[sub_resource type="Resource" id="line_7"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "It's glowing. Is it meant to glow?"
+
+[sub_resource type="Resource" id="line_8"]
+script = ExtResource("2")
+beat = &"watch"
+speaker = &"watcher"
+class_id = &""
+text = "Quiet, the reading's going well."
+
+[sub_resource type="Resource" id="line_9"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "There! The stone remembers."
+
+[sub_resource type="Resource" id="line_10"]
+script = ExtResource("2")
+beat = &"done"
+speaker = &"worker"
+class_id = &""
+text = "Read, and well read at that."
 
 [resource]
 script = ExtResource("1")
@@ -12,3 +90,5 @@ work_seconds = 14.0
 reward = 1
 reward_factor = 2.0
 miss_damage = 0.0
+work_move = &"read"
+lines = Array[ExtResource("2")]([SubResource("line_0"), SubResource("line_1"), SubResource("line_2"), SubResource("line_3"), SubResource("line_4"), SubResource("line_5"), SubResource("line_6"), SubResource("line_7"), SubResource("line_8"), SubResource("line_9"), SubResource("line_10")])
