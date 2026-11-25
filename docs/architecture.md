@@ -797,9 +797,9 @@ middle of a floor under 6 tiles): `QuestProps.spot_in(view, depth, chamber)`, a 
   it; every other living hero stays where the simulation has it and `World._act` sits it
   (`CharacterSprite.sitting`) facing the prop once it has stopped. `goal_for` is chained by
   `World._follow` inside `CampView.goal_for`. A gate keeps its one opener (`QuestProps.goal_for`).
-- **Props** (`QuestProps`): each worker swings on the slow repeat once at its spot, offset by
-  `SWING_OFFSET` a rank; the bar and the microskill's name (`Mender ×2`, the cross drawn by hand:
-  the pixel font has none) stand over the prop. A stone being read shows `rune_1` to `rune_4` over
+- **Props** (`QuestProps`): each worker works at its spot in its quest's pose (spec 107, below),
+  offset by `SWING_OFFSET` a rank; the bar stands over the prop (a gate's opener still swings, with
+  the microskill's name over its bar). A stone being read shows `rune_1` to `rune_4` over
   its `dim` part, one more each quarter of the work. On `QUEST_DONE` (heard on `World.sim_event`;
   a scan earlier in the same sync keeps what it takes away until `animate`) the prop takes its
   done part and moves to its own table: `prop()` and `prop_count()` are waiting props only,
@@ -807,6 +807,37 @@ middle of a floor under 6 tiles): `QuestProps.spot_in(view, depth, chamber)`, a 
   the world shows another stage; a mended wanderer stands `STAND_SECONDS`, walks back the way the
   party came at a hero's pace and goes once out of its room. A `QUEST_DONE` `may_animate` refuses,
   or one heard while catching up, is done at once, and its wanderer gone. Nothing of it is saved.
+
+## The quest's story
+
+Spec 107, view only. `QuestStory` (`game/world/quest_story.gd`, `QuestProps.story`, which makes
+it, asks `pose` for each worker, and calls `advance` once a frame and `catch_up` when the world
+catches up) plays each quest as a short story.
+
+- **Poses**: a quest's `work_move` names a looping work pose of `CharacterMoves` (`LOOPS`:
+  `kneel_work`, `push`, `read`, `tend`, one cycle a `SWING_SECONDS`), played in the main slot until
+  stopped or replaced, with no vertical shift of its own (the feet stay on the floor line); each
+  new cycle (`CharacterMoves.cycles`) is a stroke, and `QuestProps` emits `worked` for it. A worker
+  still walking plays none. From three quarters of a wanderer's work each cleric at it prays once,
+  and the heal light (`SpellEffects.light_column_at(fx, feet, rng)`, the same a healed hero shows)
+  stands on the wanderer as the prayer's blow falls; heal sparkles rise over it while tended.
+- **Lines** are data: `QuestDef.lines`, each a `QuestLine` (beat, speaker, class or any, text of at
+  most 48 characters), checked by `QuestDef.validate`. They are said through `World.say_for` at the
+  beats: the wanderer's plea at `QUEST_STARTED` (and once on a `QUEST_MISSED` walked past), the
+  lead's arrival line as it first reaches its spot, the workers' in turn at a third and two
+  thirds of `work_progress()`, one sitting hero's at a half, the lead's at `QUEST_DONE` and the
+  wanderer's thanks 0.4 s later. The beats driven by progress are said for a fresh `SimEvent`
+  stamped with the current tick; at speed 4 or more only the plea, done and thanks are. A line
+  for the speaker's class is chosen before one for anyone, at random by a `RandomNumberGenerator`
+  seeded from the chamber and the tick. The wanderer speaks through one kept `Callable`
+  (`QuestStory.subject()`, over `QuestProps.head_of`). Who works is told by the lead's first line:
+  no name stands over a quest's bar.
+- **Payoffs** (`QuestEffects`, beside its words and burst): coins (`FxCoin`) out of an opened chest
+  to its opener, a stone's runes flaring with an XP mote (`FxMote`) to each living hero, a snip
+  spark where a wire was, dust at a stuck door's foot at each shove, all in `World.fx`'s quest
+  budget.
+- **Late events**: nothing starts for an event `may_animate` refuses; a catch-up stops the poses,
+  drops what waits to be told and marks the beats the work is past as told.
 
 ## Quests and microskills
 

@@ -4,10 +4,11 @@ extends Node2D
 ## built level that holds a quest ([method Expedition.quest_in]) shows its prop on the
 ## floor toward the far side of the room ([method spot_in]), in the look, tint and facing that
 ## chamber gives it ([QuestLooks]) and with its dressing lying round it, as far away as monsters
-## are shown. While the party works a quest, each worker swings at the prop on a slow repeat once
-## it stands at its spot ([QuestStage]; emitting [signal worked] each time), and a small bar over
-## the prop fills with [method Expedition.work_progress] under the microskill's name. A rune
-## stone lights a rune for each quarter of the work.
+## are shown. While the party works a quest, each worker works at the prop in its quest's pose
+## once it stands at its spot ([QuestStage], [QuestStory]; emitting [signal worked] once a cycle),
+## its story is told ([member story]), and a small bar over the prop fills with
+## [method Expedition.work_progress]; who works is told by the lead's first line, not over the
+## bar. A rune stone lights a rune for each quarter of the work.
 ##
 ## A done quest's prop shows its done part (an open chest, a lit stone) until its room holds
 ## something again or the world shows another stage; a mended wanderer stands, then walks off
@@ -17,16 +18,17 @@ extends Node2D
 ##
 ## A child of [World], which calls [method scan] whenever it looks for waiting monsters,
 ## [method goal_for] as it moves each hero, and [method animate] once a frame. Props are drawn
-## under the darkness, like the monsters; the bar and the name over it, like the effects.
+## under the darkness, like the monsters; the bar (and a gate's name over it), like the effects.
 ##
 ## A waiting prop out of the party's light carries a glint ([PropGlints]), so a quest waiting in
 ## the dark reads from across the level. In the party's light, or done, it has none.
 ##
-## A side path's gate is worked the same way: while the party opens one
+## A side path's gate is worked as a quest once was: while the party opens one
 ## ([method SideProps.worked_spot]) the worker stands beside it on the side the party came from,
-## and the bar and the name show between it and the gate.
+## swings at it on the slow repeat, and the bar and the microskill's name show between it and
+## the gate.
 
-## A worker swung at the prop: a strike of the slow repeat.
+## A worker struck at its work: a cycle of a quest's pose, or a swing at a gate.
 signal worked(hero_id: int)
 
 ## Each quest's prop sheet.
@@ -50,18 +52,19 @@ const WANDERER: StringName = &"hurt_wanderer"
 const STONE: StringName = &"rune_stone"
 ## Pixels between a worker's feet and the prop's middle: the lead stands just short of it.
 const WORK_GAP: float = 11.0
-## Seconds between a worker's swings, and each swing's wind-up.
+## Seconds between a gate opener's swings (and of a cycle of a quest's pose), and each swing's
+## wind-up.
 const SWING_SECONDS: float = 0.8
 const SWING_WINDUP: float = 0.2
-## Seconds between one worker's swings and the next worker's, so they do not strike together.
+## Seconds between one worker starting its work and the next, so they do not strike together.
 const SWING_OFFSET: float = 0.27
-## Closer than this many pixels to its place, a worker has arrived and starts to swing.
+## Closer than this many pixels to its place, a worker has arrived and starts to work.
 const ARRIVED: float = 2.0
 ## The progress bar: its size, and how far above the floor its top sits, in pixels (over the
 ## heads of the workers and of the tallest prop).
 const BAR_SIZE: Vector2 = Vector2(20, 4)
 const BAR_RAISE: float = 36.0
-## Pixels between the microskill's name (its baseline) and the bar under it.
+## Pixels between a gate's microskill's name (its baseline) and the bar under it.
 const NAME_GAP: float = 4.0
 ## Pixels between the top of a gate being worked and the bar over it.
 const OVER_GATE: float = 4.0
@@ -80,11 +83,9 @@ const STEP_SECONDS: float = 0.15
 const RUNES: Array[StringName] = [&"rune_1", &"rune_2", &"rune_3", &"rune_4"]
 ## A walking wanderer's two steps.
 const STEPS: Array[StringName] = [&"walk_0", &"walk_1"]
-## The times sign in [method worker_label]'s text. It is never drawn with the font, which has
-## no glyph for it: [method _draw_overlay] draws a cross.
-const TIMES: String = "\u00d7"
-## The pixel size of the times sign drawn after the name when several work.
-const TIMES_SIZE: int = 3
+
+## The story of the quest being worked: its poses, its lines and its light.
+var story: QuestStory
 
 var _world: World
 var _simulation: Simulation
@@ -102,24 +103,15 @@ var _spots: Dictionary[Vector2i, Vector2] = {}
 var _overlay: Node2D
 ## Seconds to the gate opener's next swing.
 var _swing_in: float = 0.0
-## Seconds the quest being worked has been worked, and each worker's last swing (its place in
-## the slow repeat), by hero id.
+## Seconds the quest being worked has been worked.
 var _work_clock: float = 0.0
-var _swung: Dictionary[int, int] = {}
-## The bar's fraction (-1 when none shows), where it is, and the name, where it is and how many
-## work under it.
+## The bar's fraction (-1 when none shows) and where it is, and a gate's microskill's name ("" with
+## none), where it is and how wide it is drawn.
 var _bar: float = -1.0
 var _bar_at: Vector2 = Vector2.ZERO
 var _name: String = ""
 var _name_at: Vector2 = Vector2.ZERO
-var _skill: String = ""
-var _skill_width: int = 0
-## While several work: the count as text, the space before the cross, and the width of all
-## that follows the name (worked out when the count changes, not on each redraw).
-var _count_text: String = ""
-var _space_width: int = 0
-var _tail_width: int = 0
-var _count: int = 0
+var _name_width: int = 0
 ## The glints of the props out of the party's light.
 var _glints: PropGlints
 
@@ -139,6 +131,10 @@ func setup(world: World, simulation: Simulation) -> void:
 	_glints.setup(world)
 	if not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
+	story = QuestStory.new()
+	story.name = "QuestStory"
+	add_child(story)
+	story.setup(world, simulation, self)
 
 
 ## The prop of the quest waiting in that chamber, or null.
@@ -205,10 +201,19 @@ func bar_fraction() -> float:
 	return _bar
 
 
-## The microskill's name over the work, with a times sign and N after it when N work, or ""
-## when nobody works.
+## The microskill's name over a gate being opened, or "" when none is: a quest's workers are
+## named by its story instead.
 func worker_label() -> String:
 	return _name
+
+
+## The top of that chamber's prop where it stands now (a done wanderer wherever it has walked),
+## in world pixels; [constant Vector2.INF] with none. The wanderer speaks from there.
+func head_of(depth: int, chamber_index: int) -> Vector2:
+	var shown: Shown = _shown_at(Vector2i(depth, chamber_index))
+	if shown == null or not is_instance_valid(shown.sprite):
+		return Vector2.INF
+	return shown.sprite.position - Vector2(0.0, shown.top)
 
 
 ## Where a quest's prop stands in that chamber, in world pixels ([method spot_in]).
@@ -326,9 +331,15 @@ func goal_for(id: int, goal: Vector2) -> Vector2:
 	return Vector2(gate.x - _world.side_props.worked_side() * WORK_GAP, gate.y)
 
 
-## Lets go of the props taken away this frame, moves the done ones on, swings the workers once
-## they are at their spots, and brings the runes, the bar and the name up to date.
+## Lets go of the props taken away this frame, moves the done ones on, has the workers work once
+## they are at their spots, brings the runes, the bar and a gate's name up to date, and moves the
+## story on.
 func animate(delta: float) -> void:
+	_animate_work(delta)
+	story.advance(delta)
+
+
+func _animate_work(delta: float) -> void:
 	for key: Vector2i in _dropped:
 		_free(_dropped[key])
 	_dropped.clear()
@@ -337,7 +348,6 @@ func animate(delta: float) -> void:
 	var gate: Vector2 = _gate_worked()
 	if gate.is_finite():
 		_work_clock = 0.0
-		_swung.clear()
 		_open_gate(delta, gate)
 		return
 	_swing_in = 0.0
@@ -345,39 +355,20 @@ func animate(delta: float) -> void:
 	var working: Shown = _props.get(key, null) if _world.quest_stage.is_working() else null
 	if working == null:
 		_work_clock = 0.0
-		_swung.clear()
 		_set_overlay(-1.0, "")
 		return
 	_work_clock += delta
 	var workers: Array[int] = _world.quest_stage.workers()
+	var move: StringName = Content.quest(working.looks.quest).work_move
 	for rank: int in workers.size():
-		_swing(workers[rank], rank)
+		if story.pose(workers[rank], rank, _work_clock, move):
+			worked.emit(workers[rank])
 	var progress: float = _simulation.expedition.work_progress()
 	_light_runes(working, progress)
 	var at: Vector2 = working.sprite.position
 	_bar_at = Vector2(at.x - floorf(BAR_SIZE.x / 2.0), at.y - BAR_RAISE)
 	_name_at = Vector2(at.x, _bar_at.y - NAME_GAP)
-	_set_overlay(progress, _work_name(false), workers.size())
-
-
-## The worker of rank [param rank] swings on the slow repeat, offset by its rank, once it has
-## arrived at its spot. A worker still walking lets its turns pass.
-func _swing(id: int, rank: int) -> void:
-	var worker: CharacterSprite = _world.character(id)
-	var from: float = _work_clock - rank * SWING_OFFSET
-	if worker == null or worker.is_dead() or from < 0.0:
-		return
-	var turn: int = floori(from / SWING_SECONDS)
-	if _swung.get(id, -1) >= turn:
-		return
-	_swung[id] = turn
-	var place: Vector2 = _world.quest_stage.goal_for(id, worker.position)
-	if worker.position.distance_to(place) > ARRIVED:
-		return
-	var hero: Hero = _simulation.party.hero(id)
-	var ranged: bool = hero != null and hero.def().attack_range > Battle.MELEE_REACH
-	worker.play_attack(SWING_WINDUP, ranged)
-	worked.emit(id)
+	_set_overlay(progress, "")
 
 
 ## The opener swings at the gate once beside it, and the bar and the name show between them.
@@ -401,7 +392,7 @@ func _open_gate(delta: float, gate: Vector2) -> void:
 	var middle: float = floorf((gate.x + place.x) / 2.0)
 	_bar_at = Vector2(middle - floorf(BAR_SIZE.x / 2.0), gate.y - raise)
 	_name_at = Vector2(middle, _bar_at.y - NAME_GAP)
-	_set_overlay(_simulation.expedition.work_progress(), _work_name(true), 1)
+	_set_overlay(_simulation.expedition.work_progress(), _world.side_props.worked_name())
 
 
 ## A stone being read lights one more rune for each quarter of the work.
@@ -416,9 +407,11 @@ func _light_runes(working: Shown, progress: float) -> void:
 		working.runes.texture = sheet.part(working.looks.part_name(RUNES[lit - 1]))
 
 
-## The world is catching up on a stall: a wanderer walking off goes at once, as the picture jumps
-## on past it. [World] calls this; nothing here asks it.
+## The world is catching up on a stall: the story's poses stop and it tells nothing late, and a
+## wanderer walking off goes at once, as the picture jumps on past it. [World] calls this; nothing
+## here asks it.
 func catch_up() -> void:
+	story.catch_up()
 	if _done.is_empty():
 		return
 	var gone: Array[Vector2i] = []
@@ -510,15 +503,6 @@ func _gate_worked() -> Vector2:
 	return _world.side_props.worked_spot() if _world.side_props != null else Vector2.INF
 
 
-## The name of the microskill at work: the gate's ([param at_gate]) or the quest's.
-func _work_name(at_gate: bool) -> String:
-	if at_gate:
-		return _world.side_props.worked_name()
-	var quest: QuestDef = Content.quest(_simulation.expedition.working_quest())
-	var skill: MicroskillDef = Content.microskill(quest.microskill) if quest != null else null
-	return skill.display_name if skill != null else ""
-
-
 func _shown_at(key: Vector2i) -> Shown:
 	var shown: Shown = _props.get(key, null)
 	return shown if shown != null else _done.get(key, null)
@@ -544,6 +528,7 @@ func _add(key: Vector2i, quest: StringName) -> void:
 	made.flip_h = shown.looks.mirrored
 	made.material = shown.looks.material()
 	shown.sprite = made
+	shown.top = sheet.pivot.y + 1.0
 	var waiting: StringName = QuestLooks.WAITING.get(quest, &"")
 	_show_part(shown, waiting)
 	if quest == STONE:
@@ -616,23 +601,15 @@ static func _open_floor(view: LabyrinthView, depth: int, room: LabyrinthChamber)
 	return Vector2i(left, right)
 
 
-func _set_overlay(fraction: float, words: String, count: int = 0) -> void:
+func _set_overlay(fraction: float, words: String) -> void:
 	if fraction < 0.0 and _bar < 0.0:
 		return
 	_bar = fraction
-	if words != _skill or count != _count:
-		_skill = words
-		_count = count
-		_skill_width = PixelText.width(words)
-		_name = words if count < 2 or words.is_empty() else "%s %s%d" % [words, TIMES, count]
-		_count_text = str(count) if count >= 2 else ""
-		_space_width = PixelText.width(" ") if count >= 2 else 0
-		var number: int = PixelText.width(_count_text)
-		_tail_width = _space_width + TIMES_SIZE + 1 + number if count >= 2 else 0
 	if fraction < 0.0:
-		_name = ""
-		_skill = ""
-		_count = 0
+		words = ""
+	if words != _name:
+		_name = words
+		_name_width = PixelText.width(words)
 	_overlay.queue_redraw()
 
 
@@ -649,30 +626,16 @@ func _draw_overlay() -> void:
 		_overlay.draw_rect(
 			Rect2(inside.position, Vector2(filled, inside.size.y)), Palette.color(&"amber")
 		)
-	if _skill.is_empty():
+	if _name.is_empty():
 		return
-	# The pixel font has no times sign: it is a small drawn cross before the number.
-	var count: String = _count_text
-	var space: int = _space_width
-	var width: int = _skill_width + _tail_width
-	var left := Vector2(_name_at.x - floorf(width / 2.0), _name_at.y)
+	var left := Vector2(_name_at.x - floorf(_name_width / 2.0), _name_at.y)
 	var shadow := Vector2(PixelText.SHADOW_OFFSET, PixelText.SHADOW_OFFSET)
 	var amber: Color = Palette.color(&"amber")
 	for layer: int in 2:
 		var at: Vector2 = left + (shadow if layer == 0 else Vector2.ZERO)
 		var colour: Color = ink if layer == 0 else amber
 		_overlay.draw_string(
-			PixelText.font(), at, _skill, HORIZONTAL_ALIGNMENT_LEFT, -1, PixelText.SIZE, colour
-		)
-		if count.is_empty():
-			continue
-		var cross := Vector2(at.x + _skill_width + space, at.y - TIMES_SIZE - 1)
-		for i: int in TIMES_SIZE:
-			_overlay.draw_rect(Rect2(cross + Vector2(i, i), Vector2.ONE), colour)
-			_overlay.draw_rect(Rect2(cross + Vector2(TIMES_SIZE - 1 - i, i), Vector2.ONE), colour)
-		var number := Vector2(cross.x + TIMES_SIZE + 1, at.y)
-		_overlay.draw_string(
-			PixelText.font(), number, count, HORIZONTAL_ALIGNMENT_LEFT, -1, PixelText.SIZE, colour
+			PixelText.font(), at, _name, HORIZONTAL_ALIGNMENT_LEFT, -1, PixelText.SIZE, colour
 		)
 
 
@@ -694,3 +657,5 @@ class Shown:
 	var room: Vector2 = Vector2.ZERO
 	## The runes lit over a stone (0 to 4).
 	var runes_lit: int = 0
+	## Pixels from its feet to the top of its sheet.
+	var top: float = 0.0

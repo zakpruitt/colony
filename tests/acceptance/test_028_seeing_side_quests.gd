@@ -216,8 +216,8 @@ func test_r2_worker_steps_forward() -> void:
 	var strikes: Dictionary[int, int] = {}
 	for hero: Hero in sim.party.heroes:
 		strikes[hero.id] = 0
-		var count: Callable = func() -> void: strikes[hero.id] += 1
-		_world.character(hero.id).struck.connect(count)
+	# Spec 107: each worker works in its quest's pose, a stroke a cycle, never an attack.
+	props.worked.connect(func(id: int) -> void: strikes[id] += 1)
 	# Give the rogue a moment to walk up.
 	for i: int in 10:
 		_frame(1, FRAME)
@@ -232,7 +232,9 @@ func test_r2_worker_steps_forward() -> void:
 		var other: CharacterSprite = _world.character(hero.id)
 		var gap: float = absf(other.position.x - rogue.position.x)
 		assert_gt(gap, 8.0, "hero %d stands apart from the worker" % hero.id)
-	assert_eq(props.worker_label(), "Lockpicker", "the microskill's name over the work")
+	assert_eq(props.worker_label(), "", "spec 107: no microskill's name over the work")
+	assert_eq(rogue.moves.playing(), &"kneel_work", "spec 107: the rogue kneels at the lock")
+	assert_false(rogue.is_attacking(), "and does not swing at it")
 	assert_almost_eq(props.bar_fraction(), sim.expedition.work_progress(), 0.001, "the bar")
 	# Spec 106: the bar is over the prop's middle, no longer between the worker and the prop.
 	var bar_middle: float = props._bar_at.x + QuestProps.BAR_SIZE.x / 2.0
@@ -243,7 +245,7 @@ func test_r2_worker_steps_forward() -> void:
 	assert_gt(props.bar_fraction(), before, "the bar fills")
 	assert_almost_eq(props.bar_fraction(), sim.expedition.work_progress(), 0.001)
 	_until(_not_working)
-	assert_gte(strikes[ROGUE], 2, "the worker swings again and again")
+	assert_gte(strikes[ROGUE], 2, "the worker works again and again")
 	for hero: Hero in sim.party.heroes:
 		if hero.id != ROGUE:
 			assert_eq(strikes[hero.id], 0, "hero %d idles" % hero.id)

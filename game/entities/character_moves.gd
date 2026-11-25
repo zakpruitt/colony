@@ -13,6 +13,9 @@ extends RefCounted
 ##
 ## Each move is one function here, `_pose_<name>`, and one row of [constant RECOVER]: adding a move
 ## is adding those two (and its name to [constant AbilityDef.MOVES], for an ability's move).
+## A work pose (a hero at a quest) is a row of [constant LOOPS] instead: it has no blow, plays in
+## the main slot and goes round and round until it is stopped or replaced, counting each turn in
+## [member cycles].
 ## Squash and stretch: a body is a little taller in the air and shorter and wider when it lands.
 
 ## Seconds of recovery after the blow, per move; [constant HOP] and [constant CHEER] are the
@@ -32,6 +35,17 @@ const RECOVER: Dictionary[StringName, float] = {
 	&"hop": 0.28,
 	&"cheer": 0.5,
 }
+## Seconds of one cycle of each work pose ([member QuestDef.work_move]): one stroke of the work.
+const LOOPS: Dictionary[StringName, float] = {
+	&"kneel_work": 0.8,
+	&"push": 0.8,
+	&"read": 0.8,
+	&"tend": 0.8,
+}
+## Seconds a work pose takes to come in from rest.
+const LOOP_EASE_IN: float = 0.2
+## How far a kneeling body goes down, as a share of its height (squashed about its feet).
+const KNEEL_DROP: float = 0.18
 const HOP: StringName = &"hop"
 const CHEER: StringName = &"cheer"
 
@@ -60,6 +74,8 @@ var scale: Vector2 = Vector2.ONE
 var turns: Dictionary[StringName, float] = {}
 ## How many main moves have reached their blow, ever: a test sees a blow fall by this.
 var impacts: int = 0
+## How many cycles of a work pose have begun, ever (its first as it starts): a stroke each.
+var cycles: int = 0
 ## Seconds [method land] last brought a blow forward (0 when the move reached its blow by itself):
 ## a move timed to its wind-up needs at most a tick of it.
 var brought_forward: float = 0.0
@@ -78,6 +94,8 @@ class Slot:
 	var recover: float = 0.0
 	var room: float = INF
 	var landed: bool = false
+	## Seconds a cycle of a work pose takes; 0 for a move with a blow.
+	var loop: float = 0.0
 
 	## How far through the lead it is, 0 to 1 (1 once the blow has fallen, or with no lead).
 	func before() -> float:
@@ -97,6 +115,14 @@ class Slot:
 ## Starts [param move] with its blow [param lead] seconds from now, going at most [param room]
 ## pixels toward its target, its recovery shortened by a game speed of [param pace].
 func play(move: StringName, lead: float, room: float, pace: float) -> void:
+	if LOOPS.has(move):
+		_main = Slot.new()
+		_main.move = move
+		_main.loop = LOOPS[move]
+		_main.landed = true
+		cycles += 1
+		pose()
+		return
 	if not RECOVER.has(move):
 		push_error("CharacterMoves: no move %s" % move)
 		return
@@ -135,7 +161,11 @@ func stop() -> void:
 
 ## Moves every move on by [param delta] seconds; one past its recovery ends.
 func advance(delta: float) -> void:
-	if _main != null:
+	if _main != null and _main.loop > 0.0:
+		var turned: int = floori(_main.time / _main.loop)
+		_main.time += delta
+		cycles += floori(_main.time / _main.loop) - turned
+	elif _main != null:
 		_main.time += delta
 		if not _main.landed and _main.time >= _main.lead:
 			_main.landed = true
@@ -420,7 +450,71 @@ func _pose_cheer(slot: Slot) -> void:
 	)
 
 
+## Down on one knee at the prop, head bowed, the hands working quickly at it.
+func _pose_kneel_work(slot: Slot) -> void:
+	var k: float = _loop_in(slot)
+	var fiddle: float = sin(TAU * 2.0 * _loop_phase(slot))
+	_add(
+		Vector2(1.0 * k, 0.0),
+		0.06 * k,
+		Vector2(1.0 + 0.08 * k, 1.0 - KNEEL_DROP * k),
+		{
+			&"head": (0.4 + 0.06 * fiddle) * k,
+			&"arm": (0.75 + 0.35 * fiddle) * k,
+			&"weapon": -0.5 * k
+		}
+	)
+
+
+## A shoulder into the prop: a shove early in each cycle, a recoil, and the lean building again.
+func _pose_push(slot: Slot) -> void:
+	var k: float = _loop_in(slot)
+	var p: float = _loop_phase(slot)
+	var shove: float = _ease_out(p / 0.2) * (1.0 - smoothstep(0.2, 0.75, p))
+	_add(
+		Vector2((1.0 + 2.0 * shove) * k, 0.0),
+		(0.14 + 0.12 * shove) * k,
+		Vector2.ONE.lerp(_squash(0.08), shove * k),
+		{&"arm": (-0.5 - 0.3 * shove) * k, &"head": (0.15 + 0.1 * shove) * k, &"weapon": 0.4 * k}
+	)
+
+
+## Upright, one hand raised toward the prop, swaying slowly over two cycles.
+func _pose_read(slot: Slot) -> void:
+	var k: float = _loop_in(slot)
+	var sway: float = sin(PI * slot.time / slot.loop)
+	var hand: float = sin(TAU * _loop_phase(slot))
+	_add(
+		Vector2.ZERO,
+		0.03 * sway * k,
+		Vector2.ONE,
+		{&"arm": (-1.3 + 0.12 * hand) * k, &"head": (-0.15 + 0.05 * sway) * k, &"weapon": 0.4 * k}
+	)
+
+
+## Kneeling, leaning in over the one tended, the hands moving gently.
+func _pose_tend(slot: Slot) -> void:
+	var k: float = _loop_in(slot)
+	var hands: float = sin(TAU * 2.0 * _loop_phase(slot))
+	_add(
+		Vector2(1.5 * k, 0.0),
+		0.16 * k,
+		Vector2(1.0 + 0.06 * k, 1.0 - KNEEL_DROP * k),
+		{&"head": 0.45 * k, &"arm": (0.5 + 0.4 * hands) * k, &"weapon": 0.6 * k}
+	)
+
+
 # --- Shapes shared by moves --------------------------------------------------
+
+
+## How far into its cycle a work pose is, 0 to 1.
+static func _loop_phase(slot: Slot) -> float:
+	return fposmod(slot.time, slot.loop) / slot.loop
+
+
+## How strongly a work pose shows: easing in from rest over LOOP_EASE_IN, then whole.
+static func _loop_in(slot: Slot) -> float:
+	return _ease_out(slot.time / LOOP_EASE_IN)
 
 
 ## A strike: from rest to the drawn pose over the lead, to the follow-through in its last

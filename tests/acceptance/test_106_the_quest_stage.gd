@@ -187,11 +187,16 @@ func test_r2_every_worker_works_at_the_prop() -> void:
 	for i: int in 150:
 		_play_frame()
 	assert_true(_working(), "still working")
-	assert_eq(swings.keys().size(), 2, "only the workers swing: %s" % [swings.keys()])
+	assert_eq(swings.keys().size(), 2, "only the workers work: %s" % [swings.keys()])
 	var lead_swings: Array = swings.get(CLERIC, [])
 	var second_swings: Array = swings.get(SECOND_CLERIC, [])
-	assert_gte(lead_swings.size(), 2, "the lead swings again and again")
+	assert_gte(lead_swings.size(), 2, "the lead works again and again")
 	assert_gte(second_swings.size(), 2, "so does the second")
+	# Spec 107: each plays the quest's work_move, not an attack.
+	var move: StringName = Content.quest(WANDERER).work_move
+	assert_eq(lead.moves.playing(), move, "the lead plays the quest's work_move")
+	assert_eq(second.moves.playing(), move, "so does the second")
+	assert_false(lead.is_attacking() or second.is_attacking(), "neither attacks")
 	for frame: int in lead_swings:
 		assert_false(second_swings.has(frame), "not on the same frame")
 
@@ -413,9 +418,8 @@ func test_r7_the_bar_over_the_prop() -> void:
 		var middle: float = props._bar_at.x + QuestProps.BAR_SIZE.x / 2.0
 		assert_almost_eq(middle, prop.x, 1.0, "the bar's middle over the prop")
 		assert_eq(props._bar_at.y, prop.y - QuestProps.BAR_RAISE, "BAR_RAISE above the floor")
-		assert_eq(props._name_at.x, prop.x, "the name over the prop too")
-		var words: String = "Mender ×2" if clerics else "Mender"
-		assert_eq(props.worker_label(), words, "the name says how many work")
+		# Spec 107: the microskill's name moves into the story; the bar stays.
+		assert_eq(props.worker_label(), "", "no name over the bar")
 
 
 # --- R8 ------------------------------------------------------------------------

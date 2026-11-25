@@ -529,11 +529,16 @@ func _flames(id: int) -> void:
 ## A column of pale gold light standing on fighter [param id], with motes rising in it.
 func _column(id: int) -> void:
 	var target: CharacterSprite = _world.character(id)
-	if target == null:
-		return
-	var feet: Vector2 = target.position
+	if target != null:
+		light_column_at(_world.fx, target.position, _rng)
+
+
+## The heal light: a column of pale gold light standing on [param feet] (world pixels), with motes
+## rising in it, added to [param fx] under the spell budget. A healed fighter shows it, and so
+## does a wanderer mended at a quest.
+static func light_column_at(fx: FxPool, feet: Vector2, rng: RandomNumberGenerator) -> void:
 	for spec: Array in [[&"yellow", 9, 0.5], [&"white", 3, 0.45]]:
-		var light: FxParticle = _particle(&"light_column")
+		var light: FxParticle = _pooled(fx, &"light_column")
 		if light == null:
 			return
 		var color_name: StringName = spec[0]
@@ -544,16 +549,14 @@ func _column(id: int) -> void:
 		light.life = spec[2]
 		light.start(feet)
 	for i: int in 5:
-		var mote: FxParticle = _particle(&"light_column")
+		var mote: FxParticle = _pooled(fx, &"light_column")
 		if mote == null:
 			break
 		mote.color = Palette.color(&"sand" if i % 2 == 0 else &"white")
 		mote.size = 1
-		mote.velocity = Vector2(0, -_rng.randf_range(30.0, 55.0))
-		mote.life = _rng.randf_range(0.4, 0.6)
-		mote.start(
-			feet + Vector2(_rng.randf_range(-4.0, 4.0), -_rng.randf_range(2.0, 14.0)).round()
-		)
+		mote.velocity = Vector2(0, -rng.randf_range(30.0, 55.0))
+		mote.life = rng.randf_range(0.4, 0.6)
+		mote.start(feet + Vector2(rng.randf_range(-4.0, 4.0), -rng.randf_range(2.0, 14.0)).round())
 
 
 ## A beam of light from under the HUD's top band onto fighter [param id], flashing at its feet: it
@@ -636,10 +639,15 @@ func _flash(kind: StringName, at: Vector2, color_name: StringName, size: int) ->
 
 
 func _particle(kind: StringName) -> FxParticle:
+	return _pooled(_world.fx, kind)
+
+
+## A particle of [param kind] in [param fx] under the spell budget, or null when it is spent.
+static func _pooled(fx: FxPool, kind: StringName) -> FxParticle:
 	var made := FxParticle.new()
 	made.name = "Spell"
 	made.kind = kind
-	return made if _world.fx.add(made, &"spell") else null
+	return made if fx.add(made, &"spell") else null
 
 
 ## The world row just under the HUD's top band (the boss bar, the panels there).

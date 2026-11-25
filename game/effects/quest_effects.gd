@@ -1,11 +1,13 @@
 class_name QuestEffects
 extends Node
-## The effects of quests and microskills: a done quest's prop bursting in its own
-## colours under words in the reward's colour, a miss's muted "Needs <microskill>" rising from the
-## prop, a sprung trap's red "Sprung!" with a shake and every hero flashing, and "Learned
-## <microskill>" over a hero; and of side paths: "Needs a <microskill>" rising from a gate
-## nobody can open, and a cache bursting into sparks as it opens. The coins and XP of a reward
-## come from their own events, through [CombatEffects].
+## The effects of quests and microskills: a done quest's prop bursting in its own colours under
+## words in the reward's colour, with its own payoff (coins out of an opened chest, a stone's runes
+## flaring and sending a mote to each living hero, a snip where the wire was; a wanderer's is its
+## heal light, [QuestStory]'s), dust at a stuck door's foot at each shove, a miss's muted "Needs
+## <microskill>" rising from the prop, a sprung trap's red "Sprung!" with a shake and every hero
+## flashing, and "Learned <microskill>" over a hero; and of side paths: "Needs a <microskill>"
+## rising from a gate nobody can open, and a cache bursting into sparks as it opens. The coins and
+## XP of a reward come from their own events, through [CombatEffects].
 ##
 ## [CombatEffects] makes it. It listens to [signal World.sim_event] and makes its words and
 ## particles through the world's [FxPool], at most [constant MAX_PARTICLES] particles at once.
@@ -39,6 +41,23 @@ const LEARNED_RAISE: float = CombatEffects.LEVEL_UP_RAISE + 16.0
 const BURST_MIN: int = 12
 const BURST_MAX: int = 16
 const BURST_GRAVITY: float = 360.0
+## The coins out of an opened chest: how many, and how high over the floor they leave.
+const CHEST_COINS_MIN: int = 5
+const CHEST_COINS_MAX: int = 8
+const CHEST_RAISE: float = 8.0
+## The XP motes leaving a read stone, and the flare of its runes: how high, how large, how long.
+const RUNE_RAISE: float = 14.0
+const FLARE_SIZE: int = 14
+const FLARE_LIFE: float = 0.35
+const FLARE_SPARKS: int = 8
+## The snip where a wire was cut: how high over the floor, and its sparks.
+const SNIP_RAISE: float = 3.0
+const SNIP_SPARKS: int = 5
+## The dust a shove at a door raises at its foot: how many puffs, and how far from its middle.
+const DUST_PUFFS: int = 3
+const DUST_SPREAD: float = 6.0
+## Pixels above a hero's feet a chest's coin or a stone's mote flies to.
+const CHEST_HEIGHT: float = 14.0
 ## The camera's shake when a trap springs (a crit is 2.5, a hero's death 6).
 const SPRUNG_SHAKE: float = 5.0
 ## The words' colours: a miss's, a trap's, a lesson's; a done quest's by its reward.
@@ -62,6 +81,9 @@ func setup(world: World, simulation: Simulation) -> void:
 	_rng.seed = 28
 	if not _world.sim_event.is_connected(_on_sim_event):
 		_world.sim_event.connect(_on_sim_event)
+	var props: QuestProps = _world.quest_props
+	if props != null and not props.worked.is_connected(_on_worked):
+		props.worked.connect(_on_worked)
 
 
 ## The particles these effects show now.
@@ -98,6 +120,110 @@ func _done(quest: StringName) -> void:
 	var words: String = QuestProps.DONE_WORDS.get(quest, def.display_name)
 	_words(words, colour, DONE_SCALE, DONE_LIFE, at + Vector2(0, -height - OVER_PROP))
 	_burst(quest, at, height)
+	match quest:
+		&"locked_chest":
+			_spill_coins(at)
+		&"rune_stone":
+			_flare(at)
+		&"tripwire":
+			_snip(at)
+
+
+## A shove at a stuck door (a cycle of the worker's pose) puffs dust at the door's foot.
+func _on_worked(_hero_id: int) -> void:
+	if _simulation.expedition.working_quest() != &"stuck_door":
+		return
+	var foot: Vector2 = _prop_spot()
+	for i: int in DUST_PUFFS:
+		var puff: FxParticle = _particle(&"door_dust")
+		if puff == null:
+			return
+		puff.shape = FxParticle.Shape.PUFF
+		puff.color = Palette.color(&"sand" if i % 2 == 0 else &"silver")
+		puff.size = _rng.randi_range(3, 5)
+		puff.life = _rng.randf_range(0.35, 0.55)
+		puff.velocity = Vector2(_rng.randf_range(-14.0, 14.0), -_rng.randf_range(4.0, 10.0))
+		puff.start((foot + Vector2(_rng.randf_range(-DUST_SPREAD, DUST_SPREAD), -1.0)).round())
+
+
+## Coins spill out of the open chest, bounce, and fly to the hero who opened it.
+func _spill_coins(feet: Vector2) -> void:
+	var opener: int = _simulation.expedition.worker_id()
+	for i: int in _rng.randi_range(CHEST_COINS_MIN, CHEST_COINS_MAX):
+		var coin := FxCoin.new()
+		coin.name = "ChestCoin"
+		coin.share = 0
+		coin.floor_y = feet.y - 1.0
+		coin.velocity = Vector2(_rng.randf_range(-70.0, 70.0), _rng.randf_range(-170.0, -110.0))
+		coin.rest_time = 0.45 + 0.06 * i
+		coin.age = _rng.randf_range(0.0, 0.3)
+		coin.start(feet + Vector2(_rng.randf_range(-3.0, 3.0), -CHEST_RAISE).round())
+		coin.target = _hero_chest.bind(opener, feet)
+		_world.fx.add(coin, &"quest")
+
+
+## The stone's runes flare, and a mote of XP drifts from it to each living hero.
+func _flare(feet: Vector2) -> void:
+	var runes: Vector2 = feet + Vector2(0, -RUNE_RAISE)
+	var flare: FxParticle = _particle(&"rune_flare")
+	if flare != null:
+		flare.shape = FxParticle.Shape.PUFF
+		flare.color = Palette.color(&"cyan")
+		flare.size = FLARE_SIZE
+		flare.life = FLARE_LIFE
+		flare.start(runes)
+	for i: int in FLARE_SPARKS:
+		var spark: FxParticle = _particle(&"rune_flare")
+		if spark == null:
+			break
+		spark.color = Palette.color(&"white" if i % 2 == 0 else &"cyan")
+		spark.size = 1 + i % 2
+		var angle: float = TAU * (i + _rng.randf()) / FLARE_SPARKS
+		spark.velocity = Vector2.from_angle(angle) * _rng.randf_range(30.0, 60.0)
+		spark.life = _rng.randf_range(0.3, 0.5)
+		spark.start(runes.round())
+	for hero: Hero in _simulation.party.heroes:
+		if not hero.is_alive() or _world.character(hero.id) == null:
+			continue
+		var mote := FxMote.new()
+		mote.name = "StoneMote"
+		mote.hero_id = hero.id
+		mote.velocity = Vector2(_rng.randf_range(-30.0, 30.0), _rng.randf_range(-70.0, -40.0))
+		mote.start(runes + Vector2(_rng.randf_range(-3.0, 3.0), 0.0).round())
+		mote.target = _hero_chest.bind(hero.id, Vector2.INF)
+		_world.fx.add(mote, &"quest")
+
+
+## A small white snip where the wire was cut.
+func _snip(feet: Vector2) -> void:
+	var at: Vector2 = feet + Vector2(0, -SNIP_RAISE)
+	var flash: FxParticle = _particle(&"snip")
+	if flash != null:
+		flash.shape = FxParticle.Shape.PUFF
+		flash.color = Palette.color(&"white")
+		flash.size = 5
+		flash.life = 0.15
+		flash.start(at)
+	for i: int in SNIP_SPARKS:
+		var spark: FxParticle = _particle(&"snip")
+		if spark == null:
+			break
+		spark.color = Palette.color(&"white")
+		spark.size = 1
+		var angle: float = _rng.randf_range(PI * 1.05, PI * 1.95)
+		spark.velocity = Vector2(cos(angle), sin(angle)) * _rng.randf_range(40.0, 80.0)
+		spark.gravity = BURST_GRAVITY
+		spark.floor_y = feet.y
+		spark.life = _rng.randf_range(0.2, 0.35)
+		spark.start(at.round())
+
+
+## Where a coin or mote for hero [param hero_id] flies to now: its chest; [param otherwise] once
+## it is gone.
+func _hero_chest(hero_id: int, otherwise: Vector2) -> Vector2:
+	if _world.character(hero_id) == null:
+		return otherwise
+	return _world.feet_position(hero_id) + Vector2(0, -CHEST_HEIGHT)
 
 
 func _missed(quest: StringName, skill_index: int) -> void:
