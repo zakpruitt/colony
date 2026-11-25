@@ -416,6 +416,20 @@ func _light_runes(working: Shown, progress: float) -> void:
 		working.runes.texture = sheet.part(working.looks.part_name(RUNES[lit - 1]))
 
 
+## The world is catching up on a stall: a wanderer walking off goes at once, as the picture jumps
+## on past it. [World] calls this; nothing here asks it.
+func catch_up() -> void:
+	if _done.is_empty():
+		return
+	var gone: Array[Vector2i] = []
+	for key: Vector2i in _done:
+		if _done[key].way != 0:
+			gone.append(key)
+	for key: Vector2i in gone:
+		_free(_done[key])
+		_done.erase(key)
+
+
 ## Moves the done props on: a mended wanderer stands, then walks off the way the party came and
 ## goes once out of its room. A done prop on a stage the world no longer shows goes.
 func _advance_done(delta: float) -> void:
@@ -423,16 +437,12 @@ func _advance_done(delta: float) -> void:
 		return
 	var gone: Array[Vector2i] = []
 	var stage: int = _world.shown_stage()
-	var catching_up: bool = _world.catching_up()
 	for key: Vector2i in _done:
 		var shown: Shown = _done[key]
 		if key.x != stage:
 			gone.append(key)
 			continue
 		if shown.way == 0:
-			continue
-		if catching_up:
-			gone.append(key)  # a wanderer leaving: the picture jumps on past it
 			continue
 		shown.since += delta
 		if shown.since < STAND_SECONDS:

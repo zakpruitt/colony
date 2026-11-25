@@ -328,6 +328,7 @@ func sync(delta: float) -> void:
 	camp.animate(delta)  # before the heroes are given their places: a rest's are the camp's
 	if _catching_up:
 		camp.catch_up()
+		quest_props.catch_up()
 	quest_stage.update()  # before the heroes are given their places: the workers' are its
 	var game_delta: float = delta * maxi(speed, 1)
 	_follow(game_delta)
