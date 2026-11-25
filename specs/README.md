@@ -154,3 +154,4 @@ is made for the game alone first (092) and the tests follow as their own work.
 | 105 | [Chat bubbles](105-chat-bubbles/spec.md) (a line over a character's head, sharp on the UI layer, following them; `World.say`): landed on dev, [#105](https://github.com/zakpruitt/colony/pull/105) | 103 |
 | 106 | [The quest's stage](106-the-quest-stage/spec.md) (the prop on the far side, every worker at it, the rest sit; props that open, light and walk off; three looks, a tint and dressing so each room differs): landed on dev, [#106](https://github.com/zakpruitt/colony/pull/106) | 104, 105 |
 | 107 | [The quest's story](107-the-quest-story/spec.md) (a pose for each job, lines as data said at each beat, the wanderer healed): landed on dev, [#107](https://github.com/zakpruitt/colony/pull/107) | 104, 105, 106 |
+| 108 | ["QUEST!" over whoever can do it](108-quest-callout/spec.md) (an orange word pops over each hero who takes on a quest or a gate): in progress | 104, 107 |
