@@ -51,8 +51,14 @@ spec 110. The finished window is spec 111.
     first path comes first; within a path's tier 2, the left node comes first. Today the newest node
     comes first.
   - Among the actions that are ready and have a target, a hero uses the one that has been ready the
-    longest. Ties (every action is ready as a fight starts) go by the order above. So a hero with
-    fifteen nodes still turns to every action in time, not only to its highest tiers.
+    longest. A tie (every action is ready as a fight starts) goes to the action this hero used least
+    recently, across fights (one never used counts as least recent); a tie after that goes by the
+    order above. So a hero with fifteen nodes still turns to every action in time, not only to its
+    highest tiers, even when fights are short.
+  - The hero keeps its order of use (ability ids, least recent first) and gives it to each
+    combatant; it is saved with the hero (`"used"`, a list of ability ids, in version 10) so a game
+    saved and loaded fights on exactly as one played straight on. The check refuses an id that is
+    not one of the hero's nodes; a reset clears it.
   - After an action, a hero's next swing is a plain strike: it uses no action until it has struck
     once. So passives set off by strikes still fire for a hero with many actions.
   - A hero with no nodes fights exactly as before.
