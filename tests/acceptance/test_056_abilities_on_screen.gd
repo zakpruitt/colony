@@ -217,10 +217,16 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 ## R2 in a real fight: a cleric with Guardian Angel stands a fallen hero up, and it is seen up.
 func test_r2_a_revive_in_a_real_fight() -> void:
 	var paths: Dictionary[StringName, int] = PATHS.duplicate()
-	paths[&"cleric"] = 0  # Renewal, Sanctuary, Guardian Angel, Miracle
+	paths[&"cleric"] = 2
 	_full_trees(paths)
-	assert_true(_find_fight(2), "a fight")
-	# Monsters that fell a hero in a few blows, so one falls and Guardian Angel answers.
+	# Only the Warden's first two nodes: its shields would keep everyone up, and Resurrection
+	# would answer the death first.
+	for hero: Hero in _sim.party.heroes:
+		if hero.class_id == &"cleric":
+			hero.set_talents([&"battle_hymn", &"guardian_angel"] as Array[StringName])
+	# Monsters that last (the full paths end an ordinary fight before anyone falls) and fell a
+	# hero in a few blows, so one falls and Guardian Angel answers.
+	assert_true(_find_fight(2, 1, true, TOUGHER * 10), "a fight")
 	var hardiest: int = 0
 	for hero: Hero in _sim.party.heroes:
 		hardiest = maxi(hardiest, hero.max_health())

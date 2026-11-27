@@ -365,13 +365,13 @@ func _hero() -> Hero:
 
 
 ## True when anything the tab words itself from has changed since it last did: the hero's level,
-## points and ranks, the gold and a fight (a reset's price and reason), the question asked, the
-## node under the mouse and whether the tab shows.
+## nodes, points and ranks, the gold and a fight (a reset's price and reason), the question asked,
+## the node under the mouse and whether the tab shows.
 func _hero_changed(hero: Hero) -> bool:
 	_read_from.begin()
 	_read_from.see(hero.level)
 	_read_from.see(hero.talent_points())
-	_read_from.see(hero.talents().size())
+	_read_from.see(hero.talents().hash())
 	_read_from.see(hero.paragon_points())
 	for cell: ParagonCell in paragon_cells:
 		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))

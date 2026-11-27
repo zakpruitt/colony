@@ -73,7 +73,7 @@ const ROWS: Array[Array] = [
 	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
 	[&"four_areas", "THE FOUR AREAS", 0.2, &"four_areas", &"four_areas"],
 	# The path's banner shows after the node's.
-	[&"talent_tree", "THE KNIGHT LEARNS TWO TALENTS", 2.5, &"talent_tree", &"talent_tree"],
+	[&"talent_tree", "THE KNIGHT LEARNS TWO TALENTS", 5.5, &"talent_tree", &"talent_tree"],
 	[&"away_report", "THE AWAY REPORT", 2.0, &"away_report", &"away_report"],
 ]
 ## The caption's place on screen, in the world's pixels: along the bottom, or, where the button
@@ -97,7 +97,7 @@ const CLASS_MOMENTS: Dictionary[StringName, StringName] = {
 	&"cleric_actions": &"cleric",
 }
 const CLASS_PATHS: Dictionary[StringName, int] = {
-	&"knight": 1, &"rogue": 2, &"mage": 0, &"cleric": 1
+	&"knight": 1, &"rogue": 2, &"mage": 0, &"cleric": 2
 }
 ## How many times their health the monsters of a class's moment have, so the hero's actions are
 ## seen.

@@ -153,11 +153,13 @@ static func before_guardian(
 	return shaft
 
 
-## Spends [param hero]'s talent points on its tree's first path, then its second, in order.
+## Spends [param hero]'s talent points on its tree's first path, then its second, then its third, in
+## order.
 static func _spend_talents(hero: Hero) -> void:
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
 	var order: Array[StringName] = tree.path(0).nodes.duplicate()
 	order.append_array(tree.path(1).nodes)
+	order.append_array(tree.path(2).nodes)
 	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))
 
 

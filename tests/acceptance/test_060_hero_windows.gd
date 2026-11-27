@@ -197,7 +197,7 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 	var windows: UiWindows = main.ui.windows
 	sim.party.gold = RICH
 	var knight: Hero = _hero(main, &"knight")
-	set_level_keeping_health(knight, 20)
+	set_level_keeping_health(knight, 36)
 	knight.set_talents(_walked(&"knight", 0, 4))
 	main.hud.advance(STEP)
 	_press(main, KEY_U)
@@ -293,7 +293,7 @@ func test_r4_stats_with_reasons() -> void:
 	assert_eq(shown.line(&"stat_damage"), "Damage %d" % plain.damage, "no bonus: no reason")
 	sim.upgrades.set_rank(&"sharp_blades", 3)
 	sim.upgrades.set_rank(&"stout_armor", 2)
-	set_level_keeping_health(cleric, 17)
+	set_level_keeping_health(cleric, 33)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.QUICKNESS)
@@ -365,12 +365,12 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 func test_r5_keys_1_to_3_reach_only_the_front_window_on_talents() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var knight: Hero = _hero(main, &"knight")
-	set_level_keeping_health(knight, 17)
+	set_level_keeping_health(knight, 33)
 	_open(main, knight, HeroWindow.Page.TALENTS)
 	main.hud.advance(STEP)
 	# Keys 1 to 3 belong to the front hero window, on its Talents tab only.
 	var mage: Hero = _hero(main, &"mage")
-	set_level_keeping_health(mage, 17)
+	set_level_keeping_health(mage, 33)
 	var front: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
 	assert_eq(main.ui.windows.front(), front, "the mage's in front, on Stats")
 	_press(main, KEY_3)
@@ -612,7 +612,7 @@ func test_r10_fits() -> void:
 		for class_id: StringName in CLASSES:
 			var hero: Hero = _hero(main, class_id)
 			for path: int in 3:
-				set_level_keeping_health(hero, 17)
+				set_level_keeping_health(hero, 33)
 				hero.set_talents(_walked(class_id, path, 1))
 				var shown: HeroWindow = null
 				var one_size: Vector2 = _window(main, hero).size

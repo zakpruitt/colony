@@ -8,8 +8,8 @@ const SPECIMEN_SCENE: String = "res://game/ui/picture_specimen.tscn"
 ## Pixels (of 256) two abilities of one class must differ in at least, to be told apart at a glance.
 const GLANCE_PIXELS: int = 48
 const PICTURE: Vector2 = Vector2(16, 16)
-## A level with paragon points enough for 31 spends (one a level after 14).
-const PARAGON_LEVEL: int = 45
+## A level with paragon points enough for 31 spends (one a level after 30).
+const PARAGON_LEVEL: int = 61
 
 # --- R1 ------------------------------------------------------------------------
 

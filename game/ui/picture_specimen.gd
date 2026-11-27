@@ -81,18 +81,20 @@ func lay_out() -> void:
 		_groups.append(heading)
 		at.x += block.size.x + GROUP_GAP
 		line_height = maxf(line_height, block.size.y)
-	var bottom: float = at.y + line_height + ROW_GAP
+	# The burst and the banner take the room right of the last row of groups.
+	var left: float = at.x
+	var top: float = at.y
 	_sample = UiIcon.new(&"fireball")
-	_sample.position = Vector2(MARGIN + 20.0, bottom + 24.0)
+	_sample.position = Vector2(left + 20.0, top + 24.0)
 	_sheet.add_child(_sample)
 	var caption: Label = WindowText.label("Caption", "A burst, then a banner", &"steel")
-	caption.position = Vector2(MARGIN, bottom)
+	caption.position = Vector2(left, top)
 	_sheet.add_child(caption)
 	moment = UiMoment.new()
 	_sheet.add_child(moment)
-	# The moment's own room is the strip under the groups: its banner drops in at that strip's top.
-	moment.position = Vector2(0, bottom - UiMoment.BANNER_TOP)
-	moment.size = Vector2(room.x, room.y - moment.position.y)
+	# The moment's own room is that corner: its banner drops in at the corner's top.
+	moment.position = Vector2(left + _sample.size.x + 40.0, top - UiMoment.BANNER_TOP)
+	moment.size = Vector2(room.x - moment.position.x, room.y - moment.position.y)
 	_since_burst = BURST_EVERY
 
 

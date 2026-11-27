@@ -343,7 +343,8 @@ func test_r7_fresh_start() -> void:
 	assert_eq(knight.talents(), [] as Array[StringName], "every node given back")
 	assert_eq(knight.talent_points(), 15, "as unspent points")
 	assert_eq(knight.paragon_rank(TrainingDef.Stat.TOUGHNESS), 1, "paragon points untouched")
-	assert_eq(knight.paragon_points(), 1)
+	var earned: int = TalentRules.paragon_points_at(knight.level)
+	assert_eq(knight.paragon_points(), earned - 1, "the one spent stays spent")
 	assert_eq(said.size(), 1, "an event")
 	if not said.is_empty():
 		assert_eq(said[0].source_id, knight.id)
@@ -451,7 +452,7 @@ func test_r9_saves() -> void:
 	var first: Array = data["heroes"]
 	assert_eq(again, first, "the same again")
 
-	# Each bad value is refused by name.
+	# Each bad value is refused by name (paragon: level 34 allows 20, its level less 14).
 	var cases: Array = [
 		["heroes[2].talents[1]", "talents", ["fireball", "meteor"]],
 		["heroes[2].talents[0]", "talents", ["ignite"]],
@@ -464,8 +465,8 @@ func test_r9_saves() -> void:
 		["heroes[2].paragon.luck", "paragon", {"luck": 1}],
 		["heroes[2].paragon.power", "paragon", {"power": -1}],
 		["heroes[2].paragon.power", "paragon", {"power": 1.5}],
-		["heroes[2].paragon", "paragon", {"power": 3, "quickness": 2}],
-		["heroes[2].paragon", "paragon", {"power": 5}],
+		["heroes[2].paragon", "paragon", {"power": 15, "quickness": 6}],
+		["heroes[2].paragon", "paragon", {"power": 21}],
 		["heroes[2].paragon", "paragon", []],
 	]
 	for case: Array in cases:
@@ -477,7 +478,7 @@ func test_r9_saves() -> void:
 		assert_null(Simulation.from_save(bad))
 	# More nodes than the level earned.
 	var greedy: Dictionary = data.duplicate(true)
-	greedy["heroes"][1]["talents"] = ["backstab", "smoke_step", "finisher", "taunt"]
+	greedy["heroes"][1]["talents"] = ["backstab", "mark_for_death", "finisher", "ambush"]
 	var problems: PackedStringArray = Simulation.save_problems(greedy)
 	assert_true(_any_names(problems, "heroes[1].talents"), "more than earned: %s" % problems)
 

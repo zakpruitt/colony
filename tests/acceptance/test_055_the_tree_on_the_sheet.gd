@@ -372,7 +372,7 @@ func test_r8_the_game_points_at_it() -> void:
 	var standing: Callable = func() -> bool:
 		return _sim.expedition.state != Expedition.State.REVIVING
 	assert_true(_step_until(standing), "the party stands")
-	set_level_keeping_health(knight, 15)
+	set_level_keeping_health(knight, 31)
 	_sim.party.gold = RICH
 	before_guardian(_sim, GUARDIAN_DEPTH, 0.0, true, true)
 	assert_true(_step_until(fighting), "the guardian fight")

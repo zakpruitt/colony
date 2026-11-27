@@ -204,7 +204,7 @@ static func _check_paragon(
 	if level > 0 and spent > most:
 		problems.append(
 			(
-				"%s: %d points spent, but level %d allows %d paragon points"
+				"%s: %d points spent, but level %d earns %d paragon points"
 				% [where, spent, level, most]
 			)
 		)

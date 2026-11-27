@@ -61,7 +61,7 @@ func test_r1_every_ability_has_a_move() -> void:
 	]:
 		assert_has(moves, needed, "the set holds %s" % needed)
 	var ids: Array[StringName] = Content.ability_ids()
-	assert_eq(ids.size(), 44, "the 44 abilities")
+	assert_eq(ids.size(), 60, "the 60 abilities")
 	var used: Dictionary[StringName, bool] = {}
 	for id: StringName in ids:
 		var ability: AbilityDef = Content.ability(id)
