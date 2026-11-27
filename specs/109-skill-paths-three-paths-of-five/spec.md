@@ -50,6 +50,11 @@ spec 110. The finished window is spec 111.
   - A hero's combatant carries its nodes' abilities with the highest tier first. Within a tier, the
     first path comes first; within a path's tier 2, the left node comes first. Today the newest node
     comes first.
+  - Among the actions that are ready and have a target, a hero uses the one that has been ready the
+    longest. Ties (every action is ready as a fight starts) go by the order above. So a hero with
+    fifteen nodes still turns to every action in time, not only to its highest tiers.
+  - After an action, a hero's next swing is a plain strike: it uses no action until it has struck
+    once. So passives set off by strikes still fire for a hero with many actions.
   - A hero with no nodes fights exactly as before.
 - **R5. A fresh start.**
   - `reset_talents` still costs 100 gold times the hero's level and gives every talent point back.
@@ -80,7 +85,12 @@ spec 110. The finished window is spec 111.
   - In those runs, every action a hero has held for ten minutes is used at least five times. Every
     passive it has held that long fires at least once.
   - Rescues are excused from those counts, but each must fire in a fight built to need it. The
-    rescues are Last Stand, Vanish, Guardian Angel, Miracle, Sanctuary, Rampage and Resurrection.
+    rescues are Last Stand, Vanish, Guardian Angel, Miracle, Sanctuary, Rampage and Resurrection,
+    and every action whose condition waits for a hurt ally (Bulwark, Prayer and Rallying Cry among
+    them; the test lists them from the data, not by hand): easy fights rarely hurt anyone.
+  - If, after R4's choice of action, a few abilities still fall short, the lane may tune their
+    numbers (cooldown, condition, chance) and lists each change. If a whole kind of ability still
+    falls short, the lane stops and asks.
   - Whirlwind is still used on a guardian.
   - Because of R4, a party at level 30 with all fifteen nodes is checked too. It plays 30 minutes
     from Mossy Hollow stage 18, with the camp upgrades that
@@ -94,8 +104,17 @@ spec 110. The finished window is spec 111.
     without, on seeds 1 to 5; two runs with spending agree; the recorded-hash tests pass unchanged
     for runs that spend nothing.
   - Each of the twelve paths still wins a fight its bare party loses. The fight is spec 051's: a
-    level-15 party against the Old Crypt's guardian, on five battle seeds. The path's class's hero
-    holds that path's five nodes and nothing else.
+    level-14 party against the Old Crypt's guardian (level 15), on five battle seeds. The bare party
+    wins none of the five; with the path's class's hero holding that path's five nodes and nothing
+    else, the party wins at least three.
+  - **Sunpriest's holy damage comes from healing power.** A cleric's own damage is small, so
+    Smite, Holy Fire, Radiance and Wrath deal damage as a multiple of the cleric's healing power,
+    not of its damage. This is one new field on `AbilityEffect`, checked by `validate()` (allowed
+    only on DAMAGE) and read where an ability's damage is worked out:
+    `@export var damage_from_healing: bool = false  # DAMAGE: multiplier times the fighter's healing power`.
+    Their multipliers are tuned for the fight above (starting near 0.6x of today's). Radiance's
+    mend lands on every ally within 2 tiles of the cleric, not only on the cleric (ALLIES_NEAR or
+    the nearest existing kind; its description says so).
 - **R10. The Talents tab, three paths wide.** This is the least that keeps the tab working. Spec
   111 makes it the real window.
   - The tab shows the class's three paths as three columns side by side within the window's width
@@ -330,7 +349,13 @@ closing or the question before a path go. Asserts that hold for any shape stay.
   `HeroWindows`' path title and banner, `help_panel.gd`'s line), `game/ui/picture_specimen.gd`,
   `game/hud/journal.gd`, `game/effects/spell_effects.gd` (the `KINDS` table only),
   `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
-- `tools/godot/talent_spender.gd`, `tools/godot/run_sim.gd`
+- `sim/defs/ability_effect.gd` (the `damage_from_healing` field) and the sim code that works out an
+  ability's damage and chooses a fighter's action (`sim/combat/battle_abilities.gd`,
+  `sim/combat/battle.gd`, `sim/combat/combatant.gd`), for R4 and R9 only
+- `tools/godot/talent_spender.gd`, `tools/godot/run_sim.gd`, `tools/dev.py` (the `--spend-talents`
+  help text only)
+- `tests/colony_test.gd` may hold the worth-having helpers shared by `test_051` and `test_109`
+  (the Slime King comparison and the path fight), not only `_spend_talents`
 - `tests/acceptance/test_109_three_paths_of_five.gd`, `tests/acceptance/test_109_every_ability_is_seen.gd`
   and their `.uid`s, plus the files in "Tests that change"
 - `docs/design/world.md` (the "Skill trees" section, rewritten for skill paths: three paths of five
