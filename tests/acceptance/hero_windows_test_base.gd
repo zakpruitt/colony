@@ -17,12 +17,9 @@ func _hero(main: Main, class_id: StringName) -> Hero:
 	return null
 
 
-## The trunk and the first [param steps] nodes of path [param path] of [param class_id]'s tree.
+## The first [param steps] nodes of path [param path] of [param class_id]'s tree, in order.
 func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
-	var tree: TalentTreeDef = Content.talent_tree(class_id)
-	var nodes: Array[StringName] = tree.trunk.duplicate()
-	nodes.append_array(tree.path_nodes(path).slice(0, steps))
-	return nodes
+	return Content.talent_tree(class_id).path(path).nodes.slice(0, steps)
 
 
 func _frame_of(main: Main, hero: Hero) -> HeroFrameView:

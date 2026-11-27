@@ -16,7 +16,7 @@ extends SceneTree
 ## and the open areas ("open_areas"); a run that ends on the way to another area also names where
 ## the party will arrive ("journeying_to").
 ## With --spend-talents each hero spends its points as they come ([TalentSpender]): its
-## trunk in order, then its tree's first path, and every paragon point into Power. Each hero in
+## first path tier by tier, then the other paths, and every paragon point into Power. Each hero in
 ## the summary lists the nodes it took ("talents"). "slime_king_won" is the game time of the first
 ## win over the Slime King, or null, and "wipes_before_slime_king" counts the wipes before it (all
 ## of the run's, without one).

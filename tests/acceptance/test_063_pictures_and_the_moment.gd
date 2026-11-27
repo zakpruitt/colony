@@ -636,9 +636,9 @@ func _picture_ids() -> Array[StringName]:
 
 func _tree_of(class_id: StringName) -> Array[StringName]:
 	var tree: TalentTreeDef = Content.talent_tree(class_id)
-	var ids: Array[StringName] = tree.trunk.duplicate()
-	ids.append_array(tree.path_a)
-	ids.append_array(tree.path_b)
+	var ids: Array[StringName] = []
+	for path: SkillPathDef in tree.paths:
+		ids.append_array(path.nodes)
 	return ids
 
 

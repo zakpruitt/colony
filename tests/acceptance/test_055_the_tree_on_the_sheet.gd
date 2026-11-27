@@ -68,12 +68,9 @@ func _hero(class_id: StringName) -> Hero:
 	return null
 
 
-## The trunk and the first [param steps] nodes of path [param path] of [param class_id]'s tree.
+## The first [param steps] nodes of path [param path] of [param class_id]'s tree, in order.
 func _walked(class_id: StringName, path: int, steps: int) -> Array[StringName]:
-	var tree: TalentTreeDef = _tree(class_id)
-	var nodes: Array[StringName] = tree.trunk.duplicate()
-	nodes.append_array(tree.path_nodes(path).slice(0, steps))
-	return nodes
+	return _tree(class_id).path(path).nodes.slice(0, steps)
 
 
 ## Opens [param hero]'s sheet on its Talents tab as the player would: a click on its frame, then
@@ -123,28 +120,24 @@ func test_r1_the_tree_is_drawn() -> void:
 		var tree: TalentTreeDef = _tree(class_id)
 		_open_talents(hero)
 		var view: TalentTreeView = _tab().tree_view()
-		var left: TalentNode = view.path_nodes[0][0]
-		var right: TalentNode = view.path_nodes[1][0]
-		assert_eq(left.position.y, right.position.y, "%s: side by side" % class_id)
-		# Joined by lines: each node to the next in its order, the trunk to both paths.
+		for path: int in range(1, 3):
+			var left: TalentNode = view.path_nodes[path - 1][0]
+			var right: TalentNode = view.path_nodes[path][0]
+			assert_eq(left.position.y, right.position.y, "%s: side by side" % class_id)
+		# Joined by lines: each node to each node that needs it.
 		var joined: Dictionary[String, bool] = {}
 		for join: Array in view.joins():
 			var rect: Rect2 = join[0]
 			assert_true(rect.has_area(), "%s: a line has length" % class_id)
 			var ends: Array = join[1]
-			if ends.size() == 2:
-				var a: TalentNode = ends[0]
-				var b: TalentNode = ends[1]
-				joined["%s>%s" % [a.ability_id, b.ability_id]] = true
-		var order: Array[StringName] = tree.trunk.duplicate()
-		for i: int in range(1, order.size()):
-			assert_true(joined.has("%s>%s" % [order[i - 1], order[i]]), "trunk %d joined" % i)
-		for path: int in 2:
-			var nodes: Array[StringName] = [tree.trunk[2]]
-			nodes.append_array(tree.path_nodes(path))
-			for i: int in range(1, nodes.size()):
-				var key: String = "%s>%s" % [nodes[i - 1], nodes[i]]
-				assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
+			var a: TalentNode = ends[0]
+			var b: TalentNode = ends[1]
+			joined["%s>%s" % [a.ability_id, b.ability_id]] = true
+		for path: int in 3:
+			for node: StringName in tree.path(path).nodes:
+				for before: StringName in tree.needs(node):
+					var key: String = "%s>%s" % [before, node]
+					assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
 		_sheet().close()
 		_hud.advance(STEP)
 
@@ -157,16 +150,17 @@ func test_r2_a_node_shows_its_state() -> void:
 		var hero: Hero = _hero(class_id)
 		var tree: TalentTreeDef = _tree(class_id)
 		_open_talents(hero)
-		for path: int in 2:
-			set_level_keeping_health(hero, 10)  # five points: the trunk, the path's first node and one more
+		for path: int in 3:
+			set_level_keeping_health(hero, 10)  # five points: one spent
 			hero.set_talents(_walked(class_id, path, 1))
 			_hud.advance(STEP)
-			var on: String = "%s on %s" % [class_id, tree.path_names[path]]
-			var taken: TalentNode = _tab().node(tree.path_nodes(path)[0])
+			var on: String = "%s on %s" % [class_id, tree.path(path).display_name]
+			var taken: TalentNode = _tab().node(tree.path(path).nodes[0])
 			assert_eq(taken.name_label.get_theme_color(&"font_color"), Palette.color(&"white"))
-			for id: StringName in tree.path_nodes(1 - path):
-				var closed: TalentNode = _tab().node(id)
-				assert_eq(closed.frame_colour(), &"dusk", "%s: dark" % on)
+			for other: int in 3:
+				if other != path:
+					var open: TalentNode = _tab().node(tree.path(other).nodes[0])
+					assert_eq(open.state(), TalentNode.State.AVAILABLE, "%s: never closed" % on)
 		_sheet().close()
 		_hud.advance(STEP)
 
@@ -176,61 +170,32 @@ func test_r2_a_node_shows_its_state() -> void:
 
 func test_r4_taking_a_node() -> void:
 	var knight: Hero = _hero(&"knight")
-	var tree: TalentTreeDef = _tree(&"knight")
 	set_level_keeping_health(knight, 10)  # five points
 	_open_talents(knight)
-	# A click on a trunk node that can be taken takes it.
-	_click_node(tree.trunk[0])
+	# A click on a node that can be taken takes it, with no question first.
+	_click_node(&"whirlwind")
+	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "no question")
 	_frame()
-	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "taken by a click")
-	_click_node(tree.trunk[1])
+	assert_eq(knight.talents(), [&"whirlwind"] as Array[StringName], "taken by a click")
+	_click_node(&"taunt")
 	_frame()
-	_click_node(tree.trunk[2])
+	_click_node(&"reckless_swing")
 	_frame()
-	assert_eq(knight.talents(), tree.trunk, "the trunk, click by click")
+	var taken: Array[StringName] = [&"whirlwind", &"taunt", &"reckless_swing"]
+	assert_eq(knight.talents(), taken, "click by click, of two paths")
 	# A click on a node that cannot be taken takes nothing.
-	_click_node(tree.path_b[2])
+	_click_node(&"earthshaker")
 	_frame()
-	assert_eq(knight.talents(), tree.trunk, "not reachable: nothing")
-	# The first node of a path asks first, in the fixed place.
-	_click_node(tree.path_b[0])
-	assert_eq(_tab().asking(), HeroTalentsTab.Asking.PATH, "it asks")
-	assert_eq(_tab().ask_label.text, "Choose Berserker? This closes Guardian.", "the question")
-	assert_eq(_tab().choose_button.text, "Choose")
-	assert_eq(_tab().not_yet_button.text, "Not yet")
-	assert_true(_tab().choose_button.is_visible_in_tree(), "Choose shows")
-	assert_true(_tab().not_yet_button.is_visible_in_tree(), "Not yet shows")
-	# Spec 060: the question takes the top row, in place of the reset, above the tree.
-	assert_lt(
-		_tab().ask_label.position.y, _tab().tree_view().position.y, "in the top row, over the tree"
-	)
-	assert_false(_tab().reset_button.is_visible_in_tree(), "in the reset's place")
-	_frame()
-	assert_eq(knight.talents(), tree.trunk, "asking sends nothing")
-	_click_and_show(_tab().not_yet_button)
-	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "Not yet: no question")
-	_frame()
-	assert_eq(knight.talents(), tree.trunk, "Not yet sends nothing")
-	assert_eq(knight.path(), -1, "both paths open")
-	_click_node(tree.path_b[0])
-	_click_and_show(_tab().choose_button)
-	_frame()
-	assert_eq(knight.talents(), _walked(&"knight", 1, 1), "Choose sends the command")
-	assert_eq(knight.path(), 1, "a Berserker")
-	# Further down the path, no question.
-	_click_node(tree.path_b[1])
-	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "no question further on")
-	_frame()
-	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "taken at once")
+	assert_eq(knight.talents(), taken, "not reachable: nothing")
 	# While the page is hidden its handlers do nothing, whatever reaches them.
 	set_level_keeping_health(knight, 14)
 	_sim.party.gold = RICH
 	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.STATS])
-	_tab().press_node(tree.path_b[2])
+	_tab().press_node(&"rampage")
 	_tab().press_reset()
 	_tab().confirm()
 	_frame()
-	assert_eq(knight.talents(), _walked(&"knight", 1, 2), "a hidden page takes nothing")
+	assert_eq(knight.talents(), taken, "a hidden page takes nothing")
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "and asks nothing")
 	assert_eq(_sim.party.gold, RICH, "and resets nothing")
 
@@ -248,10 +213,10 @@ func test_r5_unspent_points_are_shown() -> void:
 	assert_true(sheet.talents_tag.is_visible_in_tree(), "on the tab's name")
 	assert_eq(sheet.talents_tag.count, 2, "two")
 	assert_true(sheet.talents_tag.get_global_rect().intersects(tab), "pinned to the tab")
-	_click_node(tree.trunk[0])
+	_click_node(tree.path(0).nodes[0])
 	_frame()
 	assert_eq(sheet.talents_tag.count, 1, "the tab says one")
-	_click_node(tree.trunk[1])
+	_click_node(tree.path(0).nodes[1])
 	_frame()
 	assert_false(sheet.talents_tag.is_visible_in_tree(), "no mark")
 	set_level_keeping_health(knight, 5)
@@ -267,7 +232,6 @@ func test_r5_unspent_points_are_shown() -> void:
 
 func test_r6_a_fresh_start() -> void:
 	var knight: Hero = _hero(&"knight")
-	var tree: TalentTreeDef = _tree(&"knight")
 	set_level_keeping_health(knight, 8)
 	_sim.party.gold = 0
 	_open_talents(knight)
@@ -275,7 +239,7 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(reset.text, "Reset 800", "the price: 100 gold a level")
 	assert_true(reset.disabled, "nothing to reset: greyed")
 	assert_eq(_tab().reset_reason_label.text, "Nothing to reset", "with the reason")
-	knight.set_talents(tree.trunk)
+	knight.set_talents(_walked(&"knight", 0, 3))
 	_hud.advance(STEP)
 	assert_true(reset.disabled, "too poor: greyed")
 	assert_eq(_tab().reset_reason_label.text, "Not enough gold", "with the reason")
@@ -291,10 +255,10 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "it asks")
 	assert_eq(_tab().ask_label.text, "Reset the Knight's tree for 800 gold?", "the question")
 	_frame()
-	assert_eq(knight.talents(), tree.trunk, "asking resets nothing")
+	assert_eq(knight.talents(), _walked(&"knight", 0, 3), "asking resets nothing")
 	_click_and_show(_tab().not_yet_button)
 	_frame()
-	assert_eq(knight.talents(), tree.trunk, "Not yet resets nothing")
+	assert_eq(knight.talents(), _walked(&"knight", 0, 3), "Not yet resets nothing")
 	_click_and_show(reset)
 	assert_eq(_tab().choose_button.text, "Reset", "the answer says what it does")
 	_click_and_show(_tab().choose_button)
@@ -304,7 +268,7 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(_tab().reset_reason_label.text, "Nothing to reset", "nothing left")
 	# A question never outlives what it asked: another tab, the sheet closed, a new price.
 	var gold: int = _sim.party.gold
-	knight.set_talents(tree.trunk)
+	knight.set_talents(_walked(&"knight", 0, 3))
 	_hud.advance(STEP)
 	_click_and_show(reset)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked again")
@@ -324,15 +288,9 @@ func test_r6_a_fresh_start() -> void:
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "a new price: the old question goes")
 	_tab().confirm()
 	_frame()
-	assert_eq(knight.talents(), tree.trunk, "nothing reset at a price never read")
+	assert_eq(knight.talents(), _walked(&"knight", 0, 3), "nothing reset at a price never read")
 	assert_eq(_sim.party.gold, gold, "nothing charged")
 	assert_eq(reset.text, "Reset 1,700", "the new price shows")
-	# A path question goes with the tab too.
-	_click_node(tree.path_b[0])
-	assert_eq(_tab().asking(), HeroTalentsTab.Asking.PATH, "a path question")
-	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.SKILLS])
-	assert_eq(_tab().asking(), HeroTalentsTab.Asking.NOTHING, "another tab: it goes")
-	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.TALENTS])
 	# In a fight: an open question goes when the fight starts.
 	_click_and_show(reset)
 	assert_eq(_tab().asking(), HeroTalentsTab.Asking.RESET, "asked before the fight")
@@ -348,7 +306,7 @@ func test_r6_a_fresh_start() -> void:
 
 func test_r7_paragon() -> void:
 	var knight: Hero = _hero(&"knight")
-	set_level_keeping_health(knight, 17)
+	set_level_keeping_health(knight, 33)
 	_open_talents(knight)
 	for cell: ParagonCell in _tab().paragon_cells:
 		# Spec 064 R9: a medallion each, ready with a point, where spec 055 had a +1 button.
@@ -378,14 +336,13 @@ func test_r8_the_game_points_at_it() -> void:
 		assert_true(_hud.hero_windows.is_open(knight.id), "the goal opens the knight's window")
 		assert_eq(_sheet().hero_id, knight.id, "in front")
 		assert_eq(_sheet().page(), HeroWindow.Page.TALENTS, "on its Talents tab")
-	# A path chosen.
+	# A path taken up.
 	set_level_keeping_health(knight, 8)
-	knight.set_talents(_tree(&"knight").trunk)
+	knight.set_talents([] as Array[StringName])
 	_hud.advance(STEP)
 	_click_node(&"whirlwind")
-	_click_and_show(_tab().choose_button)
 	_frame()
-	assert_true(_journal_has("The Knight is now a Berserker"), "the journal notes the path")
+	assert_true(_journal_has("The Knight takes up the Berserker path"), "the journal notes it")
 	set_level_keeping_health(knight, 10)  # a point to spend again
 	_sheet().close()
 	_hud.advance(STEP)
@@ -437,10 +394,9 @@ func test_r9_the_path_is_part_of_who_it_is() -> void:
 	var knight: Hero = _hero(&"knight")
 	var frame: HeroFrameView = _hud.frames[0]
 	set_level_keeping_health(knight, 8)
-	knight.set_talents(_tree(&"knight").trunk)
+	knight.set_talents([] as Array[StringName])
 	_open_talents(knight)
 	_click_node(&"whirlwind")
-	_click_and_show(_tab().choose_button)
 	_frame()
 	_sheet().close()
 	_hud.advance(STEP)
@@ -475,7 +431,7 @@ func test_r10_true_in_a_crowded_frame() -> void:
 		_sim.step()
 		ticks += 1
 	assert_eq(knight.level, 4, "three levels in one award")
-	_sim.take_talent(knight.id, tree.trunk[0])
+	_sim.take_talent(knight.id, tree.path(0).nodes[0])
 	_sim.step()
 	_world.sync(STEP)
 	_hud.advance(STEP)
@@ -488,12 +444,12 @@ func test_r10_true_in_a_crowded_frame() -> void:
 			levels.append(event.amount)
 	assert_eq(levels, [2, 3, 4] as Array[int], "the frame held three level-ups")
 	assert_eq(points, [2, 4] as Array[int], "and two talent points")
-	assert_eq(knight.talents(), [tree.trunk[0]] as Array[StringName], "and the command")
+	assert_eq(knight.talents(), [tree.path(0).nodes[0]] as Array[StringName], "and the command")
 	# The end state, with no stale mark.
 	assert_eq(_tab().points_label.text, "1 point to spend", "one left")
 	assert_eq(_sheet().talents_tag.count, 1, "the tab's mark says one")
-	assert_eq(_state_name(_state(tree.trunk[0])), "TAKEN", "the node taken")
-	assert_eq(_state_name(_state(tree.trunk[1])), "AVAILABLE", "the next can be taken")
+	assert_eq(_state_name(_state(tree.path(0).nodes[0])), "TAKEN", "the node taken")
+	assert_eq(_state_name(_state(tree.path(0).nodes[1])), "AVAILABLE", "the next can be taken")
 	_sheet().close()
 	_hud.advance(STEP)
 	assert_has(_hud.goals.lines(), "Spend the Knight's talent point", "the goal: one point")
@@ -541,9 +497,10 @@ func test_r11_it_fits_and_is_explained() -> void:
 		var text: String = _tip_text(control)
 		assert_ne(text, "", "%s has a tooltip" % control.name)
 		assert_true(text.ends_with("."), "%s: one sentence: %s" % [control.name, text])
-	knight.set_talents(_tree(&"knight").trunk)
+	knight.set_talents(_walked(&"knight", 0, 3))
+	_sim.party.gold = RICH
 	_hud.advance(STEP)
-	_click_node(&"whirlwind")
+	_click_and_show(_tab().reset_button)
 	for control: Control in [_tab().choose_button, _tab().not_yet_button]:
 		assert_true(control.is_visible_in_tree(), "%s shows" % control.name)
 		assert_ne(_tip_text(control), "", "%s has a tooltip" % control.name)

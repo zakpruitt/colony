@@ -15,7 +15,7 @@ extends UiWindow
 ## a level up, a command or a crowded frame. It is laid out by hand ([WindowText]), the same size
 ## on every tab and for every hero, so windows line up when compared. In a room too short for its
 ## tallest tab (960x540), [HeroWindows] makes it shorter and the tabs' content scrolls inside it
-## ([member scroll]); the Talents tab's top row (its points, the reset, a question and its answers)
+## ([member scroll]); the Talents tab's top row (its points, the reset, its question and answers)
 ## stands above what scrolls, so it always shows.
 
 ## The window's tabs, in order.
@@ -229,7 +229,7 @@ func advance(delta: float) -> void:
 	_shown.see(health)
 	_shown.see(max_health)
 	_shown.see(_down)
-	_shown.see(hero.path())
+	_shown.see(HeroTalentsTab.path_index(hero))
 	_shown.see(_simulation.expedition.state)
 	_shown.see(fighter.target_id if fighter != null else -1)
 	if _shown.changed():
@@ -472,7 +472,7 @@ func _show_header(hero: Hero, fighter: Combatant, health: int, max_health: int) 
 	var walked: String = HeroTalentsTab.path_name(hero)
 	var tints: Dictionary[String, StringName] = {}
 	if not walked.is_empty():
-		tints[walked] = PathColours.of(hero.class_id, hero.path())
+		tints[walked] = PathColours.of(hero.class_id, HeroTalentsTab.path_index(hero))
 	path_tint.show_words(tints)
 	var role: String = ROLE_WORDS.get(hero.def().role, "")
 	_set_line(&"role", role)

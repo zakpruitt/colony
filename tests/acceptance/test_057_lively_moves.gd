@@ -185,9 +185,7 @@ func _guardian_fight(path: int) -> void:
 	for hero: Hero in simulation.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(GUARDIAN_LEVEL) - hero.xp)
 		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-		var nodes: Array[StringName] = tree.trunk.duplicate()
-		nodes.append_array(tree.path_nodes(path))
-		hero.set_talents(nodes)
+		hero.set_talents(tree.path(path).nodes)
 		hero.health = hero.max_health()
 	var e: Expedition = simulation.expedition
 	var lair: LabyrinthChamber = simulation.labyrinth.level(GUARDIAN_DEPTH).shaft_chamber()
@@ -868,7 +866,7 @@ func test_r9_in_the_showcase_and_the_cast_demo() -> void:
 		var class_id: StringName = Showcase.CLASS_MOMENTS[moment]
 		var tree: TalentTreeDef = Content.talent_tree(class_id)
 		var own: Dictionary[StringName, bool] = {}
-		for ability_id: StringName in tree.trunk + tree.path_nodes(Showcase.CLASS_PATHS[class_id]):
+		for ability_id: StringName in tree.path(Showcase.CLASS_PATHS[class_id]).nodes:
 			own[Content.ability(ability_id).move] = true
 		showcase.skip_to(moment)
 		var seen: Dictionary[StringName, bool] = {}

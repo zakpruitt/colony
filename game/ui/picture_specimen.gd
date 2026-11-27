@@ -1,7 +1,7 @@
 class_name PictureSpecimen
 extends Node
 ## A sheet to look at every picture: grouped by class (each class's talent tree,
-## trunk then both paths), then the camp upgrades, the paragon stats and the microskills. Each
+## path by path), then the camp upgrades, the paragon stats and the microskills. Each
 ## picture shows large in its owned state with its ready, locked and closed states small beside it,
 ## and its name under it. Under the groups, one slot bursts every
 ## [constant BURST_EVERY] seconds and a banner drops in again whenever the last has gone.
@@ -137,9 +137,9 @@ func _group_list() -> Array[Array]:
 		var tree: TalentTreeDef = Content.talent_tree(class_id)
 		if tree == null:
 			continue
-		var ids: Array[StringName] = tree.trunk.duplicate()
-		ids.append_array(tree.path_a)
-		ids.append_array(tree.path_b)
+		var ids: Array[StringName] = []
+		for each: SkillPathDef in tree.paths:
+			ids.append_array(each.nodes)
 		made.append([Content.hero_class(class_id).display_name, ids])
 	made.append(["Upgrades", Content.upgrade_ids()])
 	made.append(["Paragon", Content.training_ids()])

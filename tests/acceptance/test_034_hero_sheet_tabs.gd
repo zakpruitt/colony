@@ -27,8 +27,9 @@ func _give_paragon(hero: Hero, points: int) -> void:
 	var level: int = Hero.TALENT_POINTS * Hero.TALENT_EVERY + points
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var full: Array[StringName] = tree.trunk.duplicate()
-	full.append_array(tree.path_a)
+	var full: Array[StringName] = []
+	for path: SkillPathDef in tree.paths:
+		full.append_array(path.nodes)
 	hero.set_talents(full)
 	assert_eq(hero.talent_points(), 0, "%s: no talent point to spend" % hero.class_id)
 

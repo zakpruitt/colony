@@ -469,8 +469,7 @@ func test_r5_the_frames_show_it() -> void:
 	# With a path chosen (spec 055), the class and its path come first, then the statuses.
 	var hero: Hero = _sim.party.hero(KNIGHT)
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var taken: Array[StringName] = tree.trunk.duplicate()
-	taken.append(tree.path_nodes(0)[0])
+	var taken: Array[StringName] = [tree.path(0).nodes[0]]
 	hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
 	hero.set_talents(taken)
 	var titled: String = HeroTalentsTab.title(hero)
@@ -905,7 +904,7 @@ func test_r9_in_the_showcase() -> void:
 			var tree: TalentTreeDef = Content.talent_tree(class_id)
 			var actions: int = 0
 			for ability_id: StringName in (
-				tree.trunk + tree.path_nodes(Showcase.CLASS_PATHS[class_id])
+				tree.path(Showcase.CLASS_PATHS[class_id]).nodes
 			):
 				var ability: AbilityDef = Content.ability(ability_id)
 				if ability.is_action() and names.has(ability.display_name):

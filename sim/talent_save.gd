@@ -1,7 +1,7 @@
 class_name TalentSave
 extends RefCounted
-## How each hero's talents and paragon points are saved, checked and brought forward from a
-## version 6 save, kept apart from [Simulation] as [AreaSave] is.
+## How each hero's talents and paragon points are saved, checked and brought forward from
+## versions 6 and 9, kept apart from [Simulation] as [AreaSave] is.
 ##
 ## A saved hero carries "talents" (its nodes, in the order taken) and "paragon" (a dictionary
 ## of [TrainingDef] id to the points spent in that stat). Unspent points are not saved: they are
@@ -14,6 +14,9 @@ const _OLD_TRAINING_PRICES: Dictionary[String, Array] = {
 	"toughness": [35, 1.35, 20],
 	"quickness": [45, 1.5, 10],
 }
+## A saved hero's paragon points spent may reach its level less this: the most any version of the
+## game has let a hero earn, so a save from a version that gave paragon sooner still loads.
+const _PARAGON_SAVED_AFTER: int = 14
 
 
 ## Writes [param hero]'s talents and paragon points into its saved dictionary [param saved].
@@ -79,6 +82,18 @@ static func upgrade_6_to_7(data: Dictionary) -> Dictionary:
 			hero["paragon"] = {}
 	if SaveChecks.is_whole(data.get("gold")):
 		data["gold"] = SaveChecks.whole(data["gold"]) + refund
+	return data
+
+
+## Version 9 had a trunk and two paths: version 10 gives every hero its talents back, no nodes
+## and every point its level earned unspent, and keeps its paragon points.
+static func upgrade_9_to_10(data: Dictionary) -> Dictionary:
+	data["version"] = 10
+	var heroes: Variant = data.get("heroes")
+	if heroes is Array:
+		for saved: Variant in heroes as Array:
+			if saved is Dictionary:
+				(saved as Dictionary)["talents"] = []
 	return data
 
 
@@ -159,10 +174,8 @@ static func _check_paragon(
 			problems.append("%s: points %d are below 0" % [field, SaveChecks.whole(points[key])])
 		else:
 			spent += SaveChecks.whole(points[key])
-	if level > 0 and spent > TalentRules.paragon_points_at(level):
+	var most: int = maxi(level - _PARAGON_SAVED_AFTER, 0)
+	if level > 0 and spent > most:
 		problems.append(
-			(
-				"%s: %d points spent, but level %d earns %d paragon points"
-				% [where, spent, level, TalentRules.paragon_points_at(level)]
-			)
+			"%s: %d points spent, but level %d allows %d paragon points" % [where, spent, level, most]
 		)

@@ -1,12 +1,27 @@
 [gd_resource type="Resource" script_class="TalentTreeDef" format=3]
 
 [ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/skill_path_def.gd" id="2"]
+
+[sub_resource type="Resource" id="path_1"]
+script = ExtResource("2")
+display_name = "Assassin"
+summary = "bleeds, marks and finishes the weakest foe"
+nodes = Array[StringName]([&"backstab", &"mark_for_death", &"finisher", &"ambush", &"killing_spree"])
+
+[sub_resource type="Resource" id="path_2"]
+script = ExtResource("2")
+display_name = "Venom"
+summary = "spreads bleeding and weakness through packs"
+nodes = Array[StringName]([&"poisoned_blades", &"fan_of_knives", &"toxic_cloud", &"envenom", &"plague"])
+
+[sub_resource type="Resource" id="path_3"]
+script = ExtResource("2")
+display_name = "Shadow"
+summary = "slows, stuns and slips away from every blow"
+nodes = Array[StringName]([&"smoke_step", &"caltrops", &"dizzying_feint", &"shadowstep", &"vanish"])
 
 [resource]
 script = ExtResource("1")
 class_id = &"rogue"
-trunk = Array[StringName]([&"backstab", &"smoke_step", &"finisher"])
-path_names = Array[String](["Assassin", "Trickster"])
-path_summaries = Array[String](["bleeds, marks and finishes the weakest foe", "slows, weakens and slips away from every blow"])
-path_a = Array[StringName]([&"poisoned_blades", &"mark_for_death", &"ambush", &"killing_spree"])
-path_b = Array[StringName]([&"fan_of_knives", &"caltrops", &"dizzying_feint", &"vanish"])
+paths = Array[ExtResource("2")]([SubResource("path_1"), SubResource("path_2"), SubResource("path_3")])

@@ -7,7 +7,7 @@ const SEED_TICKS: int = 5
 ## Ticks the simulation runs on before the world hears of it: what it reported is long past.
 const STALE_TICKS: int = 400
 ## A level with every talent point earned and three paragon points.
-const PARAGON_LEVEL: int = 17
+const PARAGON_LEVEL: int = 33
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -71,50 +71,32 @@ func _rect_text(node: TalentNode) -> String:
 	return "%s %s" % [node.ability_id, node.get_global_rect()]
 
 
-## Checks that [param view]'s nodes are joined in order by lines with an arrowhead into each: down
-## the trunk, and from its last node into each path and down it.
+## Checks that [param view] joins each node to each node that needs it, with an arrowhead into it
+## that points at it.
 func _check_joins(view: TalentTreeView, tree: TalentTreeDef, class_id: StringName) -> void:
-	# Joined by lines with arrowheads: each node to the next, the last trunk node to both paths.
 	var joined: Dictionary[String, bool] = {}
 	for join: Array in view.joins():
 		var ends: Array = join[1]
-		if ends.size() == 2:
-			var a: StringName = (ends[0] as TalentNode).ability_id
-			joined["%s>%s" % [a, (ends[1] as TalentNode).ability_id]] = true
+		var a: StringName = (ends[0] as TalentNode).ability_id
+		joined["%s>%s" % [a, (ends[1] as TalentNode).ability_id]] = true
 	var headed: Dictionary[StringName, Rect2] = {}
 	for arrow: Array in view.arrows():
 		headed[(arrow[1] as TalentNode).ability_id] = arrow[0]
-	for path: int in 2:
-		var order: Array[StringName] = tree.trunk.duplicate()
-		order.append_array(tree.path_nodes(path))
-		for i: int in range(1, order.size()):
-			var key: String = "%s>%s" % [order[i - 1], order[i]]
-			assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
-			assert_true(headed.has(order[i]), "%s: an arrowhead into %s" % [class_id, order[i]])
-			if headed.has(order[i]):
-				var into: Rect2 = view.node(order[i]).get_global_rect()
-				var head: Rect2 = headed[order[i]]
+	for path: int in tree.paths.size():
+		for node: StringName in tree.path(path).nodes:
+			for before: StringName in tree.needs(node):
+				var key: String = "%s>%s" % [before, node]
+				assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
+			if tree.tier_of(node) == 1:
+				assert_false(headed.has(node), "%s: no arrowhead into tier 1" % node)
+				continue
+			assert_true(headed.has(node), "%s: an arrowhead into %s" % [class_id, node])
+			if headed.has(node):
+				var into: Rect2 = view.node(node).get_global_rect()
+				var head: Rect2 = headed[node]
 				head.position += view.global_position
-				assert_lte(head.end.y, into.position.y + 0.5, "%s: the head points in" % order[i])
-				assert_gt(head.end.y, into.position.y - 4.0, "%s: right at it" % order[i])
-
-
-## Checks the banners of [param view], whose hero walks [param path]: the other path's is closed,
-## dimmed with a padlock and Not chosen, its name dim; its own is open and not marked.
-func _check_banners(view: TalentTreeView, path: int, on: String) -> void:
-	var closed: PathBanner = view.banners[1 - path]
-	assert_true(closed.is_closed(), "%s: the other banner closed" % on)
-	assert_true(closed.has_lock(), "%s: with a padlock" % on)
-	assert_true(closed.closed_label.is_visible_in_tree(), "%s: saying so" % on)
-	assert_eq(closed.closed_label.text, "Not chosen", "%s: Not chosen" % on)
-	assert_ne(closed.colour(), view.path_colour(1 - path), "%s: dimmed" % on)
-	assert_eq(
-		closed.name_label.get_theme_color(&"font_color"),
-		Palette.color(&"steel"),
-		"%s: the other name dim" % on
-	)
-	assert_false(view.banners[path].is_closed(), "%s: its own open" % on)
-	assert_false(view.banners[path].closed_label.is_visible_in_tree(), "not marked")
+				assert_lte(head.end.y, into.position.y + 0.5, "%s: the head points in" % node)
+				assert_gt(head.end.y, into.position.y - 4.0, "%s: right at it" % node)
 
 
 ## Checks [param tab]'s paragon medallions with three points waiting and none spent: each
@@ -203,22 +185,21 @@ func _into_view(main: Main, shown: HeroWindow, control: Control) -> void:
 		await _frames()
 
 
-## Opens [param hero]'s window on Talents with its trunk taken, has it choose its first path now and
-## checks the other starts closing with the line into the chosen node lit; returns the window.
-func _choose_now(main: Main, hero: Hero) -> HeroWindow:
-	var tree: TalentTreeDef = _tree(hero.class_id)
+## Opens [param hero]'s window on Talents with a point to spend, has it take its first path's
+## tier-1 node now and checks the line into it lights; returns the window.
+func _take_now(main: Main, hero: Hero) -> HeroWindow:
+	var first: StringName = _tree(hero.class_id).path(0).nodes[0]
 	set_level_keeping_health(hero, 8)
-	hero.set_talents(tree.trunk)
+	hero.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
-	main.simulation.take_talent(hero.id, tree.path_a[0])
+	main.simulation.take_talent(hero.id, first)
 	_frame(main)
-	assert_true(_view(shown).is_closing(), "%s: the other path closing" % hero.class_id)
-	assert_true(_view(shown).is_lit(tree.path_a[0]), "%s: the line lit" % hero.class_id)
+	assert_true(_view(shown).is_lit(first), "%s: the line lit" % hero.class_id)
 	return shown
 
 
 ## Fails when palette colour [param colour] is one a state uses: the frames' gold, yellow, white and
-## greys, the green of what is learned and of the paragon totals, the lit trunk's sand.
+## greys, the green of what is learned and of the paragon totals, and sand.
 func _check_not_a_state(colour: StringName) -> void:
 	var states: Array[StringName] = [
 		&"amber",

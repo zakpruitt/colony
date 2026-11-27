@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 9
+const SAVE_VERSION: int = 10
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero.
@@ -159,7 +159,7 @@ func buy_upgrade(id: StringName) -> void:
 
 
 ## Asks hero [param hero_id] to spend a talent point on node [param ability_id] at the next step.
-## It is taken then if the hero has an unspent point and the node is next in its tree
+## It is taken then if the hero has an unspent point and the node is open in its tree
 ## ([method Hero.can_take]), with [constant SimEvent.Kind.TALENT_TAKEN]; the hero fights with it
 ## from its next fight on. Otherwise nothing happens.
 func take_talent(hero_id: int, ability_id: StringName) -> void:
@@ -175,7 +175,7 @@ func spend_paragon(hero_id: int, stat: TrainingDef.Stat) -> void:
 
 ## Asks for a fresh start for hero [param hero_id] at the next step: for
 ## [method reset_price] in gold, every node it took is given back as an unspent
-## talent point and both paths are open again, with [constant SimEvent.Kind.TALENTS_RESET].
+## talent point, with [constant SimEvent.Kind.TALENTS_RESET].
 ## Paragon points stay. Nothing happens during a fight, without the gold, or with no node taken.
 func reset_talents(hero_id: int) -> void:
 	_pending_talents.append([_RESET, hero_id, 0])
@@ -494,6 +494,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = ResourceSave.upgrade_7_to_8(current)
 	if SaveChecks.whole(current["version"]) == 8:
 		current = _save_8_to_9(current)
+	if SaveChecks.whole(current["version"]) == 9:
+		current = TalentSave.upgrade_9_to_10(current)
 	return current
 
 

@@ -1,82 +1,119 @@
 class_name TalentTreeDef
 extends ContentDef
-## One class's talent tree: a trunk of nodes taken in order, then two named paths of
-## nodes taken in order, of which a hero may walk only one. Each node is an [AbilityDef] id. One
-## .tres file per class under res://data/talents.
+## One class's talent tree: three named [SkillPathDef]s of five nodes, each node an
+## [AbilityDef] id. Nothing closes a path: a hero may take every node of all three, each once the
+## node before it in its path is taken. One .tres file per class under res://data/talents.
 
-## Nodes in the trunk, and in each path.
-const _TRUNK_LENGTH: int = 3
-const PATH_LENGTH: int = 4
+const PATH_COUNT: int = 3
+const PATH_LENGTH: int = 5
+## The tier of each place in SkillPathDef.nodes.
+const TIERS: Array[int] = [1, 2, 2, 3, 4]
 ## The longest a path's summary may be, in characters: one short line.
 const _SUMMARY_LENGTH: int = 60
 
 @export var class_id: StringName
-@export var trunk: Array[StringName] = []  # ability ids, in order
-@export var path_names: Array[String] = []  # two
-@export var path_a: Array[StringName] = []
-@export var path_b: Array[StringName] = []
-## One short line per path saying what a hero on it becomes ("holds the line and
-## keeps the party standing"), shown on its banner. A view hint: no rule reads it, and the state
-## hash leaves it out.
-@export var path_summaries: Array[String] = []
+@export var paths: Array[SkillPathDef] = []
 
 
-## Path [param index] (0 or 1), or an empty list for any other index.
-func path_nodes(index: int) -> Array[StringName]:
-	match index:
-		0:
-			return path_a
-		1:
-			return path_b
-	var none: Array[StringName] = []
-	return none
+## Path [param index] (0 to 2), or null for any other index.
+func path(index: int) -> SkillPathDef:
+	if index < 0 or index >= paths.size():
+		return null
+	return paths[index]
 
 
-## Which path [param ability_id] is on: 0 or 1, or -1 if it is in neither.
+## Which path [param ability_id] is on: 0 to 2, or -1 if it is on none.
 func path_of(ability_id: StringName) -> int:
-	if path_a.has(ability_id):
-		return 0
-	if path_b.has(ability_id):
-		return 1
+	for index: int in paths.size():
+		if paths[index] != null and paths[index].nodes.has(ability_id):
+			return index
 	return -1
+
+
+## The tier of [param ability_id] in its path, 1 to 4, or 0 if it is not in this tree.
+func tier_of(ability_id: StringName) -> int:
+	var place: int = _place_of(ability_id)
+	return TIERS[place] if place >= 0 and place < TIERS.size() else 0
 
 
 ## True if [param ability_id] is a node anywhere in this tree.
 func has_node(ability_id: StringName) -> bool:
-	return trunk.has(ability_id) or path_of(ability_id) >= 0
+	return path_of(ability_id) >= 0
 
 
-## The nodes that may be taken after [param taken] (a legal order of nodes): the next trunk node,
-## then the first node of either path, then the next node of the path begun; empty when full.
-func next_nodes(taken: Array[StringName]) -> Array[StringName]:
-	var count: int = taken.size()
-	var next: Array[StringName] = []
-	if count < trunk.size():
-		next.append(trunk[count])
-	elif count == trunk.size():
-		for index: int in 2:
-			if not path_nodes(index).is_empty():
-				next.append(path_nodes(index)[0])
-	else:
-		var walked: Array[StringName] = path_nodes(path_of(taken[trunk.size()]))
-		var step: int = count - trunk.size()
-		if step < walked.size():
-			next.append(walked[step])
-	return next
+## The nodes any one of which must be taken before [param ability_id]; empty for tier 1, and
+## for a node not in this tree.
+func needs(ability_id: StringName) -> Array[StringName]:
+	var before: Array[StringName] = []
+	var on: int = path_of(ability_id)
+	if on < 0:
+		return before
+	var nodes: Array[StringName] = paths[on].nodes
+	var place: int = nodes.find(ability_id)
+	var tier: int = TIERS[place] if place < TIERS.size() else 0
+	for other: int in mini(nodes.size(), TIERS.size()):
+		if TIERS[other] == tier - 1:
+			before.append(nodes[other])
+	return before
 
 
-## Why [param taken] is not a legal order of this tree's nodes, naming the first node that breaks
-## it by its place ("[2] 'meteor' ..."), or "" when it is legal.
+## The nodes not in [param taken] whose needs [param taken] meets, by path, then tier, then left
+## to right.
+func open_nodes(taken: Array[StringName]) -> Array[StringName]:
+	var open: Array[StringName] = []
+	for each: SkillPathDef in paths:
+		if each == null:
+			continue
+		for node: StringName in each.nodes:
+			if not taken.has(node) and _needs_met(node, taken):
+				open.append(node)
+	return open
+
+
+## "" if [param taken] is a legal order of this tree's nodes, else why not, naming the first node
+## that breaks it by its place ("[2]: 'meteor' ...").
 func order_problem(taken: Array[StringName]) -> String:
 	var so_far: Array[StringName] = []
 	for i: int in taken.size():
 		var node: StringName = taken[i]
 		if not has_node(node):
 			return "[%d]: '%s' is not in the %s tree" % [i, node, class_id]
-		if not next_nodes(so_far).has(node):
-			return "[%d]: '%s' cannot be taken there (trunk in order, then one path)" % [i, node]
+		if so_far.has(node):
+			return "[%d]: '%s' is taken twice" % [i, node]
+		if not _needs_met(node, so_far):
+			return "[%d]: '%s' is taken before %s" % [i, node, " or ".join(needs(node))]
 		so_far.append(node)
 	return ""
+
+
+## [param taken] in the order a fighter tries them: the highest tier first; within a tier, the
+## first path first; within a path's tier, left before right.
+func fight_order(taken: Array[StringName]) -> Array[StringName]:
+	var ordered: Array[StringName] = []
+	for tier: int in range(TIERS[TIERS.size() - 1], 0, -1):
+		for each: SkillPathDef in paths:
+			if each == null:
+				continue
+			for place: int in mini(each.nodes.size(), TIERS.size()):
+				if TIERS[place] == tier and taken.has(each.nodes[place]):
+					ordered.append(each.nodes[place])
+	return ordered
+
+
+## The path holding the most of [param taken] (a tie goes to the earlier path), or -1 for none.
+func main_path(taken: Array[StringName]) -> int:
+	var best: int = -1
+	var most: int = 0
+	for index: int in paths.size():
+		var held: int = 0
+		if paths[index] != null:
+			for node: StringName in paths[index].nodes:
+				if taken.has(node):
+					held += 1
+		if held > most:
+			most = held
+			best = index
+	return best
 
 
 ## What Content finds this definition by: its class.
@@ -97,35 +134,51 @@ func validate() -> PackedStringArray:
 			problems.append(
 				"the %s already has a tree, %s: one tree a class" % [class_id, known.resource_path]
 			)
-	if trunk.size() != _TRUNK_LENGTH:
-		problems.append("trunk has %d nodes, not %d" % [trunk.size(), _TRUNK_LENGTH])
-	if path_names.size() != 2:
-		problems.append("path_names has %d names, not 2" % path_names.size())
-	for name_text: String in path_names:
-		if name_text.is_empty():
-			problems.append("a path name is empty")
-	if path_summaries.size() != 2:
-		problems.append("path_summaries has %d lines, not 2" % path_summaries.size())
-	for summary: String in path_summaries:
-		if summary.strip_edges().is_empty():
-			problems.append("a path summary is empty")
-		elif summary.length() > _SUMMARY_LENGTH:
-			problems.append(
-				"the path summary '%s' is over %d characters" % [summary, _SUMMARY_LENGTH]
-			)
-	for label: String in ["path_a", "path_b"]:
-		var nodes: Array[StringName] = path_a if label == "path_a" else path_b
-		if nodes.size() != PATH_LENGTH:
-			problems.append("%s has %d nodes, not %d" % [label, nodes.size(), PATH_LENGTH])
+	if paths.size() != PATH_COUNT:
+		problems.append("it has %d paths, not %d" % [paths.size(), PATH_COUNT])
 	var seen: Dictionary[StringName, bool] = {}
-	for node: StringName in trunk + path_a + path_b:
-		if seen.has(node):
-			problems.append("'%s' is in the tree twice" % node)
-		seen[node] = true
-		var ability: AbilityDef = Content.ability(node)
-		if ability == null:
-			problems.append("'%s' is not an ability under %s" % [node, Content.ABILITIES_DIR])
-		elif ability.is_action() and not ability.ready_at_start:
-			# Fights last seconds, so an action waits only for its condition.
-			problems.append("'%s' is an action not ready as a fight starts" % node)
+	for index: int in paths.size():
+		var each: SkillPathDef = paths[index]
+		var where: String = "paths[%d]" % index
+		if each == null:
+			problems.append("%s is empty" % where)
+			continue
+		if each.display_name.strip_edges().is_empty():
+			problems.append("%s: the path name is empty" % where)
+		if each.summary.strip_edges().is_empty():
+			problems.append("%s: the path summary is empty" % where)
+		elif each.summary.length() > _SUMMARY_LENGTH:
+			problems.append(
+				(
+					"%s: the path summary '%s' is over %d characters"
+					% [where, each.summary, _SUMMARY_LENGTH]
+				)
+			)
+		if each.nodes.size() != PATH_LENGTH:
+			problems.append("%s has %d nodes, not %d" % [where, each.nodes.size(), PATH_LENGTH])
+		for node: StringName in each.nodes:
+			if seen.has(node):
+				problems.append("'%s' is in the tree twice" % node)
+			seen[node] = true
+			var ability: AbilityDef = Content.ability(node)
+			if ability == null:
+				problems.append("'%s' is not an ability under %s" % [node, Content.ABILITIES_DIR])
+			elif ability.is_action() and not ability.ready_at_start:
+				# Fights last seconds, so an action waits only for its condition.
+				problems.append("'%s' is an action not ready as a fight starts" % node)
 	return problems
+
+
+func _place_of(ability_id: StringName) -> int:
+	var on: int = path_of(ability_id)
+	return paths[on].nodes.find(ability_id) if on >= 0 else -1
+
+
+func _needs_met(node: StringName, taken: Array[StringName]) -> bool:
+	var before: Array[StringName] = needs(node)
+	if before.is_empty():
+		return true
+	for other: StringName in before:
+		if taken.has(other):
+			return true
+	return false

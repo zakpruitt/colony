@@ -132,9 +132,7 @@ func _full_trees_of(simulation: Simulation) -> void:
 	for hero: Hero in simulation.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
 		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-		var nodes: Array[StringName] = tree.trunk.duplicate()
-		nodes.append_array(tree.path_nodes(PATHS[hero.class_id]))
-		hero.set_talents(nodes)
+		hero.set_talents(tree.path(PATHS[hero.class_id]).nodes)
 		hero.health = hero.max_health()
 
 

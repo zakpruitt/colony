@@ -239,8 +239,7 @@ func open_ids() -> Array[int]:
 
 
 ## Marks a gain the world just reported, through the layer's [UiMoment]: a node taken bursts on
-## its open tree, the line into it lights and a banner names it (a path's first node names the
-## path, and the other path closes before the player's eyes); a paragon point spent bursts
+## its open tree, the line into it lights and a banner names it; a paragon point spent bursts
 ## its medallion, with a banner every tenth rank; a microskill learned gets a banner, and a burst on
 ## its card while the hero's window is open on Skills. Nothing starts for an event that may not
 ## animate: the windows show the end state all the same.
@@ -266,11 +265,12 @@ func flash_paragon(hero_id: int, index: int) -> void:
 
 
 ## The tooltip of hero [param hero_id]'s frame, the one place it is
-## built: [code]Click for details[/code], with the class and its path before it once a path is
-## chosen ([code]Knight, Berserker: click for details[/code]), and between them the hero's
-## statuses with their seconds left, [param statuses].
+## built: [code]Click for details[/code], with the class and the path that names it before it once
+## it holds a node ([code]Knight, Berserker: click for details[/code]), and between them the
+## hero's statuses with their seconds left, [param statuses].
 static func frame_tip(hero: Hero, statuses: String = "") -> String:
-	var titled: String = HeroTalentsTab.title(hero) if hero != null and hero.path() >= 0 else ""
+	var named: bool = hero != null and HeroTalentsTab.path_index(hero) >= 0
+	var titled: String = HeroTalentsTab.title(hero) if named else ""
 	if statuses.is_empty():
 		if titled.is_empty():
 			return HeroFrameView.CLICK_TIP
@@ -285,8 +285,6 @@ func _on_taken(event: SimEvent, moment: UiMoment) -> void:
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
 	if ability == null or tree == null:
 		return
-	var on: int = tree.path_of(event.ability_id)
-	var chose: bool = on >= 0 and tree.path_nodes(on)[0] == event.ability_id
 	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
 	if shown != null and moment.may_start(event):
 		var view: TalentTreeView = shown.talents.tree_view()
@@ -295,24 +293,12 @@ func _on_taken(event: SimEvent, moment: UiMoment) -> void:
 		if node != null:
 			moment.burst(node.slot, event)
 		view.light(event.ability_id)
-		if chose:
-			view.close_path(1 - on)
-	var who: String = hero.def().display_name
-	if chose:
-		var summary: String = tree.path_summaries[on] if on < tree.path_summaries.size() else ""
-		moment.announce(
-			event.ability_id,
-			"%s is now a %s" % [who, tree.path_names[on]],
-			_sentence(summary),
-			event
-		)
-	else:
-		moment.announce(
-			event.ability_id,
-			"%s learned %s" % [who, ability.display_name],
-			first_sentence(ability.description),
-			event
-		)
+	moment.announce(
+		event.ability_id,
+		"%s learned %s" % [hero.def().display_name, ability.display_name],
+		first_sentence(ability.description),
+		event
+	)
 
 
 func _on_paragon(event: SimEvent, moment: UiMoment) -> void:

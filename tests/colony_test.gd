@@ -145,12 +145,94 @@ static func before_guardian(
 	return shaft
 
 
-## Spends [param hero]'s talent points down its tree's trunk and then its first path.
+## Spends [param hero]'s talent points on its tree's first path, then its second, in order.
 static func _spend_talents(hero: Hero) -> void:
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
+	var order: Array[StringName] = tree.path(0).nodes.duplicate()
+	order.append_array(tree.path(1).nodes)
 	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))
+
+
+# --- Talents worth having (specs 051 and 109) ---------------------------------
+
+## How long a headless run may take to beat the Slime King.
+const KING_LIMIT_MINUTES: float = 60.0
+## The fight each path must win and the bare party loses: the Old Crypt's guardian at its own
+## level, against a party of [constant PATH_PARTY_LEVEL], on [constant PATH_SEEDS] battle seeds.
+const PATH_FIGHT: StringName = &"bone_lord"
+const PATH_FIGHT_LEVEL: int = 15
+const PATH_PARTY_LEVEL: int = 14
+const PATH_SEEDS: int = 5
+
+
+## The game time of the first win over the Slime King from seed [param seed_value], or -1, and
+## the wipes before it; spending as `dev.py sim --spend-talents` does if [param spending].
+func _until_king(seed_value: int, spending: bool) -> Array[float]:
+	var sim := Simulation.new(seed_value)
+	var wipes: int = 0
+	for i: int in roundi(KING_LIMIT_MINUTES * 60.0 * Simulation.TICKS_PER_SECOND):
+		if spending:
+			TalentSpender.spend(sim)
+		var fight: Battle = sim.expedition.battle
+		sim.step()
+		for e: SimEvent in sim.drain_events():
+			if e.kind == SimEvent.Kind.PARTY_WIPED:
+				wipes += 1
+			elif e.kind == SimEvent.Kind.GUARDIAN_SLAIN and fight != null:
+				if fight.combatant(e.source_id).def_id == &"slime_king":
+					return [sim.seconds(), float(wipes)] as Array[float]
+	return [-1.0, float(wipes)] as Array[float]
+
+
+## Checks that spending reaches the first Slime King win sooner, with fewer wipes, on seeds 1 to 5.
+func _check_king_sooner() -> void:
+	var report: PackedStringArray = []
+	for seed_value: int in range(1, 6):
+		var plain: Array[float] = _until_king(seed_value, false)
+		var spent: Array[float] = _until_king(seed_value, true)
+		var line: String = (
+			"seed %d: without %.0f s, %d wipes; with %.0f s, %d wipes"
+			% [seed_value, plain[0], plain[1], spent[0], spent[1]]
+		)
+		report.append(line)
+		assert_gt(spent[0], 0.0, "with talents the King falls, " + line)
+		assert_true(plain[0] < 0.0 or spent[0] < plain[0], "sooner, " + line)
+		assert_lt(spent[1], plain[1], "with fewer wipes, " + line)
+	gut.p("\n".join(report))
+
+
+## Wins out of [constant PATH_SEEDS] against [constant PATH_FIGHT], with [param class_id]'s hero
+## holding the five nodes of path [param path] and nothing else (no one, if [param class_id] is
+## empty).
+func _path_wins(class_id: StringName, path: int) -> int:
+	var wins: int = 0
+	for seed_value: int in PATH_SEEDS:
+		var party := Party.new()
+		var heroes: Array[Combatant] = []
+		for hero: Hero in party.heroes:
+			raise(hero, PATH_PARTY_LEVEL)
+			if hero.class_id == class_id:
+				hero.set_talents(Content.talent_tree(class_id).path(path).nodes)
+			heroes.append(hero.combatant())
+		var def: MonsterDef = Content.monster(PATH_FIGHT)
+		var monsters: Array[Combatant] = [Combatant.from_monster(def, PATH_FIGHT_LEVEL, 100)]
+		var battle := Battle.new(heroes, monsters, 0.0, 14.0, true, SimRng.new(seed_value * 7 + 1))
+		while battle.result() == Battle.Result.ONGOING and battle.tick < LIMIT_TICKS_90_S:
+			battle.step()
+		if battle.result() == Battle.Result.HEROES_WON:
+			wins += 1
+	return wins
+
+
+## Checks that each path of [param class_id] wins most of a fight its bare party never wins.
+func _check_paths_win(class_id: StringName) -> void:
+	assert_eq(_path_wins(&"", -1), 0, "the bare party never beats the %s in 90 s" % PATH_FIGHT)
+	var tree: TalentTreeDef = Content.talent_tree(class_id)
+	for path: int in tree.paths.size():
+		var name_text: String = tree.path(path).display_name
+		var wins: int = _path_wins(class_id, path)
+		gut.p("%s %s: %d of %d" % [class_id, name_text, wins, PATH_SEEDS])
+		assert_gte(wins, 3, "%s wins it %d times of %d" % [name_text, wins, PATH_SEEDS])
 
 
 # --- The simulation ------------------------------------------------------------

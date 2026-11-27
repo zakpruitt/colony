@@ -1,12 +1,27 @@
 [gd_resource type="Resource" script_class="TalentTreeDef" format=3]
 
 [ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/skill_path_def.gd" id="2"]
+
+[sub_resource type="Resource" id="path_1"]
+script = ExtResource("2")
+display_name = "Lifebinder"
+summary = "mends and shields the party through every hurt"
+nodes = Array[StringName]([&"prayer", &"renewal", &"blessing", &"sanctuary", &"miracle"])
+
+[sub_resource type="Resource" id="path_2"]
+script = ExtResource("2")
+display_name = "Sunpriest"
+summary = "burns and judges foes with holy light"
+nodes = Array[StringName]([&"smite", &"holy_fire", &"judgement", &"radiance", &"wrath"])
+
+[sub_resource type="Resource" id="path_3"]
+script = ExtResource("2")
+display_name = "Warden"
+summary = "hastens, shields and stands the fallen back up"
+nodes = Array[StringName]([&"battle_hymn", &"guardian_angel", &"aegis", &"hallowed_ground", &"resurrection"])
 
 [resource]
 script = ExtResource("1")
 class_id = &"cleric"
-trunk = Array[StringName]([&"prayer", &"blessing", &"smite"])
-path_names = Array[String](["Lifebinder", "Sunpriest"])
-path_summaries = Array[String](["mends, shields and stands the fallen back up", "burns foes with holy fire and hastens allies"])
-path_a = Array[StringName]([&"renewal", &"sanctuary", &"guardian_angel", &"miracle"])
-path_b = Array[StringName]([&"holy_fire", &"battle_hymn", &"judgement", &"wrath"])
+paths = Array[ExtResource("2")]([SubResource("path_1"), SubResource("path_2"), SubResource("path_3")])
