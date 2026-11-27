@@ -168,3 +168,14 @@ new shape and content first, then the ranks, then the window.
 | 109 | [Skill paths: three paths of five](109-skill-paths-three-paths-of-five/spec.md) (the shape, 16 new abilities with pictures, points to 30, highest tier fights first, save 10 with talents refunded, the tab in three plain columns): in progress | 050, 051, 055, 057, 060, 063, 064 |
 | 110 | [Skill paths: ranks earned by use](110-skill-paths-ranks-by-use/spec.md) (path XP from won fights, rank gates on tiers, save 11, a capstone in 25 to 50 minutes of play): approved | 109 |
 | 111 | [Skill paths: the window](111-skill-paths-the-window/spec.md) (three panels with rank bars, tier rows, rank-held nodes, the rank-up and capstone moments, help, wiki, showcase): approved | 109, 110 |
+| 112 | [The roster](112-the-roster/spec.md) (new classes are lucky finds: a cache may hold a class's artifact, its hero then waits at camp until its request is paid; one a class; choose the four who go down; the bench earns nothing; save 12): approved | 109, 110, 111 |
+| 113 | [The party changes on screen](113-the-party-changes-on-screen/spec.md) (the world, frames, hero windows, tally and journal follow a swap; a benched hero's window; a class drawn as the one it looks like): approved | 112 |
+| 114 | [The Heroes tab at camp](114-the-heroes-tab-at-camp/spec.md) (a second tab in the Camp window: the four, the bench, a swap in two clicks, the heroes waiting with their requests; help, wiki, showcase): approved | 112, 113 |
+| 115 | [Summoned allies in the simulation](115-summoned-allies-in-the-simulation/spec.md) (an ability effect that brings a short-lived fighter onto the heroes' side, as data, with a lifetime and a cap; for the Ranger, Tinker and Witch Doctor): approved | 110 |
+| 116 | [Summoned allies on screen](116-summoned-allies-on-screen/spec.md) (a placeholder creature with its puffs and moves; its numbers and tally lines credited to its summoner): approved | 113, 115 |
+
+Zak then chose (2026-11-27) more classes over splitting a class, heroes got by recruiting at camp
+(every new class a lucky find: an artifact in a cache, then a request to pay),
+and four classes to come, each with three paths of five: the Ranger, the Bard, the Tinker and the
+Witch Doctor. 112 to 116 are the engine they need; each class is its own later spec. 112 to 114 and
+116 touch files 109 to 111 hold, so they start after 111 lands; 115 needs only 110.
