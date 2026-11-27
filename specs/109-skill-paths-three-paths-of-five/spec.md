@@ -337,6 +337,7 @@ closing or the question before a path go. Asserts that hold for any shape stay.
   per class, nothing locks, a point every two levels to 30, paragon after, ranks by use (spec 110)),
   `docs/architecture.md` (the talent and save lines), `docs/wiki/index.html` (the lines this makes
   false)
+- `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (the save version it asserts as a literal, 9, becomes the new version; nothing else)
 
 ## Open questions
 

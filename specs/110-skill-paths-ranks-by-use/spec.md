@@ -209,6 +209,7 @@ slowest and why.
   `tools/tests/godot/test_110_capstone_in_fair_time.py`, and the files in "Tests that change"
 - `docs/architecture.md` (the save version and the path ranks), `docs/wiki/index.html` (lines this
   makes false)
+- `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (the save version it asserts as a literal, 9, becomes the new version; nothing else)
 
 ## Open questions
 
