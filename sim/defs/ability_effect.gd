@@ -77,7 +77,8 @@ const IN_POINTS: Array[Status] = [
 @export var multiplier: float = 1.0
 ## DAMAGE: armor does not reduce it.
 @export var ignores_armor: bool = false
-@export var damage_from_healing: bool = false  # DAMAGE: multiplier times the fighter's healing power
+## DAMAGE: the multiplier times the fighter's healing power, not its damage.
+@export var damage_from_healing: bool = false
 ## DAMAGE: below this share of health (0 for never) the target takes [member low_multiplier] more.
 @export var low_health_below: float = 0.0
 @export var low_multiplier: float = 1.0

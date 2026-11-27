@@ -14,7 +14,13 @@ const SEEDS: Array[int] = [1, 2, 3]
 ## Abilities that answer a rescue, excused from the counts in play (with every action that waits
 ## for a hurt ally: [method _rescues]), and the fight built to need them.
 const NAMED_RESCUES: Array[StringName] = [
-	&"last_stand", &"vanish", &"guardian_angel", &"miracle", &"sanctuary", &"rampage", &"resurrection"
+	&"last_stand",
+	&"vanish",
+	&"guardian_angel",
+	&"miracle",
+	&"sanctuary",
+	&"rampage",
+	&"resurrection"
 ]
 const HURT_ALLY: Array[AbilityDef.Condition] = [
 	AbilityDef.Condition.ALLY_BELOW, AbilityDef.Condition.OTHER_ALLY_BELOW
@@ -63,7 +69,7 @@ func _every_node(class_id: StringName) -> Array[StringName]:
 ## Counts what heroes did over [param ticks] of [param sim]'s play: the tick each node was taken
 ## (from [param taken], which holds the nodes held from the start at tick 0) and each ability's
 ## uses, keyed "<hero id> <ability id>". With [param path] >= 0 the heroes spend on that path.
-func _watch(
+func _play_and_count(
 	sim: Simulation,
 	ticks: int,
 	path: int,
@@ -101,7 +107,9 @@ func _unseen_of(
 		var wanted: int = ACTION_USES if ability.is_action() else 1
 		if count < wanted:
 			var minutes: float = float(ticks - taken[key]) / (60 * Simulation.TICKS_PER_SECOND)
-			unseen.append("%s: %s used %d times in %.1f minutes" % [what, ability.id, count, minutes])
+			unseen.append(
+				"%s: %s used %d times in %.1f minutes" % [what, ability.id, count, minutes]
+			)
 	return unseen
 
 
@@ -112,7 +120,7 @@ func _unseen(seed_value: int, path: int) -> PackedStringArray:
 	var taken: Dictionary[String, int] = {}
 	var uses: Dictionary[String, int] = {}
 	var ticks: int = SEEN_MINUTES * 60 * Simulation.TICKS_PER_SECOND
-	_watch(sim, ticks, path, taken, uses)
+	_play_and_count(sim, ticks, path, taken, uses)
 	return _unseen_of("seed %d, path %d" % [seed_value, path], ticks, taken, uses)
 
 
@@ -187,7 +195,11 @@ func test_r8_every_ability_is_seen() -> void:
 	for paths: Dictionary in RESCUE_PATHS:
 		for seed_value: int in RESCUE_SEEDS * RESCUE_LEVELS.size():
 			var used: Dictionary[StringName, int] = _used_in(
-				paths, RESCUE_PARTY_LEVEL, RESCUE_FIGHT, RESCUE_LEVELS[seed_value % 2], floori(seed_value / 2.0)
+				paths,
+				RESCUE_PARTY_LEVEL,
+				RESCUE_FIGHT,
+				RESCUE_LEVELS[seed_value % 2],
+				floori(seed_value / 2.0)
 			)
 			for id: StringName in used:
 				fired[id] = fired.get(id, 0) + used[id]
@@ -220,6 +232,6 @@ func test_r8_every_ability_is_seen() -> void:
 			taken["%d %s" % [hero.id, node]] = 0
 	var uses: Dictionary[String, int] = {}
 	var ticks: int = FULL_MINUTES * 60 * Simulation.TICKS_PER_SECOND
-	_watch(sim, ticks, -1, taken, uses)
+	_play_and_count(sim, ticks, -1, taken, uses)
 	var unseen: PackedStringArray = _unseen_of("the full party", ticks, taken, uses)
 	assert_eq(unseen, PackedStringArray(), "seen with every node:\n" + "\n".join(unseen))

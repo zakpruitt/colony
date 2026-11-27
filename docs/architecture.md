@@ -172,8 +172,9 @@ The picture is drawn in two layers, each in its own pixels.
   its bars as it opens. The tabs are `HeroStatsTab`, `HeroTalentsTab` (with `TalentTreeView`,
   `TalentNode`, `ParagonCell`) and `HeroSkillsTab`; they send the same commands the old sheet did. A
   node's picture is its ability's own (spec 063, below). Spec 064 draws the tree as a tree: each
-  `TalentNode` is a large `UiIcon` with its name under it; `TalentTreeView` lays the trunk down the middle
-  and the paths in two far columns under a `PathBanner` each, and draws the lines and arrowheads itself
+  `TalentNode` is a large `UiIcon` with its name under it; `TalentTreeView` lays the three paths (spec
+  109) side by side, each a column of four tier rows under a `PathBanner`, and draws the lines and
+  arrowheads itself
   (`joins()`, `arrows()`), lit in the path's colour (`PathColours`, a view table by class and path; a
   path's name is tinted in it wherever the window says it, by a `WordTint` drawn over the label). A
   node's words are on its card (`UiTip.attach_card`) and in the `NextStrip` at the tree's foot; the
@@ -294,7 +295,7 @@ of any version loads on either with the same progress.
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save. Those whole-number
   checks, and a dictionary of counts by known id, are `SaveChecks` (`sim/save_checks.gd`), which every part
   of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`) shares.
-- **Versions.** `SAVE_VERSION` is 9. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 10. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -329,6 +330,8 @@ of any version loads on either with the same progress.
   part of the state hash are `PendingOrders` (`sim/expedition/pending_orders.gd`). The order has a hash
   part of its own, there only while it is Press on, so a run that never gives it hashes as it did. Save
   version 9 adds `side_paths` (`"explore"` or `"press_on"`); a version 8 save loads at Explore.
+  Version 9 to 10 (spec 109, `TalentSave.upgrade_9_to_10`): the trees became three paths of five, so
+  every hero gets its talents back (`talents` and `used` empty) and keeps its paragon points.
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -584,15 +587,22 @@ the counts and `ResourceEffects` (made by `CombatEffects`) sends a drop's icons 
 
 ## Talent trees and paragon
 
-Spec 051. Each class has a `TalentTreeDef` (`data/talents/`, one per class, `Content.talent_tree`): a trunk of
-three ability ids and two named paths of four, every node an `AbilityDef` under `data/abilities/`.
-`TalentTreeDef.next_nodes(taken)` is the whole rule of order: the next trunk node, then the first node of
-either path, then the next node of the path begun; `order_problem` checks a saved list against it.
+Spec 051, made three paths of five by spec 109. Each class has a `TalentTreeDef` (`data/talents/`, one per
+class, `Content.talent_tree`) holding three `SkillPathDef`s (a name, a summary and five ability ids),
+every node an `AbilityDef` under `data/abilities/`. A path's nodes sit in tiers `TalentTreeDef.TIERS`
+(1, 2, 2, 3, 4): tier 2 needs tier 1, tier 3 either tier-2 node, tier 4 tier 3 (`needs`).
+`open_nodes(taken)` is the whole rule of order and nothing closes a path; `order_problem` checks a saved
+list against it, and `main_path` names the path a hero holds most of (a tie to the earlier).
 
 A `Hero` keeps the nodes it took, in order, and the paragon points it put into each `TrainingDef.Stat`;
 neither unspent count is stored: `TalentRules.talent_points_at(level)` (one at every even level, up to
-`Hero.TALENT_POINTS`, 7) and `paragon_points_at(level)` (one a level after 14) less what was spent.
-`Hero.combatant()` hands the fighter its nodes' abilities, the newest first (a fighter tries its actions in that order), and multiplies its damage and
+`Hero.TALENT_POINTS`, 15) and `paragon_points_at(level)` (one a level after 30) less what was spent.
+`Hero.combatant()` hands the fighter its nodes' abilities in `TalentTreeDef.fight_order` (highest tier
+first, then path order, then left before right). Of its ready actions with a target, a fighter uses the
+one ready the longest; a tie goes to the one it used least recently (`Hero.used`, the hero's order of use,
+which every combatant of the hero shares and the battle moves an action to the end of; saved as `used`),
+then to that order (`BattleAbilities.choose`). After an action its next swing is a plain strike
+(`Combatant.swung_since_action`). `Hero.combatant()` also multiplies its damage and
 healing, maximum health and attack speed by `1 + points * TrainingDef.per_rank` (3%) of Power, Toughness and
 Quickness, after the camp upgrades. A node taken mid-fight waits for the next fight; a paragon point spent
 mid-fight changes the fighter at once, as spec 029's training did. A fresh start (`reset_talents`) costs
@@ -605,8 +615,10 @@ R14: fights last seconds, so every talent action has `ready_at_start` (`TalentTr
 that has not) and waits only for its condition; `AbilityDef.Condition.OTHER_ALLY_BELOW` is `ALLY_BELOW`
 without the fighter itself (Bulwark). A second tree for a class is refused by its `validate()`, and
 `Content` keeps the first.
-`TalentSpender` (`tools/godot/`) is the headless run's way of spending (`dev.py sim --spend-talents`): the
-trunk, then the first path, and every paragon point into Power.
+`TalentSpender` (`tools/godot/`) is the headless run's way of spending (`dev.py sim --spend-talents`): for
+each point, the first node it can take on the path asked for (0 by default), tier by tier, then the first
+it can take on any path, and every paragon point into Power. An `AbilityEffect` with
+`damage_from_healing` deals its multiplier times the fighter's healing power (the Sunpriest's holy damage).
 
 ## Zones on screen
 

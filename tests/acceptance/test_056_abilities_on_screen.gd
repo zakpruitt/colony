@@ -903,9 +903,7 @@ func test_r9_in_the_showcase() -> void:
 			var class_id: StringName = Showcase.CLASS_MOMENTS[moment]
 			var tree: TalentTreeDef = Content.talent_tree(class_id)
 			var actions: int = 0
-			for ability_id: StringName in (
-				tree.path(Showcase.CLASS_PATHS[class_id]).nodes
-			):
+			for ability_id: StringName in tree.path(Showcase.CLASS_PATHS[class_id]).nodes:
 				var ability: AbilityDef = Content.ability(ability_id)
 				if ability.is_action() and names.has(ability.display_name):
 					actions += 1

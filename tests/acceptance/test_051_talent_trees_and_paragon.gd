@@ -91,7 +91,9 @@ func test_r5_abilities_take_effect() -> void:
 			var nodes: Array[StringName] = _full(class_id, path)
 			hero.set_talents(nodes)
 			# The deepest first, tier 2's left before its right (spec 109's fight order).
-			var deepest_first: Array[StringName] = [nodes[4], nodes[3], nodes[1], nodes[2], nodes[0]]
+			var deepest_first: Array[StringName] = [
+				nodes[4], nodes[3], nodes[1], nodes[2], nodes[0]
+			]
 			assert_eq(
 				_ids(hero.combatant().abilities),
 				deepest_first,

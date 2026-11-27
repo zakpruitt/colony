@@ -69,11 +69,15 @@ simple" skill tree.
 
 - **Every node is something the hero does.** A new action, or a passive with a visible effect. Never a
   plain damage or health increase.
-- **A trunk, then a fork.** Each class has a short shared trunk and then two specialisations (a knight
-  becomes a Guardian or a Berserker). Choosing one path locks the other. About 8 to 10 nodes a hero.
-- **Points come from levels.** One talent point a level until the tree is full.
-- **Paragon after that.** Once the tree is full, each level gives a paragon point to put in Power,
-  Quickness or Toughness. Plain stat gains live only there. Gold training (spec 029) is removed.
+- **Three skill paths of five (spec 109).** Each class has three named paths (a knight's are Guardian,
+  Berserker and Warlord), each a small tree of five nodes in four tiers: one node, two side by side, one,
+  then a capstone. A node opens once a node above it in its path is taken. Nothing locks: a hero may
+  learn from every path and, in time, holds all fifteen nodes. Its title names the path it holds most of.
+- **Points come from levels.** One talent point at every even level up to 30: fifteen, the whole tree.
+- **Paragon after that.** From level 31 each level gives a paragon point to put in Power, Quickness or
+  Toughness. Plain stat gains live only there. Gold training (spec 029) is removed.
+- **Ranks by use (spec 110).** A path will grow stronger the more its abilities are used, through path
+  ranks that gate its deeper tiers.
 
 ## The UI and how fights move (decided with Zak on 2026-11-18)
 

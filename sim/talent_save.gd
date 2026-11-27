@@ -203,5 +203,8 @@ static func _check_paragon(
 	var most: int = maxi(level - _PARAGON_SAVED_AFTER, 0)
 	if level > 0 and spent > most:
 		problems.append(
-			"%s: %d points spent, but level %d allows %d paragon points" % [where, spent, level, most]
+			(
+				"%s: %d points spent, but level %d allows %d paragon points"
+				% [where, spent, level, most]
+			)
 		)

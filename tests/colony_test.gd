@@ -24,6 +24,14 @@ const LIMIT_TICKS_10_MIN: int = 6000
 const LIMIT_TICKS_5_MIN: int = 3000
 const LIMIT_TICKS_3_MIN: int = 1800
 const LIMIT_TICKS_90_S: int = 900
+## How long a headless run may take to beat the Slime King.
+const KING_LIMIT_MINUTES: float = 60.0
+## The fight each path must win and the bare party loses: Old Crypt's guardian at its own
+## level, against a party of [constant PATH_PARTY_LEVEL], on [constant PATH_SEEDS] battle seeds.
+const PATH_FIGHT: StringName = &"bone_lord"
+const PATH_FIGHT_LEVEL: int = 15
+const PATH_PARTY_LEVEL: int = 14
+const PATH_SEEDS: int = 5
 
 ## The paths [method save_path] has handed out; each is deleted with its backup and temporary file.
 var _saved_paths: Array[String] = []
@@ -154,15 +162,6 @@ static func _spend_talents(hero: Hero) -> void:
 
 
 # --- Talents worth having (specs 051 and 109) ---------------------------------
-
-## How long a headless run may take to beat the Slime King.
-const KING_LIMIT_MINUTES: float = 60.0
-## The fight each path must win and the bare party loses: the Old Crypt's guardian at its own
-## level, against a party of [constant PATH_PARTY_LEVEL], on [constant PATH_SEEDS] battle seeds.
-const PATH_FIGHT: StringName = &"bone_lord"
-const PATH_FIGHT_LEVEL: int = 15
-const PATH_PARTY_LEVEL: int = 14
-const PATH_SEEDS: int = 5
 
 
 ## The game time of the first win over the Slime King from seed [param seed_value], or -1, and

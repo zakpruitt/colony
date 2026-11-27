@@ -4,9 +4,6 @@ extends "res://tests/acceptance/talent_tree_test_base.gd"
 ## test_109_every_ability_is_seen.gd; R11 is the amended suite; R12 is
 ## tools/tests/godot/test_051_sim_talents.py.
 
-## The fighters and battles of spec 050's tests, built by its kit.
-const Kit = preload("res://tests/unit/ability_kit_test_base.gd")
-
 const SEED: int = 109
 ## "The paths" of the spec, by class: each path's name, its summary and its five nodes' names
 ## (tier 1; tier 2 left, right; tier 3; tier 4).
@@ -84,25 +81,6 @@ const PATHS: Dictionary = {
 		],
 	],
 }
-## "The new abilities" of the spec.
-const NEW_ABILITIES: Array[StringName] = [
-	&"earthshaker",
-	&"war_banner",
-	&"challenge",
-	&"charge",
-	&"toxic_cloud",
-	&"envenom",
-	&"plague",
-	&"shadowstep",
-	&"lightning_bolt",
-	&"static_field",
-	&"overload",
-	&"thunderstorm",
-	&"radiance",
-	&"aegis",
-	&"hallowed_ground",
-	&"resurrection",
-]
 ## R10: each class's three path colours.
 const COLOURS: Dictionary = {
 	&"knight": [&"blue", &"red", &"copper"],
@@ -111,26 +89,13 @@ const COLOURS: Dictionary = {
 	&"cleric": [&"pink", &"tan", &"cyan"],
 }
 
-var _kit: Kit
-
-
-func before_each() -> void:
-	_kit = Kit.new()
-
-
-func after_each() -> void:
-	if _kit != null:
-		_kit.free()
-		_kit = null
-	super()
-
-
 # --- Helpers -------------------------------------------------------------------
 
 
-func _ids(abilities: Array[AbilityDef]) -> Array[StringName]:
+## The ids of the abilities [param hero]'s fighter is handed, in its order.
+func _handed(hero: Hero) -> Array[StringName]:
 	var ids: Array[StringName] = []
-	for ability: AbilityDef in abilities:
+	for ability: AbilityDef in hero.combatant().abilities:
 		ids.append(ability.id)
 	return ids
 
@@ -146,8 +111,9 @@ func _refused(tree: TalentTreeDef, words: String) -> bool:
 	return "\n".join(tree.validate()).contains(words)
 
 
-func _any_names(problems: PackedStringArray, field: String) -> bool:
-	for problem: String in problems:
+## Whether the save [param data] is refused with a problem naming [param field] first.
+func _refused_at(data: Dictionary, field: String) -> bool:
+	for problem: String in Simulation.save_problems(data):
 		if problem.begins_with(field + ":"):
 			return true
 	return false
@@ -268,7 +234,9 @@ func test_r2_points_from_levels() -> void:
 	var hero := Hero.new(1, Content.hero_class(&"knight"))
 	for level: int in range(1, 41):
 		raise(hero, level)
-		assert_eq(hero.talent_points(), mini(floori(level / 2.0), 15), "talent points at %d" % level)
+		assert_eq(
+			hero.talent_points(), mini(floori(level / 2.0), 15), "talent points at %d" % level
+		)
 		assert_eq(hero.paragon_points(), maxi(level - 30, 0), "paragon points at level %d" % level)
 	assert_eq(TalentRules.paragon_points_at(30), 0, "none at 30")
 	assert_eq(TalentRules.paragon_points_at(31), 1, "paragon starts at 31")
@@ -411,7 +379,7 @@ func test_r4_fight_order() -> void:
 	var w: Array[StringName] = tree.path(2).nodes
 	knight.set_talents([w[0], g[0], g[2], g[1], b[0], g[3], g[4]] as Array[StringName])
 	var some: Array[StringName] = [g[4], g[3], g[1], g[2], g[0], b[0], w[0]]
-	assert_eq(_ids(knight.combatant().abilities), some, "by tier, path and side")
+	assert_eq(_handed(knight), some, "by tier, path and side")
 	assert_eq(tree.fight_order(knight.talents()), some)
 	var all: Array[StringName] = []
 	for index: int in [2, 1, 0]:
@@ -420,7 +388,7 @@ func test_r4_fight_order() -> void:
 	var full: Array[StringName] = [
 		g[4], b[4], w[4], g[3], b[3], w[3], g[1], g[2], b[1], b[2], w[1], w[2], g[0], b[0], w[0]
 	]
-	assert_eq(_ids(knight.combatant().abilities), full, "all fifteen, the capstones first")
+	assert_eq(_handed(knight), full, "all fifteen, the capstones first")
 
 	# Of the actions ready, the one ready the longest, ties to the order above; after an action,
 	# a plain strike. Three actions always ready again within a second take turns, a swing between.
@@ -545,11 +513,11 @@ func test_r4_the_order_of_use_is_kept() -> void:
 	# Refused by name.
 	var bad: Dictionary = _through_json(plain.to_save())
 	bad["heroes"][0]["used"] = ["fireball"]
-	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used[0]"), "not its node")
+	assert_true(_refused_at(bad, "heroes[0].used[0]"), "not its node")
 	bad["heroes"][0]["used"] = "shield_bash"
-	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used"), "not a list")
+	assert_true(_refused_at(bad, "heroes[0].used"), "not a list")
 	bad["heroes"][0]["used"] = [String(shield), String(shield)]
-	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used[1]"), "twice")
+	assert_true(_refused_at(bad, "heroes[0].used[1]"), "twice")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -692,9 +660,9 @@ func test_r6_saves() -> void:
 		bad["heroes"][case[1]]["level"] = 18
 		bad["heroes"][case[1]]["xp"] = Hero.xp_for_level(18)
 		bad["heroes"][case[1]][case[2]] = case[3]
-		var found: PackedStringArray = Simulation.save_problems(bad)
 		var field: String = case[0]
-		assert_true(_any_names(found, field), "%s refused as %s: %s" % [case[3], field, found])
+		var found: PackedStringArray = Simulation.save_problems(bad)
+		assert_true(_refused_at(bad, field), "%s refused as %s: %s" % [case[3], field, found])
 		assert_null(Simulation.from_save(bad))
 	# Level 18 allows four paragon points, the most any version gave: that loads.
 	var four: Dictionary = data.duplicate(true)
@@ -708,201 +676,14 @@ func test_r6_saves() -> void:
 	greedy["heroes"][0]["xp"] = Hero.xp_for_level(4)
 	greedy["heroes"][0]["talents"] = ["taunt", "whirlwind", "shield_bash"]
 	var problems: PackedStringArray = Simulation.save_problems(greedy)
-	assert_true(_any_names(problems, "heroes[0].talents"), "more than earned: %s" % problems)
+	assert_true(_refused_at(greedy, "heroes[0].talents"), "more than earned: %s" % problems)
 
 
 # --- R7 ------------------------------------------------------------------------
 
 
-## The events of the tick [param id] was first used, from its ABILITY_USED on.
-func _at_use(events: Array[SimEvent], id: StringName) -> Array[SimEvent]:
-	return _kit._landing(events, id)
-
-
-## Who [param events] put [param status] on.
-func _given(events: Array[SimEvent], status: AbilityEffect.Status) -> Array[int]:
-	var found: Array[int] = []
-	for e: SimEvent in _kit._of(events, SimEvent.Kind.STATUS_BEGAN):
-		if e.status == status:
-			found.append(e.target_id)
-	return found
-
-
-## A hero of [param overrides] holding the real ability [param id].
-func _holding(id: StringName, overrides: Dictionary = {}) -> Combatant:
-	var hero: Combatant = _kit._hero(1, overrides)
-	return _kit._give(hero, [Content.ability(id)])
-
-
-## Dummies of ids 10 on, standing at [param places].
-func _dummies(battle_monsters: Array[Combatant], places: Array) -> void:
-	for i: int in places.size():
-		battle_monsters[i].x = places[i]
-
-
 func test_r7_new_abilities_do_what_they_say() -> void:
-	for id: StringName in NEW_ABILITIES:
-		assert_eq(Content.ability(id).validate(), PackedStringArray(), "%s is valid" % id)
-		assert_true(Content.ability(id).description.ends_with("."), "%s: one plain line" % id)
-	var hit: SimEvent.Kind = SimEvent.Kind.HIT
-	# Damage from healing power is a DAMAGE effect's alone.
-	var mend: AbilityEffect = _kit._fx("HEAL", "SELF", {"damage_from_healing": true})
-	assert_true(" ".join(mend.validate()).contains("damage_from_healing"), "refused on a heal")
-	for id: StringName in [&"smite", &"holy_fire", &"radiance", &"wrath"]:
-		assert_true(Content.ability(id).effects[0].damage_from_healing, "%s: from healing" % id)
-
-	# Earthshaker: every enemy takes 2x damage and is stunned.
-	var monsters: Array[Combatant] = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
-	var battle: Battle = _kit._battle([_holding(&"earthshaker")], monsters, 16.0)
-	_dummies(monsters, [3.0, 7.0, 14.0])
-	var landing: Array[SimEvent] = _at_use(_kit._run(battle, 60), &"earthshaker")
-	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [10, 11, 12], "Earthshaker: every enemy")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20, 20, 20], "for 2x")
-	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [10, 11, 12], "all stunned")
-
-	# War Banner: as the fight starts, every ally is hasted.
-	var ally: Combatant = _kit._hero(2)
-	battle = _kit._battle([_holding(&"war_banner"), ally], [_kit._dummy(10)])
-	var events: Array[SimEvent] = _kit._run(battle, 3)
-	assert_eq(_given(events, AbilityEffect.Status.HASTED), [1, 2], "War Banner: every ally")
-
-	# Challenge: the nearest enemy is marked.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
-	battle = _kit._battle([_holding(&"challenge")], monsters)
-	_dummies(monsters, [3.0, 9.0])
-	landing = _at_use(_kit._run(battle, 20), &"challenge")
-	assert_eq(_given(landing, AbilityEffect.Status.MARKED), [10], "Challenge: the nearest")
-
-	# Charge: 2.5x on the furthest; it and the one beside it pushed and stunned, not the near one.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
-	battle = _kit._battle([_holding(&"charge")], monsters)
-	_dummies(monsters, [3.0, 9.0, 10.0])
-	landing = _at_use(_kit._run(battle, 120), &"charge")
-	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [12], "Charge: the furthest")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [25], "for 2.5x")
-	var stunned: Array[int] = _given(landing, AbilityEffect.Status.STUNNED)
-	stunned.sort()
-	assert_eq(stunned, [11, 12], "stuns the target and the enemy beside it")
-	assert_almost_eq(monsters[0].x, 3.0, 0.001, "the far one stays")
-	assert_gt(monsters[1].x, 9.0, "pushed back")
-	assert_gt(monsters[2].x, 10.0, "pushed back")
-
-	# Toxic Cloud: the nearest and the one beside it bleed and are weakened; not the far one.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
-	battle = _kit._battle([_holding(&"toxic_cloud")], monsters)
-	_dummies(monsters, [3.0, 4.0, 12.0])
-	landing = _at_use(_kit._run(battle, 20), &"toxic_cloud")
-	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [10, 11], "Toxic Cloud: bleeding")
-	assert_eq(_given(landing, AbilityEffect.Status.WEAKENED), [10, 11], "and weakened")
-
-	# Envenom: 2x through armor, and it bleeds.
-	monsters = _kit._typed([_kit._dummy(10, {"armor": 6})])
-	battle = _kit._battle([_holding(&"envenom")], monsters, 4.0)
-	landing = _at_use(_kit._run(battle, 40), &"envenom")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20], "Envenom: 2x, armor or not")
-	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [10], "and it bleeds")
-
-	# Plague: on a kill, every living enemy starts bleeding.
-	monsters = _kit._typed([_kit._dummy(10, {"max_health": 1}), _kit._dummy(11), _kit._dummy(12)])
-	battle = _kit._battle([_holding(&"plague")], monsters)
-	_dummies(monsters, [2.0, 8.0, 12.0])
-	landing = _at_use(_kit._run(battle, 60), &"plague")
-	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [11, 12], "Plague: every enemy left")
-
-	# Shadowstep: 2x and a stun on the furthest.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
-	battle = _kit._battle([_holding(&"shadowstep")], monsters)
-	_dummies(monsters, [3.0, 10.0])
-	landing = _at_use(_kit._run(battle, 120), &"shadowstep")
-	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [11], "Shadowstep: the furthest")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20], "for 2x")
-	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [11], "and stuns it")
-
-	# Lightning Bolt: 2.6x through armor, from its reach of 7 tiles.
-	monsters = _kit._typed([_kit._dummy(10, {"armor": 6})])
-	var mage: Combatant = _holding(&"lightning_bolt")
-	battle = _kit._battle([mage], monsters)
-	_dummies(monsters, [6.0])
-	landing = _at_use(_kit._run(battle, 20), &"lightning_bolt")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [26], "Lightning Bolt: 2.6x, armor or not")
-
-	# Static Field: as the fight starts, every enemy is slowed.
-	battle = _kit._battle([_holding(&"static_field")], [_kit._dummy(10), _kit._dummy(11)])
-	events = _kit._run(battle, 3)
-	assert_eq(_given(events, AbilityEffect.Status.SLOWED), [10, 11], "Static Field: every enemy")
-
-	# Overload: every fifth ordinary strike also strikes every enemy for 0.6x.
-	var striker: Combatant = _holding(&"overload")
-	battle = _kit._battle([striker], [_kit._dummy(10), _kit._dummy(11)], 3.0)
-	events = _kit._run(battle, 160)
-	var fired: Array[SimEvent] = _kit._used(events, &"overload")
-	assert_gte(striker.strikes, 10, "ten strikes or more")
-	assert_eq(fired.size(), floori(striker.strikes / 5.0), "Overload: on every fifth strike")
-	landing = _at_use(events, &"overload")
-	var sparks: Array[SimEvent] = []
-	for e: SimEvent in _kit._of(landing, hit, 1):
-		if e.amount == 6:
-			sparks.append(e)
-	assert_eq(_kit._targets(sparks), [10, 11], "every enemy, for 0.6x")
-
-	# Thunderstorm: with an enemy within 8 tiles, every enemy takes 2.5x and is stunned.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
-	battle = _kit._battle([_holding(&"thunderstorm")], monsters)
-	_dummies(monsters, [5.0, 15.0])
-	landing = _at_use(_kit._run(battle, 20), &"thunderstorm")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [25, 25], "Thunderstorm: 2.5x, everyone")
-	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [10, 11], "all stunned")
-
-	# Radiance: every enemy within 2 tiles takes 0.4x the healing power, and every ally within 2
-	# tiles of the cleric mends.
-	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
-	var cleric: Combatant = _holding(&"radiance", {"heal_power": 20})
-	var near: Combatant = _kit._hero(2, Kit.STILL)
-	var far: Combatant = _kit._hero(3, {"windup": Kit.NEVER, "move_speed": 0.0})
-	battle = _kit._battle([cleric, near, far], monsters)
-	_dummies(monsters, [5.0, 5.0, 12.0])
-	far.x = 0.0
-	landing = _at_use(_kit._run(battle, 80), &"radiance")
-	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [10, 11], "Radiance: those near")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [8, 8], "for 0.4x the healing power")
-	var mended: Array[int] = _given(landing, AbilityEffect.Status.MENDING)
-	mended.sort()
-	assert_eq(mended, [1, 2], "and the allies near the cleric mend, not one far off")
-
-	# Wrath: its damage comes from the healing power too.
-	monsters = _kit._typed([_kit._dummy(10)])
-	battle = _kit._battle([_holding(&"wrath", {"heal_power": 20})], monsters)
-	landing = _at_use(_kit._run(battle, 40), &"wrath")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [200], "Wrath: 10x the healing power")
-
-	# Aegis: the weakest ally is shielded.
-	var hurt: Combatant = _kit._hero(2)
-	hurt.health = 30
-	battle = _kit._battle([_holding(&"aegis"), hurt, _kit._hero(3)], [_kit._dummy(10)])
-	landing = _at_use(_kit._run(battle, 20), &"aegis")
-	assert_eq(_given(landing, AbilityEffect.Status.SHIELDED), [2], "Aegis: the weakest ally")
-
-	# Hallowed Ground: as the fight starts, every enemy is weakened.
-	battle = _kit._battle([_holding(&"hallowed_ground")], [_kit._dummy(10), _kit._dummy(11)])
-	events = _kit._run(battle, 3)
-	assert_eq(_given(events, AbilityEffect.Status.WEAKENED), [10, 11], "Hallowed Ground")
-
-	# Resurrection: when an ally dies, every fallen ally stands up at half health, once a fight.
-	var priest: Combatant = _holding(&"resurrection", Kit.STILL)
-	var fallen: Combatant = _kit._hero(2, Kit.STILL)
-	fallen.health = 0
-	var dying: Combatant = _kit._hero(3, Kit.STILL)
-	dying.health = 1
-	var shooter: Combatant = _kit._shooter(10, {"damage": 5})
-	battle = _kit._battle([dying, fallen, priest], [shooter])
-	events = _kit._run(battle, 600)
-	var revived: Array[SimEvent] = _kit._of(events, SimEvent.Kind.REVIVED)
-	var raised: Array[int] = _kit._targets(revived)
-	raised.sort()
-	assert_eq(raised, [2, 3], "Resurrection: every fallen ally stands up")
-	assert_eq(_kit._used(events, &"resurrection").size(), 1, "once a fight")
-	if not revived.is_empty():
-		assert_eq(revived[0].amount, 50, "with 50% health")
+	_check_new_abilities()
 
 
 # --- R9 ------------------------------------------------------------------------
@@ -983,13 +764,15 @@ func test_r10_the_tab_three_paths_wide() -> void:
 	for join: Array in view.joins():
 		var ends: Array = join[1]
 		if ends.size() == 2:
-			joined["%s>%s" % [(ends[0] as TalentNode).ability_id, (ends[1] as TalentNode).ability_id]] = (
-				true
-			)
+			var top: TalentNode = ends[0]
+			var under: TalentNode = ends[1]
+			joined["%s>%s" % [top.ability_id, under.ability_id]] = true
 	for index: int in 3:
 		for node: StringName in tree.path(index).nodes:
 			for before: StringName in tree.needs(node):
-				assert_true(joined.has("%s>%s" % [before, node]), "%s joined to %s" % [before, node])
+				assert_true(
+					joined.has("%s>%s" % [before, node]), "%s joined to %s" % [before, node]
+				)
 
 	# Three states, no closed path: tier 1 ready and pulsing, the rest not yet.
 	for index: int in 3:

@@ -215,7 +215,10 @@ func test_r4_a_path_says_what_it_is() -> void:
 	assert_eq(sim.state_hash(), before, "the hash leaves it out")
 	knight_path.summary = kept
 	for script_path: String in _scripts("res://sim"):
-		if script_path.ends_with("talent_tree_def.gd") or script_path.ends_with("skill_path_def.gd"):
+		if (
+			script_path.ends_with("talent_tree_def.gd")
+			or script_path.ends_with("skill_path_def.gd")
+		):
 			continue
 		var source: String = FileAccess.get_file_as_string(script_path)
 		assert_false(source.contains(".summary"), "%s reads no summary" % script_path)
