@@ -155,3 +155,16 @@ is made for the game alone first (092) and the tests follow as their own work.
 | 106 | [The quest's stage](106-the-quest-stage/spec.md) (the prop on the far side, every worker at it, the rest sit; props that open, light and walk off; three looks, a tint and dressing so each room differs): landed on dev, [#106](https://github.com/zakpruitt/colony/pull/106) | 104, 105 |
 | 107 | [The quest's story](107-the-quest-story/spec.md) (a pose for each job, lines as data said at each beat, the wanderer healed): landed on dev, [#107](https://github.com/zakpruitt/colony/pull/107) | 104, 105, 106 |
 | 108 | ["QUEST!" over whoever can do it](108-quest-callout/spec.md) (an orange word pops over each hero who takes on a quest or a gate): landed on dev, [#108](https://github.com/zakpruitt/colony/pull/108) | 104, 107 |
+
+### Skill paths (2026-11-27 on)
+
+Zak asked for the talent tree to become Skyrim-like skill paths: three paths of five a class, nothing
+locks, a point every two levels to level 30 and paragon after, and each path ranked by use so its
+deeper tiers open as the hero fights with it. Three lanes, each leaving `dev` green and playable: the
+new shape and content first, then the ranks, then the window.
+
+| Spec | Status | Depends on |
+|---|---|---|
+| 109 | [Skill paths: three paths of five](109-skill-paths-three-paths-of-five/spec.md) (the shape, 16 new abilities with pictures, points to 30, highest tier fights first, save 10 with talents refunded, the tab in three plain columns): in progress | 050, 051, 055, 057, 060, 063, 064 |
+| 110 | [Skill paths: ranks earned by use](110-skill-paths-ranks-by-use/spec.md) (path XP from won fights, rank gates on tiers, save 11, a capstone in 25 to 50 minutes of play): approved | 109 |
+| 111 | [Skill paths: the window](111-skill-paths-the-window/spec.md) (three panels with rank bars, tier rows, rank-held nodes, the rank-up and capstone moments, help, wiki, showcase): approved | 109, 110 |
