@@ -422,6 +422,28 @@ func test_r4_fight_order() -> void:
 	]
 	assert_eq(_ids(knight.combatant().abilities), full, "all fifteen, the capstones first")
 
+	# Of the actions ready, the one ready the longest, ties to the order above; after an action,
+	# a plain strike. Three actions always ready again within a second take turns, a swing between.
+	var actions: Array = []
+	for id: StringName in [&"first", &"second", &"third"]:
+		var poke: AbilityEffect = _kit._fx("DAMAGE", "TARGET", {"multiplier": 0.1})
+		actions.append(_kit._action(id, [poke], {"cooldown": 1.0}))
+	var fighter: Combatant = _kit._give(_kit._hero(1), actions)
+	var duel: Battle = _kit._battle([fighter], [_kit._dummy(10)])
+	var seen: Array[String] = []
+	for e: SimEvent in _kit._run(duel, 200):
+		if e.source_id != 1:
+			continue
+		if e.kind == SimEvent.Kind.ABILITY_USED:
+			seen.append(String(e.ability_id))
+		elif e.kind == SimEvent.Kind.ATTACK_STARTED:
+			seen.append("swing")
+	var turns: Array[String] = [
+		"first", "swing", "second", "swing", "third", "swing", "first", "swing", "second"
+	]
+	assert_gte(seen.size(), turns.size(), "a long enough fight: %s" % [seen])
+	assert_eq(seen.slice(0, turns.size()), turns, "each in turn, a plain swing between")
+
 	# A party with no nodes fights exactly as the class numbers alone, tick for tick.
 	var party := Party.new()
 	var made: Array[Combatant] = []
@@ -639,6 +661,11 @@ func test_r7_new_abilities_do_what_they_say() -> void:
 		assert_eq(Content.ability(id).validate(), PackedStringArray(), "%s is valid" % id)
 		assert_true(Content.ability(id).description.ends_with("."), "%s: one plain line" % id)
 	var hit: SimEvent.Kind = SimEvent.Kind.HIT
+	# Damage from healing power is a DAMAGE effect's alone.
+	var mend: AbilityEffect = _kit._fx("HEAL", "SELF", {"damage_from_healing": true})
+	assert_true(" ".join(mend.validate()).contains("damage_from_healing"), "refused on a heal")
+	for id: StringName in [&"smite", &"holy_fire", &"radiance", &"wrath"]:
+		assert_true(Content.ability(id).effects[0].damage_from_healing, "%s: from healing" % id)
 
 	# Earthshaker: every enemy takes 2x damage and is stunned.
 	var monsters: Array[Combatant] = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
@@ -707,13 +734,13 @@ func test_r7_new_abilities_do_what_they_say() -> void:
 	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20], "for 2x")
 	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [11], "and stuns it")
 
-	# Lightning Bolt: 1.8x through armor, from its reach of 7 tiles.
+	# Lightning Bolt: 2.6x through armor, from its reach of 7 tiles.
 	monsters = _kit._typed([_kit._dummy(10, {"armor": 6})])
 	var mage: Combatant = _holding(&"lightning_bolt")
 	battle = _kit._battle([mage], monsters)
 	_dummies(monsters, [6.0])
 	landing = _at_use(_kit._run(battle, 20), &"lightning_bolt")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [18], "Lightning Bolt: 1.8x, armor or not")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [26], "Lightning Bolt: 2.6x, armor or not")
 
 	# Static Field: as the fight starts, every enemy is slowed.
 	battle = _kit._battle([_holding(&"static_field")], [_kit._dummy(10), _kit._dummy(11)])
@@ -734,23 +761,35 @@ func test_r7_new_abilities_do_what_they_say() -> void:
 			sparks.append(e)
 	assert_eq(_kit._targets(sparks), [10, 11], "every enemy, for 0.6x")
 
-	# Thunderstorm: with an enemy within 8 tiles, every enemy takes 1.5x and is stunned.
+	# Thunderstorm: with an enemy within 8 tiles, every enemy takes 2.5x and is stunned.
 	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
 	battle = _kit._battle([_holding(&"thunderstorm")], monsters)
 	_dummies(monsters, [5.0, 15.0])
 	landing = _at_use(_kit._run(battle, 20), &"thunderstorm")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [15, 15], "Thunderstorm: 1.5x, everyone")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [25, 25], "Thunderstorm: 2.5x, everyone")
 	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [10, 11], "all stunned")
 
-	# Radiance: every enemy within 2 tiles takes 0.7x, and the cleric mends.
+	# Radiance: every enemy within 2 tiles takes 0.4x the healing power, and every ally within 2
+	# tiles of the cleric mends.
 	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
-	var cleric: Combatant = _holding(&"radiance", {"heal_power": 10})
-	battle = _kit._battle([cleric], monsters)
+	var cleric: Combatant = _holding(&"radiance", {"heal_power": 20})
+	var near: Combatant = _kit._hero(2, Kit.STILL)
+	var far: Combatant = _kit._hero(3, {"windup": Kit.NEVER, "move_speed": 0.0})
+	battle = _kit._battle([cleric, near, far], monsters)
 	_dummies(monsters, [5.0, 5.0, 12.0])
+	far.x = 0.0
 	landing = _at_use(_kit._run(battle, 80), &"radiance")
 	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [10, 11], "Radiance: those near")
-	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [7, 7], "for 0.7x")
-	assert_eq(_given(landing, AbilityEffect.Status.MENDING), [1], "and the cleric mends")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [8, 8], "for 0.4x the healing power")
+	var mended: Array[int] = _given(landing, AbilityEffect.Status.MENDING)
+	mended.sort()
+	assert_eq(mended, [1, 2], "and the allies near the cleric mend, not one far off")
+
+	# Wrath: its damage comes from the healing power too.
+	monsters = _kit._typed([_kit._dummy(10)])
+	battle = _kit._battle([_holding(&"wrath", {"heal_power": 20})], monsters)
+	landing = _at_use(_kit._run(battle, 40), &"wrath")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [200], "Wrath: 10x the healing power")
 
 	# Aegis: the weakest ally is shielded.
 	var hurt: Combatant = _kit._hero(2)

@@ -20,4 +20,4 @@ move = &"heavy_swing"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])
 trigger = 7
-trigger_every = 4
+trigger_every = 2

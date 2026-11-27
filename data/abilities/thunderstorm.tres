@@ -7,7 +7,7 @@
 script = ExtResource("2")
 lands = 4
 does = 0
-multiplier = 1.5
+multiplier = 2.5
 
 [sub_resource type="Resource" id="effect_2"]
 script = ExtResource("2")
@@ -20,7 +20,7 @@ seconds = 1.0
 script = ExtResource("1")
 id = &"thunderstorm"
 display_name = "Thunderstorm"
-description = "Every enemy takes 1.5x damage and is stunned for 1 s. Every 28 s."
+description = "Every enemy takes 2.5x damage and is stunned for 1 s. Every 28 s."
 move = &"channel"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])

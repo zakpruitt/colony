@@ -11,18 +11,22 @@ const SEEN_MINUTES: int = 60
 const HELD_MINUTES: int = 10
 const ACTION_USES: int = 5
 const SEEDS: Array[int] = [1, 2, 3]
-## Abilities that answer a rescue, excused from the counts in play, and the fight built to need
-## them.
-const RESCUES: Array[StringName] = [
+## Abilities that answer a rescue, excused from the counts in play (with every action that waits
+## for a hurt ally: [method _rescues]), and the fight built to need them.
+const NAMED_RESCUES: Array[StringName] = [
 	&"last_stand", &"vanish", &"guardian_angel", &"miracle", &"sanctuary", &"rampage", &"resurrection"
+]
+const HURT_ALLY: Array[AbilityDef.Condition] = [
+	AbilityDef.Condition.ALLY_BELOW, AbilityDef.Condition.OTHER_ALLY_BELOW
 ]
 const RESCUE_FIGHT: Array[StringName] = [&"ogre", &"ogre", &"ogre"]
 const RESCUE_PARTY_LEVEL: int = 14
 const RESCUE_LEVEL: int = 18
 ## The paths the rescue fights are fought with, by class: between them every rescue is held.
 const RESCUE_PATHS: Array[Dictionary] = [
-	{&"knight": 1, &"rogue": 2, &"mage": 0, &"cleric": 0},
-	{&"knight": 2, &"rogue": 2, &"mage": 1, &"cleric": 2},
+	{&"knight": 0, &"rogue": 2, &"mage": 0, &"cleric": 0},
+	{&"knight": 1, &"rogue": 2, &"mage": 1, &"cleric": 0},
+	{&"knight": 2, &"rogue": 2, &"mage": 2, &"cleric": 2},
 ]
 ## The full party's play: level 30, every node, from Mossy Hollow stage 18, with the camp upgrades
 ## that `dev.py sim --seed=1 --minutes=120 --buy-upgrades --spend-talents --winding` bought.
@@ -32,6 +36,17 @@ const FULL_MINUTES: int = 30
 const FULL_UPGRADES: Dictionary = {
 	"fat_purse": 3, "field_medicine": 10, "quick_march": 10, "sharp_blades": 3, "stout_armor": 3
 }
+
+
+## The rescues: those named, and every action whose condition waits for a hurt ally, read from
+## the abilities.
+func _rescues() -> Array[StringName]:
+	var found: Array[StringName] = NAMED_RESCUES.duplicate()
+	for id: StringName in Content.ability_ids():
+		var ability: AbilityDef = Content.ability(id)
+		if ability.is_action() and HURT_ALLY.has(ability.condition) and not found.has(id):
+			found.append(id)
+	return found
 
 
 ## Every node of [param class_id]'s tree, path by path, each in its order.
@@ -74,9 +89,10 @@ func _unseen_of(
 ) -> PackedStringArray:
 	var unseen := PackedStringArray()
 	var held_ticks: int = HELD_MINUTES * 60 * Simulation.TICKS_PER_SECOND
+	var rescues: Array[StringName] = _rescues()
 	for key: String in taken:
 		var ability: AbilityDef = Content.ability(StringName(key.get_slice(" ", 1)))
-		if ticks - taken[key] < held_ticks or RESCUES.has(ability.id):
+		if ticks - taken[key] < held_ticks or rescues.has(ability.id):
 			continue
 		var count: int = uses.get(key, 0)
 		var wanted: int = ACTION_USES if ability.is_action() else 1
@@ -172,7 +188,10 @@ func test_r8_every_ability_is_seen() -> void:
 			)
 			for id: StringName in used:
 				fired[id] = fired.get(id, 0) + used[id]
-	for id: StringName in RESCUES:
+	var rescues: Array[StringName] = _rescues()
+	for id: StringName in [&"bulwark", &"prayer", &"rallying_cry"]:
+		assert_has(rescues, id, "%s waits for a hurt ally" % id)
+	for id: StringName in rescues:
 		var times: int = fired.get(id, 0)
 		assert_gt(times, 0, "%s answers a rescue: %s" % [id, fired])
 

@@ -8,11 +8,13 @@ script = ExtResource("2")
 lands = 4
 radius = 2.0
 does = 0
-multiplier = 0.7
+multiplier = 0.4
+damage_from_healing = true
 
 [sub_resource type="Resource" id="effect_2"]
 script = ExtResource("2")
-lands = 2
+lands = 3
+radius = 2.0
 does = 4
 scale = 1
 status = 5
@@ -23,7 +25,7 @@ amount = 0.25
 script = ExtResource("1")
 id = &"radiance"
 display_name = "Radiance"
-description = "Strikes every enemy within 2 tiles for 0.7x damage and mends the cleric for 6 s. Every 10 s."
+description = "Strikes every enemy within 2 tiles for 0.4x the healing power and mends every ally within 2 tiles for 6 s. Every 10 s."
 move = &"cast"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])

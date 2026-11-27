@@ -8,15 +8,29 @@ extends RefCounted
 const MAX_CHAIN: int = 4
 
 
-## The first of [param c]'s actions that is off cooldown, whose condition holds and which has
-## someone to aim at, or null. A healer with an ally to heal uses none aimed at an enemy: it
-## heals first. Nothing on the tick asks it: the battle asks [method ready_target] of each action.
+## The action [param c] would use now, or null: of its actions off cooldown, whose condition holds
+## and which have someone to aim at, the one ready the longest, a tie going to the earlier in
+## [member Combatant.abilities]. None until [param c] has swung once since its last action. A
+## healer with an ally to heal uses none aimed at an enemy: it heals first.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
 	var heal_first: bool = c.role == HeroClassDef.Role.HEALER and battle.hurt_ally(c) != null
+	return choose(battle, c, heal_first)
+
+
+## As [method ready_action], with [param heal_first] already worked out.
+static func choose(battle: Battle, c: Combatant, heal_first: bool) -> AbilityDef:
+	if not c.swung_since_action:
+		return null
+	var chosen: AbilityDef = null
+	var since: int = 0
 	for ability: AbilityDef in c.abilities:
+		var ready: int = c.action_ready_tick.get(ability.id, 0)
+		if chosen != null and ready >= since:
+			continue
 		if ready_target(battle, c, ability, heal_first) != null:
-			return ability
-	return null
+			chosen = ability
+			since = ready
+	return chosen
 
 
 ## Whom [param c] would use [param ability] on now, or null unless it is an action off cooldown
@@ -274,7 +288,8 @@ static func _apply(
 ) -> void:
 	match effect.does:
 		AbilityEffect.Does.DAMAGE:
-			var amount: float = c.damage * effect.multiplier
+			var base: float = c.heal_power if effect.damage_from_healing else c.damage
+			var amount: float = base * effect.multiplier
 			if receiver.health_fraction() < effect.low_health_below:
 				amount *= effect.low_multiplier
 			amount *= c.dealt_multiplier()

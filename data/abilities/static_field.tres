@@ -9,13 +9,13 @@ lands = 4
 does = 4
 status = 7
 seconds = 6.0
-amount = 1.3
+amount = 1.6
 
 [resource]
 script = ExtResource("1")
 id = &"static_field"
 display_name = "Static Field"
-description = "As a fight starts, every enemy strikes 30% slower for 6 s."
+description = "As a fight starts, every enemy strikes 60% slower for 6 s."
 move = &"cast"
 kind = 1
 effects = Array[ExtResource("2")]([SubResource("effect_1")])

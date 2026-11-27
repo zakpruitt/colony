@@ -7,14 +7,14 @@
 script = ExtResource("2")
 lands = 0
 does = 0
-multiplier = 1.8
+multiplier = 2.6
 ignores_armor = true
 
 [resource]
 script = ExtResource("1")
 id = &"lightning_bolt"
 display_name = "Lightning Bolt"
-description = "Strikes an enemy for 1.8x damage through its armor. Every 6 s."
+description = "Strikes an enemy for 2.6x damage through its armor. Every 6 s."
 move = &"cast"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1")])

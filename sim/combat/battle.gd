@@ -360,19 +360,15 @@ func _act(c: Combatant) -> void:
 	record(SimEvent.Kind.ATTACK_STARTED, c.id, target.id, c.windup_ticks)
 
 
-## Starts, or walks toward, the first action [param c] is ready to use (none aimed at an enemy
-## when [param heal_first]). False if it has none ready, and then it strikes as usual.
+## Starts, or walks toward, the action [param c] would use now ([method BattleAbilities.choose];
+## none aimed at an enemy when [param heal_first]). False if it has none, and then it strikes as
+## usual.
 func _try_action(c: Combatant, heal_first: bool) -> bool:
-	var action: AbilityDef = null
-	var target: Combatant = null
-	for ability: AbilityDef in c.abilities:
-		target = BattleAbilities.ready_target(self, c, ability, heal_first)
-		if target != null:
-			action = ability
-			break
+	var action: AbilityDef = BattleAbilities.choose(self, c, heal_first)
 	if action == null:
 		c.chasing = &""
 		return false
+	var target: Combatant = BattleAbilities.ready_target(self, c, action, heal_first)
 	c.target_id = target.id
 	# It keeps to this target until the action starts, so a choice that changes as it walks
 	# (the furthest enemy, say) does not turn it back and forth.
@@ -401,6 +397,7 @@ func _use(c: Combatant, target: Combatant) -> void:
 	c.state = Combatant.State.IDLE
 	c.ready_tick = tick + c.strike_interval_ticks()
 	c.action_ready_tick[action.id] = tick + Combatant.seconds_to_ticks(action.cooldown, 0)
+	c.swung_since_action = false
 	BattleAbilities.use(self, c, action, target)
 
 
@@ -534,6 +531,7 @@ func _walk_to(c: Combatant, place: float) -> void:
 
 
 func _strike(c: Combatant, target: Combatant) -> void:
+	c.swung_since_action = true
 	c.state = Combatant.State.IDLE
 	c.ready_tick = tick + c.strike_interval_ticks()
 	var is_heal: bool = c.team == target.team
