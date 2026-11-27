@@ -22,6 +22,10 @@ var xp: int = 0
 var health: int
 ## The party's camp upgrades, or null for none. Set by the [Party].
 var upgrades: Upgrades
+## This hero's actions in the order it last used them, least recent first; one never used is not
+## in it. Each [method combatant] shares this very list, so a use in a fight is remembered after
+## it (a tie between ready actions goes to the least recent). Change it in place, never replace it.
+var used: Array[StringName] = []
 
 var _def: HeroClassDef
 ## The talent tree nodes this hero has taken, in the order taken.
@@ -115,6 +119,7 @@ func combatant() -> Combatant:
 			var ability: AbilityDef = Content.ability(ability_id)
 			if ability != null:
 				c.abilities.append(ability)
+	c.used = used
 	return c
 
 
@@ -151,11 +156,13 @@ func take_talent(ability_id: StringName) -> bool:
 ## Sets this hero's nodes directly (loading a save, tests), with no checks.
 func set_talents(taken: Array[StringName]) -> void:
 	_talents = taken.duplicate()
+	used.assign(used.filter(func(ability_id: StringName) -> bool: return taken.has(ability_id)))
 
 
 ## Gives back every node: each talent point is unspent.
 func reset_talents() -> void:
 	_talents.clear()
+	used.clear()
 
 
 ## The paragon points this hero has earned and not spent.

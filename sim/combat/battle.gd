@@ -398,6 +398,8 @@ func _use(c: Combatant, target: Combatant) -> void:
 	c.ready_tick = tick + c.strike_interval_ticks()
 	c.action_ready_tick[action.id] = tick + Combatant.seconds_to_ticks(action.cooldown, 0)
 	c.swung_since_action = false
+	c.used.erase(action.id)
+	c.used.append(action.id)
 	BattleAbilities.use(self, c, action, target)
 
 

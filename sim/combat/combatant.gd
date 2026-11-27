@@ -56,6 +56,9 @@ var statuses: Dictionary[int, CombatStatus] = {}
 var action_ready_tick: Dictionary[StringName, int] = {}
 ## Set by the battle: the once-a-fight passives that have fired.
 var spent: Dictionary[StringName, bool] = {}
+## The hero's own [member Hero.used], shared: its actions, least recently used first. The
+## battle moves an action to its end when it is used.
+var used: Array[StringName] = []
 ## Set by the battle: ordinary strikes made this fight.
 var strikes: int = 0
 ## Set by the battle: false from an action until the next swing lands (a strike or a heal), so

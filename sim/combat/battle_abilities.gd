@@ -9,7 +9,8 @@ const MAX_CHAIN: int = 4
 
 
 ## The action [param c] would use now, or null: of its actions off cooldown, whose condition holds
-## and which have someone to aim at, the one ready the longest, a tie going to the earlier in
+## and which have someone to aim at, the one ready the longest; a tie goes to the one used least
+## recently ([member Combatant.used], never used first), then to the earlier in
 ## [member Combatant.abilities]. None until [param c] has swung once since its last action. A
 ## healer with an ally to heal uses none aimed at an enemy: it heals first.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
@@ -23,13 +24,16 @@ static func choose(battle: Battle, c: Combatant, heal_first: bool) -> AbilityDef
 		return null
 	var chosen: AbilityDef = null
 	var since: int = 0
+	var last: int = 0
 	for ability: AbilityDef in c.abilities:
 		var ready: int = c.action_ready_tick.get(ability.id, 0)
-		if chosen != null and ready >= since:
+		var place: int = c.used.find(ability.id)
+		if chosen != null and (ready > since or (ready == since and place >= last)):
 			continue
 		if ready_target(battle, c, ability, heal_first) != null:
 			chosen = ability
 			since = ready
+			last = place
 	return chosen
 
 

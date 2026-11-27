@@ -468,6 +468,90 @@ func test_r4_fight_order() -> void:
 	assert_eq(lines[0], lines[1], "event for event")
 
 
+## The order of use is the hero's, carried from fight to fight: a tie at a fight's start goes to
+## the action used least recently. It is saved, so a game saved and loaded fights on exactly as
+## one played straight on; the check refuses an id that is not a node; a reset clears it.
+func test_r4_the_order_of_use_is_kept() -> void:
+	var knight := Hero.new(1, Content.hero_class(&"knight"))
+	raise(knight, 30)
+	var warlord: Array[StringName] = _tree(&"knight").path(2).nodes
+	knight.set_talents(warlord)
+	var first: Combatant = knight.combatant()
+	assert_same(first.used, knight.used, "the combatant shares the hero's list")
+	var shield: StringName = warlord[0]
+	var standing: Combatant = _kit._give(_kit._hero(1), [])
+	standing.abilities = knight.combatant().abilities
+	standing.used = knight.used
+	var duel: Battle = _kit._battle([standing], [_kit._dummy(10)])
+	var opened: AbilityDef = BattleAbilities.ready_action(duel, standing)
+	assert_not_null(opened, "an action ready as the fight starts")
+	if opened == null:
+		return
+	# Used once: in the next fight the tie goes past it.
+	knight.used.append(opened.id)
+	var again: Combatant = _kit._give(_kit._hero(1), [])
+	again.abilities = knight.combatant().abilities
+	again.used = knight.used
+	var next_duel: Battle = _kit._battle([again], [_kit._dummy(10)])
+	var turned: AbilityDef = BattleAbilities.ready_action(next_duel, again)
+	assert_not_null(turned, "an action in the next fight")
+	if turned != null:
+		assert_ne(turned.id, opened.id, "the tie goes to one used less recently")
+	# Taking talents keeps only the nodes held; a reset clears it.
+	knight.used.assign([shield])
+	knight.set_talents([warlord[1]] as Array[StringName])
+	assert_eq(knight.used, [] as Array[StringName], "a node no longer held leaves the order")
+	knight.set_talents(warlord)
+	knight.used.assign([shield])
+	knight.reset_talents()
+	assert_eq(knight.used, [] as Array[StringName], "a reset clears it")
+
+	# Saved and checked.
+	var sim := Simulation.new(SEED)
+	for hero: Hero in sim.party.heroes:
+		raise(hero, 30)
+		var all: Array[StringName] = []
+		for path: SkillPathDef in _tree(hero.class_id).paths:
+			all.append_array(path.nodes)
+		hero.set_talents(all)
+	var plain: Simulation = Simulation.from_save(_through_json(sim.to_save()))
+	assert_not_null(plain, "a party with every node loads")
+	if plain == null:
+		return
+	var ticks: int = ticks_in(240.0)
+	run_ticks(plain, ticks)
+	var used_now: Array = plain.to_save()["heroes"][0]["used"]
+	assert_gt(used_now.size(), 1, "the knight's order of use is saved: %s" % [used_now])
+	# A load stands the party at its last stable depth (spec 014), so a game played on from a load
+	# is set beside the same load saved and loaded again before it fights on.
+	var on: Simulation = Simulation.from_save(_through_json(plain.to_save()))
+	assert_not_null(on, "saved and loaded")
+	if on == null:
+		return
+	for i: int in plain.party.heroes.size():
+		assert_eq(on.party.heroes[i].used, plain.party.heroes[i].used, "the order comes back")
+	var cut: Simulation = Simulation.from_save(_through_json(on.to_save()))
+	var forgetful: Dictionary = _through_json(on.to_save())
+	for saved: Dictionary in forgetful["heroes"]:
+		saved["used"] = []
+	var blank: Simulation = Simulation.from_save(forgetful)
+	run_ticks(on, ticks)
+	run_ticks(cut, ticks)
+	run_ticks(blank, ticks)
+	assert_eq(cut.to_save(), on.to_save(), "a game saved and loaded fights on as one played on")
+	assert_eq(cut.state_hash(), on.state_hash(), "to the same state")
+	# Loaded without the order, the same game parts ways: the order matters at the ties.
+	assert_ne(blank.to_save(), on.to_save(), "without its order of use it fights otherwise")
+	# Refused by name.
+	var bad: Dictionary = _through_json(plain.to_save())
+	bad["heroes"][0]["used"] = ["fireball"]
+	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used[0]"), "not its node")
+	bad["heroes"][0]["used"] = "shield_bash"
+	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used"), "not a list")
+	bad["heroes"][0]["used"] = [String(shield), String(shield)]
+	assert_true(_any_names(Simulation.save_problems(bad), "heroes[0].used[1]"), "twice")
+
+
 # --- R5 ------------------------------------------------------------------------
 
 

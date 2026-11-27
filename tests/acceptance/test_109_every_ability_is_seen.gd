@@ -21,7 +21,10 @@ const HURT_ALLY: Array[AbilityDef.Condition] = [
 ]
 const RESCUE_FIGHT: Array[StringName] = [&"ogre", &"ogre", &"ogre"]
 const RESCUE_PARTY_LEVEL: int = 14
-const RESCUE_LEVEL: int = 18
+## The ogres' levels: one fight the party can almost take (where an ally is hurt but alive long
+## enough to be answered), and one it cannot.
+const RESCUE_LEVELS: Array[int] = [14, 18]
+const RESCUE_SEEDS: int = 3
 ## The paths the rescue fights are fought with, by class: between them every rescue is held.
 const RESCUE_PATHS: Array[Dictionary] = [
 	{&"knight": 0, &"rogue": 2, &"mage": 0, &"cleric": 0},
@@ -182,9 +185,9 @@ func test_r8_every_ability_is_seen() -> void:
 	# The rescues fire in fights built to need them: a party against more than it can take.
 	var fired: Dictionary[StringName, int] = {}
 	for paths: Dictionary in RESCUE_PATHS:
-		for seed_value: int in 3:
+		for seed_value: int in RESCUE_SEEDS * RESCUE_LEVELS.size():
 			var used: Dictionary[StringName, int] = _used_in(
-				paths, RESCUE_PARTY_LEVEL, RESCUE_FIGHT, RESCUE_LEVEL, seed_value
+				paths, RESCUE_PARTY_LEVEL, RESCUE_FIGHT, RESCUE_LEVELS[seed_value % 2], floori(seed_value / 2.0)
 			)
 			for id: StringName in used:
 				fired[id] = fired.get(id, 0) + used[id]

@@ -3,8 +3,9 @@ extends RefCounted
 ## How each hero's talents and paragon points are saved, checked and brought forward from
 ## versions 6 and 9, kept apart from [Simulation] as [AreaSave] is.
 ##
-## A saved hero carries "talents" (its nodes, in the order taken) and "paragon" (a dictionary
-## of [TrainingDef] id to the points spent in that stat). Unspent points are not saved: they are
+## A saved hero carries "talents" (its nodes, in the order taken), "used" (its actions, least
+## recently used first: [member Hero.used]) and "paragon" (a dictionary of [TrainingDef] id to the
+## points spent in that stat). Unspent points are not saved: they are
 ## what the hero's level earns less what it spent.
 
 ## What a version 6 save's gold training cost, by training id: [base cost, growth per rank, maximum
@@ -29,6 +30,7 @@ static func write(hero: Hero, saved: Dictionary) -> void:
 		var stat: TrainingDef.Stat = Content.training(training_id).stat
 		paragon[String(training_id)] = hero.paragon_rank(stat)
 	saved["talents"] = talents
+	saved["used"] = Array(hero.used.map(func(id: StringName) -> String: return String(id)))
 	saved["paragon"] = paragon
 
 
@@ -39,6 +41,10 @@ static func read(hero: Hero, saved: Dictionary) -> void:
 	for node: Variant in saved["talents"] as Array:
 		taken.append(StringName(node as String))
 	hero.set_talents(taken)
+	var order: Array[StringName] = []
+	for id: Variant in saved["used"] as Array:
+		order.append(StringName(id as String))
+	hero.used.assign(order)
 	var paragon: Dictionary = saved["paragon"]
 	for key: Variant in paragon:
 		var stat: TrainingDef.Stat = Content.training(StringName(key as String)).stat
@@ -58,6 +64,7 @@ static func check(
 	if saved.has("training"):
 		problems.append("%s.training: a rank that cannot be given back as gold" % where)
 	_check_talents(problems, saved.get("talents"), class_def, level, where + ".talents")
+	_check_used(problems, saved.get("used"), saved.get("talents"), where + ".used")
 	_check_paragon(problems, saved.get("paragon"), level, where + ".paragon")
 
 
@@ -94,6 +101,7 @@ static func upgrade_9_to_10(data: Dictionary) -> Dictionary:
 		for saved: Variant in heroes as Array:
 			if saved is Dictionary:
 				(saved as Dictionary)["talents"] = []
+				(saved as Dictionary)["used"] = []
 	return data
 
 
@@ -150,6 +158,24 @@ static func _check_talents(
 				% [where, taken.size(), level, TalentRules.talent_points_at(level)]
 			)
 		)
+
+
+static func _check_used(
+	problems: PackedStringArray, value: Variant, talents: Variant, where: String
+) -> void:
+	if not (value is Array):
+		problems.append("%s: missing or not a list of ability ids" % where)
+		return
+	var nodes: Array = talents if talents is Array else []
+	var seen: Dictionary[String, bool] = {}
+	for i: int in (value as Array).size():
+		var id: Variant = (value as Array)[i]
+		if typeof(id) != TYPE_STRING or not nodes.has(id):
+			problems.append("%s[%d]: not one of the hero's nodes" % [where, i])
+		elif seen.has(id as String):
+			problems.append("%s[%d]: '%s' is in it twice" % [where, i, id])
+		else:
+			seen[id as String] = true
 
 
 static func _check_paragon(
