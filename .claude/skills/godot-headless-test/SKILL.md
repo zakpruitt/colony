@@ -120,6 +120,11 @@ The sim is plain objects (`docs/architecture.md`), so most tests need no scene, 
 - Code under `game/` that asks `World.catching_up()` must be listed in test_076's `CLEARING`, which only
   allows clearing what runs. A view whose `animate` is called by the world gets a `catch_up()` the world
   calls in a stalled frame instead (`CampView`).
+- Content resources are loaded once and shared by every test in the run, so a test that changes one leaks
+  into the tests after it. To break a def for a `validate()` check, copy it, and know that
+  `Resource.duplicate()` copies a typed array property (`SkillPathDef.nodes`, `AbilityDef.effects`) by
+  reference: `copy.nodes[4] = &"x"` changes the real tree too. Give the copy its own array
+  (`copy.nodes = original.nodes.duplicate()`), or set the value back before the test ends.
 - When a test file or `sim/expedition/expedition.gd` is near gdlint's 1000 lines, gdformat may split an edited
   line in two and push it over: run `check --only=format` after every edit there. Python's `write_text` on
   Windows writes CRLF; when editing files from a script, read and write bytes.
