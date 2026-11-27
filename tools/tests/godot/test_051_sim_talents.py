@@ -1,4 +1,5 @@
-"""Acceptance test for spec 051, R11: `python tools/dev.py sim --spend-talents` spends points.
+"""Acceptance test for spec 051, R11, as spec 109's R12 has it:
+`python tools/dev.py sim --spend-talents` spends points, the first path's nodes first, tier by tier.
 
 Run: python -m unittest discover tools/tests/godot   (the `tools` check step runs it too)
 Needs Godot, found the way tools/dev.py finds it.
@@ -10,11 +11,12 @@ import unittest
 
 from test_sim_command import run_sim
 
-FIRST_NODES = {
-    "knight": "shield_bash",
-    "rogue": "backstab",
-    "mage": "fireball",
-    "cleric": "prayer",
+# Each class's first path, its nodes in order: tier 1, tier 2 left and right, tier 3, tier 4.
+FIRST_PATHS = {
+    "knight": ["taunt", "hold_the_line", "bottle_top_block", "bulwark", "rallying_cry"],
+    "rogue": ["backstab", "mark_for_death", "finisher", "ambush", "killing_spree"],
+    "mage": ["fireball", "ignite", "wildfire", "meteor", "inferno"],
+    "cleric": ["prayer", "renewal", "blessing", "sanctuary", "miracle"],
 }
 
 
@@ -29,11 +31,12 @@ class SimTalentsTest(unittest.TestCase):
         spent = run_sim("--seed=1", "--minutes=4", "--spend-talents")
         for hero in spent["heroes"]:
             self.assertGreaterEqual(hero["level"], 2, "four minutes earn a talent point")
-            earned = min(hero["level"] // 2, 7)
+            earned = min(hero["level"] // 2, 15)
             # Points are spent before each step, so one earned on the last step is still unspent.
             self.assertIn(len(hero["talents"]), (earned, earned - 1), hero)
             self.assertGreaterEqual(len(hero["talents"]), 1, hero)
-            self.assertEqual(hero["talents"][0], FIRST_NODES[hero["class"]], "the trunk first")
+            taken = hero["talents"][:5]
+            self.assertEqual(taken, FIRST_PATHS[hero["class"]][: len(taken)], "path 0 first")
 
 
 if __name__ == "__main__":
