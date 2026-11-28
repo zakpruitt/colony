@@ -2,15 +2,19 @@ extends "res://tests/unit/ability_kit_test_base.gd"
 ## The faults the review of pull request 50 found in spec 050's battle rules, each pinned here.
 
 
-## Reapplied every half second, a bleed still bleeds once a second: reapplying moves its end
-## and keeps the stronger amount, not its clock.
+## Reapplied before it ends, a bleed still bleeds once a second: reapplying moves its end and
+## keeps the stronger amount, not its clock. A strike comes between two actions, so the hero
+## strikes from where it stands and bleeds the dummy every 12 ticks.
 func test_a_reapplied_bleed_keeps_its_clock() -> void:
 	var bleed: Array = [_st("BLEEDING", 2.0, 0.5, "TARGET", BY_DAMAGE)]
-	var hero: Combatant = _hero(1, {"attack_interval": 0.4})
+	var hero: Combatant = _hero(1, {"attack_interval": 0.4, "attack_range": 1000.0})
 	_give(hero, [_action(&"bleed", bleed, {"cooldown": 0.4})])
 	var events: Array[SimEvent] = _run(_battle([hero], [_dummy(10)]), 50)
-	assert_eq(_ticks(_used(events, &"bleed")).slice(0, 3), _ints([2, 7, 12]), "every 5 ticks")
-	var hits: Array[SimEvent] = _of(events, SimEvent.Kind.HIT, 1)
+	assert_eq(_ticks(_used(events, &"bleed")).slice(0, 3), _ints([2, 14, 26]), "every 12 ticks")
+	# The bleed's ticks are half the hero's 10 damage; its strikes hit for about 10.
+	var hits: Array[SimEvent] = _of(events, SimEvent.Kind.HIT, 1).filter(
+		func(e: SimEvent) -> bool: return e.amount == 5
+	)
 	assert_eq(_ticks(hits), _ints([12, 22, 32, 42]), "it bleeds each second")
 	assert_eq(_amounts(hits), _ints([5, 5, 5, 5]))
 

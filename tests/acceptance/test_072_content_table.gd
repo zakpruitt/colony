@@ -211,7 +211,7 @@ func test_r5_a_multiplier_follows_a_new_rank() -> void:
 				)
 	assert_true(sim.upgrades.any(), "ranks were bought")
 
-	raise_party(sim, 20)
+	raise_party(sim, 33)  # three paragon points, one a level after 30
 	var hero: Hero = sim.party.heroes[0]
 	for stat: TrainingDef.Stat in TrainingDef.Stat.values():
 		hero.paragon_multiplier(stat)
