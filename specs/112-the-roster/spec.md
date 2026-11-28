@@ -1,6 +1,6 @@
 # 112 — The roster: more heroes than the four who go down
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 109, 110, 111 (it changes `sim/simulation.gd`, `sim/party/party.gd`, `sim/sim_event.gd`
   and `tests/colony_test.gd`, which their Paths hold; it starts only after 111 has landed)

@@ -1,6 +1,6 @@
 # 116 — Summoned allies on screen
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 056, 057, 076, 115 (and 113, whose Paths hold `world.gd` and the tally)
 - **Pull request:** —
