@@ -24,7 +24,7 @@ static func _place_of(class_id: StringName) -> int:
 
 
 ## The ids of [param heroes], in order.
-static func _ids(heroes: Array[Hero]) -> Array[int]:
+static func _hero_ids(heroes: Array[Hero]) -> Array[int]:
 	var ids: Array[int] = []
 	for hero: Hero in heroes:
 		ids.append(hero.id)
@@ -288,7 +288,7 @@ func test_r3_recruiting() -> void:
 	assert_eq(recruited[0].amount, 300, "the gold paid")
 	assert_eq(sim.party.gold, 700, "300 gold paid")
 	assert_eq(sim.party.resource(&"glowcaps"), 10, "40 glowcaps paid")
-	assert_eq(_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four are the same")
+	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four are the same")
 	assert_eq(sim.party.bench.size(), 1, "one on the bench")
 	var hero: Hero = sim.party.hero(FIRST_RECRUIT)
 	assert_not_null(hero, "found by id")
@@ -353,8 +353,10 @@ func test_r4_choosing_the_four() -> void:
 		assert_eq(fielded[0].source_id, FIRST_RECRUIT, "the hero who came in")
 		assert_eq(fielded[0].target_id, 2, "the hero who left")
 	# The recruit is a tank, as the Knight is: tanks first, then by id.
-	assert_eq(_ids(sim.party.heroes), [1, FIRST_RECRUIT, 3, 4] as Array[int], "by role, then id")
-	assert_eq(_ids(sim.party.bench), [2] as Array[int], "the rogue is benched")
+	assert_eq(
+		_hero_ids(sim.party.heroes), [1, FIRST_RECRUIT, 3, 4] as Array[int], "by role, then id"
+	)
+	assert_eq(_hero_ids(sim.party.bench), [2] as Array[int], "the rogue is benched")
 	assert_eq(recruit.health, recruit.max_health(), "comes in at full health")
 	assert_eq(
 		[rogue.level, rogue.xp, rogue.talents(), rogue.ranks.xp(0)], kept, "the rogue keeps all"
@@ -402,8 +404,8 @@ func test_r4_choosing_the_four() -> void:
 		)
 	assert_eq(made[0].source_id, 2, "the rogue came in")
 	assert_eq(made[0].target_id, FIRST_RECRUIT, "the recruit left")
-	assert_eq(_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four of a new game")
-	assert_eq(_ids(sim.party.bench), [FIRST_RECRUIT] as Array[int], "the recruit benched")
+	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four of a new game")
+	assert_eq(_hero_ids(sim.party.bench), [FIRST_RECRUIT] as Array[int], "the recruit benched")
 	assert_true(sim.roster.waiting().is_empty(), "the stale one is gone")
 	assert_eq(_of_kind(_step(sim), SimEvent.Kind.HERO_FIELDED).size(), 0, "and never made")
 
@@ -413,7 +415,7 @@ func test_r4_choosing_the_four() -> void:
 	sim.roster.swap(FIRST_RECRUIT, 99)
 	assert_true(sim.roster.waiting().is_empty(), "no bad swap waits")
 	assert_eq(_of_kind(_step(sim), SimEvent.Kind.HERO_FIELDED).size(), 0, "and none is made")
-	assert_eq(_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four unchanged")
+	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four unchanged")
 
 
 # --- R5 ------------------------------------------------------------------------
@@ -526,8 +528,8 @@ func test_r6_saves() -> void:
 	assert_eq(
 		classes, [&"knight", RECRUIT_CLASS, &"mage", &"cleric"] as Array[StringName], "the four"
 	)
-	assert_eq(_ids(loaded.party.heroes), [1, 2, 3, 4] as Array[int], "ids 1 to 4 going down")
-	assert_eq(_ids(loaded.party.bench), [5] as Array[int], "the next id on the bench")
+	assert_eq(_hero_ids(loaded.party.heroes), [1, 2, 3, 4] as Array[int], "ids 1 to 4 going down")
+	assert_eq(_hero_ids(loaded.party.bench), [5] as Array[int], "the next id on the bench")
 	var benched: Hero = loaded.party.bench[0]
 	assert_eq(benched.class_id, &"rogue", "the rogue benched")
 	assert_eq(benched.level, rogue.level, "its level")
@@ -603,7 +605,7 @@ func test_r7_nothing_changes() -> void:
 	for hero: Hero in sim.party.heroes:
 		classes.append(hero.class_id)
 	assert_eq(classes, Party.STARTING_CLASSES, "the four starting classes")
-	assert_eq(_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "ids 1 to 4")
+	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "ids 1 to 4")
 	assert_true(sim.party.bench.is_empty(), "nobody benched")
 	assert_true(sim.party.artifacts.is_empty(), "no artifact found")
 	assert_eq(sim.party.roster(), sim.party.heroes, "the colony is the four")
