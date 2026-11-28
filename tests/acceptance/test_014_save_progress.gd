@@ -165,6 +165,7 @@ func test_r1_progress_is_plain_data() -> void:
 					"xp": hero.xp,
 					"talents": saved.get("talents"),
 					"used": saved.get("used"),
+					"paths": saved.get("paths"),  # spec 110: the path XP, tested there
 					"paragon": saved.get("paragon"),
 				}
 			)
@@ -293,7 +294,7 @@ func test_r4_bad_data_is_refused() -> void:
 		listed[field] = [1]
 		cases.append([field, listed])
 	var cases_by_value: Array = [
-		["version", "version", 11],
+		["version", "version", 12],
 		["class", "heroes", [{"class": "bard", "level": 1, "xp": 0}]],
 		["level", "heroes", [{"class": "knight", "level": 0, "xp": 0}]],
 		["xp", "heroes", [{"class": "knight", "level": 1, "xp": -5}]],

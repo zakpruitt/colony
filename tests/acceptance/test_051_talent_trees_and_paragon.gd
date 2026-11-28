@@ -291,6 +291,7 @@ func test_r6_the_sheet_shows_the_points() -> void:
 	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 3, "and spends nothing")
 	# Taking a node shows at once (back to two taken, thirteen to spend).
 	rogue.set_talents([&"backstab", &"smoke_step"] as Array[StringName])
+	give_rank(rogue, &"finisher")  # spec 110: the rank tier 2 needs
 	sim.take_talent(rogue.id, &"finisher")
 	sim.step()
 	hud.advance(0.1)
@@ -305,6 +306,7 @@ func test_r7_fresh_start() -> void:
 	var knight: Hero = sim.party.heroes[0]
 	raise(knight, 31)
 	for node: StringName in _full(&"knight", 1):
+		give_rank(knight, node)  # spec 110: the rank each tier needs
 		sim.take_talent(knight.id, node)
 	sim.spend_paragon(knight.id, TrainingDef.Stat.TOUGHNESS)
 	sim.step()
@@ -420,6 +422,7 @@ func test_r9_saves() -> void:
 	raise(mage, 34)
 	raise(rogue, 6)
 	for node: StringName in _full(&"mage", 1):
+		give_rank(mage, node)  # spec 110: the rank each tier needs
 		sim.take_talent(mage.id, node)
 	sim.take_talent(rogue.id, &"backstab")
 	sim.spend_paragon(mage.id, TrainingDef.Stat.QUICKNESS)
