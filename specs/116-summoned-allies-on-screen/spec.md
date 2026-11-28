@@ -106,6 +106,7 @@ summon's line. Describe each shot.
 - `tests/acceptance/test_116_summoned_allies_on_screen.gd` and its `.uid`
 - `docs/architecture.md` (summons in the view), `docs/style-bible.md` (only if the placeholder adds a
   convention)
+- `game/effects/combat_effects.gd` (only `_healed` asking `AbilityEffects` for a heal number's colour, for R2)
 
 ## Open questions
 
