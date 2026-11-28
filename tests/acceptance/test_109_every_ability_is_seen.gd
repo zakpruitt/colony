@@ -136,6 +136,9 @@ func _full_party() -> Simulation:
 		for node: StringName in _every_node(StringName(class_text)):
 			names.append(String(node))
 		saved["talents"] = names
+		var tree: TalentTreeDef = _tree(StringName(class_text))
+		var top: int = tree.rank_xp[tree.rank_xp.size() - 1]
+		saved["paths"] = [top, top, top]  # spec 110: every tier's rank
 	data["upgrades"] = FULL_UPGRADES.duplicate()
 	for field: String in ["last_stable_depth", "deepest_depth", "target_depth"]:
 		data[field] = FULL_STAGE

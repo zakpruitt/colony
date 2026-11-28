@@ -763,6 +763,7 @@ func _end_battle(won: bool) -> void:
 	battle = null
 	_battle_key = Vector2i(0, -1)
 	if won:
+		PathTraining.after_win(self, fought)
 		fill.cleared_tick = _tick
 		fill.monsters = []
 		# The party gathers where its front hero stands.

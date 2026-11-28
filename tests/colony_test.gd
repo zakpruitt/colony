@@ -154,13 +154,25 @@ static func before_guardian(
 
 
 ## Spends [param hero]'s talent points on its tree's first path, then its second, then its third, in
-## order.
+## order, giving each path the XP its deepest node held needs.
 static func _spend_talents(hero: Hero) -> void:
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
 	var order: Array[StringName] = tree.path(0).nodes.duplicate()
 	order.append_array(tree.path(1).nodes)
 	order.append_array(tree.path(2).nodes)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))
+	var taken: Array[StringName] = order.slice(0, TalentRules.talent_points_at(hero.level))
+	hero.set_talents(taken)
+	for node: StringName in taken:
+		give_rank(hero, node)
+
+
+## Gives [param hero]'s path of [param node] the XP the node's tier needs, if it has less.
+static func give_rank(hero: Hero, node: StringName) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+	var needed: int = tree.rank_needed(node)
+	var path: int = tree.path_of(node)
+	if needed > 0 and hero.ranks.rank(path, tree) < needed:
+		hero.ranks.set_xp(path, tree.rank_xp[needed - 1])
 
 
 # --- Talents worth having (specs 051 and 109) ---------------------------------

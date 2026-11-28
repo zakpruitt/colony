@@ -59,6 +59,9 @@ var spent: Dictionary[StringName, bool] = {}
 ## The hero's own [member Hero.used], shared: its actions, least recently used first. The
 ## battle moves an action to its end when it is used.
 var used: Array[StringName] = []
+## Set by the battle: how many times this fighter was the source of an ABILITY_USED event this
+## fight, by ability id.
+var uses: Dictionary[StringName, int] = {}
 ## Set by the battle: ordinary strikes made this fight.
 var strikes: int = 0
 ## Set by the battle: false from an action until the next swing lands (a strike or a heal), so
@@ -165,9 +168,11 @@ func taken_multiplier() -> float:
 
 
 ## Clears what one fight leaves on the fighter: statuses, the action in hand, cooldowns
-## (each action ready at the start, or one cooldown in), once-a-fight passives and the strike count.
+## (each action ready at the start, or one cooldown in), once-a-fight passives, the uses counted
+## and the strike count.
 func reset_abilities() -> void:
 	pending_action = null
+	uses.clear()
 	chasing = &""
 	statuses.clear()
 	spent.clear()

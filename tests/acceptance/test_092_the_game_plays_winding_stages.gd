@@ -74,7 +74,7 @@ func _full_save() -> Dictionary:
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
 	var safe: int = data["last_stable_depth"]
-	assert_eq(version, 10, "the save is version 10")
+	assert_eq(version, 11, "the save is version 11")
 	assert_eq(safe, 2, "the safe stage is one past the first")
 	assert_false((data["areas"] as Dictionary).is_empty(), "it has been in two areas")
 	return _through_json(data)
@@ -173,7 +173,7 @@ func test_r2_a_save_comes_back_winding_with_its_progress() -> void:
 		var kept: Dictionary = sim.to_save()
 		var wanted: Dictionary = flat.to_save()
 		var version: int = kept["version"]
-		assert_eq(version, 10, "%s: the save's version stays 10" % what)
+		assert_eq(version, 11, "%s: the save's version stays 11" % what)
 		assert_eq(kept.keys(), wanted.keys(), "%s: nothing is added to the save" % what)
 		for key: String in wanted:
 			var loaded: String = JSON.stringify(kept[key])

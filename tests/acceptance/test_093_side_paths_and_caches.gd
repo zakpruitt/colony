@@ -783,7 +783,7 @@ func test_r7_no_gate_opened_keeps_the_hash_and_the_save() -> void:
 			quiet.state_hash(), QUIET_HASHES[seed_value], "seed %d: the hash it had" % seed_value
 		)
 
-	assert_eq(Simulation.SAVE_VERSION, 10, "the save's version is what the orders made it")
+	assert_eq(Simulation.SAVE_VERSION, 11, "the save's version is what the orders made it")
 	var found: Vector2i = _find(1, false)
 	var sim: Simulation = winding_simulation(found.x)
 	var e: Expedition = sim.expedition

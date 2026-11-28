@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 10
+const SAVE_VERSION: int = 11
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero.
@@ -496,6 +496,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = _save_8_to_9(current)
 	if SaveChecks.whole(current["version"]) == 9:
 		current = TalentSave.upgrade_9_to_10(current)
+	if SaveChecks.whole(current["version"]) == 10:
+		current = TalentSave.upgrade_10_to_11(current)
 	return current
 
 

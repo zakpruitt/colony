@@ -20,6 +20,7 @@ enum Kind {
 	TALENT_TAKEN,
 	PARAGON_SPENT,
 	TALENTS_RESET,
+	PATH_RANKED,
 	ORDER_CHANGED,
 	ABILITY_STARTED,
 	ABILITY_USED,
@@ -68,7 +69,8 @@ var target_id: int = -1
 ## hero: TALENT_POINT_GAINED: the level that earned it; TALENT_TAKEN: the talent points left, with
 ## [member ability_id] the node; PARAGON_SPENT: the points now in the stat, with
 ## [member target_id] the stat's position in [method Content.training_ids]; TALENTS_RESET: the
-## gold paid. For ORDER_CHANGED: the order's new value
+## gold paid; PATH_RANKED: the path's new rank, with [member target_id] the path (0 to 2).
+## For ORDER_CHANGED: the order's new value
 ## ([enum Expedition.Pace] or [enum Expedition.GuardianOrder]), with [member target_id] which order:
 ## [constant PartyOrders.PACE] (0) or [constant PartyOrders.GUARDIANS] (1).
 ## For the ability kinds, with [member source_id] the fighter and [member target_id] whom it is on:

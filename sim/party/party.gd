@@ -91,6 +91,12 @@ func hash_parts() -> Array:
 			for stat: int in TrainingDef.Stat.values():
 				ranks.append(h.paragon_rank(stat as TrainingDef.Stat))
 			hero_parts.append([h.talents(), ranks])
+		# Only when some is earned, to keep the hash of a run that spends nothing.
+		if h.ranks.any():
+			var paths: Array = []
+			for path: int in TalentTreeDef.PATH_COUNT:
+				paths.append(h.ranks.xp(path))
+			hero_parts.append(["paths", paths])
 		parts.append(hero_parts)
 	# Only when held, to keep the hash of a party with no resources.
 	if has_resources():

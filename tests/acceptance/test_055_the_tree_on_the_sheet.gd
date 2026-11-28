@@ -179,6 +179,7 @@ func test_r4_taking_a_node() -> void:
 	assert_eq(knight.talents(), [&"whirlwind"] as Array[StringName], "taken by a click")
 	_click_node(&"taunt")
 	_frame()
+	give_rank(knight, &"reckless_swing")
 	_click_node(&"reckless_swing")
 	_frame()
 	var taken: Array[StringName] = [&"whirlwind", &"taunt", &"reckless_swing"]
@@ -189,6 +190,7 @@ func test_r4_taking_a_node() -> void:
 	assert_eq(knight.talents(), taken, "not reachable: nothing")
 	# While the page is hidden its handlers do nothing, whatever reaches them.
 	set_level_keeping_health(knight, 14)
+	give_rank(knight, &"rampage")
 	_sim.party.gold = RICH
 	_click_and_show(_sheet().tab_buttons[HeroWindow.Page.STATS])
 	_tab().press_node(&"rampage")
@@ -216,6 +218,7 @@ func test_r5_unspent_points_are_shown() -> void:
 	_click_node(tree.path(0).nodes[0])
 	_frame()
 	assert_eq(sheet.talents_tag.count, 1, "the tab says one")
+	give_rank(knight, tree.path(0).nodes[1])
 	_click_node(tree.path(0).nodes[1])
 	_frame()
 	assert_false(sheet.talents_tag.is_visible_in_tree(), "no mark")
@@ -431,6 +434,7 @@ func test_r10_true_in_a_crowded_frame() -> void:
 		_sim.step()
 		ticks += 1
 	assert_eq(knight.level, 4, "three levels in one award")
+	give_rank(knight, tree.path(0).nodes[1])
 	_sim.take_talent(knight.id, tree.path(0).nodes[0])
 	_sim.step()
 	_world.sync(STEP)

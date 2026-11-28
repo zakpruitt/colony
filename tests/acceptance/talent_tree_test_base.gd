@@ -58,6 +58,17 @@ func _game(room: Vector2i = ROOM_LARGE) -> Main:
 	return main
 
 
+## [method _game], with every path of every hero at its top rank: a test of how the tree takes and
+## shows nodes whose ranks are not its subject.
+func _ranked_game(room: Vector2i = ROOM_LARGE) -> Main:
+	var main: Main = _game(room)
+	for hero: Hero in main.simulation.party.heroes:
+		var tree: TalentTreeDef = _tree(hero.class_id)
+		for path: int in TalentTreeDef.PATH_COUNT:
+			hero.ranks.set_xp(path, tree.rank_xp[tree.rank_xp.size() - 1])
+	return main
+
+
 func _view(shown: HeroWindow) -> TalentTreeView:
 	return shown.talents.tree_view()
 

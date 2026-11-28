@@ -107,6 +107,13 @@ func _take(sim: Simulation, hero: Hero, node: StringName) -> Array[SimEvent]:
 	return sim.drain_events()
 
 
+## Gives each of [param hero]'s paths its top rank's XP: spec 110's ranks open every tier.
+func _top_ranks(hero: Hero) -> void:
+	var tree: TalentTreeDef = _tree(hero.class_id)
+	for path: int in TalentTreeDef.PATH_COUNT:
+		hero.ranks.set_xp(path, tree.rank_xp[tree.rank_xp.size() - 1])
+
+
 func _refused(tree: TalentTreeDef, words: String) -> bool:
 	return "\n".join(tree.validate()).contains(words)
 
@@ -295,6 +302,7 @@ func test_r3_taking_a_node() -> void:
 
 	raise(knight, 30)
 	assert_eq(knight.talent_points(), 15)
+	_top_ranks(knight)  # every tier's rank (spec 110)
 	var not_open: Array[StringName] = [&"backstab", &"no_such_node"]
 	for each: Array[StringName] in [guardian, berserker, warlord]:
 		not_open.append_array(each.slice(1))
@@ -348,6 +356,7 @@ func test_r3_taking_a_node() -> void:
 	for class_id: StringName in CLASSES:
 		var hero: Hero = sim.party.heroes[CLASSES.find(class_id)]
 		raise(hero, 30)
+		_top_ranks(hero)
 		var all: Array[StringName] = []
 		for index: int in 3:
 			all.append_array(_tree(class_id).path(index).nodes)
@@ -482,6 +491,7 @@ func test_r4_the_order_of_use_is_kept() -> void:
 		for path: SkillPathDef in _tree(hero.class_id).paths:
 			all.append_array(path.nodes)
 		hero.set_talents(all)
+		_top_ranks(hero)
 	var plain: Simulation = Simulation.from_save(_through_json(sim.to_save()))
 	assert_not_null(plain, "a party with every node loads")
 	if plain == null:
@@ -527,6 +537,7 @@ func test_r5_fresh_start() -> void:
 	var sim := Simulation.new(SEED)
 	var knight: Hero = sim.party.heroes[0]
 	raise(knight, 32)
+	_top_ranks(knight)
 	var tree: TalentTreeDef = _tree(&"knight")
 	var nodes: Array[StringName] = tree.path(1).nodes.duplicate()
 	nodes.append_array(tree.path(2).nodes.slice(0, 2))
@@ -581,12 +592,13 @@ func test_r5_fresh_start() -> void:
 
 
 func test_r6_saves() -> void:
-	assert_eq(Simulation.SAVE_VERSION, 10)
+	assert_eq(Simulation.SAVE_VERSION, 11)
 	var sim := Simulation.new(SEED)
 	var mage: Hero = sim.party.heroes[2]
 	var cleric: Hero = sim.party.heroes[3]
 	raise(mage, 18)
 	raise(cleric, 33)
+	_top_ranks(mage)
 	var tree: TalentTreeDef = _tree(&"mage")
 	var order: Array[StringName] = [
 		tree.path(2).nodes[0],
@@ -606,7 +618,7 @@ func test_r6_saves() -> void:
 	assert_eq(mage.talents(), order, "taken in that order")
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
-	assert_eq(version, 10, "saved at version 10")
+	assert_eq(version, 11, "saved at version 11")
 	var saved_talents: Array = data["heroes"][2]["talents"]
 	assert_eq(saved_talents, order.map(func(n: StringName) -> String: return String(n)), "order")
 	var back: Simulation = Simulation.from_save(_through_json(data))

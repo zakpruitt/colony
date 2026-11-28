@@ -245,7 +245,7 @@ func test_r2_the_order_is_an_order() -> void:
 ## R3: the round trip of both values; a version 8 save loads at Explore; a bad value is refused
 ## by name.
 func test_r3_the_order_is_saved() -> void:
-	assert_eq(Simulation.SAVE_VERSION, 10, "the save's version")
+	assert_eq(Simulation.SAVE_VERSION, 11, "the save's version")
 	assert_eq(PartyOrders.SIDE_PATHS_SAVED, SAVED, "the names the save writes")
 	var pressing: Dictionary = {}
 	for order: Expedition.SidePaths in [EXPLORE, PRESS_ON]:
@@ -254,7 +254,7 @@ func test_r3_the_order_is_saved() -> void:
 		run_ticks(sim, 5)
 		var data: Dictionary = _through_json(sim.to_save())
 		var version: int = data["version"]
-		assert_eq(version, 10, "%s: saved as version 10" % SAVED[order])
+		assert_eq(version, 11, "%s: saved as version 11" % SAVED[order])
 		assert_eq(str(data.get("side_paths")), SAVED[order], "%s: by name" % SAVED[order])
 		assert_eq(Simulation.save_problems(data).size(), 0, "%s: sound" % SAVED[order])
 		var loaded: Simulation = Simulation.from_save(data)
@@ -275,7 +275,7 @@ func test_r3_the_order_is_saved() -> void:
 		assert_eq(problems.size(), 0, "version %d is sound: %s" % [version, problems])
 		var upgraded: Dictionary = Simulation.upgrade_save(old)
 		var reached: int = upgraded["version"]
-		assert_eq(reached, 10, "version %d comes up to 10" % version)
+		assert_eq(reached, 11, "version %d comes up to 11" % version)
 		assert_eq(str(upgraded.get("side_paths")), "explore", "version %d: at Explore" % version)
 		var old_loaded: Simulation = Simulation.from_save(old)
 		assert_not_null(old_loaded, "version %d loads" % version)

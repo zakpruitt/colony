@@ -17,7 +17,10 @@ extends SceneTree
 ## the party will arrive ("journeying_to").
 ## With --spend-talents each hero spends its points as they come ([TalentSpender]): its
 ## first path tier by tier, then the other paths, and every paragon point into Power. Each hero in
-## the summary lists the nodes it took ("talents"). "slime_king_won" is the game time of the first
+## the summary lists the nodes it took ("talents").
+## Each hero in the summary also gives its three path ranks at the end ("ranks"), the game time it
+## learned its first tier-4 node ("capstone_at") and the time it held every node ("full_at"),
+## each null if it never did. "slime_king_won" is the game time of the first
 ## win over the Slime King, or null, and "wipes_before_slime_king" counts the wipes before it (all
 ## of the run's, without one).
 ## The summary names the resources the party holds at the end ("resources").
@@ -69,6 +72,8 @@ func _init() -> void:
 	var wipes: int = 0
 	var caches: int = 0
 	var kills: Dictionary[String, int] = {}
+	var capstone_at: Dictionary[int, float] = {}
+	var full_at: Dictionary[int, float] = {}
 	var ticks: int = roundi(minutes * 60.0 * Simulation.TICKS_PER_SECOND)
 	for i: int in ticks:
 		# A battle can end within the step, so remember it to name the dead.
@@ -114,6 +119,8 @@ func _init() -> void:
 						wipes_before_king += 1
 				SimEvent.Kind.CACHE_OPENED:
 					caches += 1
+				SimEvent.Kind.TALENT_TAKEN:
+					_note_talent(sim.party.hero(event.source_id), now, capstone_at, full_at)
 				SimEvent.Kind.DIED:
 					var dead: Combatant = fight.combatant(event.source_id) if fight else null
 					if dead != null and dead.team == Combatant.Team.MONSTERS:
@@ -126,6 +133,10 @@ func _init() -> void:
 		var talents: Array[String] = []
 		for node: StringName in hero.talents():
 			talents.append(String(node))
+		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
+		var ranks: Array[int] = []
+		for path: int in TalentTreeDef.PATH_COUNT:
+			ranks.append(hero.ranks.rank(path, tree))
 		(
 			heroes
 			. append(
@@ -134,6 +145,9 @@ func _init() -> void:
 					"level": hero.level,
 					"xp": hero.xp,
 					"talents": talents,
+					"ranks": ranks,
+					"capstone_at": capstone_at.get(hero.id, null),
+					"full_at": full_at.get(hero.id, null),
 				}
 			)
 		)
@@ -203,6 +217,24 @@ func _open_areas(sim: Simulation) -> Array[String]:
 		if sim.is_area_open(id):
 			open.append(String(id))
 	return open
+
+
+## Records [param seconds] as when [param hero] first held a tier-4 node, and when it first held
+## its whole tree, unless each already happened.
+func _note_talent(
+	hero: Hero, seconds: float, capstone_at: Dictionary[int, float], full_at: Dictionary[int, float]
+) -> void:
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
+	if tree == null:
+		return
+	var taken: Array[StringName] = hero.talents()
+	for node: StringName in taken:
+		if tree.tier_of(node) == TalentTreeDef.TIERS[TalentTreeDef.TIERS.size() - 1]:
+			if not capstone_at.has(hero.id):
+				capstone_at[hero.id] = seconds
+	if taken.size() >= TalentTreeDef.PATH_COUNT * TalentTreeDef.PATH_LENGTH:
+		if not full_at.has(hero.id):
+			full_at[hero.id] = seconds
 
 
 ## Records [param seconds] as the time of [param key] unless that first already happened.

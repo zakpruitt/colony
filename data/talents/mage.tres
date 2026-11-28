@@ -25,3 +25,6 @@ nodes = Array[StringName]([&"lightning_bolt", &"chain_spark", &"static_field", &
 script = ExtResource("1")
 class_id = &"mage"
 paths = Array[ExtResource("2")]([SubResource("path_1"), SubResource("path_2"), SubResource("path_3")])
+rank_xp = Array[int]([7, 17, 35, 63, 105, 168, 245, 343, 455, 595])
+tier_ranks = Array[int]([0, 2, 5, 9])
+uses_counted = 3

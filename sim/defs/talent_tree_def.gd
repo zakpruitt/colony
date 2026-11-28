@@ -2,7 +2,9 @@ class_name TalentTreeDef
 extends ContentDef
 ## One class's talent tree: three named [SkillPathDef]s of five nodes, each node an
 ## [AbilityDef] id. Nothing closes a path: a hero may take every node of all three, each once the
-## node before it in its path is taken. One .tres file per class under res://data/talents.
+## node before it in its path is taken and the path's rank opens its tier. A path ranks up by use:
+## its XP ([PathRanks]) reaches each of [member rank_xp] in turn. One .tres file per class under
+## res://data/talents.
 
 const PATH_COUNT: int = 3
 const PATH_LENGTH: int = 5
@@ -13,6 +15,32 @@ const _SUMMARY_LENGTH: int = 60
 
 @export var class_id: StringName
 @export var paths: Array[SkillPathDef] = []
+## The total path XP for ranks 1, 2 and on, in rising order.
+@export var rank_xp: Array[int] = []
+## The rank each tier needs, tier 1 first: four entries.
+@export var tier_ranks: Array[int] = []
+## The most uses of one ability counted for path XP in one fight, so a passive that fires on every
+## strike does not rank its path far faster than a path of actions.
+@export var uses_counted: int = 3
+
+
+## The rank [param xp] path XP gives: how many of [member rank_xp] it has reached.
+func rank_at(xp: int) -> int:
+	var rank: int = 0
+	for total: int in rank_xp:
+		if xp < total:
+			break
+		rank += 1
+	return rank
+
+
+## The rank [param ability_id]'s path needs before it can be taken: [member tier_ranks] at its
+## tier; 0 for a node not in the tree.
+func rank_needed(ability_id: StringName) -> int:
+	var tier: int = tier_of(ability_id)
+	if tier <= 0 or tier > tier_ranks.size():
+		return 0
+	return tier_ranks[tier - 1]
 
 
 ## Path [param index] (0 to 2), or null for any other index.
@@ -166,7 +194,36 @@ func validate() -> PackedStringArray:
 			elif ability.is_action() and not ability.ready_at_start:
 				# Fights last seconds, so an action waits only for its condition.
 				problems.append("'%s' is an action not ready as a fight starts" % node)
+	_check_ranks(problems)
 	return problems
+
+
+func _check_ranks(problems: PackedStringArray) -> void:
+	if rank_xp.is_empty():
+		problems.append("rank_xp is empty")
+	for i: int in rank_xp.size():
+		var floor_xp: int = rank_xp[i - 1] if i > 0 else 0
+		if rank_xp[i] <= floor_xp:
+			problems.append("rank_xp[%d]: %d is not above %d" % [i, rank_xp[i], floor_xp])
+	var tiers: int = TIERS[TIERS.size() - 1]
+	if tier_ranks.size() != tiers:
+		problems.append("tier_ranks has %d entries, not %d" % [tier_ranks.size(), tiers])
+	elif tier_ranks[0] != 0:
+		problems.append("tier_ranks[0]: %d, not 0 (tier 1 is open from the start)" % tier_ranks[0])
+	for i: int in range(1, tier_ranks.size()):
+		if tier_ranks[i] < tier_ranks[i - 1]:
+			problems.append(
+				"tier_ranks[%d]: %d is below %d" % [i, tier_ranks[i], tier_ranks[i - 1]]
+			)
+	if not tier_ranks.is_empty() and tier_ranks[tier_ranks.size() - 1] > rank_xp.size():
+		problems.append(
+			(
+				"tier_ranks[%d]: rank %d, but rank_xp has %d ranks"
+				% [tier_ranks.size() - 1, tier_ranks[tier_ranks.size() - 1], rank_xp.size()]
+			)
+		)
+	if uses_counted < 0:
+		problems.append("uses_counted: %d is below 0" % uses_counted)
 
 
 func _place_of(ability_id: StringName) -> int:

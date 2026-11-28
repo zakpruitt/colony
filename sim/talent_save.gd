@@ -1,10 +1,11 @@
 class_name TalentSave
 extends RefCounted
-## How each hero's talents and paragon points are saved, checked and brought forward from
-## versions 6 and 9, kept apart from [Simulation] as [AreaSave] is.
+## How each hero's talents, path XP and paragon points are saved, checked and brought forward from
+## versions 6, 9 and 10, kept apart from [Simulation] as [AreaSave] is.
 ##
 ## A saved hero carries "talents" (its nodes, in the order taken), "used" (its actions, least
-## recently used first: [member Hero.used]) and "paragon" (a dictionary of [TrainingDef] id to the
+## recently used first: [member Hero.used]), "paths" (its XP in each of its class's three paths, in
+## path order: [member Hero.ranks]) and "paragon" (a dictionary of [TrainingDef] id to the
 ## points spent in that stat). Unspent points are not saved: they are
 ## what the hero's level earns less what it spent.
 
@@ -31,6 +32,10 @@ static func write(hero: Hero, saved: Dictionary) -> void:
 		paragon[String(training_id)] = hero.paragon_rank(stat)
 	saved["talents"] = talents
 	saved["used"] = Array(hero.used.map(func(id: StringName) -> String: return String(id)))
+	var paths: Array = []
+	for path: int in TalentTreeDef.PATH_COUNT:
+		paths.append(hero.ranks.xp(path))
+	saved["paths"] = paths
 	saved["paragon"] = paragon
 
 
@@ -45,6 +50,9 @@ static func read(hero: Hero, saved: Dictionary) -> void:
 	for id: Variant in saved["used"] as Array:
 		order.append(StringName(id as String))
 	hero.used.assign(order)
+	var paths: Array = saved["paths"]
+	for path: int in paths.size():
+		hero.ranks.set_xp(path, SaveChecks.whole(paths[path]))
 	var paragon: Dictionary = saved["paragon"]
 	for key: Variant in paragon:
 		var stat: TrainingDef.Stat = Content.training(StringName(key as String)).stat
@@ -64,6 +72,8 @@ static func check(
 	if saved.has("training"):
 		problems.append("%s.training: a rank that cannot be given back as gold" % where)
 	_check_talents(problems, saved.get("talents"), class_def, level, where + ".talents")
+	if _check_paths(problems, saved.get("paths"), where + ".paths") and class_def != null:
+		_check_ranks(problems, saved, Content.talent_tree(class_def.id), where + ".talents")
 	_check_used(problems, saved.get("used"), saved.get("talents"), where + ".used")
 	_check_paragon(problems, saved.get("paragon"), level, where + ".paragon")
 
@@ -102,6 +112,20 @@ static func upgrade_9_to_10(data: Dictionary) -> Dictionary:
 			if saved is Dictionary:
 				(saved as Dictionary)["talents"] = []
 				(saved as Dictionary)["used"] = []
+	return data
+
+
+## Version 10 had no path ranks: version 11 gives every hero its talents back, as version 10 did,
+## and starts every path at 0 XP.
+static func upgrade_10_to_11(data: Dictionary) -> Dictionary:
+	data["version"] = 11
+	var heroes: Variant = data.get("heroes")
+	if heroes is Array:
+		for saved: Variant in heroes as Array:
+			if saved is Dictionary:
+				(saved as Dictionary)["talents"] = []
+				(saved as Dictionary)["used"] = []
+				(saved as Dictionary)["paths"] = [0, 0, 0]
 	return data
 
 
@@ -158,6 +182,45 @@ static func _check_talents(
 				% [where, taken.size(), level, TalentRules.talent_points_at(level)]
 			)
 		)
+
+
+## True if [param value] is a list of three whole numbers of 0 or more; else adds why not.
+static func _check_paths(problems: PackedStringArray, value: Variant, where: String) -> bool:
+	if not (value is Array) or (value as Array).size() != TalentTreeDef.PATH_COUNT:
+		problems.append("%s: missing or not a list of three" % where)
+		return false
+	for xp: Variant in value as Array:
+		if not SaveChecks.is_whole(xp) or SaveChecks.whole(xp) < 0:
+			problems.append("%s: %s is not three whole numbers of 0 or more" % [where, str(value)])
+			return false
+	return true
+
+
+## Adds a problem for each node [param saved] holds whose tier needs a higher rank than its path's
+## saved XP gives.
+static func _check_ranks(
+	problems: PackedStringArray, saved: Dictionary, tree: TalentTreeDef, where: String
+) -> void:
+	var talents: Variant = saved.get("talents")
+	if tree == null or not (talents is Array):
+		return
+	var paths: Array = saved["paths"]
+	for i: int in (talents as Array).size():
+		var node: Variant = (talents as Array)[i]
+		if typeof(node) != TYPE_STRING:
+			return
+		var path: int = tree.path_of(StringName(node as String))
+		if path < 0:
+			continue
+		var rank: int = tree.rank_at(SaveChecks.whole(paths[path]))
+		var needed: int = tree.rank_needed(StringName(node as String))
+		if rank < needed:
+			problems.append(
+				(
+					"%s[%d]: '%s' needs rank %d in %s, but its XP gives rank %d"
+					% [where, i, node, needed, tree.path(path).display_name, rank]
+				)
+			)
 
 
 static func _check_used(
