@@ -92,7 +92,7 @@ real frame.
 | R6 | `test_r6_drawn_as_it_looks` | The added class (it looks like the Knight) has the Knight's sheet and picture everywhere, under its own name |
 | R7 | `test_r7_true_in_a_crowded_frame` | The 300-tick frame |
 
-**To look at, and for Zak:** three frames of a swap while travelling and one at rest, at 1280x720
+**To look at, and for Zak:** three frames of a swap made at camp, at 1280x720
 and `--ui-room=960x540` (a throwaway scene under `.shots/` that adds a class, recruits and swaps);
 the bench window beside a hero window. Describe each shot.
 

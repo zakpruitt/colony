@@ -66,9 +66,10 @@ nothing the game does changes yet.
     artifact is not found, a class already in the colony, or a price the party cannot pay.
 - **R4. Choosing the four.**
   - `roster.swap(bench_id, field_id)` asks for a benched hero to go down in place of a hero going
-    down. It is made on the first step on which the expedition is travelling or resting, which may be
-    the next. A swap asked for while the party fights, climbs, works a quest, journeys or waits to be
-    revived waits until then. `roster.waiting()` lists the swaps waiting, in the order asked.
+    down. It is made on the first step on which the expedition is resting (at camp), which may be
+    the next. A swap asked for at any other time (travelling, a side path, a fight, a climb, a quest,
+    a journey, waiting to be revived) waits until the party next rests. Everyone heals at camp, so a
+    swap gives no free heal, and no hero leaves in the middle of a side path it opened. `roster.waiting()` lists the swaps waiting, in the order asked.
   - When a swap is made, each hero is checked again; a swap whose heroes are no longer where it
     asked (one was swapped already) is dropped with no event.
   - The four going down always stand by role (tank, melee, ranged, healer, as `HeroClassDef.Role`
@@ -217,7 +218,7 @@ both out again when a test added them.
 | R1 | `test_r1_artifact_and_request_as_data` | Each bad field refused by name; the four classes pass |
 | R2 | `test_r2_found_in_caches` | At chance 1 the first cache opened finds it, its event after the cache's; at 0.12 a seeded run finds it on the cache its fork says; a found class is never drawn again; with no candidate, a run's events and hashes equal those of one where `ArtifactFinds` is never called |
 | R3 | `test_r3_recruiting` | No recruit before the find; waiting after it; a recruit with the request paid, its level the lowest going down, its points unspent, on the bench, its id, the event. Each refusal (unknown, not found, already in, short of gold, short of glowcaps) sends nothing and takes nothing |
-| R4 | `test_r4_choosing_the_four` | A swap while travelling is made on the next step, by role, at full health, with the event. One asked during a fight waits, is listed, and is made when the fight is won. A stale swap is dropped. Bad ids do nothing |
+| R4 | `test_r4_choosing_the_four` | A swap asked while resting is made on the next step, by role, at full health, with the event. One asked while travelling or during a fight waits, is listed, and is made at the next rest. A stale swap is dropped. Bad ids do nothing |
 | R5 | `test_r5_a_benched_hero` | Ten won fights give the bench no XP, no path XP and no quest; a benched hero takes a node, spends paragon and resets by command |
 | R6 | `test_r6_saves` | A round trip with a bench and an artifact found; ids on loading; a version 11 save loads with an empty bench and no artifact; each bad value refused by name |
 | R7 | `test_r7_nothing_changes` | A new game's party; the recorded hashes; a run that never recruits equal to one before, tick for tick |
