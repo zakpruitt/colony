@@ -859,10 +859,11 @@ func test_r9_in_the_showcase_and_the_cast_demo() -> void:
 		assert_true(shown, "labelled %s" % move)
 
 	var scene: PackedScene = load("res://game/dev/showcase.tscn")
-	var showcase: Showcase = scene.instantiate() as Showcase
-	add_child_autofree(showcase)
-	showcase.set_process(false)
 	for moment: StringName in Showcase.CLASS_MOMENTS:
+		# A showcase of its own for each: one class's moment runs on into the next's.
+		var showcase: Showcase = scene.instantiate() as Showcase
+		add_child_autofree(showcase)
+		showcase.set_process(false)
 		var class_id: StringName = Showcase.CLASS_MOMENTS[moment]
 		var tree: TalentTreeDef = Content.talent_tree(class_id)
 		var own: Dictionary[StringName, bool] = {}
