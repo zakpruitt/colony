@@ -252,6 +252,7 @@ A test that fails for any other reason is a bug in the data or the lane's code.
   and their `.uid`s, `tests/colony_test.gd` (only if a helper must take a class it does not), and
   the files in "Tests that change"
 - `docs/wiki/index.html`, `docs/style-bible.md` (the cast: the Tinker drawn as the Knight for now)
+- `tests/acceptance/test_107_the_quest_story.gd` (only where it counts or lists every class, as spec 117 amends it)
 
 ## Open questions
 
