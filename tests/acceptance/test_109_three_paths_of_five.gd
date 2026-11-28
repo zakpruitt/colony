@@ -592,7 +592,7 @@ func test_r5_fresh_start() -> void:
 
 
 func test_r6_saves() -> void:
-	assert_eq(Simulation.SAVE_VERSION, 11)
+	assert_eq(Simulation.SAVE_VERSION, 12)
 	var sim := Simulation.new(SEED)
 	var mage: Hero = sim.party.heroes[2]
 	var cleric: Hero = sim.party.heroes[3]
@@ -618,7 +618,7 @@ func test_r6_saves() -> void:
 	assert_eq(mage.talents(), order, "taken in that order")
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
-	assert_eq(version, 11, "saved at version 11")
+	assert_eq(version, 12, "saved at version 12")
 	var saved_talents: Array = data["heroes"][2]["talents"]
 	assert_eq(saved_talents, order.map(func(n: StringName) -> String: return String(n)), "order")
 	var back: Simulation = Simulation.from_save(_through_json(data))
