@@ -5,7 +5,7 @@ extends PanelContainer
 ##
 ## A hero's card ([method for_hero]) shows its picture (a click on it opens the hero's window),
 ## its title ([method HeroTalentsTab.title]), its level, [code]At Camp[/code] when it is benched,
-## and a [code]Swap[/code] button with, beside it, [code]At the next camp[/code] while a swap of it
+## and a [code]Swap[/code] button with, beside it, [code]At the next Camp[/code] while a swap of it
 ## waits. It is lit (a yellow edge) while it is the choice a swap starts from.
 ##
 ## A waiting class's card ([method for_recruit]) shows the class's picture and name, the artifact
@@ -17,7 +17,7 @@ extends PanelContainer
 signal pressed
 
 ## The card's words once a swap of its hero is asked for, and on a benched hero's.
-const WAITING_WORDS: String = "At the next camp"
+const WAITING_WORDS: String = "At the next Camp"
 const CAMP_WORDS: String = "At Camp"
 ## UI pixels: the space inside the card's edge, and the gaps between its picture and its words
 ## and between the parts of a line.

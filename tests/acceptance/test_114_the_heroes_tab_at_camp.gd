@@ -309,8 +309,8 @@ func test_r3_two_clicks() -> void:
 	assert_eq(sim.roster.waiting(), [Vector2i(RECRUIT, KNIGHT)] as Array[Vector2i], "asked")
 	assert_eq(tab.chosen(), -1, "the light goes")
 	_frame(main)
-	assert_eq(benched.mark_label.text, "At the next camp", "the recruit's card marked")
-	assert_eq(knight.mark_label.text, "At the next camp", "and the Knight's")
+	assert_eq(benched.mark_label.text, "At the next Camp", "the recruit's card marked")
+	assert_eq(knight.mark_label.text, "At the next Camp", "and the Knight's")
 	assert_eq(tab.field_cards[1].mark_label.text, "", "no other")
 	var done: bool = step_until(
 		sim, func() -> bool: return sim.expedition.state != Expedition.State.FIGHTING, LIMIT_TICKS
@@ -631,7 +631,7 @@ func test_r7_keys_help_wiki_showcase() -> void:
 		"112 The roster",
 		"113 The party changes on screen",
 		"114 The Heroes tab at camp",
-		"At the next camp",
+		"At the next Camp",
 		"Waiting at Camp",
 	]:
 		assert_true(wiki.contains(phrase), "the wiki tells of it: %s" % phrase)

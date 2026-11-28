@@ -11,7 +11,7 @@ extends VBoxContainer
 ## [code]Swap[/code] in the other group asks the simulation for the swap
 ## ([method Roster.swap]). The lit card's own button, any card of its own group, or
 ## [kbd]Esc[/kbd] with the Camp in front ([ShopWindow]) drops the choice and asks for nothing. A
-## swap asked for marks both cards [code]At the next camp[/code] until it is made or dropped. A
+## swap asked for marks both cards [code]At the next Camp[/code] until it is made or dropped. A
 ## click on a hero's picture opens its window ([method HeroWindows.open_hero]).
 ##
 ## The cards are made again the moment the colony changes (a find, a recruit, a swap), in the
