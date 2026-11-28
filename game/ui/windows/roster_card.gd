@@ -5,7 +5,7 @@ extends PanelContainer
 ##
 ## A hero's card ([method for_hero]) shows its picture (a click on it opens the hero's window),
 ## its title ([method HeroTalentsTab.title]), its level, [code]At Camp[/code] when it is benched,
-## and a [code]Swap[/code] button with, beside it, [code]After this fight[/code] while a swap of it
+## and a [code]Swap[/code] button with, beside it, [code]At the next camp[/code] while a swap of it
 ## waits. It is lit (a yellow edge) while it is the choice a swap starts from.
 ##
 ## A waiting class's card ([method for_recruit]) shows the class's picture and name, the artifact
@@ -17,7 +17,7 @@ extends PanelContainer
 signal pressed
 
 ## The card's words once a swap of its hero is asked for, and on a benched hero's.
-const WAITING_WORDS: String = "After this fight"
+const WAITING_WORDS: String = "At the next camp"
 const CAMP_WORDS: String = "At Camp"
 ## UI pixels: the space inside the card's edge, and the gaps between its picture and its words
 ## and between the parts of a line.
@@ -113,7 +113,7 @@ static func for_recruit(waiting: StringName, width: float) -> RosterCard:
 	made.request_icon = ResourceIcon.rect(def.recruit_resource)
 	made.request_icon.name = "RequestIcon"
 	made.request_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	made.request_icon.visible = def.recruit_resource != &""
+	made.request_icon.visible = def.recruit_resource != &"" and def.recruit_resource_count > 0
 	asks.add_child(made.request_icon)
 	made.recruit_button = WindowText.button("Recruit", "Recruit")
 	made.recruit_button.toggle_mode = false
@@ -132,14 +132,14 @@ static func request_text(def: HeroClassDef) -> String:
 	return "%s and %s %s" % [gold, count, ResourceIcon.title(def.recruit_resource)]
 
 
-## What a party holding [param gold] gold and [param held] of [param def]'s resource is short of
-## its request, in words ([code]Needs 120 more gold and 15 more Glowcaps[/code]); "" for nothing.
-static func short_text(def: HeroClassDef, gold: int, held: int) -> String:
+## What [param def]'s request still lacks ([param lacking], from [method Roster.lacks]: gold, then
+## its resource), in words ([code]Needs 120 more gold and 15 more Glowcaps[/code]); "" for nothing.
+static func short_text(def: HeroClassDef, lacking: Vector2i) -> String:
 	var parts: PackedStringArray = []
-	if gold < def.recruit_gold:
-		parts.append("%s more gold" % UiFormat.group_thousands(def.recruit_gold - gold))
-	if def.recruit_resource != &"" and held < def.recruit_resource_count:
-		var missing: String = UiFormat.group_thousands(def.recruit_resource_count - held)
+	if lacking.x > 0:
+		parts.append("%s more gold" % UiFormat.group_thousands(lacking.x))
+	if lacking.y > 0:
+		var missing: String = UiFormat.group_thousands(lacking.y)
 		parts.append("%s more %s" % [missing, ResourceIcon.title(def.recruit_resource)])
 	return "" if parts.is_empty() else "Needs " + " and ".join(parts)
 

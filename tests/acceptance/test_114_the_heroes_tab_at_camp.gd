@@ -71,6 +71,14 @@ func _open_heroes(main: Main) -> RosterTab:
 	return shop.heroes
 
 
+## Only the open tab's button is lit and drawn pressed.
+func _check_lit(shop: ShopWindow, when: String) -> void:
+	for i: int in shop.tab_buttons.size():
+		var tab: UiButton = shop.tab_buttons[i]
+		assert_eq(tab.lit, i == shop.page(), "%s: %s lit only when open" % [when, tab.text])
+		assert_eq(tab.button_pressed, i == shop.page(), "%s: %s drawn pressed" % [when, tab.text])
+
+
 ## The party, all but down, starts to rest where it stands; the camp sets up and the heroes sit.
 func _camp_out(main: Main) -> void:
 	for hero: Hero in main.simulation.party.heroes:
@@ -134,6 +142,7 @@ func test_r1_two_tabs() -> void:
 	assert_eq(shop.page(), ShopWindow.Page.UPGRADES, "on Upgrades first")
 	assert_true(shop.rows[0].is_visible_in_tree(), "the cards show")
 	assert_false(shop.heroes.is_visible_in_tree(), "the heroes do not")
+	_check_lit(shop, "on Upgrades")
 	sim.party.gold = RICH
 	var first: StringName = shop.rows[0].id
 	_press(main, KEY_1)
@@ -143,7 +152,7 @@ func test_r1_two_tabs() -> void:
 	assert_eq(shop.page(), ShopWindow.Page.HEROES, "E: the Heroes tab")
 	assert_true(shop.heroes.is_visible_in_tree(), "the heroes show")
 	assert_false(shop.rows[0].is_visible_in_tree(), "the cards do not")
-	assert_true(shop.tab_buttons[ShopWindow.Page.HEROES].lit, "its tab is lit")
+	_check_lit(shop, "on Heroes")
 	_press(main, KEY_1)
 	_press(main, KEY_B)
 	_frame(main)
@@ -300,8 +309,8 @@ func test_r3_two_clicks() -> void:
 	assert_eq(sim.roster.waiting(), [Vector2i(RECRUIT, KNIGHT)] as Array[Vector2i], "asked")
 	assert_eq(tab.chosen(), -1, "the light goes")
 	_frame(main)
-	assert_eq(benched.mark_label.text, "After this fight", "the recruit's card marked")
-	assert_eq(knight.mark_label.text, "After this fight", "and the Knight's")
+	assert_eq(benched.mark_label.text, "At the next camp", "the recruit's card marked")
+	assert_eq(knight.mark_label.text, "At the next camp", "and the Knight's")
 	assert_eq(tab.field_cards[1].mark_label.text, "", "no other")
 	var done: bool = step_until(
 		sim, func() -> bool: return sim.expedition.state != Expedition.State.FIGHTING, LIMIT_TICKS
@@ -558,6 +567,21 @@ func test_r6_fits() -> void:
 		var bar_size: Vector2 = bare.ui.bar.size
 		var upgrades_height: float = bare.ui.windows.window(ShopWindow.ID).size.y
 		bare.free()
+		# Opened the first time straight onto Heroes, as the showcase does: the same height, and
+		# cards sized for the themed window.
+		var straight: Main = _camp_main(room, true)
+		straight.hud.shop.set_page(ShopWindow.Page.HEROES)
+		_press(straight, KEY_U)
+		_frame(straight, 0)
+		await _frames()
+		var opened: UiWindow = straight.ui.windows.window(ShopWindow.ID)
+		assert_eq(opened.size.y, upgrades_height, "%s: as tall opened straight on Heroes" % room)
+		var heroes: RosterTab = straight.hud.shop.heroes
+		var half: float = (straight.hud.shop.heroes_scroll.size.x - ShopWindow.SCROLL_ROOM) / 2.0
+		assert_almost_eq(
+			heroes.field_cards[0].size.x, half, RosterTab.CARD_GAP, "%s: cards fill the tab" % room
+		)
+		straight.free()
 		var main: Main = _camp_main(room)
 		var sim: Simulation = main.simulation
 		for hero: Hero in sim.party.heroes:
@@ -607,7 +631,7 @@ func test_r7_keys_help_wiki_showcase() -> void:
 		"112 The roster",
 		"113 The party changes on screen",
 		"114 The Heroes tab at camp",
-		"After this fight",
+		"At the next camp",
 		"Waiting at Camp",
 	]:
 		assert_true(wiki.contains(phrase), "the wiki tells of it: %s" % phrase)

@@ -41,9 +41,7 @@ const TAB_TIPS: Array[String] = [
 const TABS_GAP: int = 4
 const SCROLL_ROOM: float = 12.0
 ## The Auto-buy switch's sentence.
-const AUTO_BUY_LINE: String = (
-	"Auto-buy buys the cheapest upgrade the party can pay for," + " once a second."
-)
+const AUTO_BUY_LINE: String = "Auto-buy: the cheapest upgrade the party can pay for, each second."
 ## UI pixels between rows (their own padding is the space; a rule divides them), and between the
 ## rows and the foot.
 const ROW_GAP: int = 0

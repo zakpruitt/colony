@@ -11,7 +11,7 @@ extends VBoxContainer
 ## [code]Swap[/code] in the other group asks the simulation for the swap
 ## ([method Roster.swap]). The lit card's own button, any card of its own group, or
 ## [kbd]Esc[/kbd] with the Camp in front ([ShopWindow]) drops the choice and asks for nothing. A
-## swap asked for marks both cards [code]After this fight[/code] until it is made or dropped. A
+## swap asked for marks both cards [code]At the next camp[/code] until it is made or dropped. A
 ## click on a hero's picture opens its window ([method HeroWindows.open_hero]).
 ##
 ## The cards are made again the moment the colony changes (a find, a recruit, a swap), in the
@@ -236,9 +236,7 @@ func _recruit_tip(class_id: StringName) -> String:
 	var def: HeroClassDef = Content.hero_class(class_id)
 	if def == null:
 		return ""
-	var party: Party = _simulation.party
-	var held: int = party.resource(def.recruit_resource) if def.recruit_resource != &"" else 0
-	var short: String = RosterCard.short_text(def, party.gold, held)
+	var short: String = RosterCard.short_text(def, _simulation.roster.lacks(class_id))
 	if not short.is_empty():
 		return short
 	return "%s: the %s joins the colony at Camp." % [RosterCard.request_text(def), def.display_name]
@@ -248,38 +246,39 @@ func _recruit_tip(class_id: StringName) -> String:
 func _word() -> void:
 	var party: Party = _simulation.party
 	var roster: Roster = _simulation.roster
-	var asked: Array[Vector2i] = roster.waiting()
 	_worded_from.begin()
-	for card: RosterCard in field_cards + bench_cards:
-		var hero: Hero = party.hero(card.hero_id)
-		_worded_from.see(hero.level if hero != null else 0)
-		_worded_from.see(hero.talents_changed if hero != null else 0)
-		_worded_from.see(hero.talent_points() if hero != null else 0)
-	for swap: Vector2i in asked:
-		_worded_from.see(swap)
+	for card: RosterCard in field_cards:
+		_see_hero(party.hero(card.hero_id))
+	for card: RosterCard in bench_cards:
+		_see_hero(party.hero(card.hero_id))
 	_worded_from.see(_chosen)
-	_worded_from.see(party.gold)
 	for card: RosterCard in recruit_cards:
 		_worded_from.see(roster.can_recruit(card.class_id))
 	_worded_from.see(roster.recruit_level())
 	if not _worded_from.changed():
 		return
-	for card: RosterCard in field_cards + bench_cards:
-		var hero: Hero = party.hero(card.hero_id)
-		if hero != null:
-			card.show_hero(hero, _swap_waits(asked, hero.id))
-		card.lit = card.hero_id == _chosen
+	for card: RosterCard in field_cards:
+		_show_hero(card)
+	for card: RosterCard in bench_cards:
+		_show_hero(card)
 	var level: int = roster.recruit_level()
 	for card: RosterCard in recruit_cards:
 		card.show_recruit(level, roster.can_recruit(card.class_id))
 	WindowText.set_text(choosing_line, _choosing_text())
 
 
-static func _swap_waits(asked: Array[Vector2i], hero_id: int) -> bool:
-	for swap: Vector2i in asked:
-		if swap.x == hero_id or swap.y == hero_id:
-			return true
-	return false
+func _see_hero(hero: Hero) -> void:
+	_worded_from.see(hero.level if hero != null else 0)
+	_worded_from.see(hero.talents_changed if hero != null else 0)
+	_worded_from.see(hero.talent_points() if hero != null else 0)
+	_worded_from.see(_simulation.roster.swap_waits(hero.id) if hero != null else false)
+
+
+func _show_hero(card: RosterCard) -> void:
+	var hero: Hero = _simulation.party.hero(card.hero_id)
+	if hero != null:
+		card.show_hero(hero, _simulation.roster.swap_waits(hero.id))
+	card.lit = card.hero_id == _chosen
 
 
 func _choosing_text() -> String:
@@ -295,7 +294,10 @@ func _choosing_text() -> String:
 func _card_of(hero_id: int) -> RosterCard:
 	if hero_id < 0:
 		return null
-	for card: RosterCard in field_cards + bench_cards:
+	for card: RosterCard in field_cards:
+		if card.hero_id == hero_id:
+			return card
+	for card: RosterCard in bench_cards:
 		if card.hero_id == hero_id:
 			return card
 	return null
