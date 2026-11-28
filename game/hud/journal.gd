@@ -7,8 +7,9 @@ extends Node
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a quest done (with its reward), passed by or sprung (with
 ## the microskill it needed), a gate opened or passed for want of its microskill and what a
-## cache paid ([SidePathWords]), an order changed, a talent point gained and a path chosen
-## ([code]The Knight is now a Berserker[/code]) and the first of each resource gathered. The
+## cache paid ([SidePathWords]), an order changed, a talent point gained, a path taken up and
+## mastered, a path's rank that opens a tier or is its top, and the first of each resource
+## gathered. The
 ## newest line shows in the ticker just above the party frames
 ## for [constant TICKER_SECONDS], then fades through the palette and goes; events too old to
 ## animate ([method World.is_recent]) are written but not shown there. The list of lines is on
@@ -234,7 +235,23 @@ func _sentence(event: SimEvent) -> String:
 			sentence = _resource_sentence(event)
 		SimEvent.Kind.TALENT_POINT_GAINED, SimEvent.Kind.TALENT_TAKEN:
 			sentence = _talent_sentence(event)
+		SimEvent.Kind.PATH_RANKED:
+			sentence = _rank_sentence(event)
 	return sentence
+
+
+## The sentence for a path reaching a rank that opens a tier, or its top rank
+## ([code]The Knight's Guardian reached rank 5[/code]); "" for any other rank.
+func _rank_sentence(event: SimEvent) -> String:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
+	if tree == null or tree.path(event.target_id) == null:
+		return ""
+	var opens: bool = event.amount > 0 and tree.tier_ranks.has(event.amount)
+	if not opens and event.amount < tree.rank_xp.size():
+		return ""
+	var named: String = tree.path(event.target_id).display_name
+	return "The %s's %s reached rank %d" % [hero.def().display_name, named, event.amount]
 
 
 ## The sentence for the first of a resource the party gathers: "First glowcaps, from
@@ -251,9 +268,10 @@ func _resource_sentence(event: SimEvent) -> String:
 	return "First %s, from %s" % [ResourceIcon.plural(id), from]
 
 
-## The sentence for a talent point gained ([code]The Knight has a talent point to spend[/code]) or
-## a path's tier-1 node taken ([code]The Knight takes up the Guardian path[/code]), read from the
-## event alone; "" for any other node taken.
+## The sentence for a talent point gained ([code]The Knight has a talent point to spend[/code]),
+## a path's tier-1 node taken ([code]The Knight takes up the Guardian path[/code]) or its capstone
+## ([code]The Knight mastered Guardian[/code]), read from the event alone; "" for any other node
+## taken.
 func _talent_sentence(event: SimEvent) -> String:
 	var hero: Hero = _simulation.party.hero(event.source_id)
 	if hero == null:
@@ -262,10 +280,15 @@ func _talent_sentence(event: SimEvent) -> String:
 	if event.kind == SimEvent.Kind.TALENT_POINT_GAINED:
 		return "The %s has a talent point to spend" % who
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	if tree == null or tree.tier_of(event.ability_id) != 1:
+	if tree == null or not tree.has_node(event.ability_id):
 		return ""
-	var taken_up: String = tree.path(tree.path_of(event.ability_id)).display_name
-	return "The %s takes up the %s path" % [who, taken_up]
+	var path_name: String = tree.path(tree.path_of(event.ability_id)).display_name
+	var tier: int = tree.tier_of(event.ability_id)
+	if tier == TalentTreeDef.TIERS[TalentTreeDef.TIERS.size() - 1]:
+		return "The %s mastered %s" % [who, path_name]
+	if tier != 1:
+		return ""
+	return "The %s takes up the %s path" % [who, path_name]
 
 
 ## The sentence for an order changed: "Ordered a Bold pace", "Ordered to hold at

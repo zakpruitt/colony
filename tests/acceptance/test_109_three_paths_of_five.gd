@@ -800,8 +800,14 @@ func test_r10_the_tab_three_paths_wide() -> void:
 
 	# The cards say where each node stands.
 	assert_eq(_stands(main, view, &"whirlwind"), "Click to learn")
-	assert_eq(_stands(main, view, &"bloodthirst"), "Take Whirlwind first")
-	assert_eq(_stands(main, view, &"rampage"), "Take Bloodthirst or Reckless Swing first")
+	assert_eq(
+		_stands(main, view, &"bloodthirst"),
+		"Take Whirlwind first\nRank 2 in Berserker opens this (now rank 0)"
+	)
+	assert_eq(
+		_stands(main, view, &"rampage"),
+		"Take Bloodthirst or Reckless Swing first\nRank 5 in Berserker opens this (now rank 0)"
+	)
 
 	# A click on a node that can be taken takes it, with no question first.
 	_clear_banners(main)
@@ -812,7 +818,10 @@ func test_r10_the_tab_three_paths_wide() -> void:
 	assert_eq(_banner(main), "Knight learned Whirlwind", "and a banner")
 	assert_eq(view.state_of(&"whirlwind"), TalentNode.State.TAKEN, "taken")
 	assert_eq(_stands(main, view, &"whirlwind"), "Learned")
-	assert_eq(_stands(main, view, &"bloodthirst"), "No points: the next comes at level 4")
+	assert_eq(
+		_stands(main, view, &"bloodthirst"),
+		"Rank 2 in Berserker opens this (now rank 0)\nNo points: the next comes at level 4"
+	)
 	var said: bool = false
 	for line: String in main.hud.journal.lines():
 		said = said or line.ends_with("The Knight takes up the Berserker path")

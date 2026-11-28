@@ -239,7 +239,9 @@ func open_ids() -> Array[int]:
 
 
 ## Marks a gain the world just reported, through the layer's [UiMoment]: a node taken bursts on
-## its open tree, the line into it lights and a banner names it; a paragon point spent bursts
+## its open tree, the line into it lights and a banner names it (a capstone lights its whole path
+## and its banner says the path is mastered); a path ranking up bursts its rank and sweeps its
+## bar, with a banner when the rank opens a tier or is the top; a paragon point spent bursts
 ## its medallion, with a banner every tenth rank; a microskill learned gets a banner, and a burst on
 ## its card while the hero's window is open on Skills. Nothing starts for an event that may not
 ## animate: the windows show the end state all the same.
@@ -250,6 +252,8 @@ func _on_sim_event(event: SimEvent) -> void:
 	match event.kind:
 		SimEvent.Kind.TALENT_TAKEN:
 			_on_taken(event, moment)
+		SimEvent.Kind.PATH_RANKED:
+			_on_ranked(event, moment)
 		SimEvent.Kind.PARAGON_SPENT:
 			_on_paragon(event, moment)
 		SimEvent.Kind.MICROSKILL_LEARNED:
@@ -285,6 +289,9 @@ func _on_taken(event: SimEvent, moment: UiMoment) -> void:
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
 	if ability == null or tree == null:
 		return
+	var path: int = tree.path_of(event.ability_id)
+	var last_tier: int = TalentTreeDef.TIERS[TalentTreeDef.TIERS.size() - 1]
+	var mastered: bool = tree.tier_of(event.ability_id) == last_tier
 	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
 	if shown != null and moment.may_start(event):
 		var view: TalentTreeView = shown.talents.tree_view()
@@ -292,13 +299,62 @@ func _on_taken(event: SimEvent, moment: UiMoment) -> void:
 		var node: TalentNode = view.node(event.ability_id)
 		if node != null:
 			moment.burst(node.slot, event)
-		view.light(event.ability_id)
-	moment.announce(
-		event.ability_id,
-		"%s learned %s" % [hero.def().display_name, ability.display_name],
-		first_sentence(ability.description),
-		event
-	)
+		if mastered:
+			view.sweep(path)
+		else:
+			view.light(event.ability_id)
+	var headline: String = "%s learned %s" % [hero.def().display_name, ability.display_name]
+	if mastered:
+		headline = "%s masters %s" % [hero.def().display_name, tree.path(path).display_name]
+	moment.announce(event.ability_id, headline, first_sentence(ability.description), event)
+
+
+## A path ranked up: on the hero's open tree its rank bursts and its bar fills and starts again;
+## a rank that opens a tier gets a banner naming the nodes it opens, and so does the top rank.
+func _on_ranked(event: SimEvent, moment: UiMoment) -> void:
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	var tree: TalentTreeDef = Content.talent_tree(hero.class_id) if hero != null else null
+	if tree == null or tree.path(event.target_id) == null:
+		return
+	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
+	if shown != null and moment.may_start(event):
+		var banner: PathBanner = shown.talents.tree_view().banners[event.target_id]
+		banner.rank_bar.sweep()  # from where the bar stood, before the window reads the new rank
+		shown.advance(0.0)
+		moment.burst(banner.rank_label, event)
+	var who: String = hero.def().display_name
+	var named: String = tree.path(event.target_id).display_name
+	var opens: Array[StringName] = opened_by(tree, event.target_id, event.amount)
+	if not opens.is_empty():
+		var names: Array[String] = []
+		for id: StringName in opens:
+			names.append(Content.ability(id).display_name)
+		moment.announce(
+			opens[0],
+			"%s: %s rank %d" % [who, named, event.amount],
+			"%s can be learned now" % " and ".join(PackedStringArray(names)),
+			event
+		)
+	if event.amount >= tree.rank_xp.size():
+		var path_nodes: Array[StringName] = tree.path(event.target_id).nodes
+		moment.announce(
+			path_nodes[path_nodes.size() - 1],
+			"%s: %s at its top rank" % [who, named],
+			"Every node of %s is open." % named,
+			event
+		)
+
+
+## The nodes of path [param path] of [param tree] that rank [param rank] opens: those of the tier
+## whose rank it is, in path order; none for a rank that opens no tier.
+static func opened_by(tree: TalentTreeDef, path: int, rank: int) -> Array[StringName]:
+	var found: Array[StringName] = []
+	if rank <= 0 or tree.path(path) == null:
+		return found
+	for id: StringName in tree.path(path).nodes:
+		if tree.rank_needed(id) == rank:
+			found.append(id)
+	return found
 
 
 func _on_paragon(event: SimEvent, moment: UiMoment) -> void:

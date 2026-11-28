@@ -181,7 +181,18 @@ The picture is drawn in two layers, each in its own pixels.
   paragon medallions sit under that, past the first view (`HeroTalentsTab.base_height()` leaves them
   out, so two windows on Talents still sit side by side at 1280x720). `HeroWindows.setup` is handed the
   world and connects its own `_on_sim_event`, which turns a recent `TALENT_TAKEN`, `PARAGON_SPENT` or
-  `MICROSKILL_LEARNED` into a burst and a banner through `UiMoment`.
+  `MICROSKILL_LEARNED` into a burst and a banner through `UiMoment`. Spec 111 makes each path a panel
+  (`TalentTreeView.panels()`, drawn by the view behind its column): its `PathBanner` carries the rank
+  (`rank_label`) and a `RankBar` (a `UiBar` in the path's colour, its shade from `PathColours.shade`)
+  showing the XP from the rank's total toward the next. A `PATH_RANKED` the moment may start bursts
+  the rank and calls `RankBar.sweep()` (fill to the end, start again from empty) before the window reads
+  the new rank; a rank that opens a tier, or the top rank, also gets a banner (`HeroWindows.opened_by`).
+  A capstone (`TalentNode.is_end()`: bold name, `END_RING` ring) taken calls `TalentTreeView.sweep(path)`,
+  which lights the path's lines tier by tier, instead of `light`. A node its rank holds shut shows the
+  rank on its corner (`TalentNode.show_rank_needed`) and its line in `PathColours.dim()`.
+  `HeroTalentsTab.standing` lists everything a node waits for, one per line, in order (the node above,
+  the rank, a point); the strip falls back to the first node held shut only by its rank, worded by
+  `rank_progress`. The journal writes a tier-opening or top rank and a capstone learned.
 - **Pictures and the moment** (spec 063, `game/ui/`): every ability, upgrade, paragon stat and microskill
   has a 16x16 picture, a part named for its id in one of `assets/sprites/ui/pictures_<group>.png`;
   `UiIcon.picture(id)` finds it, and no rule or data field names it. `UiIcon` is the framed slot (owned,
@@ -635,9 +646,8 @@ holds there plus the uses of that path's abilities in the fight, each ability co
 `Battle.record_use` sends it and counts it in `Combatant.uses` (cleared by `reset_abilities`). Each rank
 passed is a `PATH_RANKED` (source the hero, target the path's index, amount the new rank), in rank order.
 A lost fight, or one ended at the 90-second limit, gives nothing. `Party.hash_parts` adds a hero's path
-XP only while `ranks.any()`, so a run that spends nothing hashes as it did. The tab's `PathBanner` shows
-`Rank N`, and a node the rank holds shut is drawn locked with `Rank 5 in Guardian opens this` on its card
-and the strip (`HeroTalentsTab.standing`; a node whose path above it is not taken says that first). An `AbilityEffect` with
+XP only while `ranks.any()`, so a run that spends nothing hashes as it did. The tab shows ranks
+as spec 111 lays them out (Hero windows, above). An `AbilityEffect` with
 `damage_from_healing` deals its multiplier times the fighter's healing power (the Sunpriest's holy damage).
 
 ## Zones on screen

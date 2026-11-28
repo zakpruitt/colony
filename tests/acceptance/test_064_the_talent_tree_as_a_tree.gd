@@ -99,7 +99,9 @@ func test_r2_a_node_is_a_picture() -> void:
 			)
 			for line: String in label.text.split("\n"):
 				assert_lte(
-					UiText.width(line, true) - UiText.SPACING, label.size.x, "%s: whole" % named
+					UiText.width(line, node.is_end()) - UiText.SPACING,
+					label.size.x,
+					"%s: whole" % named
 				)
 			assert_true(label.is_visible_in_tree(), "%s: the name shows" % named)
 			for other: TalentNode in nodes:
@@ -248,16 +250,11 @@ func test_r5_pointing_tells_all() -> void:
 		assert_eq(tip.card_kind.text, kind, "%s: its kind" % node.ability_id)
 		assert_eq(tip.card_body.text.replace("\n", " "), ability.description, "the whole of it")
 		_point_away(main)
-	# How it stands, in words.
+	# How it stands, in words (what a node waits for is spec 111's R5).
 	assert_eq(_stands(main, view, &"taunt"), "Click to learn", "one to take")
-	assert_eq(_stands(main, view, &"hold_the_line"), "Take Taunt first", "further on")
-	assert_eq(_stands(main, view, &"bulwark"), "Take Hold the Line or Bottle-top Block first")
 	set_level_keeping_health(knight, 3)
 	knight.set_talents([&"taunt"] as Array[StringName])
 	main.hud.advance(STEP)
-	assert_eq(
-		_stands(main, view, &"hold_the_line"), "No points: the next comes at level 4", "no point"
-	)
 	assert_eq(_stands(main, view, &"taunt"), "Learned", "taken")
 	_point(main, view.node(&"taunt").slot)
 	assert_eq(tip.card_stand.get_theme_color(&"font_color"), Palette.color(&"green"), "in green")
@@ -773,32 +770,8 @@ func test_r13_fits_and_still_compares() -> void:
 # --- R14 -----------------------------------------------------------------------
 
 
+## The help and the showcase's tree moment are spec 111's R11 now.
 func test_r14_help_wiki_and_showcase() -> void:
-	var idea: String = " ".join(PackedStringArray(HelpPanel.IDEA))
-	assert_true(idea.contains("three paths"), "the help tells of the three paths: %s" % idea)
 	var wiki: String = FileAccess.get_file_as_string(WIKI)
 	for words: String in ["three paths", "Learn", "medallion", "points to spend", "banner"]:
 		assert_true(wiki.contains(words), "the wiki tells of '%s'" % words)
-	var showcase: Showcase = (load(SHOWCASE_SCENE) as PackedScene).instantiate() as Showcase
-	add_child_autofree(showcase)
-	showcase.set_process(false)
-	showcase.skip_to(&"talent_tree")
-	var knight: Hero = showcase.main.simulation.party.heroes[0]
-	var windows: HeroWindows = showcase.main.hud.hero_windows
-	assert_true(windows.is_open(knight.id), "the talent moment opens the knight's window")
-	assert_eq(windows.window_of(knight.id).page(), HeroWindow.Page.TALENTS, "on Talents")
-	assert_eq(knight.talents(), _walked(&"knight", 0, 2), "two nodes taken")
-	assert_eq(knight.talent_points(), 2, "two points to spend")
-	var moment: UiMoment = showcase.main.ui.moment
-	var bursts: int = moment.bursts_seen()
-	var headlines: Dictionary[String, bool] = {}
-	var start: float = showcase.elapsed
-	while showcase.moment() == &"talent_tree" and showcase.elapsed - start < 20.0:
-		showcase.advance(1.0 / 30.0)
-		showcase.main.hud.advance(1.0 / 30.0)  # a frame of the HUD and the layer, as _process gives
-		moment.advance(1.0 / 30.0)
-		headlines[moment.shown_headline()] = true
-	assert_true(headlines.has("Knight learned Whirlwind"), "tier 1 taken: %s" % [headlines.keys()])
-	assert_true(headlines.has("Knight learned Bloodthirst"), "then tier 2: %s" % [headlines.keys()])
-	assert_gt(moment.bursts_seen(), bursts, "with a burst")
-	assert_true(knight.talents().has(&"bloodthirst"), "both by clicks")
