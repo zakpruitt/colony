@@ -262,6 +262,7 @@ A test that fails for any other reason is a bug in the data or the lane's code.
   `tests/acceptance/test_109_every_ability_is_seen.gd` (only to use the moved helpers), and the
   files in "Tests that change"
 - `docs/wiki/index.html`, `docs/style-bible.md` (the cast: the Ranger drawn as the Rogue for now)
+- `tests/acceptance/test_107_the_quest_story.gd` (only where it counts or lists every class)
 
 ## Open questions
 

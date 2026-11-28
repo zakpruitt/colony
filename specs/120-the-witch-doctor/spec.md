@@ -254,7 +254,7 @@ A test that fails for any other reason is a bug in the data or the lane's code.
   (only if a helper must take a class or place it does not), and the files in "Tests that change"
 - `docs/wiki/index.html`, `docs/style-bible.md` (the cast: the Witch Doctor drawn as the Mage for
   now)
-- `tests/acceptance/test_107_the_quest_story.gd` (only where it counts or lists every class, as spec 117 amends it)
+- `tests/acceptance/test_107_the_quest_story.gd` (only where it counts or lists every class)
 
 ## Open questions
 
