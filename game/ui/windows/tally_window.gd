@@ -379,10 +379,8 @@ func _join_fight() -> void:
 	var began: int = maxi(0, _simulation.tick - e.battle.tick)
 	_on_sim_event(SimEvent.new(SimEvent.Kind.ENCOUNTER_STARTED, began, -1, -1, room.index))
 	for summon: Combatant in e.battle.summons:
-		var def := SummonDef.new()
-		def.id = summon.def_id
-		def.display_name = SummonSprites.def_name(summon.def_id)
-		tally.note_summon(summon.id, summon.owner_id, def)
+		var summon_name: String = SummonSprites.def_name(summon.def_id)
+		tally.note_summon(summon.id, summon.owner_id, summon.def_id, summon_name)
 
 
 ## The kinds of monster in the battle in chamber [param chamber_index], if the expedition is still

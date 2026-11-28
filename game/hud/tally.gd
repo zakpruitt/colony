@@ -80,7 +80,7 @@ func observe(event: SimEvent) -> void:
 		SimEvent.Kind.SUMMONED:
 			var def: SummonDef = SummonSprites.summoned(event)
 			if def != null:
-				note_summon(event.target_id, event.source_id, def)
+				note_summon(event.target_id, event.source_id, def.id, def.display_name)
 		SimEvent.Kind.SUMMON_ENDED:
 			_summoners.erase(event.source_id)
 			_summon_keys.erase(event.source_id)
@@ -97,17 +97,20 @@ func observe(event: SimEvent) -> void:
 				_quests[event.source_id] = _quests.get(event.source_id, 0) + 1
 
 
-## Summon [param summon_id], standing in the fight, is [param summoner_id]'s, made from
-## [param def]: what it deals and gives counts to its summoner, by ability under its name. The
-## events tell it of each summon as it comes; a tally made mid-fight is told of those standing.
-func note_summon(summon_id: int, summoner_id: int, def: SummonDef) -> void:
-	var key: String = _key_of.get(def.id, "")
+## Summon [param summon_id], standing in the fight, is [param summoner_id]'s, of the
+## [SummonDef] [param def_id] named [param display_name]: what it deals and gives counts to
+## its summoner, by ability under that name. The events tell it of each summon as it comes; a
+## tally made mid-fight is told of those standing.
+func note_summon(
+	summon_id: int, summoner_id: int, def_id: StringName, display_name: String
+) -> void:
+	var key: String = _key_of.get(def_id, "")
 	if key.is_empty():
-		key = SUMMON_KEY + String(def.id)
-		_key_of[def.id] = key
+		key = SUMMON_KEY + String(def_id)
+		_key_of[def_id] = key
 	_summoners[summon_id] = summoner_id
 	_summon_keys[summon_id] = key
-	_summon_names[key] = def.display_name
+	_summon_names[key] = display_name
 
 
 ## How much of [param measure] the hero with id [param hero_id] has over [param span].

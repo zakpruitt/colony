@@ -855,17 +855,21 @@ func _act() -> void:
 			continue
 		var gap: Vector2 = _goals[id] - sprite.position
 		var moving: bool = gap.length() > MOVING_GAP
-		var facing: int = summons.facing_of(id) if summons.has(id) else ahead
+		var facing: int = ahead
 		var walking: bool = moving
 		var sits: bool = false
 		if fighting and expedition.battle.combatant(id) != null:
 			var fighter: Combatant = expedition.battle.combatant(id)
 			walking = moving or fighter.state == Combatant.State.MOVING
-			facing = _toward(sprite, fighter.target_id, facing)
+			facing = _toward(sprite, fighter.target_id, 0)
+			if facing == 0:
+				facing = summons.facing_of(id) if summons.has(id) else ahead
 		elif _monsters.has(id):
 			# Waiting: facing the side the party is on.
 			facing = 1 if party_at >= sprite.position.x else -1
-		elif not summons.has(id):  # a fading summon keeps facing the way it faced
+		elif summons.has(id):
+			facing = summons.facing_of(id)  # a fading summon keeps facing the way it faced
+		else:
 			facing = quest_stage.facing_of(id, camp.facing_of(id, ahead))
 			match expedition.state:
 				Expedition.State.TRAVELLING, Expedition.State.CLIMBING:

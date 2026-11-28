@@ -25,6 +25,9 @@ const PUFF_LIFE: float = CombatEffects.PUFF_LIFE
 ## How many pixels above its feet a puff starts: the middle of a small creature, as a summon is.
 const PUFF_LIFT: float = 6.0
 
+## Per summon def id: its name, as the latest SUMMONED of it told.
+static var _def_names: Dictionary[StringName, String] = {}
+
 ## How many summon sprites it has made, and how many of its puffs the pool refused.
 var made: int = 0
 var refused: int = 0
@@ -116,8 +119,10 @@ func facing_of(id: int) -> int:
 
 ## The name of the summon [param def_id] as its [SummonDef] has it, from any ability in
 ## [Content] that summons it; the id made readable if none does. For a view that has only the
-## fighter: it searches the abilities, so it is not for a loop.
+## fighter. A def a SUMMONED told of is known at once; any other searches the abilities.
 static func def_name(def_id: StringName) -> String:
+	if _def_names.has(def_id):
+		return _def_names[def_id]
 	for ability_id: StringName in Content.ability_ids():
 		for effect: AbilityEffect in Content.ability(ability_id).effects:
 			if effect.summon != null and effect.summon.id == def_id:
@@ -133,6 +138,8 @@ func advance(delta: float) -> void:
 		for fighter: Combatant in battle.summons:
 			if _fighters.get(fighter.id, null) != fighter and _world.character(fighter.id) == null:
 				_show(fighter, false)
+	if _fading.is_empty():
+		return
 	for id: int in _fading.keys():
 		var t: float = _fading[id] + delta
 		if t >= FADE_SECONDS:
@@ -235,11 +242,13 @@ func _puff(sprite: CharacterSprite) -> void:
 		refused += 1
 
 
-## The [SummonDef] a SUMMONED [param event] brought: its summoning ability's, or null.
+## The [SummonDef] a SUMMONED [param event] brought: its summoning ability's, or null. Its
+## name is kept for [method def_name].
 static func summoned(event: SimEvent) -> SummonDef:
 	var ability: AbilityDef = Content.ability(event.ability_id)
 	if ability != null:
 		for effect: AbilityEffect in ability.effects:
 			if effect.summon != null:
+				_def_names[effect.summon.id] = effect.summon.display_name
 				return effect.summon
 	return null
