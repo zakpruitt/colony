@@ -1,6 +1,6 @@
 # 115 — Summoned allies in the simulation
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 050, 110 (its Paths hold `battle.gd`, `battle_abilities.gd`, `combatant.gd` and
   `sim_event.gd`; this starts after 110 has landed, and may run beside 111, 113 and 114)

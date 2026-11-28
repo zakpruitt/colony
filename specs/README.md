@@ -171,7 +171,7 @@ new shape and content first, then the ranks, then the window.
 | 112 | [The roster](112-the-roster/spec.md) (new classes are lucky finds: a cache may hold a class's artifact, its hero then waits at camp until its request is paid; one a class; choose the four who go down; the bench earns nothing; save 12): approved | 109, 110, 111 |
 | 113 | [The party changes on screen](113-the-party-changes-on-screen/spec.md) (the world, frames, hero windows, tally and journal follow a swap; a benched hero's window; a class drawn as the one it looks like): approved | 112 |
 | 114 | [The Heroes tab at camp](114-the-heroes-tab-at-camp/spec.md) (a second tab in the Camp window: the four, the bench, a swap in two clicks, the heroes waiting with their requests; help, wiki, showcase): approved | 112, 113 |
-| 115 | [Summoned allies in the simulation](115-summoned-allies-in-the-simulation/spec.md) (an ability effect that brings a short-lived fighter onto the heroes' side, as data, with a lifetime and a cap; for the Ranger, Tinker and Witch Doctor): approved | 110 |
+| 115 | [Summoned allies in the simulation](115-summoned-allies-in-the-simulation/spec.md) (an ability effect that brings a short-lived fighter onto the heroes' side, as data, with a lifetime and a cap; for the Ranger, Tinker and Witch Doctor): in progress | 110 |
 | 116 | [Summoned allies on screen](116-summoned-allies-on-screen/spec.md) (a placeholder creature with its puffs and moves; its numbers and tally lines credited to its summoner): approved | 113, 115 |
 
 Zak then chose (2026-11-27) more classes over splitting a class, heroes got by recruiting at camp
