@@ -1,6 +1,6 @@
 # 111 — Skill paths: the window
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M8
 - **Depends on:** 058, 060, 063, 064, 109, 110
 - **Pull request:** —

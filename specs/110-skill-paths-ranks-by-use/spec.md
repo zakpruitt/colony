@@ -1,9 +1,9 @@
 # 110 — Skill paths: ranks earned by use
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M8
 - **Depends on:** 109
-- **Pull request:** —
+- **Pull request:** [#110](https://github.com/zakpruitt/colony/pull/110)
 
 ## Intent
 
@@ -210,6 +210,16 @@ slowest and why.
 - `docs/architecture.md` (the save version and the path ranks), `docs/wiki/index.html` (lines this
   makes false)
 - `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (the save version it asserts as a literal, 9, becomes the new version; nothing else)
+
+## As built (the lead's rulings on the pull request)
+
+- `rank_xp` shipped at 0.7 times R4's starting table, `[7, 17, 35, 63, 105, 168, 245, 343, 455, 595]`,
+  to put the first capstone mid-window (R7 allows the tuning).
+- With no point to spend, a node held shut by rank says `No points: …` rather than the rank line;
+  with a point it says `Rank N in <Path> opens this`. Spec 111 decides the window's final wording.
+- Accepted outside the "Tests that change" notes, each forced by the rank gate or the new saved field:
+  `test_014`, `test_051`, `test_064` (via `_ranked_game`), `test_109`, `test_save_progress.gd`,
+  `game/dev/showcase_moments.gd`, and the lesson in `.claude/skills/write-spec/SKILL.md`.
 
 ## Open questions
 
