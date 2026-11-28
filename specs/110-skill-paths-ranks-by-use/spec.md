@@ -1,6 +1,6 @@
 # 110 — Skill paths: ranks earned by use
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M8
 - **Depends on:** 109
 - **Pull request:** —

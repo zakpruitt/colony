@@ -1,9 +1,9 @@
 # 109 — Skill paths: three paths of five
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M8
 - **Depends on:** 050, 051, 055, 057, 060, 063, 064
-- **Pull request:** —
+- **Pull request:** [#109](https://github.com/zakpruitt/colony/pull/109)
 
 ## Intent
 
