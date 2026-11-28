@@ -23,7 +23,7 @@ func after_each() -> void:
 
 
 ## A battle of [param sim]'s party, each hero's fighter as its hero makes it, against one monster.
-func _battle(sim: Simulation) -> Battle:
+func _party_battle(sim: Simulation) -> Battle:
 	var heroes: Array[Combatant] = []
 	for hero: Hero in sim.party.heroes:
 		heroes.append(hero.combatant())
@@ -62,7 +62,7 @@ func _refused(tree: TalentTreeDef, words: String) -> bool:
 
 
 ## A copy of the knight's tree, to break without harm.
-func _broken() -> TalentTreeDef:
+func _knight_copy() -> TalentTreeDef:
 	return _tree(&"knight").duplicate()
 
 
@@ -85,7 +85,7 @@ func test_r1_path_xp_from_won_fights() -> void:
 	knight.set_talents([&"taunt", &"whirlwind", &"bloodthirst"] as Array[StringName])
 	var uses_counted: int = _tree(&"knight").uses_counted
 	assert_eq(uses_counted, 3, "three uses of one ability counted a fight")
-	var fought: Battle = _battle(sim)
+	var fought: Battle = _party_battle(sim)
 	var fighter: Combatant = fought.combatant(knight.id)
 	fighter.uses[&"taunt"] = 5
 	fighter.uses[&"whirlwind"] = 2
@@ -177,7 +177,7 @@ func test_r2_ranks() -> void:
 	knight.set_talents([&"taunt"] as Array[StringName])
 	var seen: Array[Array] = []
 	for fight: int in 3:
-		var fought: Battle = _battle(sim)
+		var fought: Battle = _party_battle(sim)
 		fought.combatant(knight.id).uses[&"taunt"] = 3
 		sim.expedition.drain_events()
 		PathTraining.after_win(sim.expedition, fought)
@@ -246,34 +246,34 @@ func test_r3_deeper_tiers_need_a_rank() -> void:
 
 
 func test_r4_the_data_check() -> void:
-	var bad: TalentTreeDef = _broken()
+	var bad: TalentTreeDef = _knight_copy()
 	bad.rank_xp = [] as Array[int]
 	assert_true(_refused(bad, "rank_xp is empty"), "no ranks: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.rank_xp = [10, 25, 25, 90] as Array[int]
 	assert_true(_refused(bad, "rank_xp[2]: 25 is not above 25"), "flat: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.rank_xp = [10, 25, 20, 90] as Array[int]
 	assert_true(_refused(bad, "rank_xp[2]"), "falling: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.rank_xp = [0, 25, 50, 90, 150, 240, 350, 490, 650, 850] as Array[int]
 	assert_true(_refused(bad, "rank_xp[0]: 0 is not above 0"), "first at 0: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.tier_ranks = [0, 2, 5] as Array[int]
 	assert_true(_refused(bad, "tier_ranks has 3 entries, not 4"), "three: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.tier_ranks = [1, 2, 5, 9] as Array[int]
 	assert_true(_refused(bad, "tier_ranks[0]"), "tier 1 shut: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.tier_ranks = [0, 5, 2, 9] as Array[int]
 	assert_true(_refused(bad, "tier_ranks[2]: 2 is below 5"), "falling: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.tier_ranks = [0, 2, 5, 11] as Array[int]
 	assert_true(_refused(bad, "tier_ranks[3]: rank 11"), "past the top: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.uses_counted = -1
 	assert_true(_refused(bad, "uses_counted: -1 is below 0"), "negative: %s" % bad.validate())
-	bad = _broken()
+	bad = _knight_copy()
 	bad.uses_counted = 0
 	assert_false(_refused(bad, "uses_counted"), "0 uses counted is allowed")
 
