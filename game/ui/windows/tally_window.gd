@@ -2,11 +2,12 @@ class_name TallyWindow
 extends WindowContent
 ## The party tally as a window on the UI layer, in the manner of a damage
 ## meter: tabs for Damage, Healing and Taken, the Last fight / Session switch, a line saying which
-## fight, then one line per hero: its portrait, its name in bold, its number right-aligned in a
-## column of equal-width digits and its share, over a bar in the hero's class colour scaled to the
-## largest. Under them the session span lists the quests of each hero who has done any, then
-## the side paths: the gates and caches opened and what the caches paid, for the session and for
-## each area ([method side_path_rows]).
+## fight, then one line per hero going down, in formation order (they follow a change of the four;
+## a portrait is the class the hero looks like): its portrait, its name in bold, its number
+## right-aligned in a column of equal-width digits and its share, over a bar in the hero's class
+## colour scaled to the largest. Under them the session span lists the quests of each hero who
+## has done any, then the side paths: the gates and caches opened and what the caches paid, for
+## the session and for each area ([method side_path_rows]).
 ##
 ## Clicking a hero's line opens its abilities under it, indented, each with a thin
 ## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950", a
@@ -68,7 +69,7 @@ var tally: Tally = Tally.new()
 var tab_buttons: Array[UiButton] = []
 ## The span switch's two buttons, in [enum Tally.Span] order; the chosen one is lit.
 var span_buttons: Array[UiButton] = []
-## Each hero's portrait, line, bar, number and share, in party order.
+## Each row's portrait, line, bar, number and share, in formation order.
 var portraits: Array[TextureRect] = []
 var hero_lines: Array[Control] = []
 var bars: Array[UiBar] = []
@@ -96,6 +97,8 @@ var _fight_kinds: Array[StringName] = []
 var _fight_monsters: Dictionary[int, bool] = {}
 var _fight_label: Label
 var _names: Array[Label] = []
+## The hero each row shows, by id.
+var _row_ids: Array[int] = []
 var _eased: Array[EasedValue] = []
 var _goals: Array[float] = []
 var _quest_labels: Array[Label] = []
@@ -363,6 +366,8 @@ func _on_sim_event(event: SimEvent) -> void:
 			_fight_monsters.clear()
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_fight_end = event.tick
+		SimEvent.Kind.HERO_FIELDED:
+			_follow_party()
 		SimEvent.Kind.HIT, SimEvent.Kind.HEALED:
 			for id: int in [event.source_id, event.target_id]:
 				if id >= Expedition.FIRST_MONSTER_ID:
@@ -466,11 +471,44 @@ func _button_row(row_name: String) -> HBoxContainer:
 	return row
 
 
+## Each row shows the hero now going down at its place: its portrait, name and bar's colours.
+func _follow_party() -> void:
+	var heroes: Array[Hero] = _simulation.party.heroes
+	var icons: PixelSheet = PixelSheet.load_sheet(HudFrame.ICONS_PATH)
+	for i: int in mini(heroes.size(), _row_ids.size()):
+		var hero: Hero = heroes[i]
+		if _row_ids[i] == hero.id:
+			continue
+		_row_ids[i] = hero.id
+		hero_lines[i].name = "Hero%d" % hero.id
+		portraits[i].texture = _portrait(hero, icons)
+		_names[i].text = hero.def().display_name
+		var colours: Array = CLASS_BARS.get(hero.def().look(), OTHER_BAR)
+		bars[i].fill = colours[0]
+		bars[i].shade = colours[1]
+		_eased[i].snap(0.0)
+	if is_open():
+		_refresh()
+
+
+## The picture of [param hero]'s row: the class it looks like, from [param icons].
+static func _portrait(hero: Hero, icons: PixelSheet) -> Texture2D:
+	var part: StringName = hero.def().look()
+	return icons.part(part) if icons != null and icons.has_part(part) else null
+
+
+## A press on row [param row]'s line opens the line of the hero now in it.
+func _open_row(row: int) -> void:
+	if row < _row_ids.size():
+		open_hero(_row_ids[row])
+
+
 ## Hero [param hero]'s line, clickable, and the box its abilities open in under it.
 func _build_hero(hero: Hero, icons: PixelSheet) -> void:
 	var line := HeroLine.new()
 	line.name = "Hero%d" % hero.id
-	line.pressed.connect(open_hero.bind(hero.id))
+	line.pressed.connect(_open_row.bind(hero_lines.size()))
+	_row_ids.append(hero.id)
 	add_child(line)
 	hero_lines.append(line)
 	var row := HBoxContainer.new()
@@ -482,8 +520,7 @@ func _build_hero(hero: Hero, icons: PixelSheet) -> void:
 	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_CENTERED
 	portrait.custom_minimum_size = PORTRAIT
-	if icons != null and icons.has_part(hero.class_id):
-		portrait.texture = icons.part(hero.class_id)
+	portrait.texture = _portrait(hero, icons)
 	row.add_child(portrait)
 	portraits.append(portrait)
 	var column := VBoxContainer.new()
@@ -509,7 +546,7 @@ func _build_hero(hero: Hero, icons: PixelSheet) -> void:
 	share.custom_minimum_size.x = UiText.width("100%")
 	text.add_child(share)
 	share_labels.append(share)
-	var bar: UiBar = class_bar(hero.class_id, BAR_HEIGHT)
+	var bar: UiBar = class_bar(hero.def().look(), BAR_HEIGHT)
 	column.add_child(bar)
 	bars.append(bar)
 	_eased.append(EasedValue.new(HeroFrameView.EASE_SECONDS))
@@ -643,7 +680,7 @@ func _refresh_abilities() -> void:
 	# The lines stay from frame to frame and are only filled in again; they are made afresh only
 	# when how many there are, or whose they are, changes (so the window does not refit every
 	# frame).
-	var class_id: StringName = heroes[at].class_id
+	var class_id: StringName = heroes[at].def().look()
 	var whose: String = "%s %s" % [box.get_instance_id(), class_id]
 	if shown.size() != ability_lines.size() or whose != _lines_of:
 		_make_ability_lines(box, shown.size(), class_id)

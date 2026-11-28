@@ -1,15 +1,19 @@
 class_name HeroWindow
 extends UiWindow
-## One hero's window: the hero's sheet as a window on the UI layer, one per hero, any of them open
-## at once, so two heroes can be read side by side. [HeroWindows] makes them and opens them; the
-## window's id is [code]hero_<n>[/code], n the hero's place in the party from 0.
+## One hero's window: the hero's sheet as a window on the UI layer, one per place in the line
+## and one for the bench, any of them open at once, so two heroes can be read side by side.
+## [HeroWindows] makes them and opens them; the window's id is [code]hero_<n>[/code], n the place
+## in the line from 0, or [constant HeroWindows.BENCH_ID]. [method show_hero] makes it another
+## hero's, keeping its place on the screen and its tab.
 ##
 ## A header always shows: the class portrait at twice its size, the class and its path in bold
-## ([code]Knight, Berserker[/code]), the level, the role, what the hero is doing now, and health and
-## XP as bars with their numbers. Under it a row of tabs, each opening one [enum Page]: Stats
-## ([HeroStatsTab]), Talents ([HeroTalentsTab]) and Skills ([HeroSkillsTab]). A tag on the Talents
-## tab counts the hero's unspent talent and paragon points, and one on the Skills tab the
-## microskills it learned since its Skills tab was last open. Each window keeps its own tab.
+## ([code]Knight, Berserker[/code]), the level, the role, what the hero is doing now ([code]At
+## camp[/code] for a benched hero, whose health shows full), and health and XP as bars with their
+## numbers. The portrait is the class the hero looks like ([method HeroClassDef.look]). Under
+## it a row of tabs, each opening one [enum Page]: Stats ([HeroStatsTab]), Talents
+## ([HeroTalentsTab]) and Skills ([HeroSkillsTab]). A tag on the Talents tab counts the hero's
+## unspent talent and paragon points, and one on the Skills tab the microskills it learned since
+## its Skills tab was last open. Each window keeps its own tab.
 ##
 ## Every value is read from the simulation at each [method advance], so nothing goes stale across
 ## a level up, a command or a crowded frame. It is laid out by hand ([WindowText]), the same size
@@ -54,6 +58,8 @@ const ROLE_WORDS: Dictionary[HeroClassDef.Role, String] = {
 	HeroClassDef.Role.RANGED: "Caster",
 	HeroClassDef.Role.HEALER: "Healer",
 }
+## What a benched hero is doing.
+const BENCH_WORDS: String = "At camp"
 ## What a hero is doing in each expedition state (fighting is worked out from the battle).
 const DOING_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.TRAVELLING: "Walking",
@@ -70,6 +76,7 @@ const DOING_COLOURS: Dictionary[String, StringName] = {
 	"Moving on": &"tan",
 	"Recovering": &"pink",
 	"Down": &"red",
+	"At": &"tan",
 }
 
 ## The hero this window is for.
@@ -93,6 +100,7 @@ var skills: HeroSkillsTab
 var scroll: ScrollContainer
 
 var _simulation: Simulation
+var _tip: UiTip
 var _holder: Control
 var _body: Control
 var _pages: Array[Control] = []
@@ -118,8 +126,8 @@ var _learned_at: int = -1
 var _learned: int = 0
 
 
-## The window of [param hero], the [param place]th hero of the party (from 0); [param tip] gives
-## its controls their tooltips (may be null).
+## The window of the [param place]th place in the line (from 0; -1 for the bench), showing
+## [param hero]; [param tip] gives its controls their tooltips (may be null).
 func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	var body := Control.new()
 	body.name = "Body"
@@ -127,15 +135,13 @@ func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	super(HeroWindows.id_for(place), hero.def().display_name, body)
 	on_bar = false
 	_simulation = simulation
+	_tip = tip
 	_body = body
 	hero_id = hero.id
 	_icons = PixelSheet.load_sheet(HudFrame.ICONS_PATH)
 	_skills_seen = hero.microskills().size()
 	_build_header()
 	_build_tabs(tip)
-	stats = HeroStatsTab.new(simulation, hero.id, WIDTH)
-	talents = HeroTalentsTab.new(simulation, hero.id, WIDTH, tip)
-	skills = HeroSkillsTab.new(simulation, hero.id, WIDTH)
 	scroll = ScrollContainer.new()
 	scroll.name = "Scroll"
 	scroll.position = Vector2(0, PAGE_Y)
@@ -147,18 +153,52 @@ func _init(simulation: Simulation, hero: Hero, place: int, tip: UiTip) -> void:
 	_holder.name = "Pages"
 	_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	scroll.add_child(_holder)
-	for page_box: Control in [stats, talents, skills]:
-		_holder.add_child(page_box)
-		_pages.append(page_box)
-	var row: Control = talents.top_row  # above what scrolls, so a question always shows
-	talents.remove_child(row)
-	row.position = Vector2(0, PAGE_Y)
-	body.add_child(row)
+	_build_pages(hero)
 	set_body_height(body_height())
 	body.draw.connect(_draw_body)
 	open_changed.connect(_on_open_changed)
 	_show_page()
 	advance(0.0)
+
+
+## Makes the window [param hero]'s: its title, header and tabs show that hero from now on, on the
+## tab it had open, at the height it had, where it was. [HeroWindows] calls it when another hero
+## stands at the window's place, or is asked for on the bench.
+func show_hero(hero: Hero) -> void:
+	hero_id = hero.id
+	title = hero.def().display_name
+	_skills_seen = hero.microskills().size()
+	_learned_at = -1
+	_portrait_part = &""
+	_shown = ShownValues.new()
+	for page_box: Control in _pages:
+		_holder.remove_child(page_box)
+		page_box.queue_free()
+	_body.remove_child(talents.top_row)
+	talents.top_row.queue_free()
+	_pages.clear()
+	_build_pages(hero)
+	set_body_height(_body.size.y)
+	_show_page()
+	advance(0.0)
+	_health.snap(_health_goal)
+	_xp.snap(_xp_goal)
+	_body.queue_redraw()
+
+
+## The three tabs of [param hero], under the tab row; the Talents tab's top row stands above what
+## scrolls, so a question always shows.
+func _build_pages(hero: Hero) -> void:
+	stats = HeroStatsTab.new(_simulation, hero.id, WIDTH)
+	talents = HeroTalentsTab.new(_simulation, hero.id, WIDTH, _tip)
+	skills = HeroSkillsTab.new(_simulation, hero.id, WIDTH)
+	for page_box: Control in [stats, talents, skills]:
+		_holder.add_child(page_box)
+		_pages.append(page_box)
+	var row: Control = talents.top_row
+	talents.remove_child(row)
+	row.position = Vector2(0, PAGE_Y)
+	_body.add_child(row)
 
 
 ## The height the content needs on its tallest tab (the Talents tab without its paragon
@@ -216,8 +256,11 @@ func advance(delta: float) -> void:
 	if hero == null:
 		return
 	var fighter: Combatant = _fighter(hero)
-	var health: int = fighter.health if fighter != null else hero.health
+	var benched: bool = _is_benched(hero)
 	var max_health: int = fighter.max_health if fighter != null else hero.max_health()
+	var health: int = fighter.health if fighter != null else hero.health
+	if benched:
+		health = max_health
 	_down = health <= 0 or (fighter != null and not fighter.is_alive())
 	_health_goal = clampf(float(health) / float(maxi(max_health, 1)), 0.0, 1.0)
 	_xp_goal = HeroFrameView.xp_progress(hero)
@@ -231,12 +274,13 @@ func advance(delta: float) -> void:
 	_shown.see(_down)
 	_shown.see(hero.talents_changed)
 	_shown.see(_simulation.expedition.state)
+	_shown.see(benched)
 	_shown.see(fighter.target_id if fighter != null else -1)
 	if _shown.changed():
 		_show_header(hero, fighter, health, max_health)
 	_refresh_page(delta)
 	_refresh_tags(hero)
-	var part: StringName = &"skull" if _down else hero.class_id
+	var part: StringName = &"skull" if _down else hero.def().look()
 	if part != _portrait_part:
 		_portrait_part = part
 		portrait.texture = _icons.part(part) if _icons.has_part(part) else null
@@ -368,16 +412,26 @@ func _hero() -> Hero:
 	return _simulation.party.hero(hero_id) if _simulation != null else null
 
 
+## True when [param hero] is on the bench, not going down.
+func _is_benched(hero: Hero) -> bool:
+	return _simulation.party.bench.has(hero)
+
+
 ## The hero's fighter in the battle under way, or null outside a fight.
 func _fighter(hero: Hero) -> Combatant:
 	var expedition: Expedition = _simulation.expedition
 	if expedition.state != Expedition.State.FIGHTING or expedition.battle == null:
+		return null
+	if _is_benched(hero):
 		return null
 	return expedition.battle.combatant(hero.id)
 
 
 ## What the hero is doing, in words.
 func _activity(fighter: Combatant) -> String:
+	var hero: Hero = _hero()
+	if hero != null and _is_benched(hero):
+		return BENCH_WORDS
 	var expedition: Expedition = _simulation.expedition
 	if expedition.state == Expedition.State.REVIVING:
 		return DOING_WORDS[Expedition.State.REVIVING]
@@ -415,7 +469,7 @@ func _build_header() -> void:
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_SCALE
 	portrait.texture_filter = CanvasItem.TEXTURE_FILTER_NEAREST
-	var picture: Texture2D = _icons.part(_hero().class_id) if _icons != null else null
+	var picture: Texture2D = _icons.part(_hero().def().look()) if _icons != null else null
 	var shown: Vector2 = Vector2(picture.get_size()) * 2.0 if picture != null else Vector2(32, 32)
 	portrait.size = shown
 	portrait.position = (PORTRAIT_BOX.size - shown) / 2.0

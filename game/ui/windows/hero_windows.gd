@@ -1,15 +1,20 @@
 class_name HeroWindows
 extends Node
-## The hero windows: one [HeroWindow] per hero, each a window on the UI layer registered
-## with [UiWindows] as [code]hero_<n>[/code] (n the hero's place in the party, from 0), so they
-## move, layer, close on [kbd]Esc[/kbd] and are remembered like any other window, and any of them
-## can be open at once to compare heroes.
+## The hero windows: one [HeroWindow] per place in the line, each a window on the UI layer
+## registered with [UiWindows] as [code]hero_<n>[/code] (n the place, from 0), so they move,
+## layer, close on [kbd]Esc[/kbd] and are remembered like any other window, and any of them can be
+## open at once to compare heroes. Each shows the hero now at its place: when the four going down
+## change, a window keeps its place on the screen and its tab and shows the hero come in.
+##
+## A benched hero has one window, [constant BENCH_ID], a hero window in every way, which shows the
+## benched hero asked for last ([method open_hero]); it is made the first time one is asked for
+## (or as the game starts, when the bench has heroes), and closes when its hero goes down.
 ##
 ## A click on a hero's frame opens or closes its window ([method toggle]); [kbd]Tab[/kbd] opens the
 ## next hero's window and brings it to the front ([method open_next]); [kbd]Shift+Tab[/kbd] closes
-## the front one ([method close_front]). Those keys, and [kbd]Q[/kbd], [kbd]E[/kbd] and [kbd]1[/kbd]
-## to [kbd]3[/kbd], act on a hero window only while it is the front window of all ([method top]);
-## the [Hud] passes them on.
+## the front one ([method close_front]); Tab goes round the four going down only. Those keys,
+## and [kbd]Q[/kbd], [kbd]E[/kbd] and [kbd]1[/kbd] to [kbd]3[/kbd], act on a hero window only
+## while it is the front window of all ([method top]); the [Hud] passes them on.
 ##
 ## Places go by what is open, not by which hero: a window never dragged takes, as it opens, the
 ## first free place of a short list ([member _places]), free meaning no other undragged open hero
@@ -27,6 +32,8 @@ signal opened(hero_id: int)
 
 ## The start of every hero window's id.
 const PREFIX: String = "hero_"
+## The window of a benched hero.
+const BENCH_ID: StringName = &"hero_bench"
 ## UI pixels between windows, and between them and the room's edges.
 const GAP: float = 8.0
 ## How far each window of a cascade is set from the one before (less sideways when the room is
@@ -37,24 +44,29 @@ const PARAGON_BANNER_EVERY: int = 10
 
 var _ui: UiRoot
 var _simulation: Simulation
-## The windows by hero id, in the party's order.
-var _windows: Dictionary[int, HeroWindow] = {}
-var _ids: Array[int] = []
+var _tip: UiTip
+## The window of each place in the line, in order.
+var _field: Array[HeroWindow] = []
+## The bench's window, or null until a benched hero's is first asked for.
+var _bench: HeroWindow
+## Every window: the field's, then the bench's once it is made.
+var _all: Array[HeroWindow] = []
 ## The content height every window needs to show its tallest tab whole.
 var _tallest: float = 0.0
 ## The places an undragged hero window can take, in the order they are taken, for this room.
 var _places: Array[Vector2] = []
-## The place each open, undragged hero window holds, by hero id (an index into [member _places]).
-var _place_of: Dictionary[int, int] = {}
+## The place each open, undragged hero window holds (an index into [member _places]).
+var _place_of: Dictionary[HeroWindow, int] = {}
 
 
 func _init() -> void:
 	name = "HeroWindows"
 
 
-## The window id of the window of the party's [param place]th hero, from 0 ([code]&"hero_0"[/code]).
+## The window id of the window of the [param place]th place in the line, from 0
+## ([code]&"hero_0"[/code]); [constant BENCH_ID] for a place below 0.
 static func id_for(place: int) -> StringName:
-	return StringName(PREFIX + str(place))
+	return StringName(PREFIX + str(place)) if place >= 0 else BENCH_ID
 
 
 ## Call once, after the layer's windows exist: makes a window per hero of [param simulation],
@@ -63,39 +75,55 @@ static func id_for(place: int) -> StringName:
 func setup(simulation: Simulation, ui: UiRoot, tip: UiTip, world: World = null) -> void:
 	_simulation = simulation
 	_ui = ui
+	_tip = tip
 	if world != null and not world.sim_event.is_connected(_on_sim_event):
 		world.sim_event.connect(_on_sim_event)
-	var tallest: float = 0.0
-	for hero: Hero in simulation.party.heroes:
-		var made := HeroWindow.new(simulation, hero, _ids.size(), tip)
-		_windows[hero.id] = made
-		_ids.append(hero.id)
-		tallest = maxf(tallest, made.body_height())
-	_tallest = tallest
-	for hero_id: int in _ids:
-		var made: HeroWindow = _windows[hero_id]
-		made.set_body_height(tallest)  # every hero's window the same size, to compare
-		ui.windows.register(made)
-		made.settle()
-		made.open_changed.connect(_on_open_changed.bind(hero_id))
-		made.moved.connect(_on_moved.bind(hero_id))
+	var heroes: Array[Hero] = simulation.party.heroes
+	for i: int in heroes.size():
+		var made := HeroWindow.new(simulation, heroes[i], i, tip)
+		_field.append(made)
+		_all.append(made)
+		_tallest = maxf(_tallest, made.body_height())
+	for made: HeroWindow in _field:
+		_register(made)
+	if not simulation.party.bench.is_empty():
+		_make_bench(simulation.party.bench[0])
 	place_defaults()
-	for hero_id: int in _ids:
-		_windows[hero_id].place_at(_windows[hero_id].default_place, Vector2(ui.room()))
+	for made: HeroWindow in _all:
+		made.place_at(made.default_place, Vector2(ui.room()))
 	ui.windows.changed.connect(_on_windows_changed)
+
+
+## Registers [param made] with the layer's windows, as tall as every other.
+func _register(made: HeroWindow) -> void:
+	made.set_body_height(_tallest)  # every hero's window the same size, to compare
+	_ui.windows.register(made)
+	made.settle()
+	made.open_changed.connect(_on_open_changed.bind(made))
+	made.moved.connect(_on_moved.bind(made))
+
+
+## Makes the bench's window, showing [param hero].
+func _make_bench(hero: Hero) -> void:
+	_bench = HeroWindow.new(_simulation, hero, -1, _tip)
+	_all.append(_bench)
+	if _bench.body_height() > _tallest:
+		_tallest = _bench.body_height()
+		_set_heights(_tallest)
+	_register(_bench)
 
 
 ## Works out the places hero windows take for the room the layer has now, and each window's
 ## height (see the class description); an open window keeps the place it holds.
 func place_defaults() -> void:
-	if _ui == null or _ids.is_empty():
+	if _ui == null or _all.is_empty():
 		return
 	var room := Vector2(_ui.room())
 	var band: float = ceilf(_ui.world_to_ui(Vector2(0, HudFrame.TOP_BAND)).y) + GAP / 2.0
 	var frames: float = floorf(_ui.world_to_ui(Vector2(0, _ui.frames_top())).y) - GAP / 2.0
 	var bar: Rect2 = _ui.bar.rect_in(_ui.room()).grow(GAP / 2.0) if _ui.bar != null else Rect2()
 	_set_heights(_tallest)
-	var window_size: Vector2 = _windows[_ids[0]].size
+	var window_size: Vector2 = _all[0].size
 	var left := Rect2(Vector2(GAP, band), window_size)
 	var right := Rect2(Vector2(room.x - GAP - window_size.x, band), window_size)
 	var side_by_side: bool = (
@@ -107,23 +135,23 @@ func place_defaults() -> void:
 	if side_by_side:
 		_places.append(left.position)
 		_places.append(right.position)
-		for k: int in range(1, _ids.size() - 1):
+		for k: int in range(1, _all.size() - 1):
 			# Set right and down from the left one, but never so far down it meets the frames.
 			var place: Vector2 = left.position + CASCADE * k
 			place.y = maxf(minf(place.y, frames - window_size.y), band)
 			_places.append(place)
 	else:
 		# Two cascaded windows, one set down from the other, clear of the frames' line.
-		var chrome: float = _windows[_ids[0]].chrome_height()
+		var chrome: float = _all[0].chrome_height()
 		_set_heights(minf(_tallest, frames - band - CASCADE.y - chrome))
-		window_size = _windows[_ids[0]].size
+		window_size = _all[0].size
 		# The last of the cascade ends left of the button bar.
 		var limit: float = (bar.position.x if bar.has_area() else room.x - GAP) - window_size.x
-		var step: float = minf(CASCADE.x, floorf((limit - GAP) / maxf(_ids.size() - 1, 1)))
-		for k: int in _ids.size():
+		var step: float = minf(CASCADE.x, floorf((limit - GAP) / maxf(_all.size() - 1, 1)))
+		for k: int in _all.size():
 			_places.append(Vector2(GAP + maxf(step, 0.0) * k, band + CASCADE.y * (k % 2)))
-	for hero_id: int in _ids:
-		_windows[hero_id].default_place = _places[_place_of.get(hero_id, 0)].round()
+	for made: HeroWindow in _all:
+		made.default_place = _places[_place_of.get(made, 0)].round()
 
 
 ## True when [param rect] is clear of the frames' line at [param frames] and of [param bar].
@@ -133,16 +161,15 @@ static func _clear(rect: Rect2, frames: float, bar: Rect2) -> bool:
 
 ## Makes every hero window's content [param height] UI pixels tall.
 func _set_heights(height: float) -> void:
-	for hero_id: int in _ids:
-		_windows[hero_id].set_body_height(height)
+	for made: HeroWindow in _all:
+		made.set_body_height(height)
 
 
 ## Brings every open window up to date with the simulation. The HUD calls it every frame. While
 ## the world catches up, every tree drops what it was playing for the events before.
 func advance(delta: float) -> void:
 	var settling: bool = _catching_up()
-	for hero_id: int in _ids:
-		var shown: HeroWindow = _windows[hero_id]
+	for shown: HeroWindow in _all:
 		if settling:
 			shown.talents.tree_view().stop()
 		if shown.is_open():
@@ -155,9 +182,45 @@ func _catching_up() -> bool:
 	return moment != null and moment.world != null and moment.world.catching_up()
 
 
-## The window of hero [param hero_id], or null.
+## The window showing hero [param hero_id], or null.
 func window_of(hero_id: int) -> HeroWindow:
-	return _windows.get(hero_id, null)
+	for shown: HeroWindow in _all:
+		if shown.hero_id == hero_id:
+			return shown
+	return null
+
+
+## Opens hero [param hero_id]'s window and brings it to the front: its place's window when it is
+## going down, else the bench window showing it. Does nothing for an id not in the colony.
+func open_hero(hero_id: int) -> void:
+	for hero: Hero in _simulation.party.bench:
+		if hero.id != hero_id:
+			continue
+		if _bench == null:
+			_make_bench(hero)
+			place_defaults()
+			_bench.place_at(_bench.default_place, Vector2(_ui.room()))
+		elif _bench.hero_id != hero_id:
+			_bench.show_hero(hero)
+	open(hero_id)
+
+
+## Each window shows the hero now at its place, and the bench's closes once its hero goes down.
+func _follow_party() -> void:
+	var heroes: Array[Hero] = _simulation.party.heroes
+	for i: int in mini(heroes.size(), _field.size()):
+		if _field[i].hero_id != heroes[i].id:
+			_field[i].show_hero(heroes[i])
+	if _bench != null and _bench.is_open() and not _benched(_bench.hero_id):
+		_bench.close()
+	changed.emit()
+
+
+func _benched(hero_id: int) -> bool:
+	for hero: Hero in _simulation.party.bench:
+		if hero.id == hero_id:
+			return true
+	return false
 
 
 ## Opens hero [param hero_id]'s window in front of every other, on tab [param page] if given
@@ -185,11 +248,11 @@ func toggle(hero_id: int) -> void:
 ## open), wrapping, and brings it to the front, whatever window is in front; the others stay as
 ## they are (Tab with the shop or the tally in front still steps through the heroes).
 func open_next() -> void:
-	if _ids.is_empty():
+	if _field.is_empty():
 		return
 	var shown: HeroWindow = front()
-	var index: int = _ids.find(shown.hero_id) if shown != null else -1
-	open(_ids[(index + 1) % _ids.size()])
+	var index: int = _field.find(shown) if shown != null else -1
+	open(_field[(index + 1) % _field.size()].hero_id)
 
 
 ## Closes the front window, if it is a hero window.
@@ -201,8 +264,8 @@ func close_front() -> void:
 
 ## Closes every hero window.
 func close_all() -> void:
-	for hero_id: int in _ids:
-		_windows[hero_id].close()
+	for shown: HeroWindow in _all:
+		shown.close()
 
 
 ## The front window of all (any open window, not only hero windows) when it is a hero window,
@@ -229,12 +292,12 @@ func is_open(hero_id: int = -1) -> bool:
 	return shown != null and shown.is_open()
 
 
-## The heroes whose windows are open, in the party's order.
+## The heroes whose windows are open, in the party's order, then the benched hero's.
 func open_ids() -> Array[int]:
 	var made: Array[int] = []
-	for hero_id: int in _ids:
-		if _windows[hero_id].is_open():
-			made.append(hero_id)
+	for shown: HeroWindow in _all:
+		if shown.is_open():
+			made.append(shown.hero_id)
 	return made
 
 
@@ -246,6 +309,9 @@ func open_ids() -> Array[int]:
 ## its card while the hero's window is open on Skills. Nothing starts for an event that may not
 ## animate: the windows show the end state all the same.
 func _on_sim_event(event: SimEvent) -> void:
+	if event.kind == SimEvent.Kind.HERO_FIELDED:
+		_follow_party()
+		return
 	var moment: UiMoment = _ui.moment if _ui != null else null
 	if moment == null:
 		return
@@ -421,44 +487,41 @@ static func _sentence(text: String) -> String:
 
 
 ## A hero window opened or closed: one never dragged takes the first free place as it opens.
-func _on_open_changed(_window: UiWindow, hero_id: int) -> void:
-	var shown: HeroWindow = _windows[hero_id]
+func _on_open_changed(_window: UiWindow, shown: HeroWindow) -> void:
 	if shown.is_open():
 		if not shown.placed:
-			_take_place(hero_id)
-		opened.emit(hero_id)
+			_take_place(shown)
+		opened.emit(shown.hero_id)
 	else:
-		_place_of.erase(hero_id)
+		_place_of.erase(shown)
 	changed.emit()
 
 
 ## A hero window was dragged: it holds no place of the list any more.
-func _on_moved(_window: UiWindow, hero_id: int) -> void:
-	_place_of.erase(hero_id)
+func _on_moved(_window: UiWindow, shown: HeroWindow) -> void:
+	_place_of.erase(shown)
 
 
 ## The windows changed (one came to the front, or every place was reset): an open window never
 ## dragged that holds no place takes one.
 func _on_windows_changed() -> void:
-	for hero_id: int in _ids:
-		var shown: HeroWindow = _windows[hero_id]
-		if shown.is_open() and not shown.placed and not _place_of.has(hero_id):
-			_take_place(hero_id)
+	for shown: HeroWindow in _all:
+		if shown.is_open() and not shown.placed and not _place_of.has(shown):
+			_take_place(shown)
 	changed.emit()
 
 
-## Puts hero [param hero_id]'s window at the first place no other open, undragged hero window holds.
-func _take_place(hero_id: int) -> void:
+## Puts [param shown] at the first place no other open, undragged hero window holds.
+func _take_place(shown: HeroWindow) -> void:
 	if _places.is_empty():
 		return
 	var held: Array[int] = []
-	for other: int in _place_of:
-		if other != hero_id and _windows[other].is_open():
+	for other: HeroWindow in _place_of:
+		if other != shown and other.is_open():
 			held.append(_place_of[other])
 	var index: int = 0
 	while held.has(index) and index < _places.size() - 1:
 		index += 1
-	_place_of[hero_id] = index
-	var shown: HeroWindow = _windows[hero_id]
+	_place_of[shown] = index
 	shown.default_place = _places[index].round()
 	shown.place_at(shown.default_place, Vector2(_ui.room()))

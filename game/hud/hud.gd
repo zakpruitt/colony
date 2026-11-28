@@ -794,6 +794,9 @@ func _advance_shop(delta: float) -> void:
 
 
 func _on_sim_event(event: SimEvent) -> void:
+	if event.kind == SimEvent.Kind.HERO_FIELDED:
+		_follow_party()
+		return
 	if event.kind == SimEvent.Kind.PARAGON_SPENT and hero_windows != null and _fresh(event):
 		hero_windows.flash_paragon(event.source_id, event.target_id)
 	if event.kind == SimEvent.Kind.UPGRADE_BOUGHT:
@@ -812,6 +815,18 @@ func _on_sim_event(event: SimEvent) -> void:
 			frame.hit()
 		SimEvent.Kind.LEVEL_UP:
 			frame.level_up()
+
+
+## Each hero frame shows the hero now going down at its place, and the effects aim at them.
+func _follow_party() -> void:
+	var heroes: Array[Hero] = _simulation.party.heroes
+	_frames_by_id.clear()
+	for i: int in mini(heroes.size(), frames.size()):
+		if frames[i].hero_id != heroes[i].id:
+			frames[i].show_hero(heroes[i])
+		_frames_by_id[heroes[i].id] = frames[i]
+	_aim_effects()
+	_mark_frames()
 
 
 ## True when [param event] may start a flash: it is recent and the world is not catching up.
