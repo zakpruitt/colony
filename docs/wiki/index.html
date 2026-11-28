@@ -241,6 +241,15 @@ showcase's leftovers, not the game.</p>
   hero's line opened by ability shows it as a line of its own (<code>Hawk 412</code>); what monsters do
   to it is not on the Taken tab. Until each class draws its own creatures every summon is the same small
   pale placeholder with cyan eyes.</td></tr>
+  <tr><td>112 The roster (the rules only)</td><td>The colony can now hold more heroes than the four
+  who go down. Each new class is a lucky find: a cache may hold its artifact (a Ranger's Whistle, say),
+  and its hero then waits at camp with a request, its price in gold and perhaps a resource
+  (<em>Bring 300 gold and 40 Glowcaps</em>). Paid, the hero joins the bench at the level of the
+  lowest hero going down, every point unspent. A benched hero can be swapped in for one going down
+  whenever the party rests at camp; the four always stand tank, striker, caster, healer. A
+  benched hero earns nothing, but its talents can be planned. One hero of each class. Saves move to
+  version 12, adding the bench and the artifacts found. No new class exists yet, so nothing in the game
+  changes: each class comes with its own spec, and specs 113 and 114 put the roster on screen.</td></tr>
   <tr><td>111 Skill paths: the window</td><td>The Talents tab as three panels side by side, one per path,
   in the spirit of Skyrim's skill screens. Each panel's banner shows its rank, and a bar in the path's
   colour fills toward the next (point at it for the numbers). A node its rank holds shut says on its
@@ -411,7 +420,7 @@ showcase's leftovers, not the game.</p>
 </ul>
 
 <h3>Not built yet <span class="tag planned">Planned</span></h3>
-<p>Choosing who is in the party (a roster) and new classes such as the beast master, trades, loot and
+<p>The roster on screen (recruiting and choosing the four) and new classes such as the beast master, trades, loot and
 equipment, the warren-town at the surface, music, a settings screen, a "new game" button.</p>
 
 <h2 id="run">1. Run the game</h2>
@@ -1255,7 +1264,8 @@ and resources, each hero's class, level, XP, talents and paragon points, the are
 area's safe and furthest stage, the open areas and beaten guardians, the target, the Auto and auto-buy
 switches, the orders and each upgrade's rank. Loading stands the party up fresh at its last safe stage, as
 after a wipe. The shape of the stages is not in the save: a save from before the stages wound comes back
-on winding ones with all of its progress. Older saves are brought forward (the save is at version 9); a damaged or unknown one is
+on winding ones with all of its progress. Older saves are brought forward (the save is at version 12, and also holds the benched heroes and
+the artifacts found); a damaged or unknown one is
 refused rather than guessed at. The file is written whole or not at all, and the save before it is kept as
 a backup. It lives at <code>%APPDATA%\Godot\app_userdata\Colony\colony.save</code>; delete it and
 <code>colony.save.bak</code> to start over. Tests, screenshots and headless runs never touch it.</p>

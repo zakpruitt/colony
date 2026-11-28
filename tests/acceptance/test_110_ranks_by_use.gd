@@ -323,7 +323,7 @@ func test_r5_reset_keeps_ranks() -> void:
 
 
 func test_r6_saves() -> void:
-	assert_eq(Simulation.SAVE_VERSION, 11)
+	assert_eq(Simulation.SAVE_VERSION, 12)
 	var sim := Simulation.new(SEED)
 	var knight: Hero = sim.party.heroes[0]
 	raise(knight, 18)
@@ -336,7 +336,7 @@ func test_r6_saves() -> void:
 	assert_eq(knight.talents().size(), 4, "four Guardian nodes taken")
 	var data: Dictionary = sim.to_save()
 	var version: int = data["version"]
-	assert_eq(version, 11, "saved at version 11")
+	assert_eq(version, 12, "saved at version 12")
 	var saved_heroes: Array = data["heroes"]
 	var knight_paths: Array = saved_heroes[0]["paths"]
 	var rogue_paths: Array = saved_heroes[1]["paths"]

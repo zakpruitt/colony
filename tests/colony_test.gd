@@ -33,18 +33,25 @@ const PATH_FIGHT_LEVEL: int = 15
 const PATH_PARTY_LEVEL: int = 14
 const PATH_SEEDS: int = 5
 
+## The class [method add_recruit_class] adds, a copy of the Knight that can be recruited.
+const RECRUIT_CLASS: StringName = &"test_recruit"
+
 ## The paths [method save_path] has handed out; each is deleted with its backup and temporary file.
 var _saved_paths: Array[String] = []
+## True while [constant RECRUIT_CLASS] is among the classes the data has.
+var _recruit_added: bool = false
 
 
 func after_each() -> void:
 	_delete_saved_files()
+	_remove_recruit_class()
 
 
 ## Also after the last test: a Main with a save store saves again when GUT frees it, which is
 ## after after_each has run.
 func after_all() -> void:
 	_delete_saved_files()
+	_remove_recruit_class()
 
 
 # --- Input ---------------------------------------------------------------------
@@ -246,6 +253,58 @@ func _check_paths_win(class_id: StringName) -> void:
 		var wins: int = _path_wins(class_id, path)
 		gut.p("%s %s: %d of %d" % [class_id, name_text, wins, PATH_SEEDS])
 		assert_gte(wins, 3, "%s wins it %d times of %d" % [name_text, wins, PATH_SEEDS])
+
+
+# --- The roster ----------------------------------------------------------------
+
+
+## Puts a class that can be recruited among the classes the data has, until the test ends: a copy
+## of the Knight under the id [constant RECRUIT_CLASS], its artifact the Test Whistle at chance
+## 0.12, priced 300 gold and 40 glowcaps, looking like the Knight, with a copy of the Knight's
+## talent tree. Returns its id.
+func add_recruit_class() -> StringName:
+	if _recruit_added:
+		return RECRUIT_CLASS
+	var def: HeroClassDef = Content.hero_class(&"knight").duplicate() as HeroClassDef
+	def.id = RECRUIT_CLASS
+	def.display_name = "Test Recruit"
+	def.artifact_name = "Test Whistle"
+	def.artifact_chance = 0.12
+	def.recruit_gold = 300
+	def.recruit_resource = &"glowcaps"
+	def.recruit_resource_count = 40
+	def.looks_like = &"knight"
+	var tree: TalentTreeDef = Content.talent_tree(&"knight").duplicate() as TalentTreeDef
+	tree.class_id = RECRUIT_CLASS
+	_put_content(Content.Kind.HEROES, RECRUIT_CLASS, def)
+	_put_content(Content.Kind.TALENTS, RECRUIT_CLASS, tree)
+	_recruit_added = true
+	return RECRUIT_CLASS
+
+
+## Takes [constant RECRUIT_CLASS] and its tree out of the data again, if a test put them in.
+func _remove_recruit_class() -> void:
+	if not _recruit_added:
+		return
+	_recruit_added = false
+	_put_content(Content.Kind.HEROES, RECRUIT_CLASS, null)
+	_put_content(Content.Kind.TALENTS, RECRUIT_CLASS, null)
+
+
+## Adds [param def] to [param kind] under [param key], or with null takes the key out; the kind's
+## ids stay sorted and read-only, as [Content] keeps them.
+static func _put_content(kind: Content.Kind, key: StringName, def: Resource) -> void:
+	var ids: Array[StringName] = []
+	ids.assign(Content._ids_of(kind))
+	ids.erase(key)
+	if def == null:
+		Content._defs[kind].erase(key)
+	else:
+		Content._defs[kind][key] = def
+		ids.append(key)
+	ids.sort_custom(func(a: StringName, b: StringName) -> bool: return String(a) < String(b))
+	ids.make_read_only()
+	Content._ids[kind] = ids
 
 
 # --- The simulation ------------------------------------------------------------
