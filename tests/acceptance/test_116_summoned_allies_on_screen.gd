@@ -300,6 +300,9 @@ func test_r2_fights_on_screen() -> void:
 	var sprite: CharacterSprite = main.world.character(id)
 	var effects: CombatEffects = main.effects
 	var red: Color = Palette.color(KNIGHT_COLOUR)
+	var amber: Color = Palette.color(&"amber")
+	main.simulation.expedition.battle.combatant(id).crit_chance = 0.5
+	var crit_amber: bool = false
 	var struck: bool = false
 	var moved: bool = false
 	var coloured: bool = false
@@ -326,18 +329,69 @@ func test_r2_fights_on_screen() -> void:
 			var hawk_words: String = str(from_hawk.amount) if from_hawk != null else ""
 			# The monsters barely hurt (1 a blow), and a hero's wounds are red too.
 			if from_hawk != null and from_hawk.amount > 1 and text.text.begins_with(hawk_words):
-				coloured = coloured or text.color == red
+				if from_hawk.flag:
+					crit_amber = crit_amber or text.color == amber
+				else:
+					coloured = coloured or text.color == red
 			if from_hawk == null and from_knight != null and text.color == Color.WHITE:
 				white_from_knight = true
 		var marks: StatusMarks = effects.ability_effects.marks
 		hasted = hasted or marks.shown(id).has(AbilityEffect.Status.HASTED)
-		if struck and moved and coloured and hasted and white_from_knight:
+		if struck and moved and coloured and crit_amber and hasted and white_from_knight:
 			break
 	assert_true(struck, "the hawk winds up and strikes as any fighter's sprite does")
 	assert_true(moved, "its own action plays its move")
 	assert_true(coloured, "its damage numbers are in the Knight's colour")
 	assert_true(white_from_knight, "while the Knight's own stay white")
+	assert_true(crit_amber, "and its critical hits stay amber, read as crits")
 	assert_true(hasted, "a status on it shows its mark")
+
+
+func test_r2_heal_numbers_take_the_summoner_colour() -> void:
+	var main: Main = _summon_fight()
+	var totem: SummonDef = _turret({"seconds": 30.0, "heal_share": 0.6, "attack_range": 20.0})
+	totem.id = &"totem"
+	totem.display_name = "Totem"
+	_give_knight(main, _summoning(&"test_raise_totem", totem))
+	var mend := AbilityEffect.new()
+	mend.does = AbilityEffect.Does.HEAL
+	mend.lands = AbilityEffect.Lands.SELF
+	mend.scale = AbilityEffect.Scale.RECEIVER_MAX_HEALTH
+	mend.multiplier = 0.05
+	_give_knight(main, _action(&"test_mend", [mend] as Array[AbilityEffect], 1.5))
+	var knight: int = _knight(main).id
+	var effects: CombatEffects = main.effects
+	var red: Color = Palette.color(KNIGHT_COLOUR)
+	var green: Color = Palette.color(&"green")
+	var summons: Dictionary[int, bool] = {}
+	var totem_red: bool = false
+	var own_green: bool = false
+	for i: int in WAIT_TICKS:
+		var hurt: Combatant = _knight(main)
+		if hurt == null:
+			break
+		hurt.health = mini(hurt.health, roundi(hurt.max_health * 0.4))
+		var before: Array[FxText] = effects.texts()
+		var events: Array[SimEvent] = _play_tick(main)
+		var by_totem: bool = false
+		var by_knight: bool = false
+		for event: SimEvent in events:
+			if event.kind == SimEvent.Kind.SUMMONED:
+				summons[event.target_id] = true
+			elif event.kind == SimEvent.Kind.HEALED and event.target_id == knight:
+				by_totem = by_totem or summons.has(event.source_id)
+				by_knight = by_knight or event.source_id == knight
+		for text: FxText in effects.texts():
+			if text in before or text.kind != &"heal":
+				continue
+			if by_totem and not by_knight:
+				totem_red = totem_red or text.color == red
+			if by_knight and not by_totem:
+				own_green = own_green or text.color == green
+		if totem_red and own_green:
+			break
+	assert_true(totem_red, "the totem's heal numbers are in the Knight's colour")
+	assert_true(own_green, "while the Knight's own heals stay green")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -388,6 +442,33 @@ func test_r3_ends_on_screen() -> void:
 	for i: int in 60 * 4:
 		_frame(main, 0)
 	assert_eq(main.world.effects_layer.get_child_count(), 0, "nothing on the effects layer")
+
+
+func test_r3_an_end_heard_late_goes_at_once() -> void:
+	var main: Main = _summon_fight()
+	_give_knight(main, _summoning(&"test_brief", _hawk({"seconds": 2.0})))
+	var came: SimEvent = _play_until_event(main, SimEvent.Kind.SUMMONED)
+	assert_not_null(came, "the Knight called its hawk")
+	if came == null:
+		return
+	var id: int = came.target_id
+	for i: int in 10:  # its arrival's puff passes
+		_play_tick(main)
+	var sprite: CharacterSprite = main.world.character(id)
+	assert_not_null(sprite, "the hawk is on screen")
+	if sprite == null:
+		return
+	var at: Vector2 = sprite.position
+	assert_eq(_puffs_near(main, at), 0, "its arrival's puff has passed")
+	var before: int = _heard.size()
+	_frame(main, World.STALL_TICKS + 30)
+	assert_true(main.world.catching_up(), "a stall")
+	var ended: SimEvent = _first(_heard.slice(before), SimEvent.Kind.SUMMON_ENDED, id)
+	assert_not_null(ended, "the hawk ended in it")
+	_frame(main, 0)
+	assert_null(main.world.character(id), "its sprite is gone by the next frame")
+	assert_false(main.world.summons.has(id), "with no fade")
+	assert_eq(_puffs_near(main, at), 0, "and no puff")
 
 
 ## A tick of play that checks, frame by frame, each summon seen ending: [param ending] holds its
@@ -573,9 +654,9 @@ func test_r5_no_view_mistakes_it() -> void:
 		if main.simulation.expedition.battle.combatant(id) != null:
 			probe.target_id = id
 			break
-	if probe.target_id >= 0:
-		var line: String = window._fighting(probe)
-		assert_true(line.contains("Hawk") or line.contains("Turret"), "named: %s" % line)
+	assert_gt(probe.target_id, -1, "a summon stands to be aimed at")
+	var line: String = window._fighting(probe)
+	assert_true(line.contains("Hawk") or line.contains("Turret"), "named: %s" % line)
 	# Heroes only on the frames, the hero windows and the goals.
 	var heroes: int = main.simulation.party.heroes.size()
 	assert_eq(main.hud.frames.size(), heroes, "a frame per hero, none for a summon")

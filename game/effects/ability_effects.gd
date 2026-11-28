@@ -147,12 +147,14 @@ func keep_drop_in_band(icon: FxResource) -> void:
 		icon.position += _band_shift(box)
 
 
-## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
-## burning, bleeding or chilled status did, a summon's summoner's class colour for damage it
-## dealt, [param fallback] otherwise.
+## The colour a damage or heal number of [param event] is drawn in: a status's own colour for
+## damage a burning, bleeding or chilled status did, [param fallback] for a critical hit, a
+## summon's summoner's class colour for what else it dealt or healed, [param fallback] otherwise.
 func number_color(event: SimEvent, fallback: StringName) -> StringName:
 	if event == _last_hit and STATUS_COLORS.has(credit.status):
 		return STATUS_COLORS[credit.status]
+	if event.kind == SimEvent.Kind.HIT and event.flag:
+		return fallback  # a critical hit reads as one, whoever struck it
 	var summoner: StringName = (
 		_world.summons.colour_of(event.source_id) if _summoned(event) else &""
 	)
