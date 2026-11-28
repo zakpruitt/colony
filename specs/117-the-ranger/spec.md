@@ -110,7 +110,8 @@ Rogue until Zak draws it, and its beasts with spec 116's placeholder creature.
     `ARTIFACT_FOUND` in that run, and only then records the new hashes, with a comment saying the
     run finds the Ranger's Whistle. A difference before any find is a bug.
 - **R9. The old tests follow.** Tests that count or list every class or every ability are amended
-  for a fifth class, and no others (see "Tests that change"). Each change, and what still guards
+  for a fifth class, and no others. The list was found by running the whole suite on a scratch copy
+  of `dev` holding both the Ranger's and the Bard's data (see "Tests that change"). Each change, and what still guards
   the behaviour, is listed in the pull request.
 - **R10. The wiki.** `docs/wiki/index.html` gains the Ranger in its classes: how it is found, its
   price, its three paths in a line each.
@@ -225,9 +226,13 @@ change only for a fifth class and its fifteen abilities.
   tree" counts every class's tree, not only the four; its `CLASSES` and `PATHS` stay the four's)
 - `tests/acceptance/test_063_pictures_and_the_moment.gd` (only if the specimen's groups or a count
   of pictures name the four)
-- `tests/acceptance/test_072_content_table.gd`, `test_078_sim_base_types.gd`,
-  `test_059_shop_map_and_tally_windows.gd`, `tests/unit/test_hud_talents.gd` (only if they fail for
-  the added class or abilities)
+- `tests/acceptance/test_078_sim_base_types.gd` (R3's mixed fights draw random abilities, so they
+  now bring summons; its reference picks of nearest, weakest and furthest look only at
+  `battle.heroes` and must take in `battle.summons` too, as spec 115 R3 has monsters aim at them.
+  In the probe it failed exactly so: `fighter 101 aim 1: 50, not 3`)
+- `tests/acceptance/test_072_content_table.gd`, `test_059_shop_map_and_tally_windows.gd`,
+  `tests/unit/test_hud_talents.gd` (only if they fail for the added class or abilities; with both
+  new classes added in the probe they passed)
 - The recorded-hash tests, only as R8 says: `test_016_camp_upgrades.gd`, `test_035_party_orders.gd`,
   `test_039_the_countdown.gd`, `test_100_rooms_shaped_like_caves.gd`,
   `test_101_what_stands_in_a_cave.gd`
@@ -250,8 +255,8 @@ A test that fails for any other reason is a bug in the data or the lane's code.
 - `assets/sprites/ui/pictures_ranger.px` and `assets/sprites/ui/pictures_artifacts.px` (the Whistle),
   with their baked `.png`, `.json` and `.png.import`
 - `game/ui/ui_icon.gd` (`SHEETS` only), `game/ui/windows/path_colours.gd`,
-  `game/ui/windows/tally_window.gd` (`CLASS_BARS` only), `game/ui/picture_specimen.gd` (only if a
-  fifth group does not fit), `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
+  `game/ui/windows/tally_window.gd` (`CLASS_BARS` only), `game/ui/picture_specimen.gd` (to fit a
+  fifth group: with six groups in the probe, the Rogue's pictures fell off the sheet at its room), `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
 - `tests/acceptance/test_117_the_ranger.gd`, `tests/acceptance/test_117_every_ability_is_seen.gd`
   and their `.uid`s, `tests/colony_test.gd` (`stand_in` and the helpers moved from `test_109`),
   `tests/acceptance/test_109_every_ability_is_seen.gd` (only to use the moved helpers), and the

@@ -181,7 +181,15 @@ at 4), `test_057_lively_moves.gd` (90 abilities), `test_109_three_paths_of_five.
 `test_063_pictures_and_the_moment.gd`, `test_072_content_table.gd`, `test_078_sim_base_types.gd`,
 `test_059_shop_map_and_tally_windows.gd`, `tests/unit/test_hud_talents.gd` (the last five only if
 they fail for the added class or abilities), and the recorded-hash tests only as R8 says
-(`test_016`, `test_035`, `test_039`, `test_100`, `test_101`).
+(`test_016`, `test_035`, `test_039`, `test_100`, `test_101`). And two of its own, found by running
+the whole suite on a scratch copy of `dev` with the Bard's data:
+
+- `tests/acceptance/test_107_the_quest_story.gd` uses `&"bard"` as a class that does not exist
+  (`bad_class.lines[0].class_id`); it becomes `&"no_such_class"`.
+- `tests/acceptance/test_109_every_ability_is_seen.gd`: `_rescues()` lists every action under
+  `data/abilities` whose condition waits for a hurt ally, so Stand Fast joins the four classes'
+  rescues and its assert fails, since no party there holds it. `_rescues()` keeps to the abilities
+  of the four classes' trees; `test_118` checks the Bard's (R6).
 
 ## Out of scope
 
@@ -195,8 +203,8 @@ they fail for the added class or abilities), and the recorded-hash tests only as
 - `assets/sprites/ui/pictures_bard.px` and `assets/sprites/ui/pictures_artifacts.px` (the Lute),
   with their baked `.png`, `.json` and `.png.import`
 - `game/ui/ui_icon.gd` (`SHEETS` only), `game/ui/windows/path_colours.gd`,
-  `game/ui/windows/tally_window.gd` (`CLASS_BARS` only), `game/ui/picture_specimen.gd` (only if a
-  sixth group does not fit), `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
+  `game/ui/windows/tally_window.gd` (`CLASS_BARS` only), `game/ui/picture_specimen.gd` (a sixth
+  group did not fit in the probe), `game/dev/showcase.gd`, `game/dev/showcase_moments.gd`
 - `tests/acceptance/test_118_the_bard.gd`, `tests/acceptance/test_118_every_ability_is_seen.gd` and
   their `.uid`s, `tests/colony_test.gd` (only if a helper must take a class it does not), and the
   files in "Tests that change"
