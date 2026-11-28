@@ -187,6 +187,16 @@ func shown_headline() -> String:
 	return _shown.headline if _shown != null else ""
 
 
+## True when a banner headed [param headline] is showing or waits its turn.
+func holds(headline: String) -> bool:
+	if shown_headline() == headline:
+		return true
+	for queued: Banner in _waiting:
+		if queued.headline == headline:
+			return true
+	return false
+
+
 ## Runs the bursts and the banners on by [param delta] seconds. Its maker calls it every frame
 ## ([method UiRoot.advance]); tests call it.
 func advance(delta: float) -> void:

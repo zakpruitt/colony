@@ -12,7 +12,8 @@ extends Control
 ## the part that scrolls, so the question and its answers show however far the tree is scrolled.
 ##
 ## Pointing at a node shows its card ([method UiTip.attach_card]): picture, name, kind,
-## the whole description and how it stands in words ([method standing]). A click on a node that can
+## the whole description and how it stands in words ([method standing]); pointing at a path's rank
+## bar tells its XP to the next rank ([method bar_tip]). A click on a node that can
 ## be taken takes it ([method Simulation.take_talent]), as does the strip's [code]Learn[/code]. A
 ## reset asks first, at its price, and the question goes when the price changes, a fight starts or
 ## the tab is hidden, so a reset is never charged at a price the player did not read. Every value is
@@ -22,6 +23,11 @@ extends Control
 ## What the top row is asking, if anything.
 enum Asking { NOTHING, RESET }
 
+## How path XP is earned, as a rank bar's tooltip says after its numbers.
+const BAR_TIP: String = (
+	"Won fights give path XP: one for each node held here, and one each time one of its"
+	+ " abilities acts."
+)
 ## The top row's height: the points in letters twice the UI font's size.
 const TOP_HEIGHT: float = UiText.LINE_HEIGHT * 2.0
 ## The points' letters, as a multiple of the UI font's size.
@@ -262,11 +268,12 @@ func reset_reason(hero: Hero) -> String:
 	return ""
 
 
-## How node [param ability_id] stands for [param hero], in words:
-## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code] (for a
-## tier-3 node, [code]Take Bloodthirst or Reckless Swing first[/code]),
-## [code]No points: the next comes at level 9[/code] or, with a point to spend, the rank its path
-## still needs: [code]Rank 5 in Guardian opens this[/code].
+## How node [param ability_id] stands for [param hero], in words: [code]Learned[/code],
+## [code]Click to learn[/code], or each thing it waits for, one a line, in this order: the node
+## above it ([code]Take Whirlwind first[/code]; for a tier-3 node,
+## [code]Take Bloodthirst or Reckless Swing first[/code]), its path's rank
+## ([code]Rank 5 in Guardian opens this (now rank 3)[/code]) and a point
+## ([code]No points: the next comes at level 12[/code]).
 static func standing(hero: Hero, ability_id: StringName) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
 	if tree_def == null or not tree_def.has_node(ability_id):
@@ -276,21 +283,61 @@ static func standing(hero: Hero, ability_id: StringName) -> String:
 		return "Learned"
 	if hero.can_take(ability_id):
 		return "Click to learn"
+	var waits: Array[String] = []
 	if not tree_def.open_nodes(taken).has(ability_id):
 		var names: Array[String] = []
 		for before: StringName in tree_def.needs(ability_id):
 			names.append(Content.ability(before).display_name)
-		return "Take %s first" % " or ".join(PackedStringArray(names))
+		waits.append("Take %s first" % " or ".join(PackedStringArray(names)))
+	var needed: int = RankStanding.short_of(hero, ability_id, tree_def)
+	if needed > 0:
+		var path: int = tree_def.path_of(ability_id)
+		var named: String = tree_def.path(path).display_name
+		var rank: int = hero.ranks.rank(path, tree_def)
+		waits.append("Rank %d in %s opens this (now rank %d)" % [needed, named, rank])
 	if hero.talent_points() <= 0:
 		var earned: int = TalentRules.talent_points_at(hero.level)
 		if earned >= Hero.TALENT_POINTS:
-			return "No points left"
-		return "No points: the next comes at level %d" % ((earned + 1) * Hero.TALENT_EVERY)
-	var path: int = tree_def.path_of(ability_id)
-	return (
-		"Rank %d in %s opens this"
-		% [tree_def.rank_needed(ability_id), tree_def.path(path).display_name]
-	)
+			waits.append("No points left")
+		else:
+			var next: int = (earned + 1) * Hero.TALENT_EVERY
+			waits.append("No points: the next comes at level %d" % next)
+	return "\n".join(PackedStringArray(waits))
+
+
+## True when the only thing [param hero] waits for before it can take [param ability_id] is its
+## path's rank: the node above it is taken and a point waits.
+static func held_by_rank(hero: Hero, ability_id: StringName) -> bool:
+	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
+	if tree_def == null or not tree_def.has_node(ability_id) or hero.talent_points() <= 0:
+		return false
+	if not tree_def.open_nodes(hero.talents()).has(ability_id):
+		return false
+	return RankStanding.short_of(hero, ability_id, tree_def) > 0
+
+
+## How far [param hero]'s path of [param ability_id] has come toward its next rank, as the rank
+## bar says it ([method RankStanding.progress]): [code]6 of 28 XP to rank 4[/code].
+static func rank_progress(hero: Hero, ability_id: StringName) -> String:
+	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
+	if tree_def == null or not tree_def.has_node(ability_id):
+		return ""
+	return RankStanding.of(hero, tree_def.path_of(ability_id), tree_def).progress()
+
+
+## The tooltip of path [param path]'s rank bar for [param hero]: [code]Guardian rank 3: 6 of 28
+## XP to rank 4.[/code], or at the top [code]Guardian rank 10, the top rank.[/code], then how path
+## XP is earned ([constant BAR_TIP]).
+static func bar_tip(hero: Hero, path: int) -> String:
+	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
+	if tree_def == null or tree_def.path(path) == null:
+		return ""
+	var stood: RankStanding = RankStanding.of(hero, path, tree_def)
+	var named: String = tree_def.path(path).display_name
+	var where: String = "%s rank %d, the top rank." % [named, stood.rank]
+	if not stood.top:
+		where = "%s rank %d: %s." % [named, stood.rank, stood.progress()]
+	return "%s %s" % [where, BAR_TIP]
 
 
 ## The palette colour [method standing] is shown in for [param hero]'s node [param ability_id].
@@ -348,6 +395,7 @@ func add_tips(tip: UiTip) -> void:
 			)
 			tip.attach(tree.banners[i], text)
 			tip.attach(tree.path_labels[i], text)
+			tip.attach(tree.banners[i].rank_bar, _bar_tip.bind(i))
 	tip.attach(reset_button, "A fresh start gives every talent point back, for gold.")
 	tip.attach(choose_button, "Give every node back for the gold named.")
 	tip.attach(not_yet_button, "Keep the tree as it is.")
@@ -381,7 +429,7 @@ func _hero_changed(hero: Hero) -> bool:
 	_read_from.see(hero.talents_changed)
 	_read_from.see(hero.paragon_points())
 	for path: int in tree.banners.size():
-		_read_from.see(hero.ranks.rank(path, tree.tree))
+		_read_from.see(hero.ranks.xp(path))
 	for cell: ParagonCell in paragon_cells:
 		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))
 	_read_from.see(_simulation.party.gold)
@@ -391,6 +439,12 @@ func _hero_changed(hero: Hero) -> bool:
 	_read_from.see(tree.hovered())
 	_read_from.see(is_visible_in_tree())
 	return _read_from.changed()
+
+
+## The tooltip of path [param path]'s rank bar, read as it shows.
+func _bar_tip(path: int) -> String:
+	var hero: Hero = _hero()
+	return bar_tip(hero, path) if hero != null else ""
 
 
 ## Node [param ability_id]'s card: its picture, name, kind, description and standing.
@@ -440,8 +494,11 @@ func _refresh_top(hero: Hero) -> void:
 	if points == 0:
 		colour = &"steel"
 		var earned: int = TalentRules.talent_points_at(hero.level)
-		if earned >= Hero.TALENT_POINTS:
-			text = "The tree is full"
+		var all: int = tree.nodes().size()
+		if hero.talents().size() >= all:
+			text = "All %d learned" % all
+		elif earned >= Hero.TALENT_POINTS:
+			text = "No points left"
 		else:
 			text = "Next point at level %d" % ((earned + 1) * Hero.TALENT_EVERY)
 	if points_label.text != text:
@@ -480,24 +537,38 @@ func _refresh_top(hero: Hero) -> void:
 
 
 ## The strip: the node under the mouse; with none, the first the hero can take now; with none of
-## those, the first not yet taken.
+## those, the first held shut only by its path's rank, with how far the rank has to go; with none
+## of those either, the first not yet taken. It says the first thing a node waits for (its card
+## says them all).
 func _refresh_strip(hero: Hero) -> void:
 	var shown: StringName = tree.hovered()
+	var stand: String = ""
 	if shown == &"":
-		for each: TalentNode in tree.nodes():
-			if hero.can_take(each.ability_id):
-				shown = each.ability_id
-				break
+		shown = _first(hero.can_take)
+	if shown == &"":
+		shown = _first(func(id: StringName) -> bool: return held_by_rank(hero, id))
+		if shown != &"":
+			stand = rank_progress(hero, shown)
 	if shown == &"":
 		shown = _next_on_the_way(hero)
+	if stand.is_empty():
+		stand = standing(hero, shown).get_slice("\n", 0)
 	var showing: TalentNode = tree.node(shown)
 	strip.show_node(
 		shown,
-		standing(hero, shown),
+		stand,
 		standing_colour(hero, shown),
 		showing.slot.state() if showing != null else UiIcon.State.LOCKED,
 		hero.can_take(shown) and is_visible_in_tree()
 	)
+
+
+## The first node of the tree, path by path, for which [param test] (given its id) is true, or &"".
+func _first(test: Callable) -> StringName:
+	for each: TalentNode in tree.nodes():
+		if test.call(each.ability_id):
+			return each.ability_id
+	return &""
 
 
 ## The first node of the tree, path by path, that [param hero] has not taken, or the last node when

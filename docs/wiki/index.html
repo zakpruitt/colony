@@ -232,6 +232,13 @@ showcase's leftovers, not the game.</p>
   death, the fight is lost when every hero falls whatever summons still stand, and a monster it kills
   pays the party as usual. Nothing in the game summons yet and nothing shows them: the classes that
   use them come with their own specs, and spec 116 draws them.</td></tr>
+  <tr><td>111 Skill paths: the window</td><td>The Talents tab as three panels side by side, one per path,
+  in the spirit of Skyrim's skill screens. Each panel's banner shows its rank, and a bar in the path's
+  colour fills toward the next (point at it for the numbers). A node its rank holds shut says on its
+  corner, on a small padlock tag, which rank opens it (<code>5</code>), with a dark line into it; its card names everything
+  it waits for, in order (the node above, the rank, a point). A rank-up bursts and the bar fills and
+  starts again, with a banner when it opens a tier or is the top; learning a capstone lights the path
+  from the top down (<em>Knight masters Guardian</em>). The journal records both.</td></tr>
   <tr><td>064 The talent tree as a tree</td><td>The Talents tab is a tree of pictures: the trunk runs down the
   middle and forks into two paths, each in its own colour under a banner that says what a hero on it
   becomes. Point at a node for its card; a strip under the tree shows what is next, with a
@@ -678,11 +685,10 @@ of them at once; talents make one hero different from another.</p>
   either tier-2 node, the capstone tier 3. Nothing closes a path: a hero may learn from every path, in
   any mix, and in time holds all fifteen. Its title names the path it holds most of.</li>
   <li><strong>A path ranks up by use.</strong> Each won fight gives every hero XP in each of its paths:
-  the nodes it holds there, plus the times that path's abilities fired for it in the fight (each ability
-  counted three times at most, so a passive that fires on every strike does not race ahead). A hero who
-  fell in the fight gains too; a lost fight, or one ended at its 90-second limit, gives nothing. A path
-  reaches rank 1 at 7 XP, then 17, 35, 63, 105, 168, 245, 343, 455 and rank 10 at 595. Tier 1 is open from
-  the start, tier 2 needs rank 2, tier 3 rank 5 and the capstone rank 9. A rank never goes down.</li>
+  one for each node it holds there, plus one each time one of that path's abilities acted for it in the
+  fight (each ability counted three times at most, so a passive that fires on every strike does not race
+  ahead). A hero who fell in the fight gains too; a lost fight, or one ended at its 90-second limit, gives
+  nothing. A rank never goes down, and a reset keeps it. The ranks, and the tier each opens:</li>
   <li>Every node is an ability: an <strong>action</strong> the hero does in a fight (with a cooldown), or a
   <strong>passive</strong> that fires when something happens. None is a plain bonus to damage or health.</li>
   <li>A hero uses its abilities from its next fight on. Every action is ready as a fight starts and waits
@@ -692,9 +698,33 @@ of them at once; talents make one hero different from another.</p>
   swing is a plain strike.</li>
   <li>A <strong>reset</strong> gives a hero back every talent point, for 100 gold per level, outside a
   fight. Paragon points and path ranks stay.</li>
-  <li>Rank bars and a moment when a path ranks up or a capstone is learned are planned (spec 111).
-  <span class="tag planned">Planned</span></li>
+  <li><strong>On the Talents tab</strong> (spec 111) the three paths stand side by side as three panels.
+  Each panel's banner gives the path's name, what a hero on it becomes and its rank
+  (<code>Rank 3</code>, <code>Rank 10, top</code>), and under it a bar in the path's colour fills toward
+  the next rank (point at it: <code>Guardian rank 3: 6 of 28 XP to rank 4</code>). A node the rank still
+  holds shut is locked with the rank that opens it on a small padlock tag at its corner (<code>5</code>), and the line into
+  it is dark. A rank-up bursts the rank and the bar fills and starts again; a rank that opens a tier drops
+  a banner (<em>Knight: Guardian rank 5</em>, <em>Bulwark can be learned now</em>), as does the top rank.
+  Learning a capstone lights its path's lines from the top down and drops a bigger banner
+  (<em>Knight masters Guardian</em>).</li>
 </ul>
+
+<div class="table-wrap">
+<table>
+  <tr><th>Rank</th><th>Path XP in all</th><th>Opens</th></tr>
+  <tr><td>1</td><td>7</td><td></td></tr>
+  <tr><td>2</td><td>17</td><td>Tier 2</td></tr>
+  <tr><td>3</td><td>35</td><td></td></tr>
+  <tr><td>4</td><td>63</td><td></td></tr>
+  <tr><td>5</td><td>105</td><td>Tier 3</td></tr>
+  <tr><td>6</td><td>168</td><td></td></tr>
+  <tr><td>7</td><td>245</td><td></td></tr>
+  <tr><td>8</td><td>343</td><td></td></tr>
+  <tr><td>9</td><td>455</td><td>Tier 4, the capstone</td></tr>
+  <tr><td>10</td><td>595</td><td>Nothing more: the top</td></tr>
+</table>
+</div>
+<p>Tier 1 is open from the start. Every class's tree has the same table.</p>
 
 <h3>Knight</h3>
 <div class="table-wrap">
@@ -958,26 +988,29 @@ window keeps its own:</p>
   <li><strong>Stats:</strong> Health, Damage, Armor, Attack speed, Crit chance, Range and, for the Cleric,
   Healing, each on its own line, with what raises it beside it in green, in words
   (<code>Damage 14   +15% Sharp Blades, +6% Power</code>).</li>
-  <li><strong>Talents:</strong> the hero's tree, drawn as a tree of pictures (spec 064). At the top, the
-  unspent points in big letters (<code>2 points to spend</code>) or the level that brings the next
-  (<code>Next point at level 6</code>), and <code>Reset</code> with its price. The three trunk nodes run
-  down the middle, joined by arrows; under the last the line forks left and right into the two paths, four
-  nodes each, far apart. Each path has its own colour (its banner, its lines and a thin ring round its
-  nodes, and its name wherever the window says it), and its <strong>banner</strong> gives its name and one
-  line on what a hero on it becomes (<em>Guardian: holds the line and keeps the party standing</em>). A
+  <li><strong>Talents:</strong> the hero's three skill paths, as three panels side by side (specs 109
+  to 111). At the top, the unspent points in big letters (<code>2 points to spend</code>), the level that
+  brings the next (<code>Next point at level 6</code>) or <code>All 15 learned</code>, and
+  <code>Reset</code> with its price. Each panel has its path's <strong>banner</strong> on top: its name in
+  its own colour, one line on what a hero on it becomes (<em>Guardian: holds the line and keeps the party
+  standing</em>), its rank (<code>Rank 3</code>, <code>Rank 10, top</code>), and a bar filling toward the
+  next rank (point at it for the XP). Under it the path's five nodes in four rows, joined by arrows: one,
+  two side by side, one, then the capstone, its name in bold and a wider ring in the path's colour. A
   node is a picture in a frame with its name under it: a square frame for an action, one with cut corners
   for a passive. A taken node has a gold frame and the line into it lit in the path's colour; one that can
-  be taken now has a yellow frame that pulses; one not yet reachable is locked. Once a path is chosen the
-  other is closed: its banner greys out with a padlock and <code>Not chosen</code>, its lines go dark, and
-  its nodes can still be pointed at. Point at any node for its card: picture, name, <code>Action, every 8
-  s</code> or <code>Passive</code>, the whole description, and how it stands (<code>Click to learn</code>,
-  <code>Take Taunt first</code>, <code>No points: the next comes at level 9</code>, <code>Learned</code>,
-  <code>Guardian was not chosen</code>). A strip under the tree shows one node in full without pointing: the
-  one under the mouse, else the first that can be taken (with a <code>Learn</code> button), else the next on
-  the hero's way. Click a glowing node, or <code>Learn</code>, to take it: the node bursts, the line into it
-  lights and a banner drops in (<em>Knight learned Taunt</em>). The first node of a path asks first, showing
-  that path's banner and its four pictures (<code>Choose Berserker? This closes Guardian.</code>); choosing
-  says <em>Knight is now a Berserker</em> and the other path closes before your eyes. A reset asks at its
+  be taken now has a yellow frame that pulses; one that waits is locked, and if its path's rank holds it
+  shut a small padlock tag at its corner gives the rank that opens it (<code>5</code>) and the line into it is dark. Point
+  at any node for its card: picture, name, <code>Action, every 8 s</code> or <code>Passive</code>, the
+  whole description, and how it stands (<code>Click to learn</code>, <code>Learned</code>, or each thing
+  it waits for, in order: <code>Take Taunt first</code>, <code>Rank 5 in Guardian opens this (now rank
+  3)</code>, <code>No points: the next comes at level 12</code>). A strip under the tree shows one node in
+  full without pointing: the one under the mouse, else the first that can be taken (with a
+  <code>Learn</code> button), else the first held shut only by its rank, with how far its path has come toward its next rank,
+  as the bar says it (<code>2 of 10 XP to rank 2</code>), else the first not taken. Click a glowing node, or <code>Learn</code>, to take it: the node
+  bursts, the line into it lights and a banner drops in (<em>Knight learned Taunt</em>). A won fight that
+  ranks a path up bursts its rank and sweeps its bar; a rank that opens a tier, or the top rank, drops a
+  banner (<em>Knight: Guardian rank 5</em>). Learning a capstone lights its path's lines from the top down
+  with a bigger banner (<em>Knight masters Guardian</em>). A reset asks at its
   price. Once the hero has paragon points, three <strong>medallions</strong> sit under the tree, one per
   stat, with its rank on it and its name and total under it (<code>+6% damage and healing</code>), and the
   points waiting beside them; a click on one (or <kbd>1</kbd> to <kbd>3</kbd>) spends a point and it

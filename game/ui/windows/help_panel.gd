@@ -9,11 +9,11 @@ extends WindowContent
 
 ## What the game is about, one short line each.
 const IDEA: Array[String] = [
-	"Your party explores on its own; heroes' skills unlock quests.",
+	"Your party explores on its own, even while the game is closed; skills unlock quests.",
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
 	"Gold buys upgrades in the Camp: every fifth rank is a milestone.",
-	"It keeps going while the game is closed.",
-	"A hero's talents are three paths of five: learn all fifteen in time.",
+	"Each hero has three skill paths of five talents: learn all fifteen in time.",
+	"Fights won with a path's abilities rank it up, and ranks open its later tiers.",
 ]
 const TITLE: String = "Help"
 const FOOTER: String = "Click a hero for details. Point at anything for a hint."

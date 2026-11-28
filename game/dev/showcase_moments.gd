@@ -92,10 +92,14 @@ const SHOP_RANK: int = 5
 const CLASS_LEVEL: int = 14
 const CLASS_MOVES_SEEN: int = 2
 const CLASS_STAGE: int = 2
-## The tree's moment: the knight's level (four talent points), and seconds between its clicks
-## (long enough to see each node burst, short enough for test_018's limit).
-const TREE_LEVEL: int = 8
+## The tree's moment: the knight's level (five talent points: three held, one for Whirlwind and
+## one for the capstone), and seconds between one step and the next (long enough to see each
+## burst, short enough for test_018's limit).
+const TREE_LEVEL: int = 10
 const TREE_STEP: float = 0.6
+## The path whose capstone the knight learns there, and the rank that opens it.
+const TREE_PATH: int = 0
+const TREE_RANK: int = 9
 
 ## What the front hero says in the chat bubble's moment, and for how long.
 const BUBBLE_LINE: String = "Keep close, everyone. Something moves up ahead."
@@ -118,8 +122,12 @@ var _room_lit: bool = false
 var _held_at: float = -1.0
 ## True once the journey's map has been opened on the way.
 var _map_on_the_way: bool = false
-## The tree's moment: the clicks made so far.
+## The tree's moment: the clicks made so far, the moment's time when the path ranked up (-1
+## before), whether the capstone has been taken, and the bursts seen just before its click.
 var _tree_clicks: int = 0
+var _ranked_at: float = -1.0
+var _mastered: bool = false
+var _bursts_before: int = 0
 ## A class's moment: the moves of the abilities its hero has used so far, and whether
 ## one was an action.
 var _moves_used: Dictionary[StringName, bool] = {}
@@ -393,18 +401,25 @@ func _begin_four_areas(_current: StringName) -> void:
 	_areas_seen.clear()
 
 
-## The knight at TREE_LEVEL with its first path's two nodes taken and two points to spend: one
-## for a tier-1 node, one for the tier-2 node under it.
+## The knight at TREE_LEVEL in a fight, holding its first path down to tier 3, that path one XP
+## short of the rank that opens its capstone, and two points to spend: one for a tier-1 node of
+## another path, one for the capstone once the fight is won.
 func _begin_talent_tree(_current: StringName) -> void:
 	settle_now()
+	cut_to_fight()
 	var knight: Hero = main.simulation.party.heroes[0]
 	_set_level(knight, TREE_LEVEL)
 	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
-	knight.set_talents(tree.path(0).nodes.slice(0, 2))
+	var held: Array[StringName] = tree.path(TREE_PATH).nodes.slice(0, 2)
+	held.append(tree.path(TREE_PATH).nodes[3])
+	knight.set_talents(held)
 	for path: int in TalentTreeDef.PATH_COUNT:
 		knight.ranks.set_xp(path, tree.rank_xp[tree.tier_ranks[1] - 1])  # tier 2 open
+	knight.ranks.set_xp(TREE_PATH, tree.rank_xp[TREE_RANK - 1] - 1)
 	main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
 	_tree_clicks = 0
+	_ranked_at = -1.0
+	_mastered = false
 
 
 ## The report after time away, as a window over the game.
@@ -617,13 +632,28 @@ func _watch_four_areas(event: SimEvent) -> void:
 		_show_areas()
 
 
+## Seen once the capstone was taken, it burst (a burst after its click, not Whirlwind's) and its
+## "masters" banner shows or waits its turn.
 func _watch_talent_tree(event: SimEvent) -> void:
+	var knight: Hero = main.simulation.party.heroes[0]
+	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
+	var capstone: StringName = tree.path(TREE_PATH).nodes[TalentTreeDef.PATH_LENGTH - 1]
 	if event == null:
 		_click_through_tree()
+		var moment: UiMoment = main.ui.moment
+		var headline: String = (
+			"%s masters %s" % [knight.def().display_name, tree.path(TREE_PATH).display_name]
+		)
+		if _mastered and moment.bursts_seen() > _bursts_before and moment.holds(headline):
+			_seen = true
 		return
-	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
-	if event.kind == SimEvent.Kind.TALENT_TAKEN and tree.path_of(event.ability_id) >= 0:
-		_seen = true
+	if event.source_id != knight.id:
+		return
+	var path_ranked: bool = event.kind == SimEvent.Kind.PATH_RANKED and event.target_id == TREE_PATH
+	if path_ranked and event.amount == TREE_RANK:
+		_ranked_at = _moment_time
+	if event.kind == SimEvent.Kind.TALENT_TAKEN and event.ability_id == capstone:
+		_mastered = true
 
 
 func _watch_away_report(event: SimEvent) -> void:
@@ -783,17 +813,25 @@ func _cut_to_area(id: StringName) -> void:
 			return
 
 
-## The tree's moment: at once and then TREE_STEP seconds later, the next click on the knight's
-## Talents tab: the Berserker's tier-1 node, then the tier-2 node on its left.
+## The tree's moment, step by step on the knight's Talents tab: at once, a click on the
+## Berserker's tier-1 node; TREE_STEP seconds later the fight's monsters weaken, so it is won and
+## the first path ranks up; TREE_STEP seconds after that, a click on that path's capstone.
 func _click_through_tree() -> void:
 	var knight_id: int = main.simulation.party.heroes[0].id
 	var tab: HeroTalentsTab = main.hud.hero_windows.window_of(knight_id).talents
 	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
-	var clicks: Array[StringName] = [tree.path(1).nodes[0], tree.path(1).nodes[1]]
-	var due: int = mini(floori(_moment_time / TREE_STEP) + 1, clicks.size())
-	while _tree_clicks < due:
-		tab.press_node(clicks[_tree_clicks])
-		_tree_clicks += 1
+	if _tree_clicks == 0:
+		tab.press_node(tree.path(1).nodes[0])
+		_tree_clicks = 1
+	var battle: Battle = main.simulation.expedition.battle
+	if _ranked_at < 0.0 and _moment_time >= TREE_STEP and battle != null:
+		for monster: Combatant in battle.monsters:
+			if monster.is_alive():
+				monster.health = 1
+	if _tree_clicks == 1 and _ranked_at >= 0.0 and _moment_time >= _ranked_at + TREE_STEP:
+		_bursts_before = main.ui.moment.bursts_seen()  # the capstone's own burst comes after
+		tab.press_node(tree.path(TREE_PATH).nodes[TalentTreeDef.PATH_LENGTH - 1])
+		_tree_clicks = 2
 
 
 ## An evening's time away to tell of: gold, levels, a guardian, a quest, a microskill.

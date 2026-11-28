@@ -466,12 +466,14 @@ func test_r9_the_tab_says_why() -> void:
 	var slot: UiIcon = view.node(&"bulwark").slot
 	_point(main, slot)
 	main.hud.advance(STEP)
-	assert_eq(main.ui.tip.card_stand.text, "Rank 5 in Guardian opens this", "the card says why")
+	var why: String = "Rank 5 in Guardian opens this (now rank 2)"
+	assert_eq(main.ui.tip.card_stand.text, why, "the card says why")
 	assert_eq(shown.talents.strip.ability_id, &"bulwark", "the strip shows it")
-	assert_eq(shown.talents.strip.stand_label.text, "Rank 5 in Guardian opens this", "the strip")
+	assert_eq(shown.talents.strip.stand_label.text, why, "the strip")
 	assert_false(shown.talents.strip.learn_button.visible, "with no Learn button")
 	_point_away(main)
-	assert_eq(_stands(main, view, &"bloodthirst"), "Take Whirlwind first", "the way first")
+	var way: String = "Take Whirlwind first\nRank 2 in Berserker opens this (now rank 1)"
+	assert_eq(_stands(main, view, &"bloodthirst"), way, "the way first")
 
 	# A click takes nothing.
 	var before: Array[StringName] = knight.talents()
