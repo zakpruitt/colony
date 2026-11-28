@@ -28,7 +28,7 @@ func before_each() -> void:
 
 ## The main scene in [param room], the test class among the data unless [param plain], its world
 ## caught up once (so the next frame is not a catch-up) and its moment and tips run by hand.
-func _start(room: Vector2i = ROOM_LARGE, plain: bool = false) -> Main:
+func _camp_main(room: Vector2i = ROOM_LARGE, plain: bool = false) -> Main:
 	if not plain:
 		add_recruit_class()
 	var main: Main = _main(room)
@@ -81,7 +81,7 @@ func _camp_out(main: Main) -> void:
 	assert_eq(main.simulation.expedition.state, Expedition.State.RESTING, "the party rests")
 
 
-static func _ids(cards: Array[RosterCard]) -> Array[int]:
+static func _card_ids(cards: Array[RosterCard]) -> Array[int]:
 	var ids: Array[int] = []
 	for card: RosterCard in cards:
 		ids.append(card.hero_id)
@@ -117,7 +117,7 @@ func _tip_on(main: Main, control: Control) -> String:
 
 
 func test_r1_two_tabs() -> void:
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	var shop: ShopWindow = main.hud.shop
 	var window: UiWindow = main.ui.windows.window(ShopWindow.ID)
@@ -197,13 +197,13 @@ func test_r1_two_tabs() -> void:
 
 func test_r2_the_four_and_the_bench() -> void:
 	# No one at camp.
-	var plain: Main = _start(ROOM_LARGE, true)
+	var plain: Main = _camp_main(ROOM_LARGE, true)
 	var empty: RosterTab = await _open_heroes(plain)
 	assert_eq(empty.bench_cards.size(), 0, "no bench cards")
 	assert_true(empty.empty_line.is_visible_in_tree(), "the empty line shows")
 	assert_eq(empty.empty_line.text, "No one at Camp. Recruit below.", "and says so")
 	plain.free()
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	await _recruited(main)
 	sim.party.heroes[0].level = 7
@@ -212,9 +212,11 @@ func test_r2_the_four_and_the_bench() -> void:
 	assert_false(tab.empty_line.is_visible_in_tree(), "no empty line with someone at camp")
 	assert_eq(tab.going_heading.text, "Going down", "the first group")
 	assert_eq(tab.bench_heading.text, "At Camp", "the second")
-	assert_eq(_ids(tab.field_cards), _hero_ids(sim.party.heroes), "the four, in formation order")
-	assert_eq(_ids(tab.bench_cards), _hero_ids(sim.party.bench), "the bench, by id")
-	assert_eq(_ids(tab.bench_cards), [RECRUIT] as Array[int], "the recruit at camp")
+	assert_eq(
+		_card_ids(tab.field_cards), _hero_ids(sim.party.heroes), "the four, in formation order"
+	)
+	assert_eq(_card_ids(tab.bench_cards), _hero_ids(sim.party.bench), "the bench, by id")
+	assert_eq(_card_ids(tab.bench_cards), [RECRUIT] as Array[int], "the recruit at camp")
 	var sheet: PixelSheet = PixelSheet.load_sheet(HudFrame.ICONS_PATH)
 	for card: RosterCard in tab.field_cards + tab.bench_cards:
 		var hero: Hero = sim.party.hero(card.hero_id)
@@ -258,7 +260,7 @@ func test_r2_the_four_and_the_bench() -> void:
 
 
 func test_r3_two_clicks() -> void:
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	await _recruited(main)
 	var tab: RosterTab = await _open_heroes(main)
@@ -309,14 +311,14 @@ func test_r3_two_clicks() -> void:
 	_camp_out(main)
 	assert_eq(sim.roster.waiting(), [] as Array[Vector2i], "made at camp")
 	assert_true(sim.party.heroes.has(sim.party.hero(RECRUIT)), "the recruit goes down")
-	assert_eq(_ids(tab.bench_cards), [KNIGHT] as Array[int], "the Knight at camp")
-	assert_true(_ids(tab.field_cards).has(RECRUIT), "the recruit's card going down")
+	assert_eq(_card_ids(tab.bench_cards), [KNIGHT] as Array[int], "the Knight at camp")
+	assert_true(_card_ids(tab.field_cards).has(RECRUIT), "the recruit's card going down")
 	for card: RosterCard in tab.field_cards + tab.bench_cards:
 		assert_eq(card.mark_label.text, "", "no mark once made: %d" % card.hero_id)
 
 
 func test_r3_cards_move_in_the_frame_heard() -> void:
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	await _recruited(main)
 	var tab: RosterTab = await _open_heroes(main)
@@ -327,13 +329,13 @@ func test_r3_cards_move_in_the_frame_heard() -> void:
 	var check := func(event: SimEvent) -> void:
 		if event.kind == SimEvent.Kind.HERO_FIELDED:
 			heard[0] = true
-			assert_eq(_ids(tab.bench_cards), [KNIGHT] as Array[int], "moved as it is heard")
+			assert_eq(_card_ids(tab.bench_cards), [KNIGHT] as Array[int], "moved as it is heard")
 	main.world.sim_event.connect(check)
 	main.simulation.step()
 	main.world.sync(STEP)
 	assert_true(heard[0], "the swap is heard")
-	assert_eq(_ids(tab.bench_cards), [KNIGHT] as Array[int], "the Knight's card at camp")
-	assert_eq(_ids(tab.field_cards), _hero_ids(sim.party.heroes), "the four's cards")
+	assert_eq(_card_ids(tab.bench_cards), [KNIGHT] as Array[int], "the Knight's card at camp")
+	assert_eq(_card_ids(tab.field_cards), _hero_ids(sim.party.heroes), "the four's cards")
 
 
 # --- R4 ------------------------------------------------------------------------
@@ -347,7 +349,7 @@ func test_r4_recruiting() -> void:
 		"3 more heroes are out there. Their artifacts lie in caches down the side paths.",
 		"many hidden"
 	)
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	var def: HeroClassDef = Content.hero_class(RECRUIT_CLASS)
 	sim.party.gold = 0
@@ -409,7 +411,7 @@ func test_r4_recruiting() -> void:
 	assert_eq(sim.party.gold, 0, "the gold paid")
 	assert_eq(sim.party.resource(GLOWCAPS), 0, "the caps paid")
 	assert_eq(tab.recruit_cards.size(), 0, "no one waits")
-	assert_eq(_ids(tab.bench_cards), [RECRUIT] as Array[int], "the recruit at camp")
+	assert_eq(_card_ids(tab.bench_cards), [RECRUIT] as Array[int], "the recruit at camp")
 	assert_true(tab.hidden_line.is_visible_in_tree(), "the last line")
 	assert_eq(tab.hidden_line.text, "Every class has joined the colony.", "says all have joined")
 	# A request of gold alone.
@@ -422,7 +424,7 @@ func test_r4_recruiting() -> void:
 
 
 func test_r5_moments() -> void:
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	var moment: UiMoment = main.ui.moment
 	var tab: RosterTab = await _open_heroes(main)
@@ -441,7 +443,7 @@ func test_r5_moments() -> void:
 	_frame(main, 0)
 	_click(main, tab.recruit_cards[0].recruit_button)
 	_frame(main)
-	assert_eq(_ids(tab.bench_cards), [RECRUIT] as Array[int], "setup: recruited")
+	assert_eq(_card_ids(tab.bench_cards), [RECRUIT] as Array[int], "setup: recruited")
 	assert_true(moment.is_bursting(tab.bench_cards[0]), "the new hero's card bursts")
 	assert_gt(moment.bursts_seen(), bursts, "a burst")
 	assert_true(moment.holds("The Test Recruit joins the colony"), "and a banner")
@@ -460,7 +462,7 @@ func test_r5_moments() -> void:
 	_click(main, _card_of(tab.field_cards, KNIGHT).swap_button)
 	bursts = moment.bursts_seen()
 	_frame(main)
-	assert_eq(_ids(tab.bench_cards), [KNIGHT] as Array[int], "setup: swapped")
+	assert_eq(_card_ids(tab.bench_cards), [KNIGHT] as Array[int], "setup: swapped")
 	assert_true(moment.is_bursting(tab.bench_cards[0]), "the Knight's card bursts")
 	assert_true(moment.is_bursting(_card_of(tab.field_cards, RECRUIT)), "and the recruit's")
 	assert_eq(moment.bursts_seen(), bursts + 2, "two bursts")
@@ -469,7 +471,7 @@ func test_r5_moments() -> void:
 
 
 func test_r5_nothing_for_stale_ones() -> void:
-	var main: Main = _start()
+	var main: Main = _camp_main()
 	var sim: Simulation = main.simulation
 	var moment: UiMoment = main.ui.moment
 	var tab: RosterTab = await _open_heroes(main)
@@ -485,7 +487,9 @@ func test_r5_nothing_for_stale_ones() -> void:
 	var bursts: int = moment.bursts_seen()
 	_frame(main, STALE_TICKS)
 	await _frames()
-	assert_eq(_ids(tab.bench_cards), [RECRUIT] as Array[int], "a stale recruit: its card moves")
+	assert_eq(
+		_card_ids(tab.bench_cards), [RECRUIT] as Array[int], "a stale recruit: its card moves"
+	)
 	assert_eq(moment.bursts_seen(), bursts, "no burst")
 	assert_false(moment.holds("The Test Recruit joins the colony"), "no banner")
 	_camp_out(main)
@@ -494,7 +498,7 @@ func test_r5_nothing_for_stale_ones() -> void:
 	bursts = moment.bursts_seen()
 	_frame(main, STALE_TICKS)
 	await _frames()
-	assert_eq(_ids(tab.bench_cards), [KNIGHT] as Array[int], "a stale swap: the cards move")
+	assert_eq(_card_ids(tab.bench_cards), [KNIGHT] as Array[int], "a stale swap: the cards move")
 	assert_eq(moment.bursts_seen(), bursts, "no burst")
 
 
@@ -548,13 +552,13 @@ static func _longest_title(hero: Hero) -> void:
 
 func test_r6_fits() -> void:
 	for room: Vector2i in [ROOM_SMALL, ROOM_LARGE]:
-		var bare: Main = _start(room, true)
+		var bare: Main = _camp_main(room, true)
 		_frame(bare, 0)
 		await _frames()
 		var bar_size: Vector2 = bare.ui.bar.size
 		var upgrades_height: float = bare.ui.windows.window(ShopWindow.ID).size.y
 		bare.free()
-		var main: Main = _start(room)
+		var main: Main = _camp_main(room)
 		var sim: Simulation = main.simulation
 		for hero: Hero in sim.party.heroes:
 			_longest_title(hero)
