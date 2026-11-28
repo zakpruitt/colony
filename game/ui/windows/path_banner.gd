@@ -24,6 +24,7 @@ var rank_label: Label
 ## The bar to the next rank.
 var rank_bar: RankBar
 
+var _rank: int = -1
 var _width: float = 0.0
 ## The box's height: the words and the space round them.
 var _box_height: float = 0.0
@@ -51,20 +52,26 @@ func _init(tree: TalentTreeDef, path_index: int, width: float) -> void:
 	add_child(summary_label)
 	rank_bar = RankBar.new(path_colour)
 	add_child(rank_bar)
-	show_rank(0, 0, 1, false)
+	show_rank(RankStanding.new())  # rank 0 until a hero is read
+	_rank = -1
 	set_height(summary_label.position.y + summary_label.size.y + PAD + BAR_GAP + RankBar.HEIGHT)
 
 
-## Shows the hero's rank in the path, [param rank], at the right of the name's line, and on the
-## bar [param xp_into] of the [param xp_span] XP between its threshold and the next; at the
-## [param top] rank the bar is full.
-func show_rank(rank: int, xp_into: int, xp_span: int, top: bool) -> void:
-	rank_bar.show_share(1.0 if top else float(xp_into) / maxf(xp_span, 1.0))
-	var text: String = "Rank %d, top" % rank if top else "Rank %d" % rank
+## Shows the hero's [param standing] in the path: its rank at the right of the name's line, and
+## on the bar the XP into the rank of its span (full at the top).
+func show_rank(standing: RankStanding) -> void:
+	_rank = standing.rank
+	rank_bar.show_share(standing.share())
+	var text: String = "Rank %d, top" % _rank if standing.top else "Rank %d" % _rank
 	if rank_label.text == text:
 		return
 	WindowText.set_text(rank_label, text)
 	rank_label.position = Vector2(_width - PAD - rank_label.size.x, PAD)
+
+
+## The rank shown, or -1 before one was.
+func shown_rank() -> int:
+	return _rank
 
 
 ## Makes the banner [param tall] UI pixels tall, its bar at the foot (the banners of a tree are as

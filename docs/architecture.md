@@ -184,15 +184,20 @@ The picture is drawn in two layers, each in its own pixels.
   `MICROSKILL_LEARNED` into a burst and a banner through `UiMoment`. Spec 111 makes each path a panel
   (`TalentTreeView.panels()`, drawn by the view behind its column): its `PathBanner` carries the rank
   (`rank_label`) and a `RankBar` (a `UiBar` in the path's colour, its shade from `PathColours.shade`)
-  showing the XP from the rank's total toward the next. A `PATH_RANKED` the moment may start bursts
-  the rank and calls `RankBar.sweep()` (fill to the end, start again from empty) before the window reads
-  the new rank; a rank that opens a tier, or the top rank, also gets a banner (`HeroWindows.opened_by`).
-  A capstone (`TalentNode.is_end()`: bold name, `END_RING` ring) taken calls `TalentTreeView.sweep(path)`,
-  which lights the path's lines tier by tier, instead of `light`. A node its rank holds shut shows the
-  rank on its corner (`TalentNode.show_rank_needed`) and its line in `PathColours.dim()`.
-  `HeroTalentsTab.standing` lists everything a node waits for, one per line, in order (the node above,
-  the rank, a point); the strip falls back to the first node held shut only by its rank, worded by
-  `rank_progress`. The journal writes a tier-opening or top rank and a capstone learned.
+  showing the XP into the rank of its span. `RankStanding` (`game/ui/windows/`) is the one place that
+  works a path's rank, XP into it and span out of the tree's table, and the rank a node is short of
+  (`short_of`); the bar, its tooltip, the strip (`6 of 28 XP to rank 4`, one wording everywhere) and
+  the node states all read it. A `PATH_RANKED` the moment may start bursts the rank and calls
+  `RankBar.sweep()` (fill to the end, start again from empty) on every banner whose shown rank is
+  below the hero's, before the window reads the hero once: one win ranking three paths sends three
+  events, and each bar sweeps from its own old share. A rank that opens a tier, or the top rank, also
+  gets a banner (`HeroWindows.opened_by`). A capstone (`TalentNode.is_end()`: bold name, `END_RING`
+  ring) taken calls `TalentTreeView.sweep(path)`, which lights the path's lines tier by tier, instead
+  of `light`. A node its rank holds shut carries a `RankTag` (a padlock and the rank's number in a
+  small pill inside the slot's bottom right, drawn by the tag itself so nothing hangs past it) and its
+  line is in `PathColours.dim()`. `HeroTalentsTab.standing` lists everything a node waits for, one per
+  line, in order (the node above, the rank, a point); the strip falls back to the first node held shut
+  only by its rank. The journal writes a tier-opening or top rank and a capstone learned.
 - **Pictures and the moment** (spec 063, `game/ui/`): every ability, upgrade, paragon stat and microskill
   has a 16x16 picture, a part named for its id in one of `assets/sprites/ui/pictures_<group>.png`;
   `UiIcon.picture(id)` finds it, and no rule or data field names it. `UiIcon` is the framed slot (owned,

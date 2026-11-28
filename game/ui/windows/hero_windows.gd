@@ -318,10 +318,15 @@ func _on_ranked(event: SimEvent, moment: UiMoment) -> void:
 		return
 	var shown: HeroWindow = _showing(event.source_id, HeroWindow.Page.TALENTS)
 	if shown != null and moment.may_start(event):
-		var banner: PathBanner = shown.talents.tree_view().banners[event.target_id]
-		banner.rank_bar.sweep()  # from where the bar stood, before the window reads the new rank
+		var banners: Array[PathBanner] = shown.talents.tree_view().banners
+		# One win can rank several paths, each with its own event: every bar whose rank went up
+		# sweeps from the share it showed, started before the window reads the hero once.
+		for each: PathBanner in banners:
+			var now: int = hero.ranks.rank(each.index, tree)
+			if each.shown_rank() >= 0 and each.shown_rank() < now:
+				each.rank_bar.sweep()
 		shown.advance(0.0)
-		moment.burst(banner.rank_label, event)
+		moment.burst(banners[event.target_id].rank_label, event)
 	var who: String = hero.def().display_name
 	var named: String = tree.path(event.target_id).display_name
 	var opens: Array[StringName] = opened_by(tree, event.target_id, event.amount)

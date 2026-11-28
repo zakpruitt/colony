@@ -289,11 +289,11 @@ static func standing(hero: Hero, ability_id: StringName) -> String:
 		for before: StringName in tree_def.needs(ability_id):
 			names.append(Content.ability(before).display_name)
 		waits.append("Take %s first" % " or ".join(PackedStringArray(names)))
-	var path: int = tree_def.path_of(ability_id)
-	var rank: int = hero.ranks.rank(path, tree_def)
-	var needed: int = tree_def.rank_needed(ability_id)
-	if rank < needed:
+	var needed: int = RankStanding.short_of(hero, ability_id, tree_def)
+	if needed > 0:
+		var path: int = tree_def.path_of(ability_id)
 		var named: String = tree_def.path(path).display_name
+		var rank: int = hero.ranks.rank(path, tree_def)
 		waits.append("Rank %d in %s opens this (now rank %d)" % [needed, named, rank])
 	if hero.talent_points() <= 0:
 		var earned: int = TalentRules.talent_points_at(hero.level)
@@ -313,38 +313,30 @@ static func held_by_rank(hero: Hero, ability_id: StringName) -> bool:
 		return false
 	if not tree_def.open_nodes(hero.talents()).has(ability_id):
 		return false
-	var rank: int = hero.ranks.rank(tree_def.path_of(ability_id), tree_def)
-	return rank < tree_def.rank_needed(ability_id)
+	return RankStanding.short_of(hero, ability_id, tree_def) > 0
 
 
-## How far [param hero]'s path XP has to go before the rank that opens [param ability_id]:
-## [code]34 of 150 XP to Rank 5[/code], the XP in the path of the total that rank asks.
+## How far [param hero]'s path of [param ability_id] has come toward its next rank, as the rank
+## bar says it ([method RankStanding.progress]): [code]6 of 28 XP to rank 4[/code].
 static func rank_progress(hero: Hero, ability_id: StringName) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
-	if tree_def == null:
+	if tree_def == null or not tree_def.has_node(ability_id):
 		return ""
-	var needed: int = tree_def.rank_needed(ability_id)
-	if needed <= 0 or needed > tree_def.rank_xp.size():
-		return ""
-	var xp: int = hero.ranks.xp(tree_def.path_of(ability_id))
-	return "%d of %d XP to Rank %d" % [xp, tree_def.rank_xp[needed - 1], needed]
+	return RankStanding.of(hero, tree_def.path_of(ability_id), tree_def).progress()
 
 
-## The tooltip of path [param path]'s rank bar for [param hero]: [code]Guardian rank 3: 34 of 40
+## The tooltip of path [param path]'s rank bar for [param hero]: [code]Guardian rank 3: 6 of 28
 ## XP to rank 4.[/code], or at the top [code]Guardian rank 10, the top rank.[/code], then how path
 ## XP is earned ([constant BAR_TIP]).
 static func bar_tip(hero: Hero, path: int) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
 	if tree_def == null or tree_def.path(path) == null:
 		return ""
-	var rank: int = hero.ranks.rank(path, tree_def)
+	var stood: RankStanding = RankStanding.of(hero, path, tree_def)
 	var named: String = tree_def.path(path).display_name
-	var where: String = "%s rank %d, the top rank." % [named, rank]
-	if rank < tree_def.rank_xp.size():
-		var floor_xp: int = tree_def.rank_xp[rank - 1] if rank > 0 else 0
-		var into: int = hero.ranks.xp(path) - floor_xp
-		var span: int = tree_def.rank_xp[rank] - floor_xp
-		where = "%s rank %d: %d of %d XP to rank %d." % [named, rank, into, span, rank + 1]
+	var where: String = "%s rank %d, the top rank." % [named, stood.rank]
+	if not stood.top:
+		where = "%s rank %d: %s." % [named, stood.rank, stood.progress()]
 	return "%s %s" % [where, BAR_TIP]
 
 

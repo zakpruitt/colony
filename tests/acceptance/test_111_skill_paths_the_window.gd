@@ -71,10 +71,23 @@ func _shows(main: Main, headline: String) -> bool:
 	return false
 
 
-## What node [param id]'s slot says on its corner, or "" when nothing shows there.
+## The rank node [param id]'s tag says (its number, "5"), or "" when no tag shows.
 func _corner(view: TalentTreeView, id: StringName) -> String:
-	var count: Label = view.node(id).slot.count_label
-	return count.text if count.is_visible_in_tree() else ""
+	var tag: RankTag = view.node(id).rank_tag
+	return tag.text() if tag.is_visible_in_tree() else ""
+
+
+## Checks node [param node]'s rank tag sits inside its slot, in the slot's bottom third and off
+## the picture's middle, its number whole inside the tag.
+func _check_tag(node: TalentNode, what: String) -> void:
+	var slot: Rect2 = node.slot.get_global_rect()
+	var tag: Rect2 = node.rank_tag.get_global_rect()
+	assert_true(slot.encloses(tag), "%s: the tag inside the slot: %s in %s" % [what, tag, slot])
+	assert_gte(tag.position.y, slot.position.y + slot.size.y * 2.0 / 3.0, "%s: low" % what)
+	assert_false(tag.has_point(slot.get_center()), "%s: off the picture's middle" % what)
+	var number: Rect2 = node.rank_tag.number_rect()
+	var ink: Rect2 = Rect2(tag.position + number.position, number.size)
+	assert_true(tag.encloses(ink), "%s: its number whole in it" % what)
 
 
 ## True when [param main]'s journal has a line ending in [param sentence].
@@ -183,6 +196,7 @@ func test_r2_a_bar_to_the_next_rank() -> void:
 	assert_gte(bar_rect.position.y, _text_rect(guardian.summary_label).end.y, "under the words")
 	assert_true(guardian.get_global_rect().encloses(bar_rect), "part of the banner")
 	assert_gte(bar_rect.size.x, guardian.size.x * 0.8, "across the banner")
+	assert_gte(bar_rect.size.y - 2.0, 4.0, "its fill tall enough to read inside its edge")
 	assert_almost_eq(view.banners[BERSERKER].rank_bar.share(), 0.0, 0.001, "nothing yet")
 	# At the top rank, full, and the banner says so.
 	var warlord: PathBanner = view.banners[WARLORD]
@@ -318,21 +332,20 @@ func test_r4_the_states_read_at_a_glance() -> void:
 	assert_eq(_corner(view, &"last_stand"), "", "rank 10: no corner")
 	# Held shut by its path's rank: locked, with the rank on the corner.
 	var shut: Dictionary[StringName, String] = {
-		&"bulwark": "Rank 5", &"rallying_cry": "Rank 9", &"bloodthirst": "Rank 2"
+		&"bulwark": "5", &"rallying_cry": "9", &"bloodthirst": "2"
 	}
 	for id: StringName in shut:
 		var slot: UiIcon = view.node(id).slot
 		assert_eq(slot.state(), UiIcon.State.LOCKED, "%s: locked" % id)
 		assert_eq(_corner(view, id), shut[id], "%s: the rank that opens it" % id)
-		assert_true(
-			slot.get_global_rect().grow(1.0).encloses(_text_rect(slot.count_label)), "on the slot"
-		)
+		assert_true(view.node(id).rank_tag.has_lock(), "%s: with a padlock" % id)
+		_check_tag(view.node(id), String(id))
 	# Waits for a point: locked.
 	set_level_keeping_health(knight, 2)
 	main.hud.advance(STEP)
 	assert_eq(pulsing.slot.state(), UiIcon.State.LOCKED, "no point: locked")
 	assert_eq(_corner(view, &"hold_the_line"), "", "and no corner: the rank is there")
-	assert_eq(_corner(view, &"bulwark"), "Rank 5", "the corner stays while the rank is short")
+	assert_eq(_corner(view, &"bulwark"), "5", "the corner stays while the rank is short")
 	# A click on a shut node takes nothing.
 	set_level_keeping_health(knight, 10)
 	main.hud.advance(STEP)
@@ -409,7 +422,8 @@ func test_r5_pointing_and_the_strip_tell_all() -> void:
 	set_level_keeping_health(knight, 8)  # four points, three spent
 	main.hud.advance(STEP)
 	assert_eq(strip.ability_id, &"hold_the_line", "held shut only by its rank")
-	var need: String = "%d of %d XP to Rank 2" % [_xp_for(1) + 2, _xp_for(2)]
+	# In the bar's words: the XP into rank 1 of that rank's span.
+	var need: String = "2 of %d XP to rank 2" % (_xp_for(2) - _xp_for(1))
 	assert_eq(strip.stand_label.text, need, "how far the rank has to go")
 	assert_false(strip.learn_button.is_visible_in_tree(), "no Learn")
 	_point(main, view.node(&"hold_the_line").slot)
@@ -483,7 +497,10 @@ func test_r7_a_path_ranks_up_a_moment() -> void:
 	var guardian: PathBanner = view.banners[GUARDIAN]
 	var before: float = guardian.rank_bar.share()
 	assert_gt(before, 0.9, "nearly full")
-	assert_eq(view.node(&"bulwark").slot.count_label.text, "Rank 5", "held shut")
+	var befores: Array[float] = []
+	for banner: PathBanner in view.banners:
+		befores.append(banner.rank_bar.share())
+	assert_eq(_corner(view, &"bulwark"), "5", "held shut")
 	assert_true(_win(main), "a fight won")
 	assert_eq(knight.ranks.rank(GUARDIAN, _tree(&"knight")), 5, "Guardian reached rank 5")
 	assert_eq(knight.ranks.rank(BERSERKER, _tree(&"knight")), 3, "Berserker rank 3")
@@ -493,6 +510,11 @@ func test_r7_a_path_ranks_up_a_moment() -> void:
 	assert_true(moment.is_bursting(guardian.rank_label), "the rank bursts")
 	assert_true(moment.is_bursting(view.banners[BERSERKER].rank_label), "every rank-up bursts")
 	assert_true(guardian.rank_bar.is_sweeping(), "the bar sweeps")
+	# Three paths ranked in one fight: each bar sweeps from its own old share.
+	for path: int in befores.size():
+		var bar: RankBar = view.banners[path].rank_bar
+		assert_true(bar.is_sweeping(), "path %d sweeps" % path)
+		assert_gte(bar.share(), befores[path] - 0.001, "path %d from where it was" % path)
 	var shares: Array[float] = []
 	for i: int in 60:
 		shares.append(guardian.rank_bar.share())
@@ -513,7 +535,7 @@ func test_r7_a_path_ranks_up_a_moment() -> void:
 	assert_almost_eq(guardian.rank_bar.share(), float(gained) / span, 0.001, "where the XP is")
 	# The opened tier loses its corner and pulses, for a point waits.
 	var bulwark: TalentNode = view.node(&"bulwark")
-	assert_false(bulwark.slot.count_label.is_visible_in_tree(), "no corner now")
+	assert_false(bulwark.rank_tag.is_visible_in_tree(), "no corner now")
 	assert_eq(bulwark.slot.state(), UiIcon.State.READY, "ready, pulsing")
 	# Banners for the tier opened and for the top; none for the rank between.
 	var headlines: Array[String] = _banners_in_turn(main)
@@ -659,10 +681,8 @@ func test_r9_fits_and_still_compares() -> void:
 				_check_fits(main, shown, what)
 				_check_tree(shown, what)
 				for node: TalentNode in _view(shown).nodes():
-					var count: Label = node.slot.count_label
-					if count.is_visible_in_tree():
-						var on: Rect2 = node.slot.get_global_rect().grow(1.0)
-						assert_true(on.encloses(_text_rect(count)), "%s: corner whole" % what)
+					if node.rank_tag.is_visible_in_tree():
+						_check_tag(node, what)
 				_click_frame(main, hero)
 		var heroes: Array[Hero] = main.simulation.party.heroes
 		for hero: Hero in heroes:
@@ -749,9 +769,7 @@ func test_r10_true_in_a_crowded_frame() -> void:
 					< hero_tree.rank_needed(node.ability_id)
 				)
 			)
-			assert_eq(
-				node.slot.count_label.visible, shut, "%s: %s's corner" % [named, node.ability_id]
-			)
+			assert_eq(node.rank_tag.visible, shut, "%s: %s's corner" % [named, node.ability_id])
 		var takeable: StringName = &""
 		for node: TalentNode in view.nodes():
 			if hero.can_take(node.ability_id) and takeable == &"":

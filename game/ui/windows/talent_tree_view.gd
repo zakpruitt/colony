@@ -170,14 +170,8 @@ func refresh(hero: Hero, delta: float) -> void:
 ## corner the rank that opens it.
 func show_hero(hero: Hero) -> void:
 	states_read += 1
-	var ranks: Array[int] = []
 	for banner: PathBanner in banners:
-		var rank: int = hero.ranks.rank(banner.index, tree)
-		ranks.append(rank)
-		var top: bool = rank >= tree.rank_xp.size()
-		var floor_xp: int = tree.rank_xp[rank - 1] if rank > 0 else 0
-		var next_xp: int = floor_xp if top else tree.rank_xp[rank]
-		banner.show_rank(rank, hero.ranks.xp(banner.index) - floor_xp, next_xp - floor_xp, top)
+		banner.show_rank(RankStanding.of(hero, banner.index, tree))
 	var taken: Array[StringName] = hero.talents()
 	var redraw: bool = false
 	for column: Array in path_nodes:
@@ -187,8 +181,8 @@ func show_hero(hero: Hero) -> void:
 				stands = TalentNode.State.TAKEN
 			elif hero.can_take(made.ability_id):
 				stands = TalentNode.State.AVAILABLE
-			var needed: int = tree.rank_needed(made.ability_id)
-			var shut: bool = stands != TalentNode.State.TAKEN and ranks[made.path] < needed
+			var needed: int = RankStanding.short_of(hero, made.ability_id, tree)
+			var shut: bool = stands != TalentNode.State.TAKEN and needed > 0
 			redraw = redraw or made.state() != stands or _shut.has(made.ability_id) != shut
 			if shut:
 				_shut[made.ability_id] = true

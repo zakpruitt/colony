@@ -123,7 +123,7 @@ var _held_at: float = -1.0
 ## True once the journey's map has been opened on the way.
 var _map_on_the_way: bool = false
 ## The tree's moment: the clicks made so far, the moment's time when the path ranked up (-1
-## before), whether the capstone has been taken, and the bursts seen before it began.
+## before), whether the capstone has been taken, and the bursts seen just before its click.
 var _tree_clicks: int = 0
 var _ranked_at: float = -1.0
 var _mastered: bool = false
@@ -420,7 +420,6 @@ func _begin_talent_tree(_current: StringName) -> void:
 	_tree_clicks = 0
 	_ranked_at = -1.0
 	_mastered = false
-	_bursts_before = main.ui.moment.bursts_seen()
 
 
 ## The report after time away, as a window over the game.
@@ -633,15 +632,20 @@ func _watch_four_areas(event: SimEvent) -> void:
 		_show_areas()
 
 
-## Seen once the capstone was taken, with bursts on the way (its banner is announced with it).
+## Seen once the capstone was taken, it burst (a burst after its click, not Whirlwind's) and its
+## "masters" banner shows or waits its turn.
 func _watch_talent_tree(event: SimEvent) -> void:
 	var knight: Hero = main.simulation.party.heroes[0]
 	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
 	var capstone: StringName = tree.path(TREE_PATH).nodes[TalentTreeDef.PATH_LENGTH - 1]
 	if event == null:
 		_click_through_tree()
-		if _mastered:
-			_seen = main.ui.moment.bursts_seen() > _bursts_before
+		var moment: UiMoment = main.ui.moment
+		var headline: String = (
+			"%s masters %s" % [knight.def().display_name, tree.path(TREE_PATH).display_name]
+		)
+		if _mastered and moment.bursts_seen() > _bursts_before and moment.holds(headline):
+			_seen = true
 		return
 	if event.source_id != knight.id:
 		return
@@ -825,6 +829,7 @@ func _click_through_tree() -> void:
 			if monster.is_alive():
 				monster.health = 1
 	if _tree_clicks == 1 and _ranked_at >= 0.0 and _moment_time >= _ranked_at + TREE_STEP:
+		_bursts_before = main.ui.moment.bursts_seen()  # the capstone's own burst comes after
 		tab.press_node(tree.path(TREE_PATH).nodes[TalentTreeDef.PATH_LENGTH - 1])
 		_tree_clicks = 2
 

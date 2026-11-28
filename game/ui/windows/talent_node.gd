@@ -8,9 +8,10 @@ extends Control
 ##
 ## [method show_state] says how it stands for the hero, and the slot shows it: taken is owned (a
 ## gold frame), one that can be taken now is ready (a yellow frame that pulses), and one not yet
-## reachable is locked; one its path's rank still holds shut says on its slot's corner the rank
-## that opens it ([method show_rank_needed]). A node has a ring of its path's colour round its slot
-## in every state ([method tint]). The node is the size of its slot; its name hangs under it.
+## reachable is locked; one its path's rank still holds shut carries a small padlock tag at its
+## slot's bottom right with the rank that opens it ([member rank_tag], [method show_rank_needed]).
+## A node has a ring of its path's colour round its slot in every state ([method tint]). The node
+## is the size of its slot; its name hangs under it.
 ##
 ## It reads nothing itself: [HeroTalentsTab] sets its state and runs its pulse. A left click on the
 ## slot emits [signal clicked]; the mouse entering and leaving it, [signal hovered].
@@ -49,6 +50,8 @@ var path: int = -1
 var slot: UiIcon
 var icon: TextureRect
 var name_label: Label
+## The tag with the rank that opens the node, shown while its path's rank holds it shut.
+var rank_tag: RankTag
 ## The palette name of the path's colour (&"" for none).
 var path_colour: StringName = &""
 
@@ -91,8 +94,8 @@ func _init(
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	name_label.position = Vector2(floorf((SLOT.x - name_label.size.x) / 2.0), SLOT.y + NAME_GAP)
 	add_child(name_label)
-	# The rank on the corner is in the plain letters, which fit the slot's width.
-	slot.count_label.add_theme_font_override(&"font", UiText.font(false))
+	rank_tag = RankTag.new()
+	add_child(rank_tag)
 	_apply()
 
 
@@ -150,16 +153,15 @@ func ring_width() -> int:
 	return END_RING if _end else RING
 
 
-## Writes on the slot's corner the rank its path needs before it opens, [param rank]
-## ([code]Rank 5[/code]); 0 writes nothing.
+## Shows on the tag the rank its path needs before it opens, [param rank]; 0 hides the tag.
 func show_rank_needed(rank: int) -> void:
 	if rank == _rank_needed:
 		return
 	_rank_needed = rank
-	slot.set_count("Rank %d" % rank if rank > 0 else "")
+	rank_tag.show_rank(rank, SLOT)
 
 
-## The rank written on the slot's corner, or 0 for none.
+## The rank on the tag, or 0 for none.
 func rank_needed() -> int:
 	return _rank_needed
 

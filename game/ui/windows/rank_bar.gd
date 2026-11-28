@@ -9,8 +9,8 @@ extends UiBar
 ## Seconds the sweep takes to fill to the end, and then to fill again from empty.
 const FILL_SECONDS: float = 0.3
 const REFILL_SECONDS: float = 0.3
-## The bar's height, in UI pixels.
-const HEIGHT: int = 5
+## The bar's height, in UI pixels: inside its 1-pixel edge, four of fill and its shade under.
+const HEIGHT: int = 7
 
 ## Where the bar stands when no sweep plays.
 var _target: float = 0.0
