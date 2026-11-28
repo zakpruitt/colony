@@ -103,7 +103,7 @@ static func use(
 	if not lands:
 		return false
 	if report:
-		battle.record(SimEvent.Kind.ABILITY_USED, c.id, target.id).ability_id = ability.id
+		battle.record_use(c, target, ability)
 	for effect: AbilityEffect in ability.effects:
 		if effect.on_strike:
 			continue

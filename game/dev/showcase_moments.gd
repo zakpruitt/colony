@@ -399,7 +399,10 @@ func _begin_talent_tree(_current: StringName) -> void:
 	settle_now()
 	var knight: Hero = main.simulation.party.heroes[0]
 	_set_level(knight, TREE_LEVEL)
-	knight.set_talents(Content.talent_tree(knight.class_id).path(0).nodes.slice(0, 2))
+	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
+	knight.set_talents(tree.path(0).nodes.slice(0, 2))
+	for path: int in TalentTreeDef.PATH_COUNT:
+		knight.ranks.set_xp(path, tree.rank_xp[tree.tier_ranks[1] - 1])  # tier 2 open
 	main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
 	_tree_clicks = 0
 

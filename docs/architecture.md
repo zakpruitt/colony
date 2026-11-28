@@ -295,7 +295,7 @@ of any version loads on either with the same progress.
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save. Those whole-number
   checks, and a dictionary of counts by known id, are `SaveChecks` (`sim/save_checks.gd`), which every part
   of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`) shares.
-- **Versions.** `SAVE_VERSION` is 10. Loading goes through `Simulation.upgrade_save`, which brings older data
+- **Versions.** `SAVE_VERSION` is 11. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -332,6 +332,11 @@ of any version loads on either with the same progress.
   version 9 adds `side_paths` (`"explore"` or `"press_on"`); a version 8 save loads at Explore.
   Version 9 to 10 (spec 109, `TalentSave.upgrade_9_to_10`): the trees became three paths of five, so
   every hero gets its talents back (`talents` and `used` empty) and keeps its paragon points.
+  Version 10 to 11 (spec 110, `TalentSave.upgrade_10_to_11`): paths rank by use, so every hero gets its
+  talents back again and its `paths` (its XP in each of its three paths, in path order) start at
+  `[0, 0, 0]`. `paths` that is missing, not a list of three or holds anything but whole numbers of 0 or
+  more is refused by name (`heroes[2].paths`), as is a node held whose tier needs a higher rank than its
+  path's saved XP gives (`heroes[0].talents[3]`).
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -617,7 +622,22 @@ without the fighter itself (Bulwark). A second tree for a class is refused by it
 `Content` keeps the first.
 `TalentSpender` (`tools/godot/`) is the headless run's way of spending (`dev.py sim --spend-talents`): for
 each point, the first node it can take on the path asked for (0 by default), tier by tier, then the first
-it can take on any path, and every paragon point into Power. An `AbilityEffect` with
+it can take on any path, passing over nodes a path's rank holds shut, and every paragon point into Power.
+
+**Path ranks (spec 110).** A path ranks up by use. `Hero.ranks` (`PathRanks`, `sim/party/`) keeps a hero's
+XP in each of its three paths; its rank is how many of the tree's `rank_xp` totals that XP has reached
+(`TalentTreeDef.rank_at`), so a rank never goes down, and a fresh start keeps it. A node can be taken
+only once its path's rank is at least `tier_ranks[tier - 1]` (`TalentTreeDef.rank_needed`, asked by
+`Hero.can_take`); a node held stays held. When the heroes win a fight, `Expedition._end_battle` calls
+`PathTraining.after_win` (`sim/expedition/`): every hero, fallen or not, gains in each path the nodes it
+holds there plus the uses of that path's abilities in the fight, each ability counted at most
+`uses_counted` times. A use is an `ABILITY_USED` with the fighter as source, strike boosts included;
+`Battle.record_use` sends it and counts it in `Combatant.uses` (cleared by `reset_abilities`). Each rank
+passed is a `PATH_RANKED` (source the hero, target the path's index, amount the new rank), in rank order.
+A lost fight, or one ended at the 90-second limit, gives nothing. `Party.hash_parts` adds a hero's path
+XP only while `ranks.any()`, so a run that spends nothing hashes as it did. The tab's `PathBanner` shows
+`Rank N`, and a node the rank holds shut is drawn locked with `Rank 5 in Guardian opens this` on its card
+and the strip (`HeroTalentsTab.standing`; a node whose path above it is not taken says that first). An `AbilityEffect` with
 `damage_from_healing` deals its multiplier times the fighter's healing power (the Sunpriest's holy damage).
 
 ## Zones on screen

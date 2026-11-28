@@ -143,10 +143,13 @@ func refresh(hero: Hero, delta: float) -> void:
 	advance(delta)
 
 
-## Sets every node's state from [param hero]. The lines are drawn from the nodes' states: the view
-## is drawn again when one of them changed.
+## Sets every node's state from [param hero], and each banner's rank. The lines are drawn from the
+## nodes' states: the view is drawn again when one of them changed. A node its path's rank still
+## holds shut is locked, as one whose path above it is not yet taken.
 func show_hero(hero: Hero) -> void:
 	states_read += 1
+	for banner: PathBanner in banners:
+		banner.show_rank(hero.ranks.rank(banner.index, tree))
 	var taken: Array[StringName] = hero.talents()
 	var redraw: bool = false
 	for column: Array in path_nodes:

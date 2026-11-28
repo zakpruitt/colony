@@ -128,7 +128,7 @@ func test_r2_a_node_is_a_picture() -> void:
 
 
 func test_r3_the_states_read_at_a_glance() -> void:
-	var main: Main = _game()
+	var main: Main = _ranked_game()
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
 		var tree: TalentTreeDef = _tree(class_id)
@@ -270,7 +270,7 @@ func test_r5_pointing_tells_all() -> void:
 
 
 func test_r6_what_is_next_without_pointing() -> void:
-	var main: Main = _game()
+	var main: Main = _ranked_game()
 	var knight: Hero = _hero(main, &"knight")
 	var tree: TalentTreeDef = _tree(&"knight")
 	var guardian: Array[StringName] = tree.path(0).nodes
@@ -382,7 +382,7 @@ func test_r7_points() -> void:
 
 
 func test_r8_taking_a_node_is_a_moment() -> void:
-	var main: Main = _game()
+	var main: Main = _ranked_game()
 	var moment: UiMoment = main.ui.moment
 	var knight: Hero = _hero(main, &"knight")
 	set_level_keeping_health(knight, 10)
@@ -589,7 +589,7 @@ func test_r10_skills() -> void:
 
 
 func test_r11_nothing_lost() -> void:
-	var main: Main = _game()
+	var main: Main = _ranked_game()
 	var sim: Simulation = main.simulation
 	var knight: Hero = _hero(main, &"knight")
 	var three: Array[StringName] = _walked(&"knight", 0, 3)

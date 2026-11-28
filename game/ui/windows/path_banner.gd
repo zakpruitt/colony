@@ -1,9 +1,9 @@
 class_name PathBanner
 extends Control
-## The banner over one path of a talent tree: the path's name in bold and,
-## under it, one short line saying what a hero on it becomes ([member SkillPathDef.summary]), in a
-## box edged and striped in the path's colour ([PathColours]). The tree's view shows one over each
-## path.
+## The banner over one path of a talent tree: the path's name in bold, the hero's rank in it at
+## the right of that line ([code]Rank 2[/code]), and, under it, one short line saying what a hero
+## on it becomes ([member SkillPathDef.summary]), in a box edged and striped in the path's colour
+## ([PathColours]). The tree's view shows one over each path.
 
 ## UI pixels inside the box's edge, and the width of the coloured stripe down its left side.
 const PAD: float = 4.0
@@ -16,11 +16,15 @@ var index: int = 0
 var path_colour: StringName = PathColours.PLAIN
 var name_label: Label
 var summary_label: Label
+var rank_label: Label
+
+var _width: float = 0.0
 
 
 ## The banner of path [param path_index] of [param tree], [param width] UI pixels wide.
 func _init(tree: TalentTreeDef, path_index: int, width: float) -> void:
 	index = path_index
+	_width = width
 	name = "Banner%d" % path_index
 	mouse_filter = Control.MOUSE_FILTER_PASS  # for its tooltip; the wheel goes on to the scroll
 	path_colour = PathColours.of(tree.class_id, path_index)
@@ -30,6 +34,9 @@ func _init(tree: TalentTreeDef, path_index: int, width: float) -> void:
 	name_label = WindowText.label("Name", title, path_colour, true)
 	name_label.position = Vector2(WORDS_X, PAD)
 	add_child(name_label)
+	rank_label = WindowText.label("Rank", "", &"silver")
+	add_child(rank_label)
+	show_rank(0)
 	summary_label = WindowText.label("Summary", "", &"silver")
 	var lines: Array[String] = WindowText.wrap(summary, width - WORDS_X - PAD)
 	WindowText.set_text(summary_label, "\n".join(PackedStringArray(lines)))
@@ -37,6 +44,15 @@ func _init(tree: TalentTreeDef, path_index: int, width: float) -> void:
 	add_child(summary_label)
 	size = Vector2(width, summary_label.position.y + summary_label.size.y + PAD)
 	custom_minimum_size = size
+
+
+## Shows the hero's rank in the path, [param rank], at the right of the name's line.
+func show_rank(rank: int) -> void:
+	var text: String = "Rank %d" % rank
+	if rank_label.text == text:
+		return
+	WindowText.set_text(rank_label, text)
+	rank_label.position = Vector2(_width - PAD - rank_label.size.x, PAD)
 
 
 ## Makes the banner [param tall] UI pixels tall (the banners of a tree are as tall as the tallest).

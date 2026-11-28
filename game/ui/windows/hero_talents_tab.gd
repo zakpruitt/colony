@@ -264,8 +264,9 @@ func reset_reason(hero: Hero) -> String:
 
 ## How node [param ability_id] stands for [param hero], in words:
 ## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code] (for a
-## tier-3 node, [code]Take Bloodthirst or Reckless Swing first[/code]) or
-## [code]No points: the next comes at level 9[/code].
+## tier-3 node, [code]Take Bloodthirst or Reckless Swing first[/code]),
+## [code]No points: the next comes at level 9[/code] or, with a point to spend, the rank its path
+## still needs: [code]Rank 5 in Guardian opens this[/code].
 static func standing(hero: Hero, ability_id: StringName) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
 	if tree_def == null or not tree_def.has_node(ability_id):
@@ -280,10 +281,16 @@ static func standing(hero: Hero, ability_id: StringName) -> String:
 		for before: StringName in tree_def.needs(ability_id):
 			names.append(Content.ability(before).display_name)
 		return "Take %s first" % " or ".join(PackedStringArray(names))
-	var earned: int = TalentRules.talent_points_at(hero.level)
-	if earned >= Hero.TALENT_POINTS:
-		return "No points left"
-	return "No points: the next comes at level %d" % ((earned + 1) * Hero.TALENT_EVERY)
+	if hero.talent_points() <= 0:
+		var earned: int = TalentRules.talent_points_at(hero.level)
+		if earned >= Hero.TALENT_POINTS:
+			return "No points left"
+		return "No points: the next comes at level %d" % ((earned + 1) * Hero.TALENT_EVERY)
+	var path: int = tree_def.path_of(ability_id)
+	return (
+		"Rank %d in %s opens this"
+		% [tree_def.rank_needed(ability_id), tree_def.path(path).display_name]
+	)
 
 
 ## The palette colour [method standing] is shown in for [param hero]'s node [param ability_id].
@@ -365,14 +372,16 @@ func _hero() -> Hero:
 
 
 ## True when anything the tab words itself from has changed since it last did: the hero's level,
-## nodes, points and ranks, the gold and a fight (a reset's price and reason), the question asked,
-## the node under the mouse and whether the tab shows.
+## nodes, points, path ranks and paragon ranks, the gold and a fight (a reset's price and reason),
+## the question asked, the node under the mouse and whether the tab shows.
 func _hero_changed(hero: Hero) -> bool:
 	_read_from.begin()
 	_read_from.see(hero.level)
 	_read_from.see(hero.talent_points())
 	_read_from.see(hero.talents_changed)
 	_read_from.see(hero.paragon_points())
+	for path: int in tree.banners.size():
+		_read_from.see(hero.ranks.rank(path, tree.tree))
 	for cell: ParagonCell in paragon_cells:
 		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))
 	_read_from.see(_simulation.party.gold)

@@ -140,6 +140,14 @@ func record(
 	return event
 
 
+## [param c] used [param ability] on [param target]: an ABILITY_USED event, counted in
+## [member Combatant.uses].
+func record_use(c: Combatant, target: Combatant, ability: AbilityDef) -> void:
+	var so_far: int = c.uses.get(ability.id, 0)
+	c.uses[ability.id] = so_far + 1
+	record(SimEvent.Kind.ABILITY_USED, c.id, target.id).ability_id = ability.id
+
+
 ## True with [param probability], rolled on the battle's own stream.
 func roll_chance(probability: float) -> bool:
 	return _rng.chance(probability)
@@ -564,7 +572,7 @@ func _apply(source: Combatant, target: Combatant, is_heal: bool) -> void:
 	var boost: float = 1.0
 	var steal: float = 0.0
 	for ability: AbilityDef in boosts:
-		record(SimEvent.Kind.ABILITY_USED, source.id, target.id).ability_id = ability.id
+		record_use(source, target, ability)
 		for effect: AbilityEffect in ability.effects:
 			if effect.on_strike:
 				boost *= effect.multiplier

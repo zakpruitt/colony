@@ -42,6 +42,9 @@ Copy `specs/TEMPLATE.md` to `specs/NNN-slug/spec.md` (next free number) and add 
   A spec that adds content (monsters, classes, items) must also fence in the existing tests that count or
   compare *all* of that content (`grep -rn "monster_ids()\|hero_class_ids()" tests/`): spec 013 stopped twice on
   "five monsters" counts in tests 004 and 005 that its Paths did not allow it to touch.
+  A spec that adds a saved field must fence in `tests/unit/test_save_progress.gd` (its round trip lists
+  every field a loaded hero saves), and one that changes what a hero may take must fence in
+  `game/dev/showcase_moments.gd` (its talent moment clicks a tier-2 node): spec 110 had to touch both.
 - **Open questions** is where disagreements wait. A spec with one is not ready.
 
 ## Approval

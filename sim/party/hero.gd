@@ -26,6 +26,8 @@ var upgrades: Upgrades
 ## in it. Each [method combatant] shares this very list, so a use in a fight is remembered after
 ## it (a tie between ready actions goes to the least recent). Change it in place, never replace it.
 var used: Array[StringName] = []
+## This hero's XP in each of its class's paths, and so their ranks; kept through a fresh start.
+var ranks: PathRanks = PathRanks.new()
 ## Counts every change to the nodes taken, so a view can tell its words are stale without copying
 ## [method talents] each frame.
 var talents_changed: int = 0
@@ -140,10 +142,13 @@ func talent_points() -> int:
 
 
 ## True if this hero has an unspent talent point and [param ability_id] is a node of its tree
-## that is open now ([method TalentTreeDef.open_nodes]).
+## that is open now ([method TalentTreeDef.open_nodes]) and that its path's rank opens
+## ([method TalentTreeDef.rank_needed]).
 func can_take(ability_id: StringName) -> bool:
 	var tree: TalentTreeDef = Content.talent_tree(class_id)
 	if talent_points() <= 0 or tree == null:
+		return false
+	if ranks.rank(tree.path_of(ability_id), tree) < tree.rank_needed(ability_id):
 		return false
 	return tree.open_nodes(_talents).has(ability_id)
 
@@ -164,7 +169,7 @@ func set_talents(taken: Array[StringName]) -> void:
 	used.assign(used.filter(func(ability_id: StringName) -> bool: return taken.has(ability_id)))
 
 
-## Gives back every node: each talent point is unspent.
+## Gives back every node: each talent point is unspent. The paths keep their XP and ranks.
 func reset_talents() -> void:
 	_talents.clear()
 	talents_changed += 1
