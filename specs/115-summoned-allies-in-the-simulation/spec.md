@@ -1,10 +1,10 @@
 # 115 — Summoned allies in the simulation
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 050, 110 (its Paths hold `battle.gd`, `battle_abilities.gd`, `combatant.gd` and
   `sim_event.gd`; this starts after 110 has landed, and may run beside 111, 113 and 114)
-- **Pull request:** —
+- **Pull request:** [#111](https://github.com/zakpruitt/colony/pull/111)
 
 ## Intent
 
@@ -180,6 +180,17 @@ want that this rule cannot say.
 - `tests/acceptance/test_115_summoned_allies.gd` and its `.uid`,
   `tests/unit/ability_kit_test_base.gd` (helpers to build a summon, if a second test needs them)
 - `docs/architecture.md` (summons in a battle)
+
+## As built (the lead's rulings on the pull request)
+
+- Summons never stand in the heroes' line: reach, spacing, taunter reach and blocking count heroes only.
+- A status whose source has left the fight is refused.
+- When a summon ends, only its ticking statuses (burning, bleeding, chilled, mending) end with it; haste,
+  shields and marks it gave keep their time.
+- A summon is always on the heroes' side. A summon with damage share 0 never strikes and acts only
+  through its abilities (a pure-aura totem).
+- ALLY_BELOW and OTHER_ALLY_BELOW count heroes only; a summon's fight-start passives fire as it arrives.
+- `Battle` is at gdlint's 20 public methods: new summon rules go in `BattleSummons`.
 
 ## Open questions
 
