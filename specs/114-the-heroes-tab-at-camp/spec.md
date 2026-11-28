@@ -40,7 +40,7 @@ at camp.
     button, a click on a card in the same group, or `Esc` drops the choice and asks for nothing.
   - While a card is lit, a line under the groups says `Choose who the Ranger replaces` (or, from a
     card going down, `Choose who replaces the Knight`).
-  - A swap waiting (`roster.waiting()`) marks both cards `After this fight` until it is made or
+  - A swap waiting (`roster.waiting()`) marks both cards `At the next camp` until it is made or
     dropped.
   - Once it is made, both cards move to their new groups within the frame it is heard in.
 - **R4. Recruiting.**
@@ -123,7 +123,7 @@ keys and mouse motion, and checks the simulation after each command. The class t
 |---|---|---|
 | R1 | `test_r1_two_tabs` | Q and E change tab; 1 and B buy and switch only on Upgrades; the tab remembered; the tag counts a recruitable class |
 | R2 | `test_r2_the_four_and_the_bench` | The cards in their groups and order, their words and tooltip; a picture click opens the hero's window; the empty bench line |
-| R3 | `test_r3_two_clicks` | A swap by two clicks reaches the simulation; each way of dropping a choice asks nothing; the line; `After this fight` during a fight, gone when made |
+| R3 | `test_r3_two_clicks` | A swap by two clicks reaches the simulation; each way of dropping a choice asks nothing; the line; `At the next camp` during a fight, gone when made |
 | R4 | `test_r4_recruiting` | Before a find, only the hidden line; after it, the card's artifact, request and arrival level; the button off with its tooltip when short, on and working when not; the last line once all have joined; the placeholder picture is found by `UiIcon` |
 | R5 | `test_r5_moments` | A banner for a recent find, burst and banner for a recent recruit, bursts for a swap, nothing for stale ones |
 | R6 | `test_r6_fits` | Rectangles at 960x540 and 1280x720: nothing cut or overlapping, the window inside the room, the bar's size unchanged |
@@ -159,6 +159,7 @@ reading help?
   `test_068_a_button_bar_that_says_what_it_opens.gd`, `test_074_one_list_of_windows_and_keys.gd`,
   `test_030_help_and_hints.gd` (all for the amendments R8 allows)
 - `docs/wiki/index.html`, `docs/architecture.md` (the Camp window's tabs)
+- `sim/party/roster.gd` (one read-only query, what a class's request still lacks, so the card asks the simulation rather than copying its price rule; nothing else in `sim/`)
 
 ## Open questions
 
