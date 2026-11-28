@@ -12,8 +12,8 @@ const IDEA: Array[String] = [
 	"Your party explores on its own, even while the game is closed; skills unlock quests.",
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
 	"Gold buys upgrades in the Camp: every fifth rank is a milestone.",
-	"Each hero has three skill paths of five talents: learn all fifteen in time.",
-	"Fights won with a path's abilities rank it up, and ranks open its later tiers.",
+	"Each hero has three skill paths; winning fights with one will rank it up and open later tiers.",
+	"Recruit heroes in the Camp's Heroes tab: the four Going down are the ones who fight.",
 ]
 const TITLE: String = "Help"
 const FOOTER: String = "Click a hero for details. Point at anything for a hint."

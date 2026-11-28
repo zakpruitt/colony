@@ -69,7 +69,7 @@ The picture is drawn in two layers, each in its own pixels.
   refreshes its tags. The bar has no `_process`: `UiRoot.advance` runs the tags' pulse.
   Each button says what it opens (spec 068): the window's icon, its `UiWindow.short_name` (one word per
   window, given by its `WindowEntry`, the same in the help's key list, the goals, the notes
-  and the tooltips: the shop, titled `Camp upgrades`, is `Camp`) and its key in a key cap
+  and the tooltips: the shop, titled `Camp`, is `Camp`) and its key in a key cap
   (`UiButton.key_cap`). `UiButtonBar.fit_room` picks the first form that fits: icon, name and key side by
   side where that leaves `LEFT_ROOM` at the bar's left (1280x720); else each icon over its name with the
   key in a smaller cap at the button's top right corner (`UiButton.key_corner`; 960x540, where a hero
@@ -84,8 +84,9 @@ The picture is drawn in two layers, each in its own pixels.
   treat a point on a window or the bar as nowhere (`UiWindows.covers`). A bar button's marker
   (`UiBadge`) is on the bar's own `Tags` layer, just above the bar and under every window (spec 062 R12).
 - **Keys and the front window** (specs 059, 060): a window's keys act only while it is the front window
-  of all (`UiWindows.front()`): 1 to 5 and B the shop's, 1 to 3 a hero window's on its Talents tab, Q and
-  E a hero window's or the tally's tabs. Tab opens the next hero's window in front whatever is in front,
+  of all (`UiWindows.front()`): 1 to 5 and B the shop's on its Upgrades tab, 1 to 3 a hero window's on
+  its Talents tab, Q and E a hero window's, the tally's or the Camp's tabs (the Camp hears its own Q
+  and E, and an Esc that drops a choice of swap before `UiWindows` closes it). Tab opens the next hero's window in front whatever is in front,
   Esc closes the front window (`UiWindows`), and a click anywhere on a window brings it to the front.
   `WindowKeys` (`game/ui/windows/window_keys.gd`, made by `UiRoot.setup`) hears them and asks
   `UiWindows.front()`; the `Hud` hears only its own (-, +, A, F3).
@@ -235,6 +236,16 @@ The picture is drawn in two layers, each in its own pixels.
   player's (it bursts through `Main`'s `ShopWindow.moment`), any other auto-buy's. Only a fresh purchase
   flashes, bursts or announces; every fifth rank and the top one get a banner. `UiTip.card_for` reads
   the card a control was given.
+- **The Camp window's tabs** (spec 114): `ShopWindow` is a row of tab buttons over two pages,
+  `Upgrades` (the cards and the foot, in `_upgrades`) and `Heroes` (a `RosterTab` in
+  `heroes_scroll`, given the Upgrades page's size so the window keeps one size on either and the
+  tab scrolls inside it), and opens on the page it last showed. `RosterTab` hears the world's
+  events itself and makes its `RosterCard`s again the moment the colony changes (`ARTIFACT_FOUND`,
+  `HERO_RECRUITED`, `HERO_FIELDED`), open or not, so a burst lands on the new card in the frame it
+  is heard in; it words them only while it shows, and only when what they show changed. Its
+  commands are `Roster.recruit` and `Roster.swap`; a picture opens `HeroWindows.open_hero`
+  (`UiRoot.setup` hands it `hero_windows`, and `ShopWindow.moment` hands it the moment). The tag on
+  the Camp button counts `affordable_count()` plus `RosterTab.recruitable()`.
 - **Milestones** (spec 066, `game/ui/frame/milestones.gd`): `Main` makes a `Milestones` node that hears
   the world's `sim_event` and marks the run's biggest events through `UiMoment`: a guardian slain
   gets a banner with the guardian's sprite (`Milestones.guardian_picture`, every part of its sheet

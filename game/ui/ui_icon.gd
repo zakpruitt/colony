@@ -33,6 +33,7 @@ const SHEETS: Array[String] = [
 	"res://assets/sprites/ui/pictures_upgrades.png",
 	"res://assets/sprites/ui/pictures_paragon.png",
 	"res://assets/sprites/ui/pictures_skills.png",
+	"res://assets/sprites/ui/pictures_artifacts.png",
 ]
 ## A picture's own size, in pixels.
 const PICTURE_SIZE: Vector2 = Vector2(16, 16)

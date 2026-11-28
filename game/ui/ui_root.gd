@@ -141,6 +141,7 @@ func setup(simulation: Simulation, hud: Hud, settings: SoundSettings) -> void:
 		frame.add_child(hero_windows)
 		hero_windows.setup(simulation, self, tip, hud.world_view())
 		hud.hero_windows = hero_windows
+		hud.shop.heroes.hero_windows = hero_windows  # a hero card's picture opens its window
 		keys = WindowKeys.new()
 		add_child(keys)
 		keys.setup(windows, hero_windows, hud.shop, hud.tally)

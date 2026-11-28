@@ -241,6 +241,20 @@ showcase's leftovers, not the game.</p>
   hero's line opened by ability shows it as a line of its own (<code>Hawk 412</code>); what monsters do
   to it is not on the Taken tab. Until each class draws its own creatures every summon is the same small
   pale placeholder with cyan eyes.</td></tr>
+  <tr><td>114 The Heroes tab at camp</td><td>The Camp window (<kbd>U</kbd>) has two tabs now,
+  <em>Upgrades</em> (the camp upgrades, as before) and <em>Heroes</em>; <kbd>Q</kbd> and <kbd>E</kbd>
+  change tab, and the window opens on the tab it last showed. The Heroes tab shows a card for each
+  hero <em>Going down</em> and each hero <em>At Camp</em>: its portrait, its class and path, its level.
+  A swap is two clicks: <em>Swap</em> on one card, then <em>Swap</em> on a card in the other group; the
+  swap is made when the party next rests at camp, and until then both cards say <em>After this
+  fight</em>. Click a portrait to open that hero's window. Under the groups, <em>Waiting at Camp</em>
+  lists every hero whose artifact was found, with the artifact, the level it would arrive at and its
+  request (<em>Bring 300 gold and 40 Glowcaps</em>), and a <em>Recruit</em> button; a line says how many
+  heroes are still out there, without naming them. A find drops a banner (<em>Found a Ranger's
+  Whistle</em>), a recruit bursts its card with a banner of its own, and a swap bursts both cards.
+  The Camp button's tag counts the classes you can recruit as well as the upgrades you can buy. No new
+  class exists yet, so in a played game the tab shows the four and <em>Every class has joined the
+  colony</em>.</td></tr>
   <tr><td>113 The party changes on screen</td><td>When a benched hero goes down in another's place
   (at camp), the screen follows. The hero who leaves fades away in a puff; the one who comes in fades in
   at its place by the fire in a puff and says a line (<em>Reporting in!</em>, <em>My turn.</em>,
@@ -252,8 +266,8 @@ showcase's leftovers, not the game.</p>
   included; <kbd>Tab</kbd> goes round the four going down only. The journal says
   <em>Found a Ranger's Whistle: a Ranger waits at Camp</em>, <em>The Ranger joins the colony</em> and
   <em>The Ranger goes down in the Knight's place</em>. A class with no pictures of its own yet is drawn
-  as the class it looks like, under its own name. Until spec 114 adds the window to recruit and choose in,
-  nothing in a played game swaps heroes.</td></tr>
+  as the class it looks like, under its own name. Heroes are recruited and swapped in the Camp
+  window's Heroes tab (spec 114).</td></tr>
   <tr><td>112 The roster (the rules only)</td><td>The colony can now hold more heroes than the four
   who go down. Each new class is a lucky find: a cache may hold its artifact (a Ranger's Whistle, say),
   and its hero then waits at camp with a request, its price in gold and perhaps a resource
@@ -433,7 +447,7 @@ showcase's leftovers, not the game.</p>
 </ul>
 
 <h3>Not built yet <span class="tag planned">Planned</span></h3>
-<p>The window to recruit heroes and choose the four (spec 114) and new classes such as the beast master, trades, loot and
+<p>New classes such as the beast master (each with its own artifact to find), trades, loot and
 equipment, the warren-town at the surface, music, a settings screen, a "new game" button.</p>
 
 <h2 id="run">1. Run the game</h2>
@@ -674,6 +688,22 @@ first three ranks cost gold alone; from the fourth, each rank also costs the upg
 <p>Ranks add up: rank 3 of Sharp Blades is +15%. <strong>Auto-buy</strong> (a switch in the Camp window, off in a
 new game) buys the cheapest upgrade the party can pay for once a second of game time, never a rank whose
 resource it lacks, and keeps buying while the game is closed.</p>
+
+<h3>The colony and recruiting</h3>
+<p>The colony can hold more heroes than the four who go down: one hero of each class. A class beyond
+the first four joins by luck. Its <strong>artifact</strong> (a Ranger's Whistle, say) lies in the
+caches at the end of side paths: every cache opened has a small chance of holding it. Once it is found
+the class's hero <em>waits at Camp</em> with a <strong>request</strong>, a price in gold and perhaps a
+resource (<em>Bring 300 gold and 40 Glowcaps</em>). Pay it with <em>Recruit</em> in the Camp window's
+Heroes tab and the hero joins at the level of the lowest hero going down, every talent point unspent and
+every path at rank 0. A new hero joins the <strong>bench</strong>: it waits at camp, earns no XP and
+does no quests, but its talents and paragon points can be planned in its own window (click its
+portrait). <strong>Swapping</strong>: press <em>Swap</em> on a benched hero's card and then on the card
+of the hero it should replace (or the other way round). The swap is made the next time the party rests
+at camp, never in the middle of a fight, a climb or a quest; until then both cards say <em>After this
+fight</em>. The newcomer goes down at full health and the four always stand tank, striker, caster,
+healer. Pressing <em>Swap</em> on the lit card again, on another card of its own group, or
+<kbd>Esc</kbd> drops the choice. Only the four <em>Going down</em> fight.</p>
 
 <h3>Party orders</h3>
 <p>Three standing orders the party follows by itself (<kbd>O</kbd>):</p>
@@ -917,12 +947,12 @@ after a defeat is drawn over every window.</p>
   <tr><td><kbd>-</kbd> <kbd>+</kbd></td><td>Set the target a stage back or further (<kbd>=</kbd> and the keypad work too)</td></tr>
   <tr><td><kbd>A</kbd></td><td>Auto on or off: go a stage further when the target has been held long enough</td></tr>
   <tr><td><kbd>W</kbd></td><td>Open or close the Map window, the area map (a click on the area's name, or its button on the button bar, does the same)</td></tr>
-  <tr><td><kbd>U</kbd></td><td>Open or close the Camp window, the camp upgrades (or the Camp button on the button bar)</td></tr>
-  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the Camp window is the front window</td></tr>
-  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the Camp window is the front window</td></tr>
+  <tr><td><kbd>U</kbd></td><td>Open or close the Camp window, the camp upgrades and the heroes (or the Camp button on the button bar)</td></tr>
+  <tr><td><kbd>1</kbd> to <kbd>5</kbd></td><td>Buy that upgrade, while the Camp window is the front window on its Upgrades tab</td></tr>
+  <tr><td><kbd>B</kbd></td><td>Auto-buy on or off, while the Camp window is the front window on its Upgrades tab</td></tr>
   <tr><td><kbd>Tab</kbd></td><td>Open the next hero's window and bring it to the front, whatever is in front; the others stay open</td></tr>
   <tr><td><kbd>Shift</kbd>+<kbd>Tab</kbd></td><td>Close the front window, when it is a hero window</td></tr>
-  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window: a hero window's (Stats, Talents, Skills) or the Tally window's (Damage, Healing, Taken)</td></tr>
+  <tr><td><kbd>Q</kbd> <kbd>E</kbd></td><td>Previous or next tab of the front window: a hero window's (Stats, Talents, Skills), the Tally window's (Damage, Healing, Taken) or the Camp window's (Upgrades, Heroes)</td></tr>
   <tr><td><kbd>1</kbd> to <kbd>3</kbd></td><td>Put a paragon point into Power, Toughness or Quickness, when the front window is a hero window on its Talents tab</td></tr>
   <tr><td><kbd>O</kbd></td><td>Open or close the Orders window, the party's orders</td></tr>
   <tr><td><kbd>T</kbd></td><td>Open or close the Tally window, the party tally</td></tr>
@@ -954,8 +984,9 @@ new game has them.</p>
 <p>The Tally stands at the top left, the Camp at the top right and the Map between them, so the three can
 be open together without covering each other or the hero frames. Any window can stay open beside any
 other. The keys a window answers to work only while it is the front window (the last one opened or
-clicked): <kbd>1</kbd> to <kbd>5</kbd> and <kbd>B</kbd> for the Camp, <kbd>1</kbd> to <kbd>3</kbd>
-for a hero window on its Talents tab, <kbd>Q</kbd> <kbd>E</kbd> for a hero window or the Tally.
+clicked): <kbd>1</kbd> to <kbd>5</kbd> and <kbd>B</kbd> for the Camp on its Upgrades tab,
+<kbd>1</kbd> to <kbd>3</kbd> for a hero window on its Talents tab, <kbd>Q</kbd> <kbd>E</kbd> for a
+hero window, the Tally or the Camp.
 <kbd>Esc</kbd> closes the front window.</p>
 
 <h3>The Area map window (<kbd>W</kbd>)</h3>
@@ -1057,8 +1088,10 @@ window keeps its own:</p>
 </ul>
 <p>A small tag on a tab, and on the hero's frame, counts what is waiting there.</p>
 
-<h3>The Camp window: camp upgrades (<kbd>U</kbd>, the Camp button)</h3>
-<p>One card per camp upgrade; the game keeps running behind it. A card shows the upgrade's picture in a
+<h3>The Camp window: camp upgrades and heroes (<kbd>U</kbd>, the Camp button)</h3>
+<p>Two tabs under the title, <em>Upgrades</em> and <em>Heroes</em> (<kbd>Q</kbd> <kbd>E</kbd>, or click
+one); the window opens on the tab it last showed and is as tall on either. The Upgrades tab has one card
+per camp upgrade; the game keeps running behind it. A card shows the upgrade's picture in a
 framed slot with its rank in the corner: the frame pulses yellow when the party can pay for the next rank,
 is plain and dimmed when it cannot, and turns gold for good at the top rank. Beside the picture are the
 number key and name in bold with the rank (<code>3 / 20</code>) at the end of the line, then the ranks as
@@ -1069,15 +1102,30 @@ the resource with its icon (<code>91 gold + 4</code>). It can be pressed when th
 it cannot, it is greyed and a line in orange says what is missing (<em>Needs 12 more clay, from The
 Claypits</em>). At the top rank it reads <code>Max</code>. Rest the mouse on a card for a card of its own:
 the picture, both prices of the next rank, where the resource comes from and, if that area is closed, how
-to open it, and what one rank gives. At the foot is the Auto-buy switch (<kbd>B</kbd>) and a sentence
-saying what it does. While the Camp window is closed, the Camp button on the button bar carries an amber tag counting
-the upgrades the party can pay for.</p>
+to open it, and what one rank gives. The Auto-buy switch (<kbd>B</kbd>) stands at the right of the tab row, and a sentence at the foot says
+what it does. While the Camp window is closed, the Camp button on the button bar carries an amber tag counting
+the upgrades the party can pay for and the heroes it can recruit.</p>
 <p><strong>Buying.</strong> When you buy a rank (its button or its key) the picture bursts with sparks, the
 new pip fills with a flash and the numbers count up to their new values. A rank auto-buy bought just
 flashes its pip. Every fifth rank, whoever bought it, drops a banner at the top with the picture
 (<em>Sharp Blades, rank 5</em> over <em>+25% damage and healing</em>), and the top rank one of its own
 (<em>Sharp Blades mastered</em>). Nothing plays for purchases made while the game caught up (time away,
 a long stall): the cards simply show where things stand.</p>
+<p><strong>The Heroes tab.</strong> <em>Going down</em> shows the four who fight, in their marching
+order, and <em>At Camp</em> the benched heroes (<em>No one at Camp. Recruit below.</em> while there are
+none), two cards to a row. A card shows the hero's portrait, its class and path in bold
+(<em>Knight, Guardian</em>), its level, <em>At Camp</em> for a benched hero, and a <em>Swap</em>
+button. Rest the mouse on a card for its level, its unspent talent points and the rank of each path;
+click the portrait to open the hero's window. <em>Swap</em> lights a card in yellow and a line says
+<em>Choose who the Ranger replaces</em> (or <em>Choose who replaces the Knight</em>); <em>Swap</em> on a
+card of the other group asks for the swap, and both cards say <em>At the next Camp</em> until the party
+rests at camp and it is made. Under the groups, <em>Waiting at Camp</em> has a card for each hero whose
+artifact was found: its portrait and name, the artifact's picture and name, <em>Arrives at level
+12</em>, its request with the resource's icon, and a <em>Recruit</em> button, greyed while the party is
+short (point at it: <em>Needs 120 more gold</em>). Last, while some classes are still to be found, a
+line says how many (<em>3 more heroes are out there. Their artifacts lie in caches down the side
+paths.</em>), naming none; once every class has joined it says so. The tab scrolls when it holds more
+than fits.</p>
 
 <h3>The Party tally window (<kbd>T</kbd>)</h3>
 <p>A damage meter. Three tabs show each hero's damage dealt, healing done (only health actually restored)
@@ -1391,7 +1439,7 @@ on the PATH, plus <code>uv</code> (or <code>pip install gdtoolkit==4.5.0</code>)
   <tr><td>M1</td><td>The labyrinth: generation and drawing</td><td><span class="tag built">Built</span></td></tr>
   <tr><td>M2</td><td>Heroes and monsters that move and fight on their own</td><td><span class="tag built">Built</span></td></tr>
   <tr><td>M3</td><td>XP, gold, the fallback after a wipe, saving, camp upgrades, guardians, auto-buy</td><td><span class="tag built">Built</span>; loot <span class="tag planned">Planned</span></td></tr>
-  <tr><td>M4</td><td>The party of four, the HUD, the camp upgrades, the hero sheet, orders, quests and microskills</td><td><span class="tag built">Built</span>; choosing the party <span class="tag planned">Planned</span></td></tr>
+  <tr><td>M4</td><td>The party of four, the HUD, the camp upgrades, the hero sheet, orders, quests and microskills</td><td><span class="tag built">Built</span>; the roster and choosing the party <span class="tag built">Built</span>, on <code>dev</code></td></tr>
   <tr><td>M5</td><td>Time away, light and ambient life, combat effects, sound, the journal, goals, the stage list, help, game speed, the tally, the defeat note</td><td><span class="tag built">Built</span>; music <span class="tag planned">Planned</span></td></tr>
   <tr><td>M6</td><td>Areas, the map, zones on screen, resources, abilities, talent trees and paragon</td><td><span class="tag built">Built</span>, on <code>dev</code>, waiting for Zak's playtest</td></tr>
   <tr><td>UI overhaul</td><td>A sharp UI layer over the world with a readable font; windows you can drag, stack and close (Help, the Journal, the Orders, the Camp, the Map, the Tally, the hero windows and the away report); the frame of the screen (place panel, countdown, purse, boss bar, hero frames); and the goals, the stage list, the ticker, the note after a defeat and the catching-up bar</td><td><span class="tag built">Built</span>, on <code>dev</code></td></tr>

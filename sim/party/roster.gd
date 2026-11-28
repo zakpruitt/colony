@@ -56,13 +56,32 @@ func is_waiting(class_id: StringName) -> bool:
 
 ## Waiting at camp, and both prices payable now.
 func can_recruit(class_id: StringName) -> bool:
-	var def: HeroClassDef = Content.hero_class(class_id)
-	if def == null or not is_waiting(class_id) or _party.gold < def.recruit_gold:
-		return false
 	return (
-		def.recruit_resource == &""
-		or _party.resource(def.recruit_resource) >= def.recruit_resource_count
+		Content.hero_class(class_id) != null
+		and is_waiting(class_id)
+		and lacks(class_id) == Vector2i.ZERO
 	)
+
+
+## What [param class_id]'s request still lacks of what the party holds now: x the gold short,
+## y the resource short; 0 for a price paid in full or a resource not asked for.
+func lacks(class_id: StringName) -> Vector2i:
+	var def: HeroClassDef = Content.hero_class(class_id)
+	if def == null:
+		return Vector2i.ZERO
+	var resource_short: int = 0
+	if def.recruit_resource != &"":
+		resource_short = def.recruit_resource_count - _party.resource(def.recruit_resource)
+	return Vector2i(maxi(def.recruit_gold - _party.gold, 0), maxi(resource_short, 0))
+
+
+## Whether a swap waiting names hero [param hero_id], coming down or going to camp. Reads the
+## waiting swaps without copying them, for a view that asks every frame.
+func swap_waits(hero_id: int) -> bool:
+	for asked: Vector2i in _swaps:
+		if asked.x == hero_id or asked.y == hero_id:
+			return true
+	return false
 
 
 ## The level a recruit would arrive at now: the lowest of the heroes going down.
