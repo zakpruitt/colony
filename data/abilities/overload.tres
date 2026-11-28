@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 4
+does = 0
+multiplier = 0.6
+
+[resource]
+script = ExtResource("1")
+id = &"overload"
+display_name = "Overload"
+description = "Every fifth strike also strikes every enemy for 0.6x damage."
+move = &"flourish"
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+trigger = 7
+trigger_every = 5

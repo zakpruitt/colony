@@ -42,8 +42,8 @@ var strike_tick: int = -1
 ## Set by the battle: the first tick a new attack may start on.
 var ready_tick: int = 0
 
-## What this fighter does beyond its strike, in the order it considers them: a hero's talents,
-## the newest first; empty for a monster.
+## What this fighter does beyond its strike, in the order that breaks a tie between actions ready
+## as long as each other: a hero's talents, the highest tier first; empty for a monster.
 var abilities: Array[AbilityDef] = []
 ## Set by the battle: the action being wound up, or null for an ordinary strike.
 var pending_action: AbilityDef = null
@@ -56,8 +56,14 @@ var statuses: Dictionary[int, CombatStatus] = {}
 var action_ready_tick: Dictionary[StringName, int] = {}
 ## Set by the battle: the once-a-fight passives that have fired.
 var spent: Dictionary[StringName, bool] = {}
+## The hero's own [member Hero.used], shared: its actions, least recently used first. The
+## battle moves an action to its end when it is used.
+var used: Array[StringName] = []
 ## Set by the battle: ordinary strikes made this fight.
 var strikes: int = 0
+## Set by the battle: false from an action until the next swing lands (a strike or a heal), so
+## an action is always followed by a plain swing.
+var swung_since_action: bool = true
 
 
 ## A hero of class [param def] at [param hero_level] (1 or more).
@@ -166,6 +172,7 @@ func reset_abilities() -> void:
 	statuses.clear()
 	spent.clear()
 	strikes = 0
+	swung_since_action = true
 	action_ready_tick.clear()
 	for ability: AbilityDef in abilities:
 		if ability.is_action():

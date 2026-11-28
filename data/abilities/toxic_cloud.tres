@@ -1,0 +1,36 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 1
+radius = 1.5
+does = 4
+scale = 0
+status = 4
+seconds = 4.0
+amount = 0.3
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 1
+radius = 1.5
+does = 4
+status = 9
+seconds = 4.0
+amount = 0.7
+
+[resource]
+script = ExtResource("1")
+id = &"toxic_cloud"
+display_name = "Toxic Cloud"
+description = "The target and the enemies beside it bleed and are weakened (30% less damage) for 4 s. Every 12 s."
+move = &"throw"
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 12.0
+windup = 0.3
+ready_at_start = true
+anywhere = true

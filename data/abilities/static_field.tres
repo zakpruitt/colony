@@ -1,0 +1,22 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 4
+does = 4
+status = 7
+seconds = 6.0
+amount = 1.6
+
+[resource]
+script = ExtResource("1")
+id = &"static_field"
+display_name = "Static Field"
+description = "As a fight starts, every enemy strikes 60% slower for 6 s."
+move = &"cast"
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+trigger = 0

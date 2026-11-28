@@ -7,7 +7,44 @@ const SEED_TICKS: int = 5
 ## Ticks the simulation runs on before the world hears of it: what it reported is long past.
 const STALE_TICKS: int = 400
 ## A level with every talent point earned and three paragon points.
-const PARAGON_LEVEL: int = 17
+const PARAGON_LEVEL: int = 33
+
+## The fighters and battles of spec 050's tests, built by its kit.
+const Kit = preload("res://tests/unit/ability_kit_test_base.gd")
+## "The new abilities" of the spec.
+const NEW_ABILITIES: Array[StringName] = [
+	&"earthshaker",
+	&"war_banner",
+	&"challenge",
+	&"charge",
+	&"toxic_cloud",
+	&"envenom",
+	&"plague",
+	&"shadowstep",
+	&"lightning_bolt",
+	&"static_field",
+	&"overload",
+	&"thunderstorm",
+	&"radiance",
+	&"aegis",
+	&"hallowed_ground",
+	&"resurrection",
+]
+
+var _kit: Kit
+
+
+func before_each() -> void:
+	super()
+	_kit = Kit.new()
+
+
+func after_each() -> void:
+	if _kit != null:
+		_kit.free()
+		_kit = null
+	super()
+
 
 # --- Helpers -------------------------------------------------------------------
 
@@ -71,50 +108,32 @@ func _rect_text(node: TalentNode) -> String:
 	return "%s %s" % [node.ability_id, node.get_global_rect()]
 
 
-## Checks that [param view]'s nodes are joined in order by lines with an arrowhead into each: down
-## the trunk, and from its last node into each path and down it.
+## Checks that [param view] joins each node to each node that needs it, with an arrowhead into it
+## that points at it.
 func _check_joins(view: TalentTreeView, tree: TalentTreeDef, class_id: StringName) -> void:
-	# Joined by lines with arrowheads: each node to the next, the last trunk node to both paths.
 	var joined: Dictionary[String, bool] = {}
 	for join: Array in view.joins():
 		var ends: Array = join[1]
-		if ends.size() == 2:
-			var a: StringName = (ends[0] as TalentNode).ability_id
-			joined["%s>%s" % [a, (ends[1] as TalentNode).ability_id]] = true
+		var a: StringName = (ends[0] as TalentNode).ability_id
+		joined["%s>%s" % [a, (ends[1] as TalentNode).ability_id]] = true
 	var headed: Dictionary[StringName, Rect2] = {}
 	for arrow: Array in view.arrows():
 		headed[(arrow[1] as TalentNode).ability_id] = arrow[0]
-	for path: int in 2:
-		var order: Array[StringName] = tree.trunk.duplicate()
-		order.append_array(tree.path_nodes(path))
-		for i: int in range(1, order.size()):
-			var key: String = "%s>%s" % [order[i - 1], order[i]]
-			assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
-			assert_true(headed.has(order[i]), "%s: an arrowhead into %s" % [class_id, order[i]])
-			if headed.has(order[i]):
-				var into: Rect2 = view.node(order[i]).get_global_rect()
-				var head: Rect2 = headed[order[i]]
+	for path: int in tree.paths.size():
+		for node: StringName in tree.path(path).nodes:
+			for before: StringName in tree.needs(node):
+				var key: String = "%s>%s" % [before, node]
+				assert_true(joined.has(key), "%s: %s joined" % [class_id, key])
+			if tree.tier_of(node) == 1:
+				assert_false(headed.has(node), "%s: no arrowhead into tier 1" % node)
+				continue
+			assert_true(headed.has(node), "%s: an arrowhead into %s" % [class_id, node])
+			if headed.has(node):
+				var into: Rect2 = view.node(node).get_global_rect()
+				var head: Rect2 = headed[node]
 				head.position += view.global_position
-				assert_lte(head.end.y, into.position.y + 0.5, "%s: the head points in" % order[i])
-				assert_gt(head.end.y, into.position.y - 4.0, "%s: right at it" % order[i])
-
-
-## Checks the banners of [param view], whose hero walks [param path]: the other path's is closed,
-## dimmed with a padlock and Not chosen, its name dim; its own is open and not marked.
-func _check_banners(view: TalentTreeView, path: int, on: String) -> void:
-	var closed: PathBanner = view.banners[1 - path]
-	assert_true(closed.is_closed(), "%s: the other banner closed" % on)
-	assert_true(closed.has_lock(), "%s: with a padlock" % on)
-	assert_true(closed.closed_label.is_visible_in_tree(), "%s: saying so" % on)
-	assert_eq(closed.closed_label.text, "Not chosen", "%s: Not chosen" % on)
-	assert_ne(closed.colour(), view.path_colour(1 - path), "%s: dimmed" % on)
-	assert_eq(
-		closed.name_label.get_theme_color(&"font_color"),
-		Palette.color(&"steel"),
-		"%s: the other name dim" % on
-	)
-	assert_false(view.banners[path].is_closed(), "%s: its own open" % on)
-	assert_false(view.banners[path].closed_label.is_visible_in_tree(), "not marked")
+				assert_lte(head.end.y, into.position.y + 0.5, "%s: the head points in" % node)
+				assert_gt(head.end.y, into.position.y - 4.0, "%s: right at it" % node)
 
 
 ## Checks [param tab]'s paragon medallions with three points waiting and none spent: each
@@ -203,22 +222,21 @@ func _into_view(main: Main, shown: HeroWindow, control: Control) -> void:
 		await _frames()
 
 
-## Opens [param hero]'s window on Talents with its trunk taken, has it choose its first path now and
-## checks the other starts closing with the line into the chosen node lit; returns the window.
-func _choose_now(main: Main, hero: Hero) -> HeroWindow:
-	var tree: TalentTreeDef = _tree(hero.class_id)
+## Opens [param hero]'s window on Talents with a point to spend, has it take its first path's
+## tier-1 node now and checks the line into it lights; returns the window.
+func _take_now(main: Main, hero: Hero) -> HeroWindow:
+	var first: StringName = _tree(hero.class_id).path(0).nodes[0]
 	set_level_keeping_health(hero, 8)
-	hero.set_talents(tree.trunk)
+	hero.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
-	main.simulation.take_talent(hero.id, tree.path_a[0])
+	main.simulation.take_talent(hero.id, first)
 	_frame(main)
-	assert_true(_view(shown).is_closing(), "%s: the other path closing" % hero.class_id)
-	assert_true(_view(shown).is_lit(tree.path_a[0]), "%s: the line lit" % hero.class_id)
+	assert_true(_view(shown).is_lit(first), "%s: the line lit" % hero.class_id)
 	return shown
 
 
 ## Fails when palette colour [param colour] is one a state uses: the frames' gold, yellow, white and
-## greys, the green of what is learned and of the paragon totals, the lit trunk's sand.
+## greys, the green of what is learned and of the paragon totals, and sand.
 func _check_not_a_state(colour: StringName) -> void:
 	var states: Array[StringName] = [
 		&"amber",
@@ -264,3 +282,200 @@ func _stands(main: Main, view: TalentTreeView, id: StringName) -> String:
 	var said: String = main.ui.tip.card_stand.text
 	_point_away(main)
 	return said
+
+
+# --- Spec 109 R7 ---------------------------------------------------------------
+
+
+## The events of the tick [param id] was first used, from its ABILITY_USED on.
+func _at_use(events: Array[SimEvent], id: StringName) -> Array[SimEvent]:
+	return _kit._landing(events, id)
+
+
+## Who [param events] put [param status] on.
+func _given(events: Array[SimEvent], status: AbilityEffect.Status) -> Array[int]:
+	var found: Array[int] = []
+	for e: SimEvent in _kit._of(events, SimEvent.Kind.STATUS_BEGAN):
+		if e.status == status:
+			found.append(e.target_id)
+	return found
+
+
+## A hero of [param overrides] holding the real ability [param id].
+func _holding(id: StringName, overrides: Dictionary = {}) -> Combatant:
+	var hero: Combatant = _kit._hero(1, overrides)
+	return _kit._give(hero, [Content.ability(id)])
+
+
+## Dummies of ids 10 on, standing at [param places].
+func _dummies(battle_monsters: Array[Combatant], places: Array) -> void:
+	for i: int in places.size():
+		battle_monsters[i].x = places[i]
+
+
+## Spec 109 R7: one built battle per new ability, its events checked.
+func _check_new_abilities() -> void:
+	for id: StringName in NEW_ABILITIES:
+		assert_eq(Content.ability(id).validate(), PackedStringArray(), "%s is valid" % id)
+		assert_true(Content.ability(id).description.ends_with("."), "%s: one plain line" % id)
+	var hit: SimEvent.Kind = SimEvent.Kind.HIT
+	# Damage from healing power is a DAMAGE effect's alone.
+	var mend: AbilityEffect = _kit._fx("HEAL", "SELF", {"damage_from_healing": true})
+	assert_true(" ".join(mend.validate()).contains("damage_from_healing"), "refused on a heal")
+	for id: StringName in [&"smite", &"holy_fire", &"radiance", &"wrath"]:
+		assert_true(Content.ability(id).effects[0].damage_from_healing, "%s: from healing" % id)
+
+	# Earthshaker: every enemy takes 2x damage and is stunned.
+	var monsters: Array[Combatant] = _kit._typed(
+		[_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)]
+	)
+	var battle: Battle = _kit._battle([_holding(&"earthshaker")], monsters, 16.0)
+	_dummies(monsters, [3.0, 7.0, 14.0])
+	var landing: Array[SimEvent] = _at_use(_kit._run(battle, 60), &"earthshaker")
+	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [10, 11, 12], "Earthshaker: every enemy")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20, 20, 20], "for 2x")
+	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [10, 11, 12], "all stunned")
+
+	# War Banner: as the fight starts, every ally is hasted.
+	var ally: Combatant = _kit._hero(2)
+	battle = _kit._battle([_holding(&"war_banner"), ally], [_kit._dummy(10)])
+	var events: Array[SimEvent] = _kit._run(battle, 3)
+	assert_eq(_given(events, AbilityEffect.Status.HASTED), [1, 2], "War Banner: every ally")
+
+	# Challenge: the nearest enemy is marked.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
+	battle = _kit._battle([_holding(&"challenge")], monsters)
+	_dummies(monsters, [3.0, 9.0])
+	landing = _at_use(_kit._run(battle, 20), &"challenge")
+	assert_eq(_given(landing, AbilityEffect.Status.MARKED), [10], "Challenge: the nearest")
+
+	# Charge: 2.5x on the furthest; it and the one beside it pushed and stunned, not the near one.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
+	battle = _kit._battle([_holding(&"charge")], monsters)
+	_dummies(monsters, [3.0, 9.0, 10.0])
+	landing = _at_use(_kit._run(battle, 120), &"charge")
+	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [12], "Charge: the furthest")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [25], "for 2.5x")
+	var stunned: Array[int] = _given(landing, AbilityEffect.Status.STUNNED)
+	stunned.sort()
+	assert_eq(stunned, [11, 12], "stuns the target and the enemy beside it")
+	assert_almost_eq(monsters[0].x, 3.0, 0.001, "the near one stays")
+	assert_gt(monsters[1].x, 9.0, "pushed back")
+	assert_gt(monsters[2].x, 10.0, "pushed back")
+
+	# Toxic Cloud: the nearest and the one beside it bleed and are weakened; not the far one.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
+	battle = _kit._battle([_holding(&"toxic_cloud")], monsters)
+	_dummies(monsters, [3.0, 4.0, 12.0])
+	landing = _at_use(_kit._run(battle, 20), &"toxic_cloud")
+	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [10, 11], "Toxic Cloud: bleeding")
+	assert_eq(_given(landing, AbilityEffect.Status.WEAKENED), [10, 11], "and weakened")
+
+	# Envenom: 2x through armor, and it bleeds.
+	monsters = _kit._typed([_kit._dummy(10, {"armor": 6})])
+	battle = _kit._battle([_holding(&"envenom")], monsters, 4.0)
+	landing = _at_use(_kit._run(battle, 40), &"envenom")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20], "Envenom: 2x, armor or not")
+	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [10], "and it bleeds")
+
+	# Plague: on a kill, every living enemy starts bleeding.
+	monsters = _kit._typed([_kit._dummy(10, {"max_health": 1}), _kit._dummy(11), _kit._dummy(12)])
+	battle = _kit._battle([_holding(&"plague")], monsters)
+	_dummies(monsters, [2.0, 8.0, 12.0])
+	landing = _at_use(_kit._run(battle, 60), &"plague")
+	assert_eq(_given(landing, AbilityEffect.Status.BLEEDING), [11, 12], "Plague: every enemy left")
+
+	# Shadowstep: 2x and a stun on the furthest.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
+	battle = _kit._battle([_holding(&"shadowstep")], monsters)
+	_dummies(monsters, [3.0, 10.0])
+	landing = _at_use(_kit._run(battle, 120), &"shadowstep")
+	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [11], "Shadowstep: the furthest")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [20], "for 2x")
+	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [11], "and stuns it")
+
+	# Lightning Bolt: 2.6x through armor, from its reach of 7 tiles.
+	monsters = _kit._typed([_kit._dummy(10, {"armor": 6})])
+	var mage: Combatant = _holding(&"lightning_bolt")
+	battle = _kit._battle([mage], monsters)
+	_dummies(monsters, [6.0])
+	landing = _at_use(_kit._run(battle, 20), &"lightning_bolt")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [26], "Lightning Bolt: 2.6x, armor or not")
+
+	# Static Field: as the fight starts, every enemy is slowed.
+	battle = _kit._battle([_holding(&"static_field")], [_kit._dummy(10), _kit._dummy(11)])
+	events = _kit._run(battle, 3)
+	assert_eq(_given(events, AbilityEffect.Status.SLOWED), [10, 11], "Static Field: every enemy")
+
+	# Overload: every fifth ordinary strike also strikes every enemy for 0.6x.
+	var striker: Combatant = _holding(&"overload")
+	battle = _kit._battle([striker], [_kit._dummy(10), _kit._dummy(11)], 3.0)
+	events = _kit._run(battle, 160)
+	var fired: Array[SimEvent] = _kit._used(events, &"overload")
+	assert_gte(striker.strikes, 10, "ten strikes or more")
+	assert_eq(fired.size(), floori(striker.strikes / 5.0), "Overload: on every fifth strike")
+	landing = _at_use(events, &"overload")
+	var sparks: Array[SimEvent] = []
+	for e: SimEvent in _kit._of(landing, hit, 1):
+		if e.amount == 6:
+			sparks.append(e)
+	assert_eq(_kit._targets(sparks), [10, 11], "every enemy, for 0.6x")
+
+	# Thunderstorm: with an enemy within 8 tiles, every enemy takes 2.5x and is stunned.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11)])
+	battle = _kit._battle([_holding(&"thunderstorm")], monsters)
+	_dummies(monsters, [5.0, 15.0])
+	landing = _at_use(_kit._run(battle, 20), &"thunderstorm")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [25, 25], "Thunderstorm: 2.5x, everyone")
+	assert_eq(_given(landing, AbilityEffect.Status.STUNNED), [10, 11], "all stunned")
+
+	# Radiance: every enemy within 2 tiles takes 0.4x the healing power, and every ally within 2
+	# tiles of the cleric mends.
+	monsters = _kit._typed([_kit._dummy(10), _kit._dummy(11), _kit._dummy(12)])
+	var cleric: Combatant = _holding(&"radiance", {"heal_power": 20})
+	var near: Combatant = _kit._hero(2, Kit.STILL)
+	var far: Combatant = _kit._hero(3, {"windup": Kit.NEVER, "move_speed": 0.0})
+	battle = _kit._battle([cleric, near, far], monsters)
+	_dummies(monsters, [5.0, 5.0, 12.0])
+	far.x = 0.0
+	landing = _at_use(_kit._run(battle, 80), &"radiance")
+	assert_eq(_kit._targets(_kit._of(landing, hit, 1)), [10, 11], "Radiance: those near")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [8, 8], "for 0.4x the healing power")
+	var mended: Array[int] = _given(landing, AbilityEffect.Status.MENDING)
+	mended.sort()
+	assert_eq(mended, [1, 2], "and the allies near the cleric mend, not one far off")
+
+	# Wrath: its damage comes from the healing power too.
+	monsters = _kit._typed([_kit._dummy(10)])
+	battle = _kit._battle([_holding(&"wrath", {"heal_power": 20})], monsters)
+	landing = _at_use(_kit._run(battle, 40), &"wrath")
+	assert_eq(_kit._amounts(_kit._of(landing, hit, 1)), [200], "Wrath: 10x the healing power")
+
+	# Aegis: the weakest ally is shielded.
+	var hurt: Combatant = _kit._hero(2)
+	hurt.health = 30
+	battle = _kit._battle([_holding(&"aegis"), hurt, _kit._hero(3)], [_kit._dummy(10)])
+	landing = _at_use(_kit._run(battle, 20), &"aegis")
+	assert_eq(_given(landing, AbilityEffect.Status.SHIELDED), [2], "Aegis: the weakest ally")
+
+	# Hallowed Ground: as the fight starts, every enemy is weakened.
+	battle = _kit._battle([_holding(&"hallowed_ground")], [_kit._dummy(10), _kit._dummy(11)])
+	events = _kit._run(battle, 3)
+	assert_eq(_given(events, AbilityEffect.Status.WEAKENED), [10, 11], "Hallowed Ground")
+
+	# Resurrection: when an ally dies, every fallen ally stands up at half health, once a fight.
+	var priest: Combatant = _holding(&"resurrection", Kit.STILL)
+	var fallen: Combatant = _kit._hero(2, Kit.STILL)
+	fallen.health = 0
+	var dying: Combatant = _kit._hero(3, Kit.STILL)
+	dying.health = 1
+	var shooter: Combatant = _kit._shooter(10, {"damage": 5})
+	battle = _kit._battle([dying, fallen, priest], [shooter])
+	events = _kit._run(battle, 600)
+	var revived: Array[SimEvent] = _kit._of(events, SimEvent.Kind.REVIVED)
+	var raised: Array[int] = _kit._targets(revived)
+	raised.sort()
+	assert_eq(raised, [2, 3], "Resurrection: every fallen ally stands up")
+	assert_eq(_kit._used(events, &"resurrection").size(), 1, "once a fight")
+	if not revived.is_empty():
+		assert_eq(revived[0].amount, 50, "with 50% health")

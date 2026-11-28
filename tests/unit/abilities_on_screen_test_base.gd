@@ -152,15 +152,13 @@ func _numbers() -> Array[FxText]:
 	return found
 
 
-## Every hero at [constant TREE_LEVEL] with its class's trunk and path ([param paths], by class),
-## full health.
+## Every hero at [constant TREE_LEVEL] holding the five nodes of its class's path ([param paths],
+## by class), full health.
 func _full_trees(paths: Dictionary[StringName, int] = PATHS) -> void:
 	for hero: Hero in _sim.party.heroes:
 		hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
 		var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-		var nodes: Array[StringName] = tree.trunk.duplicate()
-		nodes.append_array(tree.path_nodes(paths[hero.class_id]))
-		hero.set_talents(nodes)
+		hero.set_talents(tree.path(paths[hero.class_id]).nodes)
 		hero.health = hero.max_health()
 
 

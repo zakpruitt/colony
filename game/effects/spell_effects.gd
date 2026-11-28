@@ -50,6 +50,17 @@ const KINDS: Dictionary[StringName, StringName] = {
 	&"mark_for_death": &"shadow",
 	&"vanish": &"shadow",
 	&"smoke_step": &"shadow",
+	&"lightning_bolt": &"chain_spark",
+	&"static_field": &"chain_spark",
+	&"overload": &"chain_spark",
+	&"thunderstorm": &"chain_spark",
+	&"radiance": &"holy_beam",
+	&"aegis": &"light_column",
+	&"hallowed_ground": &"light_column",
+	&"resurrection": &"light_column",
+	&"toxic_cloud": &"shadow",
+	&"plague": &"shadow",
+	&"shadowstep": &"shadow",
 }
 const FLIES: Array[StringName] = [&"fireball", &"meteor", &"ice_shard"]
 ## The kinds that show on each fighter the spell reaches, as the events say it does.

@@ -2,15 +2,24 @@ extends "res://tests/unit/ability_kit_test_base.gd"
 ## The faults the review of pull request 50 found in spec 050's battle rules, each pinned here.
 
 
-## Reapplied every half second, a bleed still bleeds once a second: reapplying moves its end
-## and keeps the stronger amount, not its clock.
+## Reapplied before it ends, a bleed still bleeds once a second: reapplying moves its end and
+## keeps the stronger amount, not its clock. A strike comes between two actions, so the hero
+## strikes from where it stands and bleeds the dummy every 12 ticks.
 func test_a_reapplied_bleed_keeps_its_clock() -> void:
 	var bleed: Array = [_st("BLEEDING", 2.0, 0.5, "TARGET", BY_DAMAGE)]
-	var hero: Combatant = _hero(1, {"attack_interval": 0.4})
+	var hero: Combatant = _hero(1, {"attack_interval": 0.4, "attack_range": 1000.0})
 	_give(hero, [_action(&"bleed", bleed, {"cooldown": 0.4})])
 	var events: Array[SimEvent] = _run(_battle([hero], [_dummy(10)]), 50)
-	assert_eq(_ticks(_used(events, &"bleed")).slice(0, 3), _ints([2, 7, 12]), "every 5 ticks")
-	var hits: Array[SimEvent] = _of(events, SimEvent.Kind.HIT, 1)
+	assert_eq(_ticks(_used(events, &"bleed")).slice(0, 3), _ints([2, 14, 26]), "every 12 ticks")
+	# The hero's strikes land when their projectiles do (launched, plus the flight in ticks); every
+	# other hit of its is the bleed.
+	var landed: Dictionary[int, bool] = {}
+	for launch: SimEvent in _of(events, SimEvent.Kind.PROJECTILE_LAUNCHED, 1):
+		landed[launch.tick + launch.amount] = true
+	var hits: Array[SimEvent] = []
+	for hit: SimEvent in _of(events, SimEvent.Kind.HIT, 1):
+		if not landed.has(hit.tick):
+			hits.append(hit)
 	assert_eq(_ticks(hits), _ints([12, 22, 32, 42]), "it bleeds each second")
 	assert_eq(_amounts(hits), _ints([5, 5, 5, 5]))
 

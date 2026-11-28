@@ -233,7 +233,7 @@ func test_r5_a_change_shows_on_the_next_frame() -> void:
 		var spend: String = "Spend the %s's talent point" % hero.def().display_name
 		assert_has(hud.goals.lines(), spend, "%s: a level: %s" % [what, _said(hud)])
 		# The point spent: its goal goes.
-		var first: StringName = Content.talent_tree(hero.class_id).trunk[0]
+		var first: StringName = Content.talent_tree(hero.class_id).path(0).nodes[0]
 		sim.take_talent(hero.id, first)
 		sim.step()
 		hud.advance(STEP)
@@ -355,7 +355,7 @@ func test_r6_an_open_talents_tab_is_still() -> void:
 		for i: int in 3:
 			hud.advance(STEP)
 			main.ui.advance(STEP)
-		var first: StringName = Content.talent_tree(hero.class_id).trunk[0]
+		var first: StringName = Content.talent_tree(hero.class_id).path(0).nodes[0]
 		var state: TalentNode.State = tab.tree.state_of(first)
 		assert_eq(state, TalentNode.State.AVAILABLE, "%s: a node to take" % what)
 		var worded: int = tab.worded

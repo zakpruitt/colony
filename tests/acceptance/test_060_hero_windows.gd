@@ -80,7 +80,7 @@ func test_r2_the_header() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var knight: Hero = _hero(main, &"knight")
 	set_level_keeping_health(knight, 8)
-	knight.set_talents(Content.talent_tree(&"knight").trunk)
+	knight.set_talents([] as Array[StringName])
 	var shown: HeroWindow = _open(main, knight, HeroWindow.Page.STATS)
 	await _frames()
 	var icon: Texture2D = main.hud.icon(&"knight")
@@ -154,7 +154,7 @@ func test_r3_tabs() -> void:
 	assert_eq(first.talents_tag.text, "2", "two talent points")
 	var tab: Rect2 = first.tab_buttons[HeroWindow.Page.TALENTS].get_global_rect()
 	assert_true(first.talents_tag.get_global_rect().intersects(tab), "on the tab")
-	_click(main, first.talents.node(Content.talent_tree(&"knight").trunk[0]))
+	_click(main, first.talents.node(Content.talent_tree(&"knight").path(0).nodes[0]))
 	_frame(main)
 	assert_eq(first.talents_tag.text, "1", "one left")
 	set_level_keeping_health(mage, 3)
@@ -197,7 +197,7 @@ func test_r3_keys_reach_only_the_front_window() -> void:
 	var windows: UiWindows = main.ui.windows
 	sim.party.gold = RICH
 	var knight: Hero = _hero(main, &"knight")
-	set_level_keeping_health(knight, 20)
+	set_level_keeping_health(knight, 36)
 	knight.set_talents(_walked(&"knight", 0, 4))
 	main.hud.advance(STEP)
 	_press(main, KEY_U)
@@ -293,7 +293,7 @@ func test_r4_stats_with_reasons() -> void:
 	assert_eq(shown.line(&"stat_damage"), "Damage %d" % plain.damage, "no bonus: no reason")
 	sim.upgrades.set_rank(&"sharp_blades", 3)
 	sim.upgrades.set_rank(&"stout_armor", 2)
-	set_level_keeping_health(cleric, 17)
+	set_level_keeping_health(cleric, 33)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.POWER)
 	sim.spend_paragon(cleric.id, TrainingDef.Stat.QUICKNESS)
@@ -344,20 +344,20 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 	for class_id: StringName in CLASSES:
 		var hero: Hero = _hero(main, class_id)
 		var class_tree: TalentTreeDef = Content.talent_tree(class_id)
-		for path: int in 2:
+		for path: int in 3:
 			set_level_keeping_health(hero, 10)
 			hero.set_talents(_walked(class_id, path, 1))
 			var opened: HeroWindow = _open(main, hero, HeroWindow.Page.TALENTS)
 			main.hud.advance(STEP)
 			var view: TalentTreeView = opened.talents.tree_view()
-			for id: StringName in class_tree.path_nodes(1 - path):
-				var closed: TalentNode = view.node(id)
+			for id: StringName in class_tree.path(path).nodes.slice(3):
+				var later: TalentNode = view.node(id)
 				# Spec 064: its name, where spec 060 had its description.
-				assert_true(closed.name_label.is_visible_in_tree(), "%s: still readable" % id)
+				assert_true(later.name_label.is_visible_in_tree(), "%s: still readable" % id)
 				assert_eq(
-					closed.name_label.get_theme_color(&"font_color"),
-					Palette.color(TalentNode.DIM),
-					"%s: dimmed" % id
+					later.name_label.get_theme_color(&"font_color"),
+					Palette.color(&"silver"),
+					"%s: not yet, and plain" % id
 				)
 			_click_frame(main, hero)
 
@@ -365,12 +365,12 @@ func test_r5_the_tree_readable_without_pointing() -> void:
 func test_r5_keys_1_to_3_reach_only_the_front_window_on_talents() -> void:
 	var main: Main = _main(ROOM_LARGE)
 	var knight: Hero = _hero(main, &"knight")
-	set_level_keeping_health(knight, 17)
+	set_level_keeping_health(knight, 33)
 	_open(main, knight, HeroWindow.Page.TALENTS)
 	main.hud.advance(STEP)
 	# Keys 1 to 3 belong to the front hero window, on its Talents tab only.
 	var mage: Hero = _hero(main, &"mage")
-	set_level_keeping_health(mage, 17)
+	set_level_keeping_health(mage, 33)
 	var front: HeroWindow = _open(main, mage, HeroWindow.Page.STATS)
 	assert_eq(main.ui.windows.front(), front, "the mage's in front, on Stats")
 	_press(main, KEY_3)
@@ -386,28 +386,20 @@ func test_r5_keys_1_to_3_reach_only_the_front_window_on_talents() -> void:
 func test_r5_a_question_seen_without_scrolling() -> void:
 	var main: Main = _main(ROOM_SMALL)
 	var mage: Hero = _hero(main, &"mage")
-	var tree: TalentTreeDef = Content.talent_tree(&"mage")
+	main.simulation.party.gold = RICH
 	set_level_keeping_health(mage, 8)
-	mage.set_talents(tree.trunk)
+	mage.set_talents(_walked(&"mage", 0, 3))
 	var shown: HeroWindow = _open(main, mage, HeroWindow.Page.TALENTS)
 	await _frames()
 	assert_true(shown.scrolls(), "the tab scrolls at 960x540")
-	# Scrolled to the bottom, or as near it as leaves the path's first node in view.
-	var first: TalentNode = shown.talents.node(tree.path_nodes(1)[0])
 	var bar: VScrollBar = shown.scroll.get_v_scroll_bar()
 	shown.scroll.scroll_vertical = int(bar.max_value)
 	await _frames()
-	var view: Rect2 = shown.scroll.get_global_rect()
-	var over: float = view.position.y - first.get_global_rect().position.y
-	if over > 0.0:
-		shown.scroll.scroll_vertical -= ceili(over)
-		await _frames()
 	var scrolled: int = shown.scroll.scroll_vertical
 	assert_gt(scrolled, 0, "scrolled down")
-	assert_true(view.encloses(first.get_global_rect()), "the path's first node in view")
-	_click(main, first)
+	_click(main, shown.talents.reset_button)
 	await _frames()
-	assert_eq(shown.talents.asking(), HeroTalentsTab.Asking.PATH, "the question")
+	assert_eq(shown.talents.asking(), HeroTalentsTab.Asking.RESET, "the question")
 	var window: Rect2 = shown.get_global_rect()
 	for control: Control in [
 		shown.talents.ask_label, shown.talents.choose_button, shown.talents.not_yet_button
@@ -418,10 +410,9 @@ func test_r5_a_question_seen_without_scrolling() -> void:
 		)
 		assert_false(shown.scroll.is_ancestor_of(control), "%s outside what scrolls" % control.name)
 	assert_eq(shown.scroll.scroll_vertical, scrolled, "the view stays where it was")
-	assert_true(view.encloses(first.get_global_rect()), "the node clicked still in view")
 	_click(main, shown.talents.choose_button)
 	_frame(main)
-	assert_eq(mage.path(), 1, "Choose sends it")
+	assert_eq(mage.talents(), [] as Array[StringName], "Reset sends it")
 
 
 # --- R6 ------------------------------------------------------------------------
@@ -568,7 +559,7 @@ func test_r9_true_in_a_crowded_frame() -> void:
 	cleric.xp = Hero.xp_for_level(3) - 1
 	set_level_keeping_health(knight, 2)
 	knight.xp = Hero.xp_for_level(4) - 1
-	sim.take_talent(knight.id, tree.trunk[0])
+	sim.take_talent(knight.id, tree.path(0).nodes[0])
 	for i: int in 300:
 		sim.step()
 	main.world.sync(STEP)
@@ -620,8 +611,8 @@ func test_r10_fits() -> void:
 		main.simulation.party.gold = RICH
 		for class_id: StringName in CLASSES:
 			var hero: Hero = _hero(main, class_id)
-			for path: int in 2:
-				set_level_keeping_health(hero, 17)
+			for path: int in 3:
+				set_level_keeping_health(hero, 33)
 				hero.set_talents(_walked(class_id, path, 1))
 				var shown: HeroWindow = null
 				var one_size: Vector2 = _window(main, hero).size
@@ -635,14 +626,9 @@ func test_r10_fits() -> void:
 					assert_eq(
 						shown.size, one_size, "%s %s: tab %d the same size" % [room, class_id, page]
 					)
-				# The questions fit too.
+				# The question fits too.
 				_open(main, hero, HeroWindow.Page.TALENTS)
-				hero.set_talents(Content.talent_tree(class_id).trunk)
 				main.hud.advance(STEP)
-				_click(main, shown.talents.node(Content.talent_tree(class_id).path_nodes(path)[0]))
-				await _frames()
-				_check_fits(main, shown, "%s %s asking" % [room, class_id])
-				shown.talents.cancel()
 				_click(main, shown.talents.reset_button)
 				await _frames()
 				_check_fits(main, shown, "%s %s asking to reset" % [room, class_id])

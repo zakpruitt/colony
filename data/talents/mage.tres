@@ -1,12 +1,27 @@
 [gd_resource type="Resource" script_class="TalentTreeDef" format=3]
 
 [ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/skill_path_def.gd" id="2"]
+
+[sub_resource type="Resource" id="path_1"]
+script = ExtResource("2")
+display_name = "Pyromancer"
+summary = "sets whole packs burning and drops meteors"
+nodes = Array[StringName]([&"fireball", &"ignite", &"wildfire", &"meteor", &"inferno"])
+
+[sub_resource type="Resource" id="path_2"]
+script = ExtResource("2")
+display_name = "Frostbinder"
+summary = "freezes foes in place and shields the party"
+nodes = Array[StringName]([&"ice_lance", &"frost_nova", &"frost_armor", &"deep_freeze", &"blizzard"])
+
+[sub_resource type="Resource" id="path_3"]
+script = ExtResource("2")
+display_name = "Stormcaller"
+summary = "strikes through armor and stuns whole packs"
+nodes = Array[StringName]([&"lightning_bolt", &"chain_spark", &"static_field", &"overload", &"thunderstorm"])
 
 [resource]
 script = ExtResource("1")
 class_id = &"mage"
-trunk = Array[StringName]([&"fireball", &"frost_nova", &"chain_spark"])
-path_names = Array[String](["Pyromancer", "Frostbinder"])
-path_summaries = Array[String](["sets whole packs burning and drops meteors", "freezes foes in place and shields the party"])
-path_a = Array[StringName]([&"ignite", &"meteor", &"wildfire", &"inferno"])
-path_b = Array[StringName]([&"ice_lance", &"frost_armor", &"deep_freeze", &"blizzard"])
+paths = Array[ExtResource("2")]([SubResource("path_1"), SubResource("path_2"), SubResource("path_3")])

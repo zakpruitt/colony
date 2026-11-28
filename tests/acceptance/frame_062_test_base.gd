@@ -19,10 +19,7 @@ var _away_settings: String = save_path("away", "settings")
 ## points (spec 051) unless [param keep_paragon].
 func _level(hero: Hero, level: int, keep_paragon: bool = false) -> void:
 	hero.gain_xp(Hero.xp_for_level(level) - hero.xp)
-	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var order: Array[StringName] = tree.trunk.duplicate()
-	order.append_array(tree.path_a)
-	hero.set_talents(order.slice(0, TalentRules.talent_points_at(hero.level)))
+	_spend_talents(hero)
 	var quickness: TrainingDef.Stat = TrainingDef.Stat.QUICKNESS
 	if not keep_paragon:
 		hero.set_paragon_rank(quickness, hero.paragon_rank(quickness) + hero.paragon_points())

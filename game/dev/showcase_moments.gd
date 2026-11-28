@@ -86,7 +86,7 @@ const SHOP_GOLD: int = 300
 ## The upgrade the shop moment buys, and the rank it reaches, a milestone with a banner.
 const SHOP_UPGRADE: StringName = &"sharp_blades"
 const SHOP_RANK: int = 5
-## In a class's moment: the heroes' level (every talent point earned), how many different moves
+## In a class's moment: the heroes' level, how many different moves
 ## the class's hero's abilities make (an action's among them) before its moment is seen, and the
 ## stage of the fight.
 const CLASS_LEVEL: int = 14
@@ -213,8 +213,8 @@ func _begin_band(current: StringName) -> void:
 	cut_to_fight()
 
 
-## A class's moment, or the statuses': every hero at CLASS_LEVEL, the class's own hero with its
-## trunk and path taken.
+## A class's moment, or the statuses': every hero at CLASS_LEVEL, the class's own hero holding its
+## path's five nodes.
 func _begin_class(current: StringName) -> void:
 	settle_now()
 	_cut_to_area(AreaTravel.first_area())
@@ -223,9 +223,7 @@ func _begin_class(current: StringName) -> void:
 		hero.set_talents([])
 		if Showcase.CLASS_MOMENTS.get(current, &"") == hero.class_id:
 			var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-			var nodes: Array[StringName] = tree.trunk.duplicate()
-			nodes.append_array(tree.path_nodes(Showcase.CLASS_PATHS[hero.class_id]))
-			hero.set_talents(nodes)
+			hero.set_talents(tree.path(Showcase.CLASS_PATHS[hero.class_id]).nodes)
 	_cut_to_depth(CLASS_STAGE, CLASS_STAGE)
 	cut_to_fight()
 
@@ -395,14 +393,13 @@ func _begin_four_areas(_current: StringName) -> void:
 	_areas_seen.clear()
 
 
-## The knight at level 8 with two trunk nodes taken and two points to spend: one for the last
-## trunk node, one for a path.
+## The knight at TREE_LEVEL with its first path's two nodes taken and two points to spend: one
+## for a tier-1 node, one for the tier-2 node under it.
 func _begin_talent_tree(_current: StringName) -> void:
 	settle_now()
 	var knight: Hero = main.simulation.party.heroes[0]
 	_set_level(knight, TREE_LEVEL)
-	var trunk: Array[StringName] = Content.talent_tree(knight.class_id).trunk
-	knight.set_talents(trunk.slice(0, 2))
+	knight.set_talents(Content.talent_tree(knight.class_id).path(0).nodes.slice(0, 2))
 	main.hud.hero_windows.open(knight.id, HeroWindow.Page.TALENTS)
 	_tree_clicks = 0
 
@@ -783,20 +780,16 @@ func _cut_to_area(id: StringName) -> void:
 			return
 
 
-## The tree's moment: at once and then every TREE_STEP seconds, the next click on the knight's
-## Talents tab: the trunk node left, then the first Berserker node, which asks, then Choose.
+## The tree's moment: at once and then TREE_STEP seconds later, the next click on the knight's
+## Talents tab: the Berserker's tier-1 node, then the tier-2 node on its left.
 func _click_through_tree() -> void:
 	var knight_id: int = main.simulation.party.heroes[0].id
 	var tab: HeroTalentsTab = main.hud.hero_windows.window_of(knight_id).talents
 	var tree: TalentTreeDef = Content.talent_tree(main.simulation.party.heroes[0].class_id)
-	var clicks: Array[StringName] = [tree.trunk[2], tree.path_b[0], &"choose"]
+	var clicks: Array[StringName] = [tree.path(1).nodes[0], tree.path(1).nodes[1]]
 	var due: int = mini(floori(_moment_time / TREE_STEP) + 1, clicks.size())
 	while _tree_clicks < due:
-		var click: StringName = clicks[_tree_clicks]
-		if click == &"choose":
-			tab.confirm()
-		else:
-			tab.press_node(click)
+		tab.press_node(clicks[_tree_clicks])
 		_tree_clicks += 1
 
 

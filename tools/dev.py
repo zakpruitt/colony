@@ -1116,7 +1116,7 @@ def build_parser() -> argparse.ArgumentParser:
     sim.add_argument(
         "--spend-talents",
         action="store_true",
-        help="spend talent points (trunk, then the first path) and paragon points (Power)",
+        help="spend talent points (the first path, then the others) and paragon points (Power)",
     )
     sim.add_argument(
         "--area",

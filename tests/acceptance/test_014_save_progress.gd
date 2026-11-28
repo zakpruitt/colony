@@ -164,6 +164,7 @@ func test_r1_progress_is_plain_data() -> void:
 					"level": hero.level,
 					"xp": hero.xp,
 					"talents": saved.get("talents"),
+					"used": saved.get("used"),
 					"paragon": saved.get("paragon"),
 				}
 			)
@@ -292,7 +293,7 @@ func test_r4_bad_data_is_refused() -> void:
 		listed[field] = [1]
 		cases.append([field, listed])
 	var cases_by_value: Array = [
-		["version", "version", 10],
+		["version", "version", 11],
 		["class", "heroes", [{"class": "bard", "level": 1, "xp": 0}]],
 		["level", "heroes", [{"class": "knight", "level": 0, "xp": 0}]],
 		["xp", "heroes", [{"class": "knight", "level": 1, "xp": -5}]],
@@ -333,10 +334,11 @@ func test_r4_bad_data_is_refused() -> void:
 
 func test_r5_upgrade_is_a_pass_through() -> void:
 	# Spec 016 raised the version to 2, spec 022 to 3, spec 029 to 4, spec 035 to 5, spec 049
-	# to 6, spec 051 to 7, spec 052 to 8 and spec 096 to 9; their own tests cover those steps.
-	assert_eq(Simulation.SAVE_VERSION, 9)
+	# to 6, spec 051 to 7, spec 052 to 8, spec 096 to 9 and spec 109 to 10; their own tests
+	# cover those steps.
+	assert_eq(Simulation.SAVE_VERSION, 10)
 	var data: Dictionary = _valid()
-	data["version"] = 9
+	data["version"] = 10
 	data["side_paths"] = "explore"
 	data["resources"] = {}
 	data["guardians_beaten"] = []
@@ -349,13 +351,14 @@ func test_r5_upgrade_is_a_pass_through() -> void:
 	data["guardian_order"] = "challenge"
 	for saved: Dictionary in data["heroes"]:
 		saved["talents"] = []
+		saved["used"] = []
 		saved["paragon"] = {}
 	var current: Dictionary = data.duplicate(true)
 	assert_eq(Simulation.upgrade_save(data), current, "the current version is unchanged")
 	assert_eq(data, current, "and the input is not touched")
 	var parsed: Dictionary = _through_json(current)
 	assert_eq(Simulation.upgrade_save(parsed), parsed, "the same after JSON")
-	for version: int in [0, 10]:
+	for version: int in [0, 11]:
 		var other: Dictionary = _valid()
 		other["version"] = version
 		assert_null(Simulation.from_save(other), "version %d refused" % version)

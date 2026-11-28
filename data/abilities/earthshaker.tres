@@ -1,0 +1,30 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 4
+does = 0
+multiplier = 2.0
+
+[sub_resource type="Resource" id="effect_2"]
+script = ExtResource("2")
+lands = 4
+does = 4
+status = 0
+seconds = 1.0
+
+[resource]
+script = ExtResource("1")
+id = &"earthshaker"
+display_name = "Earthshaker"
+description = "Leaps in: every enemy takes 2x damage and is stunned for 1 s. Every 25 s."
+move = &"leap"
+kind = 0
+effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])
+cooldown = 25.0
+windup = 0.5
+ready_at_start = true
+reach = 1.2

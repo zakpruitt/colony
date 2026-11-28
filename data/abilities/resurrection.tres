@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="AbilityDef" format=3]
+
+[ext_resource type="Script" path="res://sim/defs/ability_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/ability_effect.gd" id="2"]
+
+[sub_resource type="Resource" id="effect_1"]
+script = ExtResource("2")
+lands = 3
+does = 3
+revive_share = 0.5
+
+[resource]
+script = ExtResource("1")
+id = &"resurrection"
+display_name = "Resurrection"
+description = "Once a fight, when an ally dies, every fallen ally stands back up with 50% health."
+move = &"prayer"
+kind = 1
+effects = Array[ExtResource("2")]([SubResource("effect_1")])
+trigger = 6
+once_per_fight = true

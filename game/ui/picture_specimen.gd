@@ -1,7 +1,7 @@
 class_name PictureSpecimen
 extends Node
 ## A sheet to look at every picture: grouped by class (each class's talent tree,
-## trunk then both paths), then the camp upgrades, the paragon stats and the microskills. Each
+## path by path), then the camp upgrades, the paragon stats and the microskills. Each
 ## picture shows large in its owned state with its ready, locked and closed states small beside it,
 ## and its name under it. Under the groups, one slot bursts every
 ## [constant BURST_EVERY] seconds and a banner drops in again whenever the last has gone.
@@ -81,18 +81,20 @@ func lay_out() -> void:
 		_groups.append(heading)
 		at.x += block.size.x + GROUP_GAP
 		line_height = maxf(line_height, block.size.y)
-	var bottom: float = at.y + line_height + ROW_GAP
+	# The burst and the banner take the room right of the last row of groups.
+	var left: float = at.x
+	var top: float = at.y
 	_sample = UiIcon.new(&"fireball")
-	_sample.position = Vector2(MARGIN + 20.0, bottom + 24.0)
+	_sample.position = Vector2(left + 20.0, top + 24.0)
 	_sheet.add_child(_sample)
 	var caption: Label = WindowText.label("Caption", "A burst, then a banner", &"steel")
-	caption.position = Vector2(MARGIN, bottom)
+	caption.position = Vector2(left, top)
 	_sheet.add_child(caption)
 	moment = UiMoment.new()
 	_sheet.add_child(moment)
-	# The moment's own room is the strip under the groups: its banner drops in at that strip's top.
-	moment.position = Vector2(0, bottom - UiMoment.BANNER_TOP)
-	moment.size = Vector2(room.x, room.y - moment.position.y)
+	# The moment's own room is that corner: its banner drops in at the corner's top.
+	moment.position = Vector2(left + _sample.size.x + 40.0, top - UiMoment.BANNER_TOP)
+	moment.size = Vector2(room.x - moment.position.x, room.y - moment.position.y)
 	_since_burst = BURST_EVERY
 
 
@@ -137,9 +139,9 @@ func _group_list() -> Array[Array]:
 		var tree: TalentTreeDef = Content.talent_tree(class_id)
 		if tree == null:
 			continue
-		var ids: Array[StringName] = tree.trunk.duplicate()
-		ids.append_array(tree.path_a)
-		ids.append_array(tree.path_b)
+		var ids: Array[StringName] = []
+		for each: SkillPathDef in tree.paths:
+			ids.append_array(each.nodes)
 		made.append([Content.hero_class(class_id).display_name, ids])
 	made.append(["Upgrades", Content.upgrade_ids()])
 	made.append(["Paragon", Content.training_ids()])

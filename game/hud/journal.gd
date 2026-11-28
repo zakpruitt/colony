@@ -252,8 +252,8 @@ func _resource_sentence(event: SimEvent) -> String:
 
 
 ## The sentence for a talent point gained ([code]The Knight has a talent point to spend[/code]) or
-## a path chosen ([code]The Knight is now a Berserker[/code]), read from the event alone; "" for
-## any other node taken.
+## a path's tier-1 node taken ([code]The Knight takes up the Guardian path[/code]), read from the
+## event alone; "" for any other node taken.
 func _talent_sentence(event: SimEvent) -> String:
 	var hero: Hero = _simulation.party.hero(event.source_id)
 	if hero == null:
@@ -262,12 +262,10 @@ func _talent_sentence(event: SimEvent) -> String:
 	if event.kind == SimEvent.Kind.TALENT_POINT_GAINED:
 		return "The %s has a talent point to spend" % who
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var on: int = tree.path_of(event.ability_id) if tree != null else -1
-	if on < 0 or tree.path_nodes(on).find(event.ability_id) != 0:
+	if tree == null or tree.tier_of(event.ability_id) != 1:
 		return ""
-	var walked: String = tree.path_names[on]
-	var article: String = "an" if walked.left(1).to_lower() in ["a", "e", "i", "o", "u"] else "a"
-	return "The %s is now %s %s" % [who, article, walked]
+	var taken_up: String = tree.path(tree.path_of(event.ability_id)).display_name
+	return "The %s takes up the %s path" % [who, taken_up]
 
 
 ## The sentence for an order changed: "Ordered a Bold pace", "Ordered to hold at

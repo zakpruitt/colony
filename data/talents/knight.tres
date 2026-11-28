@@ -1,12 +1,27 @@
 [gd_resource type="Resource" script_class="TalentTreeDef" format=3]
 
 [ext_resource type="Script" path="res://sim/defs/talent_tree_def.gd" id="1"]
+[ext_resource type="Script" path="res://sim/defs/skill_path_def.gd" id="2"]
+
+[sub_resource type="Resource" id="path_1"]
+script = ExtResource("2")
+display_name = "Guardian"
+summary = "holds the line and keeps the party standing"
+nodes = Array[StringName]([&"taunt", &"hold_the_line", &"bottle_top_block", &"bulwark", &"rallying_cry"])
+
+[sub_resource type="Resource" id="path_2"]
+script = ExtResource("2")
+display_name = "Berserker"
+summary = "fights hurt and heals by hitting"
+nodes = Array[StringName]([&"whirlwind", &"bloodthirst", &"reckless_swing", &"rampage", &"earthshaker"])
+
+[sub_resource type="Resource" id="path_3"]
+script = ExtResource("2")
+display_name = "Warlord"
+summary = "leads the charge and calls out foes"
+nodes = Array[StringName]([&"shield_bash", &"last_stand", &"war_banner", &"challenge", &"charge"])
 
 [resource]
 script = ExtResource("1")
 class_id = &"knight"
-trunk = Array[StringName]([&"shield_bash", &"taunt", &"bottle_top_block"])
-path_names = Array[String](["Guardian", "Berserker"])
-path_summaries = Array[String](["holds the line and keeps the party standing", "fights hurt, strikes faster and heals by hitting"])
-path_a = Array[StringName]([&"hold_the_line", &"last_stand", &"bulwark", &"rallying_cry"])
-path_b = Array[StringName]([&"whirlwind", &"bloodthirst", &"reckless_swing", &"rampage"])
+paths = Array[ExtResource("2")]([SubResource("path_1"), SubResource("path_2"), SubResource("path_3")])

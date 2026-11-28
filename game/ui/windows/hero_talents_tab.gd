@@ -7,23 +7,20 @@ extends Control
 ## From the top: the unspent talent points in large letters ([code]2 points to spend[/code]), or the
 ## level that brings the next ([code]Next point at level 6[/code]), with the [code]Reset[/code]
 ## button at the right (its price on it, and why it cannot be used beside it when it cannot); while
-## a question is asked (before a path is chosen, before a reset) it takes the place of the points
-## and the button, with its two answers, and the question before a path hangs that path's banner and
-## its four pictures under it ([member question_card]). The top row is its own control
-## ([member top_row]): a hero window stands it above the part that scrolls, so the question and its
-## answers show however far the tree is scrolled.
+## the question before a reset is asked it takes the place of the points and the button, with its
+## two answers. The top row is its own control ([member top_row]): a hero window stands it above
+## the part that scrolls, so the question and its answers show however far the tree is scrolled.
 ##
 ## Pointing at a node shows its card ([method UiTip.attach_card]): picture, name, kind,
 ## the whole description and how it stands in words ([method standing]). A click on a node that can
-## be taken takes it ([method Simulation.take_talent]), as does the strip's [code]Learn[/code]; the
-## first node of a path asks first, and only [code]Choose[/code] sends the command. A reset asks
-## first, at its price, and the question goes when the price changes, a fight starts or the tab is
-## hidden, so a reset is never charged at a price the player did not read. Every value is read from
-## the simulation at a [method refresh] after anything it reads changed, so nothing goes stale
-## across level-ups, commands or a crowded frame, and a still tab formats nothing.
+## be taken takes it ([method Simulation.take_talent]), as does the strip's [code]Learn[/code]. A
+## reset asks first, at its price, and the question goes when the price changes, a fight starts or
+## the tab is hidden, so a reset is never charged at a price the player did not read. Every value is
+## read from the simulation at a [method refresh] after anything it reads changed, so nothing goes
+## stale across level-ups, commands or a crowded frame, and a still tab formats nothing.
 
 ## What the top row is asking, if anything.
-enum Asking { NOTHING, PATH, RESET }
+enum Asking { NOTHING, RESET }
 
 ## The top row's height: the points in letters twice the UI font's size.
 const TOP_HEIGHT: float = UiText.LINE_HEIGHT * 2.0
@@ -41,9 +38,6 @@ const PARAGON_CELL_GAP: float = 8.0
 const ROW_HEIGHT: float = TOP_HEIGHT + TREE_GAP
 ## Where a line of words stands in the top row: in its middle.
 const LINE_Y: float = floorf((TOP_HEIGHT - UiText.LINE_HEIGHT) / 2.0)
-## The question card's padding, and the gap between its pictures.
-const CARD_PAD: float = 4.0
-const CARD_ICON_GAP: float = 6.0
 
 ## The tree shown: the hero's class's.
 var tree: TalentTreeView
@@ -57,15 +51,10 @@ var points_label: Label
 ## The fresh start's button, its price on it, and why it cannot be used.
 var reset_button: UiButton
 var reset_reason_label: Label
-## The question asked, its path names in their colours, and its two answers.
+## The question asked, and its two answers.
 var ask_label: Label
-var ask_tint: WordTint
 var choose_button: UiButton
 var not_yet_button: UiButton
-## Under the question before a path: the path's banner and its four pictures.
-var question_card: Control
-var question_banner: PathBanner
-var question_icons: Array[UiIcon] = []
 ## The paragon points waiting ([code]3 paragon points[/code], or when they come), and one
 ## medallion per stat.
 var paragon_label: Label
@@ -77,8 +66,6 @@ var worded: int = 0
 var _simulation: Simulation
 var _hero_id: int = -1
 var _asking: Asking = Asking.NOTHING
-## The node a path question is about.
-var _asked_node: StringName = &""
 ## The price a reset question named: if it changes, the question goes.
 var _asked_price: int = 0
 var _width: float = 0.0
@@ -86,9 +73,6 @@ var _paragon_y: float = 0.0
 var _base_height: float = 0.0
 var _middle: float = 0.0
 var _tip: UiTip
-## Each path's banner and pictures for the question before it.
-var _question_banners: Array[PathBanner] = []
-var _question_pictures: Array[Array] = [[], []]
 ## What the tab last worded itself from.
 var _read_from: ShownValues = ShownValues.new()
 
@@ -113,7 +97,6 @@ func _init(simulation: Simulation, hero_id: int, width: float, tip: UiTip) -> vo
 			each.clicked.connect(press_node)
 		add_child(tree)
 		top += tree.size.y
-		_build_question(tree_def)
 	var ids: Array[StringName] = []
 	if tree != null:
 		for each: TalentNode in tree.nodes():
@@ -155,8 +138,6 @@ func _notification(what: int) -> void:
 	# at a price or a choice the player cannot see.
 	if what == NOTIFICATION_VISIBILITY_CHANGED and not is_visible_in_tree():
 		_asking = Asking.NOTHING
-		if question_card != null:
-			question_card.visible = false
 
 
 ## The tab's height without the paragon medallions: the top row, the tree and the strip. A hero
@@ -174,8 +155,6 @@ func refresh(delta: float) -> void:
 	if _hero_changed(hero):
 		worded += 1
 		tree.show_hero(hero)
-		if _asking == Asking.PATH and tree.state_of(_asked_node) != TalentNode.State.AVAILABLE:
-			_asking = Asking.NOTHING  # the node was taken, or cannot be: nothing to ask
 		if _asking == Asking.RESET:
 			if not reset_reason(hero).is_empty() or Simulation.reset_price(hero) != _asked_price:
 				_asking = Asking.NOTHING  # in a fight, too poor, or the price is not the one asked
@@ -190,8 +169,8 @@ func refresh(delta: float) -> void:
 		cell.advance(delta)
 
 
-## What a click on node [param ability_id] does: one the hero can take now is taken, except the
-## first node of a path, which asks first; any other does nothing (its card says why).
+## What a click on node [param ability_id] does: one the hero can take now is taken; any other
+## does nothing (its card says why).
 func press_node(ability_id: StringName) -> void:
 	var hero: Hero = _hero()
 	if hero == null or tree == null or not tree.has_ability(ability_id) or not is_visible_in_tree():
@@ -199,11 +178,7 @@ func press_node(ability_id: StringName) -> void:
 	tree.refresh(hero, 0.0)  # what the simulation says now, not at the last frame
 	_asking = Asking.NOTHING
 	if tree.state_of(ability_id) == TalentNode.State.AVAILABLE:
-		if tree.node(ability_id).path >= 0 and hero.path() < 0:
-			_asking = Asking.PATH
-			_asked_node = ability_id
-		else:
-			_simulation.take_talent(hero.id, ability_id)
+		_simulation.take_talent(hero.id, ability_id)
 	refresh(0.0)
 
 
@@ -213,19 +188,15 @@ func press_learn() -> void:
 		press_node(strip.ability_id)
 
 
-## The question's [code]Choose[/code] (or [code]Reset[/code]) answer: sends the command asked
-## about.
+## The question's [code]Reset[/code] answer: sends the fresh start asked about.
 func confirm() -> void:
 	var hero: Hero = _hero()
 	if hero == null or not is_visible_in_tree():
 		_asking = Asking.NOTHING
 		return
-	match _asking:
-		Asking.PATH:
-			_simulation.take_talent(hero.id, _asked_node)
-		Asking.RESET:
-			if Simulation.reset_price(hero) == _asked_price and reset_reason(hero).is_empty():
-				_simulation.reset_talents(hero.id)
+	if _asking == Asking.RESET:
+		if Simulation.reset_price(hero) == _asked_price and reset_reason(hero).is_empty():
+			_simulation.reset_talents(hero.id)
 	_asking = Asking.NOTHING
 	refresh(0.0)
 
@@ -292,46 +263,35 @@ func reset_reason(hero: Hero) -> String:
 
 
 ## How node [param ability_id] stands for [param hero], in words:
-## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code],
-## [code]No points: the next comes at level 9[/code] or [code]Guardian was not chosen[/code].
+## [code]Learned[/code], [code]Click to learn[/code], [code]Take Whirlwind first[/code] (for a
+## tier-3 node, [code]Take Bloodthirst or Reckless Swing first[/code]) or
+## [code]No points: the next comes at level 9[/code].
 static func standing(hero: Hero, ability_id: StringName) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
 	if tree_def == null or not tree_def.has_node(ability_id):
 		return ""
-	if hero.talents().has(ability_id):
+	var taken: Array[StringName] = hero.talents()
+	if taken.has(ability_id):
 		return "Learned"
-	var on: int = tree_def.path_of(ability_id)
-	if on >= 0 and hero.path() >= 0 and hero.path() != on:
-		return "%s was not chosen" % tree_def.path_names[on]
 	if hero.can_take(ability_id):
 		return "Click to learn"
-	if _missing_before(hero, tree_def, ability_id) != &"":
-		# The node just before it, the one that opens it.
-		var before: Array[StringName] = tree_def.trunk.duplicate()
-		if on >= 0:
-			var path: Array[StringName] = tree_def.path_nodes(on)
-			before.append_array(path.slice(0, path.find(ability_id)))
-		else:
-			before = before.slice(0, tree_def.trunk.find(ability_id))
-		var opener: StringName = before.back()
-		return "Take %s first" % Content.ability(opener).display_name
+	if not tree_def.open_nodes(taken).has(ability_id):
+		var names: Array[String] = []
+		for before: StringName in tree_def.needs(ability_id):
+			names.append(Content.ability(before).display_name)
+		return "Take %s first" % " or ".join(PackedStringArray(names))
 	var earned: int = TalentRules.talent_points_at(hero.level)
 	if earned >= Hero.TALENT_POINTS:
 		return "No points left"
 	return "No points: the next comes at level %d" % ((earned + 1) * Hero.TALENT_EVERY)
 
 
-## The palette colour [method standing] is shown in for [param hero]'s node [param ability_id]: the
-## closed path's own colour when it names it.
+## The palette colour [method standing] is shown in for [param hero]'s node [param ability_id].
 static func standing_colour(hero: Hero, ability_id: StringName) -> StringName:
-	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
-	if tree_def == null:
+	if Content.talent_tree(hero.class_id) == null:
 		return &"silver"
-	var on: int = tree_def.path_of(ability_id)
 	if hero.talents().has(ability_id):
 		return &"green"
-	if on >= 0 and hero.path() >= 0 and hero.path() != on:
-		return PathColours.of(hero.class_id, on)
 	if hero.can_take(ability_id):
 		return &"yellow"
 	return &"steel"
@@ -348,16 +308,22 @@ static func kind_text(ability_id: StringName) -> String:
 	return "Passive"
 
 
-## The name of the path [param hero] walks, or "" before it chooses one.
+## The path that names [param hero]: the one where it holds the most nodes (a tie goes to the
+## earlier path), or -1 with no node.
+static func path_index(hero: Hero) -> int:
+	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
+	return tree_def.main_path(hero.talents()) if tree_def != null else -1
+
+
+## The name of the path that names [param hero] ([method path_index]), or "" with no node.
 static func path_name(hero: Hero) -> String:
 	var tree_def: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var on: int = hero.path()
-	if tree_def == null or on < 0 or on >= tree_def.path_names.size():
-		return ""
-	return tree_def.path_names[on]
+	var on: int = path_index(hero)
+	return tree_def.path(on).display_name if tree_def != null and on >= 0 else ""
 
 
-## [param hero]'s class, and its path once chosen ([code]Knight, Berserker[/code]).
+## [param hero]'s class, and the path that names it once it holds a node
+## ([code]Knight, Berserker[/code]).
 static func title(hero: Hero) -> String:
 	var walked: String = path_name(hero)
 	var name_text: String = hero.def().display_name
@@ -371,14 +337,13 @@ func add_tips(tip: UiTip) -> void:
 			tip.attach_card(each.slot, _card.bind(each.ability_id))
 		for i: int in tree.banners.size():
 			var text: String = (
-				"The %s path: a hero walks one path, and the other closes."
-				% tree.tree.path_names[i]
+				"The %s path: its nodes open from the top down." % tree.tree.path(i).display_name
 			)
 			tip.attach(tree.banners[i], text)
 			tip.attach(tree.path_labels[i], text)
 	tip.attach(reset_button, "A fresh start gives every talent point back, for gold.")
-	tip.attach(choose_button, "Send it: no going back without a reset.")
-	tip.attach(not_yet_button, "Keep both choices open for now.")
+	tip.attach(choose_button, "Give every node back for the gold named.")
+	tip.attach(not_yet_button, "Keep the tree as it is.")
 	tip.attach(strip.learn_button, "Learn it now.")
 	tip.attach(points_label, "Talent points come with every second level: spend them here.")
 	tip.attach(paragon_label, "Paragon points come with every level once the tree is earned.")
@@ -400,42 +365,23 @@ func _hero() -> Hero:
 
 
 ## True when anything the tab words itself from has changed since it last did: the hero's level,
-## points, path and ranks, the gold and a fight (a reset's price and reason), the question asked,
+## nodes, points and ranks, the gold and a fight (a reset's price and reason), the question asked,
 ## the node under the mouse and whether the tab shows.
 func _hero_changed(hero: Hero) -> bool:
 	_read_from.begin()
 	_read_from.see(hero.level)
 	_read_from.see(hero.talent_points())
-	_read_from.see(hero.path())
+	_read_from.see(hero.talents_changed)
 	_read_from.see(hero.paragon_points())
 	for cell: ParagonCell in paragon_cells:
 		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))
 	_read_from.see(_simulation.party.gold)
 	_read_from.see(_simulation.expedition.battle != null)
 	_read_from.see(_asking)
-	_read_from.see(_asked_node)
 	_read_from.see(_asked_price)
 	_read_from.see(tree.hovered())
 	_read_from.see(is_visible_in_tree())
 	return _read_from.changed()
-
-
-## The first node before [param ability_id] in its order that [param hero] has not taken, or &"".
-static func _missing_before(
-	hero: Hero, tree_def: TalentTreeDef, ability_id: StringName
-) -> StringName:
-	var on: int = tree_def.path_of(ability_id)
-	var before: Array[StringName] = tree_def.trunk.duplicate()
-	if on >= 0:
-		before.append_array(
-			tree_def.path_nodes(on).slice(0, tree_def.path_nodes(on).find(ability_id))
-		)
-	else:
-		before = before.slice(0, tree_def.trunk.find(ability_id))
-	for earlier: StringName in before:
-		if not hero.talents().has(earlier):
-			return earlier
-	return &""
 
 
 ## Node [param ability_id]'s card: its picture, name, kind, description and standing.
@@ -469,55 +415,12 @@ func _build_top_row() -> void:
 	top_row.add_child(reset_button)
 	reset_reason_label = _label("ResetReason", &"slate", top_row)
 	ask_label = _label("Ask", &"yellow", top_row)
-	ask_tint = WordTint.over(ask_label)
-	choose_button = WindowText.button("Choose", "Choose")
+	choose_button = WindowText.button("Choose", "Reset")
 	choose_button.pressed.connect(confirm)
 	top_row.add_child(choose_button)
 	not_yet_button = WindowText.button("NotYet", "Not yet")
 	not_yet_button.pressed.connect(cancel)
 	top_row.add_child(not_yet_button)
-
-
-## The card under the question before a path: the path's banner and its four pictures, one set per
-## path, the one asked about shown.
-func _build_question(tree_def: TalentTreeDef) -> void:
-	question_card = Control.new()
-	question_card.name = "QuestionCard"
-	question_card.mouse_filter = Control.MOUSE_FILTER_STOP  # nothing under it takes a click
-	question_card.visible = false
-	question_card.draw.connect(_draw_question_card)
-	top_row.add_child(question_card)
-	var inner: float = TalentTreeView.BANNER_WIDTH
-	var tall: float = 0.0
-	for index: int in 2:
-		var banner := PathBanner.new(tree_def, index, inner)
-		banner.position = Vector2(CARD_PAD, CARD_PAD)
-		banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		question_card.add_child(banner)
-		_question_banners.append(banner)
-		var y: float = CARD_PAD + banner.size.y + CARD_PAD
-		var x: float = CARD_PAD
-		for id: StringName in tree_def.path_nodes(index):
-			var ability: AbilityDef = Content.ability(id)
-			var action: bool = ability != null and ability.is_action()
-			var icon := UiIcon.new(id, true, UiIcon.Shape.SQUARE if action else UiIcon.Shape.CUT)
-			icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			icon.show_state(
-				UiIcon.State.READY if id == tree_def.path_nodes(index)[0] else UiIcon.State.LOCKED
-			)
-			icon.position = Vector2(x, y)
-			question_card.add_child(icon)
-			_question_pictures[index].append(icon)
-			x += icon.size.x + CARD_ICON_GAP
-		tall = maxf(tall, y + TalentNode.SLOT.y + CARD_PAD)
-	question_card.size = Vector2(inner + CARD_PAD * 2.0, tall)
-
-
-func _draw_question_card() -> void:
-	var box := Rect2(Vector2.ZERO, question_card.size)
-	var on: int = question_banner.index if question_banner != null else 0
-	question_card.draw_rect(box, Palette.color(PathColours.of(tree.tree.class_id, on)))
-	question_card.draw_rect(box.grow(-1.0), Palette.color(&"ink"))
 
 
 ## The top row: the points and the reset, or the question and its answers.
@@ -554,28 +457,12 @@ func _refresh_top(hero: Hero) -> void:
 	reset_reason_label.position = Vector2(
 		reset_button.position.x - ROW_GAP - reset_reason_label.size.x, LINE_Y
 	)
-	question_card.visible = asking_now and _asking == Asking.PATH
 	if not asking_now:
 		return
-	var question: String = ""
-	var tree_def: TalentTreeDef = tree.tree
-	var tints: Dictionary[String, StringName] = {}
-	if _asking == Asking.PATH:
-		var on: int = tree.node(_asked_node).path
-		question = (
-			"Choose %s? This closes %s." % [tree_def.path_names[on], tree_def.path_names[1 - on]]
-		)
-		choose_button.text = "Choose"
-		for index: int in 2:
-			tints[tree_def.path_names[index]] = tree.path_colour(index)
-		_show_question_card(on)
-	else:
-		var gold: String = UiFormat.group_thousands(Simulation.reset_price(hero))
-		question = "Reset the %s's tree for %s gold?" % [hero.def().display_name, gold]
-		choose_button.text = "Reset"
+	var gold: String = UiFormat.group_thousands(Simulation.reset_price(hero))
+	var question: String = "Reset the %s's tree for %s gold?" % [hero.def().display_name, gold]
 	WindowText.fit_button(choose_button)
 	_show(ask_label, question, &"yellow")
-	ask_tint.show_words(tints)
 	not_yet_button.position = Vector2(_width - not_yet_button.size.x, _middle)
 	choose_button.position = Vector2(
 		not_yet_button.position.x - ROW_GAP - choose_button.size.x, _middle
@@ -583,21 +470,8 @@ func _refresh_top(hero: Hero) -> void:
 	ask_label.position = Vector2(choose_button.position.x - ROW_GAP - ask_label.size.x, LINE_Y)
 
 
-## Shows path [param on]'s banner and pictures under the question, on that path's side.
-func _show_question_card(on: int) -> void:
-	question_banner = _question_banners[on]
-	question_icons.assign(_question_pictures[on])
-	for index: int in 2:
-		_question_banners[index].visible = index == on
-		for icon: UiIcon in _question_pictures[index]:
-			icon.visible = index == on
-	var x: float = 0.0 if on == 0 else _width - question_card.size.x
-	question_card.position = Vector2(x, ROW_HEIGHT)
-	question_card.queue_redraw()
-
-
 ## The strip: the node under the mouse; with none, the first the hero can take now; with none of
-## those, the first not yet taken on the hero's way.
+## those, the first not yet taken.
 func _refresh_strip(hero: Hero) -> void:
 	var shown: StringName = tree.hovered()
 	if shown == &"":
@@ -617,16 +491,15 @@ func _refresh_strip(hero: Hero) -> void:
 	)
 
 
-## The first node [param hero] has not taken on its way through the tree (the trunk, then its path,
-## or the first path before it chooses), or the last it took when the tree is full.
+## The first node of the tree, path by path, that [param hero] has not taken, or the last node when
+## it holds them all.
 func _next_on_the_way(hero: Hero) -> StringName:
-	var tree_def: TalentTreeDef = tree.tree
-	var way: Array[StringName] = tree_def.trunk.duplicate()
-	way.append_array(tree_def.path_nodes(maxi(hero.path(), 0)))
-	for id: StringName in way:
-		if not hero.talents().has(id):
-			return id
-	return way[way.size() - 1] if not way.is_empty() else &""
+	var all: Array[TalentNode] = tree.nodes()
+	var taken: Array[StringName] = hero.talents()
+	for each: TalentNode in all:
+		if not taken.has(each.ability_id):
+			return each.ability_id
+	return all[all.size() - 1].ability_id if not all.is_empty() else &""
 
 
 func _refresh_paragon(hero: Hero) -> void:

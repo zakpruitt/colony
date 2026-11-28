@@ -77,6 +77,8 @@ const IN_POINTS: Array[Status] = [
 @export var multiplier: float = 1.0
 ## DAMAGE: armor does not reduce it.
 @export var ignores_armor: bool = false
+## DAMAGE: the multiplier times the fighter's healing power, not its damage.
+@export var damage_from_healing: bool = false
 ## DAMAGE: below this share of health (0 for never) the target takes [member low_multiplier] more.
 @export var low_health_below: float = 0.0
 @export var low_multiplier: float = 1.0
@@ -125,20 +127,32 @@ func validate() -> PackedStringArray:
 				problems.append("life_steal %s is outside 0 to 1" % life_steal)
 			if on_strike and (low_health_below > 0.0 or ignores_armor or lands != Lands.TARGET):
 				problems.append("a multiplied strike lands on its target, with no other bonus")
+			if on_strike and damage_from_healing:
+				problems.append("a multiplied strike cannot come from healing power")
 		Does.HEAL:
+			problems.append_array(_damage_only())
 			if multiplier <= 0.0:
 				problems.append("heal multiplier %s is not positive" % multiplier)
 			if scale == Scale.FIGHTER_DAMAGE:
 				problems.append("a heal is a multiple of healing power or maximum health")
 		Does.PUSH:
+			problems.append_array(_damage_only())
 			if push_tiles <= 0.0:
 				problems.append("push_tiles %s is not positive" % push_tiles)
 		Does.REVIVE:
+			problems.append_array(_damage_only())
 			if revive_share <= 0.0 or revive_share > 1.0:
 				problems.append("revive_share %s is outside 0 to 1" % revive_share)
 		Does.STATUS:
+			problems.append_array(_damage_only())
 			problems.append_array(_status_problems())
 	return problems
+
+
+func _damage_only() -> PackedStringArray:
+	if damage_from_healing:
+		return PackedStringArray(["damage_from_healing is set on an effect that is not DAMAGE"])
+	return PackedStringArray()
 
 
 func _status_problems() -> PackedStringArray:

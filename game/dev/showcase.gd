@@ -11,8 +11,8 @@ extends Node
 ## behind the party refilling and going black, a side path (its gate being opened, its cache
 ## opening, and a gate nobody can open), the shop, the area map with two areas open and the rest
 ## closed, a journey to the Claypits and the arrival there (with the map open on the way), the four
-## areas' looks in turn, the knight's talent tree (a node taken and a path chosen) and the report
-## after time away.
+## areas' looks in turn, the knight's talent tree (a tier-1 node taken, then one under it) and the
+## report after time away.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -72,8 +72,8 @@ const ROWS: Array[Array] = [
 	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO", 1.5, &"area_map", &"area_map"],
 	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
 	[&"four_areas", "THE FOUR AREAS", 0.2, &"four_areas", &"four_areas"],
-	# The path's banner shows after the node's.
-	[&"talent_tree", "THE KNIGHT CHOOSES A PATH", 2.5, &"talent_tree", &"talent_tree"],
+	# Two nodes taken, each with its banner, one after the other.
+	[&"talent_tree", "THE KNIGHT LEARNS TWO TALENTS", 3.2, &"talent_tree", &"talent_tree"],
 	[&"away_report", "THE AWAY REPORT", 2.0, &"away_report", &"away_report"],
 ]
 ## The caption's place on screen, in the world's pixels: along the bottom, or, where the button
@@ -89,8 +89,7 @@ const TOUGHER: int = 3
 ## Where the showcase's Main would keep a save: a per-process name under user:// that is only
 ## ever read (it does not exist), never written. The store is dropped as soon as Main is ready.
 const NO_SAVE_PATH: String = "user://showcase_no_save_%d.json"
-## Each class's moment, and the path its hero takes there (the one whose actions look most
-## unlike the trunk's).
+## Each class's moment, and the path (0 to 2) whose five nodes its hero holds there.
 const CLASS_MOMENTS: Dictionary[StringName, StringName] = {
 	&"knight_actions": &"knight",
 	&"rogue_actions": &"rogue",
@@ -98,7 +97,7 @@ const CLASS_MOMENTS: Dictionary[StringName, StringName] = {
 	&"cleric_actions": &"cleric",
 }
 const CLASS_PATHS: Dictionary[StringName, int] = {
-	&"knight": 1, &"rogue": 1, &"mage": 0, &"cleric": 1
+	&"knight": 1, &"rogue": 2, &"mage": 0, &"cleric": 1
 }
 ## How many times their health the monsters of a class's moment have, so the hero's actions are
 ## seen.

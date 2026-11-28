@@ -10,8 +10,8 @@ const _XP_STEP: int = 25
 ## XP taken off each level step: the first levels come quickly, and the late ones cost nearly
 ## the full step.
 const _XP_DISCOUNT: int = 30
-## Talent points a hero can earn: enough to fill a tree, its trunk and one path.
-const TALENT_POINTS: int = 7
+## Talent points a hero can earn: enough to take every node of its tree.
+const TALENT_POINTS: int = 15
 ## A talent point comes at every level divisible by this.
 const TALENT_EVERY: int = 2
 
@@ -22,6 +22,13 @@ var xp: int = 0
 var health: int
 ## The party's camp upgrades, or null for none. Set by the [Party].
 var upgrades: Upgrades
+## This hero's actions in the order it last used them, least recent first; one never used is not
+## in it. Each [method combatant] shares this very list, so a use in a fight is remembered after
+## it (a tie between ready actions goes to the least recent). Change it in place, never replace it.
+var used: Array[StringName] = []
+## Counts every change to the nodes taken, so a view can tell its words are stale without copying
+## [method talents] each frame.
+var talents_changed: int = 0
 
 var _def: HeroClassDef
 ## The talent tree nodes this hero has taken, in the order taken.
@@ -94,8 +101,9 @@ func has_microskill(skill_id: StringName) -> bool:
 
 ## A battle combatant for this hero, with the hero's id and current health, the party's
 ## upgrades and the hero's paragon points in its damage, healing power, maximum health and
-## attack speed, and the abilities of its talents, the newest first: a fighter tries its actions in
-## that order, so a deeper node is not starved by the trunk in fights of a few seconds.
+## attack speed, and the abilities of its talents in [method TalentTreeDef.fight_order]: a fighter
+## tries its actions in that order, so a capstone is not starved by tier 1 in fights of a few
+## seconds.
 func combatant() -> Combatant:
 	var c: Combatant = Combatant.from_hero(_def, level, id)
 	var power: float = (
@@ -108,10 +116,13 @@ func combatant() -> Combatant:
 	var quickness: float = paragon_multiplier(TrainingDef.Stat.QUICKNESS)
 	if quickness != 1.0:
 		c.attack_interval_ticks = Combatant.seconds_to_ticks(_def.attack_interval / quickness)
-	for ability_id: StringName in _talents:
-		var ability: AbilityDef = Content.ability(ability_id)
-		if ability != null:
-			c.abilities.push_front(ability)
+	var tree: TalentTreeDef = Content.talent_tree(class_id) if not _talents.is_empty() else null
+	if tree != null:
+		for ability_id: StringName in tree.fight_order(_talents):
+			var ability: AbilityDef = Content.ability(ability_id)
+			if ability != null:
+				c.abilities.append(ability)
+	c.used = used
 	return c
 
 
@@ -128,21 +139,13 @@ func talent_points() -> int:
 	return maxi(TalentRules.talent_points_at(level) - _talents.size(), 0)
 
 
-## True if this hero has an unspent talent point and [param ability_id] is a node it may take
-## next: the trunk in order, then the first node of either path, then that path in order.
+## True if this hero has an unspent talent point and [param ability_id] is a node of its tree
+## that is open now ([method TalentTreeDef.open_nodes]).
 func can_take(ability_id: StringName) -> bool:
 	var tree: TalentTreeDef = Content.talent_tree(class_id)
 	if talent_points() <= 0 or tree == null:
 		return false
-	return tree.next_nodes(_talents).has(ability_id)
-
-
-## The path this hero walks: -1 while it has none yet, else 0 or 1.
-func path() -> int:
-	var tree_def: TalentTreeDef = Content.talent_tree(class_id)
-	if tree_def == null or _talents.size() <= tree_def.trunk.size():
-		return -1
-	return tree_def.path_of(_talents[tree_def.trunk.size()])
+	return tree.open_nodes(_talents).has(ability_id)
 
 
 ## Takes node [param ability_id] if [method can_take] allows it. Returns true if it did.
@@ -150,17 +153,22 @@ func take_talent(ability_id: StringName) -> bool:
 	if not can_take(ability_id):
 		return false
 	_talents.append(ability_id)
+	talents_changed += 1
 	return true
 
 
 ## Sets this hero's nodes directly (loading a save, tests), with no checks.
 func set_talents(taken: Array[StringName]) -> void:
 	_talents = taken.duplicate()
+	talents_changed += 1
+	used.assign(used.filter(func(ability_id: StringName) -> bool: return taken.has(ability_id)))
 
 
-## Gives back every node: each talent point is unspent and both paths are open.
+## Gives back every node: each talent point is unspent.
 func reset_talents() -> void:
 	_talents.clear()
+	talents_changed += 1
+	used.clear()
 
 
 ## The paragon points this hero has earned and not spent.

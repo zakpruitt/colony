@@ -7,7 +7,8 @@
 script = ExtResource("2")
 lands = 0
 does = 0
-multiplier = 2.0
+multiplier = 1.2
+damage_from_healing = true
 
 [sub_resource type="Resource" id="effect_2"]
 script = ExtResource("2")
@@ -21,7 +22,7 @@ amount = 0.7
 script = ExtResource("1")
 id = &"smite"
 display_name = "Smite"
-description = "Strikes an enemy for 2x damage and weakens it (30% less damage) for 4 s. Every 8 s."
+description = "Strikes an enemy for 1.2x the healing power and weakens it (30% less damage) for 4 s. Every 8 s."
 move = &"heavy_swing"
 kind = 0
 effects = Array[ExtResource("2")]([SubResource("effect_1"), SubResource("effect_2")])

@@ -20,11 +20,12 @@ func test_title_and_kind_text() -> void:
 	var knight: Hero = sim.party.heroes[0]
 	assert_eq(HeroTalentsTab.title(knight), "Knight", "no path yet: the class alone")
 	var tree: TalentTreeDef = Content.talent_tree(knight.class_id)
-	var walked: Array[StringName] = tree.trunk.duplicate()
-	walked.append(tree.path_b[0])
 	knight.level = 8
-	knight.set_talents(walked)
-	assert_eq(HeroTalentsTab.title(knight), "Knight, %s" % tree.path_names[1], "with its path")
+	knight.set_talents([tree.path(1).nodes[0]] as Array[StringName])
+	assert_eq(HeroTalentsTab.title(knight), "Knight, %s" % tree.path(1).display_name, "its path")
+	var two: Array[StringName] = [tree.path(1).nodes[0], tree.path(0).nodes[0]]
+	knight.set_talents(two)
+	assert_eq(HeroTalentsTab.title(knight), "Knight, %s" % tree.path(0).display_name, "a tie")
 	for id: StringName in Content.ability_ids():
 		var ability: AbilityDef = Content.ability(id)
 		var kind: String = HeroTalentsTab.kind_text(id)

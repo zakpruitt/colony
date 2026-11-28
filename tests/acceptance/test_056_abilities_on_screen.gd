@@ -217,10 +217,16 @@ func test_r2_an_action_looks_different_from_a_strike() -> void:
 ## R2 in a real fight: a cleric with Guardian Angel stands a fallen hero up, and it is seen up.
 func test_r2_a_revive_in_a_real_fight() -> void:
 	var paths: Dictionary[StringName, int] = PATHS.duplicate()
-	paths[&"cleric"] = 0  # Renewal, Sanctuary, Guardian Angel, Miracle
+	paths[&"cleric"] = 2
 	_full_trees(paths)
-	assert_true(_find_fight(2), "a fight")
-	# Monsters that fell a hero in a few blows, so one falls and Guardian Angel answers.
+	# Only the Warden's first two nodes: its shields would keep everyone up, and Resurrection
+	# would answer the death first.
+	for hero: Hero in _sim.party.heroes:
+		if hero.class_id == &"cleric":
+			hero.set_talents([&"battle_hymn", &"guardian_angel"] as Array[StringName])
+	# Monsters that last (the full paths end an ordinary fight before anyone falls) and fell a
+	# hero in a few blows, so one falls and Guardian Angel answers.
+	assert_true(_find_fight(2, 1, true, TOUGHER * 10), "a fight")
 	var hardiest: int = 0
 	for hero: Hero in _sim.party.heroes:
 		hardiest = maxi(hardiest, hero.max_health())
@@ -469,8 +475,7 @@ func test_r5_the_frames_show_it() -> void:
 	# With a path chosen (spec 055), the class and its path come first, then the statuses.
 	var hero: Hero = _sim.party.hero(KNIGHT)
 	var tree: TalentTreeDef = Content.talent_tree(hero.class_id)
-	var taken: Array[StringName] = tree.trunk.duplicate()
-	taken.append(tree.path_nodes(0)[0])
+	var taken: Array[StringName] = [tree.path(0).nodes[0]]
 	hero.gain_xp(Hero.xp_for_level(TREE_LEVEL) - hero.xp)
 	hero.set_talents(taken)
 	var titled: String = HeroTalentsTab.title(hero)
@@ -904,9 +909,7 @@ func test_r9_in_the_showcase() -> void:
 			var class_id: StringName = Showcase.CLASS_MOMENTS[moment]
 			var tree: TalentTreeDef = Content.talent_tree(class_id)
 			var actions: int = 0
-			for ability_id: StringName in (
-				tree.trunk + tree.path_nodes(Showcase.CLASS_PATHS[class_id])
-			):
+			for ability_id: StringName in tree.path(Showcase.CLASS_PATHS[class_id]).nodes:
 				var ability: AbilityDef = Content.ability(ability_id)
 				if ability.is_action() and names.has(ability.display_name):
 					actions += 1

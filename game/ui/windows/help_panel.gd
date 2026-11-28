@@ -13,7 +13,7 @@ const IDEA: Array[String] = [
 	"A stable (safe) stage leads on; a wipe goes back to the last safe stage.",
 	"Gold buys upgrades in the Camp: every fifth rank is a milestone.",
 	"It keeps going while the game is closed.",
-	"A hero's talent tree forks into two paths: choose one.",
+	"A hero's talents are three paths of five: learn all fifteen in time.",
 ]
 const TITLE: String = "Help"
 const FOOTER: String = "Click a hero for details. Point at anything for a hint."
