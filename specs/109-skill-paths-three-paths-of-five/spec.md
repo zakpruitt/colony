@@ -369,6 +369,10 @@ closing or the question before a path go. Asserts that hold for any shape stay.
   `docs/architecture.md` (the talent and save lines), `docs/wiki/index.html` (the lines this makes
   false)
 - `tests/acceptance/test_092_the_game_plays_winding_stages.gd` (the save version it asserts as a literal, 9, becomes the new version; nothing else)
+- `tests/unit/test_save_progress.gd` (the per-hero `"used"` field), `tests/acceptance/test_072_content_table.gd`
+  (a party raised to a level that earns paragon under R2), `tests/unit/test_ability_fixes.gd` (the
+  reapplied-bleed test's dummy and ticks, for R4's strike after an action; its bleed asserts stay)
+- `tests/colony_test.gd`'s `_spend_talents` spends path 0, then 1, then 2
 
 ## Open questions
 
