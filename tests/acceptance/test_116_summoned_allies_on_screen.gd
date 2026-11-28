@@ -111,7 +111,7 @@ func _dive() -> AbilityDef:
 
 ## A main scene in a fight whose monsters last (and, unless [param harmless] is false, barely
 ## hurt), the world settled on it; its events are heard into [member _heard] from then on.
-func _fight(harmless: bool = true) -> Main:
+func _summon_fight(harmless: bool = true) -> Main:
 	var main: Main = _main(ROOM_LARGE)
 	var sim: Simulation = main.simulation
 	var fighting: Callable = func() -> bool:
@@ -145,7 +145,7 @@ func _give_knight(main: Main, ability: AbilityDef) -> void:
 
 
 ## One tick of play: the tick, then the frames it lasts. Returns the events told in it.
-func _tick(main: Main) -> Array[SimEvent]:
+func _play_tick(main: Main) -> Array[SimEvent]:
 	var before: int = _heard.size()
 	_frame(main, 1)
 	for i: int in FRAMES_PER_TICK - 1:
@@ -155,7 +155,9 @@ func _tick(main: Main) -> Array[SimEvent]:
 
 ## Plays ticks until an event of [param kind] (from [param source], unless -2) is told, at most
 ## [param ticks]: that event, or null.
-func _until(main: Main, kind: SimEvent.Kind, source: int = -2, ticks: int = WAIT_TICKS) -> SimEvent:
+func _play_until_event(
+	main: Main, kind: SimEvent.Kind, source: int = -2, ticks: int = WAIT_TICKS
+) -> SimEvent:
 	for i: int in ticks:
 		var before: int = _heard.size()
 		_frame(main, 1)
@@ -202,9 +204,9 @@ static func _facing(sprite: CharacterSprite) -> int:
 
 
 func test_r1_a_summon_is_drawn() -> void:
-	var main: Main = _fight()
+	var main: Main = _summon_fight()
 	_give_knight(main, _summoning(&"test_call_hawk", _hawk()))
-	var came: SimEvent = _until(main, SimEvent.Kind.SUMMONED)
+	var came: SimEvent = _play_until_event(main, SimEvent.Kind.SUMMONED)
 	assert_not_null(came, "the Knight called its hawk")
 	if came == null:
 		return
@@ -233,7 +235,7 @@ func test_r1_a_summon_is_drawn() -> void:
 	var walked: bool = false
 	var gap: float = INF
 	for i: int in 60:
-		_tick(main)
+		_play_tick(main)
 		if battle.combatant(came.target_id) != hawk:
 			break
 		walked = walked or sprite._walking
@@ -286,11 +288,11 @@ func test_r1_a_summon_is_drawn() -> void:
 
 
 func test_r2_fights_on_screen() -> void:
-	var main: Main = _fight()
+	var main: Main = _summon_fight()
 	var hawk_def: SummonDef = _hawk({"seconds": 30.0})
 	hawk_def.abilities = [_dive().id] as Array[StringName]
 	_give_knight(main, _summoning(&"test_call_hawk", hawk_def))
-	var came: SimEvent = _until(main, SimEvent.Kind.SUMMONED)
+	var came: SimEvent = _play_until_event(main, SimEvent.Kind.SUMMONED)
 	assert_not_null(came, "the Knight called its hawk")
 	if came == null:
 		return
@@ -305,7 +307,7 @@ func test_r2_fights_on_screen() -> void:
 	var white_from_knight: bool = false
 	for i: int in WAIT_TICKS:
 		var before: Array[FxText] = effects.texts()
-		var events: Array[SimEvent] = _tick(main)
+		var events: Array[SimEvent] = _play_tick(main)
 		if main.simulation.expedition.battle == null:
 			break
 		for event: SimEvent in events:
@@ -342,7 +344,7 @@ func test_r2_fights_on_screen() -> void:
 
 
 func test_r3_ends_on_screen() -> void:
-	var main: Main = _fight()
+	var main: Main = _summon_fight()
 	_give_knight(main, _summoning(&"test_brief", _hawk({"seconds": 2.0}), 4.0))
 	_give_knight(main, _summoning(&"test_frail", _hawk({"seconds": 30.0}), 4.0))
 	# One ward at most: the next replaces the one standing.
@@ -428,7 +430,7 @@ func _tick_watching(
 
 
 func test_r4_the_tally_credits_the_summoner() -> void:
-	var main: Main = _fight(false)
+	var main: Main = _summon_fight(false)
 	var totem: SummonDef = _turret({"seconds": 30.0, "heal_share": 0.6, "attack_range": 20.0})
 	totem.id = &"totem"
 	totem.display_name = "Totem"
@@ -445,7 +447,7 @@ func test_r4_the_tally_credits_the_summoner() -> void:
 	var summon_killed: bool = false
 	var last_hit: Dictionary[int, int] = {}
 	for i: int in WAIT_TICKS:
-		for event: SimEvent in _tick(main):
+		for event: SimEvent in _play_tick(main):
 			var by: int = knight if summoned_by.has(event.source_id) else event.source_id
 			var what: StringName = summoned_by.get(event.source_id, &"")
 			match event.kind:
@@ -525,7 +527,7 @@ func test_r4_the_tally_credits_the_summoner() -> void:
 
 func test_r5_no_view_mistakes_it() -> void:
 	_frame_parts = [&"effects", &"sound", &"hud", &"milestones", &"moment"]
-	var main: Main = _fight(false)
+	var main: Main = _summon_fight(false)
 	var hawk_def: SummonDef = _hawk({"seconds": 30.0})
 	hawk_def.abilities = [_dive().id] as Array[StringName]
 	_give_knight(main, _summoning(&"test_call_hawk", hawk_def))
@@ -537,7 +539,7 @@ func test_r5_no_view_mistakes_it() -> void:
 	var summons: Dictionary[int, bool] = {}
 	var ended: int = 0
 	for i: int in WAIT_TICKS:
-		for event: SimEvent in _tick(main):
+		for event: SimEvent in _play_tick(main):
 			match event.kind:
 				SimEvent.Kind.SUMMONED:
 					summons[event.target_id] = true
@@ -589,7 +591,7 @@ func test_r5_no_view_mistakes_it() -> void:
 
 
 func test_r6_light_enough() -> void:
-	var main: Main = _fight()
+	var main: Main = _summon_fight()
 	var swarm: SummonDef = _hawk({"seconds": 6.0})
 	_give_knight(main, _summoning(&"test_swarm", swarm, 4.0, 2, 4))
 	var summons: SummonSprites = main.world.summons
@@ -598,7 +600,7 @@ func test_r6_light_enough() -> void:
 	var sprites: Dictionary[int, CharacterSprite] = {}
 	var distinct: Dictionary[int, bool] = {}
 	for i: int in 300:
-		for event: SimEvent in _tick(main):
+		for event: SimEvent in _play_tick(main):
 			if event.kind == SimEvent.Kind.SUMMONED:
 				summoned += 1
 				var sprite: CharacterSprite = main.world.character(event.target_id)
