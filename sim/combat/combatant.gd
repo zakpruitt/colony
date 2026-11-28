@@ -67,6 +67,10 @@ var strikes: int = 0
 ## Set by the battle: false from an action until the next swing lands (a strike or a heal), so
 ## an action is always followed by a plain swing.
 var swung_since_action: bool = true
+## The summoner's id for a summon; -1 for a hero or a monster.
+var owner_id: int = -1
+## The battle tick a summon's lifetime runs out on; -1 for others.
+var ends_tick: int = -1
 
 
 ## A hero of class [param def] at [param hero_level] (1 or more).
@@ -118,6 +122,45 @@ static func from_monster(def: MonsterDef, monster_level: int, combatant_id: int)
 	return c
 
 
+## A summon [param def] of [param summoner]'s on the heroes' side, standing where its summoner
+## stands, at its level: its health, damage and healing are its shares of the summoner's now,
+## each at least 1 (no damage or healing with no share: one with no damage never strikes). Its
+## abilities are [Content]'s, by the ids [param def] names.
+static func from_summon(def: SummonDef, summoner: Combatant, combatant_id: int) -> Combatant:
+	var c := Combatant.new()
+	c.id = combatant_id
+	c.team = Team.HEROES
+	c.def_id = def.id
+	c.owner_id = summoner.id
+	c.level = summoner.level
+	c.x = summoner.x
+	c.max_health = maxi(1, roundi(summoner.max_health * def.health_share))
+	c.damage = 0
+	if def.damage_share > 0.0:
+		c.damage = maxi(1, roundi(summoner.damage * def.damage_share))
+	c.heal_power = 0
+	if def.heal_share > 0.0:
+		c.heal_power = maxi(1, roundi(summoner.heal_power * def.heal_share))
+	c.role = HeroClassDef.Role.MELEE
+	if c.heal_power > 0:
+		c.role = HeroClassDef.Role.HEALER
+	elif def.attack_range > Battle.MELEE_REACH:
+		c.role = HeroClassDef.Role.RANGED
+	c._set_common(
+		def.armor,
+		def.crit_chance,
+		def.attack_range,
+		def.move_speed,
+		def.windup,
+		def.attack_interval
+	)
+	for ability_id: StringName in def.abilities:
+		var ability: AbilityDef = Content.ability(ability_id)
+		if ability != null:
+			c.abilities.append(ability)
+	return c
+
+
 ## Seconds of game time as the nearest whole number of ticks, at least [param least].
 static func seconds_to_ticks(seconds: float, least: int = 1) -> int:
 	return maxi(least, roundi(seconds * Simulation.TICKS_PER_SECOND))
@@ -126,6 +169,11 @@ static func seconds_to_ticks(seconds: float, least: int = 1) -> int:
 ## True until health reaches 0.
 func is_alive() -> bool:
 	return state != State.DEAD and health > 0
+
+
+## True for a fighter an ability brought into the fight.
+func is_summon() -> bool:
+	return owner_id >= 0
 
 
 ## Health as a fraction of the maximum, 0 to 1.

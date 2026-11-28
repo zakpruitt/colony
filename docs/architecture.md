@@ -947,6 +947,36 @@ or a passive; `Combatant.abilities` lists a fighter's: a hero's talents (spec 05
   burning, bleeding, chilled, mending) are a multiple of the fighter's damage or healing, or of the
   receiver's maximum health, fixed when they are put on; one worth nothing is not put on. Putting a status
   on again moves its end and keeps the stronger amount, but not its once-a-second clock.
+- **Summons (spec 115).** An `AbilityEffect` that does `SUMMON` (it lands on `SELF`) carries a
+  `SummonDef` (`sim/defs/summon_def.gd`, a sub-resource: health, damage and healing as shares of the
+  summoner's, its own armor, crit, timing, range, move speed, `ahead`, lifetime and ability ids), a
+  `count` and a `summon_cap`. The rules are `BattleSummons` (`sim/combat/battle_summons.gd`): each
+  summon is `Combatant.from_summon` (its `owner_id` the summoner, `ends_tick` when its time is up),
+  pushed `ahead` tiles toward the enemy inside the room, and put in `Battle.summons` with
+  `Battle.add_summon`; its fight-start passives answer its coming, and `SUMMONED` reports it (source
+  the summoner, target the summon, amount the lifetime in ticks). `Battle.heroes` stays the party's
+  fighters; `allies_of` and `enemies_of` give the heroes' side as heroes then summons, and
+  `fighters()` heroes, summons, monsters: lists made anew only as a summon comes or goes, so a walk of
+  one is never changed under it, and the act loop walks the list as the tick began, so a summon acts
+  from the next tick. A summon is a target like any hero (nearest, weakest, furthest, an area effect,
+  a taunt), but a healer's hurt ally, a `WEAKEST_ALLY` aim, an ally-below condition and a revive pick
+  heroes only. A summon keeps no place in the heroes' line: spacing, the reach over shoulders, a
+  taunt's reach and the places heroes take count heroes only (`Battle._line_of`). One with a move
+  speed of 0 never walks: it strikes what is in its range or waits; one with no damage share never
+  strikes and acts only through its abilities, with no swing between them (an aura). Ids
+  run from `Battle.FIRST_SUMMON_ID` (50) to `LAST_SUMMON_ID` (99) in turn (`Battle.next_summon_id`),
+  skipping one held; a summoner's summons of one id over its cap replace its oldest, and past fifty at
+  once the oldest in the fight goes. A summon ends (`BattleSummons.end_summon`, `SUMMON_ENDED`, source
+  the summon, target its summoner, amount `BattleSummons.Ended`) when its time is up, when it falls,
+  when it is replaced and when the fight ends (`Battle.end`). Its end is never a death: no `DIED`, no
+  kill or ally's death passive, no revive; its own statuses end with it, and of those it put on
+  anyone the ones that work each second from it (burning, bleeding, chilled, mending), while the
+  rest keep their time; no status is put on from it once it has gone (one felled mid-action), a
+  shot it fired or one at it lands on nobody, and it leaves every list and `combatant()`. A summon
+  is always on the heroes' side, and its fight-start passives answer its coming. The heroes
+  lose when every hero has fallen, whatever summons stand. A monster a summon kills rewards the party
+  as a hero's kill does; the summon's own hits, heals and statuses carry its id, and its own ability
+  uses are on its own `Combatant.uses`, so they give its summoner no path XP.
 - **Nothing changes without abilities.** Every new roll (a passive's chance, a nimble dodge) happens only
   when an ability or a status asks for it, and every multiplier is exactly 1 without one, so the recorded
   hashes stand. Events: `ABILITY_STARTED`, `ABILITY_USED`, `STATUS_BEGAN`, `STATUS_ENDED`, `MISSED`,

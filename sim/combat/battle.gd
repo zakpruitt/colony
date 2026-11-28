@@ -12,7 +12,9 @@ extends RefCounted
 ## flight are dropped.
 ## [br]- When a target dies, every wind-up aimed at it is cancelled at once.
 ##
-## Abilities follow [BattleAbilities] and statuses [BattleStatuses].
+## Abilities follow [BattleAbilities], statuses [BattleStatuses] and summons [BattleSummons]: a
+## summon fights on the heroes' side, acting after the heroes and before the monsters, and leaves
+## the fight without dying.
 
 enum Result { ONGOING, HEROES_WON, MONSTERS_WON }
 ## What dealt some damage: an ordinary strike, an action, a passive or a status.
@@ -28,10 +30,19 @@ const _ROLL_MAX: float = 1.15
 ## Slack for comparing positions that were reached by adding up float steps.
 const EPSILON: float = 0.0001
 const MIN_SPACING: float = 0.6  # tiles between two standing combatants of one side
+## Summons take the ids from the first to the last, in turn: under every monster's
+## ([constant Expedition.FIRST_MONSTER_ID]) and over every hero's.
+const FIRST_SUMMON_ID: int = 50
+const LAST_SUMMON_ID: int = 99
 
 var tick: int = 0
 var heroes: Array[Combatant]
 var monsters: Array[Combatant]
+## The summons standing in the fight, in the order summoned. Heroes stay in heroes.
+var summons: Array[Combatant] = []
+## The id the next summon tries first; [BattleSummons] moves it on, round from the last to the
+## first.
+var next_summon_id: int = FIRST_SUMMON_ID
 
 var _left: float
 var _right: float
@@ -45,8 +56,11 @@ var _result: Result = Result.ONGOING
 var _by_id: Dictionary[int, Combatant] = {}
 var _events: Array[SimEvent] = []
 var _projectiles: Array[BattleProjectile] = []
-## The heroes, then the monsters: the order everyone acts in. The sides never change after the
-## battle is made.
+## The heroes, then the summons: the heroes' side. A new list each time a summon comes or goes,
+## so one being walked is never changed under its walker.
+var _hero_side: Array[Combatant] = []
+## The heroes' side, then the monsters: the order everyone acts in, made anew as [member _hero_side]
+## is.
 var _fighters: Array[Combatant] = []
 
 
@@ -64,8 +78,7 @@ func _init(
 	_left = minf(left, right)
 	_right = maxf(left, right)
 	_rng = rng
-	_fighters = heroes + monsters
-	_fighters.make_read_only()
+	_join_sides()
 	for c: Combatant in _fighters:
 		if _by_id.has(c.id):
 			push_error("Battle: duplicate combatant id %d; the battle is over" % c.id)
@@ -87,11 +100,15 @@ func step() -> void:
 	if _result != Result.ONGOING:
 		return
 	tick += 1
+	# Taken before anything this tick can summon, so a summon acts from the tick after it came.
+	var acting: Array[Combatant] = _fighters
 	if tick == 1:
 		BattleAbilities.fight_starts(self)
 	BattleStatuses.pulse(self)
+	if not summons.is_empty():
+		BattleSummons.pulse(self)
 	_land_projectiles()
-	for c: Combatant in _fighters:
+	for c: Combatant in acting:
 		if c.is_alive():
 			_act(c)
 	_check_end()
@@ -101,9 +118,11 @@ func step() -> void:
 		end()
 
 
-## Ends every status in the fight, each with its STATUS_ENDED event. The battle does this as it
-## ends; whatever stops a fight early (the expedition's time limit) calls it too.
+## Ends every summon in the fight (SUMMON_ENDED) and every status (STATUS_ENDED). The battle does
+## this as it ends; whatever stops a fight early (the expedition's time limit) calls it too.
 func end() -> void:
+	if not summons.is_empty():
+		BattleSummons.end_all(self, BattleSummons.Ended.FIGHT_ENDED)
 	for c: Combatant in _fighters:
 		BattleStatuses.clear(self, c)
 
@@ -118,10 +137,20 @@ func combatant(id: int) -> Combatant:
 	return _by_id.get(id, null)
 
 
-## Everyone in the fight, the heroes then the monsters: the order they act in. The battle's own
-## list, made once; read it, never change it.
+## Everyone in the fight, the heroes, the summons, then the monsters: the order they act in. The
+## battle's own list, made anew only as a summon comes or goes; read it, never change it.
 func fighters() -> Array[Combatant]:
 	return _fighters
+
+
+## Puts the summon [param made] into the fight on the heroes' side, after every summon there,
+## found by its id from now on.
+func add_summon(made: Combatant) -> void:
+	var more: Array[Combatant] = summons.duplicate()
+	more.append(made)
+	summons = more
+	_by_id[made.id] = made
+	_join_sides()
 
 
 ## The events recorded since the last call, oldest first.
@@ -153,14 +182,15 @@ func roll_chance(probability: float) -> bool:
 	return _rng.chance(probability)
 
 
-## [param c]'s side, [param c] included.
+## [param c]'s side, [param c] included: the heroes then the summons, or the monsters. The
+## battle's own list; read it, never change it.
 func allies_of(c: Combatant) -> Array[Combatant]:
-	return heroes if c.team == Combatant.Team.HEROES else monsters
+	return _hero_side if c.team == Combatant.Team.HEROES else monsters
 
 
-## The side [param c] fights.
+## The side [param c] fights, as [method allies_of] gives it.
 func enemies_of(c: Combatant) -> Array[Combatant]:
-	return monsters if c.team == Combatant.Team.HEROES else heroes
+	return monsters if c.team == Combatant.Team.HEROES else _hero_side
 
 
 ## True if nothing hostile [param source] does lands on [param target]: an enemy of it that is
@@ -209,11 +239,11 @@ func best_enemy(c: Combatant, aim: AbilityDef.Aim) -> Combatant:
 
 
 ## The ally a healer [param c] would heal now: the living one with the lowest share of health,
-## if it is below [constant _HEAL_THRESHOLD]; or null.
+## if it is below [constant _HEAL_THRESHOLD]; or null. Only a hero, never a summon.
 func hurt_ally(c: Combatant) -> Combatant:
 	var hurt: Combatant = null
 	var lowest: float = _HEAL_THRESHOLD
-	for ally: Combatant in allies_of(c):
+	for ally: Combatant in heroes if c.team == Combatant.Team.HEROES else monsters:
 		if ally.is_alive() and ally.health_fraction() < lowest:
 			hurt = ally
 			lowest = ally.health_fraction()
@@ -243,7 +273,10 @@ func deal(
 	target.health = maxi(0, target.health - dealt)
 	record(SimEvent.Kind.HIT, source.id, target.id, dealt, crit)
 	if target.health == 0:
-		_die(target)
+		if target.is_summon():
+			BattleSummons.end_summon(self, target, BattleSummons.Ended.FELL)
+		else:
+			_die(target)
 	BattleAbilities.after_damage(self, source, target, before, crit, via, chain)
 	return dealt
 
@@ -308,7 +341,7 @@ func _line_up(heroes_from_left: bool) -> void:
 
 
 ## Lands every projectile due this tick, in the order they were launched, and keeps the rest in
-## that order.
+## that order. One whose source or target has left the fight (a summon that ended) lands on nobody.
 func _land_projectiles() -> void:
 	var count: int = _projectiles.size()
 	var kept: int = 0
@@ -319,7 +352,8 @@ func _land_projectiles() -> void:
 			kept += 1
 			continue
 		var target: Combatant = combatant(shot.target_id)
-		if target != null and target.is_alive():
+		var still_here: bool = combatant(shot.source.id) == shot.source
+		if target != null and target.is_alive() and still_here:
 			_apply(shot.source, target, shot.is_heal)
 	# Nothing launches while projectiles land, so the list still holds only those counted.
 	_projectiles.resize(kept)
@@ -350,6 +384,8 @@ func _act(c: Combatant) -> void:
 	if not c.abilities.is_empty() and _try_action(c, hurt != null):
 		return
 	var target: Combatant = hurt if hurt != null else nearest_enemy(c)
+	if _never_strikes(c):
+		target = null
 	if target == null:
 		c.state = Combatant.State.IDLE
 		c.target_id = -1
@@ -357,7 +393,7 @@ func _act(c: Combatant) -> void:
 	c.target_id = target.id
 	if not _strikes_from_here(c, target, c.attack_range):
 		if not _take_place(c, target, c.attack_range):
-			c.state = Combatant.State.MOVING
+			c.state = _getting_there(c)
 			return
 	if tick < c.ready_tick:
 		c.state = Combatant.State.IDLE
@@ -385,7 +421,7 @@ func _try_action(c: Combatant, heal_first: bool) -> bool:
 	if not action.anywhere and action.aim != AbilityDef.Aim.SELF:
 		if not _strikes_from_here(c, target, action.reach):
 			if not _take_place(c, target, action.reach):
-				c.state = Combatant.State.MOVING
+				c.state = _getting_there(c)
 				return true
 	if tick < c.ready_tick:
 		c.state = Combatant.State.IDLE
@@ -406,7 +442,8 @@ func _use(c: Combatant, target: Combatant) -> void:
 	c.state = Combatant.State.IDLE
 	c.ready_tick = tick + c.strike_interval_ticks()
 	c.action_ready_tick[action.id] = tick + Combatant.seconds_to_ticks(action.cooldown, 0)
-	c.swung_since_action = false
+	# One that never strikes has no swing to wait for between its actions.
+	c.swung_since_action = _never_strikes(c)
 	c.used.erase(action.id)
 	c.used.append(action.id)
 	BattleAbilities.use(self, c, action, target)
@@ -417,7 +454,7 @@ func _use(c: Combatant, target: Combatant) -> void:
 func _taunter(c: Combatant) -> Combatant:
 	var found: Combatant = null
 	var best: float = INF
-	var reach: float = c.attack_range + MIN_SPACING * (allies_of(c).size() - 1) + EPSILON
+	var reach: float = c.attack_range + MIN_SPACING * (_line_of(c).size() - 1) + EPSILON
 	for enemy: Combatant in enemies_of(c):
 		if not enemy.is_alive() or not enemy.has_status(AbilityEffect.Status.TAUNTING):
 			continue
@@ -434,7 +471,9 @@ func _taunter(c: Combatant) -> Combatant:
 func _strikes_from_here(c: Combatant, target: Combatant, reach: float) -> bool:
 	if reach > MELEE_REACH or c.state == Combatant.State.MOVING or c.ready_tick == 0:
 		return false
-	var allies: Array[Combatant] = allies_of(c)
+	if _rooted(c):
+		return false
+	var allies: Array[Combatant] = _line_of(c)
 	var spacing: float = _spacing(allies)
 	for ally: Combatant in allies:
 		var standing: bool = ally != c and ally.is_alive() and ally.state != Combatant.State.MOVING
@@ -448,6 +487,8 @@ func _strikes_from_here(c: Combatant, target: Combatant, reach: float) -> bool:
 ## Walks [param c] toward its place within [param reach] of [param target] and returns true
 ## once it stands where it may strike from: in range, or held back there by standing allies.
 func _take_place(c: Combatant, target: Combatant, reach: float) -> bool:
+	if _rooted(c):
+		return absf(target.x - c.x) <= reach + EPSILON
 	var forward: float = signf(target.x - c.x)
 	if forward == 0.0:
 		forward = _hero_forward if c.team == Combatant.Team.HEROES else -_hero_forward
@@ -469,7 +510,7 @@ func _take_place(c: Combatant, target: Combatant, reach: float) -> bool:
 ## a hero of a more forward role (then earlier in the party) attacking the same target. Sets
 ## [member _held_back]: true when standing allies alone kept [param c] short of [param goal].
 func _station(c: Combatant, goal: float, forward: float) -> float:
-	var allies: Array[Combatant] = allies_of(c)
+	var allies: Array[Combatant] = _line_of(c)
 	var spacing: float = _spacing(allies)
 	var place: float = goal * forward
 	var bound_by_mover: bool = false
@@ -520,8 +561,11 @@ func _spacing(side: Array[Combatant]) -> float:
 
 ## True if hero [param ally] stands in front of hero [param c]: both attack the same enemy
 ## and the ally's role is further forward (tank, melee, ranged, healer), or the same and earlier.
+## A summon keeps no place in the heroes' line.
 func _leads(ally: Combatant, c: Combatant) -> bool:
 	if c.team != Combatant.Team.HEROES or ally.target_id != c.target_id:
+		return false
+	if c.is_summon() or ally.is_summon():
 		return false
 	var target: Combatant = combatant(c.target_id)
 	if target == null or target.team == c.team:
@@ -593,13 +637,64 @@ func _die(dead: Combatant) -> void:
 	dead.pending_action = null
 	record(SimEvent.Kind.DIED, dead.id)
 	BattleStatuses.clear(self, dead)
-	# Nobody keeps aiming at the dead: a wind-up on them is lost at once.
+	_lose_aim(dead)
+
+
+## Nobody keeps aiming at [param gone], dead or left the fight: a wind-up on it is lost at once.
+func _lose_aim(gone: Combatant) -> void:
 	for c: Combatant in _fighters:
-		if c.is_alive() and c.target_id == dead.id:
+		if c.is_alive() and c.target_id == gone.id:
 			c.target_id = -1
 			if c.state == Combatant.State.WINDUP:
 				c.state = Combatant.State.IDLE
 				c.pending_action = null
+
+
+## Takes the summon [param gone] out of the fight: out of the sides, no longer found by its id,
+## aimed at by nobody. For [BattleSummons], which ends it.
+func _remove_summon(gone: Combatant) -> void:
+	var kept: Array[Combatant] = []
+	for c: Combatant in summons:
+		if c != gone:
+			kept.append(c)
+	summons = kept
+	if _by_id.get(gone.id) == gone:
+		_by_id.erase(gone.id)
+	_join_sides()
+	_lose_aim(gone)
+
+
+## Makes the heroes' side and the list of everyone from the heroes, summons and monsters.
+func _join_sides() -> void:
+	var side: Array[Combatant] = heroes + summons
+	side.make_read_only()
+	_hero_side = side
+	var everyone: Array[Combatant] = side + monsters
+	everyone.make_read_only()
+	_fighters = everyone
+
+
+## The line [param c] keeps its place in: its side without the summons, which stand apart from
+## it, block no one and hold no one back.
+func _line_of(c: Combatant) -> Array[Combatant]:
+	return heroes if c.team == Combatant.Team.HEROES else monsters
+
+
+## True for a summon that makes no ordinary strike (no damage share): it acts only through its
+## abilities.
+func _never_strikes(c: Combatant) -> bool:
+	return c.damage <= 0 and c.is_summon()
+
+
+## True for a summon that never moves (a turret, a totem): it strikes only what is in its range.
+func _rooted(c: Combatant) -> bool:
+	return c.move_speed <= 0.0 and c.is_summon()
+
+
+## What [param c] is doing while it cannot yet strike: walking there, or for one that never
+## moves, waiting.
+func _getting_there(c: Combatant) -> Combatant.State:
+	return Combatant.State.IDLE if _rooted(c) else Combatant.State.MOVING
 
 
 func _check_end() -> void:

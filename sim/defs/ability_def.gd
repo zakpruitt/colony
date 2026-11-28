@@ -173,6 +173,10 @@ func _side_problem(effect: AbilityEffect) -> String:
 		effect.lands in [AbilityEffect.Lands.TARGET, AbilityEffect.Lands.AROUND_TARGET]
 	)
 	var target_is_dead: bool = not is_action() and trigger in [Trigger.KILLS, Trigger.ALLY_DIES]
+	if effect.does == AbilityEffect.Does.SUMMON:
+		# A summon appears beside its summoner, so it lands nowhere else.
+		var beside: bool = effect.lands == AbilityEffect.Lands.SELF
+		return "" if beside else "a summon lands on SELF, beside its summoner"
 	if effect.does == AbilityEffect.Does.REVIVE:
 		var fallen_ally: bool = (
 			effect.lands == AbilityEffect.Lands.ALLIES
