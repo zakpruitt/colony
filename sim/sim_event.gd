@@ -35,6 +35,8 @@ enum Kind {
 	GATE_OPENED,
 	GATE_SEALED,
 	CACHE_OPENED,
+	SUMMONED,
+	SUMMON_ENDED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -86,12 +88,17 @@ var target_id: int = -1
 ## path's place in [member LabyrinthLevel.side_paths], with the same source and target;
 ## GATE_SEALED: the needed microskill's position, with [member target_id] the gate's position;
 ## CACHE_OPENED: the side path's place, with [member source_id] the hero who opened its gate.
+## SUMMONED: the summon's lifetime in ticks, with [member source_id] the summoner,
+## [member target_id] the summon and [member ability_id] the summoning ability. SUMMON_ENDED: why
+## ([enum BattleSummons.Ended]: 0 its time, 1 it fell, 2 replaced, 3 the fight ended), with
+## [member source_id] the summon and [member target_id] its summoner.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for QUEST_MISSED; "a shield absorbed it" for MISSED.
 var flag: bool = false
 ## The [AbilityDef] id for ABILITY_STARTED, ABILITY_USED and STATUS_BEGAN (the ability that put
-## the status there), and for STATUS_ENDED; the node for TALENT_TAKEN; empty otherwise.
+## the status there), for STATUS_ENDED and for SUMMONED; the node for TALENT_TAKEN; empty
+## otherwise.
 var ability_id: StringName = &""
 ## The [enum AbilityEffect.Status] for STATUS_BEGAN and STATUS_ENDED; -1 otherwise.
 var status: int = -1

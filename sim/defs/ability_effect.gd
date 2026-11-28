@@ -14,7 +14,7 @@ enum Lands {
 }
 
 ## What the effect does to each receiver.
-enum Does { DAMAGE, HEAL, PUSH, REVIVE, STATUS }
+enum Does { DAMAGE, HEAL, PUSH, REVIVE, STATUS, SUMMON }
 
 ## What a heal, or a status measured in points (shield, burning, bleeding, mending), is a
 ## multiple of.
@@ -98,12 +98,16 @@ const IN_POINTS: Array[Status] = [
 @export var status: Status = Status.STUNNED
 @export var seconds: float = 0.0
 @export var amount: float = 0.0
+## SUMMON: who comes, how many come each use, and the most of it one summoner may have at once.
+@export var summon: SummonDef
+@export var count: int = 1
+@export var summon_cap: int = 1
 
 
 ## True if this effect helps whoever it lands on; false if it hurts them.
 func is_helpful() -> bool:
 	match does:
-		Does.HEAL, Does.REVIVE:
+		Does.HEAL, Does.REVIVE, Does.SUMMON:
 			return true
 		Does.STATUS:
 			return status in _HELPFUL
@@ -146,6 +150,9 @@ func validate() -> PackedStringArray:
 		Does.STATUS:
 			problems.append_array(_damage_only())
 			problems.append_array(_status_problems())
+		Does.SUMMON:
+			problems.append_array(_damage_only())
+			problems.append_array(_summon_problems())
 	return problems
 
 
@@ -153,6 +160,20 @@ func _damage_only() -> PackedStringArray:
 	if damage_from_healing:
 		return PackedStringArray(["damage_from_healing is set on an effect that is not DAMAGE"])
 	return PackedStringArray()
+
+
+func _summon_problems() -> PackedStringArray:
+	var problems := PackedStringArray()
+	if summon == null:
+		problems.append("a summon effect has no summon")
+	else:
+		for problem: String in summon.validate():
+			problems.append("summon: %s" % problem)
+	if count < 1:
+		problems.append("count %d is below 1" % count)
+	if summon_cap < 1:
+		problems.append("summon_cap %d is below 1" % summon_cap)
+	return problems
 
 
 func _status_problems() -> PackedStringArray:

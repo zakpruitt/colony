@@ -84,6 +84,18 @@ static func clear(battle: Battle, c: Combatant) -> void:
 		end(battle, c, kind)
 
 
+## Takes every status [param source] put on anyone off, each with its STATUS_ENDED event: for a
+## summon leaving the fight, whose burning or mending could not work on without it.
+static func clear_from(battle: Battle, source: Combatant) -> void:
+	for c: Combatant in battle.fighters():
+		if c.statuses.is_empty():
+			continue
+		for kind: int in c.statuses.keys():
+			var status: CombatStatus = c.statuses.get(kind, null)
+			if status != null and status.source_id == source.id:
+				end(battle, c, kind)
+
+
 static func _work(battle: Battle, bearer: Combatant, status: CombatStatus) -> void:
 	var source: Combatant = battle.combatant(status.source_id)
 	if status.kind == AbilityEffect.Status.MENDING:

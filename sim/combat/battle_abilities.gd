@@ -77,7 +77,7 @@ static func aim(battle: Battle, c: Combatant, ability: AbilityDef) -> Combatant:
 		AbilityDef.Aim.SELF:
 			return c
 		AbilityDef.Aim.WEAKEST_ALLY:
-			return _weakest(battle.allies_of(c))
+			return _weakest(_own_side(battle, c))
 		AbilityDef.Aim.WEAKEST_ENEMY, AbilityDef.Aim.FURTHEST_ENEMY:
 			return battle.best_enemy(c, ability.aim)
 	return battle.nearest_enemy(c)
@@ -162,6 +162,9 @@ static func after_damage(
 	if target.is_alive():
 		fire(battle, target, AbilityDef.Trigger.FALLS_BELOW, target, before, chain)
 		return
+	if target.is_summon():
+		# A summon's end is not a death: nobody killed it and no ally died.
+		return
 	fire(battle, source, AbilityDef.Trigger.KILLS, target, 0.0, chain)
 	for ally: Combatant in battle.allies_of(target):
 		if ally != target:
@@ -219,7 +222,7 @@ static func _condition_holds(
 	match ability.condition:
 		AbilityDef.Condition.ALLY_BELOW, AbilityDef.Condition.OTHER_ALLY_BELOW:
 			var others: bool = ability.condition == AbilityDef.Condition.OTHER_ALLY_BELOW
-			for ally: Combatant in battle.allies_of(c):
+			for ally: Combatant in _own_side(battle, c):
 				if others and ally == c:
 					continue
 				if ally.is_alive() and ally.health_fraction() < ability.condition_share:
@@ -244,6 +247,12 @@ static func _condition_holds(
 	return true
 
 
+## [param c]'s side without the summons: what a heal or a hurt ally is chosen from, so none is
+## spent on a turret.
+static func _own_side(battle: Battle, c: Combatant) -> Array[Combatant]:
+	return battle.heroes if c.team == Combatant.Team.HEROES else battle.monsters
+
+
 ## The living one of [param side] with the lowest share of health, the first on a tie.
 static func _weakest(side: Array[Combatant]) -> Combatant:
 	var weakest: Combatant = null
@@ -254,7 +263,7 @@ static func _weakest(side: Array[Combatant]) -> Combatant:
 
 
 ## Whom [param effect] lands on, in the order of their side: the living, or for a revive the
-## fallen of the fighter's own side; never, if it hurts, an enemy that is untouchable.
+## fallen heroes of the fighter's own side; never, if it hurts, an enemy that is untouchable.
 static func _receivers(
 	battle: Battle, c: Combatant, effect: AbilityEffect, target: Combatant
 ) -> Array[Combatant]:
@@ -286,7 +295,7 @@ static func _receivers(
 	for receiver: Combatant in pool:
 		if by_place and absf(receiver.x - center) > radius + Battle.EPSILON:
 			continue
-		if reviving and (receiver.is_alive() or receiver.team != c.team):
+		if reviving and (receiver.is_alive() or receiver.team != c.team or receiver.is_summon()):
 			continue
 		if not reviving and not receiver.is_alive():
 			continue
@@ -329,3 +338,5 @@ static func _apply(
 			battle.revive(c, receiver, effect.revive_share)
 		AbilityEffect.Does.STATUS:
 			BattleStatuses.apply(battle, c, receiver, effect, ability.id)
+		AbilityEffect.Does.SUMMON:
+			BattleSummons.summon(battle, c, effect, ability)
