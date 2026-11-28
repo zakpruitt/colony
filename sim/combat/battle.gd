@@ -384,6 +384,8 @@ func _act(c: Combatant) -> void:
 	if not c.abilities.is_empty() and _try_action(c, hurt != null):
 		return
 	var target: Combatant = hurt if hurt != null else nearest_enemy(c)
+	if _never_strikes(c):
+		target = null
 	if target == null:
 		c.state = Combatant.State.IDLE
 		c.target_id = -1
@@ -440,7 +442,8 @@ func _use(c: Combatant, target: Combatant) -> void:
 	c.state = Combatant.State.IDLE
 	c.ready_tick = tick + c.strike_interval_ticks()
 	c.action_ready_tick[action.id] = tick + Combatant.seconds_to_ticks(action.cooldown, 0)
-	c.swung_since_action = false
+	# One that never strikes has no swing to wait for between its actions.
+	c.swung_since_action = _never_strikes(c)
 	c.used.erase(action.id)
 	c.used.append(action.id)
 	BattleAbilities.use(self, c, action, target)
@@ -451,7 +454,7 @@ func _use(c: Combatant, target: Combatant) -> void:
 func _taunter(c: Combatant) -> Combatant:
 	var found: Combatant = null
 	var best: float = INF
-	var reach: float = c.attack_range + MIN_SPACING * (allies_of(c).size() - 1) + EPSILON
+	var reach: float = c.attack_range + MIN_SPACING * (_line_of(c).size() - 1) + EPSILON
 	for enemy: Combatant in enemies_of(c):
 		if not enemy.is_alive() or not enemy.has_status(AbilityEffect.Status.TAUNTING):
 			continue
@@ -470,7 +473,7 @@ func _strikes_from_here(c: Combatant, target: Combatant, reach: float) -> bool:
 		return false
 	if _rooted(c):
 		return false
-	var allies: Array[Combatant] = allies_of(c)
+	var allies: Array[Combatant] = _line_of(c)
 	var spacing: float = _spacing(allies)
 	for ally: Combatant in allies:
 		var standing: bool = ally != c and ally.is_alive() and ally.state != Combatant.State.MOVING
@@ -507,7 +510,7 @@ func _take_place(c: Combatant, target: Combatant, reach: float) -> bool:
 ## a hero of a more forward role (then earlier in the party) attacking the same target. Sets
 ## [member _held_back]: true when standing allies alone kept [param c] short of [param goal].
 func _station(c: Combatant, goal: float, forward: float) -> float:
-	var allies: Array[Combatant] = allies_of(c)
+	var allies: Array[Combatant] = _line_of(c)
 	var spacing: float = _spacing(allies)
 	var place: float = goal * forward
 	var bound_by_mover: bool = false
@@ -669,6 +672,18 @@ func _join_sides() -> void:
 	var everyone: Array[Combatant] = side + monsters
 	everyone.make_read_only()
 	_fighters = everyone
+
+
+## The line [param c] keeps its place in: its side without the summons, which stand apart from
+## it, block no one and hold no one back.
+func _line_of(c: Combatant) -> Array[Combatant]:
+	return heroes if c.team == Combatant.Team.HEROES else monsters
+
+
+## True for a summon that makes no ordinary strike (no damage share): it acts only through its
+## abilities.
+func _never_strikes(c: Combatant) -> bool:
+	return c.damage <= 0 and c.is_summon()
 
 
 ## True for a summon that never moves (a turret, a totem): it strikes only what is in its range.

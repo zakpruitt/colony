@@ -27,6 +27,9 @@ static func apply(
 	var shut_out: bool = not effect.is_helpful() and battle.untouchable(source, receiver)
 	if shut_out or not receiver.is_alive():
 		return
+	# A summon that has left the fight (felled mid-action, say) leaves nothing behind it.
+	if battle.combatant(source.id) != source:
+		return
 	var amount: float = effect.amount
 	if effect.status in AbilityEffect.IN_POINTS:
 		amount *= _base(effect.scale, source, receiver)
@@ -84,15 +87,16 @@ static func clear(battle: Battle, c: Combatant) -> void:
 		end(battle, c, kind)
 
 
-## Takes every status [param source] put on anyone off, each with its STATUS_ENDED event: for a
-## summon leaving the fight, whose burning or mending could not work on without it.
+## Takes off each status [param source] put on anyone that works each second from its source
+## (burning, bleeding, chilled, mending), with its STATUS_ENDED event: for a summon leaving the
+## fight, without which they could not work on. The rest keep their time.
 static func clear_from(battle: Battle, source: Combatant) -> void:
 	for c: Combatant in battle.fighters():
 		if c.statuses.is_empty():
 			continue
 		for kind: int in c.statuses.keys():
 			var status: CombatStatus = c.statuses.get(kind, null)
-			if status != null and status.source_id == source.id:
+			if status != null and status.source_id == source.id and kind in _PULSING:
 				end(battle, c, kind)
 
 

@@ -7,7 +7,9 @@ extends Resource
 ## Names the summon's sheet and its line in the tally.
 @export var id: StringName
 @export var display_name: String
-## Shares of the summoner's maximum health, damage and healing power (0 for one that never heals).
+## Shares of the summoner's maximum health, damage and healing power. With no damage share it
+## makes no ordinary strike and acts only through its abilities (an aura); with no healing share
+## it never heals.
 @export var health_share: float = 0.3
 @export var damage_share: float = 0.3
 @export var heal_share: float = 0.0
@@ -32,11 +34,11 @@ extends Resource
 ## [Content], and none of them may summon in turn.
 func validate() -> PackedStringArray:
 	var problems: PackedStringArray = DefChecks.naming_problems(id, display_name)
-	for share: Array in [["health_share", health_share], ["damage_share", damage_share]]:
-		if (share[1] as float) <= 0.0:
-			problems.append("%s %s is not positive" % share)
-	if heal_share < 0.0:
-		problems.append("heal_share %s is negative" % heal_share)
+	if health_share <= 0.0:
+		problems.append("health_share %s is not positive" % health_share)
+	for share: Array in [["damage_share", damage_share], ["heal_share", heal_share]]:
+		if (share[1] as float) < 0.0:
+			problems.append("%s %s is negative" % share)
 	if seconds <= 0.0:
 		problems.append("seconds %s is not positive" % seconds)
 	if armor < 0:

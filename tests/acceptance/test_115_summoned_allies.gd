@@ -257,6 +257,28 @@ func test_r2_arrives_and_fights() -> void:
 	assert_gt(_of(events, SimEvent.Kind.PROJECTILE_LAUNCHED, FIRST).size(), 0, "a shot")
 	assert_almost_eq(turret.x, 1.0, Battle.EPSILON, "from where it stands")
 
+	# Summons keep no place in the heroes' line: with five turrets out, a melee hero walks after a
+	# monster beyond its reach just as it does with none.
+	var control: AbilityDef = _action(&"ready", [_st("MIGHTY", 0.1, 1.1, "SELF")], {"aim": "SELF"})
+	var traces: Array = []
+	var five: AbilityDef = _summoning(&"five", _turret(), {"count": 5, "summon_cap": 5})
+	for ability: AbilityDef in [five, control]:
+		var walker: Combatant = _give(_hero(1), [ability])
+		var away: Combatant = _dummy(101)
+		var lined: Battle = _battle([walker], [away])
+		var trace: Array[String] = []
+		for i: int in 120:
+			if i == 60:
+				away.x += 2.5
+			lined.step()
+			for e: SimEvent in _of(lined.drain_events(), SimEvent.Kind.HIT, 1):
+				trace.append(_line(e))
+			trace.append("%d %.3f %d" % [lined.tick, walker.x, walker.state])
+		traces.append(trace)
+	var with_them: Array = traces[0]
+	var without: Array = traces[1]
+	assert_eq(with_them, without, "the same walk and the same blows, summons or none")
+
 	# The totem: healing half its summoner's, hasting the side with Battle Hymn as it comes.
 	var healer: Combatant = _archer(1, [_raise_totem()], {"heal_power": 10})
 	healer.role = HeroClassDef.Role.HEALER
@@ -286,6 +308,33 @@ func test_r2_arrives_and_fights() -> void:
 		assert_eq(e.target_id, 2, "the hurt hero")
 		assert_between(e.amount, 4, 6, "about 5")
 	assert_almost_eq(totem.x, healer.x + 1.0, Battle.EPSILON, "and never moves")
+
+	# A summon is on the heroes' side whoever made it.
+	var made: Combatant = Combatant.from_summon(_hawk(), _dummy(101), FIRST)
+	assert_eq(made.team, Combatant.Team.HEROES, "a summon is always the heroes'")
+
+	# An aura with no damage share: it never strikes, acts through its abilities, and is struck.
+	var aura: AbilityDef = _action(&"test_115_aura", [_st("MIGHTY", 1.0, 1.2, "ALLIES")])
+	_set_all(aura, {"aim": "SELF", "cooldown": 2.0})
+	_add_to_content(aura)
+	var glow: Array[StringName] = [&"test_115_aura"]
+	var still: SummonDef = _turret({"damage_share": 0.0, "abilities": glow, "ahead": 3.0})
+	assert_eq(still.validate(), PackedStringArray(), "no damage share is allowed")
+	var raiser: Combatant = _archer(1, [_summoning(&"raise_aura", still)])
+	var striker: Combatant = _shooter(101, {"max_health": 100_000, "damage": 1})
+	var glowing: Battle = _battle([raiser], [striker])
+	events = _run(glowing, 80)
+	var pillar: Combatant = glowing.combatant(FIRST)
+	assert_not_null(pillar, "the aura stands")
+	if pillar == null:
+		return
+	assert_eq(pillar.damage, 0, "no damage")
+	assert_eq(_of(events, SimEvent.Kind.ATTACK_STARTED, FIRST).size(), 0, "it never strikes")
+	assert_eq(_of(events, SimEvent.Kind.HIT, FIRST).size(), 0, "nor hits")
+	assert_gt(_used(events, &"test_115_aura").size(), 2, "it acts again and again")
+	var buffed: Array[int] = _targets(_of(events, SimEvent.Kind.STATUS_BEGAN, FIRST))
+	assert_has(buffed, 1, "it buffs the hero")
+	assert_has(_targets(_of(events, SimEvent.Kind.HIT, 101)), FIRST, "monsters strike it")
 
 
 # --- R3 ------------------------------------------------------------------------
@@ -354,6 +403,21 @@ func test_r3_monsters_fight_it() -> void:
 	assert_eq(_targets(mended), [2] as Array[int], "the weakest hero, not the turret")
 	assert_eq(turret.health, 1, "still hurt")
 
+	# An ally-below condition, the fighter counted or not, counts heroes only.
+	for condition: String in ["ALLY_BELOW", "OTHER_ALLY_BELOW"]:
+		var asks: Dictionary = {"aim": "SELF", "condition": condition, "condition_share": 0.6}
+		var pray: AbilityDef = _action(&"pray", [_fx("HEAL", "ALLIES")], asks)
+		var cleric: Combatant = _archer(1, [_build_turret(), pray], {"heal_power": 10})
+		var friend: Combatant = _hero(2)
+		var calm: Battle = _battle([cleric, friend], [_dummy(101)])
+		_run(calm, 2)
+		calm.combatant(FIRST).health = 1
+		events = _more(calm, 40)
+		assert_eq(_used(events, &"pray").size(), 0, "%s: a hurt turret is no reason" % condition)
+		friend.health = 50
+		events = _more(calm, 40)
+		assert_eq(_used(events, &"pray").size(), 1, "%s: a hurt hero is" % condition)
+
 
 # --- R4 ------------------------------------------------------------------------
 
@@ -372,10 +436,24 @@ func test_r4_a_summon_ends() -> void:
 	for e: SimEvent in _of(events, SimEvent.Kind.STATUS_ENDED):
 		if e.target_id == FIRST:
 			its_own.append(e)
-	assert_eq(its_own.size(), 1, "its haste ended with it")
-	for c: Combatant in timed.fighters():
-		for status: CombatStatus in c.statuses.values():
-			assert_ne(status.source_id, FIRST, "nothing left that it put on")
+	assert_eq(its_own.size(), 1, "its own haste ended with it")
+	var kept: CombatStatus = healer.status(AbilityEffect.Status.HASTED)
+	assert_not_null(kept, "the haste it put on the hero keeps its time")
+	if kept != null:
+		assert_eq(kept.source_id, FIRST, "the totem's")
+	# A burn it put on works from it each second, so it ends with it.
+	var burn: Array = [_st("BURNING", NEVER, 0.5, "TARGET", BY_DAMAGE)]
+	_add_to_content(_passive(&"test_115_burn", "LANDS_HIT", burn))
+	var burning: Array[StringName] = [&"test_115_burn"]
+	var scorched: Combatant = _dummy(101)
+	var lit: Battle = _battle([_give(_hero(1), [_call_hawk({"abilities": burning})])], [scorched])
+	events = _run(lit, 90)
+	var put_out: Array[SimEvent] = []
+	for e: SimEvent in _of(events, SimEvent.Kind.STATUS_ENDED, FIRST):
+		if e.status == AbilityEffect.Status.BURNING:
+			put_out.append(e)
+	assert_eq(_ticks(put_out), [82] as Array[int], "the hawk's burn ends as the hawk goes")
+	assert_false(scorched.has_status(AbilityEffect.Status.BURNING), "no burn without its source")
 	assert_eq(_of(events, SimEvent.Kind.DIED).size(), 0, "no death")
 	_none_left(timed)
 
@@ -405,6 +483,22 @@ func test_r4_a_summon_ends() -> void:
 	assert_eq(falling.heroes.size(), 1, "the heroes are as they were")
 	assert_true(angel.is_alive(), "its summoner stands")
 	_none_left(falling)
+
+	# Felled in the middle of its own action: the rest of the action leaves no status behind.
+	var blast: Array = [_fx("DAMAGE", "ENEMIES"), _st("BURNING", 5.0, 1.0, "ENEMIES", BY_DAMAGE)]
+	_add_to_content(_action(&"test_115_blast", blast, {"aim": "SELF"}))
+	var blasting: Array[StringName] = [&"test_115_blast"]
+	var frail: SummonDef = _hawk({"health_share": 0.01, "abilities": blasting})
+	var thorns: AbilityDef = _passive(&"thorns", "IS_HIT", [_fx("DAMAGE", "TARGET")])
+	_set_all(thorns.effects[0], {"multiplier": 100.0})
+	var spiky: Combatant = _give(_dummy(101), [thorns])
+	var spent: Battle = _battle([_give(_hero(1), [_summoning(&"frail", frail)])], [spiky])
+	events = _run(spent, 4)
+	var gone: Array[SimEvent] = _of(events, SimEvent.Kind.SUMMON_ENDED)
+	assert_eq(_amounts(gone), [1] as Array[int], "the thorns felled it mid-blast")
+	assert_gt(_used(events, &"test_115_blast").size(), 0, "it blasted")
+	assert_eq(_of(events, SimEvent.Kind.STATUS_BEGAN, FIRST).size(), 0, "no burn from the fallen")
+	assert_false(spiky.has_status(AbilityEffect.Status.BURNING), "none on the monster")
 
 	# A third turret over the cap of two replaces its summoner's oldest, not another's.
 	var other: Combatant = _give(_hero(2), [_build_turret(1)])

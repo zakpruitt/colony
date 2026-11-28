@@ -122,19 +122,22 @@ static func from_monster(def: MonsterDef, monster_level: int, combatant_id: int)
 	return c
 
 
-## A summon [param def] of [param summoner]'s, standing where its summoner stands, at its level:
-## its health, damage and healing are its shares of the summoner's now, each at least 1 (no
-## healing with no share). Its abilities are [Content]'s, by the ids [param def] names.
+## A summon [param def] of [param summoner]'s on the heroes' side, standing where its summoner
+## stands, at its level: its health, damage and healing are its shares of the summoner's now,
+## each at least 1 (no damage or healing with no share: one with no damage never strikes). Its
+## abilities are [Content]'s, by the ids [param def] names.
 static func from_summon(def: SummonDef, summoner: Combatant, combatant_id: int) -> Combatant:
 	var c := Combatant.new()
 	c.id = combatant_id
-	c.team = summoner.team
+	c.team = Team.HEROES
 	c.def_id = def.id
 	c.owner_id = summoner.id
 	c.level = summoner.level
 	c.x = summoner.x
 	c.max_health = maxi(1, roundi(summoner.max_health * def.health_share))
-	c.damage = maxi(1, roundi(summoner.damage * def.damage_share))
+	c.damage = 0
+	if def.damage_share > 0.0:
+		c.damage = maxi(1, roundi(summoner.damage * def.damage_share))
 	c.heal_power = 0
 	if def.heal_share > 0.0:
 		c.heal_power = maxi(1, roundi(summoner.heal_power * def.heal_share))
