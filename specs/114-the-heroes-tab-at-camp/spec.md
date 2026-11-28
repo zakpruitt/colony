@@ -1,9 +1,9 @@
 # 114 — The Heroes tab at camp: recruit and choose the four
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 063, 065, 068, 112, 113
-- **Pull request:** —
+- **Pull request:** [#116](https://github.com/zakpruitt/colony/pull/116)
 
 ## Intent
 
@@ -40,7 +40,7 @@ at camp.
     button, a click on a card in the same group, or `Esc` drops the choice and asks for nothing.
   - While a card is lit, a line under the groups says `Choose who the Ranger replaces` (or, from a
     card going down, `Choose who replaces the Knight`).
-  - A swap waiting (`roster.waiting()`) marks both cards `At the next camp` until it is made or
+  - A swap waiting (`roster.waiting()`) marks both cards `At the next Camp` until it is made or
     dropped.
   - Once it is made, both cards move to their new groups within the frame it is heard in.
 - **R4. Recruiting.**
@@ -123,7 +123,7 @@ keys and mouse motion, and checks the simulation after each command. The class t
 |---|---|---|
 | R1 | `test_r1_two_tabs` | Q and E change tab; 1 and B buy and switch only on Upgrades; the tab remembered; the tag counts a recruitable class |
 | R2 | `test_r2_the_four_and_the_bench` | The cards in their groups and order, their words and tooltip; a picture click opens the hero's window; the empty bench line |
-| R3 | `test_r3_two_clicks` | A swap by two clicks reaches the simulation; each way of dropping a choice asks nothing; the line; `At the next camp` during a fight, gone when made |
+| R3 | `test_r3_two_clicks` | A swap by two clicks reaches the simulation; each way of dropping a choice asks nothing; the line; `At the next Camp` during a fight, gone when made |
 | R4 | `test_r4_recruiting` | Before a find, only the hidden line; after it, the card's artifact, request and arrival level; the button off with its tooltip when short, on and working when not; the last line once all have joined; the placeholder picture is found by `UiIcon` |
 | R5 | `test_r5_moments` | A banner for a recent find, burst and banner for a recent recruit, bursts for a swap, nothing for stale ones |
 | R6 | `test_r6_fits` | Rectangles at 960x540 and 1280x720: nothing cut or overlapping, the window inside the room, the bar's size unchanged |
