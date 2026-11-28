@@ -759,8 +759,8 @@ func test_r11_help_wiki_and_showcase() -> void:
 		keys[str(entry[0])] = str(entry[1])
 	# Spec 068 R2: the help calls the shop what its button does, the Camp.
 	assert_string_contains(str(keys.get("U", "")), "Camp", "U opens the shop")
-	assert_string_contains(str(keys.get("1-5", "")), "Camp", "1-5 buy in it")
-	assert_string_contains(str(keys.get("B", "")), "Camp", "B switches auto-buy")
+	assert_string_contains(str(keys.get("1-5", "")), "Upgrades tab", "1-5 buy in it")
+	assert_string_contains(str(keys.get("B", "")), "Upgrades tab", "B switches auto-buy")
 	var help: String = "\n".join(PackedStringArray(HelpPanel.IDEA))
 	assert_string_contains(help, "fifth rank", "help tells of the milestones")
 	var wiki: String = FileAccess.get_file_as_string(WIKI)

@@ -9,10 +9,11 @@ extends Node
 ## while the others sit and watch, one nobody can do, a tripwire sprung and a microskill
 ## learned), a dark room lighting as the party walks in (the black leaving it), a room
 ## behind the party refilling and going black, a side path (its gate being opened, its cache
-## opening, and a gate nobody can open), the shop, the area map with two areas open and the rest
-## closed, a journey to the Claypits and the arrival there (with the map open on the way), the four
-## areas' looks in turn, the knight's talent tree (a node taken by a click, a path ranking up
-## after a won fight, then that path's capstone learned) and the report after time away.
+## opening, and a gate nobody can open), the shop and its Heroes tab, the area map with two areas
+## open and the rest closed, a journey to the Claypits and the arrival there (with the map open on
+## the way), the four areas' looks in turn, the knight's talent tree (a node taken by a click, a
+## path ranking up after a won fight, then that path's capstone learned) and the report after time
+## away.
 ##
 ## It runs a real [Main] (with no save store) and steers its simulation only through the
 ## simulation's own classes: hero health, level and XP, a combatant's crit chance, the expedition's
@@ -69,6 +70,7 @@ const ROWS: Array[Array] = [
 	[&"cache_opened", "THE CACHE AT ITS END", 1.5, &"", SimEvent.Kind.CACHE_OPENED],
 	[&"gate_sealed", "A GATE NOBODY CAN OPEN", 2.0, &"gate", SimEvent.Kind.GATE_SEALED],
 	[&"shop", "THE CAMP WINDOW: A FIFTH RANK BOUGHT", 2.5, &"shop", &"shop"],
+	[&"camp_heroes", "THE CAMP WINDOW: THE HEROES TAB", 2.0, &"camp_heroes", &"camp_heroes"],
 	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO", 1.5, &"area_map", &"area_map"],
 	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
 	[&"four_areas", "THE FOUR AREAS", 0.2, &"four_areas", &"four_areas"],
@@ -310,7 +312,7 @@ func _end_moment() -> void:
 			sim.expedition.stable_seconds = 600.0
 		&"gate_sealed":
 			_moments.end_gates()
-		&"shop":
+		&"shop", &"camp_heroes":
 			main.hud.shop.close()
 		&"area_map", &"journey":
 			main.hud.area_map.close()

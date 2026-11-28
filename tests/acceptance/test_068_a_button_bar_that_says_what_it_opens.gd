@@ -206,8 +206,8 @@ func test_r2_one_name_per_window_everywhere() -> void:
 		for line: String in said:
 			for spelled: String in _spellings(line, named):
 				assert_eq(spelled, named, "%s: the help says '%s' in '%s'" % [id, spelled, line])
-	# The shop: titled Camp upgrades, called Camp, and Shop nowhere beside it.
-	assert_eq(main.ui.windows.window(&"shop").title, "Camp upgrades", "the shop's title")
+	# The shop: titled Camp, called Camp, and Shop nowhere beside it.
+	assert_eq(main.ui.windows.window(&"shop").title, "Camp", "the shop's title")
 	for line: String in said:
 		assert_eq(_spellings(line, "shop"), [] as Array[String], "the help says Camp: %s" % line)
 	assert_eq(_spellings(Purse.GOLD_TIP, "shop"), [] as Array[String], "so does the gold's tooltip")
@@ -223,7 +223,7 @@ func test_r2_one_name_per_window_everywhere() -> void:
 	for where: String in texts:
 		var text: String = texts[where]
 		if titles.has(text):
-			continue  # a title holds the word in a phrase of its own (Camp upgrades, Area map)
+			continue  # a title holds the word in a phrase of its own (Area map, Party tally)
 		assert_eq(_spellings(text, "shop"), [] as Array[String], "%s says Camp: %s" % [where, text])
 		assert_eq(
 			_spellings(text, "area map"), [] as Array[String], "%s says Map: %s" % [where, text]

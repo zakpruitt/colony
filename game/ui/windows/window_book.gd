@@ -81,7 +81,7 @@ static func _own(simulation: Simulation, hud: Hud, tips: UiTip) -> Array[WindowE
 		ShopWindow.TITLE,
 		"Camp",
 		KEY_U,
-		"spend gold on upgrades for the whole party.",
+		"spend gold on upgrades, recruit heroes and choose the four who go down.",
 		func() -> WindowContent: return _handed(hud.shop if hud != null else null, tips),
 		WindowBook.top_right
 	)

@@ -17,10 +17,10 @@ const ROWS: Array[Array] = [
 	[&"target", "- +", "Target a stage back or further", ""],
 	[&"auto", "A", "Auto on or off: go on when it is safe", ""],
 	[&"shop"],
-	[&"auto_buy", "B", "auto-buy on or off", "Camp in front"],
-	[&"buy", "1-5", "buy that upgrade", "Camp in front"],
+	[&"auto_buy", "B", "auto-buy on or off", "Upgrades tab"],
+	[&"buy", "1-5", "buy that upgrade", "Upgrades tab"],
 	[&"paragon", "1-3", "a paragon point to a stat", "Talents tab"],
-	[&"tabs", "Q E", "change tab", "Hero window or Tally"],
+	[&"tabs", "Q E", "change tab", "Hero window, Tally or Camp"],
 	[&"next_hero", "Tab", "Open the next hero's window", ""],
 	[&"close_hero", "Shift+Tab", "Close the front hero window", ""],
 	[&"journal"],
@@ -50,7 +50,7 @@ static var _labels: Dictionary[StringName, String] = {}
 
 
 ## Every key in the help's order, each as [label, what it does], what it does led by when it
-## applies ([code]Camp in front: buy that upgrade[/code]).
+## applies ([code]Upgrades tab: buy that upgrade[/code]).
 static func entries() -> Array[Array]:
 	var windows: Array[WindowEntry] = WindowBook.listed()
 	var named: Dictionary[StringName, bool] = {}

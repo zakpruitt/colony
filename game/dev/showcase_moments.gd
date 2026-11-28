@@ -372,8 +372,16 @@ func _begin_shop(_current: StringName) -> void:
 	sim.upgrades.set_rank(SHOP_UPGRADE, SHOP_RANK - 1)
 	var bones: StringName = Content.upgrade(SHOP_UPGRADE).resource
 	sim.party.set_resource(bones, sim.upgrades.resource_cost(SHOP_UPGRADE))
+	main.hud.shop.set_page(ShopWindow.Page.UPGRADES)
 	main.hud.shop.open()
 	main.hud.shop.buy_row(0)
+
+
+## The Camp window on its Heroes tab: the four going down, and who waits at camp.
+func _begin_camp_heroes(_current: StringName) -> void:
+	settle_now()
+	main.hud.shop.set_page(ShopWindow.Page.HEROES)
+	main.hud.shop.open()
 
 
 func _begin_area_map(_current: StringName) -> void:
@@ -609,6 +617,12 @@ func _watch_shop(event: SimEvent) -> void:
 	if event == null or event.kind != SimEvent.Kind.UPGRADE_BOUGHT:
 		return
 	if main.hud.shop.is_open() and event.amount == SHOP_RANK:
+		_seen = true
+
+
+func _watch_camp_heroes(event: SimEvent) -> void:
+	var shop: ShopWindow = main.hud.shop
+	if event == null and shop.is_open() and shop.page() == ShopWindow.Page.HEROES:
 		_seen = true
 
 

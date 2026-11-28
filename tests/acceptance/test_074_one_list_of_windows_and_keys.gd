@@ -30,7 +30,7 @@ const WINDOWS: Dictionary[StringName, Array] = {
 	[
 		"Camp",
 		"U",
-		"Camp upgrades (U): spend gold on upgrades for the whole party.",
+		"Camp (U): spend gold on upgrades, recruit heroes and choose the four who go down.",
 		"U  Open or close the Camp",
 	],
 	&"map":
@@ -55,10 +55,10 @@ const HELP_KEYS: Array[String] = [
 	"- +  Target a stage back or further",
 	"A  Auto on or off: go on when it is safe",
 	"U  Open or close the Camp",
-	"B  Camp in front: auto-buy on or off",
-	"1-5  Camp in front: buy that upgrade",
+	"B  Upgrades tab: auto-buy on or off",
+	"1-5  Upgrades tab: buy that upgrade",
 	"1-3  Talents tab: a paragon point to a stat",
-	"Q E  Hero window or Tally: change tab",
+	"Q E  Hero window, Tally or Camp: change tab",
 	"Tab  Open the next hero's window",
 	"Shift+Tab  Close the front hero window",
 	"J  Open or close the Journal",
