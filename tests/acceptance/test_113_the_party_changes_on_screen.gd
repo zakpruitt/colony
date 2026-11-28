@@ -40,7 +40,7 @@ func _with_recruit() -> Main:
 
 
 ## The party, all but down, starts to rest where it stands; the camp sets up and the heroes sit.
-func _rest(main: Main) -> void:
+func _camp_out(main: Main) -> void:
 	for hero: Hero in main.simulation.party.heroes:
 		hero.health = 1
 	main.simulation.expedition._start_rest()
@@ -59,7 +59,7 @@ func _swap(main: Main, coming: int, leaving: int, ticks: int = 1) -> bool:
 
 
 ## Plays [param seconds] of frames, a tick each.
-func _play(main: Main, seconds: float) -> void:
+func _run_for(main: Main, seconds: float) -> void:
 	for i: int in roundi(seconds / STEP):
 		_frame(main)
 
@@ -86,7 +86,7 @@ func _sprites_of(main: Main, sheet_path: String) -> int:
 
 
 ## The ids of [param heroes], in order.
-static func _ids(heroes: Array[Hero]) -> Array[int]:
+static func _line_ids(heroes: Array[Hero]) -> Array[int]:
 	var ids: Array[int] = []
 	for hero: Hero in heroes:
 		ids.append(hero.id)
@@ -145,7 +145,7 @@ func test_r1_the_world_follows_a_swap() -> void:
 	var main: Main = _with_recruit()
 	var world: World = main.world
 	assert_null(world.character(RECRUIT), "no sprite for a benched hero")
-	_rest(main)
+	_camp_out(main)
 	var leaving: CharacterSprite = world.character(KNIGHT)
 	var fire_place: Vector2 = world.camp.goal_for(KNIGHT, Vector2.INF)
 	assert_true(world.camp.sits(KNIGHT), "the Knight sits at the fire")
@@ -163,17 +163,17 @@ func test_r1_the_world_follows_a_swap() -> void:
 	var said: String = main.ui.bubbles.line_of(RECRUIT)
 	assert_true(RosterArrivals.LINES.has(said), "a line from the table: %s" % said)
 	assert_lt(coming.modulate.a, 0.5, "fading in")
-	_play(main, RosterArrivals.FADE_SECONDS / 2.0)
+	_run_for(main, RosterArrivals.FADE_SECONDS / 2.0)
 	assert_between(coming.modulate.a, 0.2, 0.9, "half way in")
 	assert_between(leaving.modulate.a, 0.1, 0.8, "half way out")
-	_play(main, RosterArrivals.FADE_SECONDS)
+	_run_for(main, RosterArrivals.FADE_SECONDS)
 	assert_eq(coming.modulate.a, 1.0, "faded in")
 	assert_false(is_instance_valid(leaving), "the Knight's sprite is gone")
 	assert_true(coming.sitting and coming.shown_sit() == 1.0, "the recruit sits by the fire")
 	assert_eq(_sprites_of(main, KNIGHT_SHEET), 1, "the recruit's alone: nothing left")
 
 	# A swap heard while catching up changes the sprites at once, with nothing else.
-	_play(main, 1.0)
+	_run_for(main, 1.0)
 	assert_eq(_puffs(main), 0, "the puffs are over")
 	assert_true(_swap(main, KNIGHT, RECRUIT, World.STALL_TICKS + 5), "swapped back")
 	assert_true(world.catching_up(), "a stalled frame")
@@ -197,7 +197,7 @@ func test_r2_the_frames_follow() -> void:
 	var main: Main = _with_recruit()
 	var sim: Simulation = main.simulation
 	set_level_keeping_health(sim.party.hero(RECRUIT), 7)
-	_rest(main)
+	_camp_out(main)
 	_check_frames(main, "before")
 	assert_true(_swap(main, RECRUIT, KNIGHT), "the swap is made")
 	_check_frames(main, "after")
@@ -216,7 +216,7 @@ func test_r3_the_windows_follow() -> void:
 	var main: Main = _with_recruit()
 	var sim: Simulation = main.simulation
 	var windows: HeroWindows = main.hud.hero_windows
-	_rest(main)
+	_camp_out(main)
 	var knight: Hero = sim.party.hero(KNIGHT)
 	var was: HeroWindow = _open(main, knight, HeroWindow.Page.TALENTS)
 	var at: Vector2 = was.position
@@ -252,7 +252,7 @@ func test_r3_the_windows_follow() -> void:
 		assert_ne(top, bench, "Tab never opens the bench")
 		if top != null:
 			seen.append(top.hero_id)
-	assert_eq(seen.slice(0, 4), _ids(sim.party.heroes), "Tab goes round the four")
+	assert_eq(seen.slice(0, 4), _line_ids(sim.party.heroes), "Tab goes round the four")
 
 	# The bench window's Talents tab plans the Knight's tree.
 	set_level_keeping_health(knight, 40)
@@ -295,7 +295,7 @@ func test_r4_the_tally_follows() -> void:
 	var sim: Simulation = main.simulation
 	var tally: TallyWindow = main.hud.tally
 	main.ui.windows.open_window(TallyWindow.ID)
-	_rest(main)
+	_camp_out(main)
 	var knight: Hero = sim.party.hero(KNIGHT)
 	var recruit: Hero = sim.party.hero(RECRUIT)
 	var counts: Tally = tally.tally
@@ -341,7 +341,7 @@ func test_r5_the_journal_says_it() -> void:
 	assert_true(_written(journal, found), "the find: %s" % [journal.lines()])
 	assert_true(_written(journal, "The Test Recruit joins the colony"), "the recruit")
 	assert_eq(journal.ticker_text(), "The Test Recruit joins the colony", "in the ticker")
-	_rest(main)
+	_camp_out(main)
 	assert_true(_swap(main, RECRUIT, KNIGHT), "the swap is made")
 	var fielded: String = "The Test Recruit goes down in the Knight's place"
 	assert_string_ends_with(journal.lines()[0], fielded)
@@ -355,7 +355,7 @@ func test_r6_drawn_as_it_looks() -> void:
 	var main: Main = _with_recruit()
 	var sim: Simulation = main.simulation
 	main.ui.windows.open_window(TallyWindow.ID)
-	_rest(main)
+	_camp_out(main)
 	assert_true(_swap(main, RECRUIT, KNIGHT), "the swap is made")
 	main.hud.advance(STEP)
 	var recruit: Hero = sim.party.hero(RECRUIT)

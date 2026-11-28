@@ -72,6 +72,8 @@ func take_leaving(id: int, sprite: CharacterSprite) -> bool:
 ## Stands each hero come in at its place, puffing and speaking for one seen as it happens, and
 ## runs the fades on by [param delta] real seconds.
 func advance(delta: float) -> void:
+	if _to_place.is_empty() and _arriving.is_empty() and _leaving.is_empty():
+		return  # the many frames with no change of the four: nothing to look at or allocate
 	for id: int in _to_place.keys():
 		var sprite: CharacterSprite = _world.character(id)
 		if sprite == null:
