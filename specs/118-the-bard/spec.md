@@ -1,6 +1,6 @@
 # 118 — The Bard: songs for the party, lullabies for the foe
 
-- **Status:** draft
+- **Status:** approved (2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 109, 110, 112, 113, 114, 117 (it needs 112's artifact and request fields; its
   Paths share `game/ui/ui_icon.gd`, `pictures_artifacts.px`, the colour tables, the showcase and

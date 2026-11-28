@@ -1,6 +1,6 @@
 # 117 — The Ranger: a bow and the beasts of the hollow
 
-- **Status:** draft
+- **Status:** approved (2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 109, 110, 112, 113, 114, 115, 116 (it needs 112's artifact and request fields and
   115's summons; its Paths share `game/ui/ui_icon.gd` and `pictures_artifacts.px` with 114,
