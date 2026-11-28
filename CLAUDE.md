@@ -86,6 +86,10 @@ incomplete, stop and report the question.
 - **Two layers on screen** (`docs/architecture.md`, specs 058 and 062). The world draws at 640x360 in
   `Main.world_viewport`; every window and piece of UI goes on `UiRoot` (`Main.ui`) in UI pixels, themed by
   `UiTheme`, text by `UiText`. Input stays in 640x360 coordinates: `UiRoot.ui_to_world()` turns a UI point into one.
+  A window content's `get_combined_minimum_size()` read in its `setup` is wrong: its buttons take their size
+  from the theme only once it is on the layer, so measure again as it opens (`ShopWindow._fit_heroes`). A
+  `UiButton` draws `lit` only with `toggle_mode` on, its default: a tab row that turns it off never shows
+  its open tab.
 - **The game's window is `WindowSettings`' business** (spec 067): a played game opens maximized and
   remembers its window in `user://colony.window`; tests, `shot` and headless runs get none
   (`Main.window_settings` is null). To run the real game windowed without it, pass `-- --window-default`;
