@@ -36,6 +36,8 @@ var _fighters: Dictionary[int, Combatant] = {}
 var _owners: Dictionary[int, int] = {}
 var _names: Dictionary[int, String] = {}
 var _places: Dictionary[int, Vector2] = {}
+## Per summon shown: the way to its monsters, 1 right or -1 left, kept as it fades.
+var _facing: Dictionary[int, int] = {}
 ## Per summon id: the name its latest SUMMONED gave, for a sprite made after it.
 var _called: Dictionary[int, String] = {}
 ## Per summon fading: seconds into its fade.
@@ -93,6 +95,23 @@ func goal_of(id: int) -> Vector2:
 	if not _fading.has(id) and _in_battle(id) == fighter:
 		_places[id] = Vector2(fighter.x * World.TILE, _places[id].y)
 	return _places[id]
+
+
+## The way summon [param id] faces when it aims at nobody: toward the nearest monster standing
+## while it fights, the way it last faced once it has ended.
+func facing_of(id: int) -> int:
+	var fighter: Combatant = _fighters[id]
+	var battle: Battle = _world.simulation.expedition.battle
+	if _fading.has(id) or battle == null or battle.combatant(id) != fighter:
+		return _facing[id]
+	var nearest: float = INF
+	for monster: Combatant in battle.monsters:
+		var apart: float = monster.x - fighter.x
+		if monster.is_alive() and absf(apart) < absf(nearest):
+			nearest = apart
+	if nearest != INF and nearest != 0.0:
+		_facing[id] = 1 if nearest > 0.0 else -1
+	return _facing[id]
 
 
 ## The name of the summon [param def_id] as its [SummonDef] has it, from any ability in
@@ -172,8 +191,9 @@ func _show(fighter: Combatant, puffed: bool) -> void:
 	_owners[id] = fighter.owner_id
 	_names[id] = _name_for(id, fighter)
 	_places[id] = at
+	_facing[id] = PartyPlaces.world_facing(_world.simulation.expedition)
 	_world.add_summon(id, sprite, at, fighter.attack_range)
-	sprite.set_facing(PartyPlaces.world_facing(_world.simulation.expedition))
+	sprite.set_facing(facing_of(id))
 	if puffed:
 		_puff(sprite)
 
@@ -196,6 +216,7 @@ func _remove(id: int) -> void:
 	_owners.erase(id)
 	_names.erase(id)
 	_places.erase(id)
+	_facing.erase(id)
 	_fading.erase(id)
 	_world.remove_summon(id)
 

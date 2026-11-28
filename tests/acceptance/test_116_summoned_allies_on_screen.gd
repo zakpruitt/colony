@@ -264,6 +264,8 @@ func test_r1_a_summon_is_drawn() -> void:
 	assert_not_null(turret, "the turret still standing is shown")
 	if turret != null:
 		assert_eq(_puffs_near(main, turret.position), 0, "with no puff: it came a while ago")
+		var side: int = 1 if battle.monsters[0].x * TILE > turret.position.x else -1
+		assert_eq(_facing(turret), side, "facing the monsters, whether or not it aims at one")
 	if flash_id != turret_id:
 		assert_null(main.world.character(flash_id), "the flash, gone already, is never shown")
 
