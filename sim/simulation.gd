@@ -10,7 +10,7 @@ const TICKS_PER_SECOND: int = 10
 ## The length of one tick in microseconds of game time.
 const TICK_USEC: int = 1_000_000 / TICKS_PER_SECOND
 ## The format of [method to_save]. Raising it means adding a step to [method upgrade_save].
-const SAVE_VERSION: int = 11
+const SAVE_VERSION: int = 12
 ## Auto-buy buys at most one upgrade per this many seconds of game time.
 const AUTO_BUY_SECONDS: float = 1.0
 ## A fresh start costs this much gold per level of the hero.
@@ -40,12 +40,14 @@ var auto_buy: bool:
 	set(_value):
 		push_error("Simulation.auto_buy is read-only; call set_auto_buy()")
 
-## The heroes and their gold.
+## The heroes, going down and benched, and their gold.
 var party: Party
 ## Where the party is and what it is doing.
 var expedition: Expedition
 ## The camp upgrades bought: the party's own, shared with every hero.
 var upgrades: Upgrades
+## Recruiting heroes and choosing the four who go down.
+var roster: Roster
 
 var _seed: int
 var _tick: int = 0
@@ -67,6 +69,7 @@ func _init(seed_value: int, shape: Labyrinth.Shape = Labyrinth.Shape.FLAT) -> vo
 	upgrades = party.upgrades
 	var first := Labyrinth.new(seed_value, "", shape)
 	expedition = Expedition.new(first, party, SimRng.new(seed_value).fork("expedition"))
+	roster = Roster.new(party, expedition)
 
 
 ## Advances the simulation by exactly one tick.
@@ -77,6 +80,7 @@ func step() -> void:
 		_pending_auto_buy = -1
 	_apply_buys()
 	_apply_talents()
+	_events.append_array(roster.apply(_tick))
 	_apply_auto_buy()
 	expedition.step(_tick)
 	_events.append_array(expedition.drain_events())
@@ -335,15 +339,6 @@ func state_hash() -> int:
 ## The party's progress as plain values (numbers, strings, booleans, arrays and
 ## dictionaries), for a save file. Not the exact moment: see [method from_save].
 func to_save() -> Dictionary:
-	var heroes: Array = []
-	for hero: Hero in party.heroes:
-		var saved_hero: Dictionary = {
-			"class": String(hero.class_id),
-			"level": hero.level,
-			"xp": hero.xp,
-		}
-		TalentSave.write(hero, saved_hero)
-		heroes.append(saved_hero)
 	var ranks: Dictionary = {}
 	for id: StringName in Content.upgrade_ids():
 		ranks[String(id)] = upgrades.rank(id)
@@ -352,7 +347,6 @@ func to_save() -> Dictionary:
 		"seed": _seed,
 		"tick": _tick,
 		"gold": party.gold,
-		"heroes": heroes,
 		"last_stable_depth": expedition.last_stable_depth,
 		"deepest_depth": expedition.deepest_depth,
 		"target_depth": expedition.target_depth,
@@ -363,6 +357,7 @@ func to_save() -> Dictionary:
 		"guardian_order": PartyOrders.GUARDIAN_SAVED[expedition.guardian_order],
 		"side_paths": PartyOrders.SIDE_PATHS_SAVED[expedition.side_paths],
 	}
+	RosterSave.write(party, saved)
 	AreaSave.write(expedition, saved)
 	ResourceSave.write(self, saved)
 	return saved
@@ -386,22 +381,7 @@ static func from_save(
 	for key: Variant in ranks:
 		var id_text: String = key
 		sim.upgrades.set_rank(StringName(id_text), SaveChecks.whole(ranks[key]))
-	var heroes: Array[Hero] = []
-	var saved_heroes: Array = current["heroes"]
-	for i: int in saved_heroes.size():
-		var saved: Dictionary = saved_heroes[i]
-		var class_text: String = saved["class"]
-		var hero := Hero.new(i + 1, Content.hero_class(StringName(class_text)))
-		hero.upgrades = sim.upgrades
-		hero.level = SaveChecks.whole(saved["level"])
-		hero.xp = SaveChecks.whole(saved["xp"])
-		# A saved hero's XP may pay for more levels than its saved level: take them now, silently,
-		# so the hero is what its XP earns. Health is filled below.
-		hero.gain_xp(0)
-		TalentSave.read(hero, saved)
-		hero.health = hero.max_health()
-		heroes.append(hero)
-	sim.party.heroes = heroes
+	RosterSave.read(sim, current)
 	var auto_push: bool = current["auto_push"]
 	var stable: int = SaveChecks.whole(current["last_stable_depth"])
 	var deepest: int = SaveChecks.whole(current["deepest_depth"])
@@ -449,13 +429,7 @@ static func save_problems(data: Dictionary) -> PackedStringArray:
 	_check_name(problems, current, "pace", PartyOrders.PACE_SAVED)
 	_check_name(problems, current, "guardian_order", PartyOrders.GUARDIAN_SAVED)
 	_check_name(problems, current, "side_paths", PartyOrders.SIDE_PATHS_SAVED)
-	var heroes: Variant = current.get("heroes")
-	if not (heroes is Array) or (heroes as Array).is_empty():
-		problems.append("heroes: missing, not a list or empty")
-	else:
-		var list: Array = heroes
-		for i: int in list.size():
-			_check_hero(problems, list[i], "heroes[%d]" % i)
+	RosterSave.check(problems, current)
 	var stable: Variant = current.get("last_stable_depth")
 	var deepest: Variant = current.get("deepest_depth")
 	if (
@@ -498,6 +472,8 @@ static func upgrade_save(data: Dictionary) -> Dictionary:
 		current = TalentSave.upgrade_9_to_10(current)
 	if SaveChecks.whole(current["version"]) == 10:
 		current = TalentSave.upgrade_10_to_11(current)
+	if SaveChecks.whole(current["version"]) == 11:
+		current = RosterSave.upgrade_11_to_12(current)
 	return current
 
 
@@ -582,25 +558,3 @@ static func _check_upgrades(problems: PackedStringArray, value: Variant) -> void
 					% [where, SaveChecks.whole(rank_value), def.max_rank]
 				)
 			)
-
-
-## Adds a problem for each thing wrong with one saved hero, [param where] in the list.
-static func _check_hero(problems: PackedStringArray, value: Variant, where: String) -> void:
-	if not (value is Dictionary):
-		problems.append("%s: not a hero (class, level, xp, talents, paragon)" % where)
-		return
-	var saved: Dictionary = value
-	var class_text: Variant = saved.get("class")
-	var class_def: HeroClassDef = null
-	if typeof(class_text) != TYPE_STRING:
-		problems.append("%s.class: missing or not text" % where)
-	else:
-		class_def = Content.hero_class(StringName(class_text as String))
-		if class_def == null:
-			problems.append("%s.class: unknown hero class '%s'" % [where, class_text])
-	SaveChecks.check_whole(problems, saved, "level", 1, where + ".")
-	SaveChecks.check_whole(problems, saved, "xp", 0, where + ".")
-	var level: int = 0
-	if SaveChecks.is_whole(saved.get("level")) and SaveChecks.whole(saved["level"]) >= 1:
-		level = SaveChecks.whole(saved["level"])
-	TalentSave.check(problems, saved, class_def, level, where)

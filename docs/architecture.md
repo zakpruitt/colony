@@ -298,7 +298,7 @@ The save is the party's *progress*, not the exact moment (spec 014). `Simulation
 values: a format version, the seed, the tick, the gold, each hero's class, level and XP, and the expedition's
 last stable depth, deepest depth, target depth and auto-push, the rank of each camp upgrade (spec 016), the auto-buy switch (spec 022)
 each hero's talents and paragon points (spec 051), the party's orders (spec 035), and the resources it holds
-and the guardians it has beaten (spec 052).
+and the guardians it has beaten (spec 052), the bench and the artifacts found (spec 112).
 Positions, a fight in progress, chamber timers and
 random streams are not saved: `Simulation.from_save(data)` makes a new simulation from the seed and stands the
 party up the way revival does (`Arrival.from_save`), alive and full at the arrival point of its last
@@ -310,8 +310,8 @@ of any version loads on either with the same progress.
   `from_save` returns `null` if there is any. JSON makes whole numbers floats, so a whole float is read as an
   int; a float past 2^53 is refused, so seeds must stay within ±2^53 to survive a save. Those whole-number
   checks, and a dictionary of counts by known id, are `SaveChecks` (`sim/save_checks.gd`), which every part
-  of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`) shares.
-- **Versions.** `SAVE_VERSION` is 11. Loading goes through `Simulation.upgrade_save`, which brings older data
+  of the save (`Simulation`, `AreaSave`, `ResourceSave`, `TalentSave`, `RosterSave`) shares.
+- **Versions.** `SAVE_VERSION` is 12. Loading goes through `Simulation.upgrade_save`, which brings older data
   forward one step at a time; a new format adds a step there and raises the version. Version 1 to 2 adds
   `upgrades` (a dictionary of upgrade id to rank) with every rank 0. A rank that is negative, above the
   upgrade's maximum or for an unknown upgrade is refused by name; unknown extra top-level keys are tolerated.
@@ -353,6 +353,14 @@ of any version loads on either with the same progress.
   `[0, 0, 0]`. `paths` that is missing, not a list of three or holds anything but whole numbers of 0 or
   more is refused by name (`heroes[2].paths`), as is a node held whose tier needs a higher rank than its
   path's saved XP gives (`heroes[0].talents[3]`).
+  Version 11 to 12 (spec 112, `RosterSave.upgrade_11_to_12`) adds `bench` (empty) and `artifacts`
+  (none). `RosterSave` writes, reads and checks `heroes` too: `heroes` holds the four going down in
+  formation order, `bench` the benched in id order, each hero saved alike, and `artifacts` the class ids
+  found in `Content.hero_class_ids()` order. Ids are not saved: on loading the heroes going down take 1, 2
+  ... and the bench the next ids. Refused by name: `bench` missing or not a list, a benched hero with any
+  problem a hero going down would have (`bench[0].level`), more than four in `heroes`, a second hero of a
+  class anywhere (`bench[1].class`), `artifacts` missing or not a list, an id in it that is not a class, a
+  starting class or twice (`artifacts[1]`), and a hero of a new class whose artifact is not in it.
 - **Orders (spec 035).** `Expedition.pace` and `Expedition.guardian_order`, set through
   `Simulation.set_pace` and `set_guardian_order`, apply on the next step with an `ORDER_CHANGED` event. The
   pace picks the share of health below which a hero makes the party rest (`PartyOrders.rest_below`); under
@@ -500,7 +508,8 @@ tick reaches nothing; and the room a path leaves comes first: reached before tha
 clear of monsters, the path waits, and the party walks back to `at` once it is. It walks to `gate_at`, is WORKING for the
 gate's seconds (`GATE_STARTED`, then `GATE_OPENED`; `working_quest()` is empty), walks to the far wall,
 opens the cache as its anchor steps onto the cache room's floor (`CACHE_OPENED`, then `GOLD_GAINED`,
-`XP_GAINED` for each living hero and `RESOURCE_GAINED`), walks back and stands at `at` again facing
+`XP_GAINED` for each living hero and `RESOURCE_GAINED`, then perhaps `ARTIFACT_FOUND`: "The roster",
+below), walks back and stands at `at` again facing
 the way it was going. `chamber()` is the cache room while the anchor is in it and null on the rest of
 the path. With nobody able the party walks on and `GATE_SEALED` is told once for that gate until the
 party next arrives on the stage. An opened cache is passed for `SidePathRules.REFILL_SECONDS`; a wipe or
@@ -654,6 +663,34 @@ A lost fight, or one ended at the 90-second limit, gives nothing. `Party.hash_pa
 XP only while `ranks.any()`, so a run that spends nothing hashes as it did. The tab shows ranks
 as spec 111 lays them out (Hero windows, above). An `AbilityEffect` with
 `damage_from_healing` deals its multiplier times the fighter's healing power (the Sunpriest's holy damage).
+
+## The roster
+
+The colony may hold more heroes than the four who go down (spec 112). `Party.heroes` is still exactly the
+four going down, in formation order (by `HeroClassDef.Role`, then id), and every system that reads it is
+unchanged; `Party.bench` holds the rest in id order, `Party.roster()` is both, and `Party.hero(id)` finds
+either. A benched hero earns no XP or path XP, does no quest and opens no gate, but takes talent and
+paragon commands as one going down does. The colony holds one hero of each class, since every sentence
+names a hero by its class.
+
+- **Artifacts.** A class not in `Party.STARTING_CLASSES` names its artifact (`artifact_name`,
+  `artifact_picture`), its chance per cache (`artifact_chance`) and its request (`recruit_gold`, and
+  optionally `recruit_resource_count` of `recruit_resource`); `looks_like` names a class it is drawn as
+  until it has its own pictures (`HeroClassDef.look()`). `ArtifactFinds.on_cache` (`sim/expedition/`),
+  called once by `SidePathWalk._pay` after the cache's events, forks a stream for that cache alone
+  (`artifact/<area>/<stage>/<side path>/<tick>`), draws one number and walks the classes not yet found
+  in `Content.hero_class_ids()` order adding up their chances: the first whose total passes it is found
+  (`Party.artifacts`, `ARTIFACT_FOUND`: source the opener, target the class's place). With no class left
+  to find nothing is forked, so no roll, hash or baseline changes while the data has none.
+- **Commands.** `Simulation.roster` (`Roster`, `sim/party/roster.gd`), applied in `Simulation.step` after
+  the talent commands. `recruit(class_id)` pays the request on the next step for a class that waits at camp
+  (`is_waiting`: found, and none of it in the colony); the hero joins the bench at the level of the
+  lowest going down with that level's XP, every point unspent, every path at 0 (`HERO_RECRUITED`: source
+  the new id, one more than the largest, target the class's place, amount the gold). `swap(bench_id,
+  field_id)` waits (`waiting()`, not saved) for a step that begins with the party travelling or resting,
+  then each swap still true is made: the newcomer stands at full health and the four are sorted again
+  (`HERO_FIELDED`: source in, target out). Bad ids do nothing.
+- **Hash.** `Party.hash_parts` adds the bench and the artifacts only while either holds something.
 
 ## Zones on screen
 

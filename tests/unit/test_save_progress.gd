@@ -108,4 +108,7 @@ func test_saving_a_loaded_simulation_gives_the_same_data() -> void:
 		expected["guardians_beaten"] = []
 		# Spec 096: version 9 adds the side path order at its default.
 		expected["side_paths"] = "explore"
+		# Spec 112: version 12 adds an empty bench and no artifact found.
+		expected["bench"] = []
+		expected["artifacts"] = []
 		assert_eq(sim.to_save(), expected)

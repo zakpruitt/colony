@@ -1,12 +1,18 @@
 class_name Party
 extends RefCounted
-## The heroes on the expedition, and the gold and resources they carry.
+## The heroes of the colony (the four going down and the bench), and the gold and resources
+## they carry.
 
 ## The classes a new party is made of, in formation order (tank first). Hero ids are 1, 2, ...
 const STARTING_CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
 
-var heroes: Array[Hero] = []  # in formation order: tank first
+## The heroes going down, in formation order: by [enum HeroClassDef.Role], then by id.
+var heroes: Array[Hero] = []
 var gold: int = 0
+## The heroes not going down, in id order.
+var bench: Array[Hero] = []
+## The classes whose artifact has been found, in [method Content.hero_class_ids] order.
+var artifacts: Array[StringName] = []
 ## The camp upgrades bought, shared by every hero.
 var upgrades: Upgrades = Upgrades.new()
 
@@ -26,12 +32,33 @@ func _init() -> void:
 		heroes.append(hero_made)
 
 
-## The hero with this id, or null.
+## The hero with this id, going down or benched, or null.
 func hero(id: int) -> Hero:
 	for h: Hero in heroes:
 		if h.id == id:
 			return h
+	for h: Hero in bench:
+		if h.id == id:
+			return h
 	return null
+
+
+## Every hero in the colony: the heroes going down, then the bench.
+func roster() -> Array[Hero]:
+	var everyone: Array[Hero] = heroes.duplicate()
+	everyone.append_array(bench)
+	return everyone
+
+
+## True if a hero of class [param class_id] is in the colony, going down or benched.
+func has_class(class_id: StringName) -> bool:
+	for h: Hero in heroes:
+		if h.class_id == class_id:
+			return true
+	for h: Hero in bench:
+		if h.class_id == class_id:
+			return true
+	return false
 
 
 ## How many of resource [param id] the party holds; 0 for one it has none of, or an unknown id.
@@ -84,24 +111,35 @@ func heroes_with_microskill(id: StringName) -> Array[Hero]:
 func hash_parts() -> Array:
 	var parts: Array = [gold]
 	for h: Hero in heroes:
-		var hero_parts: Array = [h.id, h.class_id, h.level, h.xp, h.health]
-		# Only when grown, to keep the hash of a hero with no talents or paragon points.
-		if h.has_grown():
-			var ranks: Array = []
-			for stat: int in TrainingDef.Stat.values():
-				ranks.append(h.paragon_rank(stat as TrainingDef.Stat))
-			hero_parts.append([h.talents(), ranks])
-		# Only when some is earned, to keep the hash of a run that spends nothing.
-		if h.ranks.any():
-			var paths: Array = []
-			for path: int in TalentTreeDef.PATH_COUNT:
-				paths.append(h.ranks.xp(path))
-			hero_parts.append(["paths", paths])
-		parts.append(hero_parts)
+		parts.append(_hero_parts(h))
 	# Only when held, to keep the hash of a party with no resources.
 	if has_resources():
 		var held: Array = []
 		for id: StringName in Content.resource_ids():
 			held.append(resource(id))
 		parts.append(["resources", held])
+	# Only when there is one, to keep the hash of a colony of four.
+	if not bench.is_empty() or not artifacts.is_empty():
+		var benched: Array = []
+		for h: Hero in bench:
+			benched.append(_hero_parts(h))
+		parts.append(["roster", benched, artifacts.duplicate()])
 	return parts
+
+
+## One hero's state as plain values, for [method hash_parts].
+func _hero_parts(h: Hero) -> Array:
+	var hero_parts: Array = [h.id, h.class_id, h.level, h.xp, h.health]
+	# Only when grown, to keep the hash of a hero with no talents or paragon points.
+	if h.has_grown():
+		var ranks: Array = []
+		for stat: int in TrainingDef.Stat.values():
+			ranks.append(h.paragon_rank(stat as TrainingDef.Stat))
+		hero_parts.append([h.talents(), ranks])
+	# Only when some is earned, to keep the hash of a run that spends nothing.
+	if h.ranks.any():
+		var paths: Array = []
+		for path: int in TalentTreeDef.PATH_COUNT:
+			paths.append(h.ranks.xp(path))
+		hero_parts.append(["paths", paths])
+	return hero_parts

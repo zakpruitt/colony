@@ -37,6 +37,9 @@ enum Kind {
 	CACHE_OPENED,
 	SUMMONED,
 	SUMMON_ENDED,
+	ARTIFACT_FOUND,
+	HERO_RECRUITED,
+	HERO_FIELDED,
 	ENCOUNTER_STARTED,
 	ENCOUNTER_ENDED,
 	XP_GAINED,
@@ -92,6 +95,10 @@ var target_id: int = -1
 ## [member target_id] the summon and [member ability_id] the summoning ability. SUMMON_ENDED: why
 ## ([enum BattleSummons.Ended]: 0 its time, 1 it fell, 2 replaced, 3 the fight ended), with
 ## [member source_id] the summon and [member target_id] its summoner.
+## For the roster kinds, with [member target_id] a class's place in [method Content.hero_class_ids]
+## unless said: ARTIFACT_FOUND: 0, with [member source_id] the hero who opened the cache's gate;
+## HERO_RECRUITED: the gold paid, with [member source_id] the new hero; HERO_FIELDED: 0, with
+## [member source_id] the hero who came in and [member target_id] the hero who left.
 var amount: int = 0
 ## Crit for HIT; "is a heal" for PROJECTILE_LAUNCHED; "the heroes won" for ENCOUNTER_ENDED;
 ## "a hazard sprang" for QUEST_MISSED; "a shield absorbed it" for MISSED.

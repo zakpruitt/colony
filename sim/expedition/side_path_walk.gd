@@ -216,7 +216,8 @@ func _start_work(run: Expedition, path: SidePath) -> void:
 
 
 ## Opens the cache of the side path [param run]'s party is on: gold for the party, XP for every
-## living hero and the area's resource, and the cache is empty from this tick.
+## living hero and the area's resource, perhaps a new class's artifact, and the cache is empty
+## from this tick.
 func _pay(run: Expedition) -> void:
 	_paid = true
 	_opened[Vector2i(run.depth, run.side_path)] = run._tick
@@ -230,6 +231,7 @@ func _pay(run: Expedition) -> void:
 		if hero.is_alive():
 			run._give_xp(hero, xp)
 	ResourceDrops.on_cache(run, _opener, run.depth, SidePathRules.CACHE_DROPS)
+	ArtifactFinds.on_cache(run, _opener)
 
 
 ## Back where the side path left the main course, going on the way the party was going.
