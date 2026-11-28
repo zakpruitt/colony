@@ -396,6 +396,8 @@ func _fighting(fighter: Combatant) -> String:
 	var target: Combatant = _simulation.expedition.battle.combatant(fighter.target_id)
 	if target == null:
 		return "Fighting"
+	if target.is_summon():
+		return "Healing %s" % SummonSprites.def_name(target.def_id)
 	if target.team == Combatant.Team.HEROES:
 		var ally: Hero = _simulation.party.hero(target.id)
 		return "Healing %s" % ally.def().display_name if ally != null else "Healing"

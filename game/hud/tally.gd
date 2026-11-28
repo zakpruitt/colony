@@ -14,8 +14,11 @@ extends RefCounted
 ## taken; the tally's tooltips say so.
 ## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
 ## last fight; [constant SimEvent.Kind.QUEST_DONE] counts one quest for its worker.
-## A hero is any id below [constant Expedition.FIRST_MONSTER_ID]. The side paths' gates and
-## caches are counted by [member side_paths].
+## A hero is any id below [constant Battle.FIRST_SUMMON_ID]. A summon's blows and heals count
+## to its summoner (the source of its [constant SimEvent.Kind.SUMMONED], or
+## [method note_summon]), by ability as one line under the summon's name; the blows it takes are
+## not the party's, and are not counted. The side paths' gates and caches are counted by
+## [member side_paths].
 ##
 ## Each hero's damage dealt and healing done is also kept by what dealt or gave it (an ability, a
 ## status working, or an ordinary strike or heal), as an [AbilityCredit] reading the same events
@@ -25,6 +28,9 @@ extends RefCounted
 enum Measure { DAMAGE, HEALING, TAKEN }
 ## Over how long.
 enum Span { LAST_FIGHT, SESSION }
+
+## The start of a summon's key among the lines by ability, before its id.
+const SUMMON_KEY: String = "summon:"
 
 ## What each blow and heal was, and the statuses on every fighter.
 var credit: AbilityCredit = AbilityCredit.new()
@@ -37,6 +43,12 @@ var _amounts: Array[Array] = []
 ## [method AbilityCredit.key].
 var _by_ability: Array[Array] = []
 var _quests: Dictionary[int, int] = {}
+## Per summon standing: its summoner's id, and the key its line by ability is kept under.
+var _summoners: Dictionary[int, int] = {}
+var _summon_keys: Dictionary[int, String] = {}
+## The name of each summon's line by ability, by its key; and each summon id's key, made once.
+var _summon_names: Dictionary[String, String] = {}
+var _key_of: Dictionary[StringName, String] = {}
 var _fights: int = 0
 var _in_fight: bool = false
 
@@ -65,19 +77,40 @@ func observe(event: SimEvent) -> void:
 			_in_fight = true
 		SimEvent.Kind.ENCOUNTER_ENDED:
 			_in_fight = false
+		SimEvent.Kind.SUMMONED:
+			var def: SummonDef = SummonSprites.summoned(event)
+			if def != null:
+				note_summon(event.target_id, event.source_id, def.id, def.display_name)
+		SimEvent.Kind.SUMMON_ENDED:
+			_summoners.erase(event.source_id)
+			_summon_keys.erase(event.source_id)
 		SimEvent.Kind.HIT:
 			if _is_hero(event.target_id):
 				_add(Measure.TAKEN, event.target_id, event.amount, event.source_id >= 0)
-			elif _is_hero(event.source_id):
-				_add(Measure.DAMAGE, event.source_id, event.amount, true)
-				_add_credit(Measure.DAMAGE, event.source_id, event.amount)
+			elif event.target_id >= Expedition.FIRST_MONSTER_ID:
+				_dealt(Measure.DAMAGE, event)
 		SimEvent.Kind.HEALED:
-			if _is_hero(event.source_id) and _is_hero(event.target_id):
-				_add(Measure.HEALING, event.source_id, event.amount, true)
-				_add_credit(Measure.HEALING, event.source_id, event.amount)
+			if _is_hero(event.target_id):
+				_dealt(Measure.HEALING, event)
 		SimEvent.Kind.QUEST_DONE:
 			if _is_hero(event.source_id):
 				_quests[event.source_id] = _quests.get(event.source_id, 0) + 1
+
+
+## Summon [param summon_id], standing in the fight, is [param summoner_id]'s, of the
+## [SummonDef] [param def_id] named [param display_name]: what it deals and gives counts to
+## its summoner, by ability under that name. The events tell it of each summon as it comes; a
+## tally made mid-fight is told of those standing.
+func note_summon(
+	summon_id: int, summoner_id: int, def_id: StringName, display_name: String
+) -> void:
+	var key: String = _key_of.get(def_id, "")
+	if key.is_empty():
+		key = SUMMON_KEY + String(def_id)
+		_key_of[def_id] = key
+	_summoners[summon_id] = summoner_id
+	_summon_keys[summon_id] = key
+	_summon_names[key] = display_name
 
 
 ## How much of [param measure] the hero with id [param hero_id] has over [param span].
@@ -115,7 +148,10 @@ func by_ability(hero_id: int, measure: Measure, span: Span) -> Dictionary[String
 	)
 	for credit_key: String in keys:
 		var amount: int = mine[credit_key]
-		found[AbilityCredit.name_of(credit_key, measure == Measure.HEALING)] = amount
+		var named: String = _summon_names.get(credit_key, "")
+		if named.is_empty():
+			named = AbilityCredit.name_of(credit_key, measure == Measure.HEALING)
+		found[named] = amount
 	return found
 
 
@@ -176,17 +212,32 @@ func _add(measure: Measure, hero_id: int, amount: int, in_last_fight: bool) -> v
 		table[hero_id] = before + amount
 
 
-## Adds [param amount] of [param measure] to [param hero_id]'s line for what [member credit] says
-## the event was, in the session and the last fight.
-func _add_credit(measure: Measure, hero_id: int, amount: int) -> void:
+## Counts [param event]'s amount of [param measure] (damage or healing) to its source: a hero,
+## or a summon's summoner under the summon's line. Nothing for any other source.
+func _dealt(measure: Measure, event: SimEvent) -> void:
+	var hero_id: int = event.source_id
+	var credit_key: String = ""
+	if _summoners.has(hero_id):
+		credit_key = _summon_keys[hero_id]
+		hero_id = _summoners[hero_id]
+	elif _is_hero(hero_id):
+		credit_key = credit.key()
+	else:
+		return
+	_add(measure, hero_id, event.amount, true)
+	_add_credit(measure, hero_id, event.amount, credit_key)
+
+
+## Adds [param amount] of [param measure] to [param hero_id]'s line under [param credit_key]
+## ([method AbilityCredit.key], or a summon's), in the session and the last fight.
+func _add_credit(measure: Measure, hero_id: int, amount: int, credit_key: String) -> void:
 	for span: int in Span.size():
 		var table: Dictionary = _by_ability[span][measure]
 		var mine: Dictionary = table.get(hero_id, {})
-		var credit_key: String = credit.key()
 		var before: int = mine.get(credit_key, 0)
 		mine[credit_key] = before + amount
 		table[hero_id] = mine
 
 
 static func _is_hero(id: int) -> bool:
-	return id >= 0 and id < Expedition.FIRST_MONSTER_ID
+	return id >= 0 and id < Battle.FIRST_SUMMON_ID

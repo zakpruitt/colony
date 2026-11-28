@@ -9,9 +9,10 @@ extends WindowContent
 ## each area ([method side_path_rows]).
 ##
 ## Clicking a hero's line opens its abilities under it, indented, each with a thin
-## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950"), largest
-## first. A second click closes it. [kbd]Q[/kbd] and [kbd]E[/kbd] change tab while the tally is the
-## front window ([WindowKeys] hears them).
+## bar: the open tab's measure by what dealt or gave it ("Whirlwind 412", "Strikes 950", a
+## summon's share under its name, "Hawk 412"), largest first. A second click closes it.
+## [kbd]Q[/kbd] and [kbd]E[/kbd] change tab while the tally is the front window ([WindowKeys]
+## hears them).
 ##
 ## The counting is a [Tally] fed every event the world tells of, open or not, from the moment the
 ## HUD is made: after time away the HUD is made only once the replay is over, so the time
@@ -271,12 +272,16 @@ func bar_fraction(hero_id: int) -> float:
 	return bars[index].fraction if index >= 0 else 0.0
 
 
-## The width of the abilities' name column: the longest ability name in the data, or the longest
-## of the other names a line can have, whichever is wider.
+## The width of the abilities' name column: the longest ability or summon name in the data, or
+## the longest of the other names a line can have, whichever is wider.
 func ability_name_width() -> int:
 	var widest: int = UiText.width("Others")
 	for id: StringName in Content.ability_ids():
-		widest = maxi(widest, UiText.width(Content.ability(id).display_name))
+		var ability: AbilityDef = Content.ability(id)
+		widest = maxi(widest, UiText.width(ability.display_name))
+		for effect: AbilityEffect in ability.effects:
+			if effect.summon != null:
+				widest = maxi(widest, UiText.width(effect.summon.display_name))
 	for named: String in [AbilityCredit.STRIKES, AbilityCredit.HEALS]:
 		widest = maxi(widest, UiText.width(named))
 	for kind: int in AbilityEffect.Status.size():
@@ -373,6 +378,9 @@ func _join_fight() -> void:
 		return
 	var began: int = maxi(0, _simulation.tick - e.battle.tick)
 	_on_sim_event(SimEvent.new(SimEvent.Kind.ENCOUNTER_STARTED, began, -1, -1, room.index))
+	for summon: Combatant in e.battle.summons:
+		var summon_name: String = SummonSprites.def_name(summon.def_id)
+		tally.note_summon(summon.id, summon.owner_id, summon.def_id, summon_name)
 
 
 ## The kinds of monster in the battle in chamber [param chamber_index], if the expedition is still

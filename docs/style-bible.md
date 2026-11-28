@@ -92,6 +92,11 @@ Each character has its own main colour, so the party and the monsters read apart
 | `bone_lord` | `boss` | `sand` bone under `dusk` armour, `plum` cloak, `cyan` eyes, `steel` great blade | body, head, arm, weapon (great blade) |
 | `deep_maw` | `boss` | `pine` and `deep_teal`, `crimson` and `magenta` maw with `white` teeth, `cyan` eyes | legs_back, body, eyes, legs, arm (tentacle) |
 
+A summon (spec 116) is drawn from `assets/sprites/summons/<summon id>.px` (category `monster_small`),
+or, until its class draws its own, from `summons/placeholder.px`: a small pale creature, no more than 12
+pixels tall, in `silver`, `white` and `steel` with `cyan` eyes (legs_back, body, legs, eyes), so a summon
+reads as small and on the heroes' side beside the monsters' colours.
+
 Monsters take colours from their depth band: the loam's are free, the clay's are warm, the stone's are cold,
 and the deep's are teal and strange.
 

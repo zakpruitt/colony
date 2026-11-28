@@ -322,7 +322,8 @@ func _healed(event: SimEvent) -> void:
 	var target: CharacterSprite = _world.character(event.target_id)
 	if target == null:
 		return
-	_number(event.target_id, "+%d" % event.amount, &"green", NUMBER_SCALE, &"heal")
+	var color_name: StringName = ability_effects.number_color(event, &"green")
+	_number(event.target_id, "+%d" % event.amount, color_name, NUMBER_SCALE, &"heal")
 	var height: float = _height(target)
 	for i: int in 6:
 		var sparkle: FxParticle = new_particle(&"sparkle")

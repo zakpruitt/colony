@@ -1,7 +1,7 @@
 class_name CharacterSprite
 extends Node2D
-## A hero or monster drawn from its part-based sheet (docs/style-bible.md) and animated in code:
-## it breathes, walks, winds up and strikes, flinches and dies.
+## A hero, monster or summon drawn from its part-based sheet (docs/style-bible.md) and animated
+## in code: it breathes, walks, winds up and strikes, flinches and dies.
 ##
 ## Every pose is computed in [method advance] from elapsed time, never from a wall clock or a
 ## Tween, so a test can step it exactly. The pose has layers: a base loop (idle or walk), and
@@ -28,6 +28,9 @@ enum Style {
 
 const HEROES_DIR: String = "res://assets/sprites/heroes"
 const MONSTERS_DIR: String = "res://assets/sprites/monsters"
+const SUMMONS_DIR: String = "res://assets/sprites/summons"
+## The sheet in [constant SUMMONS_DIR] every summon without one of its own is drawn with.
+const PLACEHOLDER: StringName = &"placeholder"
 const FLASH_SHADER: Shader = preload("res://game/entities/flash.gdshader")
 
 # Idle.
@@ -129,6 +132,8 @@ const SIT_WEAPON: float = -1.6
 const PHASE_SPREAD: float = 0.618034
 
 static var _created: int = 0
+## The sheet each summon id was found to have, worked out once: a summon comes often.
+static var _summon_sheets: Dictionary[StringName, String] = {}
 
 ## True while the character is stunned: it stands still in the pose it had, though a hit
 ## or a death still plays.
@@ -211,6 +216,15 @@ static func for_hero(class_id: StringName) -> CharacterSprite:
 ## The monster [param monster_id], from assets/sprites/monsters/<id>.png.
 static func for_monster(monster_id: StringName) -> CharacterSprite:
 	return create("%s/%s.png" % [MONSTERS_DIR, monster_id])
+
+
+## The summon [param summon_id]'s sheet, or the placeholder when it has none of its own.
+static func for_summon(summon_id: StringName) -> CharacterSprite:
+	if not _summon_sheets.has(summon_id):
+		var own: String = "%s/%s.png" % [SUMMONS_DIR, summon_id]
+		var found: bool = ResourceLoader.exists(own)
+		_summon_sheets[summon_id] = own if found else "%s/%s.png" % [SUMMONS_DIR, PLACEHOLDER]
+	return create(_summon_sheets[summon_id])
 
 
 func _process(delta: float) -> void:

@@ -2,9 +2,9 @@ class_name AbilityEffects
 extends Node
 ## Abilities on screen: what a fighter's action or passive is and does, told plainly.
 ##
-## - An ability's name rises over its fighter in the hero's (or monster's) colour, at most
-##   [constant MAX_NAMES] stacked over one fighter. An action is named as its wind-up begins, a
-##   passive as it fires.
+## - An ability's name rises over its fighter in the hero's (a summon's summoner's, or a
+##   monster's) colour, at most [constant MAX_NAMES] stacked over one fighter. An action is
+##   named as its wind-up begins, a passive as it fires.
 ## - An action's wind-up lights its fighter (a pulsing glow for its length) and performs its
 ##   move; a heavy blow throws a larger spark, damage to many a ring on the floor, a push
 ##   kicks dust at the feet of those the events say it landed on (its target, and whoever its
@@ -147,12 +147,18 @@ func keep_drop_in_band(icon: FxResource) -> void:
 		icon.position += _band_shift(box)
 
 
-## The colour a damage number of [param event] is drawn in: a status's own colour for damage a
-## burning, bleeding or chilled status did, [param fallback] otherwise.
+## The colour a damage or heal number of [param event] is drawn in: a status's own colour for
+## damage a burning, bleeding or chilled status did, [param fallback] for a critical hit, a
+## summon's summoner's class colour for what else it dealt or healed, [param fallback] otherwise.
 func number_color(event: SimEvent, fallback: StringName) -> StringName:
 	if event == _last_hit and STATUS_COLORS.has(credit.status):
 		return STATUS_COLORS[credit.status]
-	return fallback
+	if event.kind == SimEvent.Kind.HIT and event.flag:
+		return fallback  # a critical hit reads as one, whoever struck it
+	var summoner: StringName = (
+		_world.summons.colour_of(event.source_id) if _summoned(event) else &""
+	)
+	return summoner if summoner != &"" else fallback
 
 
 ## The names showing over fighter [param id], lowest first.
@@ -224,7 +230,7 @@ func _on_sim_event(event: SimEvent) -> void:
 		SimEvent.Kind.MISSED:
 			if recent:
 				_miss(event)
-		SimEvent.Kind.DIED:
+		SimEvent.Kind.DIED, SimEvent.Kind.SUMMON_ENDED:
 			_died(event.source_id)
 		SimEvent.Kind.STATUS_BEGAN:
 			if event.status == AbilityEffect.Status.STUNNED:
@@ -429,6 +435,11 @@ func _measures(id: int) -> Combatant:
 	return _world._monsters.get(id, null)
 
 
+## True when [param event] comes from a summon, by its id.
+func _summoned(event: SimEvent) -> bool:
+	return SummonSprites.is_summon_id(event.source_id) and _world.summons != null
+
+
 func _died(id: int) -> void:
 	_stop_glow(id, true)
 	_dust.erase(id)
@@ -505,9 +516,12 @@ func _place_name(text: FxText) -> bool:
 	return true
 
 
-## The name colour of fighter [param id]: a hero's class colour (its tally bar's), a monster's
-## most vivid sheet colour, or white.
+## The name colour of fighter [param id]: a hero's class colour (its tally bar's), a summon's
+## summoner's, a monster's most vivid sheet colour, or white.
 func _fighter_color(id: int) -> Color:
+	if SummonSprites.is_summon_id(id) and _world.summons != null:
+		var summoner: StringName = _world.summons.colour_of(id)
+		return Palette.color(summoner if summoner != &"" else &"white")
 	if id < Expedition.FIRST_MONSTER_ID:
 		var hero: Hero = _simulation.party.hero(id)
 		if hero != null:
