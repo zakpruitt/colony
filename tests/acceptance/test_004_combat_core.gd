@@ -32,6 +32,10 @@ func _hero_def(role: HeroClassDef.Role, overrides: Dictionary = {}) -> HeroClass
 	def.heal_power = 0
 	def.health_per_level = 10
 	def.damage_per_level = 1
+	# Not a starting class, so recruited: spec 112 asks it for an artifact and a price.
+	def.artifact_name = "Test Charm"
+	def.artifact_chance = 0.1
+	def.recruit_gold = 100
 	for key: String in overrides:
 		def.set(key, overrides[key])
 	return def
