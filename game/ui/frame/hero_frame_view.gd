@@ -12,6 +12,9 @@ extends Control
 ##
 ## The tag counts the hero's unspent talent and paragon points and the microskills learned since
 ## the hero's Skills tab was last open, as the hero window's tab tags do.
+##
+## A frame is a place in the line: when another hero goes down there, [method show_hero] makes it
+## that hero's at once. Its portrait is the class the hero looks like ([method HeroClassDef.look]).
 
 ## Clicking the frame opens or closes this hero's window.
 signal clicked(hero_id: int)
@@ -108,7 +111,7 @@ func _init(hero: Hero, hud: Hud) -> void:
 	hero_id = hero.id
 	_hero = hero
 	_hud = hud
-	_class_id = hero.class_id
+	_class_id = hero.def().look()
 	name = "Frame%d" % hero.id
 	size = SIZE
 	mouse_filter = Control.MOUSE_FILTER_STOP
@@ -145,6 +148,22 @@ func _init(hero: Hero, hud: Hud) -> void:
 	_health.snap(_health_fraction(hero))
 	_xp.snap(xp_progress(hero))
 	refresh(hero, 0.0)
+
+
+## Makes the frame [param hero]'s, the hero now going down at its place: its name, level, bars
+## and tag as they are, with nothing flashing or pulsing.
+func show_hero(hero: Hero) -> void:
+	hero_id = hero.id
+	_hero = hero
+	_class_id = hero.def().look()
+	fighter = null
+	WindowText.set_text(name_label, hero.def().display_name)
+	_skills_seen = hero.microskills().size()
+	_learned_at = -1
+	_icon_part = &""
+	_worded = ShownValues.new()
+	_drawn = ShownValues.new()
+	snap()
 
 
 ## The hero's progress from its level toward the next, from 0 to 1.

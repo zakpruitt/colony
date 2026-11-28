@@ -161,9 +161,10 @@ The picture is drawn in two layers, each in its own pixels.
   after the bar and then the `Milestones` `Main` gives it (`UiRoot.milestones`), so a banner they
   queue drops in on the next frame; none has a `_process` of its own.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
-  `Hud`, owns one `HeroWindow` per hero, registered as `hero_0` to `hero_3` by the hero's place in the
-  party. All four are as tall as the tallest needs, so lines line up across them. Places go by what is
-  open: an undragged window takes, as it opens, the first free one of `HeroWindows._places` (left
+  `Hud`, owns one `HeroWindow` per place in the line, registered as `hero_0` to `hero_3`, and one
+  for the bench (spec 113, "Views that follow the party"). Every hero window, the bench's too, is
+  as tall as the tallest needs, so lines line up across them. Places go by what is open: an
+  undragged place window takes, as it opens, the first free one of `HeroWindows._places` (left
   column, right column, then a cascade at 1280x720; a cascade at 960x540, where the windows are made
   short enough that two clear the frames' line, the cascade clears the bar (`UiButtonBar.rect_in`) and
   the tabs' content scrolls in `HeroWindow.scroll`, the Talents tab's `top_row` standing above it).
@@ -691,6 +692,34 @@ names a hero by its class.
   then each swap still true is made: the newcomer stands at full health and the four are sorted again
   (`HERO_FIELDED`: source in, target out). Bad ids do nothing.
 - **Hash.** `Party.hash_parts` adds the bench and the artifacts only while either holds something.
+
+## Views that follow the party
+
+Spec 113. Every view built for the four going down follows a change of them (`HERO_FIELDED`):
+none keeps a hero for good, each keeps a place in the line and shows whoever stands there now.
+
+- **The world.** A hero not going down has no sprite of `World`'s: `_remove_unwanted` takes it
+  away. `RosterArrivals` (`game/world/roster_arrivals.gd`, `World.arrivals`, hearing the events
+  itself) is handed the sprite when the change may animate (`take_leaving`) and fades it out over
+  `FADE_SECONDS` in a puff (`roster_puff`, in `World.fx`), then frees it; the hero come in stands at
+  its place at once (`advance`, before the world moves the heroes), fades in (`World._show_heroes`
+  multiplies by `shown(id)`), puffs and says one of `LINES`. A change heard late or while catching up
+  (`catch_up`) changes the sprites at once. `CampView` hands the leaver's place and facing by the fire
+  to the hero come in. A hero's sheet, and its picture everywhere, is `HeroClassDef.look()`'s; its name
+  is always its own class's.
+- **The HUD.** A `HeroFrameView` is a place: on `HERO_FIELDED` the `Hud` calls `show_hero` on each
+  frame whose hero changed (no public method added) and re-aims the effects at the frames.
+- **Hero windows.** `HeroWindows` holds a window per place (`hero_0` to `hero_3`) and, once a benched
+  hero's is asked for (`open_hero`, or as the game starts with a bench), one for the bench
+  (`BENCH_ID`, `id_for(-1)`), a hero window in every way. `HeroWindow.show_hero` rebuilds the tabs for
+  another hero, keeping the window's place, open tab and height. A benched hero's header says `At
+  Camp` with full health. Tab goes round the four only; the bench window closes when its hero goes
+  down. Places are held by window, not by hero (`_place_of`); the bench window holds none of them
+  and does not count toward them, but has its own default, cascaded on the first place
+  (`_place_bench`), so the four place windows sit where they always did.
+- **The tally.** Counts stay by hero id for the session; `HERO_FIELDED` clears only the incoming
+  hero's last fight. `TallyWindow` rows are places too (`_row_ids`, a press opens the row's hero).
+- **The journal** writes `ARTIFACT_FOUND`, `HERO_RECRUITED` and `HERO_FIELDED`.
 
 ## Zones on screen
 

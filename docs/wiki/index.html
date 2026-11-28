@@ -241,6 +241,19 @@ showcase's leftovers, not the game.</p>
   hero's line opened by ability shows it as a line of its own (<code>Hawk 412</code>); what monsters do
   to it is not on the Taken tab. Until each class draws its own creatures every summon is the same small
   pale placeholder with cyan eyes.</td></tr>
+  <tr><td>113 The party changes on screen</td><td>When a benched hero goes down in another's place
+  (at camp), the screen follows. The hero who leaves fades away in a puff; the one who comes in fades in
+  at its place by the fire in a puff and says a line (<em>Reporting in!</em>, <em>My turn.</em>,
+  <em>Point me at them.</em> or <em>Fresh boots, ready.</em>). Seen after a stall it simply changes. The
+  hero frames, the hero windows (a window open at the time stays where it was, on its tab, showing the
+  newcomer) and the tally's rows show the four now going down; the tally keeps each hero's session
+  numbers, so one who comes back shows them again. A benched hero has a window of its own, titled with its
+  class, which says <em>At Camp</em> and works like any hero window, its Talents tab and paragon keys
+  included; <kbd>Tab</kbd> goes round the four going down only. The journal says
+  <em>Found a Ranger's Whistle: a Ranger waits at Camp</em>, <em>The Ranger joins the colony</em> and
+  <em>The Ranger goes down in the Knight's place</em>. A class with no pictures of its own yet is drawn
+  as the class it looks like, under its own name. Until spec 114 adds the window to recruit and choose in,
+  nothing in a played game swaps heroes.</td></tr>
   <tr><td>112 The roster (the rules only)</td><td>The colony can now hold more heroes than the four
   who go down. Each new class is a lucky find: a cache may hold its artifact (a Ranger's Whistle, say),
   and its hero then waits at camp with a request, its price in gold and perhaps a resource
@@ -420,7 +433,7 @@ showcase's leftovers, not the game.</p>
 </ul>
 
 <h3>Not built yet <span class="tag planned">Planned</span></h3>
-<p>The roster on screen (recruiting and choosing the four) and new classes such as the beast master, trades, loot and
+<p>The window to recruit heroes and choose the four (spec 114) and new classes such as the beast master, trades, loot and
 equipment, the warren-town at the surface, music, a settings screen, a "new game" button.</p>
 
 <h2 id="run">1. Run the game</h2>
@@ -987,7 +1000,10 @@ every hero whose window is open has a yellow edge. Like every window, a hero win
 title bar, and one you dragged is remembered where you left it. The keys of a hero window (<kbd>Q</kbd>,
 <kbd>E</kbd>, <kbd>1</kbd> to <kbd>3</kbd>, <kbd>Shift</kbd>+<kbd>Tab</kbd>) work only while it is the
 front window; click anywhere on one to bring it to the front. A hero window and the Camp
-window can be open side by side.</p>
+window can be open side by side. A window belongs to a place in the line: when another hero goes down
+there it shows that hero, where it was and on the tab it had. A benched hero has one window of its own,
+which shows the benched hero asked for last, says <em>At Camp</em> and closes when that hero goes down;
+<kbd>Tab</kbd> never opens it.</p>
 <p><strong>Comparing.</strong> A hero window you never dragged takes its place as it opens, by what is
 already open rather than by which hero it is. With 1280 by 720 of UI room the first goes in the left
 column under the top bar and the next in the right column, side by side, clear of the hero frames and the

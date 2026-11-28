@@ -14,9 +14,10 @@ extends Node2D
 ## (the party's while it rests), Characters,
 ## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## ZoneCrossing, which dims the screen between places, and UnseenEyes, the eyes of the monsters
-## waiting in the black; and SummonSprites, which gives each summon in a fight its sprite among
-## the Characters. Beside them it keeps a QuestStage (not a node): who works a quest, where,
-## and who sits and watches.
+## waiting in the black; SummonSprites, which gives each summon in a fight its sprite among
+## the Characters; and RosterArrivals, which fades a hero out and another in when the four going
+## down change. A hero not going down has no sprite of the world's. Beside them it keeps a
+## QuestStage (not a node): who works a quest, where, and who sits and watches.
 ##
 ## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
 ## The party never climbs on screen: it walks into a doorway, the screen dims, the world changes
@@ -96,6 +97,8 @@ var eyes: UnseenEyes
 ## The summons' sprites: it adds, moves and removes them, through [method add_summon] and
 ## [method remove_summon].
 var summons: SummonSprites
+## The heroes fading in and out as the four going down change.
+var arrivals: RosterArrivals
 ## The bubbles on the UI layer that characters speak in, set by [Main]; null in a world with no UI
 ## layer, where [method say] does nothing. The world moves them on at the end of each sync.
 var bubbles: SpeechBubbles:
@@ -126,6 +129,8 @@ var _windups: Dictionary[int, Vector2i] = {}
 var _bolts: Array[Bolt] = []
 var _new_bolts: Array[Bolt] = []
 var _built: Array[int] = []
+## A change of the four going down was heard: hero sprites are looked over for one not going down.
+var _party_changed: bool = false
 var _scan_due: bool = true
 var _scan_in: float = 0.0
 ## The simulation tick at the last sync, or -1 before the first.
@@ -215,6 +220,10 @@ func _ready() -> void:
 	summons.name = "SummonSprites"
 	add_child(summons)
 	summons.setup(self)
+	arrivals = RosterArrivals.new()
+	arrivals.name = "RosterArrivals"
+	add_child(arrivals)
+	arrivals.setup(self)
 	sync(0.0)
 
 
@@ -236,7 +245,8 @@ func toggle_zoom() -> void:
 	camera.set_zoom_level(2 if camera.zoom_level() == 1 else 1)
 
 
-## The sprite of a hero (ids 1-4), summon (ids 50-99) or monster (ids from 100), or null.
+## The sprite of a hero going down (ids below 50), summon (ids 50-99) or monster (ids from 100),
+## or null.
 func character(id: int) -> CharacterSprite:
 	return _sprites.get(id, null)
 
@@ -351,7 +361,9 @@ func sync(delta: float) -> void:
 	if _catching_up:
 		camp.catch_up()
 		quest_props.catch_up()
+		arrivals.catch_up()
 	quest_stage.update()  # before the heroes are given their places: the workers' are its
+	arrivals.advance(delta)  # a hero come in stands at its place before the others are moved
 	var game_delta: float = delta * maxi(speed, 1)
 	_follow(game_delta)
 	_act()
@@ -485,7 +497,7 @@ func _show_heroes() -> void:
 		var sprite: CharacterSprite = character(hero.id)
 		if sprite != null:
 			var gap: float = sprite.position.distance_to(door)
-			sprite.modulate.a = ZoneCrossing.hero_shown(simulation, gap)
+			sprite.modulate.a = ZoneCrossing.hero_shown(simulation, gap) * arrivals.shown(hero.id)
 
 
 func _add_sprite(id: int, sprite: CharacterSprite, at: Vector2) -> void:
@@ -503,7 +515,7 @@ func _ensure_heroes() -> void:
 	for hero: Hero in heroes:
 		if _sprites.has(hero.id):
 			continue
-		var sprite: CharacterSprite = CharacterSprite.for_hero(hero.class_id)
+		var sprite: CharacterSprite = CharacterSprite.for_hero(hero.def().look())
 		if sprite == null:
 			continue
 		_ranges[hero.id] = hero.def().attack_range
@@ -601,6 +613,13 @@ func _kill(sprite: CharacterSprite, animate: bool) -> void:
 
 
 func _remove(id: int) -> void:
+	var sprite: CharacterSprite = _forget(id)
+	_characters.remove_child(sprite)
+	sprite.free()
+
+
+## Character [param id] is no longer the world's to move; returns its sprite, still drawn.
+func _forget(id: int) -> CharacterSprite:
 	var sprite: CharacterSprite = _sprites[id]
 	_sprites.erase(id)
 	_goals.erase(id)
@@ -608,16 +627,34 @@ func _remove(id: int) -> void:
 	_monsters.erase(id)
 	_floors.erase(id)
 	_windups.erase(id)
-	_characters.remove_child(sprite)
-	sprite.free()
+	return sprite
 
 
-## Monsters that are neither waiting in a built level nor fighting go, unless they are dying.
+## Monsters that are neither waiting in a built level nor fighting go, unless they are dying; so
+## does a hero no longer going down, handed to [member arrivals] to fade when it fades.
 func _remove_unwanted() -> void:
 	for id: int in _monsters.keys():
 		if _sprites[id].is_dead() or _waiting.has(id) or _in_fight(id):
 			continue
 		_remove(id)
+	if not _party_changed:
+		return
+	_party_changed = false
+	for id: int in _sprites.keys():
+		if _monsters.has(id) or summons.has(id) or _goes_down(id):
+			continue
+		fallen_party.let_go(id, _sprites[id])
+		var sprite: CharacterSprite = _forget(id)
+		if not arrivals.take_leaving(id, sprite):
+			_characters.remove_child(sprite)
+			sprite.free()
+
+
+func _goes_down(id: int) -> bool:
+	for hero: Hero in simulation.party.heroes:
+		if hero.id == id:
+			return true
+	return false
 
 
 ## Monsters whose death has played out go.
@@ -634,6 +671,8 @@ func _remove_finished() -> void:
 func _show(event: SimEvent, animate: bool) -> void:
 	var age: float = float(simulation.tick - event.tick) / Simulation.TICKS_PER_SECOND
 	match event.kind:
+		SimEvent.Kind.HERO_FIELDED:
+			_party_changed = true
 		SimEvent.Kind.ATTACK_STARTED:
 			_windups[event.source_id] = Vector2i(event.target_id, event.tick + event.amount)
 			var attacker: CharacterSprite = character(event.source_id)

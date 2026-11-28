@@ -7,7 +7,8 @@ extends Node
 ## stable, a level up, a wipe (and the depth the party falls back to), a guardian slain, an upgrade
 ## bought, a microskill learned, a quest done (with its reward), passed by or sprung (with
 ## the microskill it needed), a gate opened or passed for want of its microskill and what a
-## cache paid ([SidePathWords]), an order changed, a talent point gained, a path taken up and
+## cache paid ([SidePathWords]), a class's artifact found, a hero recruited and a hero gone down
+## in another's place, an order changed, a talent point gained, a path taken up and
 ## mastered, a path's rank that opens a tier or is its top, and the first of each resource
 ## gathered. The
 ## newest line shows in the ticker just above the party frames
@@ -237,7 +238,35 @@ func _sentence(event: SimEvent) -> String:
 			sentence = _talent_sentence(event)
 		SimEvent.Kind.PATH_RANKED:
 			sentence = _rank_sentence(event)
+		SimEvent.Kind.ARTIFACT_FOUND, SimEvent.Kind.HERO_RECRUITED, SimEvent.Kind.HERO_FIELDED:
+			sentence = _roster_sentence(event)
 	return sentence
+
+
+## The sentence for a class's artifact found ([code]Found a Ranger's Whistle: a Ranger waits at
+## camp[/code]), a hero recruited ([code]The Ranger joins the colony[/code]) or a hero gone down in
+## another's place ([code]The Ranger goes down in the Knight's place[/code]); "" when the event
+## names no class or hero.
+func _roster_sentence(event: SimEvent) -> String:
+	if event.kind == SimEvent.Kind.ARTIFACT_FOUND:
+		var ids: Array[StringName] = Content.hero_class_ids()
+		var found: HeroClassDef = null
+		if event.target_id >= 0 and event.target_id < ids.size():
+			found = Content.hero_class(ids[event.target_id])
+		if found == null:
+			return ""
+		var named: String = found.display_name
+		var article: String = "an" if "AEIOU".contains(named.left(1).to_upper()) else "a"
+		return "Found a %s: %s %s waits at Camp" % [found.artifact_name, article, named]
+	var hero: Hero = _simulation.party.hero(event.source_id)
+	if hero == null:
+		return ""
+	if event.kind == SimEvent.Kind.HERO_RECRUITED:
+		return "The %s joins the colony" % hero.def().display_name
+	var left: Hero = _simulation.party.hero(event.target_id)
+	if left == null:
+		return ""
+	return "The %s goes down in the %s's place" % [hero.def().display_name, left.def().display_name]
 
 
 ## The sentence for a path reaching a rank that opens a tier, or its top rank

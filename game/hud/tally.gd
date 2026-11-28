@@ -13,7 +13,10 @@ extends RefCounted
 ## how much health its target had left, so a killing blow's overkill is counted in damage dealt and
 ## taken; the tally's tooltips say so.
 ## [constant SimEvent.Kind.ENCOUNTER_STARTED] begins a new
-## last fight; [constant SimEvent.Kind.QUEST_DONE] counts one quest for its worker.
+## last fight; [constant SimEvent.Kind.QUEST_DONE] counts one quest for its worker. Counts are kept
+## by hero for the session, so a hero who leaves the four going down keeps them and shows them again
+## when it comes back; [constant SimEvent.Kind.HERO_FIELDED] starts the hero who came in at 0 in
+## the last fight.
 ## A hero is any id below [constant Battle.FIRST_SUMMON_ID]. A summon's blows and heals count
 ## to its summoner (the source of its [constant SimEvent.Kind.SUMMONED], or
 ## [method note_summon]), by ability as one line under the summon's name; the blows it takes are
@@ -95,6 +98,11 @@ func observe(event: SimEvent) -> void:
 		SimEvent.Kind.QUEST_DONE:
 			if _is_hero(event.source_id):
 				_quests[event.source_id] = _quests.get(event.source_id, 0) + 1
+		SimEvent.Kind.HERO_FIELDED:
+			for measure: int in Measure.size():
+				_table(Span.LAST_FIGHT, measure).erase(event.source_id)
+			for table: Dictionary in _by_ability[Span.LAST_FIGHT]:
+				table.erase(event.source_id)
 
 
 ## Summon [param summon_id], standing in the fight, is [param summoner_id]'s, of the

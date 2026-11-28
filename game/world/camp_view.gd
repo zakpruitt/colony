@@ -14,7 +14,8 @@ extends Node2D
 ## down in a puff of dust, then the flames catch. A rest the world first sees any other way (late,
 ## catching up, after time away) is shown whole at once. When the rest ends the fire goes out in a
 ## puff of smoke and the bedrolls roll up over CAMP_PACK. Its four sprites are made once and
-## reused; each frame it only moves them and shows them.
+## reused; each frame it only moves them and shows them. A hero who goes down in another's place
+## while the party rests ([constant SimEvent.Kind.HERO_FIELDED]) takes that one's place by the fire.
 
 ## Nothing shown; setting up; whole; being packed away.
 enum Phase { NONE, SETTING, WHOLE, PACKING }
@@ -170,6 +171,19 @@ func _on_sim_event(event: SimEvent) -> void:
 		_fresh = _world.may_animate(event)
 	elif event.kind == SimEvent.Kind.REST_ENDED:
 		_smoke = _world.may_animate(event)
+	elif event.kind == SimEvent.Kind.HERO_FIELDED:
+		_hand_place(event.target_id, event.source_id)
+
+
+## Hero [param coming] takes [param leaving]'s place by the fire and the way it faced there: no
+## place is left empty, and nobody else moves.
+func _hand_place(leaving: int, coming: int) -> void:
+	if _places.has(leaving):
+		_places[coming] = _places[leaving]
+		_places.erase(leaving)
+	if _facings.has(leaving):
+		_facings[coming] = _facings[leaving]
+		_facings.erase(leaving)
 
 
 ## Works out the fire's place and each hero's place and facing by it, from where the simulation
