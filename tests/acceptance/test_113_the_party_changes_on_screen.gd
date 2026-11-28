@@ -240,7 +240,7 @@ func test_r3_the_windows_follow() -> void:
 		return
 	assert_eq(bench.window_id, HeroWindows.BENCH_ID, "hero_bench")
 	assert_true(bench.is_open() and windows.top() == bench, "open in front")
-	assert_eq(bench.line(&"activity"), "At camp", "at camp")
+	assert_eq(bench.line(&"activity"), "At Camp", "At Camp")
 	assert_eq(bench.line(&"health"), "%d / %d" % [knight.max_health(), knight.max_health()])
 	assert_eq(main.ui.windows.window(HeroWindows.BENCH_ID), bench, "a window like any other")
 
@@ -337,7 +337,7 @@ func test_r4_the_tally_follows() -> void:
 func test_r5_the_journal_says_it() -> void:
 	var main: Main = _with_recruit()
 	var journal: Journal = main.hud.journal
-	var found: String = "Found a Test Whistle: a Test Recruit waits at camp"
+	var found: String = "Found a Test Whistle: a Test Recruit waits at Camp"
 	assert_true(_written(journal, found), "the find: %s" % [journal.lines()])
 	assert_true(_written(journal, "The Test Recruit joins the colony"), "the recruit")
 	assert_eq(journal.ticker_text(), "The Test Recruit joins the colony", "in the ticker")

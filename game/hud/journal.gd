@@ -257,7 +257,7 @@ func _roster_sentence(event: SimEvent) -> String:
 			return ""
 		var named: String = found.display_name
 		var article: String = "an" if "AEIOU".contains(named.left(1).to_upper()) else "a"
-		return "Found a %s: %s %s waits at camp" % [found.artifact_name, article, named]
+		return "Found a %s: %s %s waits at Camp" % [found.artifact_name, article, named]
 	var hero: Hero = _simulation.party.hero(event.source_id)
 	if hero == null:
 		return ""

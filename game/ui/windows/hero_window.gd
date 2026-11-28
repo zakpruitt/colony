@@ -59,7 +59,7 @@ const ROLE_WORDS: Dictionary[HeroClassDef.Role, String] = {
 	HeroClassDef.Role.HEALER: "Healer",
 }
 ## What a benched hero is doing.
-const BENCH_WORDS: String = "At camp"
+const BENCH_WORDS: String = "At Camp"
 ## What a hero is doing in each expedition state (fighting is worked out from the battle).
 const DOING_WORDS: Dictionary[Expedition.State, String] = {
 	Expedition.State.TRAVELLING: "Walking",
