@@ -1,14 +1,15 @@
 class_name FightMoves
 extends RefCounted
-## Starts and ends the heroes' moves from the simulation's events. The [World] hands it
-## every event as it acts it out, before anything else hears it.
+## Starts and ends the moves of the heroes and their summons from the simulation's events. The
+## [World] hands it every event as it acts it out, before anything else hears it.
 ##
 ## - An action's move starts on its ABILITY_STARTED, its blow timed to fall when the wind-up ends,
 ##   so it lands on screen on the tick the simulation lands it ([member AbilityDef.move]). A
 ##   passive's move plays over what the hero is doing when it fires.
 ## - A hero hops on a crit and on a kill; when a fight is won each living hero cheers, one after
 ##   another.
-## - A stun, a death, the end of a fight, a wipe and a change of stage or area end moves at once.
+## - A stun, a death, a summon's end, the end of a fight, a wipe and a change of stage or area
+##   end moves at once.
 ## - Only fresh events start anything: none in a frame that catches up on a stall, none for an
 ##   action whose blow has already fallen.
 ##
@@ -43,6 +44,9 @@ func heard(world: World, event: SimEvent, fresh: bool) -> void:
 					_play(world, event.source_id, CharacterMoves.HOP, 0.0)
 		SimEvent.Kind.DIED:
 			_died(world, event.source_id, fresh)
+		SimEvent.Kind.SUMMON_ENDED:
+			_gone(world, event.source_id)  # no death: nobody hops for it
+			_striker.erase(event.source_id)
 		SimEvent.Kind.STATUS_BEGAN:
 			if event.status == AbilityEffect.Status.STUNNED:
 				_end(world, event.target_id)
@@ -96,14 +100,19 @@ func _used(world: World, event: SimEvent, fresh: bool) -> void:
 
 
 func _died(world: World, id: int, fresh: bool) -> void:
-	_end(world, id)
-	for attacker: int in _aims.keys():
-		if _aims[attacker] == id:
-			_end(world, attacker)  # the simulation drops a wind-up whose target died
+	_gone(world, id)
 	var killer: int = _striker.get(id, -1)
 	_striker.erase(id)
 	if fresh and killer >= 0:
 		_play(world, killer, CharacterMoves.HOP, 0.0)
+
+
+## Fighter [param id] has left the fight: its move ends, and every move aimed at it.
+func _gone(world: World, id: int) -> void:
+	_end(world, id)
+	for attacker: int in _aims.keys():
+		if _aims[attacker] == id:
+			_end(world, attacker)  # the simulation drops a wind-up whose target has gone
 
 
 ## Every living hero cheers, the front one first, each a moment after the one before.

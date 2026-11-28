@@ -14,7 +14,8 @@ extends Node2D
 ## (the party's while it rests), Characters,
 ## Effects and the camera; and FallenParty, which keeps the fallen on screen and tells a wipe,
 ## ZoneCrossing, which dims the screen between places, and UnseenEyes, the eyes of the monsters
-## waiting in the black. Beside them it keeps a QuestStage (not a node): who works a quest, where,
+## waiting in the black; and SummonSprites, which gives each summon in a fight its sprite among
+## the Characters. Beside them it keeps a QuestStage (not a node): who works a quest, where,
 ## and who sits and watches.
 ##
 ## The world shows one stage at a time, as its own place ([member LabyrinthView.zoned]).
@@ -92,6 +93,9 @@ var fallen_party: FallenParty
 var crossing: ZoneCrossing
 ## The eyes of the monsters waiting where the party has not seen.
 var eyes: UnseenEyes
+## The summons' sprites: it adds, moves and removes them, through [method add_summon] and
+## [method remove_summon].
+var summons: SummonSprites
 ## The bubbles on the UI layer that characters speak in, set by [Main]; null in a world with no UI
 ## layer, where [method say] does nothing. The world moves them on at the end of each sync.
 var bubbles: SpeechBubbles:
@@ -207,6 +211,10 @@ func _ready() -> void:
 	eyes = UnseenEyes.new()
 	add_child(eyes)
 	eyes.setup(self)
+	summons = SummonSprites.new()
+	summons.name = "SummonSprites"
+	add_child(summons)
+	summons.setup(self)
 	sync(0.0)
 
 
@@ -228,9 +236,22 @@ func toggle_zoom() -> void:
 	camera.set_zoom_level(2 if camera.zoom_level() == 1 else 1)
 
 
-## The sprite of a hero (ids 1-4) or monster (ids from 100), or null.
+## The sprite of a hero (ids 1-4), summon (ids 50-99) or monster (ids from 100), or null.
 func character(id: int) -> CharacterSprite:
 	return _sprites.get(id, null)
+
+
+## Shows summon [param id] as [param sprite] at [param at], striking from [param reach] tiles: a
+## character like any other from now on, placed where [member summons] says.
+func add_summon(id: int, sprite: CharacterSprite, at: Vector2, reach: float) -> void:
+	_add_sprite(id, sprite, at)
+	_ranges[id] = reach
+
+
+## Takes summon [param id]'s sprite away at once; nothing for an id that is no summon's.
+func remove_summon(id: int) -> void:
+	if SummonSprites.is_summon_id(id) and _sprites.has(id):
+		_remove(id)
 
 
 ## Pixel position of that character's feet, or Vector2.ZERO if there is none. A hero lying on its
@@ -325,6 +346,7 @@ func sync(delta: float) -> void:
 
 	_settle_heroes()
 	_remove_unwanted()
+	summons.advance(delta)
 	camp.animate(delta)  # before the heroes are given their places: a rest's are the camp's
 	if _catching_up:
 		camp.catch_up()
@@ -632,6 +654,8 @@ func _show(event: SimEvent, animate: bool) -> void:
 		SimEvent.Kind.DIED:
 			fallen_party.fell(event.source_id)  # one rising after a revive lies again
 			_died(event.source_id, animate)
+		SimEvent.Kind.SUMMON_ENDED:
+			_lose_aim(event.source_id)  # its own fades: SummonSprites
 		SimEvent.Kind.ENCOUNTER_STARTED:
 			_scan_due = true
 		SimEvent.Kind.AREA_CHANGED:
@@ -659,7 +683,8 @@ func _struck(attacker: int, tick: int) -> void:
 		_windups.erase(attacker)
 
 
-func _died(id: int, animate: bool) -> void:
+## Fighter [param id] has left the fight, fallen or ended: no wind-up of its or at it goes on.
+func _lose_aim(id: int) -> void:
 	_windups.erase(id)
 	for attacker: int in _windups.keys():
 		var windup: Vector2i = _windups[attacker]
@@ -671,6 +696,10 @@ func _died(id: int, animate: bool) -> void:
 		if attacking != null:
 			attacking.cancel_attack()
 		_windups.erase(attacker)
+
+
+func _died(id: int, animate: bool) -> void:
+	_lose_aim(id)
 	if id >= Expedition.FIRST_MONSTER_ID:
 		_gone[id] = simulation.expedition.depth
 		var battle: Battle = simulation.expedition.battle
@@ -780,6 +809,8 @@ func _follow(delta: float) -> void:
 		var goal: Vector2
 		if _monsters.has(id):
 			goal = Vector2(_monsters[id].x * TILE, _floors[id])
+		elif summons.has(id):
+			goal = summons.goal_of(id)
 		else:
 			var working: Vector2 = quest_stage.goal_for(
 				id, quest_props.goal_for(id, _hero_feet(id))
@@ -800,9 +831,10 @@ func _follow(delta: float) -> void:
 
 
 ## True for a hero on its feet: one that goes from floor to floor by the stage's ladders. A
-## monster keeps to its room's floor, and a fallen or rising hero is lifted where it lies.
+## monster or summon keeps to its room's floor, and a fallen or rising hero is lifted where it lies.
 func _walks_the_stage(id: int) -> bool:
-	return not (_monsters.has(id) or fallen_party.is_lying(id) or fallen_party.is_standing(id))
+	var floored: bool = _monsters.has(id) or summons.has(id)
+	return not (floored or fallen_party.is_lying(id) or fallen_party.is_standing(id))
 
 
 ## One frame's move of a sprite on a stage with no ladders of its own: [method LadderRoute.step].
@@ -833,7 +865,7 @@ func _act() -> void:
 		elif _monsters.has(id):
 			# Waiting: facing the side the party is on.
 			facing = 1 if party_at >= sprite.position.x else -1
-		else:
+		elif not summons.has(id):  # a summon out of the fight, fading, faces ahead
 			facing = quest_stage.facing_of(id, camp.facing_of(id, ahead))
 			match expedition.state:
 				Expedition.State.TRAVELLING, Expedition.State.CLIMBING:

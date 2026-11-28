@@ -1046,6 +1046,23 @@ other); it is a view hint that no rule reads and the state hash leaves out.
   guardians, updated from events, for the sounds and the combat effects alike.
 - An ordinary strike's draw back and step are stronger (`BODY_WINDUP_SHIFT`, `BODY_STRIKE_SHIFT`) and a
   ranged shot recoils; none of it changes a tick.
+- **Summons on screen** (spec 116). `SummonSprites` (`game/world/summon_sprites.gd`), made by the
+  `World` (`World.summons`) and advanced in each `sync` after the events, gives each summon standing in
+  the fight a `CharacterSprite` among the characters through `World.add_summon` and takes it away with
+  `World.remove_summon`; from then on the world acts it out as any fighter (wind-ups, shots, hits, moves,
+  status marks), its place the simulation's on the fight's floor (`SummonSprites.goal_of`), eased and
+  walking as a monster's. Its sheet is `CharacterSprite.for_summon(id)`:
+  `assets/sprites/summons/<id>.png`, else `placeholder.png`, found once per id. A `SUMMONED` that
+  `may_animate` makes it at once with a puff (an `FxParticle` `PUFF` in `World.fx`, budget `combat`);
+  a summon heard late, or standing with no word of its coming, is given its sprite by `advance` with no
+  puff, and one already ended is never shown. A `SUMMON_ENDED`, for any reason, is no death: the sprite
+  fades over `FADE_SECONDS` (0.3) with a puff and goes, or goes at once when stale; wind-ups at it end
+  (`World._lose_aim`, `FightMoves`). It knows whose each summon is and its name (`owner_of`, `name_of`,
+  `colour_of`: the summoner's class bar colour), from `SUMMONED` and the battle: `AbilityEffects`
+  colours a summon's names and damage numbers as its summoner, and the `Tally` counts a summon's damage
+  and healing to its summoner, by ability as one line under the summon's name (`Tally.note_summon`;
+  a tally made mid-fight is told of those standing), and leaves what a summon takes off Taken. The hero
+  frames, hero windows and goals are the party's and never show one.
 
 ## Conventions
 
