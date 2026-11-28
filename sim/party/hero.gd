@@ -26,6 +26,9 @@ var upgrades: Upgrades
 ## in it. Each [method combatant] shares this very list, so a use in a fight is remembered after
 ## it (a tie between ready actions goes to the least recent). Change it in place, never replace it.
 var used: Array[StringName] = []
+## Counts every change to the nodes taken, so a view can tell its words are stale without copying
+## [method talents] each frame.
+var talents_changed: int = 0
 
 var _def: HeroClassDef
 ## The talent tree nodes this hero has taken, in the order taken.
@@ -150,18 +153,21 @@ func take_talent(ability_id: StringName) -> bool:
 	if not can_take(ability_id):
 		return false
 	_talents.append(ability_id)
+	talents_changed += 1
 	return true
 
 
 ## Sets this hero's nodes directly (loading a save, tests), with no checks.
 func set_talents(taken: Array[StringName]) -> void:
 	_talents = taken.duplicate()
+	talents_changed += 1
 	used.assign(used.filter(func(ability_id: StringName) -> bool: return taken.has(ability_id)))
 
 
 ## Gives back every node: each talent point is unspent.
 func reset_talents() -> void:
 	_talents.clear()
+	talents_changed += 1
 	used.clear()
 
 

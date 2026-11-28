@@ -8,6 +8,17 @@ extends RefCounted
 const MAX_CHAIN: int = 4
 
 
+## An action chosen and whom it is aimed at.
+class Choice:
+	extends RefCounted
+	var action: AbilityDef
+	var target: Combatant
+
+	func _init(chosen: AbilityDef, aimed_at: Combatant) -> void:
+		action = chosen
+		target = aimed_at
+
+
 ## The action [param c] would use now, or null: of its actions off cooldown, whose condition holds
 ## and which have someone to aim at, the one ready the longest; a tie goes to the one used least
 ## recently ([member Combatant.used], never used first), then to the earlier in
@@ -15,14 +26,16 @@ const MAX_CHAIN: int = 4
 ## healer with an ally to heal uses none aimed at an enemy: it heals first.
 static func ready_action(battle: Battle, c: Combatant) -> AbilityDef:
 	var heal_first: bool = c.role == HeroClassDef.Role.HEALER and battle.hurt_ally(c) != null
-	return choose(battle, c, heal_first)
+	var chosen: Choice = choose(battle, c, heal_first)
+	return chosen.action if chosen != null else null
 
 
-## As [method ready_action], with [param heal_first] already worked out.
-static func choose(battle: Battle, c: Combatant, heal_first: bool) -> AbilityDef:
+## As [method ready_action], with [param heal_first] already worked out, and the action's target
+## with it.
+static func choose(battle: Battle, c: Combatant, heal_first: bool) -> Choice:
 	if not c.swung_since_action:
 		return null
-	var chosen: AbilityDef = null
+	var chosen: Choice = null
 	var since: int = 0
 	var last: int = 0
 	for ability: AbilityDef in c.abilities:
@@ -30,8 +43,9 @@ static func choose(battle: Battle, c: Combatant, heal_first: bool) -> AbilityDef
 		var place: int = c.used.find(ability.id)
 		if chosen != null and (ready > since or (ready == since and place >= last)):
 			continue
-		if ready_target(battle, c, ability, heal_first) != null:
-			chosen = ability
+		var target: Combatant = ready_target(battle, c, ability, heal_first)
+		if target != null:
+			chosen = Choice.new(ability, target)
 			since = ready
 			last = place
 	return chosen

@@ -359,7 +359,7 @@ func _check_new_abilities() -> void:
 	var stunned: Array[int] = _given(landing, AbilityEffect.Status.STUNNED)
 	stunned.sort()
 	assert_eq(stunned, [11, 12], "stuns the target and the enemy beside it")
-	assert_almost_eq(monsters[0].x, 3.0, 0.001, "the far one stays")
+	assert_almost_eq(monsters[0].x, 3.0, 0.001, "the near one stays")
 	assert_gt(monsters[1].x, 9.0, "pushed back")
 	assert_gt(monsters[2].x, 10.0, "pushed back")
 

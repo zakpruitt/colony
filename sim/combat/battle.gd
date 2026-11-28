@@ -364,11 +364,12 @@ func _act(c: Combatant) -> void:
 ## none aimed at an enemy when [param heal_first]). False if it has none, and then it strikes as
 ## usual.
 func _try_action(c: Combatant, heal_first: bool) -> bool:
-	var action: AbilityDef = BattleAbilities.choose(self, c, heal_first)
-	if action == null:
+	var chosen: BattleAbilities.Choice = BattleAbilities.choose(self, c, heal_first)
+	if chosen == null:
 		c.chasing = &""
 		return false
-	var target: Combatant = BattleAbilities.ready_target(self, c, action, heal_first)
+	var action: AbilityDef = chosen.action
+	var target: Combatant = chosen.target
 	c.target_id = target.id
 	# It keeps to this target until the action starts, so a choice that changes as it walks
 	# (the furthest enemy, say) does not turn it back and forth.

@@ -11,10 +11,15 @@ func test_a_reapplied_bleed_keeps_its_clock() -> void:
 	_give(hero, [_action(&"bleed", bleed, {"cooldown": 0.4})])
 	var events: Array[SimEvent] = _run(_battle([hero], [_dummy(10)]), 50)
 	assert_eq(_ticks(_used(events, &"bleed")).slice(0, 3), _ints([2, 14, 26]), "every 12 ticks")
-	# The bleed's ticks are half the hero's 10 damage; its strikes hit for about 10.
-	var hits: Array[SimEvent] = _of(events, SimEvent.Kind.HIT, 1).filter(
-		func(e: SimEvent) -> bool: return e.amount == 5
-	)
+	# The hero's strikes land when their projectiles do (launched, plus the flight in ticks); every
+	# other hit of its is the bleed.
+	var landed: Dictionary[int, bool] = {}
+	for launch: SimEvent in _of(events, SimEvent.Kind.PROJECTILE_LAUNCHED, 1):
+		landed[launch.tick + launch.amount] = true
+	var hits: Array[SimEvent] = []
+	for hit: SimEvent in _of(events, SimEvent.Kind.HIT, 1):
+		if not landed.has(hit.tick):
+			hits.append(hit)
 	assert_eq(_ticks(hits), _ints([12, 22, 32, 42]), "it bleeds each second")
 	assert_eq(_amounts(hits), _ints([5, 5, 5, 5]))
 

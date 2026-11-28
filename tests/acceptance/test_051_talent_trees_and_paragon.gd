@@ -1,10 +1,10 @@
 extends "res://tests/support/hud_fixture.gd"
-## Acceptance tests for specs/051-talent-trees-and-paragon/spec.md, one per requirement (R11 has
-## one test for the headless comparison and one per class for its paths). Spec 029's tests of gold
-## training were removed with it; the tests of the hero sheet, goals, defeat note and help that
-## named training were amended to spend paragon points. R1 to R4 (the trees' shape, points and
-## the rules for taking a node) moved to test_109 when the trees became three paths of five, and
-## the rest were amended for them.
+## Acceptance tests for specs/051-talent-trees-and-paragon/spec.md, one per requirement. R11
+## (talents worth having) is the same check as spec 109's R9 and runs once, in test_109. Spec
+## 029's tests of gold training were removed with it; the tests of the hero sheet, goals, defeat
+## note and help that named training were amended to spend paragon points. R1 to R4 (the trees'
+## shape, points and the rules for taking a node) moved to test_109 when the trees became three
+## paths of five, and the rest were amended for them.
 
 const SEED: int = 51
 const CLASSES: Array[StringName] = [&"knight", &"rogue", &"mage", &"cleric"]
@@ -507,29 +507,6 @@ func test_r10_auto_buy() -> void:
 		assert_eq(hero.talents(), [] as Array[StringName], "%s: no node" % hero.class_id)
 		assert_eq(hero.talent_points(), 15, "%s: unspent" % hero.class_id)
 		assert_eq(hero.paragon_points(), hero.level - 30, "%s: paragon unspent" % hero.class_id)
-
-
-# --- R11 -----------------------------------------------------------------------
-
-
-func test_r11_worth_having() -> void:
-	_check_king_sooner()
-
-
-func test_r11_worth_having_knight() -> void:
-	_check_paths_win(&"knight")
-
-
-func test_r11_worth_having_rogue() -> void:
-	_check_paths_win(&"rogue")
-
-
-func test_r11_worth_having_mage() -> void:
-	_check_paths_win(&"mage")
-
-
-func test_r11_worth_having_cleric() -> void:
-	_check_paths_win(&"cleric")
 
 
 # --- R12 -----------------------------------------------------------------------

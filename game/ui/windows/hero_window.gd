@@ -229,7 +229,7 @@ func advance(delta: float) -> void:
 	_shown.see(health)
 	_shown.see(max_health)
 	_shown.see(_down)
-	_shown.see(HeroTalentsTab.path_index(hero))
+	_shown.see(hero.talents_changed)
 	_shown.see(_simulation.expedition.state)
 	_shown.see(fighter.target_id if fighter != null else -1)
 	if _shown.changed():

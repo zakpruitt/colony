@@ -47,6 +47,9 @@ var states_read: int = 0
 
 ## Each path's column middle.
 var _middles: Array[float] = []
+## [method joins] and [method arrows], worked out once the nodes are placed.
+var _joins: Array[Array] = []
+var _arrows: Array[Array] = []
 var _by_id: Dictionary[StringName, TalentNode] = {}
 ## Seconds left of each node's line flash.
 var _flashes: Dictionary[StringName, float] = {}
@@ -94,6 +97,8 @@ func _init(tree_def: TalentTreeDef, width: float) -> void:
 		y = bottom + STUB + LINE + DROP + HEAD.size() + HEAD_CLEAR
 	size = Vector2(width, bottom)
 	custom_minimum_size = size
+	_joins = _lay_joins()
+	_arrows = _lay_arrows()
 
 
 ## Every node, path by path, in the order of each path's nodes.
@@ -196,6 +201,16 @@ func stop() -> void:
 ## 1 down, across and down into each tier-2 node; from each tier-2 node down, across and down into
 ## tier 3; from tier 3 down into the capstone. Every line is beside the names, never through them.
 func joins() -> Array[Array]:
+	return _joins
+
+
+## The arrowheads, each [Rect2 of the head, the node it points into]: one over every node but the
+## tier-1 nodes.
+func arrows() -> Array[Array]:
+	return _arrows
+
+
+func _lay_joins() -> Array[Array]:
 	var all: Array[Array] = []
 	for index: int in path_nodes.size():
 		var column: Array = path_nodes[index]
@@ -222,9 +237,7 @@ func joins() -> Array[Array]:
 	return all
 
 
-## The arrowheads, each [Rect2 of the head, the node it points into]: one over every node but the
-## tier-1 nodes.
-func arrows() -> Array[Array]:
+func _lay_arrows() -> Array[Array]:
 	var all: Array[Array] = []
 	for column: Array in path_nodes:
 		for place: int in range(1, column.size()):
@@ -251,13 +264,13 @@ func _draw() -> void:
 	# Plain lines first, then lit ones over them, then a flash: a piece two lines share shows lit
 	# when either is.
 	for rank: int in 3:
-		for join: Array in joins():
+		for join: Array in _joins:
 			var rect: Rect2 = join[0]
 			var into: TalentNode = (join[1] as Array)[1]
 			var colour: StringName = colour_into(into.ability_id)
 			if _rank(colour) == rank and rect.size.x > 0.0 and rect.size.y > 0.0:
 				draw_rect(rect, Palette.color(colour))
-	for arrow: Array in arrows():
+	for arrow: Array in _arrows:
 		var head: Rect2 = arrow[0]
 		var into: TalentNode = arrow[1]
 		var colour: Color = Palette.color(colour_into(into.ability_id))

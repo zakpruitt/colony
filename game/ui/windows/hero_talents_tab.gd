@@ -371,7 +371,7 @@ func _hero_changed(hero: Hero) -> bool:
 	_read_from.begin()
 	_read_from.see(hero.level)
 	_read_from.see(hero.talent_points())
-	_read_from.see(hero.talents().hash())
+	_read_from.see(hero.talents_changed)
 	_read_from.see(hero.paragon_points())
 	for cell: ParagonCell in paragon_cells:
 		_read_from.see(hero.paragon_rank(Content.training(cell.id).stat))

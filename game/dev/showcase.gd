@@ -72,7 +72,7 @@ const ROWS: Array[Array] = [
 	[&"area_map", "THE MAP: WHERE THE PARTY CAN GO", 1.5, &"area_map", &"area_map"],
 	[&"journey", "A JOURNEY TO THE CLAYPITS", 1.2, &"journey", &"journey"],
 	[&"four_areas", "THE FOUR AREAS", 0.2, &"four_areas", &"four_areas"],
-	# The path's banner shows after the node's.
+	# Two nodes taken, each with its banner, one after the other.
 	[&"talent_tree", "THE KNIGHT LEARNS TWO TALENTS", 3.2, &"talent_tree", &"talent_tree"],
 	[&"away_report", "THE AWAY REPORT", 2.0, &"away_report", &"away_report"],
 ]
