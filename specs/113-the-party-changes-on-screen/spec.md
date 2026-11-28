@@ -1,10 +1,10 @@
 # 113 — The party changes on screen
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 102, 105, 112 (and 111, whose Paths hold `hero_windows.gd`, `hero_window.gd` and
   `journal.gd`)
-- **Pull request:** —
+- **Pull request:** [#115](https://github.com/zakpruitt/colony/pull/115)
 
 ## Intent
 

@@ -1,6 +1,6 @@
 # 114 — The Heroes tab at camp: recruit and choose the four
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 063, 065, 068, 112, 113
 - **Pull request:** —
