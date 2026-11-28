@@ -1,9 +1,9 @@
 # 116 — Summoned allies on screen
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 056, 057, 076, 115 (and 113, whose Paths hold `world.gd` and the tally)
-- **Pull request:** —
+- **Pull request:** [#114](https://github.com/zakpruitt/colony/pull/114)
 
 ## Intent
 
@@ -107,6 +107,12 @@ summon's line. Describe each shot.
 - `docs/architecture.md` (summons in the view), `docs/style-bible.md` (only if the placeholder adds a
   convention)
 - `game/effects/combat_effects.gd` (only `_healed` asking `AbilityEffects` for a heal number's colour, for R2)
+
+## As built (the lead's rulings on the pull request)
+
+- A summon's critical hits keep the crit colour (amber) over its summoner's colour.
+- The tally has no kill measure: a summon's killing blows count in its summoner's damage.
+- A summon with no target faces the nearest monster.
 
 ## Open questions
 
