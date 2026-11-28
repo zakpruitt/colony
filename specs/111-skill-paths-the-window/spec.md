@@ -1,9 +1,9 @@
 # 111 — Skill paths: the window
 
-- **Status:** in progress (approved 2026-11-27)
+- **Status:** landed (approved 2026-11-27)
 - **Milestone:** M8
 - **Depends on:** 058, 060, 063, 064, 109, 110
-- **Pull request:** —
+- **Pull request:** [#112](https://github.com/zakpruitt/colony/pull/112)
 
 ## Intent
 
@@ -168,6 +168,14 @@ and does a capstone feel earned?
   counts changes), `tests/unit/test_hud_talents.gd`
 - `docs/architecture.md`, `docs/style-bible.md` (if the panel adds a convention),
   `docs/wiki/index.html`
+
+## As built (the lead's rulings on the pull request)
+
+- "X of Y XP" means XP into the current rank of that rank's span, everywhere (`6 of 28 XP to rank 4`).
+- A rank-held node shows a padlock tag with the rank's number inside the slot's bottom-right corner;
+  the words stay in the card. The bar is 7 UI pixels with 4 of fill.
+- The help says "later tiers" (test_054 refuses "deeper" on screen). test_109 and test_110 were
+  amended for the card that lists every thing a node waits for.
 
 ## Open questions
 
