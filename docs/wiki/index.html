@@ -145,8 +145,9 @@ godot --path .</code></pre>
 <code>colony.save</code>, <code>colony.save.bak</code> and <code>colony.settings</code> in
 <code>%APPDATA%\Godot\app_userdata\Colony</code>. An old save loads too: it starts in Mossy Hollow at the
 stage its depth was, gold spent on training comes back, and each hero has the talent points its level has
-earned, unspent. A save from before the three skill paths (spec 109) gives every hero its talent points
-back to spend again; paragon points stay.</p>
+earned, unspent. A save from before the three skill paths (spec 109), or from before path ranks (spec
+110), gives every hero its talent points back to spend again, with every path at rank 0; paragon
+points stay.</p>
 
 <h3>Fifteen minutes with it</h3>
 <ol>
@@ -158,7 +159,9 @@ back to spend again; paragon points stay.</p>
   stars round its head, a shielded hero an outline, and so on. <kbd>T</kbd> opens the tally; click a
   hero's line there to see damage by ability.</li>
   <li><strong>Mix the paths.</strong> Each class has three; nothing closes. Learn a node from a second
-  path and watch the hero's title follow the path it holds most of.</li>
+  path and watch the hero's title follow the path it holds most of. A path's deeper nodes wait for its
+  rank, which grows as the hero fights with it: each banner says <code>Rank N</code>, and a shut node's
+  card says which rank opens it.</li>
   <li><strong>Beat the Slime King</strong> on Mossy Hollow 5. With talents and upgrades it usually falls
   at the first try, fifteen to twenty minutes in.</li>
   <li><strong>Open the Map</strong> (<kbd>W</kbd>, or click the area's name) and send the party to the
@@ -213,6 +216,14 @@ showcase's leftovers, not the game.</p>
   five abilities in four tiers. Nothing locks: points come every two levels to 30 and fill the whole
   tree. Sixteen new abilities (Earthshaker, Lightning Bolt, Radiance, Resurrection ...), each with its
   picture. Saves move to version 10 and hand every hero its talent points back.</td></tr>
+  <tr><td>110 Skill paths: ranks earned by use</td><td>A path grows with use, as skills do in Skyrim. Every
+  won fight gives each path XP: the nodes a hero holds in it plus the times its abilities fired (three at
+  most per ability a fight). Ten ranks; tier 2 opens at rank 2, tier 3 at rank 5, the capstone at rank 9.
+  With the headless run's spending the first capstone comes 28 to 43 minutes in and the whole tree at
+  about two hours. Each
+  banner shows its rank, and a shut node says <code>Rank 5 in Guardian opens this</code>. A reset keeps
+  the ranks. Saves move to version 11 and hand every hero its talent points back, every path at rank
+  0.</td></tr>
   <tr><td>064 The talent tree as a tree</td><td>The Talents tab is a tree of pictures: the trunk runs down the
   middle and forks into two paths, each in its own colour under a banner that says what a hero on it
   becomes. Point at a node for its card; a strip under the tree shows what is next, with a
@@ -332,7 +343,10 @@ showcase's leftovers, not the game.</p>
   guardians, or leave it?</li>
   <li><strong>Talent points:</strong> one at every even level, fifteen in all, so a tree is full at level
   30. Too fast, too slow?</li>
-  <li><strong>Reset for gold</strong> (100 a level). Nothing locks now, so a reset only moves points.</li>
+  <li><strong>Reset for gold</strong> (100 a level). Nothing closes a path and ranks stay, so a reset only
+  moves points.</li>
+  <li><strong>Path ranks:</strong> with the headless run's spending, each hero's first capstone comes at
+  28 to 43 minutes and its fifteenth node at about two hours (level 30). Too fast, too slow?</li>
   <li><strong>Which upgrade needs which resource:</strong> Field Medicine and Quick March glowcaps, Stout
   Armor clay, Sharp Blades old bones, Fat Purse embers. A party that stays in Mossy Hollow runs out of
   gold before glowcaps (120 to 162 unspent after half an hour), so glowcaps hardly bind.</li>
@@ -653,8 +667,14 @@ of them at once; talents make one hero different from another.</p>
   <li>A hero earns one <strong>talent point at every even level</strong> (2, 4 ... 30): fifteen in all,
   the whole tree.</li>
   <li>A node can be learned once a node above it in its path is held: tier 2 needs tier 1, tier 3
-  either tier-2 node, the capstone tier 3. <strong>Nothing locks.</strong> A hero may learn from every
-  path, in any mix, and in time holds all fifteen. Its title names the path it holds most of.</li>
+  either tier-2 node, the capstone tier 3. Nothing closes a path: a hero may learn from every path, in
+  any mix, and in time holds all fifteen. Its title names the path it holds most of.</li>
+  <li><strong>A path ranks up by use.</strong> Each won fight gives every hero XP in each of its paths:
+  the nodes it holds there, plus the times that path's abilities fired for it in the fight (each ability
+  counted three times at most, so a passive that fires on every strike does not race ahead). A hero who
+  fell in the fight gains too; a lost fight, or one ended at its 90-second limit, gives nothing. A path
+  reaches rank 1 at 7 XP, then 17, 35, 63, 105, 168, 245, 343, 455 and rank 10 at 595. Tier 1 is open from
+  the start, tier 2 needs rank 2, tier 3 rank 5 and the capstone rank 9. A rank never goes down.</li>
   <li>Every node is an ability: an <strong>action</strong> the hero does in a fight (with a cooldown), or a
   <strong>passive</strong> that fires when something happens. None is a plain bonus to damage or health.</li>
   <li>A hero uses its abilities from its next fight on. Every action is ready as a fight starts and waits
@@ -663,8 +683,8 @@ of them at once; talents make one hero different from another.</p>
   used least recently (the game remembers, and saves, each hero's order of use). After an action its next
   swing is a plain strike.</li>
   <li>A <strong>reset</strong> gives a hero back every talent point, for 100 gold per level, outside a
-  fight. Paragon points stay.</li>
-  <li>Path ranks, which will make a path stronger the more it is used, are planned (spec 110).
+  fight. Paragon points and path ranks stay.</li>
+  <li>Rank bars and a moment when a path ranks up or a capstone is learned are planned (spec 111).
   <span class="tag planned">Planned</span></li>
 </ul>
 
