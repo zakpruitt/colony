@@ -11,7 +11,7 @@
 ## Intent
 
 The fourth and rarest class found by luck (spec 112). A cache may, rarely, hold a Witch Doctor's
-Mask; a Witch Doctor then waits at camp until its request is paid. It is a healer of a stranger
+Mask; a Witch Doctor then waits at Camp until its request is paid. It is a healer of a stranger
 kind, and goes down in a Cleric's place: Hexer lays hexes that mark, weaken and slow every foe;
 Totems plants totems that mend, hex, ward and rouse the party (spec 115's summons, most of them
 pure auras that never strike); Spirits sends cold spirits that chill foes and drain their life

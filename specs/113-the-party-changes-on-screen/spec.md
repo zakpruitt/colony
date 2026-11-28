@@ -38,7 +38,7 @@ from a command, as the tests make it.
   - `Tab` cycles through the four going down only.
   - A benched hero has one window, `hero_bench`, opened with `HeroWindows.open_hero(hero_id)`. It
     shows the benched hero asked for last, and is a hero window in every way (it moves, layers,
-    closes on `Esc` and is remembered). Its header says `At camp` where a hero going down says what
+    closes on `Esc` and is remembered). Its header says `At Camp` where a hero going down says what
     it is doing, and its health is full.
   - Its Talents tab works: a click on a node that can be taken takes it, and the paragon keys spend
     its points, through the commands spec 112 R5 allows.
@@ -48,7 +48,7 @@ from a command, as the tests make it.
   session: a hero who leaves keeps its session counts and shows them again if it comes back. An
   incoming hero starts the current fight at 0.
 - **R5. The journal says it.**
-  - `ARTIFACT_FOUND`: `Found a Ranger's Whistle: a Ranger waits at camp` (the class's
+  - `ARTIFACT_FOUND`: `Found a Ranger's Whistle: a Ranger waits at Camp` (the class's
     `artifact_name` and name).
   - `HERO_RECRUITED`: `The Ranger joins the colony`.
   - `HERO_FIELDED`: `The Ranger goes down in the Knight's place`.
@@ -86,7 +86,7 @@ real frame.
 |---|---|---|
 | R1 | `test_r1_the_world_follows_a_swap` | A recent swap fades one out and one in, with two puffs and a line from the table; at rest, the incoming hero is at the fire; a stale one changes the sprites at once with nothing else. No sprite for the benched hero |
 | R2 | `test_r2_the_frames_follow` | The frames' classes and levels in formation order after a swap; a click on the changed frame opens the incoming hero's window |
-| R3 | `test_r3_the_windows_follow` | An open window keeps its place and tab and shows the new hero; Tab skips the bench; `open_hero` on a benched hero opens `hero_bench` with `At camp`; a click takes a node for it and the simulation has it; the bench window closes when its hero goes down |
+| R3 | `test_r3_the_windows_follow` | An open window keeps its place and tab and shows the new hero; Tab skips the bench; `open_hero` on a benched hero opens `hero_bench` with `At Camp`; a click takes a node for it and the simulation has it; the bench window closes when its hero goes down |
 | R4 | `test_r4_the_tally_follows` | Rows after a swap, session counts kept and shown again on return, the fight starting at 0 |
 | R5 | `test_r5_the_journal_says_it` | The three lines, with the artifact's and the class's names |
 | R6 | `test_r6_drawn_as_it_looks` | The added class (it looks like the Knight) has the Knight's sheet and picture everywhere, under its own name |

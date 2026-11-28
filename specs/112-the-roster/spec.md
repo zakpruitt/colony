@@ -11,7 +11,7 @@
 Zak decided on 2026-11-27 that Colony grows by more classes, and that heroes are got by recruiting
 at camp. Today the party is fixed at the four heroes a new game makes. This spec lets the colony hold
 more heroes than the four who go down. Every new class is a lucky find, as Zak chose: a cache
-(spec 093) may hold a class's artifact, such as a Ranger's Whistle, and its hero then waits at camp
+(spec 093) may hold a class's artifact, such as a Ranger's Whistle, and its hero then waits at Camp
 with a request, its price, which recruits it once paid. The player chooses which four go down. It is
 the simulation and the save only. Spec 113 makes the screen follow a change of party, and spec 114 is the window to
 recruit and choose in. No class can be recruited until the first new class's spec adds one, so
@@ -49,11 +49,11 @@ nothing the game does changes yet.
   - The chances are each class spec's to set (see "How the chances were chosen"): the first find
     within 30 minutes on most seeds, all four within a few hours, the Witch Doctor's the rarest.
 - **R3. Recruiting: the request paid.**
-  - A class whose artifact is found and that has no hero in the colony waits at camp
+  - A class whose artifact is found and that has no hero in the colony waits at Camp
     (`Roster.is_waiting`). Its request is its price, which spec 114 words as the hero's quest:
     `Bring 300 gold and 40 Glowcaps`.
   - `roster.recruit(class_id)` pays the request. On the next step the hero joins the colony
-    if the class exists and waits at camp, the colony has no hero of that class yet, and the party can
+    if the class exists and waits at Camp, the colony has no hero of that class yet, and the party can
     pay both prices. The colony holds one hero of each class: every sentence in the game names a hero
     by its class ("The Knight learned Taunt"), and two Knights could not be told apart.
   - The recruit arrives at the level of the lowest-levelled hero going down, with exactly the XP that

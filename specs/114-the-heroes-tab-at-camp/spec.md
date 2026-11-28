@@ -27,10 +27,10 @@ at camp.
   - The tag on the bar's Camp button counts the upgrades the party can pay for plus the classes it
     can recruit now (`Roster.can_recruit`).
 - **R2. The four and the bench.**
-  - The Heroes tab has two groups, `Going down` (the four, in formation order) and `At camp` (the
+  - The Heroes tab has two groups, `Going down` (the four, in formation order) and `At Camp` (the
     benched heroes, by id).
   - Each hero is a card: its picture (`HeroClassDef.look()`), class, level, and the title spec 109
-    gives it. A card at camp adds `At camp`. Pointing at a card shows a tooltip with its level, its
+    gives it. A card at camp adds `At Camp`. Pointing at a card shows a tooltip with its level, its
     unspent talent points and its path ranks.
   - A click on a card's picture opens that hero's window (`HeroWindows.open_hero`).
   - With no hero at camp, the group says `No one at camp. Recruit below.`
@@ -62,7 +62,7 @@ at camp.
     class spec may add its own artifact's picture to that sheet.
 - **R5. Moments.**
   - For a recent `ARTIFACT_FOUND`, a banner shows the artifact's picture with `Found a Ranger's
-    Whistle` and under it `A Ranger waits at camp`.
+    Whistle` and under it `A Ranger waits at Camp`.
   - For a recent `HERO_RECRUITED`, the new hero's card bursts (spec 063's `UiMoment.burst`) and a
     banner shows its picture with `The Ranger joins the colony`.
   - For a recent `HERO_FIELDED`, both cards burst; no banner.
