@@ -129,6 +129,8 @@ var _windups: Dictionary[int, Vector2i] = {}
 var _bolts: Array[Bolt] = []
 var _new_bolts: Array[Bolt] = []
 var _built: Array[int] = []
+## A change of the four going down was heard: hero sprites are looked over for one not going down.
+var _party_changed: bool = false
 var _scan_due: bool = true
 var _scan_in: float = 0.0
 ## The simulation tick at the last sync, or -1 before the first.
@@ -635,8 +637,9 @@ func _remove_unwanted() -> void:
 		if _sprites[id].is_dead() or _waiting.has(id) or _in_fight(id):
 			continue
 		_remove(id)
-	if _sprites.size() - _monsters.size() <= simulation.party.heroes.size():
-		return  # every other sprite is a hero going down's (a summon only stands beside them)
+	if not _party_changed:
+		return
+	_party_changed = false
 	for id: int in _sprites.keys():
 		if _monsters.has(id) or summons.has(id) or _goes_down(id):
 			continue
@@ -668,6 +671,8 @@ func _remove_finished() -> void:
 func _show(event: SimEvent, animate: bool) -> void:
 	var age: float = float(simulation.tick - event.tick) / Simulation.TICKS_PER_SECOND
 	match event.kind:
+		SimEvent.Kind.HERO_FIELDED:
+			_party_changed = true
 		SimEvent.Kind.ATTACK_STARTED:
 			_windups[event.source_id] = Vector2i(event.target_id, event.tick + event.amount)
 			var attacker: CharacterSprite = character(event.source_id)

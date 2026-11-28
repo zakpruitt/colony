@@ -8,7 +8,8 @@ extends Node
 ##
 ## A benched hero has one window, [constant BENCH_ID], a hero window in every way, which shows the
 ## benched hero asked for last ([method open_hero]); it is made the first time one is asked for
-## (or as the game starts, when the bench has heroes), and closes when its hero goes down.
+## (or as the game starts, when the bench has heroes), and closes when its hero goes down. It
+## neither counts toward nor takes the places below: it has its own, cascaded on the first.
 ##
 ## A click on a hero's frame opens or closes its window ([method toggle]); [kbd]Tab[/kbd] opens the
 ## next hero's window and brings it to the front ([method open_next]); [kbd]Shift+Tab[/kbd] closes
@@ -135,7 +136,7 @@ func place_defaults() -> void:
 	if side_by_side:
 		_places.append(left.position)
 		_places.append(right.position)
-		for k: int in range(1, _all.size() - 1):
+		for k: int in range(1, _field.size() - 1):
 			# Set right and down from the left one, but never so far down it meets the frames.
 			var place: Vector2 = left.position + CASCADE * k
 			place.y = maxf(minf(place.y, frames - window_size.y), band)
@@ -147,11 +148,22 @@ func place_defaults() -> void:
 		window_size = _all[0].size
 		# The last of the cascade ends left of the button bar.
 		var limit: float = (bar.position.x if bar.has_area() else room.x - GAP) - window_size.x
-		var step: float = minf(CASCADE.x, floorf((limit - GAP) / maxf(_all.size() - 1, 1)))
-		for k: int in _all.size():
+		var step: float = minf(CASCADE.x, floorf((limit - GAP) / maxf(_field.size() - 1, 1)))
+		for k: int in _field.size():
 			_places.append(Vector2(GAP + maxf(step, 0.0) * k, band + CASCADE.y * (k % 2)))
-	for made: HeroWindow in _all:
+	for made: HeroWindow in _field:
 		made.default_place = _places[_place_of.get(made, 0)].round()
+	_place_bench(frames)
+
+
+## The bench window's own place, which no place window counts or takes: set right and down from
+## the first place, kept above the frames' line at [param frames].
+func _place_bench(frames: float) -> void:
+	if _bench == null or _places.is_empty():
+		return
+	var place: Vector2 = _places[0] + CASCADE
+	place.y = maxf(minf(place.y, frames - _bench.size.y), _places[0].y)
+	_bench.default_place = place.round()
 
 
 ## True when [param rect] is clear of the frames' line at [param frames] and of [param bar].
@@ -505,7 +517,7 @@ func _on_moved(_window: UiWindow, shown: HeroWindow) -> void:
 ## The windows changed (one came to the front, or every place was reset): an open window never
 ## dragged that holds no place takes one.
 func _on_windows_changed() -> void:
-	for shown: HeroWindow in _all:
+	for shown: HeroWindow in _field:
 		if shown.is_open() and not shown.placed and not _place_of.has(shown):
 			_take_place(shown)
 	changed.emit()
@@ -513,6 +525,9 @@ func _on_windows_changed() -> void:
 
 ## Puts [param shown] at the first place no other open, undragged hero window holds.
 func _take_place(shown: HeroWindow) -> void:
+	if shown == _bench:
+		shown.place_at(shown.default_place, Vector2(_ui.room()))
+		return  # the bench window has a place of its own
 	if _places.is_empty():
 		return
 	var held: Array[int] = []

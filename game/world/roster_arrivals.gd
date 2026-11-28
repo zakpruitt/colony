@@ -75,10 +75,13 @@ func advance(delta: float) -> void:
 	if _to_place.is_empty() and _arriving.is_empty() and _leaving.is_empty():
 		return  # the many frames with no change of the four: nothing to look at or allocate
 	for id: int in _to_place.keys():
+		_to_place.erase(id)
 		var sprite: CharacterSprite = _world.character(id)
 		if sprite == null:
+			# The world made it none (its class has no sheet): nothing to stand, fade or say.
+			_arriving.erase(id)
+			_lines.erase(id)
 			continue
-		_to_place.erase(id)
 		_stand(id, sprite)
 	for id: int in _arriving.keys():
 		var t: float = _arriving[id] + delta

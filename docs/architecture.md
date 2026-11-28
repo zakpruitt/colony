@@ -162,8 +162,9 @@ The picture is drawn in two layers, each in its own pixels.
   queue drops in on the next frame; none has a `_process` of its own.
 - **Hero windows** (spec 060, `game/ui/windows/`): `HeroWindows`, made by `UiRoot.setup` and handed to the
   `Hud`, owns one `HeroWindow` per place in the line, registered as `hero_0` to `hero_3`, and one
-  for the bench (spec 113, "Views that follow the party"). All four are as tall as the tallest needs, so lines line up across them. Places go by what is
-  open: an undragged window takes, as it opens, the first free one of `HeroWindows._places` (left
+  for the bench (spec 113, "Views that follow the party"). Every hero window, the bench's too, is
+  as tall as the tallest needs, so lines line up across them. Places go by what is open: an
+  undragged place window takes, as it opens, the first free one of `HeroWindows._places` (left
   column, right column, then a cascade at 1280x720; a cascade at 960x540, where the windows are made
   short enough that two clear the frames' line, the cascade clears the bar (`UiButtonBar.rect_in`) and
   the tabs' content scrolls in `HeroWindow.scroll`, the Talents tab's `top_row` standing above it).
@@ -712,8 +713,10 @@ none keeps a hero for good, each keeps a place in the line and shows whoever sta
   hero's is asked for (`open_hero`, or as the game starts with a bench), one for the bench
   (`BENCH_ID`, `id_for(-1)`), a hero window in every way. `HeroWindow.show_hero` rebuilds the tabs for
   another hero, keeping the window's place, open tab and height. A benched hero's header says `At
-  camp` with full health. Tab goes round the four only; the bench window closes when its hero goes
-  down. Places are held by window, not by hero (`_place_of`).
+  Camp` with full health. Tab goes round the four only; the bench window closes when its hero goes
+  down. Places are held by window, not by hero (`_place_of`); the bench window holds none of them
+  and does not count toward them, but has its own default, cascaded on the first place
+  (`_place_bench`), so the four place windows sit where they always did.
 - **The tally.** Counts stay by hero id for the session; `HERO_FIELDED` clears only the incoming
   hero's last fight. `TallyWindow` rows are places too (`_row_ids`, a press opens the row's hero).
 - **The journal** writes `ARTIFACT_FOUND`, `HERO_RECRUITED` and `HERO_FIELDED`.

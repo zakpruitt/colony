@@ -23,11 +23,12 @@ func before_each() -> void:
 # --- Helpers -------------------------------------------------------------------
 
 
-## The main scene at 1280x720 with the test class's hero recruited onto the bench, the world
-## past its first sync, and every event the world tells kept in [member _heard].
-func _with_recruit() -> Main:
+## The main scene in [param room] with the test class's hero recruited onto the bench, the world
+## past its first sync, and every event the world tells kept in [member _heard]; its windows are
+## remembered in [param settings] (none with null).
+func _with_recruit(settings: SoundSettings = null, room: Vector2i = ROOM_LARGE) -> Main:
 	var class_id: StringName = add_recruit_class()
-	var main: Main = _main(ROOM_LARGE)
+	var main: Main = _main(room, settings)
 	main.world.sim_event.connect(func(event: SimEvent) -> void: _heard.append(event))
 	var sim: Simulation = main.simulation
 	sim.party.gold = RICH
@@ -190,6 +191,25 @@ func test_r1_the_world_follows_a_swap() -> void:
 	assert_eq(_sprites_of(main, KNIGHT_SHEET), 1, "one sprite of the Knight's sheet")
 
 
+func test_r1_a_hero_with_no_sheet_leaves_nothing_behind() -> void:
+	var main: Main = _with_recruit()
+	Content.hero_class(RECRUIT_CLASS).looks_like = &""  # no sheet of its own, none to borrow
+	_camp_out(main)
+	assert_true(_swap(main, RECRUIT, KNIGHT), "the swap is made")
+	_run_for(main, RosterArrivals.FADE_SECONDS * 2.0)
+	assert_null(main.world.character(RECRUIT), "no sprite could be made for the recruit")
+	assert_null(main.world.character(KNIGHT), "the Knight's is not the world's")
+	assert_eq(_sprites_of(main, KNIGHT_SHEET), 0, "and is gone")
+	assert_true(main.world.arrivals._to_place.is_empty(), "nobody is left waiting to stand")
+	# The missing sheet is reported, as for any hero without one: that is the content's fault.
+	var reported: int = 0
+	for error: GutTrackedError in get_errors():
+		if error.contains_text("no sheet at " + CharacterSprite.HEROES_DIR):
+			error.handled = true
+			reported += 1
+	assert_gt(reported, 0, "the missing sheet is reported")
+
+
 # --- R2 ------------------------------------------------------------------------
 
 
@@ -287,6 +307,57 @@ func test_r3_the_windows_follow() -> void:
 	assert_string_contains(place.line(&"class") if place != null else "", "Knight")
 
 
+func test_r3_the_bench_window_is_remembered() -> void:
+	var main: Main = _with_recruit(SoundSettings.new(_settings_path))
+	var windows: HeroWindows = main.hud.hero_windows
+	windows.open_hero(RECRUIT)
+	var bench: HeroWindow = windows.window_of(RECRUIT)
+	assert_eq(bench.window_id, HeroWindows.BENCH_ID, "the bench window")
+	assert_true(bench.is_open(), "open")
+	var was: Vector2 = bench.position
+	_drag(main.ui, bench, Vector2(40, 30))
+	assert_eq(bench.position, was + Vector2(40, 30), "dragged by its title bar")
+	assert_true(SaveStore.new(_save_path).write(main.simulation.to_save()), "the game saved")
+	main.free()
+
+	var again: Main = make_main()
+	again.settings = SoundSettings.new(_settings_path)
+	again.save_store = SaveStore.new(_save_path)
+	add_child_autofree(again)
+	again.ui.windows.open_waiting()
+	await _frames()
+	var back: HeroWindow = again.hud.hero_windows.window_of(RECRUIT)
+	assert_not_null(back, "the benched hero has its window again")
+	if back == null:
+		return
+	assert_eq(back.window_id, HeroWindows.BENCH_ID, "the bench window")
+	assert_true(back.is_open(), "open as it was")
+	assert_eq(back.position, was + Vector2(40, 30), "where it was left")
+	assert_eq(back.line(&"activity"), "At Camp", "a benched hero")
+	again.save_store = null
+
+
+func test_r3_the_bench_window_moves_no_place_window() -> void:
+	for room: Vector2i in [ROOM_LARGE, ROOM_SMALL]:
+		var plain: Main = _main(room)
+		var defaults: Array[Vector2] = []
+		for i: int in 4:
+			defaults.append(plain.ui.windows.window(HeroWindows.id_for(i)).default_place)
+		plain.free()
+		var main: Main = _with_recruit(null, room)
+		var windows: HeroWindows = main.hud.hero_windows
+		windows.open_hero(RECRUIT)
+		windows.open(main.simulation.party.heroes[0].id)
+		var first: UiWindow = main.ui.windows.window(HeroWindows.id_for(0))
+		assert_eq(first.position, first.default_place, "%s: the first place's window" % room)
+		for i: int in 4:
+			var place: UiWindow = main.ui.windows.window(HeroWindows.id_for(i))
+			assert_eq(place.default_place, defaults[i], "%s: hero_%d's default" % [room, i])
+		var bench: HeroWindow = windows.window_of(RECRUIT)
+		assert_eq(bench.position, (first.default_place + HeroWindows.CASCADE).round(), "cascaded")
+		main.free()
+
+
 # --- R4 ------------------------------------------------------------------------
 
 
@@ -310,20 +381,18 @@ func test_r4_the_tally_follows() -> void:
 	main.hud.advance(STEP)
 	assert_eq(_row_of(main, knight), "", "the Knight has no row")
 
-	# The recruit fights; the Knight comes back with its session's counts.
+	# Straight back at the same camp, with no fight begun between: the Knight starts the fight
+	# under way at 0, and its session's counts are kept.
 	tally.set_span(Tally.Span.LAST_FIGHT)
-	counts.observe(SimEvent.new(SimEvent.Kind.ENCOUNTER_STARTED, sim.tick, -1, -1, 0))
-	counts.observe(SimEvent.new(SimEvent.Kind.HIT, sim.tick, RECRUIT, 100, 30))
-	main.hud.advance(STEP)
-	assert_string_starts_with(_row_of(main, recruit), "Test Recruit 30 ")
 	assert_true(_swap(main, KNIGHT, RECRUIT), "swapped back")
 	main.hud.advance(STEP)
 	assert_eq(_tally_names(main), _names_of(sim.party.heroes), "the four again")
 	assert_eq(_row_of(main, knight), "Knight 0 0%", "back in the fight under way at 0")
+	assert_eq(counts.value(KNIGHT, Tally.Measure.DAMAGE, Tally.Span.LAST_FIGHT), 0, "cleared")
 	tally.set_span(Tally.Span.SESSION)
 	main.hud.advance(STEP)
 	assert_string_starts_with(_row_of(main, knight), "Knight 70 ")
-	assert_eq(counts.value(RECRUIT, Tally.Measure.DAMAGE, Tally.Span.SESSION), 30, "kept")
+	assert_eq(counts.value(KNIGHT, Tally.Measure.DAMAGE, Tally.Span.SESSION), 70, "kept")
 	tally.open_hero(KNIGHT)
 	main.hud.advance(STEP)
 	assert_eq(tally.opened_hero(), KNIGHT, "the Knight's line opens")
