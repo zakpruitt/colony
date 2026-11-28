@@ -175,6 +175,8 @@ new shape and content first, then the ranks, then the window.
 | 116 | [Summoned allies on screen](116-summoned-allies-on-screen/spec.md) (a placeholder creature with its puffs and moves; its numbers and tally lines credited to its summoner): in progress | 113, 115 |
 | 117 | [The Ranger](117-the-ranger/spec.md) (the first class found by luck: a Ranger's Whistle in a cache, 300 gold and 40 Glowcaps; Beastcaller, Marksman and Trapper, 15 abilities with pictures, beasts as summons; drawn as the Rogue): approved | 112, 113, 114, 115, 116 |
 | 118 | [The Bard](118-the-bard/spec.md) (a Bard's Lute, 500 gold and 25 clay; Valor, Lullaby and Ballad, 15 songs with pictures, no summons; drawn as the Cleric): approved | 112, 113, 114, 117 |
+| 119 | [The Tinker](119-the-tinker/spec.md) (a Tinker's Wrench, 800 gold and 30 old bones; Turrets, Demolition and Gadgets, 15 abilities with pictures, turrets, a decoy and a clockwork guard as summons; drawn as the Knight): approved | 112, 113, 114, 115, 116, 118 |
+| 120 | [The Witch Doctor](120-the-witch-doctor/spec.md) (the rarest find, a Witch Doctor's Mask, 1200 gold and 25 embers; a healer in the Cleric's place, about 10% under it; Hexer, Totems and Spirits, 15 abilities with pictures, totems as summons; drawn as the Mage): approved | 112, 113, 114, 115, 116, 119 |
 
 Zak then chose (2026-11-27) more classes over splitting a class, heroes got by recruiting at camp
 (every new class a lucky find: an artifact in a cache, then a request to pay),

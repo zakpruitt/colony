@@ -262,6 +262,7 @@ the pull request. A test that fails for any other reason is a bug in the lane's 
   its clean-up), and the files in "Tests that change"
 - `docs/architecture.md` (the roster, the save version), `docs/wiki/index.html` (only lines this
   makes false)
+- `tests/acceptance/test_004_combat_core.gd` (its `_hero_def` gains an artifact name, a chance and a gold price, so a made-up class passes R1's check), and `test_109_three_paths_of_five.gd`, `test_110_ranks_by_use.gd` (their save version only)
 
 ## Open questions
 
