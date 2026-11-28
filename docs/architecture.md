@@ -687,7 +687,7 @@ names a hero by its class.
   (`is_waiting`: found, and none of it in the colony); the hero joins the bench at the level of the
   lowest going down with that level's XP, every point unspent, every path at 0 (`HERO_RECRUITED`: source
   the new id, one more than the largest, target the class's place, amount the gold). `swap(bench_id,
-  field_id)` waits (`waiting()`, not saved) for a step that begins with the party travelling or resting,
+  field_id)` waits (`waiting()`, not saved) for a step that begins with the party resting at camp,
   then each swap still true is made: the newcomer stands at full health and the four are sorted again
   (`HERO_FIELDED`: source in, target out). Bad ids do nothing.
 - **Hash.** `Party.hash_parts` adds the bench and the artifacts only while either holds something.

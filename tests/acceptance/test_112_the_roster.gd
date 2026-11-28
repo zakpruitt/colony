@@ -331,8 +331,8 @@ func _check_refused(sim: Simulation, what: String) -> void:
 # --- R4 ------------------------------------------------------------------------
 
 
-## R4: a swap is made on the first step the party travels or rests, the four by role; one asked
-## in a fight waits for its end; a stale one is dropped, and bad ids do nothing.
+## R4: a swap waits for the party to rest at camp and is made on the first step that begins
+## resting, the four by role; a stale one is dropped, and bad ids do nothing.
 func test_r4_choosing_the_four() -> void:
 	var sim: Simulation = _with_recruit(1, Labyrinth.Shape.FLAT)
 	var recruit: Hero = sim.party.hero(FIRST_RECRUIT)
@@ -345,63 +345,44 @@ func test_r4_choosing_the_four() -> void:
 	recruit.health = 1
 	assert_eq(sim.expedition.state, Expedition.State.TRAVELLING, "travelling")
 	sim.roster.swap(FIRST_RECRUIT, 2)
-	assert_eq(sim.roster.waiting(), [Vector2i(FIRST_RECRUIT, 2)] as Array[Vector2i], "listed")
-	var events: Array[SimEvent] = _step(sim)
-	var fielded: Array[SimEvent] = _of_kind(events, SimEvent.Kind.HERO_FIELDED)
-	assert_eq(fielded.size(), 1, "made on the next step")
-	if fielded.size() == 1:
-		assert_eq(fielded[0].source_id, FIRST_RECRUIT, "the hero who came in")
-		assert_eq(fielded[0].target_id, 2, "the hero who left")
+	var asked: Array[Vector2i] = [Vector2i(FIRST_RECRUIT, 2)]
+	assert_eq(sim.roster.waiting(), asked, "listed")
+	var made: Array[SimEvent] = _until_swapped(sim, asked)
+	assert_eq(made.size(), 1, "made at the rest")
+	if made.size() != 1:
+		return
+	assert_eq(made[0].source_id, FIRST_RECRUIT, "the hero who came in")
+	assert_eq(made[0].target_id, 2, "the hero who left")
 	# The recruit is a tank, as the Knight is: tanks first, then by id.
 	assert_eq(
 		_hero_ids(sim.party.heroes), [1, FIRST_RECRUIT, 3, 4] as Array[int], "by role, then id"
 	)
 	assert_eq(_hero_ids(sim.party.bench), [2] as Array[int], "the rogue is benched")
 	assert_eq(recruit.health, recruit.max_health(), "comes in at full health")
-	assert_eq(
-		[rogue.level, rogue.xp, rogue.talents(), rogue.ranks.xp(0)], kept, "the rogue keeps all"
-	)
+	# It fought until the rest, so it may have earned more; it lost nothing.
+	assert_eq([rogue.level, rogue.talents()], [kept[0], kept[2]], "the rogue keeps its level")
+	assert_gte(rogue.xp, kept[1] as int, "its XP")
+	assert_gte(rogue.ranks.xp(0), kept[3] as int, "its path XP")
 	assert_eq(rogue.paragon_rank(TrainingDef.Stat.POWER), 1, "and its paragon")
 	assert_true(sim.roster.waiting().is_empty(), "nothing waits")
 
-	# Asked during a fight, it waits, and a second one for the same bench hero goes stale.
+	# Two asked after the rest: the second, for the same bench hero, goes stale.
 	assert_true(
 		step_until(
 			sim,
-			func() -> bool: return sim.expedition.state == Expedition.State.FIGHTING,
+			func() -> bool: return sim.expedition.state != Expedition.State.RESTING,
 			LIMIT_TICKS_3_MIN
 		),
-		"a fight"
+		"the rest ends"
 	)
 	sim.roster.swap(2, FIRST_RECRUIT)
 	sim.roster.swap(2, 3)
-	var asked: Array[Vector2i] = [Vector2i(2, FIRST_RECRUIT), Vector2i(2, 3)]
+	asked = [Vector2i(2, FIRST_RECRUIT), Vector2i(2, 3)]
 	assert_eq(sim.roster.waiting(), asked, "both listed, in order")
-	var made: Array[SimEvent] = []
-	var states: Array[Expedition.State] = []
-	for i: int in LIMIT_TICKS_3_MIN:
-		states.append(sim.expedition.state)
-		var heard: Array[SimEvent] = _of_kind(_step(sim), SimEvent.Kind.HERO_FIELDED)
-		if not heard.is_empty():
-			made = heard
-			break
-		assert_eq(sim.roster.waiting(), asked, "still waiting")
-		if sim.roster.waiting() != asked:
-			break
+	made = _until_swapped(sim, asked)
 	assert_eq(made.size(), 1, "one swap made, the stale one dropped")
 	if made.size() != 1:
 		return
-	assert_true(states.has(Expedition.State.FIGHTING), "it waited through the fight")
-	var at: Expedition.State = states[states.size() - 1]
-	assert_true(
-		at == Expedition.State.TRAVELLING or at == Expedition.State.RESTING,
-		"made on a step that began travelling or resting"
-	)
-	for state: Expedition.State in states.slice(0, states.size() - 1):
-		assert_true(
-			state != Expedition.State.TRAVELLING and state != Expedition.State.RESTING,
-			"on the first such step"
-		)
 	assert_eq(made[0].source_id, 2, "the rogue came in")
 	assert_eq(made[0].target_id, FIRST_RECRUIT, "the recruit left")
 	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four of a new game")
@@ -418,6 +399,35 @@ func test_r4_choosing_the_four() -> void:
 	assert_eq(_hero_ids(sim.party.heroes), [1, 2, 3, 4] as Array[int], "the four unchanged")
 
 
+## Plays [param sim] until a swap is made, keeping the last hero going down at 1 health while
+## the party travels so that its next won fight ends in a rest. Checks that [param asked] waits,
+## listed, through travel and the fight, and is made on the first step that begins resting.
+## Returns the HERO_FIELDED events of that step.
+func _until_swapped(sim: Simulation, asked: Array[Vector2i]) -> Array[SimEvent]:
+	var states: Array[Expedition.State] = []
+	for i: int in LIMIT_TICKS_5_MIN:
+		var state: Expedition.State = sim.expedition.state
+		if state == Expedition.State.TRAVELLING:
+			var last: Hero = sim.party.heroes[sim.party.heroes.size() - 1]
+			last.health = mini(last.health, 1)
+		states.append(state)
+		var heard: Array[SimEvent] = _of_kind(_step(sim), SimEvent.Kind.HERO_FIELDED)
+		if not heard.is_empty():
+			assert_eq(state, Expedition.State.RESTING, "made on a step that began resting")
+			assert_false(
+				states.slice(0, states.size() - 1).has(Expedition.State.RESTING),
+				"on the first such step"
+			)
+			assert_true(states.has(Expedition.State.TRAVELLING), "it waited while travelling")
+			assert_true(states.has(Expedition.State.FIGHTING), "and through a fight")
+			return heard
+		if sim.roster.waiting() != asked:
+			fail_test("the swaps waiting changed: %s" % [sim.roster.waiting()])
+			return []
+	fail_test("no swap made within %d ticks" % LIMIT_TICKS_5_MIN)
+	return []
+
+
 # --- R5 ------------------------------------------------------------------------
 
 
@@ -425,7 +435,7 @@ func test_r4_choosing_the_four() -> void:
 func test_r5_a_benched_hero() -> void:
 	var sim: Simulation = _with_recruit(1, Labyrinth.Shape.FLAT)
 	sim.roster.swap(FIRST_RECRUIT, 2)
-	_step(sim)
+	_until_swapped(sim, [Vector2i(FIRST_RECRUIT, 2)] as Array[Vector2i])
 	var rogue: Hero = sim.party.hero(2)
 	assert_eq(sim.party.bench, [rogue] as Array[Hero], "the rogue is benched")
 	raise(rogue, 4)
@@ -506,7 +516,7 @@ func test_r5_a_benched_hero() -> void:
 func test_r6_saves() -> void:
 	var sim: Simulation = _with_recruit(1, Labyrinth.Shape.FLAT)
 	sim.roster.swap(FIRST_RECRUIT, 2)
-	_step(sim)
+	_until_swapped(sim, [Vector2i(FIRST_RECRUIT, 2)] as Array[Vector2i])
 	var rogue: Hero = sim.party.hero(2)
 	raise(rogue, 6)
 	rogue.take_talent(_tree(&"rogue").path(0).nodes[0])

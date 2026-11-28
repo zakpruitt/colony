@@ -5,8 +5,9 @@ extends RefCounted
 ## from it so it has room.
 ##
 ## The colony holds one hero of each class, since every sentence in the game names a hero by its
-## class. A recruit joins the bench; a swap is made only while the party travels or rests, so no
-## fight, climb, quest or journey loses a hero part way.
+## class. A recruit joins the bench; a swap is made only while the party rests at camp, where
+## everyone heals anyway, so a swap gives no free heal and no hero leaves part way through a fight,
+## a climb, a quest, a journey or a side path it opened.
 
 ## How many heroes go down.
 const FIELD_SIZE: int = 4
@@ -17,11 +18,15 @@ var _expedition: Expedition
 var _recruits: Array[StringName] = []
 ## Swaps asked for by [method swap] and not yet made, in order: (bench id, field id).
 var _swaps: Array[Vector2i] = []
+## What [method apply] returns on the many steps with nothing to do: shared and read-only, so a
+## quiet step allocates nothing.
+var _none: Array[SimEvent] = []
 
 
 func _init(party: Party, expedition: Expedition) -> void:
 	_party = party
 	_expedition = expedition
+	_none.make_read_only()
 
 
 ## Asks to recruit the hero of [param class_id] on the next step. It joins the bench then if the
@@ -32,7 +37,7 @@ func recruit(class_id: StringName) -> void:
 
 
 ## Asks for benched hero [param bench_id] to go down in place of [param field_id], on the first
-## step on which the party travels or rests. Ids that are not a benched hero and one going down
+## step on which the party rests at camp. Ids that are not a benched hero and one going down
 ## do nothing.
 func swap(bench_id: int, field_id: int) -> void:
 	if _is_benched(bench_id) and _is_fielded(field_id):
@@ -88,18 +93,19 @@ func still_hidden() -> int:
 
 
 ## Called by [method Simulation.step] after the talent commands: recruits what was asked for and,
-## while the party travels or rests, makes the swaps waiting. Returns the events, stamped
-## [param tick].
+## while the party rests, makes the swaps waiting. Returns the events, stamped [param tick]; on a
+## step with nothing done, a shared read-only empty list.
 func apply(tick: int) -> Array[SimEvent]:
+	var resting: bool = _expedition.state == Expedition.State.RESTING
+	if _recruits.is_empty() and (_swaps.is_empty() or not resting):
+		return _none
 	var events: Array[SimEvent] = []
-	var asked: Array[StringName] = _recruits
-	_recruits = []
-	for class_id: StringName in asked:
-		_recruit(class_id, tick, events)
-	var state: Expedition.State = _expedition.state
-	if _swaps.is_empty():
-		return events
-	if state != Expedition.State.TRAVELLING and state != Expedition.State.RESTING:
+	if not _recruits.is_empty():
+		var asked: Array[StringName] = _recruits
+		_recruits = []
+		for class_id: StringName in asked:
+			_recruit(class_id, tick, events)
+	if _swaps.is_empty() or not resting:
 		return events
 	var swaps: Array[Vector2i] = _swaps
 	_swaps = []
