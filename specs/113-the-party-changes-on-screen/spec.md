@@ -1,6 +1,6 @@
 # 113 — The party changes on screen
 
-- **Status:** approved (2026-11-27)
+- **Status:** in progress (approved 2026-11-27)
 - **Milestone:** M9
 - **Depends on:** 102, 105, 112 (and 111, whose Paths hold `hero_windows.gd`, `hero_window.gd` and
   `journal.gd`)
